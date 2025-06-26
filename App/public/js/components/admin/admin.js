@@ -259,53 +259,7 @@ class AdminManager {
   }
 
   initUserBanActions() {
-    document.addEventListener('click', (e) => {
-      const banButton = e.target.closest('.ban-user');
-      const unbanButton = e.target.closest('.unban-user');
-      
-      if (banButton) {
-        const userId = banButton.getAttribute('data-id');
-        const username = banButton.getAttribute('data-username');
-        
-        this.showBanConfirmation(userId, username, false);
-      } else if (unbanButton) {
-        const userId = unbanButton.getAttribute('data-id');
-        const username = unbanButton.getAttribute('data-username');
-        
-        this.showBanConfirmation(userId, username, true);
-      }
-    });
-  }
-  
-  showBanConfirmation(userId, username, isUnban) {
-    const action = isUnban ? 'unban' : 'ban';
-    const title = isUnban ? 'Unban User' : 'Ban User';
-    const message = isUnban ? 
-      `Are you sure you want to unban <span class="text-white font-semibold">${username}</span>? They will be able to use the app again.` : 
-      `Are you sure you want to ban <span class="text-white font-semibold">${username}</span>? This will prevent them from using the app.`;
     
-    this.showDiscordConfirmation(title, message, async () => {
-      try {
-        const response = await fetch(`/api/admin/users/${userId}/toggle-ban`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-          }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          showToast(`User ${isUnban ? 'unbanned' : 'banned'} successfully`, "success");
-          window.userManager.loadUsers();
-        } else {
-          showToast(data.message || `Failed to ${action} user`, "error");
-        }
-      } catch (error) {
-        showToast(`An error occurred while trying to ${action} the user`, "error");
-      }
-    });
   }
   
   showDiscordConfirmation(title, message, confirmCallback) {

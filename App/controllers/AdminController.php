@@ -89,7 +89,7 @@ class AdminController extends BaseController
                     'username' => $userData['username'] ?? 'Unknown User',
                     'discriminator' => $userData['discriminator'] ?? '0000',
                     'email' => $userData['email'] ?? '',
-                    'status' => $userData['status'] ?? 'offline',
+                    'status' => $userData['status'] ?? 'active',
                     'display_name' => $userData['display_name'] ?? $userData['username'] ?? 'Unknown User',
                     'avatar_url' => $userData['avatar_url'] ?? null,
                     'banner_url' => $userData['banner_url'] ?? null,
@@ -147,7 +147,7 @@ class AdminController extends BaseController
                 'username' => $userData['username'] ?? 'Unknown User',
                 'discriminator' => $userData['discriminator'] ?? '0000',
                 'email' => $userData['email'] ?? '',
-                'status' => $userData['status'] ?? 'offline',
+                'status' => $userData['status'] ?? 'active',
                 'display_name' => $userData['display_name'] ?? $userData['username'] ?? 'Unknown User',
                 'avatar_url' => $userData['avatar_url'] ?? null,
                 'banner_url' => $userData['banner_url'] ?? null,
@@ -458,98 +458,34 @@ class AdminController extends BaseController
         $this->requireAdmin();
         
         try {
-            if (function_exists('logger')) {
-                logger()->debug("AdminController: toggleUserBan called", [
-                    'user_id' => $userId,
-                    'request_method' => $_SERVER['REQUEST_METHOD'],
-                    'request_uri' => $_SERVER['REQUEST_URI'],
-                    'is_ajax' => $this->isAjaxRequest() ? 'yes' : 'no',
-                    'is_api' => $this->isApiRoute() ? 'yes' : 'no'
-                ]);
-            }
-            
-            require_once __DIR__ . '/../database/repositories/UserRepository.php';
-            $userRepository = new UserRepository();
-            
-            $user = $userRepository->find($userId);
+            $user = $this->userRepository->find($userId);
             
             if (!$user) {
-                if (function_exists('logger')) {
-                    logger()->warning("AdminController: User not found in toggleUserBan", [
-                        'user_id' => $userId
-                    ]);
-                }
                 return $this->notFound("User not found");
             }
             
             if (isset($user->email) && $user->email === 'admin@admin.com') {
-                if (function_exists('logger')) {
-                    logger()->warning("AdminController: Attempt to modify admin user", [
-                        'user_id' => $userId
-                    ]);
-                }
                 return $this->forbidden("Cannot modify admin user status");
             }
             
             $currentStatus = $user->status;
             $newStatus = $currentStatus === 'banned' ? 'active' : 'banned';
             
-            if (function_exists('logger')) {
-                logger()->info("AdminController: Toggling user status", [
-                    'user_id' => $userId,
-                    'current_status' => $currentStatus,
-                    'new_status' => $newStatus
-                ]);
-            }
-            
-            $updated = $userRepository->update($userId, [
+            $updated = $this->userRepository->update($userId, [
                 'status' => $newStatus
             ]);
             
             if (!$updated) {
-                if (function_exists('logger')) {
-                    logger()->error("AdminController: Failed to update user status", [
-                        'user_id' => $userId,
-                        'current_status' => $currentStatus,
-                        'new_status' => $newStatus
-                    ]);
-                }
                 return $this->serverError("Failed to update user status");
             }
             
             $actionType = $newStatus === 'banned' ? 'banned' : 'unbanned';
             
-            $this->logActivity("user_{$actionType}", [
-                'admin_id' => $this->getCurrentUserId(),
-                'user_id' => $userId
-            ]);
-                    
-            if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                header('Content-Type: application/json');
-            }
-            
-            $response = [
+            return $this->success([
                 'user_id' => $userId,
                 'status' => $newStatus
-            ];
-            
-            if (function_exists('logger')) {
-                logger()->debug("AdminController: User status updated successfully", [
-                    'user_id' => $userId,
-                    'new_status' => $newStatus,
-                    'response' => $response
-                ]);
-            }
-            
-            return $this->success($response, "User has been {$actionType} successfully");
+            ], "User has been {$actionType} successfully");
         } catch (Exception $e) {
-            if (function_exists('logger')) {
-                logger()->error("AdminController: Error in toggleUserBan", [
-                    'user_id' => $userId,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-            }
             return $this->serverError("Error toggling user ban: " . $e->getMessage());
         }
     }

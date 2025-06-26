@@ -604,8 +604,8 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
+echo '<script src="' . asset('/js/api/user-admin-api.js') . '?v=' . time() . '"></script>';
 echo '<script src="' . asset('/js/api/server-api.js') . '?v=' . time() . '" type="module"></script>';
-echo '<script src="' . asset('/js/api/user-admin-api.js') . '?v=' . time() . '" type="module"></script>';
 echo '<script src="' . asset('/js/api/nitro-api.js') . '?v=' . time() . '" type="module"></script>';
 
 require_once dirname(dirname(__DIR__)) . '/views/layout/main-app.php';

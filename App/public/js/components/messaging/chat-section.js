@@ -1989,12 +1989,6 @@ class ChatSection {
         
         this.chatMessages.innerHTML = '';
         
-        // Add a loading header to indicate reactions are being fetched
-        const loadingHeader = document.createElement('div');
-        loadingHeader.className = 'text-center text-[#b5bac1] text-sm mb-4 animate-pulse';
-        loadingHeader.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Loading messages and reactions...';
-        this.chatMessages.appendChild(loadingHeader);
-        
         for (let i = 0; i < 6; i++) {
             const skeleton = this.createMessageSkeleton(i % 3 === 0);
             this.chatMessages.appendChild(skeleton);

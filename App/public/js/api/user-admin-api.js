@@ -5,96 +5,38 @@ class UserAdminAPI {
 
     async parseResponse(response) {
         const text = await response.text();
-        
-        if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
+
+        if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>')) {
             console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
             throw new Error('Server error occurred. Please try again.');
         }
-        
-        if (text.includes('Fatal error') || text.includes('Parse error') || text.includes('Warning:') || text.includes('Notice:')) {
+
+        if (text.includes('Fatal error') || text.includes('Parse error')) {
             console.error('Server returned PHP error:', text.substring(0, 200));
             throw new Error('Server configuration error. Please contact support.');
         }
-        
+
         if (!text) {
             return {};
         }
 
         try {
-            const data = JSON.parse(text);
-            return this.normalizeResponse(data);
+            return JSON.parse(text);
         } catch (e) {
             console.error('Failed to parse JSON response:', text);
             throw new Error('Invalid response from server');
         }
-    }
-    
-    normalizeResponse(data) {
-        if (!data) return { success: false, message: "Empty response from server" };
-        
-        // If data is already properly formatted with success property
-        if (typeof data.success !== 'undefined') {
-            return data;
-        }
-        
-        // If data is in a different format, try to normalize it
-        if (data.error) {
-            return { 
-                success: false, 
-                message: data.error || "An error occurred",
-                data: data
-            };
-        }
-        
-        // For any other format, assume it's successful data and wrap it
-        return {
-            success: true,
-            message: "Operation successful",
-            data: data
-        };
-    }
-    
-    normalizeUser(user) {
-        if (!user) return null;
-        
-        // Ensure all user properties have at least a default value
-        const normalizedUser = {
-            id: user.id || 'N/A',
-            username: user.username || 'Unknown User',
-            discriminator: user.discriminator || '0000',
-            email: user.email || 'No Email',
-            status: user.status || 'offline',
-            display_name: user.display_name || user.username || 'Unknown User',
-            bio: user.bio || '',
-            avatar_url: user.avatar_url || null,
-            banner_url: user.banner_url || null,
-            created_at: user.created_at || null,
-            updated_at: user.updated_at || null,
-            google_id: user.google_id || null
-        };
-        
-        // Add any additional properties from the original user object
-        Object.keys(user).forEach(key => {
-            if (!normalizedUser.hasOwnProperty(key)) {
-                normalizedUser[key] = user[key];
-            }
-        });
-        
-        return normalizedUser;
     }
 
     async makeRequest(url, options = {}) {
         try {
             const defaultOptions = {
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
                 }
             };
-
-            if (!(options.body instanceof FormData)) {
-                defaultOptions.headers['Content-Type'] = 'application/json';
-            }
 
             const mergedOptions = {
                 ...defaultOptions,
@@ -105,173 +47,47 @@ class UserAdminAPI {
                 }
             };
 
-            if (options.body instanceof FormData) {
-                delete mergedOptions.headers['Content-Type'];
-            }
-
             const response = await fetch(url, mergedOptions);
             const data = await this.parseResponse(response);
-            
+
             if (!response.ok) {
-                const errorMessage = data.error || data.message || `HTTP error! status: ${response.status}`;
-                throw new Error(errorMessage);
+                return {
+                    success: false,
+                    error: data.message || data.error || `HTTP error! status: ${response.status}`,
+                    status: response.status,
+                    data: data
+                };
             }
 
             return data;
         } catch (error) {
-            console.error('User Admin API request failed:', error);
-            throw error;
+            console.error(`Admin API request to ${url} failed:`, error.message);
+            return {
+                success: false,
+                error: error.message
+            };
         }
     }
 
     async getStats() {
-        try {
-            const response = await fetch(`${this.baseURL}/users/stats`);
-            const data = await this.parseResponse(response);
-            
-            if (!response.ok) {
-                throw new Error(data.message || `HTTP error! status: ${response.status}`);
-            }
-            
-            return data;
-        } catch (error) {
-            console.error('Error getting user stats:', error);
-            throw error;
-        }
+        return await this.makeRequest(`${this.baseURL}/stats`);
     }
 
-    async listUsers(page = 1, limit = 10, query = '') {
-        try {
-            let url = `${this.baseURL}/users?page=${page}&limit=${limit}`;
-            
-            if (query && query.trim() !== '') {
-                url += `&q=${encodeURIComponent(query.trim())}`;
-            }
-            
-            const response = await fetch(url, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            });
-            
-            const data = await this.parseResponse(response);
-            
-            if (!response.ok) {
-                throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
-            }
-            
-            // Normalize the response structure
-            let result = {
-                success: true,
-                message: "Users loaded successfully"
-            };
-            
-            // Extract users from wherever they might be in the response
-            let users = [];
-            if (data.data && data.data.users) {
-                users = data.data.users;
-            } else if (data.users) {
-                users = data.users;
-            }
-            
-            // Normalize each user object
-            users = Array.isArray(users) ? users.map(user => this.normalizeUser(user)) : [];
-            
-            // Extract pagination from wherever it might be
-            let pagination = {};
-            if (data.data && data.data.pagination) {
-                pagination = data.data.pagination;
-            } else if (data.pagination) {
-                pagination = data.pagination;
-            } else {
-                pagination = {
-                    total: users.length,
-                    page: page,
-                    limit: limit,
-                    pages: Math.ceil(users.length / limit)
-                };
-            }
-            
-            result.data = {
-                users: users,
-                pagination: pagination
-            };
-            
-            return result;
-        } catch (error) {
-            console.error('Error listing users:', error);
-            throw error;
+    async listUsers(page = 1, limit = 10, search = '') {
+        let url = `${this.baseURL}/users?page=${page}&limit=${limit}`;
+        if (search) {
+            url += `&q=${encodeURIComponent(search)}`;
         }
+        return await this.makeRequest(url);
     }
 
     async getUser(userId) {
-        try {
-            const response = await fetch(`${this.baseURL}/users/${userId}`);
-            const data = await this.parseResponse(response);
-            
-            if (!response.ok) {
-                throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
-            }
-            
-            let user = null;
-            
-            // Extract user from wherever it might be in the response
-            if (data.data && data.data.user) {
-                user = data.data.user;
-            } else if (data.user) {
-                user = data.user;
-            } else if (typeof data === 'object' && !data.hasOwnProperty('success')) {
-                user = data;
-            }
-            
-            // Normalize the user object
-            if (user) {
-                user = this.normalizeUser(user);
-                
-                return {
-                    success: true,
-                    message: "User details loaded successfully",
-                    user: user
-                };
-            }
-            
-            throw new Error("User data not found in response");
-        } catch (error) {
-            console.error('Error getting user:', error);
-            throw error;
-        }
+        return await this.makeRequest(`${this.baseURL}/users/${userId}`);
     }
 
     async toggleUserBan(userId) {
-        try {
-            const response = await fetch(`${this.baseURL}/users/${userId}/toggle-ban`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ action: 'toggle_ban' })
-            });
-            
-            const data = await this.parseResponse(response);
-            
-            if (!response.ok) {
-                throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
-            }
-            
-            return data;
-        } catch (error) {
-            console.error('Error toggling user ban status:', error);
-            throw error;
-        }
-    }
-
-    async updateUser(userId, userData) {
-        return await this.makeRequest(`${this.baseURL}/users/${userId}`, {
-            method: 'PUT',
-            body: JSON.stringify(userData)
+        return await this.makeRequest(`${this.baseURL}/users/${userId}/toggle-ban`, {
+            method: 'POST'
         });
     }
 
@@ -293,6 +109,22 @@ class UserAdminAPI {
         return await this.makeRequest(`${this.baseURL}/servers/${serverId}`, {
             method: 'DELETE'
         });
+    }
+
+    normalizeUser(user) {
+        return {
+            id: user.id || 'N/A',
+            username: user.username || 'Unknown User',
+            discriminator: user.discriminator || '0000',
+            email: user.email || 'No Email',
+            status: user.status || 'offline',
+            display_name: user.display_name || user.username || 'Unknown User',
+            avatar_url: user.avatar_url || null,
+            banner_url: user.banner_url || null,
+            bio: user.bio || '',
+            created_at: user.created_at || null,
+            updated_at: user.updated_at || null
+        };
     }
 }
 

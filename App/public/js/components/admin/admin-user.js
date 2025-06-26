@@ -171,12 +171,14 @@ export class UserManager {
       const unbanButton = e.target.closest('.unban-user');
       
       if (banButton) {
+        e.preventDefault();
         const userId = banButton.getAttribute('data-id');
         const username = banButton.getAttribute('data-username');
         this.toggleUserBan(userId, 'active', username);
       }
       
       if (unbanButton) {
+        e.preventDefault();
         const userId = unbanButton.getAttribute('data-id');
         const username = unbanButton.getAttribute('data-username');
         this.toggleUserBan(userId, 'banned', username);
@@ -491,8 +493,8 @@ export class UserManager {
       let statusClass = isBanned ? 'banned' : 'active';
       
       let statusStyle = isBanned 
-        ? 'background-color: rgba(237, 66, 69, 0.1); color: #ed4245;' // Red for banned
-        : 'background-color: rgba(59, 165, 93, 0.1); color: #3ba55d;'; // Green for active
+        ? 'background-color: rgba(237, 66, 69, 0.1); color: #ed4245;' 
+        : 'background-color: rgba(59, 165, 93, 0.1); color: #3ba55d;';
       
       // Create the user avatar
       let avatarContent = user.avatar_url 
@@ -655,7 +657,6 @@ export class UserManager {
   }
   
   toggleUserBan(userId, currentStatus, username) {
-    // Check if userAdminAPI exists
     if (!window.userAdminAPI) {
       console.warn('userAdminAPI not available yet, retrying in 500ms');
       setTimeout(() => this.toggleUserBan(userId, currentStatus, username), 500);
@@ -670,24 +671,20 @@ export class UserManager {
       `Are you sure you want to ban <span class="text-white font-semibold">${username}</span>? This will prevent them from using the app.`;
     
     this.showDiscordConfirmation(title, message, () => {
-      // Show loading indicator
       showToast(`Processing ${action} request...`, "info");
       
       window.userAdminAPI.toggleUserBan(userId)
         .then(response => {
           if (response.success) {
             showToast(`User ${isBanned ? 'unbanned' : 'banned'} successfully`, "success");
-            
-            // Reload the data to reflect the changes
             this.loadUsers();
             this.loadUserStats();
           } else {
-            showToast(response.message || `Failed to ${action} user: ${response.error || 'Unknown error'}`, "error");
-            console.error(`Error ${action}ing user:`, response);
+            showToast(response.error || response.message || `Failed to ${action} user`, "error");
           }
         })
         .catch(error => {
-          showToast(`An error occurred while trying to ${action} the user: ${error.message || 'Unknown error'}`, "error");
+          showToast(`An error occurred while trying to ${action} the user`, "error");
           console.error(`Error ${action}ing user:`, error);
         });
     });

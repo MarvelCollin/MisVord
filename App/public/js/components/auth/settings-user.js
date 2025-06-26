@@ -1369,33 +1369,51 @@ function initProfileFormSubmit() {
     const usernameInput = document.getElementById('username');
     const displayNameInput = document.getElementById('display_name');
     
-    if (usernameInput && approveUsernameBtn) {
-        usernameInput.addEventListener('input', function() {
-            checkForChanges(this, approveUsernameBtn);
-        });
-        
-        usernameInput.addEventListener('keyup', function() {
-            checkForChanges(this, approveUsernameBtn);
-        });
-        
-        usernameInput.addEventListener('paste', function() {
-            setTimeout(() => checkForChanges(this, approveUsernameBtn), 10);
-        });
+    if (approveUsernameBtn) {
+        approveUsernameBtn.style.display = 'none';
+        approveUsernameBtn.classList.add('hidden');
     }
     
-    if (displayNameInput && approveDisplayNameBtn) {
-        displayNameInput.addEventListener('input', function() {
-            checkForChanges(this, approveDisplayNameBtn);
-        });
-        
-        displayNameInput.addEventListener('keyup', function() {
-            checkForChanges(this, approveDisplayNameBtn);
-        });
-        
-        displayNameInput.addEventListener('paste', function() {
-            setTimeout(() => checkForChanges(this, approveDisplayNameBtn), 10);
-        });
+    if (approveDisplayNameBtn) {
+        approveDisplayNameBtn.style.display = 'none';
+        approveDisplayNameBtn.classList.add('hidden');
     }
+    
+    setTimeout(() => {
+        if (usernameInput && approveUsernameBtn) {
+            usernameInput.dataset.originalValue = usernameInput.value.trim();
+            checkForChanges(usernameInput, approveUsernameBtn);
+            
+            usernameInput.addEventListener('input', function() {
+                checkForChanges(this, approveUsernameBtn);
+            });
+            
+            usernameInput.addEventListener('keyup', function() {
+                checkForChanges(this, approveUsernameBtn);
+            });
+            
+            usernameInput.addEventListener('paste', function() {
+                setTimeout(() => checkForChanges(this, approveUsernameBtn), 10);
+            });
+        }
+        
+        if (displayNameInput && approveDisplayNameBtn) {
+            displayNameInput.dataset.originalValue = displayNameInput.value.trim();
+            checkForChanges(displayNameInput, approveDisplayNameBtn);
+            
+            displayNameInput.addEventListener('input', function() {
+                checkForChanges(this, approveDisplayNameBtn);
+            });
+            
+            displayNameInput.addEventListener('keyup', function() {
+                checkForChanges(this, approveDisplayNameBtn);
+            });
+            
+            displayNameInput.addEventListener('paste', function() {
+                setTimeout(() => checkForChanges(this, approveDisplayNameBtn), 10);
+            });
+        }
+    }, 100);
     
     if (approveUsernameBtn) {
         approveUsernameBtn.addEventListener('click', function() {
@@ -1455,17 +1473,23 @@ function checkForChanges(input, approveBtn) {
     const currentValue = input.value.trim();
     const originalValue = (input.dataset.originalValue || '').trim();
     
-    console.log('Checking changes:', {
+    console.log('DEBUG - Checking changes:', {
         field: input.id,
-        currentValue: currentValue,
-        originalValue: originalValue,
+        currentValue: `"${currentValue}"`,
+        originalValue: `"${originalValue}"`,
         areEqual: currentValue === originalValue,
-        isEmpty: currentValue === ''
+        isEmpty: currentValue === '',
+        currentLength: currentValue.length,
+        originalLength: originalValue.length
     });
     
     if (currentValue !== originalValue && currentValue !== '') {
+        console.log('DEBUG - Showing button for', input.id);
+        approveBtn.style.display = 'flex';
         approveBtn.classList.remove('hidden');
     } else {
+        console.log('DEBUG - Hiding button for', input.id);
+        approveBtn.style.display = 'none';
         approveBtn.classList.add('hidden');
     }
 }
