@@ -1571,6 +1571,7 @@ function updateUsername(username) {
                 el.textContent = username;
             });
             
+            approveBtn.style.display = 'none';
             approveBtn.classList.add('hidden');
         } else {
             throw new Error(data.message || data.error?.message || 'Failed to update username');
@@ -1653,6 +1654,7 @@ function updateDisplayName(displayName) {
                 el.textContent = displayName;
             });
             
+            approveBtn.style.display = 'none';
             approveBtn.classList.add('hidden');
         } else {
             throw new Error(data.message || data.error?.message || 'Failed to update display name');
