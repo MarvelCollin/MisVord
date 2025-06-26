@@ -1,4 +1,9 @@
-const eventController = require('./eventController');
+const AuthHandler = require('../handlers/authHandler');
+const RoomHandler = require('../handlers/roomHandler');
+const MessageHandler = require('../handlers/messageHandler');
+const roomManager = require('../services/roomManager');
+const userService = require('../services/userService');
+const messageService = require('../services/messageService');
 
 const userSockets = new Map();
 const userStatus = new Map();
@@ -6,299 +11,185 @@ const recentMessages = new Map();
 const voiceMeetings = new Map();
 
 function setup(io) {
-    eventController.setIO(io);
-    
     io.on('connection', (client) => {
         console.log(`Client connected: ${client.id}`);
         
-
+        // Authentication
+        client.on('authenticate', (data) => AuthHandler.handle(io, client, data));
         
-        client.on('authenticate', (data) => handleAuthenticate(io, client, data));
-        client.on('join-channel', (data) => handleJoinChannel(io, client, data));
-        client.on('leave-channel', (data) => handleLeaveChannel(io, client, data));
-        client.on('join-dm-room', (data) => handleJoinDMRoom(io, client, data));
-        client.on('channel-message', (data) => handleChannelMessage(io, client, data));
-        client.on('typing', (data) => handleTyping(io, client, data));
-        client.on('stop-typing', (data) => handleStopTyping(io, client, data));
-        client.on('update-presence', (data) => handleUpdatePresence(io, client, data));
+        // Room management
+        client.on('join-channel', (data) => RoomHandler.joinChannel(io, client, data));
+        client.on('leave-channel', (data) => RoomHandler.leaveChannel(io, client, data));
+        client.on('join-dm-room', (data) => RoomHandler.joinDMRoom(io, client, data));
         
-        client.on('get-online-users', () => handleGetOnlineUsers(io, client));
+        // Message forwarding
+        client.on('new-channel-message', (data) => {
+            const signature = messageService.generateSignature('new-channel-message', client.data?.userId, data.id, data.content);
+            if (!messageService.isDuplicate(signature)) {
+                messageService.markAsProcessed(signature);
+                MessageHandler.forwardMessage(io, client, 'new-channel-message', data);
+            }
+        });
         
-        client.on('new-channel-message', (data) => forwardEvent(io, client, 'new-channel-message', data, `channel-${data.channelId}`));
-        client.on('user-message-dm', (data) => forwardEvent(io, client, 'user-message-dm', data, `dm-room-${data.roomId}`));
-        client.on('message-updated', (data) => forwardEvent(io, client, 'message-updated', data, getTargetRoom(data)));
-        client.on('message-deleted', (data) => forwardEvent(io, client, 'message-deleted', data, getTargetRoom(data)));
-        client.on('reaction-added', (data) => forwardEvent(io, client, 'reaction-added', data, getTargetRoom(data)));
-        client.on('reaction-removed', (data) => forwardEvent(io, client, 'reaction-removed', data, getTargetRoom(data)));
-        client.on('message-pinned', (data) => forwardEvent(io, client, 'message-pinned', data, null));
+        client.on('user-message-dm', (data) => {
+            const signature = messageService.generateSignature('user-message-dm', client.data?.userId, data.id, data.content);
+            if (!messageService.isDuplicate(signature)) {
+                messageService.markAsProcessed(signature);
+                MessageHandler.forwardMessage(io, client, 'user-message-dm', data);
+            }
+        });
         
+        client.on('message-updated', (data) => MessageHandler.forwardMessage(io, client, 'message-updated', data));
+        client.on('message-deleted', (data) => MessageHandler.forwardMessage(io, client, 'message-deleted', data));
+        
+        // Reactions
+        client.on('reaction-added', (data) => MessageHandler.handleReaction(io, client, 'reaction-added', data));
+        client.on('reaction-removed', (data) => MessageHandler.handleReaction(io, client, 'reaction-removed', data));
+        
+        // Typing indicators
+        client.on('typing', (data) => MessageHandler.handleTyping(io, client, data, true));
+        client.on('stop-typing', (data) => MessageHandler.handleTyping(io, client, data, false));
+        
+        // Presence
+        client.on('update-presence', (data) => handlePresence(io, client, data));
+        
+        // Voice meetings
         client.on('check-voice-meeting', (data) => handleCheckVoiceMeeting(io, client, data));
         client.on('register-voice-meeting', (data) => handleRegisterVoiceMeeting(io, client, data));
         client.on('unregister-voice-meeting', (data) => handleUnregisterVoiceMeeting(io, client, data));
         
+        // Utility
+        client.on('get-online-users', () => handleGetOnlineUsers(io, client));
         client.on('debug-rooms', () => handleDebugRooms(io, client));
-        client.on('get-room-info', () => handleGetRoomInfo(io, client));
         client.on('heartbeat', () => client.emit('heartbeat-response', { time: Date.now() }));
         
+        // Disconnect
         client.on('disconnect', () => handleDisconnect(io, client));
     });
 }
 
-function handleAuthenticate(io, client, data) {
-    const { userId, username } = data;
-    
-    if (!userId) {
-        client.emit('auth-error', { message: 'User ID is required' });
-        return;
-    }
-    
-    client.data = client.data || {};
-    client.data.userId = userId;
-    client.data.username = username || `User-${userId}`;
-    client.data.authenticated = true;
-    
-    const userRoom = `user-${userId}`;
-    client.join(userRoom);
-    
-    if (userSockets.has(userId)) {
-        userSockets.get(userId).add(client.id);
-    } else {
-        userSockets.set(userId, new Set([client.id]));
-    }
-    
-    client.emit('auth-success', { 
-        userId, 
-        socketId: client.id,
-        message: 'Authentication successful'
-    });
-    
-    console.log(`User ${userId} (${username}) authenticated on client ${client.id}`);
-}
-
-function handleJoinChannel(io, client, data) {
-    if (!client.data?.authenticated) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
-    
-    const channelId = data.channelId;
-    if (!channelId) {
-        client.emit('error', { message: 'Channel ID is required' });
-        return;
-    }
-    
-    const room = `channel-${channelId}`;
-    client.join(room);
-    
-    client.emit('channel-joined', { 
-        channelId,
-        room, 
-        message: `Joined channel ${channelId}`
-    });
-    
-    console.log(`User ${client.data.userId} joined channel ${channelId}`);
-}
-
-function handleLeaveChannel(io, client, data) {
-    if (!data.channelId) {
-        client.emit('error', { message: 'Channel ID is required' });
-        return;
-    }
-    
-    const room = `channel-${data.channelId}`;   
-    client.leave(room);
-    
-    client.emit('channel-left', { 
-        channelId: data.channelId,
-        message: `Left channel ${data.channelId}`
-    });
-}
-
-function handleJoinDMRoom(io, client, data) {
-    if (!client.data?.authenticated) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
-    
-    const roomId = data.roomId;
-    if (!roomId) {
-        client.emit('error', { message: 'Room ID is required' });
-        return;
-    }
-    
-    const room = `dm-room-${roomId}`;
-    client.join(room);
-    
-    client.emit('dm-room-joined', { 
-        roomId,
-        room, 
-        message: `Joined DM room ${roomId}`
-    });
-    
-    console.log(`User ${client.data.userId} joined DM room ${roomId}`);
-}
-
-function handleChannelMessage(io, client, data) {
-    if (!client.data?.authenticated) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
-    
-    const { channelId, content, messageType = 'text', attachmentUrl } = data;
-    
-    if (!channelId || (!content && !attachmentUrl)) {
-        client.emit('error', { message: 'Channel ID and content or attachment are required' });
-        return;
-    }
-    
-    const room = `channel-${channelId}`;
-    const message = {
-        id: Date.now().toString(),
-        content,
-        messageType,
-        attachment_url: attachmentUrl,
-        userId: client.data.userId,
-        username: client.data.username,
-        timestamp: Date.now(),
-        channelId: channelId
-    };
-    
-    client.to(room).emit('new-channel-message', message);
-    
-    client.emit('message-sent', {
-        id: message.id,
-        channelId: channelId,
-        localMessageId: data.localMessageId || null
-    });
-    
-    console.log(`📢 Sent channel message to others in room ${room} (excluding sender)`);
-}
-
-function handleTyping(io, client, data) {
-    if (!client.data?.authenticated) return;
-    
-    const { channelId, roomId } = data;
-    const userId = client.data.userId;
-    const username = client.data.username;
-    
-    if (channelId) {
-        const room = `channel-${channelId}`;
-        client.to(room).emit('user-typing', { 
-            userId, 
-            username, 
-            channelId 
-        });
-    } else if (roomId) {
-        const room = `dm-room-${roomId}`;
-        client.to(room).emit('user-typing-dm', { 
-            userId, 
-            username, 
-            roomId 
-        });
-    }
-}
-
-function handleStopTyping(io, client, data) {
-    if (!client.data?.authenticated) return;
-    
-    const { channelId, roomId } = data;
-    const userId = client.data.userId;
-    const username = client.data.username;
-    
-    if (channelId) {
-        const room = `channel-${channelId}`;
-        client.to(room).emit('user-stop-typing', { 
-            userId, 
-            username, 
-            channelId 
-        });
-    } else if (roomId) {
-        const room = `dm-room-${roomId}`;
-        client.to(room).emit('user-stop-typing-dm', { 
-            userId, 
-            username, 
-            roomId 
-        });
-    }
-}
-
-function handleUpdatePresence(io, client, data) {
-    if (!client.data?.authenticated || !client.data.userId) return;
+function handlePresence(io, client, data) {
+    if (!AuthHandler.requireAuth(client)) return;
     
     const { status, activityDetails } = data;
     const userId = client.data.userId;
+    const username = client.data.username;
     
-    
-    client.data.status = status;
-    client.data.activityDetails = activityDetails;
-    
-    userStatus.set(userId, { 
-        status, 
-        activityDetails, 
-        lastUpdated: Date.now() 
-    });
-    
+    userService.updatePresence(userId, status, activityDetails);
     
     io.emit('user-presence-update', {
         userId,
-        username: client.data.username,
+        username,
         status,
         activityDetails
     });
 }
 
-function handleDisconnect(io, client) {
-    const userId = client.data?.userId;
-    
-    console.log(`Client disconnected: ${client.id}, User: ${userId}`);
-    
-    for (const [channelId, meetingInfo] of voiceMeetings.entries()) {
-        if (meetingInfo.participants.has(client.id)) {
-            console.log(`Removing disconnected user from voice meeting in channel ${channelId}`);
-            meetingInfo.participants.delete(client.id);
-            
-            if (meetingInfo.participants.size === 0) {
-                console.log(`No participants left in meeting for channel ${channelId}, removing meeting`);
-                voiceMeetings.delete(channelId);
-            } else {
-                const room = `channel-${channelId}`;
-                io.to(room).emit('voice-participant-left', {
-                    channelId,
-                    meetingId: meetingInfo.meetingId,
-                    username: client.data?.username || 'Unknown',
-                    userId: client.data?.userId,
-                    participantCount: meetingInfo.participants.size
-                });
-            }
-        }
+function handleGetOnlineUsers(io, client) {
+    if (!AuthHandler.requireAuth(client)) {
+        client.emit('error', { message: 'Authentication required' });
+        return;
     }
     
-    if (userId && userSockets.has(userId)) {
-        userSockets.get(userId).delete(client.id);
-        
-        if (userSockets.get(userId).size === 0) {
-            userSockets.delete(userId);
+    const onlineUsers = {};
+    
+    for (const [socketId, socket] of io.sockets.sockets.entries()) {
+        if (socket.data?.userId && socket.data?.authenticated) {
+            const userId = socket.data.userId;
+            const presence = userService.getPresence(userId);
             
-            
-            io.emit('user-offline', {
+            onlineUsers[userId] = {
                 userId,
-                username: client.data.username,
-                timestamp: Date.now()
-            });
+                username: socket.data.username || 'Unknown',
+                status: presence?.status || 'online',
+                lastSeen: Date.now()
+            };
         }
     }
+    
+    client.emit('online-users-response', { users: onlineUsers });
+    console.log(`Sent ${Object.keys(onlineUsers).length} online users to client ${client.id}`);
+}
+
+function handleCheckVoiceMeeting(io, client, data) {
+    if (!AuthHandler.requireAuth(client)) {
+        client.emit('error', { message: 'Authentication required' });
+        return;
+    }
+    
+    const { channelId } = data;
+    if (!channelId) {
+        client.emit('error', { message: 'Channel ID is required' });
+        return;
+    }
+    
+    const meeting = roomManager.getVoiceMeeting(channelId);
+    
+    client.emit('voice-meeting-info', {
+        channelId,
+        meetingId: meeting?.meetingId || null,
+        participantCount: meeting?.participants.size || 0
+    });
+}
+
+function handleRegisterVoiceMeeting(io, client, data) {
+    if (!AuthHandler.requireAuth(client)) {
+        client.emit('error', { message: 'Authentication required' });
+        return;
+    }
+    
+    const { channelId, meetingId, username } = data;
+    if (!channelId || !meetingId) {
+        client.emit('error', { message: 'Channel ID and Meeting ID are required' });
+        return;
+    }
+    
+    roomManager.addVoiceMeeting(channelId, meetingId, client.id);
+    
+    const roomName = roomManager.getChannelRoom(channelId);
+    roomManager.broadcastToRoom(io, roomName, 'voice-participant-joined', {
+        channelId,
+        meetingId,
+        username: username || client.data.username,
+        userId: client.data.userId,
+        participantCount: roomManager.getVoiceMeeting(channelId).participants.size
+    });
+}
+
+function handleUnregisterVoiceMeeting(io, client, data) {
+    if (!AuthHandler.requireAuth(client)) {
+        client.emit('error', { message: 'Authentication required' });
+        return;
+    }
+    
+    const { channelId, meetingId, username } = data;
+    if (!channelId || !meetingId) {
+        client.emit('error', { message: 'Channel ID and Meeting ID are required' });
+        return;
+    }
+    
+    const result = roomManager.removeVoiceMeeting(channelId, client.id);
+    
+    const roomName = roomManager.getChannelRoom(channelId);
+    roomManager.broadcastToRoom(io, roomName, 'voice-participant-left', {
+        channelId,
+        meetingId,
+        username: username || client.data.username,
+        userId: client.data.userId,
+        participantCount: result.participantCount
+    });
 }
 
 function handleDebugRooms(io, client) {
-    if (!client.data?.authenticated) {
+    if (!AuthHandler.requireAuth(client)) {
         client.emit('error', { message: 'Authentication required' });
         return;
     }
     
     const clientRooms = Array.from(client.rooms).filter(room => room !== client.id);
-    
     const roomData = {};
-    if (io.sockets && io.sockets.adapter && io.sockets.adapter.rooms) {
+    
+    if (io.sockets?.adapter?.rooms) {
         for (const [roomId, room] of io.sockets.adapter.rooms.entries()) {
             if (roomId.includes('channel-') || roomId.includes('dm-room-')) {
                 roomData[roomId] = {
@@ -317,247 +208,38 @@ function handleDebugRooms(io, client) {
     });
 }
 
-function handleGetRoomInfo(io, client) {
-    if (!client.data?.authenticated) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
+function handleDisconnect(io, client) {
+    const userId = client.data?.userId;
+    console.log(`Client disconnected: ${client.id}, User: ${userId}`);
     
-    const clientRooms = Array.from(client.rooms).filter(room => room !== client.id);
-    
-    client.emit('room-info', {
-        rooms: clientRooms
-    });
-}
-
-function handleGetOnlineUsers(io, client) {
-    if (!client.data?.authenticated) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
-    
-    const onlineUsers = {};
-    
-    for (const [socketId, socket] of io.sockets.sockets.entries()) {
-        if (socket.data?.userId && socket.data?.authenticated) {
-            const userId = socket.data.userId;
-            const status = socket.data.status || 'online';
-            
-            onlineUsers[userId] = {
+    if (userId) {
+        const isOffline = roomManager.removeUserSocket(userId, client.id);
+        
+        if (isOffline) {
+            userService.removePresence(userId);
+            io.emit('user-offline', {
                 userId,
-                username: socket.data.username || 'Unknown',
-                status: status,
-                lastSeen: Date.now()
-            };
-        }
-    }
-    
-    client.emit('online-users-response', {
-        users: onlineUsers
-    });
-    
-    console.log(`Sent online users (${Object.keys(onlineUsers).length}) to client ${client.id}`);
-}
-
-function forwardEvent(io, client, eventName, data, specificRoom = null) {
-    if (!client.data?.authenticated) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
-    
-    if (!specificRoom) {
-        specificRoom = getTargetRoom(data);
-    }
-    
-    const cleanData = { ...data };
-    if (cleanData._debug) delete cleanData._debug;
-    if (cleanData._serverDebug) delete cleanData._serverDebug;
-    
-    let messageSignature = null;
-    if (eventName === 'new-channel-message' || eventName === 'user-message-dm') {
-        messageSignature = `${eventName}_${client.data.userId}_${cleanData.id || Date.now().toString()}_${cleanData.content?.substring(0, 20)}`;
-        
-        const exactDuplicate = recentMessages.has(messageSignature);
-        
-        if (exactDuplicate) {
-            return;
+                username: client.data.username,
+                timestamp: Date.now()
+            });
         }
         
-        recentMessages.set(messageSignature, Date.now());
-        
-        const now = Date.now();
-        for (const [key, timestamp] of recentMessages.entries()) {
-            if (now - timestamp > 5000) {
-                recentMessages.delete(key);
-            }
-        }
-    }
-    
-
-    
-    if (specificRoom) {
-        client.to(specificRoom).emit(eventName, cleanData);
-    } else {
-        client.broadcast.emit(eventName, cleanData);
-    }
-}
-
-function getTargetRoom(data) {
-    if (data.target_type === 'channel' && data.target_id) {
-        return `channel-${data.target_id}`;
-    }
-    else if ((data.target_type === 'dm' || data.target_type === 'direct') && data.target_id) {
-        return `dm-room-${data.target_id}`;
-    }
-    else if (data.roomId) {
-        return `dm-room-${data.roomId}`;
-    }
-    else if (data.channelId) {
-        return `channel-${data.channelId}`;
-    }
-    else if (data.chatRoomId) {
-        return `dm-room-${data.chatRoomId}`;
-    }
-    else if (data.channel_id) {
-        return `channel-${data.channel_id}`;
-    }
-    
-    return null;
-}
-
-function handleCheckVoiceMeeting(io, client, data) {
-    if (!client.data?.authenticated) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
-    
-    const { channelId } = data;
-    
-    if (!channelId) {
-        client.emit('error', { message: 'Channel ID is required' });
-        return;
-    }
-    
-    console.log(`Checking voice meeting for channel ${channelId}`);
-    
-    if (voiceMeetings.has(channelId)) {
-        const meetingInfo = voiceMeetings.get(channelId);
-        console.log(`Found existing meeting ${meetingInfo.meetingId} for channel ${channelId} with ${meetingInfo.participants.size} participants`);
-        
-        client.emit('voice-meeting-info', {
-            channelId,
-            meetingId: meetingInfo.meetingId,
-            participantCount: meetingInfo.participants.size
-        });
-    } else {
-        console.log(`No existing meeting found for channel ${channelId}`);
-        client.emit('voice-meeting-info', {
-            channelId,
-            meetingId: null,
-            participantCount: 0
-        });
-    }
-}
-
-function handleRegisterVoiceMeeting(io, client, data) {
-    if (!client.data?.authenticated) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
-    
-    const { channelId, meetingId, username } = data;
-    
-    if (!channelId || !meetingId) {
-        client.emit('error', { message: 'Channel ID and Meeting ID are required' });
-        return;
-    }
-    
-    console.log(`Registering voice meeting ${meetingId} for channel ${channelId} by ${username || client.data.username}`);
-    
-    if (!voiceMeetings.has(channelId)) {
-        voiceMeetings.set(channelId, {
-            meetingId,
-            participants: new Set([client.id])
-        });
-    } else {
-        const meetingInfo = voiceMeetings.get(channelId);
-        meetingInfo.participants.add(client.id);
-    }
-    
-    const room = `channel-${channelId}`;
-    io.to(room).emit('voice-participant-joined', {
-        channelId,
-        meetingId,
-        username: username || client.data.username,
-        userId: client.data.userId,
-        participantCount: voiceMeetings.get(channelId).participants.size
-    });
-}
-
-function handleUnregisterVoiceMeeting(io, client, data) {
-    if (!client.data?.authenticated) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
-    
-    const { channelId, meetingId, username } = data;
-    
-    if (!channelId || !meetingId) {
-        client.emit('error', { message: 'Channel ID and Meeting ID are required' });
-        return;
-    }
-    
-    console.log(`Unregistering from voice meeting ${meetingId} for channel ${channelId} by ${username || client.data.username}`);
-    
-    if (voiceMeetings.has(channelId)) {
-        const meetingInfo = voiceMeetings.get(channelId);
-        meetingInfo.participants.delete(client.id);
-        
-        if (meetingInfo.participants.size === 0) {
-            console.log(`No participants left in meeting ${meetingId} for channel ${channelId}, removing meeting`);
-            voiceMeetings.delete(channelId);
-        }
-        
-        const room = `channel-${channelId}`;
-        io.to(room).emit('voice-participant-left', {
-            channelId,
-            meetingId,
-            username: username || client.data.username,
-            userId: client.data.userId,
-            participantCount: voiceMeetings.has(channelId) ? voiceMeetings.get(channelId).participants.size : 0
-        });
-    }
-}
-
-function getVoiceMeetingsInfo() {
-    const meetings = [];
-    
-    for (const [channelId, meetingInfo] of voiceMeetings.entries()) {
-        const participants = [];
-        
-        for (const socketId of meetingInfo.participants) {
-            const socket = io.sockets.sockets.get(socketId);
-            if (socket && socket.data) {
-                participants.push({
-                    socketId,
-                    userId: socket.data.userId,
-                    username: socket.data.username || 'Unknown'
+        // Clean up voice meetings
+        const allMeetings = roomManager.getAllVoiceMeetings();
+        for (const meeting of allMeetings) {
+            const result = roomManager.removeVoiceMeeting(meeting.channelId, client.id);
+            if (result.removed || result.participantCount !== meeting.participantCount) {
+                const roomName = roomManager.getChannelRoom(meeting.channelId);
+                roomManager.broadcastToRoom(io, roomName, 'voice-participant-left', {
+                    channelId: meeting.channelId,
+                    meetingId: meeting.meetingId,
+                    username: client.data?.username || 'Unknown',
+                    userId: client.data?.userId,
+                    participantCount: result.participantCount
                 });
             }
         }
-        
-        meetings.push({
-            channelId,
-            meetingId: meetingInfo.meetingId,
-            participants,
-            participantCount: meetingInfo.participants.size
-        });
     }
-    
-    return meetings;
 }
 
-module.exports = {
-    setup,
-    getVoiceMeetingsInfo
-};
+module.exports = { setup };

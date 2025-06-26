@@ -1,5 +1,5 @@
 const url = require('url');
-const socketController = require('./socketController');
+const roomManager = require('../services/roomManager');
 
 let io = null;
 
@@ -43,7 +43,8 @@ function handleSocketStatus(req, res) {
     
     const status = {
         connected: io.engine.clientsCount,
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        voiceMeetings: roomManager.getAllVoiceMeetings().length
     };
     
     res.setHeader('Content-Type', 'application/json');
@@ -82,8 +83,7 @@ function handleBroadcast(req, res, query) {
             }
             
             if (room) {
-                io.to(room).emit(event, payload);
-                console.log(`Broadcasted event ${event} to room ${room}`);
+                roomManager.broadcastToRoom(io, room, event, payload);
             } else {
                 io.emit(event, payload);
                 console.log(`Broadcasted event ${event} to all clients`);
@@ -105,7 +105,7 @@ function handleVoiceMeetings(req, res, query) {
         return;
     }
     
-    const voiceMeetings = getVoiceMeetingsInfo();
+    const voiceMeetings = roomManager.getAllVoiceMeetings();
     
     const channelId = query.channelId;
     if (channelId) {
@@ -115,7 +115,7 @@ function handleVoiceMeetings(req, res, query) {
             res.end(JSON.stringify(meetingInfo));
         } else {
             res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ channelId, meetingId: null, participants: [] }));
+            res.end(JSON.stringify({ channelId, meetingId: null, participantCount: 0 }));
         }
         return;
     }
@@ -124,12 +124,7 @@ function handleVoiceMeetings(req, res, query) {
     res.end(JSON.stringify(voiceMeetings));
 }
 
-function getVoiceMeetingsInfo() {
-    return socketController.getVoiceMeetingsInfo();
-}
-
 module.exports = {
     setIO,
-    handleApiRequest,
-    getVoiceMeetingsInfo
+    handleApiRequest
 };

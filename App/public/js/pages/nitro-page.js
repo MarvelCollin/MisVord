@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    initNitroPage();
+        initNitroPage();
 });
 
 function initNitroPage() {
@@ -117,10 +117,10 @@ function initSubscriptionButtons() {
     
     subscribeButtons.forEach(button => {
         if (button.textContent.includes('Subscribe')) {
-            button.addEventListener('click', function() {
-                const tier = 'premium';
-                const price = 9.99;
-                handleSubscription(tier, price);
+                button.addEventListener('click', function() {
+                    const tier = 'premium';
+                    const price = 9.99;
+                        handleSubscription(tier, price);
             });
         }
     });

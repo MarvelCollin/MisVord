@@ -41,10 +41,10 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
 
-        <div class="max-w-7xl mx-auto px-6 -mt-24 relative z-10">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-                <div class="bg-discord-light rounded-lg p-8 border-2 border-purple-500 relative transform shadow-2xl nitro-card-hover scroll-reveal">
-                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-4 py-1 rounded-full text-sm font-bold animate-pulse">
+        <div class="max-w-7xl mx-auto px-6 -mt-16 relative z-10">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16 mt-8">
+                <div class="bg-discord-light rounded-lg p-8 border-2 border-purple-500 relative transform shadow-2xl nitro-card-hover scroll-reveal" style="z-index: 20;">
+                    <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-4 py-2 rounded-full text-sm font-bold animate-pulse" style="z-index: 30;">
                         PREMIUM EXPERIENCE
                     </div>
                     <div class="flex items-center gap-3 mb-6">

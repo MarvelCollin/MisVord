@@ -1109,10 +1109,16 @@ class ChatController extends BaseController
                 }
             }
             
+            if (!$targetId) {
+                return $this->serverError('Could not determine message target');
+            }
+            
             $existingReaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
             
             if ($existingReaction) {
-                $existingReaction->delete();
+                if (!$existingReaction->delete()) {
+                    return $this->serverError('Failed to remove reaction');
+                }
                 return $this->success([
                     'action' => 'removed',
                     'socket_data' => [
@@ -1130,7 +1136,10 @@ class ChatController extends BaseController
                     'user_id' => $userId,
                     'emoji' => $emoji
                 ]);
-                $reaction->save();
+                
+                if (!$reaction->save()) {
+                    return $this->serverError('Failed to save reaction');
+                }
                 
                 return $this->success([
                     'action' => 'added',
@@ -1145,7 +1154,8 @@ class ChatController extends BaseController
                 ]);
             }
         } catch (Exception $e) {
-            return $this->serverError('Failed to toggle reaction');
+            error_log('Reaction error: ' . $e->getMessage() . ' - ' . $e->getTraceAsString());
+            return $this->serverError('Failed to toggle reaction: ' . $e->getMessage());
         }
     }
     

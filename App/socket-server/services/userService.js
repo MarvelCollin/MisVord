@@ -1,59 +1,40 @@
-const userService = {
-
-    onlineUsers: new Map(),
-
-
-    addUser: function (userId, userData) {
-        this.onlineUsers.set(userId, {
-            ...userData,
-            lastActivity: Date.now()
-        });
-        return true;
-    },
-
-
-    removeUser: function (userId) {
-        if (this.onlineUsers.has(userId)) {
-            this.onlineUsers.delete(userId);
-            return true;
-        }
-        return false;
-    },
-
-
-    isUserOnline: function (userId) {
-        return this.onlineUsers.has(userId);
-    },
-
-
-    getUserData: function (userId) {
-        return this.onlineUsers.get(userId) || null;
-    },
-
-
-    getAllOnlineUsers: function () {
-        const users = {};
-        this.onlineUsers.forEach((data, userId) => {
-            users[userId] = data;
-        });
-        return users;
-    },
-
-
-    updatePresence: function (userId, status, activityDetails = null) {
-        if (!this.onlineUsers.has(userId)) return false;
-
-        const userData = this.onlineUsers.get(userId);
-        userData.status = status;
-
-        if (activityDetails) {
-            userData.activityDetails = activityDetails;
-        }
-
-        userData.lastUpdated = Date.now();
-        this.onlineUsers.set(userId, userData);
-        return true;
+class UserService {
+    constructor() {
+        this.userPresence = new Map();
     }
-};
 
-module.exports = userService;
+    updatePresence(userId, status, activityDetails = null) {
+        this.userPresence.set(userId, {
+            status,
+            activityDetails,
+            lastUpdated: Date.now()
+        });
+    }
+
+    getPresence(userId) {
+        return this.userPresence.get(userId) || null;
+    }
+
+    removePresence(userId) {
+        this.userPresence.delete(userId);
+    }
+
+    getAllPresence() {
+        const presence = {};
+        this.userPresence.forEach((data, userId) => {
+            presence[userId] = data;
+        });
+        return presence;
+    }
+
+    cleanOldPresence(maxAge = 300000) { // 5 minutes
+        const now = Date.now();
+        for (const [userId, data] of this.userPresence.entries()) {
+            if (now - data.lastUpdated > maxAge) {
+                this.userPresence.delete(userId);
+            }
+        }
+    }
+}
+
+module.exports = new UserService();

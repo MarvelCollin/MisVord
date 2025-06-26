@@ -1,0 +1,118 @@
+class RoomManager {
+    constructor() {
+        this.userSockets = new Map();
+        this.voiceMeetings = new Map();
+    }
+
+    getUserRoom(userId) {
+        return `user-${userId}`;
+    }
+
+    getChannelRoom(channelId) {
+        return `channel-${channelId}`;
+    }
+
+    getDMRoom(roomId) {
+        return `dm-room-${roomId}`;
+    }
+
+    joinRoom(client, roomName) {
+        client.join(roomName);
+        console.log(`Client ${client.id} joined room: ${roomName}`);
+    }
+
+    leaveRoom(client, roomName) {
+        client.leave(roomName);
+        console.log(`Client ${client.id} left room: ${roomName}`);
+    }
+
+    addUserSocket(userId, socketId) {
+        if (this.userSockets.has(userId)) {
+            this.userSockets.get(userId).add(socketId);
+        } else {
+            this.userSockets.set(userId, new Set([socketId]));
+        }
+    }
+
+    removeUserSocket(userId, socketId) {
+        if (this.userSockets.has(userId)) {
+            this.userSockets.get(userId).delete(socketId);
+            if (this.userSockets.get(userId).size === 0) {
+                this.userSockets.delete(userId);
+                return true; // User is now offline
+            }
+        }
+        return false;
+    }
+
+    isUserOnline(userId) {
+        return this.userSockets.has(userId) && this.userSockets.get(userId).size > 0;
+    }
+
+    getTargetRoom(data) {
+        if (data.target_type === 'channel' && data.target_id) {
+            return this.getChannelRoom(data.target_id);
+        }
+        if ((data.target_type === 'dm' || data.target_type === 'direct') && data.target_id) {
+            return this.getDMRoom(data.target_id);
+        }
+        if (data.roomId) {
+            return this.getDMRoom(data.roomId);
+        }
+        if (data.channelId) {
+            return this.getChannelRoom(data.channelId);
+        }
+        if (data.chatRoomId) {
+            return this.getDMRoom(data.chatRoomId);
+        }
+        if (data.channel_id) {
+            return this.getChannelRoom(data.channel_id);
+        }
+        return null;
+    }
+
+    broadcastToRoom(io, roomName, eventName, data) {
+        io.to(roomName).emit(eventName, data);
+        console.log(`Broadcasted ${eventName} to room: ${roomName}`);
+    }
+
+    addVoiceMeeting(channelId, meetingId, socketId) {
+        if (!this.voiceMeetings.has(channelId)) {
+            this.voiceMeetings.set(channelId, {
+                meetingId,
+                participants: new Set([socketId])
+            });
+        } else {
+            this.voiceMeetings.get(channelId).participants.add(socketId);
+        }
+    }
+
+    removeVoiceMeeting(channelId, socketId) {
+        if (this.voiceMeetings.has(channelId)) {
+            const meeting = this.voiceMeetings.get(channelId);
+            meeting.participants.delete(socketId);
+            
+            if (meeting.participants.size === 0) {
+                this.voiceMeetings.delete(channelId);
+                return { removed: true, participantCount: 0 };
+            }
+            
+            return { removed: false, participantCount: meeting.participants.size };
+        }
+        return { removed: false, participantCount: 0 };
+    }
+
+    getVoiceMeeting(channelId) {
+        return this.voiceMeetings.get(channelId) || null;
+    }
+
+    getAllVoiceMeetings() {
+        return Array.from(this.voiceMeetings.entries()).map(([channelId, meeting]) => ({
+            channelId,
+            meetingId: meeting.meetingId,
+            participantCount: meeting.participants.size
+        }));
+    }
+}
+
+module.exports = new RoomManager(); 

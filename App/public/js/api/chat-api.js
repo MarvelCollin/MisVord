@@ -449,7 +449,7 @@ class ChatAPI {
                 response.socket_data.action = response.action;
                 this.emitReaction(response.socket_data);
             } else {
-                throw new Error('No socket data in response');
+                console.warn('No socket_data in response, reaction saved to database but no real-time update');
             }
             
             return response;
