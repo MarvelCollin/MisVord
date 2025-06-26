@@ -227,6 +227,14 @@ async function handleChannelSwitch(serverId, channelId, channelType, clickedElem
             }
         }
         
+
+        
+        if (channelType === 'voice') {
+            setTimeout(() => {
+                autoConnectToVoice(channelId);
+            }, 2000);
+        }
+        
     } catch (error) {
         console.error('Channel switch failed:', error);
         showChannelSwitchError(error.message);
@@ -311,6 +319,13 @@ async function loadChannelRenderer() {
         script.onerror = () => reject(new Error('Failed to load channel API'));
         document.head.appendChild(script);
     });
+}
+
+async function autoConnectToVoice(channelId) {
+    const joinBtn = document.getElementById('joinBtn');
+    if (joinBtn && !joinBtn.disabled) {
+        joinBtn.click();
+    }
 }
 
 window.refreshChannelHandlers = function() {

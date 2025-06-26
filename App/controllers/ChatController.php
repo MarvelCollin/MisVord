@@ -870,7 +870,6 @@ class ChatController extends BaseController
             if ($channelMessage) {
                 $targetId = $channelMessage->channel_id;
                 $targetType = 'channel';
-                
                 ChannelMessage::deleteByMessageId($messageId);
             } else {
                 $query = new Query();
@@ -880,7 +879,6 @@ class ChatController extends BaseController
                 if ($chatRoomMessage) {
                     $targetId = $chatRoomMessage['room_id'];
                     $targetType = 'dm';
-                    
                     $query->table('chat_room_messages')
                         ->where('message_id', $messageId)
                         ->delete();

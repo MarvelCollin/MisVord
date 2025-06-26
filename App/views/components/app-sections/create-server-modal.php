@@ -1,8 +1,8 @@
 <?php
 $additional_js[] = 'components/servers/create-server-modal';
 ?>
-<div id="create-server-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden transform transition-all duration-300 ease-in-out opacity-0 scale-95">
-    <div class="bg-discord-background rounded-lg w-full max-w-md p-6 shadow-xl transform transition-all duration-300 ease-in-out scale-95">
+<div id="create-server-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden opacity-0" style="display: none;">
+    <div class="bg-discord-background rounded-lg w-full max-w-md p-6 shadow-xl transform scale-95">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-white text-xl font-bold">Create a Server</h2>
             <button id="close-server-modal" class="text-gray-400 hover:text-white">
@@ -37,6 +37,57 @@ $additional_js[] = 'components/servers/create-server-modal';
             
             .upload-container:hover i {
                 transform: scale(1.2);
+            }
+            
+            @keyframes fadeIn {
+                0% { opacity: 0; }
+                100% { opacity: 1; }
+            }
+            
+            @keyframes fadeOut {
+                0% { opacity: 1; }
+                100% { opacity: 0; }
+            }
+            
+            @keyframes scaleIn {
+                0% { 
+                    opacity: 0;
+                    transform: scale(0.9) translateY(-10px);
+                }
+                50% {
+                    opacity: 0.8;
+                }
+                100% { 
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+            }
+            
+            @keyframes scaleOut {
+                0% { 
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+                100% { 
+                    opacity: 0;
+                    transform: scale(0.95) translateY(10px);
+                }
+            }
+            
+            .animate-fade-in {
+                animation: fadeIn 0.3s ease-out forwards;
+            }
+            
+            .animate-fade-out {
+                animation: fadeOut 0.3s ease-in forwards;
+            }
+            
+            .animate-scale-in {
+                animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            }
+            
+            .animate-scale-out {
+                animation: scaleOut 0.3s ease-in forwards;
             }
             
             .modal-step {

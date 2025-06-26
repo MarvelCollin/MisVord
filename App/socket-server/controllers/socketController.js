@@ -11,13 +11,7 @@ function setup(io) {
     io.on('connection', (client) => {
         console.log(`Client connected: ${client.id}`);
         
-        const originalOnEvent = client.onevent;
-        client.onevent = function(packet) {
-            const args = packet.data || [];
-            const eventName = args[0];
-            console.log(`📥 RECEIVED EVENT: ${eventName}`, client.id, args.length > 1 ? `args: ${JSON.stringify(args[1]).substring(0, 100)}...` : 'no args');
-            originalOnEvent.call(this, packet);
-        };
+
         
         client.on('authenticate', (data) => handleAuthenticate(io, client, data));
         client.on('join-channel', (data) => handleJoinChannel(io, client, data));
@@ -386,7 +380,6 @@ function forwardEvent(io, client, eventName, data, specificRoom = null) {
         const exactDuplicate = recentMessages.has(messageSignature);
         
         if (exactDuplicate) {
-            console.log(`Dropping exact duplicate message: ${messageSignature}`);
             return;
         }
         
@@ -400,35 +393,12 @@ function forwardEvent(io, client, eventName, data, specificRoom = null) {
         }
     }
     
-    const username = client.data.username || 'Unknown';
-    const userId = client.data.userId || 'unknown';
-    
-    if (eventName === 'new-channel-message') {
-        const channelId = cleanData.channelId || 'unknown';
-        const attachmentInfo = cleanData.attachment_url ? ` [attachment: ${cleanData.attachment_url}]` : '';
-        console.log(`Message from ${username} (${userId}) in channel ${channelId}: "${cleanData.content}"${attachmentInfo}`);
-    } else if (eventName === 'user-message-dm') {
-        const roomId = cleanData.roomId || 'unknown';
-        const attachmentInfo = cleanData.attachment_url ? ` [attachment: ${cleanData.attachment_url}]` : '';
-        console.log(`Message from ${username} (${userId}) in DM room ${roomId}: "${cleanData.content}"${attachmentInfo}`);
-    } else if (eventName === 'message-deleted') {
-        const messageId = cleanData.message_id || 'unknown';
-        const targetType = cleanData.target_type || 'unknown';
-        const targetId = cleanData.target_id || 'unknown';
-        console.log(`🗑️ Message deletion from ${username} (${userId}): messageId=${messageId}, targetType=${targetType}, targetId=${targetId}, room=${specificRoom}`);
-    } else if (eventName === 'message-updated') {
-        const messageId = cleanData.message_id || 'unknown';
-        const targetType = cleanData.target_type || 'unknown';
-        const targetId = cleanData.target_id || 'unknown';
-        console.log(`📝 Message update from ${username} (${userId}): messageId=${messageId}, targetType=${targetType}, targetId=${targetId}, room=${specificRoom}`);
-    }
+
     
     if (specificRoom) {
         client.to(specificRoom).emit(eventName, cleanData);
-        console.log(`Event ${eventName} sent to others in room: ${specificRoom}`);
     } else {
         client.broadcast.emit(eventName, cleanData);
-        console.log(`Event ${eventName} broadcast to all clients except sender`);
     }
 }
 

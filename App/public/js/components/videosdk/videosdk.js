@@ -576,4 +576,8 @@ window.waitForVideoSDK = function(callback, maxAttempts = 50) {
     videoSDKManager.waitForVideoSDK(callback, maxAttempts);
 };
 
-export default videoSDKManager;
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = videoSDKManager;
+} else if (typeof exports !== 'undefined') {
+    exports.default = videoSDKManager;
+}

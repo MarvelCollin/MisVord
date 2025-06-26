@@ -281,7 +281,6 @@ class ChatAPI {
     
     sendDirectSocketUpdate(messageId, content, targetType, targetId) {
         if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
-            console.warn('⚠️ Socket not ready, cannot send direct socket update');
             return false;
         }
         
@@ -296,15 +295,8 @@ class ChatAPI {
                 target_id: targetId,
                 user_id: userId,
                 username: username,
-                timestamp: Date.now(),
-                _debug: {
-                    timestamp: new Date().toISOString(),
-                    clientId: window.globalSocketManager.io.id,
-                    emittedBy: username || 'Unknown',
-                    type: 'direct-socket-path'
-                }
+                timestamp: Date.now()
             });
-            console.log(`🔌 Direct socket message update for ${messageId}: "${content}"`);
             return true;
         } catch (e) {
             console.error('Failed to send direct socket update:', e);
@@ -316,44 +308,17 @@ class ChatAPI {
         const url = `/api/messages/${messageId}`;
         
         try {
-            console.log('🗑️ API: Deleting message', messageId);
-            
             const response = await this.makeRequest(url, {
                 method: 'DELETE'
             });
             
-            console.log('🗑️ API: Delete response received:', response);
-            console.log('🗑️ API: Response.data exists?', !!response.data);
-            console.log('🗑️ API: Response.socket_data exists?', !!response.socket_data);
-            
-            if (response.data) {
-                console.log('🗑️ API: response.data contents:', response.data);
-                console.log('🗑️ API: response.data.target_type:', response.data.target_type);
-                console.log('🗑️ API: response.data.target_id:', response.data.target_id);
-            }
-            if (response.socket_data) {
-                console.log('🗑️ API: response.socket_data contents:', response.socket_data);
-                console.log('🗑️ API: response.socket_data.target_type:', response.socket_data.target_type);
-                console.log('🗑️ API: response.socket_data.target_id:', response.socket_data.target_id);
-            }
-            
             if (response && response.data) {
                 const messageData = response.data;
-                console.log('🗑️ API: Sending socket delete with data:', messageData);
-                console.log('🗑️ API: target_type being passed:', messageData.target_type);
-                console.log('🗑️ API: target_id being passed:', messageData.target_id);
                 this.sendDirectSocketDelete(messageId, messageData.target_type, messageData.target_id);
+            } else if (response && response.socket_data) {
+                this.sendDirectSocketDelete(messageId, response.socket_data.target_type, response.socket_data.target_id);
             } else {
-                console.warn('🗑️ API: No data field in response, checking response structure:', response);
-                if (response && response.socket_data) {
-                    console.log('🗑️ API: Using socket_data instead:', response.socket_data);
-                    console.log('🗑️ API: socket_data target_type:', response.socket_data.target_type);
-                    console.log('🗑️ API: socket_data target_id:', response.socket_data.target_id);
-                    this.sendDirectSocketDelete(messageId, response.socket_data.target_type, response.socket_data.target_id);
-                } else {
-                    console.error('🗑️ API: NO TARGET INFO FOUND! Cannot send socket event');
-                    console.log('🗑️ API: Full response structure:', JSON.stringify(response, null, 2));
-                }
+                console.error('No target info found in delete response');
             }
             
             return response;
@@ -364,10 +329,7 @@ class ChatAPI {
     }
     
     sendDirectSocketDelete(messageId, targetType, targetId) {
-        console.log('🗑️ SOCKET: sendDirectSocketDelete called with:', { messageId, targetType, targetId });
-        
         if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
-            console.warn('⚠️ Socket not ready, cannot send direct socket delete');
             return false;
         }
         
@@ -375,25 +337,16 @@ class ChatAPI {
         const username = window.globalSocketManager.username;
         
         const socketData = {
-                message_id: messageId,
-                target_type: targetType,
-                target_id: targetId,
-                user_id: userId,
-                username: username,
-                timestamp: Date.now(),
-                _debug: {
-                    timestamp: new Date().toISOString(),
-                    clientId: window.globalSocketManager.io.id,
-                    emittedBy: username || 'Unknown',
-                    type: 'direct-socket-path'
-                }
+            message_id: messageId,
+            target_type: targetType,
+            target_id: targetId,
+            user_id: userId,
+            username: username,
+            timestamp: Date.now()
         };
-        
-        console.log('🗑️ SOCKET: Emitting message-deleted event with data:', socketData);
         
         try {
             window.globalSocketManager.io.emit('message-deleted', socketData);
-            console.log(`🔌 Direct socket message deletion for ${messageId} SENT SUCCESSFULLY`);
             return true;
         } catch (e) {
             console.error('Failed to send direct socket delete:', e);

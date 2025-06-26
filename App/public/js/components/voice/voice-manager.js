@@ -61,19 +61,43 @@ class VoiceManager {
             console.log('VoiceManager: Starting voice connection...');
             await this.requestPermissions();
             
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
+            const username = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
+            const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+            
+            if (!meetingId || !window.videoSDKManager) {
+                throw new Error('Missing requirements for voice connection');
+            }
+            
+            const authToken = await window.videoSDKManager.getAuthToken();
+            window.videoSDKManager.init(authToken);
+            
+            const meeting = window.videoSDKManager.initMeeting({
+                meetingId: meetingId,
+                name: username,
+                micEnabled: true,
+                webcamEnabled: false
+            });
+            
+            window.videosdkMeeting = meeting;
+            await window.videoSDKManager.joinMeeting();
+            
+            this.dispatchEvent('voiceConnect', {
+                channelName: 'Voice Channel',
+                meetingId: meetingId,
+                channelId: channelId
+            });
             
             this.isConnected = true;
-            this.dispatchEvent('voiceConnect');
             this.showToast('Connected to voice channel', 'success');
             
             console.log('VoiceManager: Voice connection successful');
             return Promise.resolve();
-    } catch (error) {
+        } catch (error) {
             console.error('Failed to join voice:', error);
             this.showToast('Failed to connect to voice', 'error');
-    if (joinBtn) {
-        joinBtn.disabled = false;
+            if (joinBtn) {
+                joinBtn.disabled = false;
                 joinBtn.textContent = 'Join Voice';
             }
             return Promise.reject(error);
@@ -82,6 +106,11 @@ class VoiceManager {
     
     leaveVoice() {
         if (!this.isConnected) return;
+        
+        if (window.videosdkMeeting && window.videoSDKManager) {
+            window.videoSDKManager.leaveMeeting();
+            window.videosdkMeeting = null;
+        }
         
         this.isConnected = false;
         this.participants.clear();

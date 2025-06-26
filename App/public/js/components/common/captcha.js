@@ -103,7 +103,27 @@ export class TextCaptcha {
         document.head.appendChild(style);
     }
 
-    generateCode() {
+    async generateCode() {
+        try {
+            const response = await fetch('/api/captcha/generate');
+            const data = await response.json();
+            
+            if (data.success && data.data && data.data.captcha_code) {
+                this.code = data.data.captcha_code;
+                this.displayCode();
+            } else if (data.captcha_code) {
+                this.code = data.captcha_code;
+                this.displayCode();
+            } else {
+                throw new Error('Failed to generate captcha');
+            }
+        } catch (error) {
+            console.error('Error generating captcha:', error);
+            this.fallbackGenerate();
+        }
+    }
+
+    fallbackGenerate() {
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
         let code = '';
         
@@ -177,6 +197,23 @@ export class TextCaptcha {
             return input === this.code;
         } else {
             return input.toLowerCase() === this.code.toLowerCase();
+        }
+    }
+
+    async verifyWithServer(input) {
+        try {
+            const response = await fetch('/api/captcha/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ captcha: input })
+            });
+            const data = await response.json();
+            return data.success && data.valid;
+        } catch (error) {
+            console.error('Error verifying captcha with server:', error);
+            return this.verify(input);
         }
     }
 

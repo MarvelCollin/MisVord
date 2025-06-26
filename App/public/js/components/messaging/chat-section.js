@@ -1656,16 +1656,17 @@ class ChatSection {
             });
             
             io.on('message-updated', function(data) {
-                console.log('Received message update:', data);
-                
                 const messageId = data.message_id;
                 const targetType = data.target_type;
-                const targetId = data.target_id;
+                const targetId = String(data.target_id);
+                const selfTargetId = String(self.targetId);
                 
-                const isRelevantTarget = (
-                    (self.chatType === 'channel' && targetType === 'channel' && targetId == self.targetId) ||
-                    ((self.chatType === 'direct' || self.chatType === 'dm') && (targetType === 'dm' || targetType === 'direct') && targetId == self.targetId)
-                );
+                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
+                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
+                                  (targetType === 'dm' || targetType === 'direct') && 
+                                  targetId === selfTargetId;
+                
+                const isRelevantTarget = isChannelMatch || isDMMatch;
                 
                 if (isRelevantTarget && messageId) {
                     const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
@@ -1681,53 +1682,28 @@ class ChatSection {
                                 editedBadge.textContent = '(edited)';
                                 messageTextElement.appendChild(editedBadge);
                             }
-                            
-                            console.log('✅ Updated message in real-time:', messageId);
                         }
                     }
                 }
             });
             
             io.on('message-deleted', function(data) {
-                console.log('🗑️ RECEIVED message-deleted event:', data);
-                console.log('🗑️ Current chat context:', {
-                    chatType: self.chatType,
-                    targetId: self.targetId,
-                    dataTargetType: data.target_type,
-                    dataTargetId: data.target_id
-                });
-                
                 const messageId = data.message_id;
-                const targetType = data.target_type;
-                const targetId = data.target_id;
                 
-                const isRelevantTarget = (
-                    (self.chatType === 'channel' && targetType === 'channel' && targetId == self.targetId) ||
-                    ((self.chatType === 'direct' || self.chatType === 'dm') && (targetType === 'dm' || targetType === 'direct') && targetId == self.targetId)
-                );
-                
-                console.log('🗑️ Is relevant target?', isRelevantTarget);
-                
-                if (isRelevantTarget && messageId) {
+                if (messageId) {
                     const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                    console.log('🗑️ Found message element?', !!messageElement);
                     
                     if (messageElement) {
                         const messageGroup = messageElement.closest('.message-group');
                         
                         if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
                             messageGroup.remove();
-                            console.log('🗑️ Removed entire message group');
                         } else {
                             messageElement.remove();
-                            console.log('🗑️ Removed individual message');
                         }
                         
                         self.processedMessageIds.delete(messageId);
-                        console.log('✅ Deleted message in real-time:', messageId);
                     }
-                } else {
-                    console.log('🗑️ Message deletion ignored - not for this chat');
                 }
             });
             

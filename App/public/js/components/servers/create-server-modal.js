@@ -56,6 +56,11 @@ function initStepNavigation() {
     });
 
     prevStepBtn.addEventListener('click', function () {
+        const form = document.getElementById('create-server-form');
+        if (form) {
+            FormValidator.clearErrors(form);
+        }
+        
         step2.classList.add('slide-right-exit');
         
         setTimeout(() => {
@@ -702,16 +707,38 @@ function showPageLoading(container) {
 
 function closeModal(modal) {
     if (modal) {
-        modal.classList.add('opacity-0', 'scale-95');
-        modal.querySelector('.bg-discord-background').classList.add('scale-95');
+        const form = document.getElementById('create-server-form');
+        if (form) {
+            FormValidator.clearErrors(form);
+        }
+        
+        modal.classList.add('animate-fade-out');
+        modal.classList.remove('animate-fade-in');
+        const modalContent = modal.querySelector('.bg-discord-background');
+        if (modalContent) {
+            modalContent.classList.add('animate-scale-out');
+            modalContent.classList.remove('animate-scale-in');
+            modalContent.classList.add('scale-95');
+        }
+        
         setTimeout(() => {
-            modal.classList.add('hidden');
+            modal.classList.add('hidden', 'opacity-0');
+            modal.classList.remove('animate-fade-out');
+            modal.style.display = 'none';
+            if (modalContent) {
+                modalContent.classList.remove('animate-scale-out');
+            }
+            resetForm(form);
         }, 300);
     }
 }
 
 function resetForm(form) {
+    if (!form) return;
+    
     form.reset();
+    FormValidator.clearErrors(form);
+    
     const iconPreview = document.getElementById('server-icon-preview');
     const iconPlaceholder = document.getElementById('server-icon-placeholder');
     const bannerPreview = document.getElementById('server-banner-preview');
@@ -747,14 +774,27 @@ window.navigateToServer = function (serverId) {
 window.openCreateServerModal = function () {
     const modal = document.getElementById('create-server-modal');
     if (modal) {
+        const form = document.getElementById('create-server-form');
+        if (form) {
+            FormValidator.clearErrors(form);
+        }
+        
         modal.classList.remove('hidden');
-        setTimeout(() => {
-            modal.classList.remove('opacity-0', 'scale-95');
-            modal.querySelector('.bg-discord-background').classList.remove('scale-95');
-        }, 10);
+        modal.style.display = 'flex';
+        
+        requestAnimationFrame(() => {
+            modal.classList.remove('opacity-0');
+            modal.classList.add('animate-fade-in');
+            const modalContent = modal.querySelector('.bg-discord-background');
+            if (modalContent) {
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('animate-scale-in');
+            }
+        });
+        
         const nameInput = document.getElementById('server-name');
         if (nameInput) {
-            nameInput.focus();
+            setTimeout(() => nameInput.focus(), 300);
         }
     }
 };
@@ -764,6 +804,10 @@ document.addEventListener('click', function (e) {
     const closeBtn = document.getElementById('close-server-modal');
 
     if (e.target === closeBtn || (e.target === modal)) {
+        const form = document.getElementById('create-server-form');
+        if (form) {
+            FormValidator.clearErrors(form);
+        }
         closeModal(modal);
     }
 });
@@ -772,6 +816,10 @@ document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         const modal = document.getElementById('create-server-modal');
         if (modal && !modal.classList.contains('hidden')) {
+            const form = document.getElementById('create-server-form');
+            if (form) {
+                FormValidator.clearErrors(form);
+            }
             closeModal(modal);
         }
     }

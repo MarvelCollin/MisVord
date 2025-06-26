@@ -313,7 +313,7 @@ function initializeVoiceUI() {
     
     let isConnected = false;
     
-    function joinVoice() {
+    async function joinVoice() {
         if (isConnected) {
             console.log('Already connected to voice');
             return;
@@ -324,18 +324,59 @@ function initializeVoiceUI() {
         joinView.classList.add('hidden');
         connectingView.classList.remove('hidden');
         
-        setTimeout(() => {
-            connectingView.classList.add('hidden');
-            connectedView.classList.remove('hidden');
-            if (voiceControls) {
-                voiceControls.classList.remove('hidden');
+        try {
+            const meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
+            const username = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
+            const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+            
+            if (!meetingId || !window.videoSDKManager) {
+                throw new Error('Missing requirements for voice connection');
             }
-            isConnected = true;
-            console.log('Voice connection successful');
-        }, 1500);
+            
+            const authToken = await window.videoSDKManager.getAuthToken();
+            window.videoSDKManager.init(authToken);
+            
+            const meeting = window.videoSDKManager.initMeeting({
+                meetingId: meetingId,
+                name: username,
+                micEnabled: true,
+                webcamEnabled: false
+            });
+            
+            window.videosdkMeeting = meeting;
+            await window.videoSDKManager.joinMeeting();
+            
+            window.dispatchEvent(new CustomEvent('voiceConnect', {
+                detail: {
+                    channelName: 'Voice Channel',
+                    meetingId: meetingId,
+                    channelId: channelId
+                }
+            }));
+            
+            setTimeout(() => {
+                connectingView.classList.add('hidden');
+                connectedView.classList.remove('hidden');
+                if (voiceControls) {
+                    voiceControls.classList.remove('hidden');
+                }
+                isConnected = true;
+                console.log('Voice connection successful');
+            }, 800);
+            
+        } catch (error) {
+            console.error('Voice connection failed:', error);
+            
+            connectingView.classList.add('hidden');
+            joinView.classList.remove('hidden');
+            
+            if (window.showToast) {
+                window.showToast('Failed to connect to voice channel', 'error', 3000);
+            }
+        }
     }
     
-    joinBtn.addEventListener('click', function() {
+    joinBtn.addEventListener('click', async function() {
         if (isConnected) {
             console.log('Already connected, ignoring click');
             return;
@@ -345,21 +386,34 @@ function initializeVoiceUI() {
         joinBtn.disabled = true;
         joinBtn.textContent = 'Connecting...';
         
-        joinVoice();
+        try {
+            await joinVoice();
+        } catch (error) {
+            console.error('Join voice failed:', error);
+            joinBtn.disabled = false;
+            joinBtn.textContent = 'Join Voice';
+        }
     });
     
     window.addEventListener('voiceDisconnect', function() {
-        console.log('Voice disconnect event received');
         isConnected = false;
         
+        if (window.videosdkMeeting && window.videoSDKManager) {
+            window.videoSDKManager.leaveMeeting();
+            window.videosdkMeeting = null;
+        }
+        
         connectedView.classList.add('hidden');
+        connectingView.classList.add('hidden');
         if (voiceControls) {
             voiceControls.classList.add('hidden');
         }
         joinView.classList.remove('hidden');
         
-        joinBtn.disabled = false;
-        joinBtn.textContent = 'Join Voice';
+        if (joinBtn) {
+            joinBtn.disabled = false;
+            joinBtn.textContent = 'Join Voice';
+        }
     });
     
     document.dispatchEvent(new CustomEvent('channelContentLoaded', {

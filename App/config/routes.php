@@ -478,6 +478,11 @@ Route::get('/api/auth/check', function() {
     exit;
 });
 
+Route::get('/api/captcha/generate', function() {
+    $controller = new AuthenticationController();
+    $controller->generateCaptcha();
+});
+
 Route::get('/api/debug-simple', function() {
     header('Content-Type: application/json');
     echo json_encode(['success' => true, 'message' => 'Simple debug route working', 'uri' => $_SERVER['REQUEST_URI']]);

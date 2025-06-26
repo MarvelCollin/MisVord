@@ -446,6 +446,8 @@ function initAuth() {
                     
                     form.prepend(formErrorContainer);
                     
+                    refreshCaptcha();
+                    
                     setTimeout(() => {
                         formErrorContainer.remove();
                     }, 5000);
@@ -493,6 +495,9 @@ function initAuth() {
         });
     }
 
+    let loginCaptchaInstance = null;
+    let registerCaptchaInstance = null;
+
     function setupCaptcha() {
         try {
             if (typeof TextCaptcha === 'undefined') {
@@ -503,21 +508,30 @@ function initAuth() {
             const loginCaptchaContainer = document.getElementById('login-captcha-container');
             const registerCaptchaContainer = document.getElementById('register-captcha-container');
             
-            if (loginCaptchaContainer) {
-                new TextCaptcha('login-captcha-container', {
+            if (loginCaptchaContainer && !loginCaptchaInstance) {
+                loginCaptchaInstance = new TextCaptcha('login-captcha-container', {
                     length: 6,
                     inputId: 'login_captcha'
                 });
             }
             
-            if (registerCaptchaContainer) {
-                new TextCaptcha('register-captcha-container', {
+            if (registerCaptchaContainer && !registerCaptchaInstance) {
+                registerCaptchaInstance = new TextCaptcha('register-captcha-container', {
                     length: 6,
                     inputId: 'register_captcha'
                 });
             }
         } catch (e) {
             console.error('Error initializing captcha:', e);
+        }
+    }
+
+    function refreshCaptcha() {
+        if (loginCaptchaInstance) {
+            loginCaptchaInstance.refresh();
+        }
+        if (registerCaptchaInstance) {
+            registerCaptchaInstance.refresh();
         }
     }
 
@@ -549,6 +563,18 @@ function initAuth() {
         if (authError) {
             authError.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+        
+        const formErrorMessage = document.getElementById('form-error-message');
+        if (formErrorMessage) {
+            refreshCaptcha();
+        }
+        
+        const captchaErrors = document.querySelectorAll('.text-red-500');
+        captchaErrors.forEach(error => {
+            if (error.textContent.includes('verification') || error.textContent.includes('captcha')) {
+                refreshCaptcha();
+            }
+        });
     }
 
     function initPasswordFieldMasking() {
@@ -792,6 +818,8 @@ function initAuth() {
             
             if (!isValid) {
                 e.preventDefault();
+                
+                refreshCaptcha();
                 
                 const firstInvalidField = document.querySelector('.border-red-500');
                 if (firstInvalidField) {

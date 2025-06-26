@@ -96,6 +96,15 @@ class AuthenticationController extends BaseController
             exit;
         }
 
+        if (!$this->verifyCaptcha($captcha)) {
+            $this->logFailedLogin($email);
+            $_SESSION['errors'] = ['auth' => 'Invalid verification code'];
+            $_SESSION['old_input'] = ['email' => $email];
+            $this->setSecurityHeaders();
+            header('Location: /login');
+            exit;
+        }
+
         if ($email === 'admin@admin.com' && $password === 'admin123') {
             session_regenerate_id(true);
             $_SESSION = array();
@@ -251,6 +260,8 @@ class AuthenticationController extends BaseController
 
         if (empty($captcha)) {
             $errors['captcha'] = 'Verification code is required';
+        } elseif (!$this->verifyCaptcha($captcha)) {
+            $errors['captcha'] = 'Invalid verification code';
         }
 
         if (!empty($errors)) {
@@ -1134,5 +1145,54 @@ class AuthenticationController extends BaseController
             'email' => $email,
             'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
         ]);
+    }
+
+    public function generateCaptcha()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        $code = '';
+        
+        for ($i = 0; $i < 6; $i++) {
+            $code .= $chars[rand(0, strlen($chars) - 1)];
+        }
+        
+        $_SESSION['captcha_code'] = strtolower($code);
+        $_SESSION['captcha_generated'] = time();
+        
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            return $this->success(['captcha_code' => $code]);
+        }
+        
+        header('Content-Type: application/json');
+        echo json_encode(['captcha_code' => $code]);
+        exit;
+    }
+
+    private function verifyCaptcha($userInput)
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['captcha_code'])) {
+            return false;
+        }
+        
+        if (!isset($_SESSION['captcha_generated']) || (time() - $_SESSION['captcha_generated']) > 300) {
+            unset($_SESSION['captcha_code']);
+            unset($_SESSION['captcha_generated']);
+            return false;
+        }
+        
+        $isValid = strtolower(trim($userInput)) === $_SESSION['captcha_code'];
+        
+        unset($_SESSION['captcha_code']);
+        unset($_SESSION['captcha_generated']);
+        
+        return $isValid;
     }
 }
