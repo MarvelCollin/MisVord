@@ -417,7 +417,7 @@ class AdminController extends BaseController
     }
     
     public function toggleUserBan($userId) {
-        $this->requireAdminAuth();
+        $this->requireAdmin();
         
         try {
             require_once __DIR__ . '/../database/repositories/UserRepository.php';

@@ -33,8 +33,6 @@ class AdminManager {
     this.initSectionSwitching();
     this.initLogoutButton();
     this.initSystemLogs();
-    this.initKeyboardShortcuts();
-    this.initChartConfigModal();
     this.initUserBanActions();
     
     window.nitroManager = new NitroManager();
@@ -60,176 +58,6 @@ class AdminManager {
         this.switchSection(section);
       });
     });
-  }
-
-  initKeyboardShortcuts() {
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.key === '0') {
-        e.preventDefault();
-        if (this.currentSection === "overview") {
-          this.toggleChartConfigModal();
-        }
-      }
-    });
-  }
-
-  initChartConfigModal() {
-    const modal = document.getElementById('chart-config-modal');
-    const closeButton = document.getElementById('close-chart-config-modal');
-    const cancelButton = document.getElementById('cancel-chart-config');
-    const applyButton = document.getElementById('apply-chart-config');
-    const mockDataToggle = document.getElementById('use-mock-data');
-    const mockDataSettings = document.getElementById('mock-data-settings');
-    
-    if (mockDataToggle) {
-      this.chartConfig = window.overviewManager?.chartConfig || {
-        useMockData: false,
-        mockDataRange: 'medium',
-        mockDataTrend: 'random'
-      };
-      
-      const toggleSwitch = mockDataToggle.closest('.toggle-switch');
-      if (toggleSwitch) {
-        const dot = toggleSwitch.querySelector('.dot');
-        if (dot && mockDataToggle.checked) {
-          dot.classList.add('translate-x-5');
-          toggleSwitch.classList.add('bg-discord-blue');
-        }
-      }
-      
-      mockDataToggle.addEventListener('change', () => {
-        if (mockDataSettings) {
-          if (mockDataToggle.checked) {
-            mockDataSettings.classList.remove('hidden');
-            
-            const toggleSwitch = mockDataToggle.closest('.toggle-switch');
-            if (toggleSwitch) {
-              const dot = toggleSwitch.querySelector('.dot');
-              if (dot) {
-                dot.classList.add('translate-x-5');
-                toggleSwitch.classList.add('bg-discord-blue');
-              }
-            }
-          } else {
-            mockDataSettings.classList.add('hidden');
-            
-            const toggleSwitch = mockDataToggle.closest('.toggle-switch');
-            if (toggleSwitch) {
-              const dot = toggleSwitch.querySelector('.dot');
-              if (dot) {
-                dot.classList.remove('translate-x-5');
-                toggleSwitch.classList.remove('bg-discord-blue');
-              }
-            }
-          }
-        }
-      });
-    }
-    
-    if (closeButton) {
-      closeButton.addEventListener('click', () => {
-        this.toggleChartConfigModal(false);
-      });
-    }
-    
-    if (cancelButton) {
-      cancelButton.addEventListener('click', () => {
-        this.toggleChartConfigModal(false);
-      });
-    }
-    
-    if (applyButton) {
-      applyButton.addEventListener('click', () => {
-        this.applyChartConfig();
-      });
-    }
-  }
-  
-  applyChartConfig() {
-    const useMockData = document.getElementById('use-mock-data').checked;
-    const mockDataRange = document.getElementById('mock-data-range').value;
-    const mockDataTrend = document.getElementById('mock-data-trend').value;
-    
-    const previousConfig = { ...this.chartConfig };
-    
-    const config = {
-      useMockData,
-      mockDataRange,
-      mockDataTrend
-    };
-    
-    console.log("Applying chart config:", config);
-    
-    if (window.overviewManager) {
-      window.overviewManager.updateChartConfig(config);
-      
-      if (previousConfig.useMockData !== config.useMockData) {
-        showToast(`Chart data source changed to ${useMockData ? 'mock data' : 'real data'}`, "success");
-      } else if (config.useMockData && 
-                (previousConfig.mockDataRange !== config.mockDataRange || 
-                 previousConfig.mockDataTrend !== config.mockDataTrend)) {
-        showToast("Mock data configuration updated", "success");
-      }
-    }
-    
-    this.toggleChartConfigModal(false);
-  }
-  
-  toggleChartConfigModal(show = true) {
-    const modal = document.getElementById('chart-config-modal');
-    if (!modal) return;
-    
-    if (show) {
-      modal.classList.remove('hidden');
-      
-      if (window.overviewManager && window.overviewManager.chartConfig) {
-        console.log("Initializing chart config modal with:", window.overviewManager.chartConfig);
-        
-        const { useMockData, mockDataRange, mockDataTrend } = window.overviewManager.chartConfig;
-        
-        const mockDataCheckbox = document.getElementById('use-mock-data');
-        if (mockDataCheckbox) {
-          mockDataCheckbox.checked = useMockData === true;
-          
-          const toggleSwitch = mockDataCheckbox.closest('.toggle-switch');
-          if (toggleSwitch) {
-            const dot = toggleSwitch.querySelector('.dot');
-            if (dot) {
-              if (mockDataCheckbox.checked) {
-                dot.classList.add('translate-x-5');
-                toggleSwitch.classList.add('bg-discord-blue');
-              } else {
-                dot.classList.remove('translate-x-5');
-                toggleSwitch.classList.remove('bg-discord-blue');
-              }
-            }
-          }
-        }
-        
-        const rangeSelect = document.getElementById('mock-data-range');
-        if (rangeSelect) {
-          rangeSelect.value = mockDataRange || 'medium';
-        }
-        
-        const trendSelect = document.getElementById('mock-data-trend');
-        if (trendSelect) {
-          trendSelect.value = mockDataTrend || 'random';
-        }
-        
-        const mockDataSettings = document.getElementById('mock-data-settings');
-        if (mockDataSettings) {
-          if (useMockData) {
-            mockDataSettings.classList.remove('hidden');
-          } else {
-            mockDataSettings.classList.add('hidden');
-          }
-        }
-      } else {
-        console.warn("Overview manager or chart config not available");
-      }
-    } else {
-      modal.classList.add('hidden');
-    }
   }
 
   switchSection(section) {
@@ -475,7 +303,6 @@ class AdminManager {
           showToast(data.message || `Failed to ${action} user`, "error");
         }
       } catch (error) {
-        console.error(`Error ${action}ing user:`, error);
         showToast(`An error occurred while trying to ${action} the user`, "error");
       }
     });
@@ -521,9 +348,7 @@ class AdminManager {
         <div class="flex justify-between items-center mb-4">
           <h3 id="discord-confirm-title" class="text-xl font-bold text-white">${title}</h3>
           <button id="discord-confirm-close" class="text-gray-400 hover:text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <i class="fas fa-times h-6 w-6"></i>
           </button>
         </div>
         <div class="mb-6">

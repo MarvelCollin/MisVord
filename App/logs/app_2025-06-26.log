@@ -1,3 +1,8 @@
 [2025-06-26 10:58:27] INFO [36e36b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-26 10:58:27"}
 [2025-06-26 10:58:27] WARNING [36e36b] PHP Warning: Undefined array key "REQUEST_URI" - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":9,"severity":2}
 [2025-06-26 10:58:27] WARNING [36e36b] PHP Warning: Undefined array key "REQUEST_URI" - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":38,"severity":2}
+[2025-06-26 08:38:00] DEBUG [8f1fcc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 08:38:01] INFO [8f1fcc] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 08:38:01] DEBUG [8f1fcc] DB Query: SELECT * FROM message_reactions LIMIT 1 - Duration: 45.70ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM message_reactions LIMIT 1","db_duration":0.04570293426513672}
+[2025-06-26 08:38:01] DEBUG [8f1fcc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 08:38:01] INFO [8f1fcc] Database connected successfully - Context: {"database":"misvord"}

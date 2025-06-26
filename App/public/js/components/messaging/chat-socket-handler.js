@@ -134,39 +134,7 @@ class EmojiSocketHandler {
             .message-reaction.user-reacted .reaction-count {
                 color: #5865f2;
             }
-            
-            .message-item {
-                position: relative;
-            }
-            
-            .message-item:hover .message-action-reaction {
-                opacity: 1;
-                visibility: visible;
-            }
-            
-            .message-action-reaction {
-                position: absolute;
-                right: 16px;
-                top: -12px;
-                background: #2f3136;
-                border: 1px solid rgba(79, 84, 92, 0.48);
-                border-radius: 6px;
-                padding: 6px 8px;
-                cursor: pointer;
-                opacity: 0;
-                visibility: hidden;
-                transition: all 0.15s ease;
-                z-index: 100;
-                font-size: 16px;
-                line-height: 1;
-                color: #b9bbbe;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            }
-            
-            .message-action-reaction:hover {
-                background: #36393f;
-                color: #dcddde;
-            }
+
         `;
         document.head.appendChild(style);
     }
@@ -199,11 +167,10 @@ class EmojiSocketHandler {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === Node.ELEMENT_NODE) {
-                        const messages = node.classList?.contains('message-item') ? 
-                            [node] : node.querySelectorAll?.('.message-item') || [];
+                        const messages = node.classList?.contains('message-content') ? 
+                            [node] : node.querySelectorAll?.('.message-content') || [];
                         
                         messages.forEach(message => {
-                            this.addReactionButtonToMessage(message);
                             const messageId = message.dataset.messageId;
                             if (messageId) {
                                 this.loadReactions(messageId);
@@ -219,35 +186,31 @@ class EmojiSocketHandler {
             subtree: true
         });
 
-        document.querySelectorAll('.message-item').forEach(message => {
-            this.addReactionButtonToMessage(message);
+        document.querySelectorAll('.message-content').forEach(message => {
             const messageId = message.dataset.messageId;
             if (messageId) {
                 this.loadReactions(messageId);
             }
         });
+
+        this.setupExistingReactionButtons();
     }
 
-    addReactionButtonToMessage(messageElement) {
-        if (messageElement.querySelector('.message-action-reaction')) {
-            return;
-        }
-
-        const reactionButton = document.createElement('div');
-        reactionButton.className = 'message-action-reaction';
-        reactionButton.innerHTML = '😀';
-        reactionButton.title = 'Add reaction';
-
-        reactionButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const messageId = messageElement.dataset.messageId;
-            if (messageId) {
-                const rect = reactionButton.getBoundingClientRect();
-                this.showMenu(messageId, rect.left - 100, rect.bottom + 5);
+    setupExistingReactionButtons() {
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('message-action-reaction') || 
+                e.target.closest('.message-action-reaction')) {
+                e.stopPropagation();
+                const messageElement = e.target.closest('.message-content');
+                if (messageElement) {
+                    const messageId = messageElement.dataset.messageId;
+                    if (messageId) {
+                        const rect = e.target.getBoundingClientRect();
+                        this.showMenu(messageId, rect.left - 100, rect.bottom + 5);
+                    }
+                }
             }
         });
-
-        messageElement.appendChild(reactionButton);
     }
 
     showMenu(messageId, x, y) {
@@ -418,56 +381,7 @@ class EmojiSocketHandler {
         }
     }
 
-    updateReactionsDisplay(messageId, reactions) {
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (!messageElement) return;
-        
-        let reactionsContainer = messageElement.querySelector('.message-reactions');
-        if (!reactionsContainer) {
-            reactionsContainer = document.createElement('div');
-            reactionsContainer.className = 'message-reactions';
-            reactionsContainer.setAttribute('data-message-id', messageId);
-            messageElement.appendChild(reactionsContainer);
-        } else {
-            reactionsContainer.innerHTML = '';
-        }
-        
-        const emojiCounts = {};
-        const userReactions = {};
-        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-        
-        reactions.forEach(reaction => {
-            const emoji = reaction.emoji;
-            emojiCounts[emoji] = (emojiCounts[emoji] || 0) + 1;
-            
-            if (reaction.user_id === currentUserId) {
-                userReactions[emoji] = true;
-            }
-        });
-        
-        Object.keys(emojiCounts).forEach(emoji => {
-            const reactionElement = document.createElement('div');
-            reactionElement.className = 'message-reaction';
-            reactionElement.setAttribute('data-emoji', emoji);
-            reactionElement.setAttribute('data-count', emojiCounts[emoji]);
-            reactionElement.setAttribute('data-user-reacted', userReactions[emoji] ? 'true' : 'false');
-            
-            if (userReactions[emoji]) {
-                reactionElement.classList.add('user-reacted');
-            }
-            
-            reactionElement.innerHTML = `
-                <span class="reaction-emoji">${emoji}</span>
-                <span class="reaction-count">${emojiCounts[emoji]}</span>
-            `;
-            
-            reactionElement.addEventListener('click', () => {
-                this.addReaction(emoji);
-            });
-            
-            reactionsContainer.appendChild(reactionElement);
-        });
-    }
+
 
     async loadReactions(messageId) {
         try {
@@ -478,13 +392,8 @@ class EmojiSocketHandler {
             
             const reactions = await window.ChatAPI.getMessageReactions(messageId);
             
-            if (reactions && reactions.length > 0) {
-                if (!this.currentReactions[messageId]) {
-                    this.currentReactions[messageId] = [];
-                }
-                
-                this.currentReactions[messageId] = reactions;
-                this.updateReactionsDisplay(messageId, reactions);
+            if (window.emojiReactions) {
+                window.emojiReactions.updateReactionsDisplay(messageId, reactions || []);
             }
         } catch (error) {
             console.error('Error loading reactions:', error);
@@ -492,35 +401,15 @@ class EmojiSocketHandler {
     }
 
     handleReactionAdded(data) {
-        const { message_id, emoji, user_id, username } = data;
-        
-        if (!this.currentReactions[message_id]) {
-            this.currentReactions[message_id] = [];
+        if (window.emojiReactions) {
+            window.emojiReactions.handleReactionAdded(data);
         }
-        
-        const existingIndex = this.currentReactions[message_id].findIndex(r => 
-            r.emoji === emoji && r.user_id === user_id);
-            
-        if (existingIndex === -1) {
-            this.currentReactions[message_id].push({
-                emoji,
-                user_id,
-                username
-            });
-        }
-        
-        this.updateReactionsDisplay(message_id, this.currentReactions[message_id]);
     }
 
     handleReactionRemoved(data) {
-        const { message_id, emoji, user_id } = data;
-        
-        if (!this.currentReactions[message_id]) return;
-        
-        this.currentReactions[message_id] = this.currentReactions[message_id].filter(r => 
-            !(r.emoji === emoji && r.user_id === user_id));
-        
-        this.updateReactionsDisplay(message_id, this.currentReactions[message_id]);
+        if (window.emojiReactions) {
+            window.emojiReactions.handleReactionRemoved(data);
+        }
     }
 }
 

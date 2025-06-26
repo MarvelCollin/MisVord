@@ -255,7 +255,7 @@ class BaseController
             'data' => $data
         ];
         
-        error_log("API Response Structure: " . json_encode($response, JSON_PRETTY_PRINT));
+
         
         if (function_exists('logger')) {
             logger()->debug("API Response sent", [

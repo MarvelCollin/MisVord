@@ -16,14 +16,7 @@ export class OverviewManager {
       }
     };
     
-    this.currentChartPeriod = "daily"; // daily or weekly
-    
-    this.chartConfig = {
-      useMockData: false,
-      mockDataRange: 'medium',
-      mockDataTrend: 'random'
-    };
-    
+    this.currentChartPeriod = "daily";
     this.init();
   }
 
@@ -62,17 +55,14 @@ export class OverviewManager {
     const chartContainer = document.getElementById(chartId);
     if (!chartContainer) return;
     
-    // Clear existing chart content
     chartContainer.innerHTML = '';
     
-    // Create a skeleton loader structure that resembles a chart
     const skeletonStructure = document.createElement('div');
     skeletonStructure.className = 'chart-skeleton';
     skeletonStructure.style.width = '100%';
     skeletonStructure.style.height = '100%';
     skeletonStructure.style.position = 'relative';
     
-    // Add title skeleton
     const titleSkeleton = document.createElement('div');
     titleSkeleton.className = 'skeleton';
     titleSkeleton.style.height = '16px';
@@ -81,7 +71,6 @@ export class OverviewManager {
     titleSkeleton.style.borderRadius = '4px';
     skeletonStructure.appendChild(titleSkeleton);
     
-    // Create chart structure
     const chartSkeleton = document.createElement('div');
     chartSkeleton.className = 'chart-grid-skeleton';
     chartSkeleton.style.height = 'calc(100% - 30px)';
@@ -89,14 +78,12 @@ export class OverviewManager {
     chartSkeleton.style.gridTemplateColumns = '40px 1fr';
     chartSkeleton.style.gridTemplateRows = '1fr 25px';
     
-    // Y-axis skeleton
     const yAxisSkeleton = document.createElement('div');
     yAxisSkeleton.className = 'y-axis-skeleton';
     yAxisSkeleton.style.display = 'flex';
     yAxisSkeleton.style.flexDirection = 'column';
     yAxisSkeleton.style.justifyContent = 'space-between';
     
-    // Add Y-axis labels (5 total)
     for (let i = 0; i < 5; i++) {
       const labelSkeleton = document.createElement('div');
       labelSkeleton.className = 'skeleton';
@@ -107,13 +94,11 @@ export class OverviewManager {
       yAxisSkeleton.appendChild(labelSkeleton);
     }
     
-    // Chart area skeleton
     const chartAreaSkeleton = document.createElement('div');
     chartAreaSkeleton.className = 'chart-area-skeleton';
     chartAreaSkeleton.style.position = 'relative';
     chartAreaSkeleton.style.borderLeft = '1px solid #36393f';
     
-    // Add horizontal grid lines
     for (let i = 0; i < 5; i++) {
       const gridLine = document.createElement('div');
       gridLine.style.position = 'absolute';
@@ -125,9 +110,7 @@ export class OverviewManager {
       chartAreaSkeleton.appendChild(gridLine);
     }
     
-    // Determine if we should add bar or line skeletons based on chart ID
     if (chartId === 'users-chart' || chartId === 'servers-chart') {
-      // Add bar skeletons
       const numBars = 12;
       chartAreaSkeleton.style.display = 'flex';
       chartAreaSkeleton.style.alignItems = 'flex-end';
@@ -145,7 +128,6 @@ export class OverviewManager {
         const barSkeleton = document.createElement('div');
         barSkeleton.className = 'skeleton';
         barSkeleton.style.width = '100%';
-        // Random heights for bars
         const height = 10 + Math.random() * 70;
         barSkeleton.style.height = `${height}%`;
         barSkeleton.style.borderRadius = '3px 3px 0 0';
@@ -155,7 +137,6 @@ export class OverviewManager {
         chartAreaSkeleton.appendChild(barContainer);
       }
     } else {
-      // Add line skeleton for message chart
       const svgNS = "http://www.w3.org/2000/svg";
       const svg = document.createElementNS(svgNS, "svg");
       svg.setAttribute("width", "100%");
@@ -164,13 +145,11 @@ export class OverviewManager {
       svg.style.left = "0";
       svg.style.top = "0";
       
-      // Create polyline with random points
       const polyline = document.createElementNS(svgNS, "polyline");
       polyline.setAttribute("fill", "none");
       polyline.setAttribute("stroke", "#36393f");
       polyline.setAttribute("stroke-width", "2");
       
-      // Generate random points for the line
       const numPoints = 12;
       let pointsString = '';
       for (let i = 0; i < numPoints; i++) {
@@ -182,7 +161,6 @@ export class OverviewManager {
       polyline.setAttribute("points", pointsString.trim());
       svg.appendChild(polyline);
       
-      // Add point skeletons
       for (let i = 0; i < numPoints; i++) {
         const x = (i / (numPoints - 1)) * 100;
         const y = 20 + Math.random() * 60;
@@ -203,7 +181,6 @@ export class OverviewManager {
       chartAreaSkeleton.appendChild(svg);
     }
     
-    // X-axis skeleton
     const xAxisSkeleton = document.createElement('div');
     xAxisSkeleton.className = 'x-axis-skeleton';
     xAxisSkeleton.style.display = 'flex';
@@ -211,7 +188,6 @@ export class OverviewManager {
     xAxisSkeleton.style.borderTop = '1px solid #36393f';
     xAxisSkeleton.style.paddingTop = '10px';
     
-    // Add X-axis labels
     const numLabels = 12;
     for (let i = 0; i < numLabels; i++) {
       const labelSkeleton = document.createElement('div');
@@ -222,16 +198,14 @@ export class OverviewManager {
       xAxisSkeleton.appendChild(labelSkeleton);
     }
     
-    // Assemble the chart grid
     chartSkeleton.appendChild(yAxisSkeleton);
     chartSkeleton.appendChild(chartAreaSkeleton);
-    chartSkeleton.appendChild(document.createElement('div')); // spacer
+    chartSkeleton.appendChild(document.createElement('div'));
     chartSkeleton.appendChild(xAxisSkeleton);
     
     skeletonStructure.appendChild(chartSkeleton);
     chartContainer.appendChild(skeletonStructure);
     
-    // Add data-skeleton attribute for identification
     chartContainer.setAttribute('data-skeleton', 'true');
   }
 
@@ -239,31 +213,23 @@ export class OverviewManager {
     const chartContainer = document.getElementById(chartId);
     if (!chartContainer) return;
     
-    // Remove the skeleton attribute
     chartContainer.removeAttribute('data-skeleton');
   }
 
   loadSystemStats() {
-    // Always try to load real data first
     const apiEndpoint = '/api/admin/stats';
     
     fetch(apiEndpoint)
       .then(response => response.json())
       .then(data => {
-        if (data.success && data.stats) {
-          this.updateSystemStats(data.stats);
+        if (data.success && data.data && data.data.stats) {
+          this.updateSystemStats(data.data.stats);
         } else {
-          console.error('Failed to load system stats:', data);
+          showToast("Failed to load system stats", "error");
         }
       })
       .catch(error => {
-        console.error('Error loading system stats:', error);
-        // Only use mock data if real data fails and mock data is enabled
-        if (this.chartConfig && this.chartConfig.useMockData === true) {
-          setTimeout(() => {
-            this.updateSystemStats(this.generateMockSystemStats());
-          }, 500);
-        }
+        showToast("Error loading system stats", "error");
       });
   }
   
@@ -323,37 +289,7 @@ export class OverviewManager {
     }
   }
 
-  updateChartConfig(config) {
-    console.log("Previous chart config:", this.chartConfig);
-    console.log("New chart config:", config);
-    
-    const dataSourceChanged = this.chartConfig.useMockData !== config.useMockData;
-    
-    // Update the chart configuration
-    this.chartConfig = { ...this.chartConfig, ...config };
-    
-    // If the data source changed, we need to reload the data
-    if (dataSourceChanged) {
-      console.log("Data source changed, reloading data...");
-      this.loadSystemStats();
-      this.loadChartData();
-    } 
-    // If only mock data settings changed but we're still using mock data
-    else if (config.useMockData) {
-      console.log("Mock data settings changed, regenerating mock data...");
-      this.loadSystemStats();
-      this.loadChartData();
-    }
-  }
-
   loadChartData() {
-    // Always check if we're supposed to use mock data, default to real data
-    if (this.chartConfig && this.chartConfig.useMockData === true) {
-      this.loadMockChartData();
-      return;
-    }
-    
-    // Load user growth data
     fetch("/api/admin/stats/users/growth", {
       headers: {
         "Accept": "application/json",
@@ -362,14 +298,9 @@ export class OverviewManager {
     })
       .then(response => response.json())
       .then(data => {
-        console.log("User growth API response:", data);
-        
         let chartData = { daily: [], weekly: [] };
         
         if (data.success && data.data) {
-          chartData.daily = data.data.daily || [];
-          chartData.weekly = data.data.weekly || [];
-        } else if (data.data) {
           chartData.daily = data.data.daily || [];
           chartData.weekly = data.data.weekly || [];
         }
@@ -379,12 +310,10 @@ export class OverviewManager {
         this.hideChartLoading('users-chart');
       })
       .catch(error => {
-        console.error("Error loading user growth data:", error);
-        showToast("An error occurred while loading user growth data", "error");
+        showToast("Error loading user growth data", "error");
         this.hideChartLoading('users-chart');
       });
     
-    // Load message activity data
     fetch("/api/admin/stats/messages/activity", {
       headers: {
         "Accept": "application/json",
@@ -393,14 +322,9 @@ export class OverviewManager {
     })
       .then(response => response.json())
       .then(data => {
-        console.log("Message activity API response:", data);
-        
         let chartData = { daily: [], weekly: [] };
         
         if (data.success && data.data) {
-          chartData.daily = data.data.daily || [];
-          chartData.weekly = data.data.weekly || [];
-        } else if (data.data) {
           chartData.daily = data.data.daily || [];
           chartData.weekly = data.data.weekly || [];
         }
@@ -410,12 +334,10 @@ export class OverviewManager {
         this.hideChartLoading('messages-chart');
       })
       .catch(error => {
-        console.error("Error loading message activity data:", error);
-        showToast("An error occurred while loading message activity data", "error");
+        showToast("Error loading message activity data", "error");
         this.hideChartLoading('messages-chart');
       });
     
-    // Load server growth data
     fetch("/api/admin/stats/servers/growth", {
       headers: {
         "Accept": "application/json",
@@ -424,13 +346,9 @@ export class OverviewManager {
     })
       .then(response => response.json())
       .then(data => {
-        console.log("Server growth API response:", data);
-        
         let growth = [];
         
         if (data.success && data.data) {
-          growth = data.data.growth || [];
-        } else if (data.data) {
           growth = data.data.growth || [];
         }
         
@@ -439,163 +357,9 @@ export class OverviewManager {
         this.hideChartLoading('servers-chart');
       })
       .catch(error => {
-        console.error("Error loading server growth data:", error);
-        showToast("An error occurred while loading server growth data", "error");
+        showToast("Error loading server growth data", "error");
         this.hideChartLoading('servers-chart');
       });
-  }
-  
-  loadMockChartData() {
-    const dates = this.generateDateArray(14);
-    const weeks = this.generateWeekArray(8);
-    
-    this.chartData.users.daily = dates.map((date, index) => ({
-      label: date,
-      value: this.generateMockValue(index, 'users')
-    }));
-    
-    this.chartData.users.weekly = weeks.map((week, index) => ({
-      label: week,
-      value: this.generateMockValue(index, 'users', true)
-    }));
-    
-    this.chartData.messages.daily = dates.map((date, index) => ({
-      label: date,
-      value: this.generateMockValue(index, 'messages')
-    }));
-    
-    this.chartData.messages.weekly = weeks.map((week, index) => ({
-      label: week,
-      value: this.generateMockValue(index, 'messages', true)
-    }));
-    
-    this.chartData.servers.growth = dates.map((date, index) => ({
-      label: date,
-      value: this.generateMockValue(index, 'servers')
-    }));
-    
-    setTimeout(() => {
-      this.renderAllCharts();
-      this.hideChartLoading('users-chart');
-      this.hideChartLoading('messages-chart');
-      this.hideChartLoading('servers-chart');
-    }, 500);
-  }
-  
-  generateMockSystemStats() {
-    const range = this.getMockRange();
-    
-    return {
-      users: {
-        total: this.getRandomInt(range.medium.min * 10, range.medium.max * 10),
-        online: this.getRandomInt(range.small.min, range.small.max * 2),
-        recent: this.getRandomInt(range.small.min, range.small.max)
-      },
-      servers: {
-        total: this.getRandomInt(range.small.min * 5, range.medium.min)
-      },
-      messages: {
-        total: this.getRandomInt(range.large.min, range.large.max),
-        today: this.getRandomInt(range.medium.min, range.medium.max)
-      }
-    };
-  }
-  
-  generateMockValue(index, type, isWeekly = false) {
-    const range = this.getMockRange();
-    const { mockDataTrend } = this.chartConfig;
-    
-    let baseRange;
-    if (type === 'users') {
-      baseRange = isWeekly ? range.medium : range.small;
-    } else if (type === 'messages') {
-      baseRange = isWeekly ? range.large : range.medium;
-    } else {
-      baseRange = range.small;
-    }
-    
-    const min = baseRange.min;
-    const max = baseRange.max;
-    
-    switch (mockDataTrend) {
-      case 'growing':
-        const growthRate = isWeekly ? 1.2 : 1.1;
-        return Math.round(min + (max - min) * (index / 10) * growthRate) + this.getRandomInt(-min/10, min/10);
-      case 'declining':
-        const declineRate = isWeekly ? 0.8 : 0.9;
-        return Math.round(max - (max - min) * (index / 10) * declineRate) + this.getRandomInt(-min/10, min/10);
-      case 'stable':
-        const midValue = (min + max) / 2;
-        return Math.round(midValue + this.getRandomInt(-midValue/10, midValue/10));
-      case 'random':
-      default:
-        return this.getRandomInt(min, max);
-    }
-  }
-  
-  getMockRange() {
-    const { mockDataRange } = this.chartConfig;
-    
-    switch (mockDataRange) {
-      case 'small':
-        return {
-          small: { min: 1, max: 20 },
-          medium: { min: 10, max: 50 },
-          large: { min: 50, max: 200 }
-        };
-      case 'large':
-        return {
-          small: { min: 100, max: 500 },
-          medium: { min: 500, max: 2000 },
-          large: { min: 2000, max: 5000 }
-        };
-      case 'medium':
-      default:
-        return {
-          small: { min: 10, max: 100 },
-          medium: { min: 100, max: 500 },
-          large: { min: 500, max: 2000 }
-        };
-    }
-  }
-  
-  getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-  
-  generateDateArray(days) {
-    const dates = [];
-    const today = new Date();
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(today.getDate() - i);
-      dates.push(date.toISOString().split('T')[0]);
-    }
-    
-    return dates;
-  }
-  
-  generateWeekArray(weeks) {
-    const weekLabels = [];
-    const today = new Date();
-    
-    for (let i = weeks - 1; i >= 0; i--) {
-      const startOfWeek = new Date();
-      startOfWeek.setDate(today.getDate() - (i * 7 + 6));
-      const endOfWeek = new Date();
-      endOfWeek.setDate(today.getDate() - (i * 7));
-      
-      const startMonth = startOfWeek.getMonth() + 1;
-      const endMonth = endOfWeek.getMonth() + 1;
-      const startDay = startOfWeek.getDate();
-      const endDay = endOfWeek.getDate();
-      
-      const weekLabel = `${startMonth}/${startDay}-${endMonth}/${endDay}`;
-      weekLabels.push(weekLabel);
-    }
-    
-    return weekLabels;
   }
 
   renderAllCharts() {
@@ -847,7 +611,6 @@ export class OverviewManager {
     svg.style.overflow = "visible";
     svg.style.zIndex = "0";
     
-    // Create a smooth path instead of polyline
     const path = document.createElementNS(svgNS, "path");
     path.setAttribute("fill", "none");
     path.setAttribute("stroke", "#5865f2");
@@ -856,7 +619,6 @@ export class OverviewManager {
     path.setAttribute("stroke-linecap", "round");
     path.classList.add("chart-line");
     
-    // Generate smooth curve path using cardinal spline
     let pathD = `M ${points[0].x},${points[0].y}`;
     
     for (let i = 0; i < points.length - 1; i++) {
@@ -865,14 +627,11 @@ export class OverviewManager {
       const x2 = points[i + 1].x;
       const y2 = points[i + 1].y;
       
-      // Calculate control points for smooth curve
-      const smoothing = 0.2; // Adjust this value between 0 and 1 to control curve smoothness
+      const smoothing = 0.2;
       
-      // Get previous and next points for better curve calculation
       const prev = i > 0 ? points[i - 1] : points[i];
       const next = i < points.length - 2 ? points[i + 2] : points[i + 1];
       
-      // Calculate control points for natural cubic spline
       const cp1x = x1 + (x2 - prev.x) * smoothing;
       const cp1y = y1 + (y2 - prev.y) * smoothing;
       const cp2x = x2 - (next.x - x1) * smoothing;
@@ -886,7 +645,6 @@ export class OverviewManager {
     
     chartArea.appendChild(svg);
     
-    // Create data points that appear on top of the path
     points.forEach((point, index) => {
       const dataPoint = document.createElement('div');
       dataPoint.className = 'data-point blue';

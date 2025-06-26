@@ -732,72 +732,72 @@ Route::get('/admin', function() {
 
 Route::get('/api/admin/stats', function() {
     $controller = new AdminController();
-    $controller->getSystemStats();
+    return $controller->getSystemStats();
 });
 
 Route::get('/api/admin/users', function() {
     $controller = new AdminController();
-    $controller->getUsers();
+    return $controller->getUsers();
 });
 
 Route::get('/api/admin/users/search', function() {
     $controller = new AdminController();
-    $controller->searchUsers();
+    return $controller->searchUsers();
 });
 
 Route::get('/api/admin/users/([0-9]+)', function($id) {
     $controller = new AdminController();
-    $controller->getUser($id);
+    return $controller->getUser($id);
 });
 
 Route::put('/api/admin/users/([0-9]+)', function($id) {
     $controller = new AdminController();
-    $controller->updateUser($id);
+    return $controller->updateUser($id);
 });
 
 Route::post('/api/admin/users/([0-9]+)/toggle-ban', function($id) {
     $controller = new AdminController();
-    $controller->toggleUserBan($id);
+    return $controller->toggleUserBan($id);
 });
 
 Route::delete('/api/admin/users/([0-9]+)', function($id) {
     $controller = new AdminController();
-    $controller->deleteUser($id);
+    return $controller->deleteUser($id);
 });
 
 Route::get('/api/admin/servers', function() {
     $controller = new AdminController();
-    $controller->getServers();
+    return $controller->getServers();
 });
 
 Route::get('/api/admin/servers/search', function() {
     $controller = new AdminController();
-    $controller->searchServers();
+    return $controller->searchServers();
 });
 
 Route::get('/api/admin/servers/stats', function() {
     $controller = new AdminController();
-    $controller->getServerStats();
+    return $controller->getServerStats();
 });
 
 Route::get('/api/admin/servers/list', function() {
     $controller = new AdminController();
-    $controller->getServers();
+    return $controller->getServers();
 });
 
 Route::delete('/api/admin/servers/([0-9]+)', function($id) {
     $controller = new AdminController();
-    $controller->deleteServer($id);
+    return $controller->deleteServer($id);
 });
 
 Route::get('/api/admin/logs', function() {
     $controller = new AdminController();
-    $controller->getLogs();
+    return $controller->getLogs();
 });
 
 Route::get('/api/admin/users/stats', function() {
     $controller = new AdminController();
-    $controller->getUserStats();
+    return $controller->getUserStats();
 });
 
 Route::get('/api/admin/nitro/list', function() {
@@ -890,17 +890,17 @@ Route::post('/api/nitro/create-test-codes', function() {
 
 Route::get('/api/admin/stats/users/growth', function() {
     $controller = new AdminController();
-    $controller->getUserGrowthStats();
+    return $controller->getUserGrowthStats();
 });
 
 Route::get('/api/admin/stats/messages/activity', function() {
     $controller = new AdminController();
-    $controller->getMessageActivityStats();
+    return $controller->getMessageActivityStats();
 });
 
 Route::get('/api/admin/stats/servers/growth', function() {
     $controller = new AdminController();
-    $controller->getServerGrowthStats();
+    return $controller->getServerGrowthStats();
 });
 
 Route::get('/components/common/voice-indicator', function() {

@@ -364,7 +364,7 @@ class ChatAPI {
         }
     }
 
-    sendDirectSocketReaction(messageId, emoji, action, userId) {
+    sendDirectSocketReaction(messageId, emoji, action, userId, targetType, targetId) {
         if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
             return false;
         }
@@ -378,6 +378,8 @@ class ChatAPI {
                 emoji: emoji,
                 user_id: userId,
                 username: username,
+                target_type: targetType,
+                target_id: targetId,
                 timestamp: Date.now()
             });
             return true;
@@ -621,9 +623,16 @@ class ChatAPI {
                 body: JSON.stringify({ emoji })
             });
             
-            if (response && response.socket_event) {
+            if (response && response.socket_data) {
                 const userId = window.globalSocketManager?.userId;
-                this.sendDirectSocketReaction(messageId, emoji, 'add', userId);
+                this.sendDirectSocketReaction(
+                    messageId, 
+                    emoji, 
+                    'add', 
+                    userId, 
+                    response.socket_data.target_type, 
+                    response.socket_data.target_id
+                );
             }
             
             return response;
@@ -645,9 +654,16 @@ class ChatAPI {
                 body: JSON.stringify({ emoji })
             });
             
-            if (response && response.socket_event) {
+            if (response && response.socket_data) {
                 const userId = window.globalSocketManager?.userId;
-                this.sendDirectSocketReaction(messageId, emoji, 'remove', userId);
+                this.sendDirectSocketReaction(
+                    messageId, 
+                    emoji, 
+                    'remove', 
+                    userId, 
+                    response.socket_data.target_type, 
+                    response.socket_data.target_id
+                );
             }
             
             return response;

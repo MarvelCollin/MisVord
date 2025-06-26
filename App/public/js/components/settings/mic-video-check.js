@@ -4,9 +4,9 @@ class VoiceVideoSettings {
         this.mediaStream = null;
         this.analyser = null;
         this.micTest = {
-            isRecording: false,
-            recordedChunks: [],
-            mediaRecorder: null
+            isActive: false,
+            testStream: null,
+            gainNode: null
         };
         this.devices = {
             input: [],
@@ -22,22 +22,17 @@ class VoiceVideoSettings {
         await this.loadDevices();
         this.setupEventListeners();
         this.updateUI();
-        this.startVolumeMonitoring();
     }
 
     loadSettings() {
         try {
             const saved = localStorage.getItem('misvord_audio_settings');
             return saved ? JSON.parse(saved) : {
-                inputVolume: 50,
-                outputVolume: 75,
                 inputDevice: 'default',
                 outputDevice: 'default'
             };
         } catch {
             return {
-                inputVolume: 50,
-                outputVolume: 75,
                 inputDevice: 'default',
                 outputDevice: 'default'
             };
@@ -50,17 +45,38 @@ class VoiceVideoSettings {
 
     async loadDevices() {
         try {
-            await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.addDebugInfo('Requesting microphone access...');
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.addDebugInfo('Microphone access granted - using REAL audio stream');
             
+            stream.getTracks().forEach(track => track.stop());
+            
+            this.addDebugInfo('Enumerating real audio devices...');
             const devices = await navigator.mediaDevices.enumerateDevices();
             
             this.devices.input = devices.filter(device => device.kind === 'audioinput');
             this.devices.output = devices.filter(device => device.kind === 'audiooutput');
             
+            this.addDebugInfo(`Found ${this.devices.input.length} real input devices`);
+            this.addDebugInfo(`Found ${this.devices.output.length} real output devices`);
+            
+            if (this.devices.input.length === 0) {
+                this.addDebugInfo('WARNING: No real input devices detected!');
+            }
+            
+            this.devices.input.forEach((device, index) => {
+                this.addDebugInfo(`Input ${index + 1}: ${device.label || 'Unnamed device'} (${device.deviceId.slice(0, 8)}...)`);
+            });
+            
+            this.devices.output.forEach((device, index) => {
+                this.addDebugInfo(`Output ${index + 1}: ${device.label || 'Unnamed device'} (${device.deviceId.slice(0, 8)}...)`);
+            });
+            
             this.populateDeviceSelects();
             this.checkBluetoothWarning();
         } catch (error) {
-            this.addDebugInfo('Microphone access denied or not available');
+            this.addDebugInfo(`REAL device access failed: ${error.message}`);
+            this.addDebugInfo('This means no mock data - real hardware access required');
         }
     }
 
@@ -120,34 +136,15 @@ class VoiceVideoSettings {
             tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
         });
 
-        const inputVolumeSlider = document.getElementById('input-volume');
-        const outputVolumeSlider = document.getElementById('output-volume');
         const inputDeviceSelect = document.getElementById('input-device-select');
         const outputDeviceSelect = document.getElementById('output-device-select');
         const micTestBtn = document.getElementById('mic-test-btn');
-
-        if (inputVolumeSlider) {
-            inputVolumeSlider.addEventListener('input', (e) => {
-                this.settings.inputVolume = parseInt(e.target.value);
-                this.updateVolumeIndicator('input', this.settings.inputVolume);
-                this.saveSettings();
-            });
-        }
-
-        if (outputVolumeSlider) {
-            outputVolumeSlider.addEventListener('input', (e) => {
-                this.settings.outputVolume = parseInt(e.target.value);
-                this.updateVolumeIndicator('output', this.settings.outputVolume);
-                this.saveSettings();
-            });
-        }
 
         if (inputDeviceSelect) {
             inputDeviceSelect.addEventListener('change', (e) => {
                 this.settings.inputDevice = e.target.value;
                 this.saveSettings();
                 this.checkBluetoothWarning();
-                this.restartAudioContext();
             });
         }
 
@@ -180,26 +177,8 @@ class VoiceVideoSettings {
         }
     }
 
-    updateUI() {
-        const inputVolumeSlider = document.getElementById('input-volume');
-        const outputVolumeSlider = document.getElementById('output-volume');
-
-        if (inputVolumeSlider) {
-            inputVolumeSlider.value = this.settings.inputVolume;
-            this.updateVolumeIndicator('input', this.settings.inputVolume);
-        }
-
-        if (outputVolumeSlider) {
-            outputVolumeSlider.value = this.settings.outputVolume;
-            this.updateVolumeIndicator('output', this.settings.outputVolume);
-        }
-    }
-
-    updateVolumeIndicator(type, value) {
-        const indicator = document.getElementById(`${type}-level`);
-        if (indicator) {
-            indicator.style.width = `${value}%`;
-        }
+        updateUI() {
+        // UI update for device selects handled in populateDeviceSelects
     }
 
     async startVolumeMonitoring() {
@@ -208,27 +187,42 @@ class VoiceVideoSettings {
                 this.audioContext.close();
             }
 
+            this.addDebugInfo('Creating REAL AudioContext with echo cancellation...');
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.addDebugInfo(`AudioContext state: ${this.audioContext.state}`);
             
             const constraints = {
                 audio: {
                     deviceId: this.settings.inputDevice !== 'default' ? 
-                        { exact: this.settings.inputDevice } : undefined
+                        { exact: this.settings.inputDevice } : undefined,
+                    echoCancellation: true,  // ENABLE echo cancellation
+                    noiseSuppression: true,  // ENABLE noise suppression  
+                    autoGainControl: true    // ENABLE auto gain control
                 }
             };
 
+            this.addDebugInfo('Requesting REAL microphone stream with echo cancellation...');
             this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            const tracks = this.mediaStream.getAudioTracks();
+            if (tracks.length > 0) {
+                this.addDebugInfo(`Using REAL audio track with echo cancellation: ${tracks[0].label}`);
+                this.addDebugInfo(`Track settings: ${JSON.stringify(tracks[0].getSettings())}`);
+            }
             
             this.analyser = this.audioContext.createAnalyser();
             this.analyser.fftSize = 256;
+            this.analyser.smoothingTimeConstant = 0.3;
             
             const source = this.audioContext.createMediaStreamSource(this.mediaStream);
             source.connect(this.analyser);
 
+            this.addDebugInfo('REAL audio analysis pipeline connected with echo cancellation');
             this.startVisualizer();
-            this.addDebugInfo('Audio monitoring started successfully');
+            this.addDebugInfo('Audio monitoring started with REAL microphone data and echo cancellation');
         } catch (error) {
-            this.addDebugInfo(`Audio monitoring failed: ${error.message}`);
+            this.addDebugInfo(`REAL audio monitoring failed: ${error.message}`);
+            this.addDebugInfo('No fallback to mock data - requires real hardware');
         }
     }
 
@@ -236,16 +230,33 @@ class VoiceVideoSettings {
         const bufferLength = this.analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         const bars = document.querySelectorAll('.visualizer-bars .bar');
+        
+        let lastDataSum = 0;
+        let unchangedCount = 0;
+        let dataChangeDetected = false;
+
+        this.addDebugInfo(`Starting REAL audio visualizer with ${bufferLength} frequency bins`);
 
         const updateVisualizer = () => {
             if (!this.analyser) return;
 
             this.analyser.getByteFrequencyData(dataArray);
             
-            const average = dataArray.reduce((sum, value) => sum + value, 0) / bufferLength;
-            const normalizedLevel = (average / 255) * 100;
-
-            this.updateVolumeIndicator('input', normalizedLevel);
+            const currentDataSum = dataArray.reduce((sum, value) => sum + value, 0);
+            
+            if (currentDataSum !== lastDataSum) {
+                unchangedCount = 0;
+                if (!dataChangeDetected) {
+                    dataChangeDetected = true;
+                    this.addDebugInfo('REAL audio data detected - visualizer showing live microphone input');
+                }
+            } else {
+                unchangedCount++;
+                if (unchangedCount > 300 && dataChangeDetected) {
+                    this.addDebugInfo('Audio data static - check if microphone is working');
+                }
+            }
+            lastDataSum = currentDataSum;
 
             bars.forEach((bar, index) => {
                 const barIndex = Math.floor((index / bars.length) * bufferLength);
@@ -271,72 +282,115 @@ class VoiceVideoSettings {
     async toggleMicTest() {
         const btn = document.getElementById('mic-test-btn');
         
-        if (!this.micTest.isRecording) {
-            await this.startMicTest();
+        if (!this.micTest.isActive) {
+            await this.startRealTimeMonitoring();
             btn.textContent = 'Stop Test';
             btn.classList.add('recording');
         } else {
-            this.stopMicTest();
+            this.stopRealTimeMonitoring();
             btn.textContent = "Let's Check";
             btn.classList.remove('recording');
         }
     }
 
-    async startMicTest() {
+    async startRealTimeMonitoring() {
         try {
+            // Real-time monitoring like Discord
             const constraints = {
                 audio: {
                     deviceId: this.settings.inputDevice !== 'default' ? 
-                        { exact: this.settings.inputDevice } : undefined
+                        { exact: this.settings.inputDevice } : undefined,
+                    sampleRate: 44100,
+                    channelCount: 1,
+                    echoCancellation: false,  // DISABLE for real-time monitoring
+                    noiseSuppression: false,  // Keep natural sound
+                    autoGainControl: false    // Keep natural volume
                 }
             };
 
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            this.micTest.mediaRecorder = new MediaRecorder(stream);
-            this.micTest.recordedChunks = [];
+            this.addDebugInfo('Starting REAL-TIME microphone monitoring like Discord...');
+            this.micTest.testStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            const tracks = this.micTest.testStream.getAudioTracks();
+            if (tracks.length > 0) {
+                this.addDebugInfo(`Real-time monitoring from: ${tracks[0].label}`);
+                this.addDebugInfo(`Monitoring capabilities: ${JSON.stringify(tracks[0].getCapabilities())}`);
+            }
 
-            this.micTest.mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    this.micTest.recordedChunks.push(event.data);
-                }
-            };
+            // Create AudioContext for real-time processing
+            if (this.audioContext) {
+                this.audioContext.close();
+            }
+            
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Create audio nodes for real-time monitoring
+            const source = this.audioContext.createMediaStreamSource(this.micTest.testStream);
+            this.analyser = this.audioContext.createAnalyser();
+            this.analyser.fftSize = 256;
+            this.analyser.smoothingTimeConstant = 0.3;
+            
+            // Create gain node for volume control
+            this.micTest.gainNode = this.audioContext.createGain();
+            this.micTest.gainNode.gain.value = 0.7; // Fixed monitoring volume
+            
+            // Connect: Input -> Analyser -> Gain -> Output
+            source.connect(this.analyser);
+            source.connect(this.micTest.gainNode);
+            this.micTest.gainNode.connect(this.audioContext.destination);
 
-            this.micTest.mediaRecorder.onstop = () => {
-                this.playRecording();
-            };
-
-            this.micTest.mediaRecorder.start();
-            this.micTest.isRecording = true;
-            this.addDebugInfo('Mic test recording started');
-
-            setTimeout(() => {
-                if (this.micTest.isRecording) {
-                    this.stopMicTest();
-                }
-            }, 3000);
+            this.micTest.isActive = true;
+            this.addDebugInfo('REAL-TIME audio monitoring active - you should hear yourself immediately!');
+            
+            // Start visualizer
+            this.startVisualizer();
 
         } catch (error) {
-            this.addDebugInfo(`Mic test failed: ${error.message}`);
+            this.addDebugInfo(`Real-time monitoring failed: ${error.message}`);
+            this.addDebugInfo('No mock audio - requires real microphone hardware');
         }
     }
 
-    stopMicTest() {
-        if (this.micTest.mediaRecorder && this.micTest.isRecording) {
-            this.micTest.mediaRecorder.stop();
-            this.micTest.isRecording = false;
-            this.addDebugInfo('Mic test recording stopped');
+    stopRealTimeMonitoring() {
+        if (this.micTest.isActive) {
+            this.micTest.isActive = false;
+            
+            // Disconnect audio nodes
+            if (this.micTest.gainNode) {
+                this.micTest.gainNode.disconnect();
+                this.micTest.gainNode = null;
+            }
+            
+            // Stop media stream
+            if (this.micTest.testStream) {
+                this.micTest.testStream.getTracks().forEach(track => track.stop());
+                this.micTest.testStream = null;
+            }
+            
+            // Close audio context
+            if (this.audioContext) {
+                this.audioContext.close();
+                this.audioContext = null;
+            }
+            
+            // Clear analyser
+            if (this.analyser) {
+                this.analyser = null;
+            }
+            
+            // Clear visualizer bars
+            const bars = document.querySelectorAll('.visualizer-bars .bar');
+            bars.forEach(bar => {
+                bar.classList.remove('active', 'medium', 'high');
+            });
+            
+            this.addDebugInfo('Real-time monitoring stopped');
         }
     }
 
-    playRecording() {
-        if (this.micTest.recordedChunks.length > 0) {
-            const blob = new Blob(this.micTest.recordedChunks, { type: 'audio/webm' });
-            const audio = new Audio(URL.createObjectURL(blob));
-            audio.volume = this.settings.outputVolume / 100;
-            audio.play();
-            this.addDebugInfo('Playing back recorded audio');
-        }
-    }
+
+
+
 
     async restartAudioContext() {
         await this.startVolumeMonitoring();
@@ -347,18 +401,27 @@ class VoiceVideoSettings {
         if (!debugInfo) return;
 
         const info = [
+            `=== REAL HARDWARE STATUS ===`,
             `Audio Context State: ${this.audioContext?.state || 'Not initialized'}`,
-            `Input Devices: ${this.devices.input.length}`,
-            `Output Devices: ${this.devices.output.length}`,
+            `Real Input Devices: ${this.devices.input.length}`,
+            `Real Output Devices: ${this.devices.output.length}`,
             `Selected Input: ${this.settings.inputDevice}`,
             `Selected Output: ${this.settings.outputDevice}`,
-            `Input Volume: ${this.settings.inputVolume}%`,
-            `Output Volume: ${this.settings.outputVolume}%`,
-            `Media Stream Active: ${this.mediaStream?.active || false}`,
-            `Browser: ${navigator.userAgent}`,
+            `Real-Time Monitoring: ${this.micTest.isActive ? 'ACTIVE - You should hear yourself!' : 'Idle'}`,
+            `Test Stream Active: ${this.micTest.testStream?.active || false}`,
+            `Real Audio Tracks: ${this.micTest.testStream?.getAudioTracks().length || 0}`,
+            `Gain Node Connected: ${this.micTest.gainNode ? 'YES' : 'NO'}`,
+            `=== BROWSER CAPABILITIES ===`,
+            `Browser: ${navigator.userAgent.split(' ')[0]}`,
             `Platform: ${navigator.platform}`,
             `WebRTC Support: ${!!navigator.mediaDevices}`,
-            `Audio Context Support: ${!!(window.AudioContext || window.webkitAudioContext)}`
+            `getUserMedia Support: ${!!navigator.mediaDevices?.getUserMedia}`,
+            `MediaRecorder Support: ${!!window.MediaRecorder}`,
+            `Audio Context Support: ${!!(window.AudioContext || window.webkitAudioContext)}`,
+            `=== DATA VERIFICATION ===`,
+            `Using Mock Data: NO - All data from real hardware`,
+            `Real Device Access Required: YES`,
+            `Permissions Required: Microphone access`
         ];
 
         debugInfo.innerHTML = info.map(line => `<div>${line}</div>`).join('');
@@ -392,6 +455,9 @@ class VoiceVideoSettings {
         }
         if (this.mediaStream) {
             this.mediaStream.getTracks().forEach(track => track.stop());
+        }
+        if (this.micTest.testStream) {
+            this.micTest.testStream.getTracks().forEach(track => track.stop());
         }
         if (this.visualizerInterval) {
             clearInterval(this.visualizerInterval);

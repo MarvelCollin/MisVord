@@ -1294,7 +1294,8 @@ class ChatSection {
             reply_data: message.reply_data || null,
             edited_at: message.edited_at || null,
             messageType: message.messageType || message.message_type || 'text',
-            attachment_url: message.attachment_url || message.attachmentUrl || null
+            attachment_url: message.attachment_url || message.attachmentUrl || null,
+            reactions: message.reactions || []
         };
         
         const existingMessageElement = document.querySelector(`[data-message-id="${msg.id}"]`);
@@ -1318,6 +1319,15 @@ class ChatSection {
             if (contents) {
                 contents.appendChild(messageContent);
             }
+        }
+        
+        // Process reactions after message is added to DOM
+        if (msg.reactions && msg.reactions.length > 0) {
+            setTimeout(() => {
+                if (window.emojiReactions) {
+                    window.emojiReactions.updateReactionsDisplay(msg.id, msg.reactions);
+                }
+            }, 10);
         }
         
         this.scrollToBottom();
@@ -1538,6 +1548,15 @@ class ChatSection {
             contentElement.appendChild(editedBadge);
         }
 
+        // Process reactions from the server
+        if (message.reactions && message.reactions.length > 0) {
+            setTimeout(() => {
+                if (window.emojiReactions) {
+                    window.emojiReactions.updateReactionsDisplay(message.id, message.reactions);
+                }
+            }, 10);
+        }
+
         return messageElement;
     }
     
@@ -1674,6 +1693,15 @@ class ChatSection {
                         
                         if (data.userId != self.userId) {
                             self.addMessage(data);
+                            
+                            // Process reactions if they exist in the socket data
+                            if (data.reactions && data.reactions.length > 0) {
+                                setTimeout(() => {
+                                    if (window.emojiReactions) {
+                                        window.emojiReactions.updateReactionsDisplay(messageId, data.reactions);
+                                    }
+                                }, 50);
+                            }
                         } else {
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {
@@ -1696,6 +1724,15 @@ class ChatSection {
                         
                         if (data.userId != self.userId) {
                             self.addMessage(data);
+                            
+                            // Process reactions if they exist in the socket data
+                            if (data.reactions && data.reactions.length > 0) {
+                                setTimeout(() => {
+                                    if (window.emojiReactions) {
+                                        window.emojiReactions.updateReactionsDisplay(messageId, data.reactions);
+                                    }
+                                }, 50);
+                            }
                         } else {
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {

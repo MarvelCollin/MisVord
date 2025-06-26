@@ -78,8 +78,8 @@ class EmojiReactions {
                 display: flex;
                 flex-wrap: wrap;
                 gap: 4px;
-                margin-top: 8px;
-                margin-left: 56px;
+                margin-top: 6px;
+                margin-bottom: 2px;
             }
             
             .message-reaction-pill {
@@ -130,39 +130,6 @@ class EmojiReactions {
                 color: #5865f2;
                 font-weight: 600;
             }
-            
-            .message-item {
-                position: relative;
-            }
-            
-            .message-item:hover .add-reaction-btn {
-                opacity: 1;
-                visibility: visible;
-            }
-            
-            .add-reaction-btn {
-                position: absolute;
-                right: 16px;
-                top: 8px;
-                background: #36393f;
-                border: 1px solid rgba(79, 84, 92, 0.48);
-                border-radius: 4px;
-                padding: 4px 6px;
-                cursor: pointer;
-                opacity: 0;
-                visibility: hidden;
-                transition: all 0.2s ease;
-                z-index: 10;
-                font-size: 14px;
-                color: #b9bbbe;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
-            }
-            
-            .add-reaction-btn:hover {
-                background: #40444b;
-                color: #dcddde;
-                transform: scale(1.1);
-            }
         `;
         document.head.appendChild(style);
     }
@@ -172,11 +139,14 @@ class EmojiReactions {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === Node.ELEMENT_NODE) {
-                        const messages = node.classList?.contains('message-item') ? 
-                            [node] : node.querySelectorAll?.('.message-item') || [];
+                        const messages = node.classList?.contains('message-content') ? 
+                            [node] : node.querySelectorAll?.('.message-content') || [];
                         
                         messages.forEach(message => {
-                            this.enhanceMessage(message);
+                            const messageId = message.dataset.messageId;
+                            if (messageId) {
+                                this.loadMessageReactions(messageId);
+                            }
                         });
                     }
                 });
@@ -188,27 +158,31 @@ class EmojiReactions {
             subtree: true
         });
 
-        document.querySelectorAll('.message-item').forEach(message => {
-            this.enhanceMessage(message);
+        document.querySelectorAll('.message-content').forEach(message => {
+            const messageId = message.dataset.messageId;
+            if (messageId) {
+                this.loadMessageReactions(messageId);
+            }
         });
+
+        this.setupExistingReactionButtons();
     }
 
-    enhanceMessage(messageElement) {
-        const messageId = messageElement.dataset.messageId;
-        if (!messageId || messageElement.querySelector('.add-reaction-btn')) return;
-
-        const addReactionBtn = document.createElement('div');
-        addReactionBtn.className = 'add-reaction-btn';
-        addReactionBtn.innerHTML = '😀';
-        addReactionBtn.title = 'Add reaction';
-
-        addReactionBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.showEmojiPicker(messageId, e.target);
+    setupExistingReactionButtons() {
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('message-action-reaction') || 
+                e.target.closest('.message-action-reaction')) {
+                e.stopPropagation();
+                const messageElement = e.target.closest('.message-content') || 
+                                    e.target.closest('[data-message-id]');
+                if (messageElement) {
+                    const messageId = messageElement.dataset.messageId;
+                    if (messageId) {
+                        this.showEmojiPicker(messageId, e.target);
+                    }
+                }
+            }
         });
-
-        messageElement.appendChild(addReactionBtn);
-        this.loadMessageReactions(messageId);
     }
 
     showEmojiPicker(messageId, triggerElement) {
@@ -343,11 +317,14 @@ class EmojiReactions {
 
     updateReactionsDisplay(messageId, reactions) {
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (!messageElement) return;
+        if (!messageElement) {
+            console.log('Message element not found for ID:', messageId);
+            return;
+        }
 
         let reactionsContainer = messageElement.querySelector('.message-reactions-container');
         
-        if (reactions.length === 0) {
+        if (!reactions || reactions.length === 0) {
             if (reactionsContainer) {
                 reactionsContainer.remove();
             }
@@ -357,7 +334,16 @@ class EmojiReactions {
         if (!reactionsContainer) {
             reactionsContainer = document.createElement('div');
             reactionsContainer.className = 'message-reactions-container';
-            messageElement.appendChild(reactionsContainer);
+            
+            const messageContent = messageElement.querySelector('.message-main-text') || 
+                                 messageElement.querySelector('.message-content') ||
+                                 messageElement;
+            
+            if (messageContent.parentElement) {
+                messageContent.parentElement.appendChild(reactionsContainer);
+            } else {
+                messageElement.appendChild(reactionsContainer);
+            }
         }
 
         reactionsContainer.innerHTML = '';
@@ -370,7 +356,7 @@ class EmojiReactions {
             const emoji = reaction.emoji;
             emojiCounts[emoji] = (emojiCounts[emoji] || 0) + 1;
             
-            if (reaction.user_id === currentUserId) {
+            if (String(reaction.user_id) === String(currentUserId)) {
                 userReactions.add(emoji);
             }
         });
@@ -380,6 +366,7 @@ class EmojiReactions {
             reactionPill.className = 'message-reaction-pill';
             reactionPill.dataset.emoji = emoji;
             reactionPill.dataset.messageId = messageId;
+            reactionPill.title = `${count} reaction${count > 1 ? 's' : ''}`;
 
             if (userReactions.has(emoji)) {
                 reactionPill.classList.add('user-reacted');
@@ -390,7 +377,8 @@ class EmojiReactions {
                 <span class="reaction-count">${count}</span>
             `;
 
-            reactionPill.addEventListener('click', () => {
+            reactionPill.addEventListener('click', (e) => {
+                e.stopPropagation();
                 this.toggleReaction(messageId, emoji);
             });
 
@@ -426,12 +414,12 @@ class EmojiReactions {
         }
 
         const existingIndex = this.currentReactions[message_id].findIndex(r => 
-            r.emoji === emoji && r.user_id === user_id);
+            String(r.user_id) === String(user_id) && r.emoji === emoji);
             
         if (existingIndex === -1) {
             this.currentReactions[message_id].push({
                 emoji,
-                user_id,
+                user_id: String(user_id),
                 username
             });
             
@@ -445,7 +433,7 @@ class EmojiReactions {
         if (!this.currentReactions[message_id]) return;
 
         this.currentReactions[message_id] = this.currentReactions[message_id].filter(r => 
-            !(r.emoji === emoji && r.user_id === user_id));
+            !(r.emoji === emoji && String(r.user_id) === String(user_id)));
         
         this.updateReactionsDisplay(message_id, this.currentReactions[message_id]);
     }

@@ -93,9 +93,7 @@ ob_start();
                 </li>
                 <li class="mt-6">
                     <button id="logout-btn" class="sidebar-item text-red-500 hover:text-red-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
+                        <i class="fas fa-sign-out-alt mr-2"></i>
                         Log Out
                     </button>
                 </li>
@@ -115,9 +113,7 @@ ob_start();
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium">Users</h3>
                         <span class="text-blue-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
+                            <i class="fas fa-user text-xl"></i>
                         </span>
                     </div>
                     <div class="flex flex-col">
@@ -132,9 +128,7 @@ ob_start();
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium">Online Users</h3>
                         <span class="text-green-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
-                            </svg>
+                            <i class="fas fa-broadcast-tower text-xl"></i>
                         </span>
                     </div>
                     <div class="flex flex-col">
@@ -149,9 +143,7 @@ ob_start();
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium">New Users</h3>
                         <span class="text-blue-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                            </svg>
+                            <i class="fas fa-user-plus text-xl"></i>
                         </span>
                     </div>
                     <div class="flex flex-col">
@@ -168,9 +160,7 @@ ob_start();
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium">Servers</h3>
                         <span class="text-indigo-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
+                            <i class="fas fa-server text-xl"></i>
                         </span>
                     </div>
                     <div class="flex flex-col">
@@ -185,9 +175,7 @@ ob_start();
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium">Total Messages</h3>
                         <span class="text-yellow-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                            </svg>
+                            <i class="fas fa-comment text-xl"></i>
                         </span>
                     </div>
                     <div class="flex flex-col">
@@ -202,9 +190,7 @@ ob_start();
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium">Today's Messages</h3>
                         <span class="text-yellow-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            <i class="fas fa-clock text-xl"></i>
                         </span>
                     </div>
                     <div class="flex flex-col">
@@ -226,9 +212,7 @@ ob_start();
                         </select>
                     </div>
                     <button id="refresh-charts" class="bg-discord-blue hover:bg-discord-blue-dark px-4 py-2 rounded text-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
+                        <i class="fas fa-sync-alt mr-1"></i>
                         Refresh
                     </button>
                 </div>
@@ -615,14 +599,12 @@ ob_start();
 <!-- Discord-style confirmation modal -->
 <div id="confirm-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
     <div class="bg-discord-darker rounded-md w-full max-w-md p-6 relative z-10">
-        <div class="flex justify-between items-center mb-4">
-            <h3 id="confirm-title" class="text-xl font-bold text-white">Confirm Action</h3>
-            <button id="close-confirm-modal" class="text-gray-400 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
+                    <div class="flex justify-between items-center mb-4">
+                <h3 id="confirm-title" class="text-xl font-bold text-white">Confirm Action</h3>
+                <button id="close-confirm-modal" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
         <div class="mb-6">
             <p id="confirm-message" class="text-discord-lighter">Are you sure you want to perform this action?</p>
         </div>
@@ -632,65 +614,6 @@ ob_start();
             </button>
             <button id="confirm-action" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors">
                 Confirm
-            </button>
-        </div>
-    </div>
-</div>
-
-<div id="chart-config-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-    <div class="bg-discord-darker rounded-lg p-6 w-full max-w-md">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-medium">Chart Configuration</h3>
-            <button id="close-chart-config-modal" class="text-discord-lighter hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-        
-        <div class="mb-6">
-            <h4 class="text-md font-semibold mb-2">Data Source</h4>
-            <div class="flex items-center mb-4">
-                <label class="inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="use-mock-data" class="sr-only">
-                    <div class="relative w-11 h-6 bg-discord-dark rounded-full toggle-switch">
-                        <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform"></div>
-                    </div>
-                    <span class="ml-3 text-sm">Use Mock Data</span>
-                </label>
-            </div>
-            <p class="text-xs text-discord-lighter mb-4">Toggle between actual database data and mock data for charts visualization</p>
-            
-            <div id="mock-data-settings" class="border-t border-discord-dark pt-4 mt-4 hidden">
-                <h4 class="text-sm font-semibold mb-2">Mock Data Settings</h4>
-                
-                <div class="mb-4">
-                    <label for="mock-data-range" class="block text-sm text-discord-lighter mb-1">Data Range</label>
-                    <select id="mock-data-range" class="form-select w-full">
-                        <option value="small">Small Numbers (1-50)</option>
-                        <option value="medium" selected>Medium Numbers (10-500)</option>
-                        <option value="large">Large Numbers (100-5000)</option>
-                    </select>
-                </div>
-                
-                <div class="mb-4">
-                    <label for="mock-data-trend" class="block text-sm text-discord-lighter mb-1">Data Trend</label>
-                    <select id="mock-data-trend" class="form-select w-full">
-                        <option value="random">Random</option>
-                        <option value="growing">Growing</option>
-                        <option value="declining">Declining</option>
-                        <option value="stable">Stable</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        
-        <div class="flex justify-end space-x-3">
-            <button type="button" id="cancel-chart-config" class="px-4 py-2 bg-discord-dark rounded text-sm">
-                Cancel
-            </button>
-            <button type="button" id="apply-chart-config" class="px-4 py-2 bg-discord-blue rounded text-sm hover:bg-discord-blue-dark">
-                Apply Changes
             </button>
         </div>
     </div>
