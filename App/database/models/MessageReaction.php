@@ -26,6 +26,13 @@ class MessageReaction extends Model {
         return array_map(function($data) { return new static($data); }, $results);
     }
     
+    public static function countForMessage($messageId) {
+        $query = new Query();
+        return $query->table(static::$table)
+            ->where('message_id', $messageId)
+            ->count();
+    }
+    
     public static function testConnection() {
         try {
             $query = new Query();

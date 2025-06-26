@@ -640,7 +640,10 @@ class ChatController extends BaseController
             'edited_at' => is_array($message) ? ($message['edited_at'] ?? null) : ($message->edited_at ?? null),
             'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->type ?? 'text'),
             'message_type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->message_type ?? 'text'),
-            'attachment_url' => is_array($message) ? ($message['attachment_url'] ?? null) : ($message->attachment_url ?? null)
+            'attachment_url' => is_array($message) ? ($message['attachment_url'] ?? null) : ($message->attachment_url ?? null),
+            // Default to false for has_reactions
+            'has_reactions' => false,
+            'reaction_count' => 0
         ];
         
         
@@ -665,35 +668,37 @@ class ChatController extends BaseController
             }
         }
         
-        // Include reactions for the message
+        // Check and include reactions for the message
         try {
             require_once __DIR__ . '/../database/models/MessageReaction.php';
             
             $messageId = is_array($message) ? $message['id'] : $message->id;
-            error_log("Fetching reactions for message ID: $messageId");
-            $reactions = MessageReaction::getForMessage($messageId);
-            error_log("Found " . count($reactions) . " reactions for message ID: $messageId");
             
-            if (!empty($reactions)) {
-                $formatted['reactions'] = [];
+            // First, do a quick count check without fetching all data
+            $reactionsCount = MessageReaction::countForMessage($messageId);
+            $formatted['reaction_count'] = $reactionsCount;
+            $formatted['has_reactions'] = ($reactionsCount > 0);
+            
+            if ($reactionsCount > 0) {
+                // Only if there are reactions, fetch all the details
+                $reactions = MessageReaction::getForMessage($messageId);
                 
-                foreach ($reactions as $reaction) {
-                    $reactionUser = $this->userRepository->find($reaction->user_id);
-                    $formatted['reactions'][] = [
-                        'emoji' => $reaction->emoji,
-                        'user_id' => $reaction->user_id,
-                        'username' => $reactionUser ? $reactionUser->username : 'Unknown User'
-                    ];
-                    error_log("Added reaction: {$reaction->emoji} by user {$reaction->user_id} for message ID: $messageId");
+                if (!empty($reactions)) {
+                    $formatted['reactions'] = [];
+                    
+                    foreach ($reactions as $reaction) {
+                        $reactionUser = $this->userRepository->find($reaction->user_id);
+                        $formatted['reactions'][] = [
+                            'emoji' => $reaction->emoji,
+                            'user_id' => $reaction->user_id,
+                            'username' => $reactionUser ? $reactionUser->username : 'Unknown User'
+                        ];
+                    }
                 }
-                error_log("Total reactions added to response for message ID $messageId: " . count($formatted['reactions']));
-            } else {
-                error_log("No reactions found for message ID: $messageId");
             }
         } catch (Exception $e) {
-            // Log the error
+            // Log the error but don't interrupt the flow
             error_log('Error loading reactions for message ' . $messageId . ': ' . $e->getMessage());
-            error_log('Error trace: ' . $e->getTraceAsString());
         }
         
         return $formatted;
@@ -1038,26 +1043,37 @@ class ChatController extends BaseController
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
         
-        $message = $this->messageRepository->find($messageId);
-        if (!$message) {
-            return $this->notFound('Message not found');
-        }
-        
         try {
             require_once __DIR__ . '/../database/models/MessageReaction.php';
             
-            $reactions = MessageReaction::getForMessage($messageId);
-            $formattedReactions = [];
+            // First check if there are any reactions (fast query)
+            $reactionsCount = MessageReaction::countForMessage($messageId);
             
+            if ($reactionsCount === 0) {
+                // Return immediately if there are no reactions
+                return $this->success(['reactions' => []]);
+            }
+            
+            // Optimized fetching with full user info in a single query
+            $query = new Query();
+            $reactions = $query->rawQuery(
+                "SELECT mr.id, mr.message_id, mr.emoji, mr.user_id, mr.created_at, u.username 
+                 FROM message_reactions mr
+                 JOIN users u ON mr.user_id = u.id
+                 WHERE mr.message_id = ?
+                 ORDER BY mr.created_at ASC",
+                [$messageId]
+            );
+            
+            $formattedReactions = [];
             foreach ($reactions as $reaction) {
-                $user = $this->userRepository->find($reaction->user_id);
                 $formattedReactions[] = [
-                    'id' => $reaction->id,
-                    'message_id' => $reaction->message_id,
-                    'user_id' => $reaction->user_id,
-                    'emoji' => $reaction->emoji,
-                    'username' => $user ? $user->username : 'Unknown User',
-                    'created_at' => $reaction->created_at
+                    'id' => $reaction['id'],
+                    'message_id' => $reaction['message_id'],
+                    'user_id' => $reaction['user_id'],
+                    'emoji' => $reaction['emoji'],
+                    'username' => $reaction['username'] ?? 'Unknown User',
+                    'created_at' => $reaction['created_at']
                 ];
             }
             

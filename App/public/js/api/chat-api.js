@@ -643,15 +643,14 @@ class ChatAPI {
         }
         
         const url = `/api/messages/${messageId}/reactions`;
-        console.log(`📋 Fetching reactions for message ${messageId} from: ${url}`);
         
         try {
             const response = await this.makeRequest(url);
-            console.log(`✅ Received reactions for message ${messageId}:`, response);
-            return response.data?.reactions || response.reactions || [];
+            const reactions = response.data?.reactions || response.reactions || [];
+            return reactions;
         } catch (error) {
-            console.error(`❌ Failed to fetch reactions for message ${messageId}:`, error);
-            throw error;
+            console.error(`Error fetching reactions for message ${messageId}:`, error);
+            return [];
         }
     }
     

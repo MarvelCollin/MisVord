@@ -231,6 +231,23 @@ export class UserManager {
     const statusFilter = document.getElementById('user-status-filter');
     
     if (statusFilter) {
+      // Clear existing options
+      statusFilter.innerHTML = '';
+      
+      // Add only the options we want
+      const options = [
+        { value: 'all', text: 'All Users' },
+        { value: 'active', text: 'Active Users' },
+        { value: 'banned', text: 'Banned Users' }
+      ];
+      
+      options.forEach(option => {
+        const optionElement = document.createElement('option');
+        optionElement.value = option.value;
+        optionElement.textContent = option.text;
+        statusFilter.appendChild(optionElement);
+      });
+      
       statusFilter.addEventListener('change', () => {
         this.statusFilter = statusFilter.value;
         this.currentUserPage = 1;

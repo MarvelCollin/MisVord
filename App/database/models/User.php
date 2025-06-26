@@ -186,7 +186,7 @@ class User extends Model {
                         password VARCHAR(255),
                         avatar_url VARCHAR(500),
                         banner_url VARCHAR(500),
-                        status VARCHAR(50) NULL,
+                        status VARCHAR(50) NULL DEFAULT 'active',
                         display_name VARCHAR(255),
                         bio TEXT,
                         google_id VARCHAR(255) UNIQUE NULL,

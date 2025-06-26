@@ -498,6 +498,20 @@ body {
   transition: color var(--discord-animation-short) ease, opacity var(--discord-animation-short) ease;
 }
 
+#display_name {
+  background-color: var(--discord-bg-tertiary);
+  border-color: rgba(4, 4, 5, 0.3);
+}
+
+#display_name:focus {
+  border-color: var(--discord-blurple);
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+}
+
+#display_name:hover {
+  border-color: rgba(79, 84, 92, 0.6);
+}
+
 #user-avatar-container {
   position: relative;
   cursor: pointer;
@@ -1682,48 +1696,27 @@ button:active {
 
 @media (max-width: 480px) {
     .flex.min-h-screen {
-        padding: 10px;
+        padding: 5px;
         margin-top: 5px;
         margin-bottom: 5px;
-        height: calc(100vh - 10px);
     }
     
     .p-10 {
-        padding: 15px;
+        padding: var(--spacing-md);
     }
     
     .close-button {
-        top: 15px;
-        right: 15px;
-        padding: 4px 8px;
+        top: 8px;
+        right: 8px;
+        padding: 3px 6px;
     }
     
     .close-button-text {
         display: none;
     }
     
-    .voice-tab {
-        padding: 12px 14px;
-        font-size: 14px;
-    }
-    
-    .voice-tab i {
-        font-size: 14px;
-        margin-right: 8px;
-    }
-    
-    .bg-discord-darker {
-        padding: 12px !important;
-        margin-bottom: 12px !important;
-    }
-    
     .text-lg.font-medium.mb-4 {
         font-size: 16px;
-        margin-bottom: 12px;
-    }
-    
-    .video-preview {
-        min-height: 180px;
     }
 }
 
@@ -1826,8 +1819,6 @@ button:active {
 #video-test-btn.recording:hover {
     background-color: #d73939;
 }
-
-
 
 /* Enhanced Device Display Styling */
 #current-input-device, #current-output-device, #current-video-device {

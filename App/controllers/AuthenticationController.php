@@ -114,6 +114,7 @@ class AuthenticationController extends BaseController
             $_SESSION['avatar_url'] = '';
             $_SESSION['banner_url'] = '';
             $_SESSION['last_activity'] = time();
+            $_SESSION['user_status'] = 'active';
             
             $this->setSecurityHeaders();
             header('Location: /admin');
@@ -150,6 +151,11 @@ class AuthenticationController extends BaseController
             header('Location: /login');
             exit;
         }
+
+        // Update user status to active
+        $this->userRepository->update($user->id, [
+            'status' => 'active'
+        ]);
 
         session_regenerate_id(true);
         
@@ -285,7 +291,7 @@ class AuthenticationController extends BaseController
             'username' => $username,
             'discriminator' => $discriminator,
             'email' => $email,
-            'status' => 'online',
+            'status' => 'active',
             'display_name' => $username,
             'bio' => null,
             'security_question' => $securityQuestion,
@@ -319,7 +325,7 @@ class AuthenticationController extends BaseController
             $user->email = $email;
             $user->setPassword($password);
             $user->discriminator = $discriminator;
-            $user->status = 'online';
+            $user->status = 'active';
             
             $user->display_name = $username;
             $user->bio = null;
@@ -602,6 +608,7 @@ class AuthenticationController extends BaseController
                 $user->google_id = $googleId;
                 $user->display_name = $user->username;
                 $user->bio = null;
+                $user->status = 'active';
                 $user->save();
 
                 $this->logActivity('google_registration', ['user_id' => $user->id, 'email' => $email]);

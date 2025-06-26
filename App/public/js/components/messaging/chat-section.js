@@ -1899,40 +1899,62 @@ class ChatSection {
             }
             
             if (messages && messages.length > 0) {
-                // Pre-fetch reactions for all messages while still showing skeletons
-                const messageIds = messages.map(msg => {
+                // Only fetch reactions for messages that have them
+                const messagesWithReactions = [];
+                const messagesWithoutReactions = [];
+
+                // Process all messages first to see which ones have reactions
+                messages.forEach(msg => {
                     this.processedMessageIds.add(msg.id);
-                    return msg.id;
+                    
+                    // Check if the message already has reactions from server
+                    const hasReactions = msg.has_reactions === true || 
+                                        (Array.isArray(msg.reactions) && msg.reactions.length > 0) ||
+                                        msg.reaction_count > 0;
+                                        
+                    if (hasReactions) {
+                        messagesWithReactions.push(msg.id);
+                    } else {
+                        // Don't need to fetch if it's already confirmed empty
+                        messagesWithoutReactions.push(msg.id);
+                        msg.reactions = [];
+                    }
                 });
                 
-                // Fetch all reactions in parallel
-                const batchSize = 5;
-                for (let i = 0; i < messageIds.length; i += batchSize) {
-                    const batch = messageIds.slice(i, i + batchSize);
-                    for (const messageId of batch) {
-                        if (window.ChatAPI) {
-                            reactionPromises.push(
-                                window.ChatAPI.getMessageReactions(messageId)
-                                .then(reactions => {
-                                    messagesToProcess.push({
-                                        messageId,
-                                        reactions
-                                    });
-                                })
-                                .catch(err => console.error(`Error fetching reactions for message ${messageId}:`, err))
-                            );
+                console.log(`📊 Messages with reactions: ${messagesWithReactions.length}, without: ${messagesWithoutReactions.length}`);
+                
+                // Only fetch reactions for messages that likely have them
+                if (messagesWithReactions.length > 0) {
+                    const batchSize = 5;
+                    for (let i = 0; i < messagesWithReactions.length; i += batchSize) {
+                        const batch = messagesWithReactions.slice(i, i + batchSize);
+                        for (const messageId of batch) {
+                            if (window.ChatAPI) {
+                                reactionPromises.push(
+                                    window.ChatAPI.getMessageReactions(messageId)
+                                    .then(reactions => {
+                                        if (reactions && reactions.length > 0) {
+                                            messagesToProcess.push({
+                                                messageId,
+                                                reactions
+                                            });
+                                        }
+                                    })
+                                    .catch(err => console.error(`Error fetching reactions for message ${messageId}:`, err))
+                                );
+                            }
                         }
-                    }
-                    // Add a small delay between batches to prevent overloading the server
-                    if (i + batchSize < messageIds.length) {
-                        await new Promise(resolve => setTimeout(resolve, 50));
+                        // Add a small delay between batches to prevent overloading the server
+                        if (i + batchSize < messagesWithReactions.length) {
+                            await new Promise(resolve => setTimeout(resolve, 50));
+                        }
                     }
                 }
                 
-                // Wait for all reaction requests to complete or timeout after 500ms
+                // Reduced timeout to 300ms for faster appearance
                 await Promise.race([
                     Promise.all(reactionPromises),
-                    new Promise(resolve => setTimeout(resolve, 500))
+                    new Promise(resolve => setTimeout(resolve, 300))
                 ]);
                 
                 // Process all fetched reactions

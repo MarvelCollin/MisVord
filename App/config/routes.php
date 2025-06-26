@@ -1157,6 +1157,11 @@ Route::post('/api/debug/set-security', function() {
     exit;
 });
 
+Route::post('/api/users/profile', function() {
+    $controller = new UserController();
+    $controller->updateUserProfile();
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

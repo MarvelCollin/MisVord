@@ -484,7 +484,7 @@ class AdminController extends BaseController
             }
             
             $currentStatus = $user->status;
-            $newStatus = $currentStatus === 'banned' ? 'offline' : 'banned';
+            $newStatus = $currentStatus === 'banned' ? 'active' : 'banned';
             
             $updated = $userRepository->update($userId, [
                 'status' => $newStatus

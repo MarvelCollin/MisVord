@@ -45,6 +45,8 @@ ob_start();
 <meta name="user-status" content="<?php echo htmlspecialchars($user->status ?? 'offline'); ?>">
 <meta name="user-id" content="<?php echo htmlspecialchars($user->id ?? ''); ?>">
 <meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/main-logo.png'); ?>">
+<meta name="username" content="<?php echo htmlspecialchars($user->username ?? ''); ?>">
+<meta name="display-name" content="<?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?>">
 
 <div class="flex min-h-screen">
     <aside class="w-60">
@@ -178,6 +180,14 @@ ob_start();
                                         #<?php echo htmlspecialchars($user->discriminator ?? '0000'); ?>
                                     </span>
                                 </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="display_name" class="block text-sm font-medium text-white mb-2">Display Name</label>
+                                <div class="flex">
+                                    <input type="text" id="display_name" name="display_name" class="form-input flex-grow" value="<?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?>" placeholder="Enter display name (optional)">
+                                </div>
+                                <p class="text-discord-lighter text-xs mt-1">This is how others see you. You can use any name you'd like.</p>
                             </div>
                         </section>
                         

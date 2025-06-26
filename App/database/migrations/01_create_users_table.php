@@ -11,7 +11,7 @@ class CreateUsersTableMigration {
             $table->string('google_id', 255, true); 
             $table->string('avatar_url', 255, true); 
             $table->string('banner_url', 255, true); 
-            $table->string('status', 255, true, 'appear');
+            $table->string('status', 255, true, 'active');
             $table->string('display_name', 255, true);
             $table->text('bio', true);
             $table->string('security_question', 255, true);

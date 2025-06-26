@@ -49,6 +49,7 @@ function initUserSettingsPage() {
         initStatusSelector();
         initEmailReveal();
         initPasswordChangeForms();
+        initProfileFormSubmit();
     } else if (activeSection === 'connections') {
         initConnectionToggles();
     } else if (activeSection === 'voice') {
@@ -1355,5 +1356,108 @@ function initConnectionToggles() {
         .catch(err => {
             console.error('Error loading LocalStorageManager:', err);
         });
+}
+
+/**
+ * Initialize profile form submission
+ */
+function initProfileFormSubmit() {
+    const profileForm = document.getElementById('user-profile-form');
+    const saveBtn = document.getElementById('save-changes-btn');
+    
+    if (!profileForm || !saveBtn) return;
+    
+    profileForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const usernameInput = document.getElementById('username');
+        const displayNameInput = document.getElementById('display_name');
+        
+        if (!usernameInput) return;
+        
+        const username = usernameInput.value.trim();
+        const displayName = displayNameInput ? displayNameInput.value.trim() : '';
+        
+        if (!username) {
+            showToast('Username cannot be empty', 'error');
+            usernameInput.focus();
+            return;
+        }
+        
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        
+        const profileData = {
+            username: username
+        };
+        
+        if (displayName) {
+            profileData.display_name = displayName;
+        }
+        
+        fetch('/api/users/profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(profileData),
+            credentials: 'same-origin'
+        })
+        .then(async response => {
+            if (!response.ok) {
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorData.error?.message || errorMessage;
+                } catch (parseError) {
+                    console.warn('Could not parse error response as JSON:', parseError);
+                }
+                throw new Error(errorMessage);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server returned non-JSON response');
+            }
+            
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showToast('Profile updated successfully', 'success');
+                
+                const usernameMeta = document.querySelector('meta[name="username"]');
+                if (usernameMeta) {
+                    usernameMeta.content = username;
+                }
+                
+                const displayNameMeta = document.querySelector('meta[name="display-name"]');
+                if (displayNameMeta) {
+                    displayNameMeta.content = displayName || username;
+                }
+                
+                const usernameElements = document.querySelectorAll('.current-user-username');
+                usernameElements.forEach(el => {
+                    el.textContent = username;
+                });
+                
+                const displayNameElements = document.querySelectorAll('.current-user-display-name');
+                displayNameElements.forEach(el => {
+                    el.textContent = displayName || username;
+                });
+            } else {
+                throw new Error(data.message || data.error?.message || 'Failed to update profile');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating profile:', error);
+            showToast(error.message || 'Error updating profile', 'error');
+        })
+        .finally(() => {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Changes';
+        });
+    });
 }
 

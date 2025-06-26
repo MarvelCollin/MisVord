@@ -44,7 +44,6 @@ ob_start();
                     </a>
                 </li>
                 
-                <!-- People Category -->
                 <li class="mt-6">
                     <div class="sidebar-category">
                         <span>PEOPLE</span>
@@ -61,7 +60,6 @@ ob_start();
                     </a>
                 </li>
                 
-                <!-- Moderation Category -->
                 <li class="mt-6">
                     <div class="sidebar-category">
                         <span>MODERATION</span>
@@ -73,7 +71,6 @@ ob_start();
                     </a>
                 </li>
                 
-                <!-- Add Delete Server option at the bottom -->
                 <li class="mt-6">
                     <div class="sidebar-category">
                         <span>DANGER ZONE</span>
@@ -88,10 +85,8 @@ ob_start();
         </nav>
     </div>
 
-    <!-- Main Content Area -->
     <div class="flex-1 bg-discord-dark overflow-y-auto">
         <?php if ($section === 'delete'): ?>
-            <!-- Delete Server Section -->
             <div class="p-10 max-w-[740px]">
                 <div class="mb-8">
                     <h1 class="text-2xl font-bold mb-2 text-discord-red">Delete Server</h1>
@@ -140,8 +135,7 @@ ob_start();
                     </div>
                 </div>
             </div>
-        <?php elseif ($section === 'profile'): ?>
-            <!-- Server Profile Section -->
+        <?php elseif ($section === 'profile'): ?>       
             <div class="p-10 max-w-[740px]">
                 <div class="mb-8">
                     <h1 class="text-2xl font-bold mb-2">Server Profile</h1>
@@ -152,13 +146,11 @@ ob_start();
                     <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                     
                     <div class="bg-discord-darker rounded-lg p-6 space-y-6">
-                        <!-- Server Name -->
                         <div class="form-group">
                             <label for="server-name" class="block text-sm font-medium text-white mb-2">Server Name</label>
                             <input type="text" id="server-name" name="name" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary" value="<?php echo htmlspecialchars($server->name); ?>">
                         </div>
                         
-                        <!-- Server Description -->
                         <div class="form-group">
                             <label for="server-description" class="block text-sm font-medium text-white mb-2">Description</label>
                             <textarea id="server-description" name="description" class="form-input bg-discord-dark-input text-white border-none h-24 resize-none focus:ring-2 focus:ring-discord-primary" placeholder="Tell people what your server is about..."><?php echo htmlspecialchars($server->description ?? ''); ?></textarea>
@@ -170,7 +162,6 @@ ob_start();
                         <h3 class="text-lg font-medium mb-4">Server Identity</h3>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Server Icon -->
                             <div class="form-group">
                                 <label class="block text-sm font-medium text-white mb-2">Icon</label>
                                 <p class="text-discord-lighter text-xs mb-3">Recommended: 512x512 or larger square image</p>
@@ -191,7 +182,6 @@ ob_start();
                                 <input type="file" id="server-icon-input" name="server_icon" class="hidden" accept="image/*">
                             </div>
                             
-                            <!-- Server Banner -->
                             <div class="form-group">
                                 <label class="block text-sm font-medium text-white mb-2">Banner</label>
                                 <p class="text-discord-lighter text-xs mb-3">Recommended: 960x540 or larger (16:9 ratio)</p>
@@ -217,7 +207,6 @@ ob_start();
                     <div class="bg-discord-darker rounded-lg p-6 space-y-6">
                         <h3 class="text-lg font-medium mb-4">Discovery Settings</h3>
                         
-                        <!-- Server Privacy -->
                         <div class="form-group">
                             <div class="flex items-center space-x-3 mb-2">
                                 <div class="relative inline-flex items-center">
@@ -233,7 +222,6 @@ ob_start();
                             <p class="text-discord-lighter text-xs ml-8">Public servers can be found by anyone in Server Discovery</p>
                         </div>
                         
-                        <!-- Server Category -->
                         <div class="form-group">
                             <label for="server-category" class="block text-sm font-medium text-white mb-2">Category</label>
                             <select id="server-category" name="category" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary">
@@ -248,7 +236,6 @@ ob_start();
                         </div>
                     </div>
                     
-                    <!-- Save Button -->
                     <div class="flex justify-end pt-4">
                         <button type="submit" id="save-changes-btn" class="bg-discord-primary hover:bg-discord-primary-dark text-white font-medium py-2 px-6 rounded-md transition-colors">
                             Save Changes
@@ -257,14 +244,11 @@ ob_start();
                 </form>
             </div>
         <?php elseif ($section === 'members'): ?>
-            <!-- Members Section -->
             <div class="p-10 max-w-[740px]">
                 <h1 class="text-2xl font-bold mb-2">Members</h1>
                 <p class="text-discord-lighter mb-6">Manage members and their roles in your server</p>
                 
-                <!-- Search and Filter Bar -->
                 <div class="flex gap-4 mb-6">
-                    <!-- Search Bar -->
                     <div class="relative flex-1">
                         <input type="text" id="member-search" class="form-input pl-10" placeholder="Search members">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -274,9 +258,7 @@ ob_start();
                         </div>
                     </div>
                     
-                    <!-- Filter Options -->
                     <div class="flex gap-2">
-                        <!-- Sort Dropdown -->
                         <div id="member-filter" class="relative inline-block">
                             <button type="button" class="bg-discord-darker flex items-center justify-between px-3 py-2 rounded-md text-white hover:bg-opacity-80 transition-colors min-w-[180px]">
                                 <span class="filter-selected-text text-sm">Member Since (Newest first)</span>
@@ -284,8 +266,7 @@ ob_start();
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </button>
-                            
-                            <!-- Dropdown Menu -->
+
                             <div id="filter-dropdown" class="filter-dropdown hidden absolute z-10 w-full mt-1 rounded-md shadow-lg bg-discord-darker border border-gray-700 overflow-hidden">
                                 <div class="py-1">
                                     <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="member-newest">
@@ -322,7 +303,6 @@ ob_start();
                     </div>
                 </div>
                 
-                <!-- Members List -->
                 <div class="bg-discord-darker rounded-md overflow-hidden">
                     <div class="p-4 border-b border-discord-dark flex items-center text-sm font-medium text-discord-lighter">
                         <div class="w-10">#</div>
@@ -332,7 +312,6 @@ ob_start();
                         <div class="w-24">ACTIONS</div>
                     </div>
                     
-                    <!-- Members will be loaded here via JavaScript -->
                     <div id="members-list" class="max-h-[500px] overflow-y-auto">
                         <div class="flex items-center justify-center p-8 text-discord-lighter">
                             <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -344,7 +323,6 @@ ob_start();
                     </div>
                 </div>
                 
-                <!-- Member Template (for JavaScript) -->
                 <template id="member-template">
                     <div class="member-item p-4 border-b border-discord-dark flex items-center hover:bg-discord-dark">
                         <div class="w-10 flex items-center justify-center">
@@ -381,14 +359,11 @@ ob_start();
                 </template>
             </div>
         <?php elseif ($section === 'roles'): ?>
-            <!-- Roles Section -->
             <div class="p-10 max-w-[740px]">
                 <h1 class="text-2xl font-bold mb-2">Roles</h1>
                 <p class="text-discord-lighter mb-6">Use roles to group your server members and assign permissions.</p>
                 
-                <!-- Search and Filter Bar -->
                 <div class="flex gap-4 mb-6">
-                    <!-- Search Bar -->
                     <div class="relative flex-1">
                         <input type="text" id="role-search" class="form-input pl-10" placeholder="Search roles">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -398,9 +373,7 @@ ob_start();
                         </div>
                     </div>
                     
-                    <!-- Filter Options -->
                     <div class="flex gap-2">
-                        <!-- Sort Dropdown -->
                         <div id="role-filter" class="relative inline-block">
                             <button type="button" class="bg-discord-darker flex items-center justify-between px-3 py-2 rounded-md text-white hover:bg-opacity-80 transition-colors min-w-[180px]">
                                 <span class="filter-selected-text text-sm">Role Name (A-Z)</span>
@@ -409,7 +382,6 @@ ob_start();
                                 </svg>
                             </button>
                             
-                            <!-- Dropdown Menu -->
                             <div id="filter-dropdown" class="filter-dropdown hidden absolute z-10 w-full mt-1 rounded-md shadow-lg bg-discord-darker border border-gray-700 overflow-hidden">
                                 <div class="py-1">
                                     <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="role-name-asc">
@@ -430,7 +402,6 @@ ob_start();
                             </div>
                         </div>
                         
-                        <!-- Create Role Button -->
                         <button type="button" id="create-role-btn" class="create-role-btn flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -440,7 +411,6 @@ ob_start();
                     </div>
                 </div>
                 
-                <!-- Roles List -->
                 <div class="bg-discord-darker rounded-md overflow-hidden">
                     <div class="p-4 border-b border-discord-dark flex items-center text-sm font-medium text-discord-lighter">
                         <div class="w-10">#</div>
@@ -448,8 +418,7 @@ ob_start();
                         <div class="w-32">PERMISSIONS</div>
                         <div class="w-40">ACTIONS</div>
                     </div>
-                    
-                    <!-- Roles will be loaded here via JavaScript -->
+                                    
                     <div id="roles-list" class="max-h-[500px] overflow-y-auto">
                         <div class="flex items-center justify-center p-8 text-discord-lighter">
                             <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

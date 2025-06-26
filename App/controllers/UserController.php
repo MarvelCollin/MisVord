@@ -76,7 +76,6 @@ class UserController extends BaseController
                     $errors['username'] = 'Username can only contain letters, numbers, and underscores';
                 } else {
                     $updateData['username'] = $username;
-                    $updateData['display_name'] = $username;
                 }
             }
             
