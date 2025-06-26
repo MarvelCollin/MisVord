@@ -430,8 +430,6 @@ function initAuth() {
                     if (captcha && !captcha.value.trim()) {
                         FormValidator.showFieldError(captcha, 'Verification code is required');
                         isValid = false;
-                    } else if (captcha) {
-                        console.log('Login captcha value:', captcha.value);
                     }
                     
                 } else if (this.id === 'registerForm') {
@@ -505,8 +503,8 @@ function initAuth() {
         });
     }
 
-    let loginCaptchaInstance = null;
-    let registerCaptchaInstance = null;
+    window.loginCaptchaInstance = null;
+    window.registerCaptchaInstance = null;
 
     function setupCaptcha() {
         try {
@@ -518,15 +516,15 @@ function initAuth() {
             const loginCaptchaContainer = document.getElementById('login-captcha-container');
             const registerCaptchaContainer = document.getElementById('register-captcha-container');
             
-            if (loginCaptchaContainer && !loginCaptchaInstance) {
-                loginCaptchaInstance = new TextCaptcha('login-captcha-container', {
+            if (loginCaptchaContainer && !window.loginCaptchaInstance) {
+                window.loginCaptchaInstance = new TextCaptcha('login-captcha-container', {
                     length: 6,
                     inputId: 'login_captcha'
                 });
             }
             
-            if (registerCaptchaContainer && !registerCaptchaInstance) {
-                registerCaptchaInstance = new TextCaptcha('register-captcha-container', {
+            if (registerCaptchaContainer && !window.registerCaptchaInstance) {
+                window.registerCaptchaInstance = new TextCaptcha('register-captcha-container', {
                     length: 6,
                     inputId: 'register_captcha'
                 });
@@ -537,11 +535,11 @@ function initAuth() {
     }
 
     function refreshCaptcha() {
-        if (loginCaptchaInstance) {
-            loginCaptchaInstance.refresh();
+        if (window.loginCaptchaInstance) {
+            window.loginCaptchaInstance.refresh();
         }
-        if (registerCaptchaInstance) {
-            registerCaptchaInstance.refresh();
+        if (window.registerCaptchaInstance) {
+            window.registerCaptchaInstance.refresh();
         }
     }
 
@@ -849,8 +847,6 @@ function initAuth() {
             if (captcha && !captcha.value.trim()) {
                 FormValidator.showFieldError(captcha, 'Verification code is required');
                 isValid = false;
-            } else if (captcha) {
-                console.log('Register captcha value:', captcha.value);
             }
             
             if (!isValid) {
@@ -882,6 +878,10 @@ function initAuth() {
         setupResizeHandler();
         setupCaptcha();
         checkForErrors();
+        
+        setTimeout(function() {
+            refreshCaptcha();
+        }, 500);
         initPasswordFieldMasking();
         setupRegistrationSteps();
 

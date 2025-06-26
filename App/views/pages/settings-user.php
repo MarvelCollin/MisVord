@@ -60,10 +60,8 @@ ob_start();
             <a href="?section=my-account" class="sidebar-item <?php echo $section === 'my-account' ? 'active' : ''; ?>">
                 My Account
             </a>
-            <a href="?section=profiles" class="sidebar-item <?php echo $section === 'profiles' ? 'active' : ''; ?>">
-                Profiles
-            </a>
             <a href="?section=connections" class="sidebar-item <?php echo $section === 'connections' ? 'active' : ''; ?>">
+                <i class="fas fa-link text-gray-400 mr-2"></i>
                 Connections
             </a>
             
@@ -75,6 +73,7 @@ ob_start();
                 Nitro
             </a>
             <a href="?section=voice" class="sidebar-item <?php echo $section === 'voice' ? 'active' : ''; ?>">
+                <i class="fas fa-microphone text-gray-400 mr-2"></i>
                 Voice & Video
             </a>
             <a href="?section=text" class="sidebar-item <?php echo $section === 'text' ? 'active' : ''; ?>">
@@ -242,16 +241,166 @@ ob_start();
                     </form>
                 </div>
             </div>
-        <?php elseif ($section === 'profiles'): ?>
+
+        <?php elseif ($section === 'connections'): ?>
             <div class="p-10">
                 <div class="max-w-[740px]">
                     <div class="mb-8">
-                        <h1>Profiles</h1>
-                        <p>Customize how others see you across different servers.</p>
+                        <h1>Connections</h1>
+                        <p>Connect your accounts and control how your activity is displayed</p>
                     </div>
                     
+
+                    
                     <div class="bg-discord-darker rounded-lg p-6">
-                        <p class="text-center text-discord-lighter">This section is under development.</p>
+                        <h3 class="text-lg font-medium mb-4">Activity Settings</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium">Display activity status</h4>
+                                    <p class="text-discord-lighter text-sm">Allow others to see what you're currently doing</p>
+                                </div>
+                                <label class="connection-toggle">
+                                    <input type="checkbox" id="toggle-activity" class="toggle-checkbox">
+                                    <span class="toggle-switch"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php elseif ($section === 'voice'): ?>
+            <div class="p-10">
+                <div class="max-w-[740px]">
+                    <div class="mb-8">
+                        <h1>Voice & Video</h1>
+                        <p>Configure your audio and video settings for the best communication experience</p>
+                    </div>
+
+                    <div class="voice-video-tabs mb-6">
+                        <button class="voice-tab active" data-tab="voice">
+                            <i class="fas fa-microphone mr-2"></i>Voice
+                        </button>
+                        <button class="voice-tab" data-tab="video">
+                            <i class="fas fa-video mr-2"></i>Video
+                        </button>
+                        <button class="voice-tab" data-tab="soundboard">
+                            <i class="fas fa-music mr-2"></i>Soundboard
+                        </button>
+                        <button class="voice-tab" data-tab="debugging">
+                            <i class="fas fa-bug mr-2"></i>Debugging
+                        </button>
+                    </div>
+
+                    <div id="voice-content" class="tab-content">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-discord-darker rounded-lg p-6">
+                                <h3 class="text-lg font-medium mb-4">Input Device</h3>
+                                <select id="input-device-select" class="w-full bg-discord-dark border border-gray-600 rounded-md px-3 py-2 text-white">
+                                    <option value="default">Default</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-discord-darker rounded-lg p-6">
+                                <h3 class="text-lg font-medium mb-4">Output Device</h3>
+                                <select id="output-device-select" class="w-full bg-discord-dark border border-gray-600 rounded-md px-3 py-2 text-white">
+                                    <option value="default">Default</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="bluetooth-warning" class="bg-yellow-900/20 border border-yellow-600/50 rounded-lg p-4 mb-6 hidden">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-triangle text-yellow-400 mr-3"></i>
+                                <span class="text-yellow-200">Using the same Bluetooth device for both input and output can potentially degrade audio quality.</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-discord-darker rounded-lg p-6">
+                                <h3 class="text-lg font-medium mb-4">Input Volume</h3>
+                                <div class="volume-control">
+                                    <input type="range" id="input-volume" class="volume-slider" min="0" max="100" value="50">
+                                    <div class="volume-indicator">
+                                        <div id="input-level" class="volume-level"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-discord-darker rounded-lg p-6">
+                                <h3 class="text-lg font-medium mb-4">Output Volume</h3>
+                                <div class="volume-control">
+                                    <input type="range" id="output-volume" class="volume-slider" min="0" max="100" value="75">
+                                    <div class="volume-indicator">
+                                        <div id="output-level" class="volume-level"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-discord-darker rounded-lg p-6">
+                            <h3 class="text-lg font-medium mb-4">Mic Test</h3>
+                            <p class="text-discord-lighter mb-4">Having mic issues? Start a test and say something fun—we'll play your voice back to you.</p>
+                            
+                            <div class="flex items-center gap-4">
+                                <button id="mic-test-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+                                    Let's Check
+                                </button>
+                                <div class="flex-1 mic-visualizer">
+                                    <div class="visualizer-bars">
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="text-sm text-discord-lighter mt-4">
+                                Need help with voice or video? Check out our 
+                                <a href="#" class="text-blue-400 hover:text-blue-300">troubleshooting guide</a>.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div id="video-content" class="tab-content hidden">
+                        <div class="bg-discord-darker rounded-lg p-6">
+                            <h3 class="text-lg font-medium mb-4">Camera Settings</h3>
+                            <p class="text-center text-discord-lighter">Video settings coming soon!</p>
+                        </div>
+                    </div>
+
+                    <div id="soundboard-content" class="tab-content hidden">
+                        <div class="bg-discord-darker rounded-lg p-6">
+                            <h3 class="text-lg font-medium mb-4">Soundboard</h3>
+                            <p class="text-center text-discord-lighter">Soundboard features coming soon!</p>
+                        </div>
+                    </div>
+
+                    <div id="debugging-content" class="tab-content hidden">
+                        <div class="bg-discord-darker rounded-lg p-6">
+                            <h3 class="text-lg font-medium mb-4">Debug Information</h3>
+                            <div id="debug-info" class="bg-discord-dark rounded p-4 font-mono text-sm">
+                                <div>Loading debug information...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -1,9 +1,10 @@
 class EmojiSelector {
     constructor() {
         this.emojiList = [
-            '👍', '👎', '❤️', '😂', '😮', '😢', '😡', '🎉', 
-            '🙏', '🔥', '💯', '👀', '😊', '🤔', '👋', '✨',
-            '😍', '🥰', '😘', '😭', '😁', '🙄', '🤩', '🤣'
+            '👍', '❤️', '🅰️', '🇾', '🇹', '2️⃣', '🅰️', '🇩', '🇲',
+            '🇮', '🇪', '🇵', '🇸', '❤️', '1️⃣', '👨‍💻', '🇲', '💙',
+            '🔼', '🧡', '🇼', '🙏', '🤍', '🇳', '👋', 
+            '🇧', '😂', '😭', '🇧', '6️⃣', '🌴'
         ];
         this.activeMessageId = null;
         this.initialized = false;
@@ -30,11 +31,26 @@ class EmojiSelector {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             padding: 8px;
             z-index: 9999;
-            width: 280px;
+            width: 250px;
             display: none;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 2px;
         `;
+
+        // Add a header
+        const header = document.createElement('div');
+        header.className = 'emoji-header';
+        header.style.cssText = `
+            width: 100%;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+            color: #b9bbbe;
+            font-weight: bold;
+        `;
+        header.textContent = 'FREQUENTLY USED';
+        this.menu.appendChild(header);
         
         this.emojiList.forEach(emoji => {
             const emojiButton = document.createElement('button');
@@ -43,13 +59,13 @@ class EmojiSelector {
             emojiButton.style.cssText = `
                 background: transparent;
                 border: none;
-                padding: 5px;
-                font-size: 20px;
+                padding: 3px;
+                font-size: 18px;
                 cursor: pointer;
                 border-radius: 4px;
                 transition: background-color 0.2s;
-                width: 36px;
-                height: 36px;
+                width: 30px;
+                height: 30px;
             `;
             
             emojiButton.addEventListener('mouseover', () => {
@@ -118,27 +134,111 @@ class EmojiSelector {
     }
     
     showMenu(messageId, x, y) {
+        console.log(`EmojiSelector.showMenu called with messageId=${messageId}, x=${x}, y=${y}`);
         this.activeMessageId = messageId;
         
-        const currentStyle = this.menu.getAttribute('style') || '';
-        const newStyle = currentStyle
-            .replace(/left:[^;]+;?/, '')
-            .replace(/top:[^;]+;?/, '')
-            .replace(/display:[^;]+;?/, '')
-            .replace(/visibility:[^;]+;?/, '')
-            .replace(/opacity:[^;]+;?/, '')
-            + `left:${x}px;top:${y}px;display:flex;visibility:visible;opacity:1;`;
+        try {
+            // Create a completely new menu each time
+            // First remove any existing emoji menu
+            const existingMenu = document.querySelector('.emoji-selector-menu');
+            if (existingMenu) {
+                existingMenu.remove();
+            }
             
-        this.menu.setAttribute('style', newStyle);
-        
-        document.body.appendChild(this.menu);
+            // Create fresh emoji menu
+            const menu = document.createElement('div');
+            menu.className = 'emoji-selector-menu';
+            menu.style.left = `${x}px`;
+            menu.style.top = `${y}px`;
+            
+            // Add a header
+            const header = document.createElement('div');
+            header.className = 'emoji-header';
+            header.textContent = 'FREQUENTLY USED';
+            menu.appendChild(header);
+            
+            // Add emoji buttons
+            this.emojiList.forEach(emoji => {
+                const button = document.createElement('button');
+                button.className = 'emoji-button';
+                button.textContent = emoji;
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.addReaction(emoji);
+                });
+                menu.appendChild(button);
+            });
+            
+            // Add to DOM
+            document.body.appendChild(menu);
+            this.menu = menu;
+            
+            // Set initial style for animation
+            menu.style.opacity = '0';
+            menu.style.transform = 'scale(0.95)';
+            
+            // Force reflow and add visible class
+            void menu.offsetWidth;
+            menu.classList.add('visible');
+            
+            // Start animation
+            setTimeout(() => {
+                menu.style.opacity = '1';
+                menu.style.transform = 'scale(1)';
+            }, 10);
+            
+            // Debug logging
+            console.log(`New emoji menu created at ${x},${y}`);
+            setTimeout(() => {
+                const rect = menu.getBoundingClientRect();
+                console.log(`Menu visible check: ${window.getComputedStyle(menu).display}`);
+                console.log(`Menu position: left=${rect.left}, top=${rect.top}, width=${rect.width}, height=${rect.height}`);
+            }, 50);
+            
+            // Setup close handlers
+            document.addEventListener('click', this.handleDocumentClick = (e) => {
+                if (!menu.contains(e.target) && 
+                    !e.target.classList.contains('message-action-reaction') && 
+                    !e.target.closest('.message-action-reaction')) {
+                    this.hideMenu();
+                    document.removeEventListener('click', this.handleDocumentClick);
+                }
+            });
+            
+        } catch (error) {
+            console.error("Error creating emoji menu:", error);
+        }
     }
     
     hideMenu() {
-        const currentStyle = this.menu.getAttribute('style') || '';
-        const newStyle = currentStyle.replace(/display:[^;]+;?/, 'display:none;');
-        this.menu.setAttribute('style', newStyle);
-        this.activeMessageId = null;
+        try {
+            if (!this.menu || !document.body.contains(this.menu)) {
+                console.log("Menu already closed or not in DOM");
+                return;
+            }
+            
+            // Animate out
+            this.menu.style.opacity = '0';
+            this.menu.style.transform = 'scale(0.95)';
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                if (this.menu && document.body.contains(this.menu)) {
+                    this.menu.remove();
+                }
+                this.activeMessageId = null;
+                
+                // Clean up event listeners
+                if (this.handleDocumentClick) {
+                    document.removeEventListener('click', this.handleDocumentClick);
+                    this.handleDocumentClick = null;
+                }
+            }, 100);
+            
+            console.log("Emoji menu hidden");
+        } catch (error) {
+            console.error("Error hiding emoji menu:", error);
+        }
     }
     
     async addReaction(emoji) {
@@ -392,8 +492,16 @@ if (document.readyState === 'loading') {
 
 window.addEventListener('load', initEmojiSelector);
 
-document.addEventListener('DOMContentLoaded', () => {
+// Add the emoji styles immediately instead of waiting for DOMContentLoaded
+(function() {
+    // Remove any existing emoji style to avoid duplicates
+    const existingStyle = document.getElementById('emoji-picker-style');
+    if (existingStyle) {
+        existingStyle.remove();
+    }
+    
     const style = document.createElement('style');
+    style.id = 'emoji-picker-style';
     style.textContent = `
         .emoji-selector-menu {
             position: fixed !important;
@@ -402,29 +510,44 @@ document.addEventListener('DOMContentLoaded', () => {
             border-radius: 8px !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
             padding: 10px !important;
-            width: 280px !important;
+            width: 250px !important;
             flex-wrap: wrap !important;
             border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            display: none;
         }
         
-        .emoji-selector-menu[style*="display:flex"] {
+        .emoji-selector-menu.visible {
             display: flex !important;
         }
         
+        .emoji-header {
+            width: 100% !important;
+            padding-bottom: 4px !important;
+            margin-bottom: 4px !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+            font-size: 12px !important;
+            color: #b9bbbe !important;
+            font-weight: bold !important;
+        }
+        
         .emoji-selector-menu .emoji-button {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 20px;
-            transition: background-color 0.2s;
+            width: 32px !important;
+            height: 32px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            border-radius: 4px !important;
+            font-size: 20px !important;
+            transition: background-color 0.2s !important;
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 1px !important;
         }
         
         .emoji-selector-menu .emoji-button:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.1) !important;
         }
         .message-reactions {
             display: flex;
@@ -552,8 +675,15 @@ document.addEventListener('DOMContentLoaded', () => {
             emojiSelector.handleReactionRemoved(data);
         });
     }
-});
+})();
 
+// Make sure the emoji selector is globally available
 window.emojiSelector = emojiSelector;
+
+// Initialize immediately if document already loaded
+if (document.readyState !== 'loading') {
+    initEmojiSelector();
+    console.log('Emoji selector initialized immediately');
+}
 
 

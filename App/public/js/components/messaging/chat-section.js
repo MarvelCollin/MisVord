@@ -237,16 +237,27 @@ class ChatSection {
         });
         
         this.chatMessages.addEventListener('click', (e) => {
-            const reactionBtn = e.target.closest('.message-action-reaction');
-            const replyBtn = e.target.closest('.message-action-reply');
-            const editBtn = e.target.closest('.message-action-edit');
-            const moreBtn = e.target.closest('.message-action-more');
-            
-            if (reactionBtn) {
-                const messageContent = reactionBtn.closest('.message-content');
-                const messageId = messageContent.dataset.messageId;
-                this.showEmojiPicker(messageId, reactionBtn);
-            } else if (replyBtn) {
+                            const reactionBtn = e.target.closest('.message-action-reaction');
+                const replyBtn = e.target.closest('.message-action-reply');
+                const editBtn = e.target.closest('.message-action-edit');
+                const moreBtn = e.target.closest('.message-action-more');
+                
+                if (reactionBtn) {
+                    console.log("Reaction button clicked in chat-section.js");
+                    const messageContent = reactionBtn.closest('.message-content');
+                    const messageId = messageContent.dataset.messageId;
+                    
+                    if (window.emojiSelector && typeof window.emojiSelector.showMenu === 'function') {
+                        const rect = reactionBtn.getBoundingClientRect();
+                        const x = rect.left + window.scrollX;
+                        const y = rect.bottom + window.scrollY + 5;
+                        console.log(`Directly showing emoji menu at ${x},${y} for message ${messageId}`);
+                        window.emojiSelector.showMenu(messageId, x, y);
+                    } else {
+                        console.error("Emoji selector not available or missing showMenu method");
+                        this.showEmojiPicker(messageId, reactionBtn);
+                    }
+                } else if (replyBtn) {
                 const messageContent = replyBtn.closest('.message-content');
                 const messageId = messageContent.dataset.messageId;
                 this.replyToMessage(messageId);

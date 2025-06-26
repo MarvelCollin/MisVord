@@ -1,3 +1,4 @@
+// TextCaptcha class for generating and handling captcha verification
 export class TextCaptcha {
     constructor(containerId, options = {}) {
         this.container = document.getElementById(containerId);
@@ -106,19 +107,23 @@ export class TextCaptcha {
     async generateCode() {
         try {
             const timestamp = new Date().getTime();
-            const response = await fetch(`/api/captcha/generate?_t=${timestamp}`);
+            const response = await fetch(`/api/captcha/generate?_t=${timestamp}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const data = await response.json();
-            
+
             if (data.captcha_code) {
                 this.code = data.captcha_code;
                 this.displayCode();
             } else {
-                throw new Error('No captcha code in response');
+                this.fallbackGenerate();
             }
         } catch (error) {
             console.error('Error generating captcha:', error);
@@ -222,6 +227,10 @@ export class TextCaptcha {
 
     refresh() {
         try {
+            const codeDisplay = document.getElementById(`${this.container.id}-code`);
+            if (codeDisplay) {
+                codeDisplay.innerHTML = '<div style="text-align:center;padding:10px;">Loading...</div>';
+            }
             this.generateCode();
         } catch (e) {
             console.error('Error refreshing captcha:', e);

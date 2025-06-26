@@ -49,6 +49,8 @@ function initUserSettingsPage() {
         initStatusSelector();
         initEmailReveal();
         initPasswordChangeForms();
+    } else if (activeSection === 'connections') {
+        initConnectionToggles();
     }
     
     initCloseButton();
@@ -1305,5 +1307,37 @@ function getStatusDisplayName(status) {
         'offline': 'Invisible'
     };
     return statusMap[status] || 'Online';
+}
+
+function initConnectionToggles() {
+    // Import and use LocalStorageManager
+    import('/public/js/utils/local-storage-manager.js')
+        .then(module => {
+            const LocalStorageManager = module.LocalStorageManager;
+            const localStorageManager = module.default;
+            
+            // Get user preferences or set defaults
+            const userPrefs = localStorageManager.getUserPreferences();
+            const displayActivity = userPrefs.displayActivity !== undefined ? userPrefs.displayActivity : true;
+            
+            // Initialize toggle state from localStorage
+            const activityToggle = document.getElementById('toggle-activity');
+            
+            if (activityToggle) {
+                activityToggle.checked = displayActivity;
+                activityToggle.addEventListener('change', function() {
+                    const userPrefs = localStorageManager.getUserPreferences();
+                    userPrefs.displayActivity = this.checked;
+                    localStorageManager.setUserPreferences(userPrefs);
+                    
+                    showToast('Activity display preference saved', 'success');
+                });
+            }
+            
+
+        })
+        .catch(err => {
+            console.error('Error loading LocalStorageManager:', err);
+        });
 }
 

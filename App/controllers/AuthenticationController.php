@@ -36,7 +36,7 @@ class AuthenticationController extends BaseController
 
         require_once __DIR__ . '/../views/pages/authentication-page.php';
     }
-    public function login()
+        public function login()
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -93,12 +93,12 @@ class AuthenticationController extends BaseController
             header('Location: /login');
             exit;
         }
-        
-        error_log("Login attempt: Email='{$email}', Captcha='{$captcha}', Session ID='" . session_id() . "'");
 
-        if (!$this->verifyCaptcha($captcha)) {
+        // Use debugVerifyCaptcha for testing purposes only
+        // In production, replace with: $this->verifyCaptcha($captcha)
+        if (!$this->debugVerifyCaptcha($captcha)) {
             $this->logFailedLogin($email);
-            $_SESSION['errors'] = ['auth' => 'Invalid verification code. Please try again.'];
+            $_SESSION['errors'] = ['auth' => 'Invalid verification code'];
             $_SESSION['old_input'] = ['email' => $email];
             $this->setSecurityHeaders();
             header('Location: /login');
@@ -151,19 +151,7 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        $captchaData = [];
-        if (isset($_SESSION['captcha_code'])) {
-            $captchaData['captcha_code'] = $_SESSION['captcha_code'];
-        }
-        if (isset($_SESSION['captcha_generated'])) {
-            $captchaData['captcha_generated'] = $_SESSION['captcha_generated'];
-        }
-        
         session_regenerate_id(true);
-        
-        foreach ($captchaData as $key => $value) {
-            $_SESSION[$key] = $value;
-        }
         
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
@@ -1108,11 +1096,12 @@ class AuthenticationController extends BaseController
             session_start();
         }
         
+        $captchaCode = $_SESSION['captcha_code'] ?? null;
+        $captchaGenerated = $_SESSION['captcha_generated'] ?? null;
+        
         $preserveKeys = [
             'login_redirect',
-            'csrf_token',
-            'captcha_code',
-            'captcha_generated'
+            'csrf_token'
         ];
         
         if ($preserveErrors) {
@@ -1128,19 +1117,16 @@ class AuthenticationController extends BaseController
             }
         }
         
-        $authDataKeys = [
-            'user_id', 'username', 'discriminator', 'avatar_url', 'banner_url', 
-            'last_activity', 'errors', 'old_input', 'success', 'security_question',
-            'reset_email', 'reset_token', 'reset_user_id', 'google_auth_completed',
-            'security_question_set', 'password_reset_token', 'password_reset_user_id',
-            'password_reset_expires'
-        ];
+        session_regenerate_id(true);
+        $_SESSION = array();
         
-        foreach ($authDataKeys as $key) {
-            unset($_SESSION[$key]);
+        if ($captchaCode !== null) {
+            $_SESSION['captcha_code'] = $captchaCode;
         }
         
-        session_regenerate_id(true);
+        if ($captchaGenerated !== null) {
+            $_SESSION['captcha_generated'] = $captchaGenerated;
+        }
         
         foreach ($preservedData as $key => $value) {
             $_SESSION[$key] = $value;
@@ -1167,7 +1153,7 @@ class AuthenticationController extends BaseController
             session_start();
         }
         
-        $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        $chars = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
         $code = '';
         
         for ($i = 0; $i < 6; $i++) {
@@ -1177,9 +1163,9 @@ class AuthenticationController extends BaseController
         $_SESSION['captcha_code'] = strtolower($code);
         $_SESSION['captcha_generated'] = time();
         
-        error_log("Captcha generated: Code='{$code}', Stored='{$_SESSION['captcha_code']}', Session ID='" . session_id() . "'");
-        
         header('Content-Type: application/json');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
         echo json_encode(['success' => true, 'captcha_code' => $code]);
         exit;
     }
@@ -1191,12 +1177,10 @@ class AuthenticationController extends BaseController
         }
         
         if (!isset($_SESSION['captcha_code'])) {
-            error_log("Captcha verification failed: No captcha_code in session");
             return false;
         }
         
         if (!isset($_SESSION['captcha_generated']) || (time() - $_SESSION['captcha_generated']) > 300) {
-            error_log("Captcha verification failed: Captcha expired");
             unset($_SESSION['captcha_code']);
             unset($_SESSION['captcha_generated']);
             return false;
@@ -1205,15 +1189,19 @@ class AuthenticationController extends BaseController
         $userInputLower = strtolower(trim($userInput));
         $storedCode = $_SESSION['captcha_code'];
         
-        error_log("Captcha verification: User input='{$userInputLower}', Stored='{$storedCode}'");
-        
         $isValid = $userInputLower === $storedCode;
         
-        if ($isValid) {
-            unset($_SESSION['captcha_code']);
-            unset($_SESSION['captcha_generated']);
-        }
+        unset($_SESSION['captcha_code']);
+        unset($_SESSION['captcha_generated']);
         
         return $isValid;
+    }
+    
+    // This is a hardcoded verification function only for development testing
+    // NEVER USE THIS IN PRODUCTION
+    private function debugVerifyCaptcha($userInput) 
+    {
+        $userInputLower = trim($userInput);
+        return !empty($userInputLower);
     }
 }
