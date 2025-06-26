@@ -101,6 +101,57 @@ const serverAPI = {
             }
             return response.json();
         });
+    },
+
+    updateServerSettings: function(serverId, formData) {
+        return fetch(`/api/servers/${serverId}/settings`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    getServerMembers: function(serverId) {
+        return fetch(`/api/servers/${serverId}/members`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    getServerRoles: function(serverId) {
+        return fetch(`/api/servers/${serverId}/roles`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
     }
 };
 

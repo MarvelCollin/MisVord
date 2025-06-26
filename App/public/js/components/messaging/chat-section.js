@@ -1296,9 +1296,20 @@ class ChatSection {
             reactions: message.reactions || []
         };
         
-        const existingMessageElement = document.querySelector(`[data-message-id="${msg.id}"]`);
-        if (existingMessageElement) {
-            console.log('Message already exists, skipping (reactions only from database):', msg.id);
+        const existingMessageElements = document.querySelectorAll(`[data-message-id="${msg.id}"]`);
+        if (existingMessageElements.length > 0) {
+            console.log('Message already exists, cleaning up duplicates:', msg.id, 'Found:', existingMessageElements.length);
+            existingMessageElements.forEach((el, index) => {
+                if (index > 0) {
+                    console.log('Removing duplicate message element:', index);
+                    el.remove();
+                }
+            });
+            return;
+        }
+        
+        if (this.processedMessageIds.has(msg.id)) {
+            console.log('Message already processed, skipping:', msg.id);
             return;
         }
         
