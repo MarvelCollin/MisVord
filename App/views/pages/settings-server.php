@@ -50,24 +50,8 @@ ob_start();
                     </div>
                 </li>
                 <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=members" class="sidebar-item <?php echo $section === 'members' ? 'active' : ''; ?>">
-                        Members
-                    </a>
-                </li>
-                <li>
                     <a href="?server_id=<?php echo $serverId; ?>&section=roles" class="sidebar-item <?php echo $section === 'roles' ? 'active' : ''; ?>">
-                        Roles
-                    </a>
-                </li>
-                
-                <li class="mt-6">
-                    <div class="sidebar-category">
-                        <span>MODERATION</span>
-                    </div>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=bans" class="sidebar-item <?php echo $section === 'bans' ? 'active' : ''; ?>">
-                        Bans
+                        Members
                     </a>
                 </li>
                 
@@ -148,12 +132,22 @@ ob_start();
                     <div class="bg-discord-darker rounded-lg p-6 space-y-6">
                         <div class="form-group">
                             <label for="server-name" class="block text-sm font-medium text-white mb-2">Server Name</label>
-                            <input type="text" id="server-name" name="name" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary" value="<?php echo htmlspecialchars($server->name); ?>">
+                            <div class="flex">
+                                <input type="text" id="server-name" name="name" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary flex-grow" value="<?php echo htmlspecialchars($server->name); ?>" data-original-value="<?php echo htmlspecialchars($server->name); ?>">
+                                <button type="button" id="approve-server-name" class="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-3 rounded-md hidden approve-btn">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="form-group">
                             <label for="server-description" class="block text-sm font-medium text-white mb-2">Description</label>
-                            <textarea id="server-description" name="description" class="form-input bg-discord-dark-input text-white border-none h-24 resize-none focus:ring-2 focus:ring-discord-primary" placeholder="Tell people what your server is about..."><?php echo htmlspecialchars($server->description ?? ''); ?></textarea>
+                            <div class="flex">
+                                <textarea id="server-description" name="description" class="form-input bg-discord-dark-input text-white border-none h-24 resize-none focus:ring-2 focus:ring-discord-primary flex-grow" placeholder="Tell people what your server is about..." data-original-value="<?php echo htmlspecialchars($server->description ?? ''); ?>"><?php echo htmlspecialchars($server->description ?? ''); ?></textarea>
+                                <button type="button" id="approve-server-description" class="ml-2 bg-green-600 hover:bg-green-700 text-white px-3 rounded-md hidden approve-btn self-start mt-0">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
                             <p class="text-xs text-discord-lighter mt-1">This description will be shown in server discovery and invites.</p>
                         </div>
                     </div>
@@ -210,7 +204,7 @@ ob_start();
                         <div class="form-group">
                             <div class="flex items-center space-x-3 mb-2">
                                 <div class="relative inline-flex items-center">
-                                    <input type="checkbox" id="is-public" name="is_public" class="custom-checkbox absolute opacity-0 w-0 h-0" <?php echo $server->is_public ? 'checked' : ''; ?>>
+                                    <input type="checkbox" id="is-public" name="is_public" class="custom-checkbox absolute opacity-0 w-0 h-0" <?php echo $server->is_public ? 'checked' : ''; ?> data-original-value="<?php echo $server->is_public ? '1' : '0'; ?>">
                                     <div class="checkbox-wrapper flex items-center justify-center w-5 h-5 bg-discord-dark-input rounded border border-discord-darker">
                                         <svg class="checkbox-check w-3.5 h-3.5 text-white opacity-0 transform scale-50 transition-all duration-100" viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -218,146 +212,35 @@ ob_start();
                                     </div>
                                     <label for="is-public" class="ml-2 text-sm text-white cursor-pointer">Make this server public</label>
                                 </div>
+                                <button type="button" id="approve-is-public" class="ml-2 bg-purple-600 hover:bg-purple-700 text-white px-3 rounded-md hidden approve-btn">
+                                    <i class="fas fa-check"></i>
+                                </button>
                             </div>
                             <p class="text-discord-lighter text-xs ml-8">Public servers can be found by anyone in Server Discovery</p>
                         </div>
                         
                         <div class="form-group">
                             <label for="server-category" class="block text-sm font-medium text-white mb-2">Category</label>
-                            <select id="server-category" name="category" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary">
-                                <option value="">Select a category</option>
-                                <option value="gaming" <?php echo ($server->category === 'gaming') ? 'selected' : ''; ?>>Gaming</option>
-                                <option value="music" <?php echo ($server->category === 'music') ? 'selected' : ''; ?>>Music</option>
-                                <option value="education" <?php echo ($server->category === 'education') ? 'selected' : ''; ?>>Education</option>
-                                <option value="science" <?php echo ($server->category === 'science') ? 'selected' : ''; ?>>Science & Tech</option>
-                                <option value="entertainment" <?php echo ($server->category === 'entertainment') ? 'selected' : ''; ?>>Entertainment</option>
-                            </select>
+                            <div class="flex">
+                                <select id="server-category" name="category" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary flex-grow" data-original-value="<?php echo htmlspecialchars($server->category ?? ''); ?>">
+                                    <option value="">Select a category</option>
+                                    <option value="gaming" <?php echo ($server->category === 'gaming') ? 'selected' : ''; ?>>Gaming</option>
+                                    <option value="music" <?php echo ($server->category === 'music') ? 'selected' : ''; ?>>Music</option>
+                                    <option value="education" <?php echo ($server->category === 'education') ? 'selected' : ''; ?>>Education</option>
+                                    <option value="science" <?php echo ($server->category === 'science') ? 'selected' : ''; ?>>Science & Tech</option>
+                                    <option value="entertainment" <?php echo ($server->category === 'entertainment') ? 'selected' : ''; ?>>Entertainment</option>
+                                </select>
+                                <button type="button" id="approve-server-category" class="ml-2 bg-yellow-600 hover:bg-yellow-700 text-white px-3 rounded-md hidden approve-btn">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
                             <p class="text-xs text-discord-lighter mt-1">Choose a category that best describes your server</p>
                         </div>
                     </div>
                     
-                    <div class="flex justify-end pt-4">
-                        <button type="submit" id="save-changes-btn" class="bg-discord-primary hover:bg-discord-primary-dark text-white font-medium py-2 px-6 rounded-md transition-colors">
-                            Save Changes
-                        </button>
-                    </div>
                 </form>
             </div>
-        <?php elseif ($section === 'members'): ?>
-            <div class="p-10 max-w-[740px]">
-                <h1 class="text-2xl font-bold mb-2">Members</h1>
-                <p class="text-discord-lighter mb-6">Manage members and their roles in your server</p>
-                
-                <div class="flex gap-4 mb-6">
-                    <div class="relative flex-1">
-                        <input type="text" id="member-search" class="form-input pl-10" placeholder="Search members">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-discord-lighter" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                    </div>
-                    
-                    <div class="flex gap-2">
-                        <div id="member-filter" class="relative inline-block">
-                            <button type="button" class="bg-discord-darker flex items-center justify-between px-3 py-2 rounded-md text-white hover:bg-opacity-80 transition-colors min-w-[180px]">
-                                <span class="filter-selected-text text-sm">Member Since (Newest first)</span>
-                                <svg class="w-5 h-5 text-discord-lighter ml-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
 
-                            <div id="filter-dropdown" class="filter-dropdown hidden absolute z-10 w-full mt-1 rounded-md shadow-lg bg-discord-darker border border-gray-700 overflow-hidden">
-                                <div class="py-1">
-                                    <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="member-newest">
-                                        <div class="radio-container">
-                                            <input type="radio" name="filter" checked class="w-4 h-4 accent-[#5865f2]">
-                                            <div class="radio-dot"></div>
-                                        </div>
-                                        <span class="text-sm">Member Since (Newest first)</span>
-                                    </div>
-                                    <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="member-oldest">
-                                        <div class="radio-container">
-                                            <input type="radio" name="filter" class="w-4 h-4 accent-[#5865f2]">
-                                            <div class="radio-dot"></div>
-                                        </div>
-                                        <span class="text-sm">Member Since (Oldest first)</span>
-                                    </div>
-                                    <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="discord-newest">
-                                        <div class="radio-container">
-                                            <input type="radio" name="filter" class="w-4 h-4 accent-[#5865f2]">
-                                            <div class="radio-dot"></div>
-                                        </div>
-                                        <span class="text-sm">Joined Discord (Newest first)</span>
-                                    </div>
-                                    <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="discord-oldest">
-                                        <div class="radio-container">
-                                            <input type="radio" name="filter" class="w-4 h-4 accent-[#5865f2]">
-                                            <div class="radio-dot"></div>
-                                        </div>
-                                        <span class="text-sm">Joined Discord (Oldest first)</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-discord-darker rounded-md overflow-hidden">
-                    <div class="p-4 border-b border-discord-dark flex items-center text-sm font-medium text-discord-lighter">
-                        <div class="w-10">#</div>
-                        <div class="flex-1">USERNAME</div>
-                        <div class="w-32">ROLE</div>
-                        <div class="w-40">JOINED</div>
-                        <div class="w-24">ACTIONS</div>
-                    </div>
-                    
-                    <div id="members-list" class="max-h-[500px] overflow-y-auto">
-                        <div class="flex items-center justify-center p-8 text-discord-lighter">
-                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span>Loading members...</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <template id="member-template">
-                    <div class="member-item p-4 border-b border-discord-dark flex items-center hover:bg-discord-dark">
-                        <div class="w-10 flex items-center justify-center">
-                            <div class="member-avatar w-8 h-8 rounded-full bg-discord-dark overflow-hidden">
-                                <img src="" alt="Avatar" class="w-full h-full object-cover">
-                            </div>
-                        </div>
-                        <div class="flex-1 flex items-center">
-                            <div>
-                                <div class="member-username font-medium"></div>
-                                <div class="member-discriminator text-xs text-discord-lighter"></div>
-                            </div>
-                            <div class="member-status ml-2 flex items-center">
-                                <span class="status-indicator w-2 h-2 rounded-full"></span>
-                            </div>
-                        </div>
-                        <div class="w-32">
-                            <div class="member-role px-2 py-1 rounded text-xs inline-block"></div>
-                        </div>
-                        <div class="w-40 text-sm text-discord-lighter member-joined"></div>
-                        <div class="w-24 flex space-x-2">
-                            <button class="edit-role-btn p-2 rounded hover:bg-discord-light" title="Edit Role">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                            </button>
-                            <button class="kick-member-btn p-2 rounded hover:bg-discord-light" title="Kick Member">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </template>
-            </div>
         <?php elseif ($section === 'roles'): ?>
             <div class="p-10 max-w-[740px]">
                 <h1 class="text-2xl font-bold mb-2">Member Management</h1>
@@ -468,6 +351,63 @@ ob_start();
                         </div>
                     </div>
                 </template>
+            </div>
+
+            <!-- Member Action Modals -->
+            <div id="member-action-modal" class="modal-overlay hidden">
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <div class="modal-icon">
+                            <i class="fas fa-user-cog"></i>
+                        </div>
+                        <h3 class="modal-title">Confirm Action</h3>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div class="member-preview">
+                            <div class="member-avatar-small">
+                                <img src="" alt="Avatar" class="w-full h-full object-cover">
+                            </div>
+                            <div class="member-details">
+                                <div class="member-name"></div>
+                                <div class="member-current-role"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="action-description">
+                            <p class="action-message"></p>
+                            <div class="role-change-preview hidden">
+                                <div class="role-change-from">
+                                    <span class="role-label">From:</span>
+                                    <span class="role-badge from-role"></span>
+                                </div>
+                                <div class="role-change-arrow">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                                <div class="role-change-to">
+                                    <span class="role-label">To:</span>
+                                    <span class="role-badge to-role"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="warning-notice">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span class="warning-text">This action cannot be undone.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button class="modal-btn modal-btn-cancel" id="modal-cancel-btn">
+                            <i class="fas fa-times mr-2"></i>
+                            Cancel
+                        </button>
+                        <button class="modal-btn modal-btn-confirm" id="modal-confirm-btn">
+                            <i class="fas fa-check mr-2"></i>
+                            <span class="confirm-text">Confirm</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         <?php else: ?>
             <div class="p-10 max-w-[740px]">

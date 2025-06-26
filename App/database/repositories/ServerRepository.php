@@ -144,10 +144,13 @@ class ServerRepository extends Repository {
         $sql = "
             SELECT s.*, 
                    COUNT(usm.id) as member_count,
-                   (SELECT user_id FROM user_server_memberships WHERE server_id = s.id AND role = 'owner' LIMIT 1) as owner_id
+                   owner_mem.user_id as owner_id,
+                   CONCAT(u.username, '#', u.discriminator) as owner_display
             FROM servers s
             LEFT JOIN user_server_memberships usm ON s.id = usm.server_id
-            GROUP BY s.id
+            LEFT JOIN user_server_memberships owner_mem ON s.id = owner_mem.server_id AND owner_mem.role = 'owner'
+            LEFT JOIN users u ON owner_mem.user_id = u.id
+            GROUP BY s.id, s.name, s.description, s.image_url, s.banner_url, s.invite_link, s.group_server_id, s.is_public, s.category, s.created_at, s.updated_at, owner_mem.user_id, u.username, u.discriminator
             ORDER BY s.created_at DESC
             LIMIT ? OFFSET ?
         ";
@@ -170,11 +173,14 @@ class ServerRepository extends Repository {
         $sql = "
             SELECT s.*, 
                    COUNT(usm.id) as member_count,
-                   (SELECT user_id FROM user_server_memberships WHERE server_id = s.id AND role = 'owner' LIMIT 1) as owner_id
+                   owner_mem.user_id as owner_id,
+                   CONCAT(u.username, '#', u.discriminator) as owner_display
             FROM servers s
             LEFT JOIN user_server_memberships usm ON s.id = usm.server_id
+            LEFT JOIN user_server_memberships owner_mem ON s.id = owner_mem.server_id AND owner_mem.role = 'owner'
+            LEFT JOIN users u ON owner_mem.user_id = u.id
             WHERE s.name LIKE ? OR s.description LIKE ?
-            GROUP BY s.id
+            GROUP BY s.id, s.name, s.description, s.image_url, s.banner_url, s.invite_link, s.group_server_id, s.is_public, s.category, s.created_at, s.updated_at, owner_mem.user_id, u.username, u.discriminator
             ORDER BY s.created_at DESC
             LIMIT ? OFFSET ?
         ";

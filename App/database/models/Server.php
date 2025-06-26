@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class Server extends Model {
     protected static $table = 'servers';
-    protected $fillable = ['id', 'name', 'image_url', 'description', 'invite_link', 'group_server_id', 'is_public', 'banner_url', 'category', 'created_at', 'updated_at'];
+    protected $fillable = ['id', 'name', 'image_url', 'description', 'invite_link', 'group_server_id', 'is_public', 'banner_url', 'category', 'created_at', 'updated_at', 'owner_id', 'member_count', 'owner_display'];
     
     public static function findByInviteLink($inviteLink) {
         $query = new Query();

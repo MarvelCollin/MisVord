@@ -422,3 +422,7 @@ const channelRenderer = new ChannelRenderer(channelAPI);
 
 window.channelAPI = channelAPI;
 window.channelRenderer = channelRenderer;
+
+// ES6 exports
+export { ChannelAPI, ChannelRenderer };
+export default channelAPI;

@@ -81,8 +81,6 @@ function initServerSettingsPage() {
     
     if (activeSection === 'profile') {
         initServerProfileForm();
-    } else if (activeSection === 'members') {
-        initMembersTab();
     } else if (activeSection === 'roles') {
         initMemberManagementTab();
     } else if (activeSection === 'delete') {
@@ -178,247 +176,7 @@ function initServerIconUpload() {
     }
 }
 
-function initMembersTab() {
-    const membersList = document.getElementById('members-list');
-    const memberSearch = document.getElementById('member-search');
-    const memberTemplate = document.getElementById('member-template');
-    const serverId = document.querySelector('meta[name="server-id"]')?.content;
-    const memberFilter = document.getElementById('member-filter');
-    const memberFilterOptions = document.querySelectorAll('.filter-option');
-    
-    if (!membersList || !memberTemplate || !serverId) return;
-    
-    let allMembers = [];
-    let currentFilter = 'member-newest';
-    
-    async function loadMembers() {
-        try {
-            const response = await window.serverAPI.getServerMembers(serverId);
-            
-            if (response && response.success) {
-                if (response.data && response.data.members) {
-                    allMembers = response.data.members;
-                } else if (response.members) {
-                    allMembers = response.members;
-                } else {
-                    allMembers = [];
-                }
-                
-                sortMembers(currentFilter);
-            } else if (response && response.error && response.error.code === 401) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-                return;
-            } else {
-                throw new Error(response.message || 'Failed to load server members');
-            }
-        } catch (error) {
-            console.error('Error loading server members:', error);
-            
-            if (error.message && error.message.toLowerCase().includes('unauthorized')) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-                return;
-            }
-            
-            membersList.innerHTML = `
-                <div class="flex items-center justify-center p-8 text-discord-lighter">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-[#ed4245]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Error loading members. Please try again.</span>
-                </div>
-            `;
-        }
-    }
-    
-    function sortMembers(filterType) {
-        let sortedMembers = [...allMembers];
-        
-        switch (filterType) {
-            case 'member-newest': 
-                sortedMembers.sort((a, b) => new Date(b.joined_at) - new Date(a.joined_at));
-                break;
-            case 'member-oldest':
-                sortedMembers.sort((a, b) => new Date(a.joined_at) - new Date(b.joined_at));
-                break;
-            case 'discord-newest':
-                sortedMembers.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                break;
-            case 'discord-oldest':
-                sortedMembers.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-                break;
-            default:
-                sortedMembers.sort((a, b) => new Date(b.joined_at) - new Date(a.joined_at));
-        }
-        
-        renderMembers(sortedMembers);
-    }
-    
-    if (memberFilterOptions) {
-        memberFilterOptions.forEach(option => {
-            option.addEventListener('click', function() {
-                memberFilterOptions.forEach(opt => {
-                    opt.querySelector('input[type="radio"]').checked = false;
-                });
-                this.querySelector('input[type="radio"]').checked = true;
-                
-                if (memberFilter) {
-                    memberFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
-                    
-                    const filterDropdown = document.getElementById('filter-dropdown');
-                    if (filterDropdown) {
-                        filterDropdown.classList.add('hidden');
-                    }
-                }
-                
-                currentFilter = this.dataset.filter;
-                sortMembers(currentFilter);
-            });
-        });
-    }
-    
-    if (memberFilter) {
-        memberFilter.addEventListener('click', function(e) {
-            const filterDropdown = document.getElementById('filter-dropdown');
-            if (filterDropdown) {
-                filterDropdown.classList.toggle('hidden');
-            }
-        });
-        
-        document.addEventListener('click', function(e) {
-            if (!memberFilter.contains(e.target)) {
-                const filterDropdown = document.getElementById('filter-dropdown');
-                if (filterDropdown && !filterDropdown.classList.contains('hidden')) {
-                    filterDropdown.classList.add('hidden');
-                }
-            }
-        });
-    }
-    
-    function renderMembers(members) {
-        if (!members.length) {
-            membersList.innerHTML = `
-                <div class="flex items-center justify-center p-8 text-discord-lighter">
-                    <span>No members found</span>
-                </div>
-            `;
-            return;
-        }
-        
-        membersList.innerHTML = '';
-        
-        members.forEach(member => {
-            const memberElement = document.importNode(memberTemplate.content, true).firstElementChild;
-            
-            const avatarImg = memberElement.querySelector('.member-avatar img');
-            if (avatarImg) {
-                if (member.avatar_url) {
-                    avatarImg.src = member.avatar_url;
-                } else {
-                    avatarImg.parentNode.innerHTML = `
-                        <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white">
-                            ${member.username.charAt(0).toUpperCase()}
-                        </div>
-                    `;
-                }
-            }
-            
-            const usernameElement = memberElement.querySelector('.member-username');
-            const discriminatorElement = memberElement.querySelector('.member-discriminator');
-            
-            if (usernameElement) {
-                usernameElement.textContent = member.display_name || member.username;
-            }
-            
-            if (discriminatorElement) {
-                discriminatorElement.textContent = `#${member.discriminator}`;
-            }
-            
-            const statusIndicator = memberElement.querySelector('.status-indicator');
-            if (statusIndicator) {
-                const statusColors = {
-                    'online': 'bg-green-500',
-                    'idle': 'bg-yellow-500',
-                    'dnd': 'bg-red-500',
-                    'offline': 'bg-gray-500'
-                };
-                
-                statusIndicator.classList.add(statusColors[member.status] || 'bg-gray-500');
-            }
-            
-            const roleElement = memberElement.querySelector('.member-role');
-            if (roleElement) {
-                roleElement.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
-                
-                const roleColors = {
-                    'owner': 'bg-[#f1c40f] text-black',
-                    'admin': 'bg-[#e74c3c] text-white',
-                    'moderator': 'bg-[#3498db] text-white',
-                    'member': 'bg-[#95a5a6] text-white'
-                };
-                
-                roleElement.classList.add(...(roleColors[member.role] || 'bg-[#95a5a6] text-white').split(' '));
-            }
-            
-            const joinedElement = memberElement.querySelector('.member-joined');
-            if (joinedElement && member.joined_at) {
-                const joinedDate = new Date(member.joined_at);
-                joinedElement.textContent = joinedDate.toLocaleDateString();
-            }
-            
-            memberElement.dataset.memberId = member.id;
-            
-            const editRoleBtn = memberElement.querySelector('.edit-role-btn');
-            const kickMemberBtn = memberElement.querySelector('.kick-member-btn');
-            
-            if (member.is_owner) {
-                if (editRoleBtn) editRoleBtn.disabled = true;
-                if (kickMemberBtn) kickMemberBtn.disabled = true;
-                
-                if (editRoleBtn) editRoleBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                if (kickMemberBtn) kickMemberBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-            
-            if (editRoleBtn) {
-                editRoleBtn.addEventListener('click', () => {
-                    alert(`Edit role for ${member.username} (ID: ${member.id})`);
-                });
-            }
-            
-            if (kickMemberBtn) {
-                kickMemberBtn.addEventListener('click', () => {
-                    if (confirm(`Are you sure you want to kick ${member.username} from the server?`)) {
-                        alert(`Kicked ${member.username} (ID: ${member.id})`);
-                    }
-                });
-            }
-            
-            membersList.appendChild(memberElement);
-        });
-    }
-    
-    if (memberSearch) {
-        memberSearch.addEventListener('input', debounce(function() {
-            const searchTerm = this.value.toLowerCase().trim();
-            
-            if (!searchTerm) {
-                sortMembers(currentFilter);
-                return;
-            }
-            
-            const filteredMembers = allMembers.filter(member => {
-                return (
-                    member.username.toLowerCase().includes(searchTerm) ||
-                    (member.display_name && member.display_name.toLowerCase().includes(searchTerm)) ||
-                    member.role.toLowerCase().includes(searchTerm)
-                );
-            });
-            
-            renderMembers(filteredMembers);
-        }, 300));
-    }
-    
-    loadMembers();
-}
+
 
 function updateServerPreviewIcon(imageUrl) {
     const previewIcon = document.querySelector('.server-icon-preview img');
@@ -506,96 +264,8 @@ function initServerProfileForm() {
         }, 300));
     }
     
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        if (!serverId) {
-            showToast('Server ID not found', 'error');
-            return;
-        }
-        
-        try {
-            if (!serverNameInput || !serverNameInput.value.trim()) {
-                showToast('Server name is required', 'error');
-                
-                serverNameInput.classList.add('border-red-500');
-                serverNameInput.style.animation = 'shake 0.3s';
-                
-                setTimeout(() => {
-                    serverNameInput.classList.remove('border-red-500');
-                    serverNameInput.style.animation = '';
-                }, 1000);
-                
-                serverNameInput.focus();
-                return;
-            }
-            
-            saveButton.style.transition = 'all 0.2s ease';
-            saveButton.style.backgroundColor = 'var(--discord-blurple-darkest)';
-            saveButton.style.transform = 'scale(0.98)';
-            saveButton.disabled = true;
-            
-            setTimeout(() => {
-                saveButton.innerHTML = `
-                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Saving...
-                `;
-            }, 100);
-            
-            const formData = new FormData();
-            
-            formData.append('name', serverNameInput.value.trim());
-            
-            if (serverDescriptionInput) {
-                formData.append('description', serverDescriptionInput.value.trim());
-            }
-            
-            if (isPublicCheckbox) {
-                formData.append('is_public', isPublicCheckbox.checked ? '1' : '0');
-            }
-            
-            if (serverCategorySelect && serverCategorySelect.value) {
-                formData.append('category', serverCategorySelect.value);
-            }
-            
-            const iconContainer = document.getElementById('server-icon-container');
-            if (iconContainer && iconContainer.dataset.croppedImage) {
-                const iconBlob = dataURLtoBlob(iconContainer.dataset.croppedImage);
-                formData.append('server_icon', iconBlob, 'server_icon.png');
-            }
-            
-            const bannerContainer = document.getElementById('server-banner-container');
-            if (bannerContainer && bannerContainer.dataset.croppedImage) {
-                const bannerBlob = dataURLtoBlob(bannerContainer.dataset.croppedImage);
-                formData.append('server_banner', bannerBlob, 'server_banner.png');
-            }
-            
-            const response = await window.serverAPI.updateServerSettings(serverId, formData);
-            
-            if (response && response.success) {
-                showToast('Server settings updated', 'success');
-                
-                if (serverNameInput && serverNameInput.value.trim()) {
-                    updateServerNameInUI(serverNameInput.value.trim());
-                }
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                throw new Error(response.message || 'Failed to update server settings');
-            }
-        } catch (error) {
-            console.error('Error updating server settings:', error);
-            showToast(error.message || 'Failed to update server settings', 'error');
-        } finally {
-            saveButton.disabled = false;
-            saveButton.textContent = 'Save Changes';
-        }
-    });
+    // Initialize approve buttons for all inputs
+    initServerInputApproveButtons(serverId);
 }
 
 function initCloseButton() {
@@ -891,24 +561,137 @@ function initMemberManagementTab() {
             }
             
             if (promoteBtn && !promoteBtn.disabled) {
-                promoteBtn.addEventListener('click', () => handlePromote(member));
+                promoteBtn.addEventListener('click', () => showMemberActionModal('promote', member));
             }
             
             if (demoteBtn && !demoteBtn.disabled) {
-                demoteBtn.addEventListener('click', () => handleDemote(member));
+                demoteBtn.addEventListener('click', () => showMemberActionModal('demote', member));
             }
             
             if (kickBtn && !kickBtn.disabled) {
-                kickBtn.addEventListener('click', () => handleKick(member));
+                kickBtn.addEventListener('click', () => showMemberActionModal('kick', member));
             }
             
             membersList.appendChild(memberElement);
         });
     }
     
-    async function handlePromote(member) {
-        if (!confirm(`Are you sure you want to promote ${member.username} to Admin?`)) return;
+    function showMemberActionModal(action, member) {
+        const modal = document.getElementById('member-action-modal');
+        const modalIcon = modal.querySelector('.modal-icon i');
+        const modalTitle = modal.querySelector('.modal-title');
+        const memberName = modal.querySelector('.member-name');
+        const memberCurrentRole = modal.querySelector('.member-current-role');
+        const actionMessage = modal.querySelector('.action-message');
+        const roleChangePreview = modal.querySelector('.role-change-preview');
+        const fromRole = modal.querySelector('.from-role');
+        const toRole = modal.querySelector('.to-role');
+        const confirmBtn = modal.querySelector('#modal-confirm-btn');
+        const confirmText = confirmBtn.querySelector('.confirm-text');
+        const cancelBtn = modal.querySelector('#modal-cancel-btn');
         
+        modalIcon.className = '';
+        confirmBtn.className = 'modal-btn modal-btn-confirm';
+        roleChangePreview.classList.add('hidden');
+        
+        const avatarDiv = modal.querySelector('.member-avatar-small');
+        if (member.avatar_url) {
+            avatarDiv.innerHTML = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
+        } else {
+            avatarDiv.innerHTML = `
+                <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white font-bold">
+                    ${member.username.charAt(0).toUpperCase()}
+                </div>
+            `;
+        }
+        
+        memberName.textContent = member.username;
+        memberCurrentRole.textContent = `Current Role: ${member.role.charAt(0).toUpperCase() + member.role.slice(1)}`;
+        
+        let actionHandler;
+        
+        switch (action) {
+            case 'promote':
+                modalIcon.className = 'fas fa-arrow-up';
+                modalTitle.textContent = 'Promote Member';
+                actionMessage.textContent = `Are you sure you want to promote ${member.username} to Admin? This will give them additional permissions to manage channels and kick members.`;
+                
+                roleChangePreview.classList.remove('hidden');
+                fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                fromRole.className = `role-badge ${member.role}`;
+                toRole.textContent = 'Admin';
+                toRole.className = 'role-badge admin';
+                
+                confirmBtn.classList.add('warning');
+                confirmText.textContent = 'Promote';
+                
+                actionHandler = () => handlePromote(member);
+                break;
+                
+            case 'demote':
+                modalIcon.className = 'fas fa-arrow-down';
+                modalTitle.textContent = 'Demote Member';
+                actionMessage.textContent = `Are you sure you want to demote ${member.username} to Member? This will remove their administrative permissions.`;
+                
+                roleChangePreview.classList.remove('hidden');
+                fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                fromRole.className = `role-badge ${member.role}`;
+                toRole.textContent = 'Member';
+                toRole.className = 'role-badge member';
+                
+                confirmBtn.classList.add('warning');
+                confirmText.textContent = 'Demote';
+                
+                actionHandler = () => handleDemote(member);
+                break;
+                
+            case 'kick':
+                modalIcon.className = 'fas fa-user-times';
+                modalTitle.textContent = 'Kick Member';
+                actionMessage.textContent = `Are you sure you want to kick ${member.username} from the server? They will be removed immediately and can only rejoin with a new invite.`;
+                
+                confirmBtn.classList.add('danger');
+                confirmText.textContent = 'Kick';
+                
+                actionHandler = () => handleKick(member);
+                break;
+        }
+        
+        const handleConfirm = () => {
+            modal.classList.add('hidden');
+            confirmBtn.removeEventListener('click', handleConfirm);
+            cancelBtn.removeEventListener('click', handleCancel);
+            document.removeEventListener('keydown', handleKeydown);
+            actionHandler();
+        };
+        
+        const handleCancel = () => {
+            modal.classList.add('hidden');
+            confirmBtn.removeEventListener('click', handleConfirm);
+            cancelBtn.removeEventListener('click', handleCancel);
+            document.removeEventListener('keydown', handleKeydown);
+        };
+        
+        const handleKeydown = (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+            }
+        };
+        
+        confirmBtn.addEventListener('click', handleConfirm);
+        cancelBtn.addEventListener('click', handleCancel);
+        document.addEventListener('keydown', handleKeydown);
+        
+        modal.classList.remove('hidden');
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                handleCancel();
+            }
+        });
+    }
+
+    async function handlePromote(member) {
         try {
             const response = await window.serverAPI.promoteMember(serverId, member.id);
             if (response && response.success) {
@@ -924,8 +707,6 @@ function initMemberManagementTab() {
     }
     
     async function handleDemote(member) {
-        if (!confirm(`Are you sure you want to demote ${member.username} to Member?`)) return;
-        
         try {
             const response = await window.serverAPI.demoteMember(serverId, member.id);
             if (response && response.success) {
@@ -941,8 +722,6 @@ function initMemberManagementTab() {
     }
     
     async function handleKick(member) {
-        if (!confirm(`Are you sure you want to kick ${member.username} from the server?\n\nThis action cannot be undone.`)) return;
-        
         try {
             const response = await window.serverAPI.kickMember(serverId, member.id);
             if (response && response.success) {
@@ -1212,5 +991,313 @@ function initDeleteServerTab() {
                 confirmDeleteBtn.textContent = 'Delete Server';
             }
         });
+    }
+}
+
+/**
+ * Initialize approve buttons for server input fields
+ */
+function initServerInputApproveButtons(serverId) {
+    // Server Name
+    const serverNameInput = document.getElementById('server-name');
+    const approveServerNameBtn = document.getElementById('approve-server-name');
+    
+    if (serverNameInput && approveServerNameBtn) {
+        serverNameInput.dataset.originalValue = serverNameInput.value.trim();
+        checkForChanges(serverNameInput, approveServerNameBtn);
+        
+        serverNameInput.addEventListener('input', function() {
+            checkForChanges(this, approveServerNameBtn);
+        });
+        
+        serverNameInput.addEventListener('keyup', function() {
+            checkForChanges(this, approveServerNameBtn);
+        });
+        
+        serverNameInput.addEventListener('paste', function() {
+            setTimeout(() => checkForChanges(this, approveServerNameBtn), 10);
+        });
+        
+        approveServerNameBtn.addEventListener('click', function() {
+            updateServerName(serverId, serverNameInput.value.trim());
+        });
+    }
+    
+    // Server Description
+    const serverDescriptionInput = document.getElementById('server-description');
+    const approveServerDescriptionBtn = document.getElementById('approve-server-description');
+    
+    if (serverDescriptionInput && approveServerDescriptionBtn) {
+        serverDescriptionInput.dataset.originalValue = serverDescriptionInput.value.trim();
+        checkForChanges(serverDescriptionInput, approveServerDescriptionBtn);
+        
+        serverDescriptionInput.addEventListener('input', function() {
+            checkForChanges(this, approveServerDescriptionBtn);
+        });
+        
+        serverDescriptionInput.addEventListener('keyup', function() {
+            checkForChanges(this, approveServerDescriptionBtn);
+        });
+        
+        serverDescriptionInput.addEventListener('paste', function() {
+            setTimeout(() => checkForChanges(this, approveServerDescriptionBtn), 10);
+        });
+        
+        approveServerDescriptionBtn.addEventListener('click', function() {
+            updateServerDescription(serverId, serverDescriptionInput.value.trim());
+        });
+    }
+    
+    // Public checkbox
+    const isPublicInput = document.getElementById('is-public');
+    const approveIsPublicBtn = document.getElementById('approve-is-public');
+    
+    if (isPublicInput && approveIsPublicBtn) {
+        isPublicInput.dataset.originalValue = isPublicInput.checked ? '1' : '0';
+        checkForChangesCheckbox(isPublicInput, approveIsPublicBtn);
+        
+        isPublicInput.addEventListener('change', function() {
+            checkForChangesCheckbox(this, approveIsPublicBtn);
+        });
+        
+        approveIsPublicBtn.addEventListener('click', function() {
+            updateServerPublic(serverId, isPublicInput.checked);
+        });
+    }
+    
+    // Server Category
+    const serverCategoryInput = document.getElementById('server-category');
+    const approveServerCategoryBtn = document.getElementById('approve-server-category');
+    
+    if (serverCategoryInput && approveServerCategoryBtn) {
+        serverCategoryInput.dataset.originalValue = serverCategoryInput.value;
+        checkForChanges(serverCategoryInput, approveServerCategoryBtn);
+        
+        serverCategoryInput.addEventListener('change', function() {
+            checkForChanges(this, approveServerCategoryBtn);
+        });
+        
+        approveServerCategoryBtn.addEventListener('click', function() {
+            updateServerCategory(serverId, serverCategoryInput.value);
+        });
+    }
+}
+
+/**
+ * Check for changes and show/hide approve button
+ */
+function checkForChanges(input, approveBtn) {
+    if (!input || !approveBtn) return;
+    
+    const currentValue = input.value.trim();
+    const originalValue = (input.dataset.originalValue || '').trim();
+    
+    if (currentValue !== originalValue) {
+        approveBtn.style.display = 'flex';
+        approveBtn.classList.remove('hidden');
+        setTimeout(() => {
+            approveBtn.classList.add('show');
+        }, 10);
+    } else {
+        approveBtn.classList.remove('show');
+        setTimeout(() => {
+            approveBtn.style.display = 'none';
+            approveBtn.classList.add('hidden');
+        }, 300);
+    }
+}
+
+/**
+ * Check for checkbox changes
+ */
+function checkForChangesCheckbox(input, approveBtn) {
+    if (!input || !approveBtn) return;
+    
+    const currentValue = input.checked ? '1' : '0';
+    const originalValue = input.dataset.originalValue || '0';
+    
+    if (currentValue !== originalValue) {
+        approveBtn.style.display = 'flex';
+        approveBtn.classList.remove('hidden');
+        setTimeout(() => {
+            approveBtn.classList.add('show');
+        }, 10);
+    } else {
+        approveBtn.classList.remove('show');
+        setTimeout(() => {
+            approveBtn.style.display = 'none';
+            approveBtn.classList.add('hidden');
+        }, 300);
+    }
+}
+
+/**
+ * Update server name
+ */
+async function updateServerName(serverId, name) {
+    const approveBtn = document.getElementById('approve-server-name');
+    const nameInput = document.getElementById('server-name');
+    
+    if (!name) {
+        showToast('Server name cannot be empty', 'error');
+        return;
+    }
+    
+    if (name.length < 2 || name.length > 50) {
+        showToast('Server name must be between 2 and 50 characters', 'error');
+        return;
+    }
+    
+    approveBtn.disabled = true;
+    const originalIcon = approveBtn.innerHTML;
+    approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    try {
+        const data = await window.serverAPI.updateServerName(serverId, name);
+        
+        if (data.success) {
+            showToast('Server name updated successfully', 'success');
+            
+            nameInput.dataset.originalValue = name;
+            nameInput.value = name;
+            
+            // Update page title if exists
+            const titleElement = document.querySelector('title');
+            if (titleElement) {
+                titleElement.textContent = `${name} - Server Settings`;
+            }
+            
+            // Update server name in UI
+            updateServerNameInUI(name);
+            
+            approveBtn.classList.remove('show');
+            setTimeout(() => {
+                approveBtn.style.display = 'none';
+                approveBtn.classList.add('hidden');
+            }, 300);
+        } else {
+            throw new Error(data.message || 'Failed to update server name');
+        }
+    } catch (error) {
+        console.error('Error updating server name:', error);
+        showToast(error.message || 'Error updating server name', 'error');
+    } finally {
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = originalIcon;
+    }
+}
+
+/**
+ * Update server description
+ */
+async function updateServerDescription(serverId, description) {
+    const approveBtn = document.getElementById('approve-server-description');
+    const descriptionInput = document.getElementById('server-description');
+    
+    if (description.length > 500) {
+        showToast('Server description cannot exceed 500 characters', 'error');
+        return;
+    }
+    
+    approveBtn.disabled = true;
+    const originalIcon = approveBtn.innerHTML;
+    approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    try {
+        const data = await window.serverAPI.updateServerDescription(serverId, description);
+        
+        if (data.success) {
+            showToast('Server description updated successfully', 'success');
+            
+            descriptionInput.dataset.originalValue = description;
+            descriptionInput.value = description;
+            
+            approveBtn.classList.remove('show');
+            setTimeout(() => {
+                approveBtn.style.display = 'none';
+                approveBtn.classList.add('hidden');
+            }, 300);
+        } else {
+            throw new Error(data.message || 'Failed to update server description');
+        }
+    } catch (error) {
+        console.error('Error updating server description:', error);
+        showToast(error.message || 'Error updating server description', 'error');
+    } finally {
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = originalIcon;
+    }
+}
+
+/**
+ * Update server public status
+ */
+async function updateServerPublic(serverId, isPublic) {
+    const approveBtn = document.getElementById('approve-is-public');
+    const publicInput = document.getElementById('is-public');
+    
+    approveBtn.disabled = true;
+    const originalIcon = approveBtn.innerHTML;
+    approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    try {
+        const data = await window.serverAPI.updateServerPublic(serverId, isPublic);
+        
+        if (data.success) {
+            showToast(`Server ${isPublic ? 'made public' : 'made private'}`, 'success');
+            
+            publicInput.dataset.originalValue = isPublic ? '1' : '0';
+            
+            approveBtn.classList.remove('show');
+            setTimeout(() => {
+                approveBtn.style.display = 'none';
+                approveBtn.classList.add('hidden');
+            }, 300);
+        } else {
+            throw new Error(data.message || 'Failed to update server visibility');
+        }
+    } catch (error) {
+        console.error('Error updating server visibility:', error);
+        showToast(error.message || 'Error updating server visibility', 'error');
+    } finally {
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = originalIcon;
+    }
+}
+
+/**
+ * Update server category
+ */
+async function updateServerCategory(serverId, category) {
+    const approveBtn = document.getElementById('approve-server-category');
+    const categoryInput = document.getElementById('server-category');
+    
+    approveBtn.disabled = true;
+    const originalIcon = approveBtn.innerHTML;
+    approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    try {
+        const data = await window.serverAPI.updateServerCategory(serverId, category);
+        
+        if (data.success) {
+            showToast('Server category updated successfully', 'success');
+            
+            categoryInput.dataset.originalValue = category;
+            categoryInput.value = category;
+            
+            approveBtn.classList.remove('show');
+            setTimeout(() => {
+                approveBtn.style.display = 'none';
+                approveBtn.classList.add('hidden');
+            }, 300);
+        } else {
+            throw new Error(data.message || 'Failed to update server category');
+        }
+    } catch (error) {
+        console.error('Error updating server category:', error);
+        showToast(error.message || 'Error updating server category', 'error');
+    } finally {
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = originalIcon;
     }
 }

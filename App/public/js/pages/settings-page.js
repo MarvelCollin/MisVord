@@ -1,4 +1,4 @@
-import { ChannelAPI } from '../api/channel-api.js';
+import channelAPI from '../api/channel-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initDeleteChannelModal();
@@ -26,8 +26,10 @@ function initDeleteChannelModal() {
     if (confirmDeleteBtn) {
         confirmDeleteBtn.addEventListener('click', function() {
             const channelId = document.querySelector('meta[name="channel-id"]')?.content;
-            const serverId = document.querySelector('meta[name="server-id"]')?.content;            if (channelId) {
-                ChannelAPI.deleteChannel(channelId)
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            
+            if (channelId) {
+                channelAPI.deleteChannel(channelId)
                     .then(data => {
                         if (data.success) {
                             window.location.href = `/server/${serverId}`;

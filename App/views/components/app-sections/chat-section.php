@@ -250,6 +250,8 @@ if ($chatType === 'channel') {
     background-color: transparent !important;
     transition: background-color 0.15s ease !important;
     min-height: 40px !important;
+    position: relative !important;
+    z-index: 10 !important;
 }
 
 #chat-messages .message-group:hover {
@@ -489,6 +491,7 @@ if ($chatType === 'channel') {
     </div>
 </div>
 
+<script src="<?php echo js('components/messaging/chat-skeleton-loading'); ?>?v=<?php echo time(); ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Chat section template loaded');
@@ -521,22 +524,13 @@ function initializeChatUI() {
     }
     
     function sendMessage() {
-        console.log('📞 sendMessage() in PHP template called');
-        alert('PHP template sendMessage() called!');
-        
         if (messageInput.value.trim().length === 0) {
-            alert('ERROR: No message content in input!');
             return;
         }
-        
-        alert('Input has content: ' + messageInput.value);
-        
         if (window.chatSection && window.chatSection.sendMessage) {
-            alert('Calling chatSection.sendMessage()');
             window.chatSection.sendMessage();
         } else {
             console.error('ChatSection not initialized');
-            alert('ERROR: ChatSection not initialized!');
         }
     }
     

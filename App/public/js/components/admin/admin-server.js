@@ -284,7 +284,7 @@ export class ServerManager {
     servers.forEach(server => {
       const serverId = server.id || 'N/A';
       const serverName = server.name || 'Unknown Server';
-      const ownerId = server.owner_id || 'N/A';
+      const ownerDisplay = server.owner_display || 'Unknown User';
       const memberCount = server.member_count !== undefined && server.member_count !== null ? server.member_count : 0;
       const createdAt = server.created_at ? this.formatDate(server.created_at) : 'Unknown';
       
@@ -302,7 +302,7 @@ export class ServerManager {
             <span class="font-medium">${serverName}</span>
           </div>
         </td>
-        <td>${ownerId}</td>
+        <td>${ownerDisplay}</td>
         <td>
           <span class="text-discord-lighter">${memberCount}</span>
         </td>

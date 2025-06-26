@@ -944,6 +944,263 @@ class ServerController extends BaseController
         }
     }
 
+    public function updateServerField($serverId)
+    {
+        $this->requireAuth();
+
+        $server = $this->serverRepository->find($serverId);
+        if (!$server) {
+            return $this->notFound('Server not found');
+        }
+
+        if (!$this->canManageServer($server)) {
+            return $this->forbidden('You do not have permission to edit this server');
+        }
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        try {
+            $updated = false;
+            $changes = [];
+
+            if (isset($input['name'])) {
+                if (empty($input['name'])) {
+                    return $this->validationError(['name' => 'Server name is required']);
+                }
+                $server->name = $input['name'];
+                $changes['name'] = $input['name'];
+                $updated = true;
+            }
+
+            if (isset($input['description'])) {
+                $server->description = $input['description'];
+                $changes['description'] = $input['description'];
+                $updated = true;
+            }
+            
+            if (isset($input['is_public'])) {
+                $server->is_public = (bool)$input['is_public'];
+                $changes['is_public'] = (bool)$input['is_public'];
+                $updated = true;
+            }
+            
+            if (isset($input['category'])) {
+                $server->category = $input['category'];
+                $changes['category'] = $input['category'];
+                $updated = true;
+            }
+
+            if (!$updated) {
+                return $this->validationError(['field' => 'No valid field provided to update']);
+            }
+
+            if ($server->save()) {
+                $this->logActivity('server_field_updated', [
+                    'server_id' => $serverId,
+                    'changes' => $changes
+                ]);
+
+                return $this->success([
+                    'server' => $this->formatServer($server),
+                    'updated_fields' => $changes
+                ], 'Server updated successfully');
+            } else {
+                throw new Exception('Failed to save server');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('server_field_update_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to update server: ' . $e->getMessage());
+        }
+    }
+
+    public function updateServerName($serverId)
+    {
+        $this->requireAuth();
+
+        $server = $this->serverRepository->find($serverId);
+        if (!$server) {
+            return $this->notFound('Server not found');
+        }
+
+        if (!$this->canManageServer($server)) {
+            return $this->forbidden('You do not have permission to edit this server');
+        }
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        if (!isset($input['name']) || empty($input['name'])) {
+            return $this->validationError(['name' => 'Server name is required']);
+        }
+
+        try {
+            $oldName = $server->name;
+            $server->name = $input['name'];
+
+            if ($server->save()) {
+                $this->logActivity('server_name_updated', [
+                    'server_id' => $serverId,
+                    'old_name' => $oldName,
+                    'new_name' => $input['name']
+                ]);
+
+                return $this->success([
+                    'field' => 'name',
+                    'old_value' => $oldName,
+                    'new_value' => $input['name'],
+                    'server' => $this->formatServer($server)
+                ], 'Server name updated successfully');
+            } else {
+                throw new Exception('Failed to save server name');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('server_name_update_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to update server name: ' . $e->getMessage());
+        }
+    }
+
+    public function updateServerDescription($serverId)
+    {
+        $this->requireAuth();
+
+        $server = $this->serverRepository->find($serverId);
+        if (!$server) {
+            return $this->notFound('Server not found');
+        }
+
+        if (!$this->canManageServer($server)) {
+            return $this->forbidden('You do not have permission to edit this server');
+        }
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        try {
+            $oldDescription = $server->description;
+            $server->description = $input['description'] ?? '';
+
+            if ($server->save()) {
+                $this->logActivity('server_description_updated', [
+                    'server_id' => $serverId,
+                    'old_description' => $oldDescription,
+                    'new_description' => $server->description
+                ]);
+
+                return $this->success([
+                    'field' => 'description',
+                    'old_value' => $oldDescription,
+                    'new_value' => $server->description,
+                    'server' => $this->formatServer($server)
+                ], 'Server description updated successfully');
+            } else {
+                throw new Exception('Failed to save server description');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('server_description_update_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to update server description: ' . $e->getMessage());
+        }
+    }
+
+    public function updateServerPublic($serverId)
+    {
+        $this->requireAuth();
+
+        $server = $this->serverRepository->find($serverId);
+        if (!$server) {
+            return $this->notFound('Server not found');
+        }
+
+        if (!$this->canManageServer($server)) {
+            return $this->forbidden('You do not have permission to edit this server');
+        }
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        try {
+            $oldPublic = $server->is_public;
+            $server->is_public = isset($input['is_public']) ? (bool)$input['is_public'] : false;
+
+            if ($server->save()) {
+                $this->logActivity('server_public_updated', [
+                    'server_id' => $serverId,
+                    'old_public' => $oldPublic,
+                    'new_public' => $server->is_public
+                ]);
+
+                return $this->success([
+                    'field' => 'is_public',
+                    'old_value' => $oldPublic,
+                    'new_value' => $server->is_public,
+                    'server' => $this->formatServer($server)
+                ], 'Server visibility updated successfully');
+            } else {
+                throw new Exception('Failed to save server visibility');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('server_public_update_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to update server visibility: ' . $e->getMessage());
+        }
+    }
+
+    public function updateServerCategory($serverId)
+    {
+        $this->requireAuth();
+
+        $server = $this->serverRepository->find($serverId);
+        if (!$server) {
+            return $this->notFound('Server not found');
+        }
+
+        if (!$this->canManageServer($server)) {
+            return $this->forbidden('You do not have permission to edit this server');
+        }
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        try {
+            $oldCategory = $server->category;
+            $server->category = $input['category'] ?? null;
+
+            if ($server->save()) {
+                $this->logActivity('server_category_updated', [
+                    'server_id' => $serverId,
+                    'old_category' => $oldCategory,
+                    'new_category' => $server->category
+                ]);
+
+                return $this->success([
+                    'field' => 'category',
+                    'old_value' => $oldCategory,
+                    'new_value' => $server->category,
+                    'server' => $this->formatServer($server)
+                ], 'Server category updated successfully');
+            } else {
+                throw new Exception('Failed to save server category');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('server_category_update_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to update server category: ' . $e->getMessage());
+        }
+    }
+
     public function getServerMembers($serverId)
     {
         $this->requireAuth();

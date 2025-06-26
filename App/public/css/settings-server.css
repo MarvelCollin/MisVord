@@ -1543,6 +1543,272 @@ input[type="radio"]:checked + .radio-dot:after {
   color: var(--discord-interactive-normal);
 }
 
+/* Member Action Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.modal-overlay:not(.hidden) {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-container {
+  background: linear-gradient(135deg, var(--discord-bg-secondary) 0%, var(--discord-bg-tertiary) 100%);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  max-width: 480px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  transform: scale(0.8);
+  transition: transform 0.3s ease;
+  border: 1px solid rgba(88, 101, 242, 0.2);
+}
+
+.modal-overlay:not(.hidden) .modal-container {
+  transform: scale(1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid rgba(4, 4, 5, 0.2);
+}
+
+.modal-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--discord-blurple) 0%, #4752c4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--discord-text-normal);
+  margin: 0;
+}
+
+.modal-body {
+  padding: 20px 24px;
+}
+
+.member-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(4, 4, 5, 0.2);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(88, 101, 242, 0.1);
+}
+
+.member-avatar-small {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--discord-bg-tertiary);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.member-details {
+  flex: 1;
+}
+
+.member-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--discord-text-normal);
+  margin-bottom: 4px;
+}
+
+.member-current-role {
+  font-size: 12px;
+  color: var(--discord-interactive-normal);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.action-description {
+  margin-bottom: 16px;
+}
+
+.action-message {
+  font-size: 15px;
+  color: var(--discord-text-normal);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.role-change-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(88, 101, 242, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(88, 101, 242, 0.1);
+}
+
+.role-change-from,
+.role-change-to {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.role-label {
+  font-size: 11px;
+  color: var(--discord-interactive-normal);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.role-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-badge.owner {
+  background-color: rgba(255, 215, 0, 0.2);
+  color: #ffd700;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.role-badge.admin {
+  background-color: rgba(237, 66, 69, 0.2);
+  color: var(--discord-red);
+  border: 1px solid rgba(237, 66, 69, 0.3);
+}
+
+.role-badge.member {
+  background-color: rgba(153, 170, 181, 0.2);
+  color: #99aab5;
+  border: 1px solid rgba(153, 170, 181, 0.3);
+}
+
+.role-change-arrow {
+  color: var(--discord-blurple);
+  font-size: 16px;
+  margin: 0 8px;
+}
+
+.warning-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(237, 66, 69, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(237, 66, 69, 0.2);
+}
+
+.warning-notice i {
+  color: var(--discord-red);
+  font-size: 14px;
+}
+
+.warning-text {
+  font-size: 13px;
+  color: var(--discord-red);
+  font-weight: 500;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 24px 24px;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 100px;
+  justify-content: center;
+}
+
+.modal-btn-cancel {
+  background-color: transparent;
+  color: var(--discord-interactive-normal);
+  border: 1px solid rgba(4, 4, 5, 0.3);
+}
+
+.modal-btn-cancel:hover {
+  background-color: rgba(4, 4, 5, 0.2);
+  color: var(--discord-text-normal);
+  transform: translateY(-1px);
+}
+
+.modal-btn-confirm {
+  background: linear-gradient(135deg, var(--discord-blurple) 0%, #4752c4 100%);
+  color: white;
+  border: 1px solid transparent;
+}
+
+.modal-btn-confirm:hover {
+  background: linear-gradient(135deg, #4752c4 0%, var(--discord-blurple) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
+
+.modal-btn-confirm.danger {
+  background: linear-gradient(135deg, var(--discord-red) 0%, #c23616 100%);
+}
+
+.modal-btn-confirm.danger:hover {
+  background: linear-gradient(135deg, #c23616 0%, var(--discord-red) 100%);
+  box-shadow: 0 4px 12px rgba(237, 66, 69, 0.3);
+}
+
+.modal-btn-confirm.warning {
+  background: linear-gradient(135deg, var(--discord-yellow) 0%, #f39c12 100%);
+}
+
+.modal-btn-confirm.warning:hover {
+  background: linear-gradient(135deg, #f39c12 0%, var(--discord-yellow) 100%);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
 /* Create Role Button */
 .create-role-btn {
   background: linear-gradient(135deg, var(--discord-blurple) 0%, var(--discord-blurple-dark) 100%);
@@ -2282,3 +2548,137 @@ textarea.form-input {
   line-height: 1.5;
 }
 
+/* Approve button styles */
+.approve-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 40px;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    opacity: 0;
+    transform: scale(0.8) translateX(10px);
+    pointer-events: none;
+}
+
+.approve-btn.show {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+    pointer-events: all;
+}
+
+.approve-btn:hover {
+    transform: scale(1.05) translateY(-1px);
+}
+
+.approve-btn:active {
+    transform: scale(0.95) translateY(0);
+}
+
+.approve-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: scale(1) translateX(0);
+}
+
+#approve-server-name {
+    background-color: #2563eb;
+}
+
+#approve-server-name:hover {
+    background-color: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+#approve-server-description {
+    background-color: #16a34a;
+}
+
+#approve-server-description:hover {
+    background-color: #15803d;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+}
+
+#approve-is-public {
+    background-color: #9333ea;
+}
+
+#approve-is-public:hover {
+    background-color: #7c3aed;
+    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.4);
+}
+
+#approve-server-category {
+    background-color: #d97706;
+}
+
+#approve-server-category:hover {
+    background-color: #b45309;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
+}
+
+/* Flex layout for input + approve button */
+.form-group .flex {
+    align-items: center;
+    gap: 8px;
+}
+
+.form-group .flex .flex-grow {
+    flex: 1;
+}
+
+.form-group .flex .self-start {
+    align-self: flex-start;
+}
+
+/* Enhanced animations for approve buttons */
+@keyframes approveButtonAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateX(0);
+    }
+}
+
+@keyframes approveButtonDisappear {
+    from {
+        opacity: 1;
+        transform: scale(1) translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.8) translateX(20px);
+    }
+}
+
+.approve-btn.show {
+    animation: approveButtonAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.approve-btn:not(.show) {
+    animation: approveButtonDisappear 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Responsive design for approve buttons */
+@media (max-width: 768px) {
+    .approve-btn {
+        min-height: 36px;
+        width: 36px;
+    }
+    
+    .form-group .flex {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .approve-btn {
+        width: auto;
+        min-width: 120px;
+        border-radius: 6px;
+    }
+}

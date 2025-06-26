@@ -542,6 +542,31 @@ Route::post('/api/servers/([0-9]+)/settings', function($serverId) {
     $controller->updateServerSettings($serverId);
 });
 
+Route::post('/api/servers/([0-9]+)/update', function($serverId) {
+    $controller = new ServerController();
+    $controller->updateServerField($serverId);
+});
+
+Route::post('/api/servers/([0-9]+)/update/name', function($serverId) {
+    $controller = new ServerController();
+    $controller->updateServerName($serverId);
+});
+
+Route::post('/api/servers/([0-9]+)/update/description', function($serverId) {
+    $controller = new ServerController();
+    $controller->updateServerDescription($serverId);
+});
+
+Route::post('/api/servers/([0-9]+)/update/public', function($serverId) {
+    $controller = new ServerController();
+    $controller->updateServerPublic($serverId);
+});
+
+Route::post('/api/servers/([0-9]+)/update/category', function($serverId) {
+    $controller = new ServerController();
+    $controller->updateServerCategory($serverId);
+});
+
 Route::get('/api/servers/([0-9]+)/members', function($serverId) {
     $controller = new ServerController();
     $controller->getServerMembers($serverId);   

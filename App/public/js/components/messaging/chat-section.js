@@ -35,31 +35,28 @@ if (document.readyState === 'complete' && !window.chatSection && !isExcludedPage
 
 class ChatSection {
     constructor() {
+        this.chatMessages = null;
+        this.messageInput = null;
+        this.sendButton = null;
+        this.fileUploadInput = null;
+        this.fileUploadPreview = null;
+        this.currentFileUpload = null;
+        this.currentReplyMessageId = null;
+        this.replyingContainer = null;
+        this.typingIndicator = null;
+        this.typingUsers = new Map();
+        this.typingTimeout = null;
+        this.messagesLoaded = false;
+        this.joinedRooms = new Set();
+        this.skeletonLoader = null;
+        
         this.chatType = null;
         this.targetId = null;
-        this.chatMessages = null;
-        this.messageForm = null;
-        this.messageInput = null;
         this.userId = null;
-        this.username = null;
-        this.messagesLoaded = false;
-        this.typingTimeout = null;
-        this.typingUsers = new Map();
-        this.lastTypingUpdate = 0;
-        this.typingDebounceTime = 2000;
-        this.messageIdCounter = 0;
+        this.currentServerId = null;
         this.processedMessageIds = new Set();
-        this.joinedRooms = new Set();
-        this.contextMenuVisible = false;
-        this.activeMessageActions = null;
-        this.currentEditingMessage = null;
-        this.scrollListenerActive = false;
-        this.loadingOlderMessages = false;
-        this.messagesPerPage = 20;
-        this.totalMessagesLoaded = 0;
-        this.activeReplyingTo = null;
-        this.currentFileUpload = null;
-        this.maxFileSize = 100 * 1024 * 1024;
+        
+        this.init();
     }
     
     init() {
@@ -93,21 +90,34 @@ class ChatSection {
     
     loadElements() {
         this.chatMessages = document.getElementById('chat-messages');
-        this.messageForm = document.getElementById('message-form');
         this.messageInput = document.getElementById('message-input');
         this.sendButton = document.getElementById('send-button');
+        this.fileUploadInput = document.getElementById('file-upload');
+        this.fileUploadPreview = document.getElementById('file-preview');
         this.contextMenu = document.getElementById('message-context-menu');
         
         if (!this.chatMessages) {
             console.error('Chat messages element not found');
         }
         
-        if (!this.messageForm) {
-            console.error('Message form not found');
-        }
-        
         if (!this.messageInput) {
             console.error('Message input not found');
+        }
+        
+        if (!this.sendButton) {
+            console.error('Send button not found');
+        }
+        
+        if (!this.fileUploadInput) {
+            console.error('File upload input not found');
+        }
+        
+        if (!this.fileUploadPreview) {
+            console.error('File preview not found');
+        }
+        
+        if (this.chatMessages && window.ChatSkeletonLoader) {
+            this.skeletonLoader = new window.ChatSkeletonLoader(this.chatMessages);
         }
     }
     
@@ -133,13 +143,6 @@ class ChatSection {
     }
     
     setupEventListeners() {
-        if (this.messageForm) {
-            this.messageForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.sendMessage();
-            });
-        }
-        
         if (this.messageInput) {
             this.messageInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -162,45 +165,23 @@ class ChatSection {
             });
         }
         
-        const attachmentButton = document.getElementById('attachment-button');
-        const attachmentDropdown = document.getElementById('attachment-dropdown');
-        const fileUpload = document.getElementById('file-upload');
-        const filePreview = document.getElementById('file-preview');
-        const filePreviewRemove = document.getElementById('file-preview-remove');
-        
-        if (attachmentButton && attachmentDropdown) {
-            attachmentButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                attachmentDropdown.classList.toggle('hidden');
-            });
-            
-            document.addEventListener('click', (e) => {
-                if (!attachmentButton.contains(e.target) && !attachmentDropdown.contains(e.target)) {
-                    attachmentDropdown.classList.add('hidden');
-                }
-            });
-        }
-        
-        if (fileUpload) {
-            fileUpload.addEventListener('change', (e) => {
+        if (this.fileUploadInput) {
+            this.fileUploadInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) {
                     this.handleFileSelection(file);
-                    if (attachmentDropdown) {
-                        attachmentDropdown.classList.add('hidden');
-                    }
                 }
             });
         }
         
-        if (filePreviewRemove) {
-            filePreviewRemove.addEventListener('click', () => {
+        if (this.fileUploadPreview) {
+            this.fileUploadPreview.addEventListener('click', () => {
                 this.removeFileUpload();
             });
         }
 
         document.addEventListener('click', (e) => {
-            if (this.contextMenuVisible && this.contextMenu && !this.contextMenu.contains(e.target)) {
+            if (this.contextMenu && this.contextMenu.contains(e.target)) {
                 this.hideContextMenu();
             }
             
@@ -826,8 +807,8 @@ class ChatSection {
             replyContainer = document.createElement('div');
             replyContainer.id = 'reply-container';
             
-            if (this.messageForm && this.messageForm.parentNode) {
-                this.messageForm.parentNode.insertBefore(replyContainer, this.messageForm);
+            if (this.messageInput && this.messageInput.parentNode) {
+                this.messageInput.parentNode.insertBefore(replyContainer, this.messageInput);
             }
         } else {
             replyContainer.innerHTML = '';
@@ -974,25 +955,16 @@ class ChatSection {
     }
     
     async sendMessage() {
-        console.log('🚀 sendMessage() called');
-        alert('sendMessage() function started!');
-        
         if (!this.messageInput) {
             console.error('❌ Message input not found');
-            alert('ERROR: Message input not found!');
             return;
         }
         
         const content = this.messageInput.value.trim();
-        console.log('📝 Message content:', content);
-        
         if (!content && !this.currentFileUpload) {
             console.warn('⚠️ No message content or file to send');
-            alert('ERROR: No content to send!');
             return;
         }
-        
-        alert('Content found: ' + content);
         
         console.log('📤 Attempting to send message:', { 
             content: content.substring(0, 50) + '...', 
@@ -1080,17 +1052,7 @@ class ChatSection {
             }
             
             this.processedMessageIds.add(messageId);
-            
-            // Ensure empty state is cleared before adding the message
-            this.clearEmptyState();
-            
-            console.log('📨 About to call addMessage with:', tempMessage);
-            alert('About to add temp message: ' + tempMessage.content);
-            
             this.addMessage(tempMessage);
-            
-            console.log('✅ addMessage completed');
-            alert('addMessage call completed!');
             this.removeFileUpload();
             this.updateSendButton();
             
@@ -1258,14 +1220,19 @@ class ChatSection {
             return;
         }
         
-        // Clear any existing content including stuck empty states
-        this.clearEmptyState();
-        this.chatMessages.innerHTML = '';
+        const existingMessages = this.chatMessages.querySelectorAll('.message-group');
+        existingMessages.forEach(group => group.remove());
+        
+        if (this.skeletonLoader) {
+            this.skeletonLoader.clear();
+        }
         
         if (!messages || messages.length === 0) {
             this.showEmptyState();
             return;
         }
+        
+        this.hideEmptyState();
         
         let lastSenderId = null;
         let currentMessageGroup = null;
@@ -1288,18 +1255,12 @@ class ChatSection {
     }
     
     addMessage(message) {
-        console.log('🚀 addMessage called with:', message);
-        
         if (!this.chatMessages || !message) {
-            console.error('❌ Missing chatMessages or message:', { chatMessages: !!this.chatMessages, message: !!message });
             return;
         }
         
-        // Clear empty state if it exists
-        this.clearEmptyState();
-        
-        // Temporary alert for debugging
-        alert('Adding message: ' + (message.content || 'No content'));
+        // Hide empty state if it exists
+        this.hideEmptyState();
         
         const msg = {
             id: message.id || message.messageId || Date.now().toString(),
@@ -1346,14 +1307,11 @@ class ChatSection {
             messageGroup.classList.add('message-fade-in');
             this.chatMessages.appendChild(messageGroup);
             
-                    console.log('Added new message group to chat:', msg.id, 'Content:', msg.content);
-        console.log('Message group HTML:', messageGroup.outerHTML);
-        console.log('Chat messages container:', this.chatMessages);
-        console.log('Total messages in container:', this.chatMessages.children.length);
-        
-        setTimeout(() => {
-            messageGroup.classList.add('message-appear');
-        }, 10);
+            console.log('Added new message group to chat:', msg.id, 'Content:', msg.content);
+            
+            setTimeout(() => {
+                messageGroup.classList.add('message-appear');
+            }, 10);
         } else {
             const messageContent = this.createMessageContent(msg, isOwnMessage);
             messageContent.classList.add('message-fade-in');
@@ -1361,29 +1319,18 @@ class ChatSection {
             if (contents) {
                 contents.appendChild(messageContent);
                 
-                console.log('Added message content to existing group:', msg.id, 'Content:', msg.content);
-                
                 setTimeout(() => {
                     messageContent.classList.add('message-appear');
                 }, 10);
-            } else {
-                console.error('Could not find message-contents container in last message group');
             }
         }
         
         if (msg.reactions && msg.reactions.length > 0) {
-            console.log(`💬 Message ${msg.id} has ${msg.reactions.length} reactions:`, msg.reactions);
             setTimeout(() => {
-                console.log(`⏰ Processing reactions for message ${msg.id} after timeout`);
                 if (window.emojiReactions) {
-                    console.log(`⚡ Calling emojiReactions.updateReactionsDisplay for message ${msg.id}`);
                     window.emojiReactions.updateReactionsDisplay(msg.id, msg.reactions);
-                } else {
-                    console.error(`❌ emojiReactions not available for message ${msg.id}`);
                 }
             }, 10);
-        } else {
-            console.log(`ℹ️ Message ${msg.id} has no reactions`);
         }
         
         this.scrollToBottom();
@@ -1393,13 +1340,6 @@ class ChatSection {
         const messageGroup = document.createElement('div');
         messageGroup.className = 'message-group';
         messageGroup.setAttribute('data-user-id', message.user_id || message.userId);
-        
-        // Temporary debugging styles
-        messageGroup.style.border = '2px solid red';
-        messageGroup.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
-        messageGroup.style.minHeight = '60px';
-        messageGroup.style.margin = '10px 0';
-        messageGroup.style.padding = '10px';
         
         const avatarContainer = document.createElement('div');
         avatarContainer.className = 'message-avatar';
@@ -1451,12 +1391,6 @@ class ChatSection {
         messageElement.className = 'message-content';
         messageElement.setAttribute('data-message-id', message.id);
         messageElement.setAttribute('data-user-id', message.user_id || message.userId);
-        
-        // Temporary debugging styles
-        messageElement.style.border = '2px solid blue';
-        messageElement.style.backgroundColor = 'rgba(0, 0, 255, 0.1)';
-        messageElement.style.margin = '5px 0';
-        messageElement.style.padding = '5px';
         
         if (isOwnMessage) {
             messageElement.classList.add('own-message');
@@ -1543,19 +1477,8 @@ class ChatSection {
         const contentElement = document.createElement('div');
         contentElement.className = 'message-main-text text-[#dcddde]';
         
-        // Temporary debugging styles
-        contentElement.style.border = '2px solid green';
-        contentElement.style.backgroundColor = 'rgba(0, 255, 0, 0.1)';
-        contentElement.style.color = '#ffffff';
-        contentElement.style.padding = '5px';
-        contentElement.style.fontSize = '16px';
-        
         if (message.content && message.content.trim() !== '') {
             contentElement.innerHTML = this.formatMessageContent(message.content);
-            console.log('Setting message content:', message.content);
-        } else {
-            contentElement.innerHTML = '[NO CONTENT]';
-            console.log('No content for message:', message);
         }
         
         if (message.attachment_url) {
@@ -2047,8 +1970,8 @@ class ChatSection {
                     await new Promise(resolve => setTimeout(resolve, minimumSkeletonTime - elapsedTime));
                 }
                 
-                // Ensure empty state is cleared before rendering
-                this.clearEmptyState();
+                // Ensure empty state is hidden before rendering
+                this.hideEmptyState();
                 
                 // Now render messages with reactions already loaded
                 this.renderMessages(messages);
@@ -2077,88 +2000,18 @@ class ChatSection {
     }
     
     showLoadingSkeletons() {
-        if (!this.chatMessages) return;
-        
-        this.chatMessages.innerHTML = '';
-        
-        for (let i = 0; i < 6; i++) {
-            const skeleton = this.createMessageSkeleton(i % 3 === 0);
-            this.chatMessages.appendChild(skeleton);
+        if (this.skeletonLoader) {
+            this.skeletonLoader.show();
         }
     }
     
-    createMessageSkeleton(isAlternate = false) {
-        const skeletonGroup = document.createElement('div');
-        skeletonGroup.className = 'message-group-item animate-pulse';
-        
-        const groupWrapper = document.createElement('div');
-        groupWrapper.className = 'message-group-wrapper';
-        
-        const avatarWrapper = document.createElement('div');
-        avatarWrapper.className = 'message-avatar-wrapper';
-        
-        const avatar = document.createElement('div');
-        avatar.className = 'w-full h-full rounded-full bg-[#3c3f45]';
-        
-        avatarWrapper.appendChild(avatar);
-        
-        const contentArea = document.createElement('div');
-        contentArea.className = 'message-content-area';
-        
-        const headerInfo = document.createElement('div');
-        headerInfo.className = 'message-header-info';
-        
-        const usernameBar = document.createElement('div');
-        usernameBar.className = 'h-4 bg-[#3c3f45] rounded w-24 inline-block';
-        
-        const timeBar = document.createElement('div');
-        timeBar.className = 'h-3 bg-[#3c3f45] rounded w-12 inline-block ml-2';
-        
-        headerInfo.appendChild(usernameBar);
-        headerInfo.appendChild(timeBar);
-        
-        const messageText = document.createElement('div');
-        messageText.className = 'message-body-text';
-        
-        const contentBar1 = document.createElement('div');
-        contentBar1.className = 'h-4 bg-[#3c3f45] rounded w-full max-w-lg mb-1';
-        
-        const contentBar2 = document.createElement('div');
-        contentBar2.className = isAlternate ? 'h-4 bg-[#3c3f45] rounded w-1/2 max-w-md' : 'h-4 bg-[#3c3f45] rounded w-3/4 max-w-md';
-        
-        messageText.appendChild(contentBar1);
-        messageText.appendChild(contentBar2);
-        
-        contentArea.appendChild(headerInfo);
-        contentArea.appendChild(messageText);
-        
-        groupWrapper.appendChild(avatarWrapper);
-        groupWrapper.appendChild(contentArea);
-        
-        skeletonGroup.appendChild(groupWrapper);
-        
-        return skeletonGroup;
-    }
-    
-    clearEmptyState() {
+    hideEmptyState() {
         if (!this.chatMessages) return false;
         
-        const emptyState = this.chatMessages.querySelector('.flex.flex-col.items-center.justify-center');
+        const emptyState = this.chatMessages.querySelector('#chat-empty-state');
         if (emptyState) {
-            console.log('Clearing empty state from chat container');
-            this.chatMessages.innerHTML = '';
+            emptyState.style.display = 'none';
             return true;
-        }
-        
-        // Also check for any other empty state patterns
-        if (this.chatMessages.children.length === 1) {
-            const singleChild = this.chatMessages.children[0];
-            if (singleChild.textContent.includes('No messages yet') || 
-                singleChild.querySelector('i.fa-comments')) {
-                console.log('Clearing alternative empty state pattern');
-                this.chatMessages.innerHTML = '';
-                return true;
-            }
         }
         
         return false;
@@ -2167,13 +2020,26 @@ class ChatSection {
     showEmptyState() {
         if (!this.chatMessages) return;
         
-        this.chatMessages.innerHTML = `
-            <div class="flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full">
-                <i class="fas fa-comments text-6xl mb-4 opacity-50"></i>
-                <p class="text-lg font-medium">No messages yet</p>
-                <p class="text-sm mt-2">Start the conversation by sending a message!</p>
-            </div>
+        // Check if empty state already exists
+        let emptyState = this.chatMessages.querySelector('#chat-empty-state');
+        if (emptyState) {
+            emptyState.style.display = 'flex';
+            return;
+        }
+        
+        // Create new empty state as background
+        emptyState = document.createElement('div');
+        emptyState.id = 'chat-empty-state';
+        emptyState.className = 'flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full absolute inset-0 z-0';
+        emptyState.innerHTML = `
+            <i class="fas fa-comments text-6xl mb-4 opacity-50"></i>
+            <p class="text-lg font-medium">No messages yet</p>
+            <p class="text-sm mt-2">Start the conversation by sending a message!</p>
         `;
+        
+        // Add as background layer
+        this.chatMessages.style.position = 'relative';
+        this.chatMessages.appendChild(emptyState);
     }
 
     truncateText(text, maxLength) {

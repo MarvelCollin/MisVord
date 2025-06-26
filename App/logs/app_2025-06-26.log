@@ -99,3 +99,43 @@
 [2025-06-26 10:46:31] WARNING [7a2514] Activity logs table does not exist, skipping activity logging
 [2025-06-26 10:46:31] DEBUG [7a2514] AdminController: User status updated successfully - Context: {"user_id":2,"new_status":"active","response":{"user_id":2,"status":"active"}}
 [2025-06-26 10:46:31] DEBUG [7a2514] API Response sent - Context: {"structure":"{\n    \"success\": true,\n    \"timestamp\": \"2025-06-26 10:46:31\",\n    \"message\": \"User has been unbanned successfully\",\n    \"data\": {\n        \"user_id\": 2,\n        \"status\": \"active\"\n    }\n}","controller":"AdminController","uri":"/api/admin/users/2/toggle-ban","data_keys":["user_id","status"]}
+[2025-06-26 17:28:42] INFO [aa1800] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-26 17:28:42"}
+[2025-06-26 17:28:42] ERROR [aa1800] Exception: Class "AdminController" not found in C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\test_admin_endpoint.php:18
+Stack trace:
+#0 {main} - Context: {"exception_class":"Error","exception_code":0}
+[2025-06-26 17:29:02] INFO [eb7a94] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-26 17:29:02"}
+[2025-06-26 17:29:02] DEBUG [eb7a94] Controller instantiated - Context: {"controller":"AdminController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-26 17:29:02] ERROR [eb7a94] Exception: Call to undefined method AdminController::handleRequest() in C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\test_admin_endpoint.php:20
+Stack trace:
+#0 {main} - Context: {"exception_class":"Error","exception_code":0}
+[2025-06-26 17:29:31] INFO [bc7780] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-26 17:29:31"}
+[2025-06-26 17:29:31] DEBUG [bc7780] Controller instantiated - Context: {"controller":"AdminController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-26 17:29:31] DEBUG [bc7780] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 17:29:31] INFO [bc7780] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 17:29:31] DEBUG [bc7780] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 44.68ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.0446779727935791}
+[2025-06-26 17:29:53] INFO [112917] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-26 17:29:53"}
+[2025-06-26 17:29:53] DEBUG [112917] Controller instantiated - Context: {"controller":"AdminController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-26 17:29:53] DEBUG [112917] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 17:29:53] INFO [112917] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 17:29:53] DEBUG [112917] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 49.06ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.049057960510253906}
+[2025-06-26 17:29:53] WARNING [112917] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\test_admin_endpoint.php:19) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\AdminController.php","line":568,"severity":2}
+[2025-06-26 17:30:27] INFO [32ecaa] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-26 17:30:27"}
+[2025-06-26 17:30:27] WARNING [32ecaa] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\test_admin_endpoint.php:20) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\BaseController.php","line":37,"severity":2}
+[2025-06-26 17:30:27] WARNING [32ecaa] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\test_admin_endpoint.php:20) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\BaseController.php","line":61,"severity":2}
+[2025-06-26 17:30:27] WARNING [32ecaa] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\test_admin_endpoint.php:20) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\BaseController.php","line":65,"severity":2}
+[2025-06-26 17:30:27] WARNING [32ecaa] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\test_admin_endpoint.php:20) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\BaseController.php","line":68,"severity":2}
+[2025-06-26 17:30:27] WARNING [32ecaa] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\test_admin_endpoint.php:20) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\BaseController.php","line":71,"severity":2}
+[2025-06-26 17:30:27] WARNING [32ecaa] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\test_admin_endpoint.php:20) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\BaseController.php","line":75,"severity":2}
+[2025-06-26 17:30:27] WARNING [32ecaa] PHP Warning: Undefined array key "REQUEST_METHOD" - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\BaseController.php","line":77,"severity":2}
+[2025-06-26 17:30:27] DEBUG [32ecaa] Controller instantiated - Context: {"controller":"AdminController","request_uri":"","request_method":"GET","is_ajax":"yes"}
+[2025-06-26 17:30:27] DEBUG [32ecaa] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 17:30:27] INFO [32ecaa] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 17:30:27] DEBUG [32ecaa] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 47.04ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.0470430850982666}
+[2025-06-26 17:30:27] WARNING [32ecaa] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\test_admin_endpoint.php:20) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\AdminController.php","line":555,"severity":2}
+[2025-06-26 12:31:10] DEBUG [ec33c0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 12:31:10] INFO [ec33c0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 12:36:49] DEBUG [14c681] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 12:36:49] INFO [14c681] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 12:36:49] ERROR [14c681] Database error in parameterized query - Context: {"error":"SQLSTATE[42000]: Syntax error or access violation: 1055 Expression #13 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'misvord.owner_mem.user_id' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by","query":"\r\n            SELECT s.*, \r\n                   COUNT(usm.id) as member_count,\r\n                   owner_mem.user_id as owner_id,\r\n                   CONCAT(u.username, '#', u.discriminator) as owner_display\r\n            FROM servers s\r\n            LEFT JOIN user_server_memberships usm ON s.id = usm.server_id\r\n            LEFT JOIN user_server_memberships owner_mem ON s.id = owner_mem.server_id AND owner_mem.role = 'owner'\r\n            LEFT JOIN users u ON owner_mem.user_id = u.id\r\n            GROUP BY s.id\r\n            ORDER BY s.created_at DESC\r\n            LIMIT ? OFFSET ?\r\n        ","params":[3,0]}
+[2025-06-26 12:37:38] DEBUG [2351f7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 12:37:38] INFO [2351f7] Database connected successfully - Context: {"database":"misvord"}
