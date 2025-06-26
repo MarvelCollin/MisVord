@@ -141,8 +141,11 @@ class ServerRepository extends Repository {
         $offset = ($page - 1) * $limit;
         
         $query = new Query();
-        $results = $query->table('servers')
-            ->orderBy('created_at', 'DESC')
+        $results = $query->table('servers s')
+            ->select('s.*, COUNT(usm.id) as member_count')
+            ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
+            ->groupBy('s.id')
+            ->orderBy('s.created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
             ->get();
@@ -160,12 +163,15 @@ class ServerRepository extends Repository {
         $offset = ($page - 1) * $limit;
         
         $queryBuilder = new Query();
-        $results = $queryBuilder->table('servers')
+        $results = $queryBuilder->table('servers s')
+            ->select('s.*, COUNT(usm.id) as member_count')
+            ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
             ->where(function($q) use ($query) {
-                $q->whereLike('name', "%$query%")
-                  ->orWhereLike('description', "%$query%");
+                $q->whereLike('s.name', "%$query%")
+                  ->orWhereLike('s.description', "%$query%");
             })
-            ->orderBy('created_at', 'DESC')
+            ->groupBy('s.id')
+            ->orderBy('s.created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
             ->get();
@@ -181,10 +187,10 @@ class ServerRepository extends Repository {
     
     public function countSearch($query) {
         $queryBuilder = new Query();
-        return $queryBuilder->table('servers')
+        return $queryBuilder->table('servers s')
             ->where(function($q) use ($query) {
-                $q->whereLike('name', "%$query%")
-                  ->orWhereLike('description', "%$query%");
+                $q->whereLike('s.name', "%$query%")
+                  ->orWhereLike('s.description', "%$query%");
             })
             ->count();
     }

@@ -225,9 +225,6 @@ ob_start();
                                     <button type="button" id="reveal-email-btn" data-email="<?php echo htmlspecialchars($email); ?>" class="ml-2 text-blue-500 text-xs">
                                         Reveal
                                     </button>
-                                    <button type="button" id="edit-email-btn" class="ml-auto bg-[#4e5058] hover:bg-[#6d6f78] text-white rounded px-4 py-1.5 text-sm">
-                                        Edit
-                                    </button>
                                 </div>
                             </div>
                         </section>
@@ -447,68 +444,66 @@ ob_start();
 
 <!-- Password Change Modal -->
 <div id="change-password-modal" class="fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-70 hidden">
-    <div class="w-full max-w-md">
-        <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
+    <div class="w-full max-w-md mx-4">
+        <div class="bg-discord-darker rounded-lg shadow-xl overflow-hidden border border-gray-700">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-white">Change Password</h2>
-                    <button id="close-password-modal" class="text-gray-400 hover:text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                    <h2 class="text-xl font-semibold text-white">Change Password</h2>
+                    <button id="close-password-modal" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fas fa-times text-lg"></i>
                     </button>
                 </div>
                 
                 <!-- Step 1: Security Question -->
                 <div id="security-question-step" class="space-y-4">
-                    <div class="text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-yellow-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-yellow-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                            <i class="fas fa-shield-alt text-yellow-400 text-2xl"></i>
+                        </div>
                         <h3 class="text-lg font-medium text-white mb-2">Security Verification Required</h3>
-                        <p class="text-gray-400 text-sm mb-4">Please answer your security question to continue</p>
+                        <p class="text-gray-400 text-sm">Please answer your security question to continue</p>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Security Question</label>
-                        <div id="security-question-text" class="bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white text-sm mb-4">
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-300">Security Question</label>
+                        <div id="security-question-text" class="bg-discord-dark border border-gray-600 rounded-md px-4 py-3 text-white text-sm">
                             Loading...
                         </div>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Your Answer</label>
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-300">Your Answer</label>
                         <input type="text" id="security-answer-input" 
-                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                               class="w-full bg-discord-dark border border-gray-600 rounded-md px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                placeholder="Enter your security answer">
-                        <div id="security-answer-error" class="text-red-500 text-sm mt-1 hidden"></div>
+                        <div id="security-answer-error" class="text-red-400 text-sm mt-1 hidden"></div>
                     </div>
                     
                     <div class="pt-4 flex space-x-3">
                         <button type="button" id="cancel-password-change" 
-                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-md transition-colors">
                             Cancel
                         </button>
                         <button type="button" id="verify-security-answer" 
-                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
+                                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition-colors">
                             Verify
                         </button>
                     </div>
                 </div>
                 
                 <div id="set-security-step" class="space-y-4 hidden">
-                    <div class="text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-blue-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                            <i class="fas fa-cog text-blue-400 text-2xl"></i>
+                        </div>
                         <h3 class="text-lg font-medium text-white mb-2">Set Security Question</h3>
-                        <p class="text-gray-400 text-sm mb-4">Please set a security question to secure your account</p>
+                        <p class="text-gray-400 text-sm">Please set a security question to secure your account</p>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Security Question</label>
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-300">Security Question</label>
                         <select id="set-question-select" 
-                                class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary">
+                                class="w-full bg-discord-dark border border-gray-600 rounded-md px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                             <option value="">Select a security question</option>
                             <option value="What was the name of your first pet?">What was the name of your first pet?</option>
                             <option value="In what city were you born?">In what city were you born?</option>
@@ -519,59 +514,59 @@ ob_start();
                         </select>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Your Answer</label>
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-300">Your Answer</label>
                         <input type="text" id="set-answer-input" 
-                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                               class="w-full bg-discord-dark border border-gray-600 rounded-md px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                placeholder="Enter your security answer">
                         <div class="text-xs text-gray-400 mt-1">Make sure you remember this answer - you'll need it to change your password</div>
-                        <div id="set-security-error" class="text-red-500 text-sm mt-1 hidden"></div>
+                        <div id="set-security-error" class="text-red-400 text-sm mt-1 hidden"></div>
                     </div>
                     
                     <div class="pt-4 flex space-x-3">
                         <button type="button" id="cancel-password-change" 
-                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-md transition-colors">
                             Cancel
                         </button>
                         <button type="button" id="set-security-question-btn" 
-                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
+                                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition-colors">
                             Set Security Question
                         </button>
                     </div>
                 </div>
                 
                 <div id="new-password-step" class="space-y-4 hidden">
-                    <div class="text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-green-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-green-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                            <i class="fas fa-key text-green-400 text-2xl"></i>
+                        </div>
                         <h3 class="text-lg font-medium text-white mb-2">Set New Password</h3>
-                        <p class="text-gray-400 text-sm mb-4">Enter your new password below</p>
+                        <p class="text-gray-400 text-sm">Enter your new password below</p>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">New Password</label>
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-300">New Password</label>
                         <input type="password" id="new-password-input" 
-                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                               class="w-full bg-discord-dark border border-gray-600 rounded-md px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                                placeholder="Enter new password">
                         <div class="text-xs text-gray-400 mt-1">Must be at least 8 characters with uppercase, number</div>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Confirm New Password</label>
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-300">Confirm New Password</label>
                         <input type="password" id="confirm-password-input" 
-                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                               class="w-full bg-discord-dark border border-gray-600 rounded-md px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                                placeholder="Confirm new password">
-                        <div id="password-error" class="text-red-500 text-sm mt-1 hidden"></div>
+                        <div id="password-error" class="text-red-400 text-sm mt-1 hidden"></div>
                     </div>
                     
                     <div class="pt-4 flex space-x-3">
                         <button type="button" id="back-to-security" 
-                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-md transition-colors">
                             Back
                         </button>
                         <button type="button" id="confirm-password-change" 
-                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
+                                class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-md transition-colors">
                             Change Password
                         </button>
                     </div>

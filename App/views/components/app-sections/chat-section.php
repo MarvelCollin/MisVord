@@ -183,50 +183,7 @@ if ($chatType === 'channel') {
     font-style: italic;
 }
 
-.reply-container {
-    margin-bottom: 4px;
-    border-left: 4px solid #4f545c;
-    padding-left: 12px;
-    margin-left: 0;
-}
-
-.reply-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: #b9bbbe;
-}
-
-.reply-avatar {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-}
-
-.reply-username {
-    font-weight: 500;
-    color: #dcddde;
-}
-
-.reply-message-text {
-    color: #b9bbbe;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.highlight-message {
-    background-color: rgba(88, 101, 242, 0.1) !important;
-    border-left: 4px solid #5865f2;
-    padding-left: 12px !important;
-    animation: highlight-fade 2s ease-out;
-}
-
-@keyframes highlight-fade {
-    0% { background-color: rgba(88, 101, 242, 0.3); }
-    100% { background-color: rgba(88, 101, 242, 0.1); }
-}
+/* Reply styles are now handled in chat-section.css */
 
 /* Message animations */
 .message-fade-in {

@@ -415,14 +415,14 @@ ob_start();
                         <tbody id="servers-table-body">
                             <?php foreach ($servers as $server): ?>
                             <tr class="border-b border-discord-dark hover:bg-discord-dark/50">
-                                <td class="py-3"><?php echo htmlspecialchars($server->id); ?></td>
-                                <td class="py-3"><?php echo htmlspecialchars($server->name); ?></td>
-                                <td class="py-3"><?php echo htmlspecialchars($server->owner_id); ?></td>
-                                <td class="py-3"><?php echo htmlspecialchars($server->member_count ?? 'N/A'); ?></td>
-                                <td class="py-3"><?php echo htmlspecialchars(date('Y-m-d', strtotime($server->created_at))); ?></td>
+                                <td class="py-3"><?php echo htmlspecialchars((string)($server['id'] ?? '')); ?></td>
+                                <td class="py-3"><?php echo htmlspecialchars((string)($server['name'] ?? 'Unknown Server')); ?></td>
+                                <td class="py-3"><?php echo htmlspecialchars((string)($server['owner_id'] ?? '')); ?></td>
+                                <td class="py-3"><?php echo htmlspecialchars((string)($server['member_count'] ?? '0')); ?></td>
+                                <td class="py-3"><?php echo htmlspecialchars($server['created_at'] ? date('Y-m-d', strtotime($server['created_at'])) : 'Unknown'); ?></td>
                                 <td class="py-3">
-                                    <button class="text-blue-400 hover:text-blue-300 mr-2 view-server" data-id="<?php echo $server->id; ?>">View</button>
-                                    <button class="text-red-400 hover:text-red-300 delete-server" data-id="<?php echo $server->id; ?>">Delete</button>
+                                    <button class="text-blue-400 hover:text-blue-300 mr-2 view-server" data-id="<?php echo $server['id']; ?>">View</button>
+                                    <button class="text-red-400 hover:text-red-300 delete-server" data-id="<?php echo $server['id']; ?>">Delete</button>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

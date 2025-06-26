@@ -825,7 +825,6 @@ class ChatSection {
         if (!replyContainer) {
             replyContainer = document.createElement('div');
             replyContainer.id = 'reply-container';
-            replyContainer.className = 'bg-[#2b2d31] border-t border-[#1e1f22] p-2 flex items-center';
             
             if (this.messageForm && this.messageForm.parentNode) {
                 this.messageForm.parentNode.insertBefore(replyContainer, this.messageForm);
@@ -834,35 +833,29 @@ class ChatSection {
             replyContainer.innerHTML = '';
         }
         
-        const replyPreview = document.createElement('div');
-        replyPreview.className = 'flex-grow flex items-center text-sm';
-        
-        const replyIcon = document.createElement('span');
-        replyIcon.className = 'text-[#b9bbbe] mr-2';
-        replyIcon.innerHTML = '<i class="fas fa-reply"></i>';
-        
         const replyInfo = document.createElement('div');
-        replyInfo.className = 'flex-grow';
+        replyInfo.className = 'reply-info';
+        
+        const replyIcon = document.createElement('i');
+        replyIcon.className = 'fas fa-reply';
         
         const replyingTo = document.createElement('div');
-        replyingTo.className = 'text-[#dcddde] font-medium';
+        replyingTo.className = 'replying-to';
         replyingTo.textContent = `Replying to ${username}`;
         
-        const replyContent = document.createElement('div');
-        replyContent.className = 'text-[#b9bbbe] truncate max-w-md';
-        replyContent.textContent = messageText;
-        
-        replyInfo.appendChild(replyingTo);
-        replyInfo.appendChild(replyContent);
+        const replyPreview = document.createElement('div');
+        replyPreview.className = 'reply-preview';
+        replyPreview.textContent = messageText;
         
         const cancelButton = document.createElement('button');
-        cancelButton.className = 'ml-2 text-[#b9bbbe] hover:text-white';
         cancelButton.innerHTML = '<i class="fas fa-times"></i>';
         cancelButton.title = 'Cancel Reply';
         cancelButton.addEventListener('click', () => this.cancelReply());
         
-        replyPreview.appendChild(replyIcon);
-        replyPreview.appendChild(replyInfo);
+        replyInfo.appendChild(replyIcon);
+        replyInfo.appendChild(replyingTo);
+        
+        replyContainer.appendChild(replyInfo);
         replyContainer.appendChild(replyPreview);
         replyContainer.appendChild(cancelButton);
     }
@@ -871,7 +864,12 @@ class ChatSection {
         this.activeReplyingTo = null;
         const replyContainer = document.getElementById('reply-container');
         if (replyContainer) {
-            replyContainer.remove();
+            replyContainer.style.animation = 'replyInputSlideOut 0.2s ease-in forwards';
+            setTimeout(() => {
+                if (replyContainer.parentNode) {
+                    replyContainer.remove();
+                }
+            }, 200);
         }
     }
     
@@ -1316,7 +1314,6 @@ class ChatSection {
             messageGroup.classList.add('message-fade-in');
             this.chatMessages.appendChild(messageGroup);
             
-            // Add animation class
             setTimeout(() => {
                 messageGroup.classList.add('message-appear');
             }, 10);
@@ -1327,14 +1324,12 @@ class ChatSection {
             if (contents) {
                 contents.appendChild(messageContent);
                 
-                // Add animation class
                 setTimeout(() => {
                     messageContent.classList.add('message-appear');
                 }, 10);
             }
         }
         
-        // Process reactions after message is added to DOM (only from database)
         if (msg.reactions && msg.reactions.length > 0) {
             console.log(`💬 Message ${msg.id} has ${msg.reactions.length} reactions:`, msg.reactions);
             setTimeout(() => {
@@ -1419,16 +1414,19 @@ class ChatSection {
 
             const replyLine = document.createElement('div');
             replyLine.className = 'reply-line';
-            replyContainer.appendChild(replyLine);
 
             const replyContent = document.createElement('div');
-            replyContent.className = 'reply-content cursor-pointer';
+            replyContent.className = 'reply-content';
             
             if (message.reply_data) {
+                replyContent.setAttribute('tabindex', '0');
+                replyContent.setAttribute('role', 'button');
+                replyContent.setAttribute('aria-label', `Jump to reply from ${message.reply_data.username}`);
+                
                 const replyAvatar = document.createElement('img');
-                replyAvatar.src = message.reply_data.avatar_url || '/public/assets/common/main-logo.png';
+                replyAvatar.src = message.reply_data.avatar_url || '/assets/main-logo.png';
                 replyAvatar.className = 'reply-avatar';
-                replyAvatar.onerror = function() { this.src = '/public/assets/common/main-logo.png'; };
+                replyAvatar.onerror = function() { this.src = '/assets/main-logo.png'; };
 
                 const replyUsername = document.createElement('span');
                 replyUsername.className = 'reply-username';
@@ -1436,28 +1434,54 @@ class ChatSection {
 
                 const replyMessage = document.createElement('span');
                 replyMessage.className = 'reply-message-text';
-                replyMessage.textContent = this.truncateText(message.reply_data.content, 50);
+                replyMessage.textContent = this.truncateText(message.reply_data.content || '', 60);
                 
                 replyContent.appendChild(replyAvatar);
                 replyContent.appendChild(replyUsername);
                 replyContent.appendChild(replyMessage);
 
-                replyContent.addEventListener('click', () => {
-                    const repliedMessage = document.querySelector(`.message-content[data-message-id="${message.reply_data.messageId}"]`);
+                const jumpToMessage = () => {
+                    const targetMessageId = message.reply_data.messageId || message.reply_message_id;
+                    const repliedMessage = document.querySelector(`[data-message-id="${targetMessageId}"]`);
+                    
                     if (repliedMessage) {
-                        repliedMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        repliedMessage.classList.add('highlight-message');
+                        const messageElement = repliedMessage.closest('.message-group') || repliedMessage;
+                        
+                        messageElement.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                        
+                        repliedMessage.classList.remove('highlight-message');
                         setTimeout(() => {
-                            repliedMessage.classList.remove('highlight-message');
-                        }, 2000);
+                            repliedMessage.classList.add('highlight-message');
+                            setTimeout(() => {
+                                repliedMessage.classList.remove('highlight-message');
+                            }, 3000);
+                        }, 100);
                     } else {
-                        this.showNotification('Original message not loaded', 'info');
+                        this.showNotification('Original message not found in current view', 'info');
+                    }
+                };
+
+                replyContent.addEventListener('click', jumpToMessage);
+                replyContent.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        jumpToMessage();
                     }
                 });
             } else {
-                replyContent.textContent = 'Replying to an unavailable message';
-                replyContent.classList.add('text-xs', 'text-gray-400');
+                const unavailableSpan = document.createElement('span');
+                unavailableSpan.textContent = 'Replying to an unavailable message';
+                unavailableSpan.style.color = '#72767d';
+                unavailableSpan.style.fontSize = '12px';
+                unavailableSpan.style.fontStyle = 'italic';
+                replyContent.appendChild(unavailableSpan);
             }
+            
+            replyContainer.appendChild(replyLine);
             replyContainer.appendChild(replyContent);
             messageElement.insertBefore(replyContainer, messageElement.firstChild);
         }

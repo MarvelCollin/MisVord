@@ -947,90 +947,141 @@ button:active {
 
 /* Password Change Modal Styles */
 #change-password-modal {
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
   z-index: 9999;
   display: none !important;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.3s ease;
 }
 
 #change-password-modal.show {
   display: flex !important;
-  animation: fadeIn 0.2s ease forwards;
+  animation: modalFadeIn 0.3s ease forwards;
 }
 
 #change-password-modal.hidden {
   display: none !important;
 }
 
-@keyframes fadeIn {
+@keyframes modalFadeIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.9) translateY(-20px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
-#change-password-modal .bg-discord-background {
-  background-color: var(--discord-background-secondary);
-  border: 1px solid rgba(79, 84, 92, 0.3);
-  transform: scale(0.95);
-  transition: all 0.2s ease;
+#change-password-modal .bg-discord-darker {
+  background-color: var(--discord-bg-secondary);
+  border: 1px solid rgba(79, 84, 92, 0.4);
+  transform: scale(0.9);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
-#change-password-modal.show .bg-discord-background {
+#change-password-modal.show .bg-discord-darker {
   transform: scale(1);
 }
 
 /* Step transitions */
 #security-question-step,
-#new-password-step {
-  animation: fadeIn 0.3s ease-in-out;
+#new-password-step,
+#set-security-step {
+  animation: stepFadeIn 0.4s ease-in-out;
 }
 
 #security-question-step.hidden,
-#new-password-step.hidden {
-  display: none !important;
-}
-
-#set-security-step {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
+#new-password-step.hidden,
 #set-security-step.hidden {
   display: none !important;
 }
 
+@keyframes stepFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Icon containers */
+#change-password-modal .w-16.h-16 {
+  transition: all 0.3s ease;
+}
+
+#change-password-modal .w-16.h-16:hover {
+  transform: scale(1.05);
+}
+
 /* Input animations */
 #change-password-modal input[type="text"],
-#change-password-modal input[type="password"] {
-  background-color: var(--discord-background-tertiary);
+#change-password-modal input[type="password"],
+#change-password-modal select {
+  background-color: var(--discord-bg-tertiary);
   border: 1px solid rgba(79, 84, 92, 0.6);
   color: var(--discord-text-normal);
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateY(0);
+  font-size: 14px;
 }
 
 #change-password-modal input[type="text"]:focus,
-#change-password-modal input[type="password"]:focus {
-  border-color: var(--discord-primary);
-  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.1);
+#change-password-modal input[type="password"]:focus,
+#change-password-modal select:focus {
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#change-password-modal input[type="text"]:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+#change-password-modal input[type="password"]:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+#change-password-modal select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 /* Button animations */
 #change-password-modal button {
-  transition: all 0.2s ease;
-  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
   transform: translateY(0);
+  position: relative;
+  overflow: hidden;
+}
+
+#change-password-modal button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
 }
 
 #change-password-modal button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+#change-password-modal button:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 #change-password-modal button:active:not(:disabled) {
@@ -1047,7 +1098,6 @@ button:active {
 /* Loading animation for buttons */
 #change-password-modal button.loading {
   position: relative;
-  overflow: hidden;
 }
 
 #change-password-modal button.loading::after {
@@ -1057,11 +1107,11 @@ button:active {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  animation: loading 1.5s infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: buttonLoading 1.5s infinite;
 }
 
-@keyframes loading {
+@keyframes buttonLoading {
   0% {
     left: -100%;
   }
@@ -1072,119 +1122,106 @@ button:active {
 
 /* Error message animations */
 #security-answer-error,
-#password-error {
-  transition: all 0.2s ease;
+#password-error,
+#set-security-error {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0;
-  transform: translateY(-5px);
+  transform: translateY(-10px);
   max-height: 0;
   overflow: hidden;
 }
 
 #security-answer-error:not(.hidden),
-#password-error:not(.hidden) {
+#password-error:not(.hidden),
+#set-security-error:not(.hidden) {
   opacity: 1;
   transform: translateY(0);
-  max-height: 50px;
+  max-height: 60px;
 }
 
-/* Icon animations */
-#change-password-modal svg {
-  transition: all 0.3s ease;
+/* Close button */
+#close-password-modal {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-#change-password-modal .text-yellow-500 svg {
-  animation: pulse 2s infinite;
+#close-password-modal:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
 }
 
-#change-password-modal .text-green-500 svg {
-  animation: checkmark 0.5s ease;
+/* Color scheme consistency */
+#change-password-modal .bg-blue-600 {
+  background-color: #2563eb;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.05);
-  }
+#change-password-modal .bg-blue-600:hover {
+  background-color: #1d4ed8;
 }
 
-@keyframes checkmark {
-  0% {
-    opacity: 0;
-    transform: scale(0.8) rotate(-10deg);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
+#change-password-modal .bg-green-600 {
+  background-color: #16a34a;
 }
 
-/* Color and background styles */
-#change-password-modal .bg-discord-primary {
-  background-color: var(--discord-primary);
-}
-
-#change-password-modal .bg-discord-primary:hover:not(:disabled) {
-  background-color: #4752c4;
-}
-
-#change-password-modal .text-yellow-500 {
-  color: #f59e0b;
-}
-
-#change-password-modal .text-green-500 {
-  color: #10b981;
-}
-
-#change-password-modal .text-red-500 {
-  color: #ef4444;
-}
-
-#change-password-modal .text-gray-400 {
-  color: var(--discord-text-muted);
-}
-
-#change-password-modal .text-gray-300 {
-  color: var(--discord-text-normal);
+#change-password-modal .bg-green-600:hover {
+  background-color: #15803d;
 }
 
 #change-password-modal .bg-gray-600 {
   background-color: #4b5563;
 }
 
-#change-password-modal .bg-gray-600:hover:not(:disabled) {
+#change-password-modal .bg-gray-600:hover {
   background-color: #374151;
 }
 
-#change-password-modal .border-gray-700 {
+#change-password-modal .border-gray-600 {
   border-color: rgba(79, 84, 92, 0.6);
 }
 
 #change-password-modal .bg-discord-dark {
-  background-color: var(--discord-background-tertiary);
+  background-color: var(--discord-bg-tertiary);
 }
 
 #change-password-modal select {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 0.5rem center;
+  background-position: right 0.75rem center;
   background-repeat: no-repeat;
   background-size: 1.5em 1.5em;
-  padding-right: 2.5rem;
+  padding-right: 3rem;
   appearance: none;
 }
 
-#change-password-modal select:focus {
-  outline: none;
-  border-color: var(--discord-primary);
-  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+#change-password-modal select option {
+  background-color: var(--discord-bg-secondary);
+  color: white;
+  padding: 8px;
 }
 
-#change-password-modal select option {
-  background-color: #2b2d31;
-  color: white;
+/* Responsive design */
+@media (max-width: 480px) {
+  #change-password-modal .w-full.max-w-md {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  #change-password-modal .p-6 {
+    padding: 1.5rem;
+  }
+  
+  #change-password-modal .space-x-3 {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  #change-password-modal .space-x-3 > * {
+    margin: 0;
+  }
 }
 
 /* Connection cards and toggle switches for settings-user.php */
@@ -1898,7 +1935,7 @@ button:hover::before {
 
 /* Approve button styles */
 #approve-username {
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 40px;
   width: 40px;
   display: flex;
@@ -1906,25 +1943,35 @@ button:hover::before {
   justify-content: center;
   border-radius: 4px;
   background-color: #2563eb;
+  opacity: 0;
+  transform: scale(0.8) translateX(10px);
+  pointer-events: none;
+}
+
+#approve-username.show {
+  opacity: 1;
+  transform: scale(1) translateX(0);
+  pointer-events: all;
 }
 
 #approve-username:hover {
   background-color: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05) translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
 #approve-username:active {
-  transform: translateY(0);
+  transform: scale(0.95) translateY(0);
 }
 
 #approve-username:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+  transform: scale(1) translateX(0);
 }
 
 #approve-display-name {
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 40px;
   width: 40px;
   display: flex;
@@ -1932,21 +1979,31 @@ button:hover::before {
   justify-content: center;
   border-radius: 4px;
   background-color: #23a559;
+  opacity: 0;
+  transform: scale(0.8) translateX(10px);
+  pointer-events: none;
+}
+
+#approve-display-name.show {
+  opacity: 1;
+  transform: scale(1) translateX(0);
+  pointer-events: all;
 }
 
 #approve-display-name:hover {
   background-color: #1e9150;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05) translateY(-1px);
+  box-shadow: 0 4px 12px rgba(35, 165, 89, 0.4);
 }
 
 #approve-display-name:active {
-  transform: translateY(0);
+  transform: scale(0.95) translateY(0);
 }
 
 #approve-display-name:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+  transform: scale(1) translateX(0);
 }
 
 

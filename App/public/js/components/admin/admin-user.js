@@ -138,7 +138,7 @@ export class UserManager {
         if (this.currentUserPage > 1) {
           this.currentUserPage--;
           if (!this.isLoading) {
-            this.showSkeletons();
+            this.showFilterSkeletons();
             this.loadUsers();
           }
         }
@@ -149,7 +149,7 @@ export class UserManager {
       userNextBtn.addEventListener('click', () => {
         this.currentUserPage++;
         if (!this.isLoading) {
-          this.showSkeletons();
+          this.showFilterSkeletons();
           this.loadUsers();
         }
       });
@@ -160,7 +160,7 @@ export class UserManager {
       searchInput.addEventListener('input', this.debounce(() => {
         this.currentUserPage = 1;
         if (!this.isLoading) {
-          this.showSkeletons();
+          this.showFilterSkeletons();
           this.loadUsers();
         }
       }, 300));
@@ -253,7 +253,7 @@ export class UserManager {
         this.statusFilter = statusFilter.value;
         this.currentUserPage = 1;
         if (!this.isLoading) {
-          this.showSkeletons();
+          this.showFilterSkeletons();
           this.loadUsers();
         }
       });
@@ -269,6 +269,11 @@ export class UserManager {
     this.showSkeleton("user-grid-view");
     this.showSkeleton("active-user-count");
     this.showSkeleton("total-user-count");
+  }
+  
+  showFilterSkeletons() {
+    this.showSkeleton("users-container");
+    this.showSkeleton("user-grid-view");
   }
   
   loadUserStats() {

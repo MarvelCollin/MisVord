@@ -1370,12 +1370,14 @@ function initProfileFormSubmit() {
     const displayNameInput = document.getElementById('display_name');
     
     if (approveUsernameBtn) {
-        approveUsernameBtn.style.display = 'none';
+        approveUsernameBtn.style.display = 'flex';
+        approveUsernameBtn.classList.remove('show');
         approveUsernameBtn.classList.add('hidden');
     }
     
     if (approveDisplayNameBtn) {
-        approveDisplayNameBtn.style.display = 'none';
+        approveDisplayNameBtn.style.display = 'flex';
+        approveDisplayNameBtn.classList.remove('show');
         approveDisplayNameBtn.classList.add('hidden');
     }
     
@@ -1473,24 +1475,18 @@ function checkForChanges(input, approveBtn) {
     const currentValue = input.value.trim();
     const originalValue = (input.dataset.originalValue || '').trim();
     
-    console.log('DEBUG - Checking changes:', {
-        field: input.id,
-        currentValue: `"${currentValue}"`,
-        originalValue: `"${originalValue}"`,
-        areEqual: currentValue === originalValue,
-        isEmpty: currentValue === '',
-        currentLength: currentValue.length,
-        originalLength: originalValue.length
-    });
-    
     if (currentValue !== originalValue && currentValue !== '') {
-        console.log('DEBUG - Showing button for', input.id);
         approveBtn.style.display = 'flex';
         approveBtn.classList.remove('hidden');
+        setTimeout(() => {
+            approveBtn.classList.add('show');
+        }, 10);
     } else {
-        console.log('DEBUG - Hiding button for', input.id);
-        approveBtn.style.display = 'none';
-        approveBtn.classList.add('hidden');
+        approveBtn.classList.remove('show');
+        setTimeout(() => {
+            approveBtn.style.display = 'none';
+            approveBtn.classList.add('hidden');
+        }, 300);
     }
 }
 
@@ -1571,8 +1567,11 @@ function updateUsername(username) {
                 el.textContent = username;
             });
             
-            approveBtn.style.display = 'none';
-            approveBtn.classList.add('hidden');
+            approveBtn.classList.remove('show');
+            setTimeout(() => {
+                approveBtn.style.display = 'none';
+                approveBtn.classList.add('hidden');
+            }, 300);
         } else {
             throw new Error(data.message || data.error?.message || 'Failed to update username');
         }
@@ -1654,8 +1653,11 @@ function updateDisplayName(displayName) {
                 el.textContent = displayName;
             });
             
-            approveBtn.style.display = 'none';
-            approveBtn.classList.add('hidden');
+            approveBtn.classList.remove('show');
+            setTimeout(() => {
+                approveBtn.style.display = 'none';
+                approveBtn.classList.add('hidden');
+            }, 300);
         } else {
             throw new Error(data.message || data.error?.message || 'Failed to update display name');
         }

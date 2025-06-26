@@ -112,8 +112,8 @@ export class ServerManager {
     window.serverAPI.listServers(this.currentServerPage, this.serversPerPage, searchQuery)
       .then(response => {
         if (response.success) {
-          const servers = response.data.servers;
-          const total = response.data.total;
+          const servers = response.data.servers || response.servers;
+          const total = response.data.total || response.total;
           const showing = servers.length;
           
           this.renderServers(servers, total, showing);
@@ -210,6 +210,7 @@ export class ServerManager {
           </div>
         </td>
         <td class="py-4">${server.owner_id}</td>
+        <td class="py-4">${server.member_count !== undefined && server.member_count !== null ? server.member_count : 0}</td>
         <td class="py-4">${this.formatDate(server.created_at)}</td>
         <td class="py-4">
           <div class="flex space-x-2">

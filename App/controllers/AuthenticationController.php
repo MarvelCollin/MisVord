@@ -94,8 +94,6 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        // Use debugVerifyCaptcha for testing purposes only
-        // In production, replace with: $this->verifyCaptcha($captcha)
         if (!$this->debugVerifyCaptcha($captcha)) {
             $this->logFailedLogin($email);
             $_SESSION['errors'] = ['auth' => 'Invalid verification code'];
@@ -152,7 +150,6 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        // Update user status to active
         $this->userRepository->update($user->id, [
             'status' => 'active'
         ]);
@@ -1204,8 +1201,6 @@ class AuthenticationController extends BaseController
         return $isValid;
     }
     
-    // This is a hardcoded verification function only for development testing
-    // NEVER USE THIS IN PRODUCTION
     private function debugVerifyCaptcha($userInput) 
     {
         $userInputLower = trim($userInput);

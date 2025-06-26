@@ -80,10 +80,6 @@ class AdminController extends BaseController
             foreach ($users as $user) {
                 $userData = is_object($user) && method_exists($user, 'toArray') ? $user->toArray() : (array)$user;
                 
-                if (isset($userData['email']) && $userData['email'] === 'admin@admin.com') {
-                    continue;
-                }
-                
                 $normalizedUsers[] = [
                     'id' => $userData['id'] ?? null,
                     'username' => $userData['username'] ?? 'Unknown User',
@@ -97,13 +93,6 @@ class AdminController extends BaseController
                     'created_at' => $userData['created_at'] ?? null,
                     'updated_at' => $userData['updated_at'] ?? null
                 ];
-            }
-            
-            if (!empty($query) && $query !== 'admin' && $total > 0) {
-                $total = count($normalizedUsers);
-            } else {
-                $total--;
-                if ($total < 0) $total = 0;
             }
             
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
@@ -191,23 +180,54 @@ class AdminController extends BaseController
         
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10;
+        $query = isset($_GET['q']) ? trim($_GET['q']) : '';
         
-        $servers = $this->serverRepository->paginate($page, $limit);
-        $total = $this->serverRepository->count();
-        
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            return $this->success([
-                'servers' => $servers,
-                'pagination' => [
+        try {
+            if (!empty($query)) {
+                $servers = $this->serverRepository->search($query, $page, $limit);
+                $total = $this->serverRepository->countSearch($query);
+            } else {
+                $servers = $this->serverRepository->paginate($page, $limit);
+                $total = $this->serverRepository->count();
+            }
+            
+            $normalizedServers = [];
+            foreach ($servers as $server) {
+                $serverData = is_object($server) && method_exists($server, 'toArray') ? $server->toArray() : (array)$server;
+                
+                $normalizedServers[] = [
+                    'id' => $serverData['id'] ?? null,
+                    'name' => $serverData['name'] ?? 'Unknown Server',
+                    'description' => $serverData['description'] ?? '',
+                    'owner_id' => $serverData['owner_id'] ?? null,
+                    'member_count' => intval($serverData['member_count'] ?? 0),
+                    'icon' => $serverData['icon'] ?? null,
+                    'banner' => $serverData['banner'] ?? null,
+                    'is_public' => $serverData['is_public'] ?? 0,
+                    'category' => $serverData['category'] ?? null,
+                    'created_at' => $serverData['created_at'] ?? null,
+                    'updated_at' => $serverData['updated_at'] ?? null
+                ];
+            }
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->success([
+                    'servers' => $normalizedServers,
                     'total' => $total,
-                    'page' => $page,
-                    'limit' => $limit,
-                    'pages' => ceil($total / $limit)
-                ]
-            ]);
+                    'pagination' => [
+                        'total' => $total,
+                        'page' => $page,
+                        'limit' => $limit,
+                        'pages' => ceil($total / $limit)
+                    ]
+                ]);
+            }
+            
+            return $normalizedServers;
+        } catch (Exception $e) {
+            error_log("Error loading servers in admin controller: " . $e->getMessage());
+            return $this->serverError("Failed to load servers: " . $e->getMessage());
         }
-        
-        return $servers;
     }
     
     public function searchServers()
@@ -218,18 +238,43 @@ class AdminController extends BaseController
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10;
         
-        $servers = $this->serverRepository->search($query, $page, $limit);
-        $total = $this->serverRepository->countSearch($query);
-        
-        return $this->success([
-            'servers' => $servers,
-            'pagination' => [
+        try {
+            $servers = $this->serverRepository->search($query, $page, $limit);
+            $total = $this->serverRepository->countSearch($query);
+            
+            $normalizedServers = [];
+            foreach ($servers as $server) {
+                $serverData = is_object($server) && method_exists($server, 'toArray') ? $server->toArray() : (array)$server;
+                
+                $normalizedServers[] = [
+                    'id' => $serverData['id'] ?? null,
+                    'name' => $serverData['name'] ?? 'Unknown Server',
+                    'description' => $serverData['description'] ?? '',
+                    'owner_id' => $serverData['owner_id'] ?? null,
+                    'member_count' => intval($serverData['member_count'] ?? 0),
+                    'icon' => $serverData['icon'] ?? null,
+                    'banner' => $serverData['banner'] ?? null,
+                    'is_public' => $serverData['is_public'] ?? 0,
+                    'category' => $serverData['category'] ?? null,
+                    'created_at' => $serverData['created_at'] ?? null,
+                    'updated_at' => $serverData['updated_at'] ?? null
+                ];
+            }
+            
+            return $this->success([
+                'servers' => $normalizedServers,
                 'total' => $total,
-                'page' => $page,
-                'limit' => $limit,
-                'pages' => ceil($total / $limit)
-            ]
-        ]);
+                'pagination' => [
+                    'total' => $total,
+                    'page' => $page,
+                    'limit' => $limit,
+                    'pages' => ceil($total / $limit)
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log("Error searching servers in admin controller: " . $e->getMessage());
+            return $this->serverError("Failed to search servers: " . $e->getMessage());
+        }
     }
 
     public function updateUser($id)

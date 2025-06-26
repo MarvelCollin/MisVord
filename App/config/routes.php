@@ -393,6 +393,11 @@ Route::get('/api/users/([0-9]+)/profile', function($userId) {
     $controller->getUserProfile($userId);
 });
 
+Route::post('/api/users/profile', function() {
+    $controller = new UserController();
+    $controller->updateUserProfile();
+});
+
 Route::get('/api/chat/(channel|dm)/([0-9]+)/messages', function($type, $id) {
     $controller = new ChatController();
     $controller->getMessages($type, $id);
