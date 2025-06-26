@@ -374,11 +374,24 @@ class EmojiReactions {
         
         if (!reactionsChanged) {
             console.log(`⏭️ No reaction changes detected for message ID ${messageId} - skipping update`);
+            
+            // If there's a skeleton, replace it with empty container (for no reactions case)
+            const skeleton = messageElement.querySelector('.reaction-skeleton');
+            if (skeleton) {
+                skeleton.remove();
+            }
+            
             return; // No need to update if reactions haven't changed
         }
         console.log(`🔄 Detected reaction changes for message ID ${messageId} - updating display`);
 
+        // Find any container including skeletons
         let reactionsContainer = messageElement.querySelector('.message-reactions-container');
+        let wasSkeleton = false;
+        
+        if (reactionsContainer && reactionsContainer.classList.contains('reaction-skeleton')) {
+            wasSkeleton = true;
+        }
         
         if (!reactions || reactions.length === 0) {
             console.log(`🗑️ No reactions for message ID ${messageId} - removing container`);
@@ -390,7 +403,13 @@ class EmojiReactions {
             return;
         }
 
-        if (!reactionsContainer) {
+        // If it was a skeleton or doesn't exist, create a proper container
+        if (wasSkeleton || !reactionsContainer) {
+            if (wasSkeleton) {
+                // Remove the skeleton
+                reactionsContainer.remove();
+            }
+            
             console.log(`🆕 Creating new reactions container for message ID ${messageId}`);
             reactionsContainer = document.createElement('div');
             reactionsContainer.className = 'message-reactions-container';
@@ -450,6 +469,12 @@ class EmojiReactions {
                 <span class="reaction-emoji">${emoji}</span>
                 <span class="reaction-count">${count}</span>
             `;
+            
+            // Add animation class
+            reactionPill.classList.add('reaction-fade-in');
+            setTimeout(() => {
+                reactionPill.classList.add('reaction-appear');
+            }, 10);
 
             reactionPill.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -510,6 +535,17 @@ class EmojiReactions {
             });
             
             this.updateReactionsDisplay(message_id, this.currentReactions[message_id]);
+            
+            // Add a popup animation for the newly added reaction
+            setTimeout(() => {
+                const reactionElement = document.querySelector(`[data-message-id="${message_id}"] .message-reaction-pill[data-emoji="${emoji}"]`);
+                if (reactionElement) {
+                    reactionElement.classList.add('reaction-pop');
+                    setTimeout(() => {
+                        reactionElement.classList.remove('reaction-pop');
+                    }, 1000);
+                }
+            }, 50);
         }
     }
 

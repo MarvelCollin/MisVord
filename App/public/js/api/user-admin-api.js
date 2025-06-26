@@ -59,7 +59,7 @@ class UserAdminAPI {
         if (!user) return null;
         
         // Ensure all user properties have at least a default value
-        return {
+        const normalizedUser = {
             id: user.id || 'N/A',
             username: user.username || 'Unknown User',
             discriminator: user.discriminator || '0000',
@@ -71,9 +71,17 @@ class UserAdminAPI {
             banner_url: user.banner_url || null,
             created_at: user.created_at || null,
             updated_at: user.updated_at || null,
-            google_id: user.google_id || null,
-            ...user // Keep other properties intact
+            google_id: user.google_id || null
         };
+        
+        // Add any additional properties from the original user object
+        Object.keys(user).forEach(key => {
+            if (!normalizedUser.hasOwnProperty(key)) {
+                normalizedUser[key] = user[key];
+            }
+        });
+        
+        return normalizedUser;
     }
 
     async makeRequest(url, options = {}) {

@@ -29,8 +29,7 @@ ob_start();
 
 <meta name="server-id" content="<?php echo $serverId; ?>">
 
-<div class="flex min-h-screen max-w-[1480px] mx-auto">
-    <!-- Left Sidebar with Settings Categories -->
+<div class="flex min-h-screen max-w-[1480px] mx-auto mt-10">
     <div class="w-60 bg-discord-light border-r border-discord-dark">
         <div class="p-4">
             <div class="text-sm font-semibold text-white"><?php echo htmlspecialchars($server->name); ?></div>
@@ -39,7 +38,6 @@ ob_start();
         
         <nav class="mt-2">
             <ul>
-                <!-- Server Settings Categories -->
                 <li>
                     <a href="?server_id=<?php echo $serverId; ?>&section=profile" class="sidebar-item <?php echo $section === 'profile' ? 'active' : ''; ?>">
                         Server Profile
@@ -550,14 +548,15 @@ ob_start();
     </div>
     
     <!-- Close button to return to server page -->
-    <div class="absolute top-0 right-0 flex items-center">
-        <a href="/server/<?php echo $serverId; ?>" class="close-button flex items-center justify-center py-2 px-4">
-            <div class="close-button-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </div>
-            <span class="close-button-text">ESC</span>
-        </a>
-    </div>
+    <a href="/server/<?php echo $serverId; ?>" class="close-button">
+        <div class="close-button-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </div>
+        <span class="close-button-text">ESC</span>
+    </a>
 </div>
 
 <?php 

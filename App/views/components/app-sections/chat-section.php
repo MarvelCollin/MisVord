@@ -118,6 +118,7 @@ if ($chatType === 'channel') {
     margin-right: 16px;
     flex-shrink: 0;
     margin-top: 4px;
+    transition: opacity 0.3s ease;
 }
 
 .message-avatar-wrapper img {
@@ -225,6 +226,62 @@ if ($chatType === 'channel') {
 @keyframes highlight-fade {
     0% { background-color: rgba(88, 101, 242, 0.3); }
     100% { background-color: rgba(88, 101, 242, 0.1); }
+}
+
+/* Message animations */
+.message-fade-in {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.message-appear {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Reaction animations */
+.reaction-fade-in {
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.reaction-appear {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Reaction popup animation */
+@keyframes reaction-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+.reaction-pop {
+    animation: reaction-pop 0.5s ease-in-out;
+}
+
+/* Reaction loading skeleton styles */
+.reaction-skeleton {
+    min-height: 28px;
+    padding: 4px 0;
+    opacity: 0.8;
+}
+
+.reaction-loading-pulse {
+    height: 24px;
+    width: 80px;
+    background: linear-gradient(90deg, rgba(79, 84, 92, 0.2) 0%, rgba(79, 84, 92, 0.3) 50%, rgba(79, 84, 92, 0.2) 100%);
+    border-radius: 12px;
+    animation: pulse 1.5s ease-in-out infinite;
+    background-size: 200% 100%;
+}
+
+@keyframes pulse {
+    0% { background-position: 0% 0; }
+    100% { background-position: 200% 0; }
 }
 
 #chat-messages .message-bubble {

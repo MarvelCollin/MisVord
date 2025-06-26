@@ -26,3 +26,39 @@
 [2025-06-26 08:55:05] DEBUG [927268] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
 [2025-06-26 08:55:05] INFO [927268] Database connected successfully - Context: {"database":"misvord"}
 [2025-06-26 08:55:05] DEBUG [927268] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 45.33ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04533219337463379}
+[2025-06-26 10:06:24] DEBUG [05cdf0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 10:06:24] INFO [05cdf0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 10:06:24] DEBUG [05cdf0] DB Query: SELECT * FROM users WHERE  status != ? LIMIT 3 - Duration: 44.82ms - Context: {"bindings":["bot"],"result_count":3,"db_query":"SELECT * FROM users WHERE  status != ? LIMIT 3","db_duration":0.04482412338256836}
+[2025-06-26 10:06:24] DEBUG [05cdf0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 10:06:24] INFO [05cdf0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 10:06:24] DEBUG [05cdf0] DB Query: SELECT * FROM users WHERE  status != ? ORDER BY created_at DESC LIMIT 3 OFFSET 0 - Duration: 43.37ms - Context: {"bindings":["bot"],"result_count":3,"db_query":"SELECT * FROM users WHERE  status != ? ORDER BY created_at DESC LIMIT 3 OFFSET 0","db_duration":0.04337120056152344}
+[2025-06-26 10:06:24] DEBUG [05cdf0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 10:06:24] INFO [05cdf0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 10:06:24] DEBUG [05cdf0] DB Query: SELECT * FROM users WHERE  status != ? LIMIT 1 - Duration: 50.92ms - Context: {"bindings":["bot"],"found":true,"db_query":"SELECT * FROM users WHERE  status != ? LIMIT 1","db_duration":0.0509190559387207}
+[2025-06-26 10:06:24] DEBUG [05cdf0] Controller instantiated - Context: {"controller":"AdminController","request_uri":"/api/admin/users","request_method":"GET","is_ajax":"yes"}
+[2025-06-26 10:06:24] DEBUG [05cdf0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 10:06:24] INFO [05cdf0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 10:06:24] DEBUG [05cdf0] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 51.50ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.051496028900146484}
+[2025-06-26 10:07:41] DEBUG [d9b22f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 10:07:41] INFO [d9b22f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 10:07:41] DEBUG [d9b22f] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 46.66ms - Context: {"bindings":["admin@admin.com"],"found":false,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.046658992767333984}
+[2025-06-26 10:07:41] DEBUG [d9b22f] DB Query: INSERT INTO users (`username`, `discriminator`, `email`, `password`, `status`, `display_name`, `crea... - Duration: 14.34ms - Context: {"table":"users","data":{"username":"Admin","discriminator":"0000","email":"admin@admin.com","password":"$2y$10$rCeiQCGv.TJv2YYYJrwTneWPHrA3mP9jW9LKbEnrIuq16W5w4wh1K","status":"online","display_name":"Admin","created_at":"2025-06-26 10:07:41","updated_at":"2025-06-26 10:07:41"},"insert_id":"35","affected_rows":1,"db_query":"INSERT INTO users (`username`, `discriminator`, `email`, `password`, `status`, `display_name`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)","db_duration":0.014344930648803711}
+[2025-06-26 10:07:41] DEBUG [d9b22f] Controller instantiated - Context: {"controller":"AdminController","request_uri":"/api/admin/users","request_method":"GET","is_ajax":"yes"}
+[2025-06-26 10:07:41] DEBUG [d9b22f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 10:07:41] INFO [d9b22f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 10:07:41] DEBUG [d9b22f] DB Query: SELECT * FROM users WHERE  status != ? ORDER BY created_at DESC LIMIT 3 OFFSET 0 - Duration: 43.19ms - Context: {"bindings":["bot"],"result_count":3,"db_query":"SELECT * FROM users WHERE  status != ? ORDER BY created_at DESC LIMIT 3 OFFSET 0","db_duration":0.04319310188293457}
+[2025-06-26 10:07:41] DEBUG [d9b22f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 10:07:41] INFO [d9b22f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 10:07:41] DEBUG [d9b22f] API Response sent - Context: {"structure":"{\n    \"success\": true,\n    \"timestamp\": \"2025-06-26 10:07:41\",\n    \"message\": \"Success\",\n    \"data\": {\n        \"users\": [\n            {},\n            {},\n            {}\n        ],\n        \"pagination\": {\n            \"total\": 4,\n            \"page\": 1,\n            \"limit\": 3,\n            \"pages\": 2\n        }\n    }\n}","controller":"AdminController","uri":"/api/admin/users","data_keys":["users","pagination"]}
+[2025-06-26 10:08:28] DEBUG [ce713e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 10:08:28] INFO [ce713e] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 10:08:29] DEBUG [ce713e] DB Query: SELECT * FROM users WHERE  status != ? LIMIT 1 - Duration: 48.87ms - Context: {"bindings":["bot"],"found":true,"db_query":"SELECT * FROM users WHERE  status != ? LIMIT 1","db_duration":0.04887104034423828}
+[2025-06-26 10:08:29] DEBUG [ce713e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 10:08:29] INFO [ce713e] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 10:08:29] DEBUG [ce713e] DB Query: SELECT * FROM users WHERE  status != ? ORDER BY created_at DESC LIMIT 1 OFFSET 0 - Duration: 51.39ms - Context: {"bindings":["bot"],"result_count":1,"db_query":"SELECT * FROM users WHERE  status != ? ORDER BY created_at DESC LIMIT 1 OFFSET 0","db_duration":0.05138802528381348}
+[2025-06-26 10:12:07] DEBUG [71ea1b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 10:12:07] INFO [71ea1b] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 10:12:07] DEBUG [71ea1b] DB Query: SELECT * FROM users WHERE  status != ? LIMIT 1 - Duration: 46.55ms - Context: {"bindings":["bot"],"found":true,"db_query":"SELECT * FROM users WHERE  status != ? LIMIT 1","db_duration":0.04655289649963379}
+[2025-06-26 10:12:07] DEBUG [71ea1b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 10:12:07] INFO [71ea1b] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 10:12:07] DEBUG [71ea1b] DB Query: SELECT * FROM users WHERE  status != ? ORDER BY created_at DESC LIMIT 1 OFFSET 0 - Duration: 55.19ms - Context: {"bindings":["bot"],"result_count":1,"db_query":"SELECT * FROM users WHERE  status != ? ORDER BY created_at DESC LIMIT 1 OFFSET 0","db_duration":0.055191993713378906}
