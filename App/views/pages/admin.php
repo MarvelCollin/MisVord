@@ -81,11 +81,7 @@ ob_start();
                         Servers
                     </a>
                 </li>
-                <li>
-                    <a href="#logs" class="sidebar-item" data-section="logs">
-                        System Logs
-                    </a>
-                </li>
+
                 <li>
                     <a href="#nitro" class="sidebar-item" data-section="nitro">
                         Nitro Codes
@@ -423,39 +419,6 @@ ob_start();
                             Next
                         </button>
                     </div>
-                </div>
-            </div>
-        </div>
-        
-        <div id="logs-section" class="admin-section hidden p-10">
-            <div class="mb-8">
-                <h1 class="text-2xl font-bold mb-2">System Logs</h1>
-                <p class="text-discord-lighter">View system logs and events</p>
-            </div>
-            
-            <div class="bg-discord-darker rounded-lg p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-medium">Application Logs</h3>
-                    <div class="flex space-x-3">
-                        <select id="log-level" class="bg-discord-dark border-none rounded px-4 py-2 text-sm">
-                            <option value="all">All Levels</option>
-                            <option value="error">Errors</option>
-                            <option value="warning">Warnings</option>
-                            <option value="info">Info</option>
-                            <option value="debug">Debug</option>
-                        </select>
-                        <input type="date" id="log-date" class="bg-discord-dark border-none rounded px-4 py-2 text-sm">
-                    </div>
-                </div>
-                
-                <div class="overflow-y-auto max-h-96 bg-discord-dark rounded p-4">
-                    <pre id="log-content" class="text-xs text-discord-lighter"></pre>
-                </div>
-                
-                <div class="flex justify-end mt-4">
-                    <button id="refresh-logs" class="px-4 py-2 bg-discord-blue rounded text-sm hover:bg-discord-blue-dark">
-                        Refresh Logs
-                    </button>
                 </div>
             </div>
         </div>

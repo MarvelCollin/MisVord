@@ -32,7 +32,6 @@ class AdminManager {
   init() {
     this.initSectionSwitching();
     this.initLogoutButton();
-    this.initSystemLogs();
     this.initUserBanActions();
     this.initHashChange();
     
@@ -125,11 +124,6 @@ class AdminManager {
           window.serverManager.loadServerStats();
         }, 10);
       }
-    } else if (section === "logs") {
-      this.showSkeleton("log-content");
-      setTimeout(() => {
-        this.loadLogs();
-      }, 10);
     } else if (section === "nitro") {
       if (window.nitroManager) {
         if (typeof window.nitroManager.showInitialSkeletons === 'function') {
@@ -168,23 +162,9 @@ class AdminManager {
   
   getSkeletonForElement(elementId) {
     switch (elementId) {
-      case "log-content":
-        return this.getLogsSkeleton();
       default:
         return '<div class="skeleton" style="height: 1.5rem; width: 3rem;"></div>';
     }
-  }
-  
-  getLogsSkeleton() {
-    let skeleton = '';
-    for (let i = 0; i < 10; i++) {
-      skeleton += `
-        <div class="mb-2">
-          <div class="skeleton" style="height: 1rem; width: ${80 + Math.random() * 20}%;"></div>
-        </div>
-      `;
-    }
-    return skeleton;
   }
   
   loadSystemStats() {
@@ -192,73 +172,7 @@ class AdminManager {
       window.overviewManager.loadSystemStats();
     }
   }
-  
-  initSystemLogs() {
-    const refreshLogsBtn = document.getElementById('refresh-logs');
-    if (refreshLogsBtn) {
-      refreshLogsBtn.addEventListener('click', () => {
-        this.loadLogs();
-      });
-    }
-  }
-  
-  loadLogs() {
-    this.showSkeleton("log-content");
-    
-    fetch("/api/admin/logs")
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          this.renderLogs(data.data.logs);
-        } else {
-          showToast(data.message || "Failed to load logs", "error");
-        }
-      })
-      .catch(error => {
-        showToast("An error occurred while loading logs", "error");
-      });
-  }
-  
-  renderLogs(logs) {
-    const logContent = document.getElementById('log-content');
-    if (!logContent) return;
-    
-    if (!logs || logs.length === 0) {
-      logContent.innerHTML = '<div class="text-discord-lighter">No logs found</div>';
-      return;
-    }
-    
-    let logHtml = '';
-    
-    logs.forEach(log => {
-      const levelClass = this.getLogLevelClass(log.level);
-      
-      logHtml += `
-        <div class="mb-2">
-          <span class="${levelClass} font-semibold">[${log.level}]</span>
-          <span class="text-gray-400">[${log.timestamp}]</span>
-          <span>${log.message}</span>
-        </div>
-      `;
-    });
-    
-    logContent.innerHTML = logHtml;
-  }
-  
-  getLogLevelClass(level) {
-    switch (level.toLowerCase()) {
-      case 'error':
-        return 'text-red-400';
-      case 'warning':
-        return 'text-yellow-400';
-      case 'info':
-        return 'text-blue-400';
-      case 'debug':
-        return 'text-green-400';
-      default:
-        return 'text-gray-300';
-    }
-  }
+
   
   formatDate(dateString) {
     if (!dateString) return '';
