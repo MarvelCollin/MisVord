@@ -406,6 +406,24 @@ class ChatAPI {
         }
     }
 
+    emitReaction(socketData) {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            console.warn('Socket not ready for reaction emission');
+            return false;
+        }
+        
+        const eventName = socketData.action === 'added' ? 'reaction-added' : 'reaction-removed';
+        
+        try {
+            window.globalSocketManager.io.emit(eventName, socketData);
+            console.log(`📡 Emitted ${eventName} for message ${socketData.message_id} emoji ${socketData.emoji}`);
+            return true;
+        } catch (e) {
+            console.error('Failed to emit reaction:', e);
+            return false;
+        }
+    }
+    
     async addReaction(messageId, emoji) {
         if (!messageId || !emoji) {
             throw new Error('Message ID and emoji are required');

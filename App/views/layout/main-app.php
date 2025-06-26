@@ -69,6 +69,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
         <script type="module" src="<?php echo js('components/servers/server-manager'); ?>"></script>
         <script type="module" src="<?php echo js('components/videosdk/global-voice-connected'); ?>"></script>
         <script type="module" src="<?php echo js('components/common/wifi-strength'); ?>"></script>
+        <script type="module" src="<?php echo js('utils/voice-state-manager'); ?>"></script>
     <?php endif; ?>
     
     <script type="module" src="<?= asset('/js/components/index.js') ?>"></script>

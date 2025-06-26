@@ -30,21 +30,20 @@ require_once __DIR__ . '/wifi-tooltip.php';
     </div>
     
     <div class="voice-ind-controls border-t border-[#2f3136] bg-[#232428] px-3 py-2 flex justify-between rounded-b-lg">
-        <button class="voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all">
-            <i class="fas fa-microphone-slash text-[#b9bbbe] hover:text-white text-sm transition-colors"></i>
+        <button class="mic-btn voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all" title="Mute">
+            <i class="fas fa-microphone text-[#b9bbbe] hover:text-white text-lg transition-colors"></i>
         </button>
         
-        <button class="voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all">
-            <i class="fas fa-desktop text-[#b9bbbe] hover:text-white text-sm transition-colors"></i>
+        <button class="screen-btn voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all" title="Share Your Screen">
+            <i class="fas fa-desktop text-[#b9bbbe] hover:text-white text-lg transition-colors"></i>
         </button>
         
-        <button class="voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all relative">
-            <i class="fas fa-gamepad text-[#b9bbbe] hover:text-white text-sm transition-colors"></i>
-            <div class="absolute w-2 h-2 bg-[#3ba55c] rounded-full top-0.5 right-0.5"></div>
+        <button class="deafen-btn voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all" title="Deafen">
+            <i class="fas fa-headphones text-[#b9bbbe] hover:text-white text-lg transition-colors"></i>
         </button>
         
-        <button class="voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all">
-            <i class="fas fa-cog text-[#b9bbbe] hover:text-white text-sm transition-colors"></i>
+        <button class="voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all" title="Voice Settings">
+            <i class="fas fa-cog text-[#b9bbbe] hover:text-white text-lg transition-colors"></i>
         </button>
     </div>
 </div>

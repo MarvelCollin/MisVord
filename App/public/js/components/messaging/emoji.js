@@ -141,6 +141,8 @@ class EmojiReactions {
 
     setupMessageHandling() {
         const observer = new MutationObserver((mutations) => {
+            const messagesToProcess = new Set();
+            
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === Node.ELEMENT_NODE) {
@@ -149,15 +151,23 @@ class EmojiReactions {
                         
                         messages.forEach(message => {
                             const messageId = message.dataset.messageId;
-                            if (messageId) {
-                                this.updateReactionButtonState(message, messageId);
-                                if (/^\d+$/.test(String(messageId))) {
-                                    this.loadMessageReactions(messageId);
-                                }
+                            if (messageId && !this.loadedMessageIds.has(messageId)) {
+                                messagesToProcess.add(messageId);
                             }
                         });
                     }
                 });
+            });
+            
+            // Process messages in batch to avoid repeated calls
+            messagesToProcess.forEach(messageId => {
+                const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                if (messageElement) {
+                    this.updateReactionButtonState(messageElement, messageId);
+                    if (/^\d+$/.test(String(messageId))) {
+                        this.loadMessageReactions(messageId);
+                    }
+                }
             });
         });
 
@@ -166,9 +176,10 @@ class EmojiReactions {
             subtree: true
         });
 
+        // Process existing messages only once
         document.querySelectorAll('.message-content').forEach(message => {
             const messageId = message.dataset.messageId;
-            if (messageId) {
+            if (messageId && !this.loadedMessageIds.has(messageId)) {
                 this.updateReactionButtonState(message, messageId);
                 if (/^\d+$/.test(String(messageId))) {
                     this.loadMessageReactions(messageId);

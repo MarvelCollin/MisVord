@@ -71,13 +71,13 @@ if ($hasTooltip) {
     <div class="flex items-center space-x-2 ml-auto">
         <?php if ($hasTooltip): ?>
             <?php
-                $micContent = '<button class="text-discord-lighter hover:text-white p-1">
-                    <i class="fas fa-microphone"></i>
+                $micContent = '<button class="mic-btn text-discord-lighter hover:text-white p-1">
+                    <i class="fas fa-microphone text-lg"></i>
                 </button>';
                 echo tooltip($micContent, 'Mute', 'top');
                 
-                $headphonesContent = '<button class="text-discord-lighter hover:text-white p-1">
-                    <i class="fas fa-headphones"></i>
+                $headphonesContent = '<button class="deafen-btn text-discord-lighter hover:text-white p-1">
+                    <i class="fas fa-headphones text-lg"></i>
                 </button>';
                 echo tooltip($headphonesContent, 'Deafen', 'top');
                 
@@ -87,11 +87,11 @@ if ($hasTooltip) {
                 echo tooltip($settingsContent, 'User Settings', 'top');
             ?>
         <?php else: ?>
-            <button class="text-discord-lighter hover:text-white p-1" title="Mute">
-                <i class="fas fa-microphone"></i>
+            <button class="mic-btn text-discord-lighter hover:text-white p-1" title="Mute">
+                <i class="fas fa-microphone text-lg"></i>
             </button>
-            <button class="text-discord-lighter hover:text-white p-1" title="Deafen">
-                <i class="fas fa-headphones"></i>
+            <button class="deafen-btn text-discord-lighter hover:text-white p-1" title="Deafen">
+                <i class="fas fa-headphones text-lg"></i>
             </button>
             <a href="/settings/user" class="text-discord-lighter hover:text-white p-1" title="User Settings">
                 <i class="fas fa-cog"></i>

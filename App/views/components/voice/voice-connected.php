@@ -4,42 +4,57 @@ $activeChannel = $GLOBALS['activeChannel'] ?? null;
 ?>
 
 <div id="connectedView" class="flex-1 flex flex-col bg-[#2b2d31] hidden">
-    <div class="flex-1 flex flex-col justify-center items-center">
-        <div class="w-full max-w-xl">
-            <div class="user-voice-item w-full bg-[#313338] rounded-md overflow-hidden mb-4">
-                <div class="px-3 py-2 flex items-center justify-between">
-                    <div class="flex items-center">
-                        <div class="relative w-8 h-8 rounded-full bg-[#5865F2] flex items-center justify-center overflow-hidden mr-2">
-                            <span class="text-white text-sm font-semibold"><?php echo substr($userName, 0, 1); ?></span>
+    <div class="flex-1 flex flex-col justify-center items-center p-8">
+        <div class="w-full max-w-4xl">
+            <div id="participants" class="flex flex-wrap gap-6 justify-center">
+                <!-- Current user card -->
+                <div class="voice-participant-card bg-[#2b2d31] rounded-lg p-6 flex flex-col items-center justify-center min-w-[200px] min-h-[240px] border border-[#3e4146] hover:border-[#5865f2] transition-all duration-200 shadow-lg">
+                    <div class="relative mb-4">
+                        <div class="w-20 h-20 rounded-full bg-[#5865F2] flex items-center justify-center overflow-hidden border-4 border-[#3ba55c] shadow-lg">
+                            <span class="text-white text-2xl font-bold"><?php echo substr($userName, 0, 1); ?></span>
                         </div>
-                        <div class="flex flex-col">
-                            <div class="flex items-center">
-                                <span class="text-white text-sm font-medium"><?php echo htmlspecialchars($userName); ?></span>
-                                <span class="ml-1 text-xs px-1.5 py-0.5 bg-[#5865F2] text-white rounded text-[10px] uppercase font-bold">you</span>
-                            </div>
-                            <div class="text-xs text-gray-400">
-                                <span class="text-[#3ba55c]">Connected to voice</span>
-                            </div>
+                        <!-- Voice indicator -->
+                        <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-[#3ba55c] rounded-full border-2 border-[#2b2d31] flex items-center justify-center">
+                            <i class="fas fa-microphone text-white text-xs"></i>
                         </div>
                     </div>
-                    <div class="text-gray-400">
-                        <div class="flex items-center space-x-1">
-                            <div class="w-4 h-4 flex items-center justify-center">
-                                <i class="fas fa-microphone text-xs"></i>
-                            </div>
+                    <div class="text-center">
+                        <div class="flex items-center justify-center mb-1">
+                            <span class="text-white text-lg font-medium"><?php echo htmlspecialchars($userName); ?></span>
+                            <span class="ml-2 text-xs px-2 py-1 bg-[#5865F2] text-white rounded-full font-bold uppercase">You</span>
+                        </div>
+                        <div class="text-[#3ba55c] text-sm font-medium">
+                            <i class="fas fa-circle text-xs mr-1"></i>
+                            Voice Connected
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Example participant card (will be populated by JavaScript) -->
+                <div class="voice-participant-card bg-[#2b2d31] rounded-lg p-6 flex flex-col items-center justify-center min-w-[200px] min-h-[240px] border border-[#3e4146] hover:border-[#5865f2] transition-all duration-200 shadow-lg opacity-50" style="display: none;" id="participant-template">
+                    <div class="relative mb-4">
+                        <div class="w-20 h-20 rounded-full bg-[#36393f] flex items-center justify-center overflow-hidden border-4 border-[#747f8d] shadow-lg">
+                            <span class="text-white text-2xl font-bold">U</span>
+                        </div>
+                        <!-- Voice indicator for participant -->
+                        <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-[#ed4245] rounded-full border-2 border-[#2b2d31] flex items-center justify-center">
+                            <i class="fas fa-microphone-slash text-white text-xs"></i>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-white text-lg font-medium mb-1">Username</div>
+                        <div class="text-[#747f8d] text-sm font-medium">
+                            <i class="fas fa-circle text-xs mr-1"></i>
+                            Connected
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div id="participants" class="w-full"></div>
-            
-            <div id="emptyMessage" class="flex flex-col items-center justify-center py-8 text-center">
-                <div class="w-40 h-40 mb-4 opacity-70">
-                    <img src="https://discord.com/assets/cb0d3973-ea92-4d74-9f1e-88ed59493a63.svg" alt="No one here" class="w-full h-full" />
-                </div>
-                <h2 class="text-xl font-bold mb-2 text-white">No one's around to hang out with</h2>
-                <p class="text-gray-400 max-w-md text-sm">When friends are in this voice channel, you'll see them here.</p>
+            <!-- Empty state when no other participants -->
+            <div id="emptyParticipants" class="text-center mt-8">
+                <div class="text-[#b9bbbe] text-lg mb-2">🎤 You're the only one here</div>
+                <p class="text-[#747f8d] text-sm">Invite friends to join your voice channel!</p>
             </div>
         </div>
     </div>
