@@ -507,7 +507,7 @@ ob_start();
     </div>
     
     <!-- Server Preview -->
-    <div class="w-80 bg-discord-dark border-l border-discord-light p-6">
+    <div class="w-80 bg-discord-dark border-l">
         <div class="sticky top-6">
             <h3 class="text-sm font-semibold text-discord-lighter uppercase mb-4">Preview</h3>
             

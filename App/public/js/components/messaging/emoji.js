@@ -1,3 +1,5 @@
+console.log('📣 Emoji reactions script loading...'); 
+
 class EmojiReactions {
     constructor() {
         this.emojiList = [
@@ -312,34 +314,44 @@ class EmojiReactions {
     }
 
     async loadMessageReactions(messageId) {
+        console.log(`🔍 Attempting to load reactions for message ID: ${messageId}`);
+        
         // Only load reactions once per message ID
         if (this.loadedMessageIds.has(messageId)) {
+            console.log(`⏭️ Skipping reactions load - already loaded for message ID: ${messageId}`);
             return;
         }
         
         // Prevent duplicate API calls for the same message
         if (this.loadingReactions.has(messageId)) {
+            console.log(`⏯️ Skipping reactions load - already in progress for message ID: ${messageId}`);
             return;
         }
 
         // Clear any existing debounce timer
         if (this.debounceTimers.has(messageId)) {
+            console.log(`⏱️ Clearing existing debounce timer for message ID: ${messageId}`);
             clearTimeout(this.debounceTimers.get(messageId));
         }
 
+        console.log(`⏰ Setting debounce timer for message ID: ${messageId}`);
         // Debounce the loading to prevent rapid successive calls
         const timer = setTimeout(async () => {
+            console.log(`🚀 Executing reactions load for message ID: ${messageId}`);
             this.loadingReactions.add(messageId);
             
             try {
+                console.log(`📨 Calling ChatAPI.getMessageReactions for message ID: ${messageId}`);
                 const reactions = await window.ChatAPI.getMessageReactions(messageId);
+                console.log(`📦 Received reactions for message ID: ${messageId}`, reactions);
                 this.updateReactionsDisplay(messageId, reactions || []);
                 this.loadedMessageIds.add(messageId);
             } catch (error) {
-                console.error('Error loading reactions:', error);
+                console.error(`❌ Error loading reactions for message ID: ${messageId}`, error);
             } finally {
                 this.loadingReactions.delete(messageId);
                 this.debounceTimers.delete(messageId);
+                console.log(`✅ Completed reactions loading process for message ID: ${messageId}`);
             }
         }, 100); // 100ms debounce
 
@@ -347,31 +359,39 @@ class EmojiReactions {
     }
 
     updateReactionsDisplay(messageId, reactions) {
+        console.log(`🎭 updateReactionsDisplay called for message ID ${messageId} with reactions:`, reactions);
+        
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) {
-            console.log('Message element not found for ID:', messageId);
+            console.error(`❌ Message element not found for ID: ${messageId}`);
             return;
         }
+        console.log(`✅ Found message element for ID ${messageId}:`, messageElement);
 
         // Check if reactions actually changed to avoid unnecessary DOM operations
         const existingReactions = this.currentReactions[messageId] || [];
         const reactionsChanged = JSON.stringify(existingReactions) !== JSON.stringify(reactions);
         
         if (!reactionsChanged) {
+            console.log(`⏭️ No reaction changes detected for message ID ${messageId} - skipping update`);
             return; // No need to update if reactions haven't changed
         }
+        console.log(`🔄 Detected reaction changes for message ID ${messageId} - updating display`);
 
         let reactionsContainer = messageElement.querySelector('.message-reactions-container');
         
         if (!reactions || reactions.length === 0) {
+            console.log(`🗑️ No reactions for message ID ${messageId} - removing container`);
             if (reactionsContainer) {
                 reactionsContainer.remove();
+                console.log(`✅ Removed reactions container for message ID ${messageId}`);
             }
             this.currentReactions[messageId] = [];
             return;
         }
 
         if (!reactionsContainer) {
+            console.log(`🆕 Creating new reactions container for message ID ${messageId}`);
             reactionsContainer = document.createElement('div');
             reactionsContainer.className = 'message-reactions-container';
             
@@ -379,18 +399,26 @@ class EmojiReactions {
                                  messageElement.querySelector('.message-content') ||
                                  messageElement;
             
+            console.log(`🔍 Found message content element for appending reactions:`, messageContent);
+            
             if (messageContent.parentElement) {
+                console.log(`➕ Appending reactions container to parent element for message ID ${messageId}`);
                 messageContent.parentElement.appendChild(reactionsContainer);
             } else {
+                console.log(`➕ Appending reactions container directly to message element for ID ${messageId}`);
                 messageElement.appendChild(reactionsContainer);
             }
+        } else {
+            console.log(`🔄 Using existing reactions container for message ID ${messageId}`);
         }
 
         reactionsContainer.innerHTML = '';
+        console.log(`🧹 Cleared reactions container for message ID ${messageId}`);
 
         const emojiCounts = {};
         const userReactions = new Set();
         const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+        console.log(`👤 Current user ID: ${currentUserId}`);
 
         reactions.forEach(reaction => {
             const emoji = reaction.emoji;
@@ -398,10 +426,15 @@ class EmojiReactions {
             
             if (String(reaction.user_id) === String(currentUserId)) {
                 userReactions.add(emoji);
+                console.log(`🔍 Detected user's reaction: ${emoji} for message ID ${messageId}`);
             }
         });
 
+        console.log(`📊 Emoji counts for message ID ${messageId}:`, emojiCounts);
+        console.log(`👤 User reactions for message ID ${messageId}:`, Array.from(userReactions));
+
         Object.entries(emojiCounts).forEach(([emoji, count]) => {
+            console.log(`🔧 Creating reaction pill for emoji: ${emoji} with count: ${count}`);
             const reactionPill = document.createElement('div');
             reactionPill.className = 'message-reaction-pill';
             reactionPill.dataset.emoji = emoji;
@@ -410,6 +443,7 @@ class EmojiReactions {
 
             if (userReactions.has(emoji)) {
                 reactionPill.classList.add('user-reacted');
+                console.log(`👤 Marked reaction pill as user-reacted for emoji: ${emoji}`);
             }
 
             reactionPill.innerHTML = `
@@ -423,9 +457,21 @@ class EmojiReactions {
             });
 
             reactionsContainer.appendChild(reactionPill);
+            console.log(`✅ Added reaction pill for emoji: ${emoji} to container`);
         });
 
         this.currentReactions[messageId] = reactions;
+        console.log(`✅ Updated currentReactions for message ID ${messageId}`);
+        
+        // Add visibility check
+        console.log(`🔍 Final reaction container styles:`, {
+            display: window.getComputedStyle(reactionsContainer).display,
+            visibility: window.getComputedStyle(reactionsContainer).visibility,
+            opacity: window.getComputedStyle(reactionsContainer).opacity,
+            height: window.getComputedStyle(reactionsContainer).height,
+            width: window.getComputedStyle(reactionsContainer).width,
+            childCount: reactionsContainer.childElementCount
+        });
     }
 
     setupSocketListeners() {
@@ -493,3 +539,59 @@ if (document.readyState === 'loading') {
 }
 
 window.emojiReactions = emojiReactions; 
+
+// Add a debug function for the console
+window.debugEmojis = function() {
+    console.log('🔬 EmojiReactions Debug Info:');
+    console.log('✅ Initialized:', emojiReactions.initialized);
+    console.log('📊 Current reactions by message ID:', emojiReactions.currentReactions);
+    console.log('🧠 Loaded message IDs:', Array.from(emojiReactions.loadedMessageIds));
+    console.log('⏳ Loading reactions for:', Array.from(emojiReactions.loadingReactions));
+    
+    // Check for messages on the page
+    const messages = document.querySelectorAll('.message-content[data-message-id]');
+    console.log(`📝 Found ${messages.length} messages on page`);
+    
+    messages.forEach(msg => {
+        const messageId = msg.dataset.messageId;
+        const hasReactionsContainer = !!msg.querySelector('.message-reactions-container');
+        const reactionsInMemory = emojiReactions.currentReactions[messageId] || [];
+        
+        console.log(`📌 Message ID: ${messageId}`);
+        console.log(`   - Has reactions container: ${hasReactionsContainer}`);
+        console.log(`   - Reactions in memory: ${reactionsInMemory.length}`);
+        
+        if (reactionsInMemory.length > 0) {
+            console.log(`   - Reaction details:`, reactionsInMemory);
+        }
+        
+        if (!hasReactionsContainer && reactionsInMemory.length > 0) {
+            console.warn(`⚠️ Message ${messageId} has reactions in memory but no container!`);
+        }
+    });
+    
+    return {
+        reactionsLoaded: Object.keys(emojiReactions.currentReactions).length,
+        messageCount: messages.length,
+        initialized: emojiReactions.initialized
+    };
+};
+
+// Add a function to force-load reactions for all visible messages
+window.forceLoadAllReactions = function() {
+    console.log('🔄 Force loading reactions for all visible messages...');
+    const messages = document.querySelectorAll('.message-content[data-message-id]');
+    
+    messages.forEach(msg => {
+        const messageId = msg.dataset.messageId;
+        console.log(`📥 Force loading reactions for message ID: ${messageId}`);
+        
+        // Clear cached state
+        emojiReactions.loadedMessageIds.delete(messageId);
+        
+        // Load reactions
+        emojiReactions.loadMessageReactions(messageId);
+    });
+    
+    return `Started loading reactions for ${messages.length} messages`;
+};

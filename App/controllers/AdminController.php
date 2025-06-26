@@ -395,45 +395,7 @@ class AdminController extends BaseController
         ]);
     }
     
-    public function debugChartData()
-    {
-        $this->requireAdmin();
-        
-        // Test data fetching directly
-        $userCount = $this->userRepository->count();
-        $serverCount = $this->serverRepository->count();
-        $messageCount = $this->messageRepository->count();
-        
-        $dailyUserStats = $this->userRepository->getRegistrationStatsByDay(7);
-        $dailyMessageStats = $this->messageRepository->getMessageStatsByDay(7);
-        $dailyServerStats = $this->serverRepository->getCreationStatsByDay(7);
-        
-        return $this->success([
-            'debug' => [
-                'counts' => [
-                    'users' => $userCount,
-                    'servers' => $serverCount,
-                    'messages' => $messageCount
-                ],
-                'raw_stats' => [
-                    'users_daily' => $dailyUserStats,
-                    'messages_daily' => $dailyMessageStats,
-                    'servers_daily' => $dailyServerStats
-                ],
-                'formatted_stats' => [
-                    'users_daily' => array_map(function($date, $count) {
-                        return ['label' => $date, 'value' => $count];
-                    }, array_keys($dailyUserStats), $dailyUserStats),
-                    'messages_daily' => array_map(function($date, $count) {
-                        return ['label' => $date, 'value' => $count];
-                    }, array_keys($dailyMessageStats), $dailyMessageStats),
-                    'servers_daily' => array_map(function($date, $count) {
-                        return ['label' => $date, 'value' => $count];
-                    }, array_keys($dailyServerStats), $dailyServerStats)
-                ]
-            ]
-        ]);
-    }
+
 
     public function toggleUserBan($userId) {
         $this->requireAdmin();

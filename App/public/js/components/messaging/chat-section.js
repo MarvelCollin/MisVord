@@ -1324,11 +1324,18 @@ class ChatSection {
         
         // Process reactions after message is added to DOM (only from database)
         if (msg.reactions && msg.reactions.length > 0) {
+            console.log(`💬 Message ${msg.id} has ${msg.reactions.length} reactions:`, msg.reactions);
             setTimeout(() => {
+                console.log(`⏰ Processing reactions for message ${msg.id} after timeout`);
                 if (window.emojiReactions) {
+                    console.log(`⚡ Calling emojiReactions.updateReactionsDisplay for message ${msg.id}`);
                     window.emojiReactions.updateReactionsDisplay(msg.id, msg.reactions);
+                } else {
+                    console.error(`❌ emojiReactions not available for message ${msg.id}`);
                 }
             }, 10);
+        } else {
+            console.log(`ℹ️ Message ${msg.id} has no reactions`);
         }
         
         this.scrollToBottom();

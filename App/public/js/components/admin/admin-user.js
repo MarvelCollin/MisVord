@@ -266,8 +266,6 @@ export class UserManager {
     
     return window.userAdminAPI.getStats()
       .then(response => {
-        console.log('User stats response:', response);
-        
         // Handle different response formats
         let stats;
         if (response.success && response.data && response.data.stats) {
@@ -331,10 +329,7 @@ export class UserManager {
           const total = response.data.pagination?.total || 0;
           const showing = users.length;
           
-          // Log the first user to help debugging
-          if (users.length > 0) {
-            console.log("Sample user object:", users[0]);
-          }
+
           
           this.renderUsers(users, total, showing);
         } else {

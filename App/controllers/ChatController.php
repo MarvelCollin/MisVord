@@ -670,7 +670,9 @@ class ChatController extends BaseController
             require_once __DIR__ . '/../database/models/MessageReaction.php';
             
             $messageId = is_array($message) ? $message['id'] : $message->id;
+            error_log("Fetching reactions for message ID: $messageId");
             $reactions = MessageReaction::getForMessage($messageId);
+            error_log("Found " . count($reactions) . " reactions for message ID: $messageId");
             
             if (!empty($reactions)) {
                 $formatted['reactions'] = [];
@@ -682,11 +684,16 @@ class ChatController extends BaseController
                         'user_id' => $reaction->user_id,
                         'username' => $reactionUser ? $reactionUser->username : 'Unknown User'
                     ];
+                    error_log("Added reaction: {$reaction->emoji} by user {$reaction->user_id} for message ID: $messageId");
                 }
+                error_log("Total reactions added to response for message ID $messageId: " . count($formatted['reactions']));
+            } else {
+                error_log("No reactions found for message ID: $messageId");
             }
         } catch (Exception $e) {
-            // Silently fail if reactions can't be loaded
-            error_log('Error loading reactions for message: ' . $e->getMessage());
+            // Log the error
+            error_log('Error loading reactions for message ' . $messageId . ': ' . $e->getMessage());
+            error_log('Error trace: ' . $e->getTraceAsString());
         }
         
         return $formatted;

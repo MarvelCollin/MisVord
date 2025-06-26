@@ -13,32 +13,65 @@ function initServerSettingsPage() {
         return;
     }
     
-    const tabs = document.querySelectorAll('.settings-tab');
+    const tabs = document.querySelectorAll('.sidebar-item');
     const tabContents = document.querySelectorAll('.tab-content');
     
     const urlParams = new URLSearchParams(window.location.search);
     const activeSection = urlParams.get('section') || 'profile';
     
+    // Add hover animation for sidebar items
     tabs.forEach(tab => {
+        // Set initial active state
         if (tab.dataset.tab === activeSection) {
             tab.classList.add('active');
         } else {
             tab.classList.remove('active');
         }
         
+        // Add ripple effect on hover
+        tab.addEventListener('mouseenter', () => {
+            if (!tab.classList.contains('active')) {
+                tab.style.transition = 'background-color 0.15s ease';
+                tab.style.backgroundColor = 'rgba(79, 84, 92, 0.16)';
+            }
+        });
+        
+        tab.addEventListener('mouseleave', () => {
+            if (!tab.classList.contains('active')) {
+                tab.style.transition = 'background-color 0.15s ease';
+                tab.style.backgroundColor = '';
+            }
+        });
+        
+        // Add click animations and tab switching
         tab.addEventListener('click', () => {
             const tabId = tab.dataset.tab;
             
+            // Update URL without page reload
             const url = new URL(window.location);
             url.searchParams.set('section', tabId);
             window.history.pushState({}, '', url);
             
-            tabs.forEach(t => t.classList.remove('active'));
+            // Update active tab
+            tabs.forEach(t => {
+                t.classList.remove('active');
+                t.style.backgroundColor = '';
+            });
             tab.classList.add('active');
             
+            // Animate tab transition
             tabContents.forEach(content => {
                 if (content.id === `${tabId}-tab`) {
                     content.classList.remove('hidden');
+                    content.style.opacity = '0';
+                    content.style.transform = 'translateY(5px)';
+                    
+                    // Trigger animation
+                    setTimeout(() => {
+                        content.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                        content.style.opacity = '1';
+                        content.style.transform = 'translateY(0)';
+                    }, 10);
                 } else {
                     content.classList.add('hidden');
                 }
@@ -46,6 +79,7 @@ function initServerSettingsPage() {
         });
     });
     
+    // Set initial visible tab
     tabContents.forEach(content => {
         if (content.id === `${activeSection}-tab`) {
             content.classList.remove('hidden');
@@ -507,18 +541,35 @@ function initServerProfileForm() {
         try {
             if (!serverNameInput || !serverNameInput.value.trim()) {
                 showToast('Server name is required', 'error');
+                
+                // Animate input error
+                serverNameInput.classList.add('border-red-500');
+                serverNameInput.style.animation = 'shake 0.3s';
+                
+                setTimeout(() => {
+                    serverNameInput.classList.remove('border-red-500');
+                    serverNameInput.style.animation = '';
+                }, 1000);
+                
                 serverNameInput.focus();
                 return;
             }
             
+            // Disable button with animation
+            saveButton.style.transition = 'all 0.2s ease';
+            saveButton.style.backgroundColor = 'var(--discord-blurple-darkest)';
+            saveButton.style.transform = 'scale(0.98)';
             saveButton.disabled = true;
-            saveButton.innerHTML = `
-                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving...
-            `;
+            
+            setTimeout(() => {
+                saveButton.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                `;
+            }, 100);
             
             const formData = new FormData();
             

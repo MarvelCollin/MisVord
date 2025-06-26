@@ -903,11 +903,6 @@ Route::get('/api/admin/stats/servers/growth', function() {
     return $controller->getServerGrowthStats();
 });
 
-Route::get('/api/admin/debug/chart-data', function() {
-    $controller = new AdminController();
-    return $controller->debugChartData();
-});
-
 Route::get('/components/common/voice-indicator', function() {
     require_once __DIR__ . '/../views/components/common/voice-indicator.php';
 });
