@@ -470,31 +470,13 @@ export class UserManager {
       const isBanned = user.status === 'banned';
       const isAdmin = user.email === 'admin@admin.com';
       
-      // Create status badge with correct styling
-      let statusClass = 'offline';
-      if (user.status === 'online' || user.status === 'appear') statusClass = 'online';
-      if (user.status === 'idle') statusClass = 'idle';
-      if (user.status === 'do_not_disturb') statusClass = 'dnd';
-      if (user.status === 'banned') statusClass = 'banned';
+      // Set status display and styling based on banned status
+      let statusDisplay = isBanned ? 'Banned' : 'Active';
+      let statusClass = isBanned ? 'banned' : 'active';
       
-      let statusStyle = '';
-      switch (user.status) {
-        case 'online':
-        case 'appear':
-          statusStyle = 'background-color: rgba(59, 165, 93, 0.1); color: #3ba55d;';
-          break;
-        case 'idle':
-          statusStyle = 'background-color: rgba(250, 168, 26, 0.1); color: #faa81a;';
-          break;
-        case 'do_not_disturb':
-          statusStyle = 'background-color: rgba(237, 66, 69, 0.1); color: #ed4245;';
-          break;
-        case 'banned':
-          statusStyle = 'background-color: rgba(237, 66, 69, 0.1); color: #ed4245;';
-          break;
-        default:
-          statusStyle = 'background-color: rgba(116, 127, 141, 0.1); color: #747f8d;';
-      }
+      let statusStyle = isBanned 
+        ? 'background-color: rgba(237, 66, 69, 0.1); color: #ed4245;' // Red for banned
+        : 'background-color: rgba(59, 165, 93, 0.1); color: #3ba55d;'; // Green for active
       
       // Create the user avatar
       let avatarContent = user.avatar_url 
@@ -518,7 +500,7 @@ export class UserManager {
         <td>
           <span class="user-badge inline-flex items-center px-2 py-1 rounded-md text-xs" style="${statusStyle}">
               <span class="badge-status ${statusClass}"></span>
-              ${user.status || 'offline'}
+              ${statusDisplay}
             </span>
         </td>
         <td>${createdAt}</td>
@@ -596,12 +578,8 @@ export class UserManager {
       const createdAt = user.created_at ? this.formatDate(user.created_at) : 'Unknown';
       const isBanned = user.status === 'banned';
       
-      // Create status class
-      let statusClass = 'offline';
-      if (user.status === 'online' || user.status === 'appear') statusClass = 'online';
-      if (user.status === 'idle') statusClass = 'idle';
-      if (user.status === 'do_not_disturb') statusClass = 'dnd';
-      if (user.status === 'banned') statusClass = 'banned';
+      // Set status class based on banned status
+      let statusClass = isBanned ? 'banned' : 'active';
       
       // Create the user avatar
       let avatarContent = user.avatar_url 

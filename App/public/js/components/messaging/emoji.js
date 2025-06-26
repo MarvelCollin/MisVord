@@ -314,136 +314,56 @@ class EmojiReactions {
     }
 
     async loadMessageReactions(messageId) {
-        console.log(`🔍 Attempting to load reactions for message ID: ${messageId}`);
+        if (!window.ChatAPI) return;
         
         // Only load reactions once per message ID
-        if (this.loadedMessageIds.has(messageId)) {
-            console.log(`⏭️ Skipping reactions load - already loaded for message ID: ${messageId}`);
-            
-            // Remove any leftover skeletons
-            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-            if (messageElement) {
-                const skeleton = messageElement.querySelector('.reaction-skeleton');
-                if (skeleton) {
-                    skeleton.remove();
-                }
-            }
-            
-            return;
-        }
+        if (this.loadedMessageIds.has(messageId)) return;
         
         // Prevent duplicate API calls for the same message
-        if (this.loadingReactions.has(messageId)) {
-            console.log(`⏯️ Skipping reactions load - already in progress for message ID: ${messageId}`);
-            return;
-        }
-
+        if (this.loadingReactions.has(messageId)) return;
+        
         // Clear any existing debounce timer
         if (this.debounceTimers.has(messageId)) {
-            console.log(`⏱️ Clearing existing debounce timer for message ID: ${messageId}`);
             clearTimeout(this.debounceTimers.get(messageId));
         }
 
-        // Ensure the message has a skeleton reaction placeholder while loading
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (messageElement && !messageElement.querySelector('.message-reactions-container')) {
-            const reactionSkeleton = document.createElement('div');
-            reactionSkeleton.className = 'message-reactions-container reaction-skeleton';
-            reactionSkeleton.innerHTML = '<div class="reaction-loading-pulse"></div>';
-            
-            const messageContent = messageElement.querySelector('.message-main-text') || messageElement;
-            if (messageContent.parentElement) {
-                messageContent.parentElement.appendChild(reactionSkeleton);
-            } else {
-                messageElement.appendChild(reactionSkeleton);
-            }
+        // Execute reaction loading immediately
+        this.loadingReactions.add(messageId);
+        
+        try {
+            const reactions = await window.ChatAPI.getMessageReactions(messageId);
+            this.updateReactionsDisplay(messageId, reactions || []);
+            this.loadedMessageIds.add(messageId);
+        } catch (error) {
+            console.error(`Error loading reactions for message ${messageId}:`, error);
+        } finally {
+            this.loadingReactions.delete(messageId);
+            this.debounceTimers.delete(messageId);
         }
-
-        console.log(`⏰ Setting debounce timer for message ID: ${messageId}`);
-        // Use a shorter debounce for better UX
-        const timer = setTimeout(async () => {
-            console.log(`🚀 Executing reactions load for message ID: ${messageId}`);
-            this.loadingReactions.add(messageId);
-            
-            try {
-                console.log(`📨 Calling ChatAPI.getMessageReactions for message ID: ${messageId}`);
-                const reactions = await window.ChatAPI.getMessageReactions(messageId);
-                console.log(`📦 Received reactions for message ID: ${messageId}`, reactions);
-                this.updateReactionsDisplay(messageId, reactions || []);
-                this.loadedMessageIds.add(messageId);
-            } catch (error) {
-                console.error(`❌ Error loading reactions for message ID: ${messageId}`, error);
-                
-                // Remove skeleton on error
-                if (messageElement) {
-                    const skeleton = messageElement.querySelector('.reaction-skeleton');
-                    if (skeleton) {
-                        skeleton.remove();
-                    }
-                }
-            } finally {
-                this.loadingReactions.delete(messageId);
-                this.debounceTimers.delete(messageId);
-                console.log(`✅ Completed reactions loading process for message ID: ${messageId}`);
-            }
-        }, 50); // Faster debounce for better UX
-
-        this.debounceTimers.set(messageId, timer);
     }
 
     updateReactionsDisplay(messageId, reactions) {
-        console.log(`🎭 updateReactionsDisplay called for message ID ${messageId} with reactions:`, reactions);
-        
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (!messageElement) {
-            console.error(`❌ Message element not found for ID: ${messageId}`);
-            return;
-        }
-        console.log(`✅ Found message element for ID ${messageId}:`, messageElement);
+        if (!messageElement) return;
 
         // Check if reactions actually changed to avoid unnecessary DOM operations
         const existingReactions = this.currentReactions[messageId] || [];
         const reactionsChanged = JSON.stringify(existingReactions) !== JSON.stringify(reactions);
         
-        if (!reactionsChanged) {
-            console.log(`⏭️ No reaction changes detected for message ID ${messageId} - skipping update`);
-            
-            // If there's a skeleton, replace it with empty container (for no reactions case)
-            const skeleton = messageElement.querySelector('.reaction-skeleton');
-            if (skeleton) {
-                skeleton.remove();
-            }
-            
-            return; // No need to update if reactions haven't changed
-        }
-        console.log(`🔄 Detected reaction changes for message ID ${messageId} - updating display`);
+        if (!reactionsChanged) return; // No need to update if reactions haven't changed
 
-        // Find any container including skeletons
         let reactionsContainer = messageElement.querySelector('.message-reactions-container');
-        let wasSkeleton = false;
-        
-        if (reactionsContainer && reactionsContainer.classList.contains('reaction-skeleton')) {
-            wasSkeleton = true;
-        }
         
         if (!reactions || reactions.length === 0) {
-            console.log(`🗑️ No reactions for message ID ${messageId} - removing container`);
             if (reactionsContainer) {
                 reactionsContainer.remove();
-                console.log(`✅ Removed reactions container for message ID ${messageId}`);
             }
             this.currentReactions[messageId] = [];
             return;
         }
 
-        // If it was a skeleton or doesn't exist, create a proper container
-        if (wasSkeleton || !reactionsContainer) {
-            if (wasSkeleton) {
-                // Remove the skeleton
-                reactionsContainer.remove();
-            }
-            
-            console.log(`🆕 Creating new reactions container for message ID ${messageId}`);
+        // Create container if it doesn't exist
+        if (!reactionsContainer) {
             reactionsContainer = document.createElement('div');
             reactionsContainer.className = 'message-reactions-container';
             
@@ -451,17 +371,11 @@ class EmojiReactions {
                                  messageElement.querySelector('.message-content') ||
                                  messageElement;
             
-            console.log(`🔍 Found message content element for appending reactions:`, messageContent);
-            
             if (messageContent.parentElement) {
-                console.log(`➕ Appending reactions container to parent element for message ID ${messageId}`);
                 messageContent.parentElement.appendChild(reactionsContainer);
             } else {
-                console.log(`➕ Appending reactions container directly to message element for ID ${messageId}`);
                 messageElement.appendChild(reactionsContainer);
             }
-        } else {
-            console.log(`🔄 Using existing reactions container for message ID ${messageId}`);
         }
 
         reactionsContainer.innerHTML = '';

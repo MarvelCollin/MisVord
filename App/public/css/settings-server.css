@@ -930,6 +930,29 @@ a:active {
   .p-10 {
     padding: var(--discord-spacing-lg);
   }
+  
+  .close-button {
+    top: 10px;
+    right: 10px;
+    padding: 4px 8px;
+  }
+  
+  .close-button-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .close-button {
+    top: 8px;
+    right: 8px;
+    padding: 3px 6px;
+  }
+  
+  .close-button-text {
+    display: none;
+  }
 }
 
 @media (min-width: 1400px) {

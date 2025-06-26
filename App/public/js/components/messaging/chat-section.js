@@ -2020,18 +2020,8 @@ class ChatSection {
         messageText.appendChild(contentBar1);
         messageText.appendChild(contentBar2);
         
-        // Add a reaction skeleton to the message
-        const reactionContainer = document.createElement('div');
-        reactionContainer.className = 'message-reactions-container reaction-skeleton';
-        reactionContainer.innerHTML = '<div class="reaction-loading-pulse"></div>';
-        
         contentArea.appendChild(headerInfo);
         contentArea.appendChild(messageText);
-        
-        // Only add reaction skeleton to some messages to simulate realistic loading
-        if (Math.random() > 0.6) {
-            contentArea.appendChild(reactionContainer);
-        }
         
         groupWrapper.appendChild(avatarWrapper);
         groupWrapper.appendChild(contentArea);

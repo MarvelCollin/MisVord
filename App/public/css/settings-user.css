@@ -721,9 +721,9 @@ button:active {
 }
 
 .close-button {
-  position: absolute;
-  top: var(--discord-spacing-xl);
-  right: var(--discord-spacing-xl);
+  position: fixed;
+  top: 16px;
+  right: 16px;
   display: flex;
   align-items: center;
   background: none;
@@ -807,11 +807,6 @@ button:active {
     margin-bottom: 10px;
     height: calc(100vh - 20px);
   }
-  
-  .close-button {
-    top: 40px;
-    right: 40px;
-  }
 }
 
 @media (max-width: 768px) {
@@ -841,8 +836,14 @@ button:active {
   }
   
   .close-button {
-    top: 20px;
-    right: 20px;
+    top: 10px;
+    right: 10px;
+    padding: 4px 8px;
+  }
+  
+  .close-button-icon {
+    width: 20px;
+    height: 20px;
   }
 }
 
@@ -850,11 +851,6 @@ button:active {
   .flex.min-h-screen {
     max-width: 1300px;
     padding: 60px;
-  }
-  
-  .close-button {
-    top: 80px;
-    right: 80px;
   }
 }
 
