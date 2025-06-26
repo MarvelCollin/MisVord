@@ -325,21 +325,26 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
-        // Get simple overall user statistics
-        $totalUsers = $this->userRepository->count();
-        $onlineUsers = $this->userRepository->countByStatus('online');
-        $offlineUsers = $this->userRepository->countByStatus('offline');
-        $bannedUsers = $this->userRepository->countByStatus('banned');
+        // Get channel and category statistics instead of user status
+        require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
+        require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
+        
+        $categoryRepository = new CategoryRepository();
+        $channelRepository = new ChannelRepository();
+        
+        $totalCategories = $categoryRepository->countAll();
+        $textChannels = $channelRepository->countTextChannels();
+        $voiceChannels = $channelRepository->countVoiceChannels();
         
         $data = [
-            ['label' => 'Online', 'value' => $onlineUsers],
-            ['label' => 'Offline', 'value' => $offlineUsers],
-            ['label' => 'Banned', 'value' => $bannedUsers]
+            ['label' => 'Categories', 'value' => $totalCategories],
+            ['label' => 'Text Channels', 'value' => $textChannels],
+            ['label' => 'Voice Channels', 'value' => $voiceChannels]
         ];
         
         return $this->success([
             'data' => $data,
-            'total' => $totalUsers
+            'total' => $totalCategories + $textChannels + $voiceChannels
         ]);
     }
     

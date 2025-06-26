@@ -10,6 +10,8 @@ class EmojiReactions {
         this.initialized = false;
         this.menu = null;
         this.activeMessageId = null;
+        this.loadingReactions = new Set();
+        this.debounceTimers = new Map();
     }
 
     init() {
@@ -144,7 +146,8 @@ class EmojiReactions {
                         
                         messages.forEach(message => {
                             const messageId = message.dataset.messageId;
-                            if (messageId) {
+                            if (messageId && !this.currentReactions[messageId] && !message.querySelector('.message-reactions-container')) {
+                                // Only load reactions if we don't have them cached and no reactions container exists
                                 this.loadMessageReactions(messageId);
                             }
                         });
@@ -158,9 +161,10 @@ class EmojiReactions {
             subtree: true
         });
 
+        // Load reactions for existing messages only if they don't have reactions already
         document.querySelectorAll('.message-content').forEach(message => {
             const messageId = message.dataset.messageId;
-            if (messageId) {
+            if (messageId && !this.currentReactions[messageId] && !message.querySelector('.message-reactions-container')) {
                 this.loadMessageReactions(messageId);
             }
         });
@@ -307,20 +311,54 @@ class EmojiReactions {
     }
 
     async loadMessageReactions(messageId) {
-        try {
-            const reactions = await window.ChatAPI.getMessageReactions(messageId);
-            this.updateReactionsDisplay(messageId, reactions || []);
-        } catch (error) {
-            console.error('Error loading reactions:', error);
+        // Prevent duplicate API calls for the same message
+        if (this.loadingReactions.has(messageId)) {
+            console.log(`🚫 Skipping duplicate reaction load for message ${messageId}`);
+            return;
         }
+
+        // Clear any existing debounce timer
+        if (this.debounceTimers.has(messageId)) {
+            clearTimeout(this.debounceTimers.get(messageId));
+        }
+
+        // Debounce the loading to prevent rapid successive calls
+        const timer = setTimeout(async () => {
+            this.loadingReactions.add(messageId);
+            console.log(`🔄 Loading reactions for message ${messageId}`);
+            
+            try {
+                const reactions = await window.ChatAPI.getMessageReactions(messageId);
+                console.log(`✅ Loaded ${reactions?.length || 0} reactions for message ${messageId}`);
+                this.updateReactionsDisplay(messageId, reactions || []);
+            } catch (error) {
+                console.error('Error loading reactions:', error);
+            } finally {
+                this.loadingReactions.delete(messageId);
+                this.debounceTimers.delete(messageId);
+            }
+        }, 100); // 100ms debounce
+
+        this.debounceTimers.set(messageId, timer);
     }
 
     updateReactionsDisplay(messageId, reactions) {
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) {
-            console.log('Message element not found for ID:', messageId);
+            console.log('❌ Message element not found for ID:', messageId);
             return;
         }
+
+        // Check if reactions actually changed to avoid unnecessary DOM operations
+        const existingReactions = this.currentReactions[messageId] || [];
+        const reactionsChanged = JSON.stringify(existingReactions) !== JSON.stringify(reactions);
+        
+        if (!reactionsChanged) {
+            console.log(`⏭️ Skipping update for message ${messageId} - reactions unchanged`);
+            return; // No need to update if reactions haven't changed
+        }
+
+        console.log(`🎨 Updating reaction display for message ${messageId} with ${reactions?.length || 0} reactions`);
 
         let reactionsContainer = messageElement.querySelector('.message-reactions-container');
         
@@ -328,6 +366,7 @@ class EmojiReactions {
             if (reactionsContainer) {
                 reactionsContainer.remove();
             }
+            this.currentReactions[messageId] = [];
             return;
         }
 

@@ -238,6 +238,13 @@ body {
   background-color: var(--discord-background-secondary);
   border-radius: var(--border-radius);
   border: 1px solid rgba(79, 84, 92, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.bg-discord-darker:hover {
+  border-color: rgba(79, 84, 92, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .rounded-lg {
@@ -1058,28 +1065,57 @@ button:active {
     display: flex;
     border-bottom: 1px solid #40444b;
     margin-bottom: 1.5rem;
+    border-radius: 8px 8px 0 0;
+    background: var(--discord-background-secondary);
+    overflow: hidden;
 }
 
 .voice-tab {
     background: none;
     border: none;
     color: #b9bbbe;
-    padding: 12px 16px;
+    padding: 16px 24px;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
+    border-bottom: 3px solid transparent;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
+    font-weight: 500;
+    font-size: 14px;
+    flex: 1;
+    justify-content: center;
+    position: relative;
+    min-height: 48px;
 }
 
 .voice-tab:hover {
     color: #dcddde;
-    background-color: #40444b;
+    background-color: rgba(79, 84, 92, 0.16);
 }
 
 .voice-tab.active {
-    color: #5865f2;
-    border-bottom-color: #5865f2;
+    color: #ffffff;
+    background-color: var(--discord-primary);
+    border-bottom-color: transparent;
+}
+
+.voice-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #4752c4, #5865f2, #4752c4);
+}
+
+.voice-tab i {
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+.voice-tab.active i {
+    opacity: 1;
 }
 
 .tab-content {
@@ -1186,21 +1222,23 @@ button:active {
 
 .volume-indicator {
     margin-top: 8px;
-    height: 4px;
+    height: 6px;
     background: #40444b;
-    border-radius: 2px;
+    border-radius: 3px;
     overflow: hidden;
     position: relative;
     z-index: 5;
-    pointer-events: none; /* Prevent indicator from blocking slider clicks */
+    pointer-events: none;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .volume-level {
     height: 100%;
-    background: linear-gradient(90deg, #43b581 0%, #faa61a 70%, #f04747 100%);
+    background: linear-gradient(90deg, #43b581 0%, #43b581 30%, #faa61a 60%, #f04747 100%);
     width: 0%;
-    border-radius: 2px;
-    transition: width 0.1s ease;
+    border-radius: 3px;
+    transition: width 0.2s ease;
+    box-shadow: 0 0 8px rgba(67, 181, 129, 0.3);
 }
 
 .mic-visualizer {
@@ -1222,22 +1260,26 @@ button:active {
     width: 4px;
     height: 8px;
     border-radius: 2px;
-    transition: all 0.1s ease;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
 }
 
 .visualizer-bars .bar.active {
-    background: #5865f2;
+    background: linear-gradient(180deg, #5865f2, #4752c4);
     height: 100%;
+    box-shadow: 0 0 8px rgba(88, 101, 242, 0.5);
 }
 
 .visualizer-bars .bar.medium {
-    background: #faa61a;
+    background: linear-gradient(180deg, #faa61a, #e89611);
     height: 60%;
+    box-shadow: 0 0 6px rgba(250, 166, 26, 0.4);
 }
 
 .visualizer-bars .bar.high {
-    background: #f04747;
+    background: linear-gradient(180deg, #f04747, #d73939);
     height: 80%;
+    box-shadow: 0 0 8px rgba(240, 71, 71, 0.5);
 }
 
 #mic-test-btn.recording {
@@ -1285,8 +1327,77 @@ button:active {
     z-index: 15;
 }
 
-/* Better mobile touch targets */
+/* Enhanced Responsive Design */
+@media (max-width: 1024px) {
+    .grid.grid-cols-1.md\\:grid-cols-2 {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .p-10 {
+        padding: 40px 30px;
+    }
+    
+    .voice-video-tabs {
+        flex-direction: column;
+        border-radius: 8px;
+        border-bottom: none;
+    }
+    
+    .voice-tab {
+        border-bottom: 1px solid #40444b;
+        border-right: none;
+        justify-content: flex-start;
+        padding: 16px 20px;
+    }
+    
+    .voice-tab:last-child {
+        border-bottom: none;
+    }
+    
+    .voice-tab.active::after {
+        height: 100%;
+        width: 3px;
+        right: auto;
+        bottom: auto;
+        top: 0;
+        background: linear-gradient(180deg, #4752c4, #5865f2, #4752c4);
+    }
+}
+
 @media (max-width: 768px) {
+    .flex.min-h-screen {
+        flex-direction: column;
+        padding: 15px;
+        gap: 15px;
+        height: auto;
+        min-height: 100vh;
+    }
+    
+    .w-60 {
+        width: 100%;
+        min-width: auto;
+        height: auto;
+        max-height: none;
+        border-radius: 8px;
+        border-right: none;
+        border-bottom: 1px solid rgba(79, 84, 92, 0.3);
+    }
+    
+    .flex-1.bg-discord-dark {
+        border-radius: 8px;
+        height: auto;
+    }
+    
+    .p-10 {
+        padding: 20px;
+    }
+    
+    .close-button {
+        top: 25px;
+        right: 25px;
+    }
+    
     .volume-slider {
         height: 12px;
         padding: 8px 0;
@@ -1301,6 +1412,210 @@ button:active {
         width: 24px;
         height: 24px;
     }
+    
+    .video-preview-container {
+        max-width: 100%;
+        margin: 0;
+    }
+    
+    .voice-video-tabs {
+        margin-bottom: 1rem;
+    }
+    
+    .voice-tab {
+        padding: 14px 16px;
+        font-size: 16px;
+        min-height: 52px;
+    }
+    
+    .bg-discord-darker {
+        padding: 16px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .flex.min-h-screen {
+        padding: 10px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        height: calc(100vh - 10px);
+    }
+    
+    .p-10 {
+        padding: 15px;
+    }
+    
+    .close-button {
+        top: 15px;
+        right: 15px;
+        padding: 4px 8px;
+    }
+    
+    .close-button-text {
+        display: none;
+    }
+    
+    .voice-tab {
+        padding: 12px 14px;
+        font-size: 14px;
+    }
+    
+    .voice-tab i {
+        font-size: 14px;
+        margin-right: 8px;
+    }
+    
+    .bg-discord-darker {
+        padding: 12px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .text-lg.font-medium.mb-4 {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .video-preview {
+        min-height: 180px;
+    }
+}
+
+/* Video Settings Styles */
+.video-preview-container {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #1a1a1a, #000);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid #40444b;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+}
+
+.video-preview-container:hover {
+    border-color: #5865f2;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(88, 101, 242, 0.2);
+}
+
+.video-preview {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4/3;
+    background: #000;
+    border-radius: 6px;
+    display: block;
+}
+
+.video-preview:not([src]) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #b9bbbe;
+    font-size: 14px;
+    min-height: 240px;
+}
+
+.video-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #b9bbbe;
+    font-size: 14px;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: #000;
+    border-radius: 6px;
+}
+
+#video-test-btn.recording {
+    background-color: #f04747;
+}
+
+#video-test-btn.recording:hover {
+    background-color: #d73939;
+}
+
+
+
+/* Enhanced Device Display Styling */
+#current-input-device, #current-output-device, #current-video-device {
+    padding: 12px 16px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+#current-input-device:hover, #current-output-device:hover, #current-video-device:hover {
+    background-color: rgba(79, 84, 92, 0.1);
+}
+
+#current-input-device .fa-microphone {
+    color: #43b581;
+}
+
+#current-output-device .fa-headphones {
+    color: #3498db;
+}
+
+#current-video-device .fa-video {
+    color: #8b5cf6;
+}
+
+/* Enhanced Button Styling */
+button {
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    position: relative;
+    overflow: hidden;
+}
+
+button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+button:hover::before {
+    left: 100%;
+}
+
+/* Enhanced Mic Test Button */
+#mic-test-btn, #video-test-btn {
+    background: linear-gradient(135deg, #5865f2, #4752c4);
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(88, 101, 242, 0.3);
+}
+
+#mic-test-btn:hover, #video-test-btn:hover {
+    background: linear-gradient(135deg, #4752c4, #3c45a5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+}
+
+#mic-test-btn.recording, #video-test-btn.recording {
+    background: linear-gradient(135deg, #f04747, #d73939);
+    box-shadow: 0 2px 8px rgba(240, 71, 71, 0.3);
+}
+
+#mic-test-btn.recording:hover, #video-test-btn.recording:hover {
+    background: linear-gradient(135deg, #d73939, #c92a2a);
+    box-shadow: 0 4px 12px rgba(240, 71, 71, 0.4);
 }
 
 

@@ -36,16 +36,12 @@ class VoiceVideoSettings {
             const saved = localStorage.getItem('misvord_audio_settings');
             return saved ? JSON.parse(saved) : {
                 inputVolume: 50,
-                outputVolume: 75,
-                cameraEnabled: true,
-                videoQuality: 'hd'
+                outputVolume: 75
             };
         } catch {
             return {
                 inputVolume: 50,
-                outputVolume: 75,
-                cameraEnabled: true,
-                videoQuality: 'hd'
+                outputVolume: 75
             };
         }
     }
@@ -91,6 +87,13 @@ class VoiceVideoSettings {
                 this.addDebugInfo(`  Group ID: ${device.groupId.slice(0, 8)}...`);
             });
             
+            this.addDebugInfo('=== DETECTED VIDEO DEVICES ===');
+            this.devices.video.forEach((device, index) => {
+                this.addDebugInfo(`Video ${index + 1}: ${device.label || 'Unnamed camera'}`);
+                this.addDebugInfo(`  Device ID: ${device.deviceId.slice(0, 12)}...`);
+                this.addDebugInfo(`  Group ID: ${device.groupId.slice(0, 8)}...`);
+            });
+            
             this.displayCurrentDevices();
         } catch (error) {
             this.addDebugInfo(`REAL device access failed: ${error.message}`);
@@ -101,6 +104,7 @@ class VoiceVideoSettings {
     displayCurrentDevices() {
         this.displayCurrentInputDevice();
         this.displayCurrentOutputDevice();
+        this.displayCurrentVideoDevice();
     }
 
     displayCurrentInputDevice() {
@@ -126,7 +130,6 @@ class VoiceVideoSettings {
     displayCurrentOutputDevice() {
         const outputDisplay = document.getElementById('current-output-device');
         if (outputDisplay) {
-            // Show default speaker device
             const defaultOutputDevice = this.devices.output[0];
             if (defaultOutputDevice) {
                 outputDisplay.innerHTML = `
@@ -138,6 +141,25 @@ class VoiceVideoSettings {
                 outputDisplay.innerHTML = `
                     <i class="fas fa-headphones mr-2 text-red-400"></i>
                     <span>No speakers detected</span>
+                `;
+            }
+        }
+    }
+
+    displayCurrentVideoDevice() {
+        const videoDisplay = document.getElementById('current-video-device');
+        if (videoDisplay) {
+            const defaultVideoDevice = this.devices.video[0];
+            if (defaultVideoDevice) {
+                videoDisplay.innerHTML = `
+                    <i class="fas fa-video mr-2 text-purple-400"></i>
+                    <span>${defaultVideoDevice.label || 'Default Camera'}</span>
+                `;
+                this.addDebugInfo(`Displaying video device: ${defaultVideoDevice.label}`);
+            } else {
+                videoDisplay.innerHTML = `
+                    <i class="fas fa-video mr-2 text-red-400"></i>
+                    <span>No camera detected</span>
                 `;
             }
         }
@@ -178,6 +200,7 @@ class VoiceVideoSettings {
         const outputVolumeSlider = document.getElementById('output-volume');
         // Device selectors removed - now using display-only elements
         const micTestBtn = document.getElementById('mic-test-btn');
+        const videoTestBtn = document.getElementById('video-test-btn');
 
         if (inputVolumeSlider) {
             inputVolumeSlider.addEventListener('input', (e) => {
@@ -205,45 +228,22 @@ class VoiceVideoSettings {
             micTestBtn.addEventListener('click', () => this.toggleMicTest());
         }
 
-        // Add device test functionality
-        const deviceTestBtn = document.getElementById('test-devices-btn');
-        if (deviceTestBtn) {
-            deviceTestBtn.addEventListener('click', () => this.testCurrentDevices());
+        if (videoTestBtn) {
+            videoTestBtn.addEventListener('click', () => this.toggleVideoTest());
         }
+
+
     }
 
-    async testCurrentDevices() {
-        this.addDebugInfo('=== TESTING CURRENT DEVICE CONFIGURATION ===');
-        
-        // Test default input device access
-        try {
-            const constraints = { audio: true }; // Use default device
-            
-            const testStream = await navigator.mediaDevices.getUserMedia(constraints);
-            const track = testStream.getAudioTracks()[0];
-            
-            this.addDebugInfo(`✅ INPUT DEVICE TEST PASSED`);
-            this.addDebugInfo(`Device: ${track.label}`);
-            this.addDebugInfo(`Device ID: ${track.getSettings().deviceId}`);
-            this.addDebugInfo(`Sample Rate: ${track.getSettings().sampleRate}Hz`);
-            
-            // Cleanup test stream
-            testStream.getTracks().forEach(track => track.stop());
-            
-        } catch (error) {
-            this.addDebugInfo(`❌ INPUT DEVICE TEST FAILED: ${error.message}`);
-        }
 
-        // Test output device support
-        this.addDebugInfo(`✅ OUTPUT DEVICE DETECTED`);
-        this.addDebugInfo(`Using System Default Output Device`);
-        this.addDebugInfo(`Browser: ${navigator.userAgent.split(' ')[0]}`);
-        
-        if (this.devices.output.length > 0) {
-            this.addDebugInfo(`Available Output: ${this.devices.output[0].label}`);
-        }
 
-        this.addDebugInfo('=== DEVICE TEST COMPLETE ===');
+    getVideoConstraints() {
+        return {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 },
+            facingMode: 'user'
+        };
     }
 
     switchTab(tabName) {
@@ -257,8 +257,8 @@ class VoiceVideoSettings {
         document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
         document.getElementById(`${tabName}-content`).classList.remove('hidden');
 
-        if (tabName === 'debugging') {
-            this.updateDebugInfo();
+        if (tabName === 'video') {
+            this.displayCurrentVideoDevice();
         }
     }
 
@@ -540,49 +540,80 @@ class VoiceVideoSettings {
         }
     }
 
+    async toggleVideoTest() {
+        const btn = document.getElementById('video-test-btn');
+        
+        if (!this.videoTest.isActive) {
+            await this.startVideoTest();
+            btn.textContent = 'Stop Camera';
+            btn.classList.add('recording');
+        } else {
+            this.stopVideoTest();
+            btn.textContent = 'Test Camera';
+            btn.classList.remove('recording');
+        }
+    }
 
+    async startVideoTest() {
+        try {
+            const videoConstraints = this.getVideoConstraints();
+            const constraints = {
+                video: videoConstraints
+            };
 
+            this.addDebugInfo('Starting camera test...');
+            this.videoTest.videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            const videoElement = document.getElementById('video-preview');
+            if (videoElement) {
+                this.videoTest.videoElement = videoElement;
+                videoElement.srcObject = this.videoTest.videoStream;
+                videoElement.play();
+                
+                const videoTrack = this.videoTest.videoStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    this.addDebugInfo(`=== ACTIVE VIDEO DEVICE ===`);
+                    this.addDebugInfo(`Device: ${videoTrack.label}`);
+                    this.addDebugInfo(`Device ID: ${videoTrack.getSettings().deviceId || 'default'}`);
+                    this.addDebugInfo(`Width: ${videoTrack.getSettings().width}px`);
+                    this.addDebugInfo(`Height: ${videoTrack.getSettings().height}px`);
+                    this.addDebugInfo(`Frame Rate: ${videoTrack.getSettings().frameRate}fps`);
+                    this.addDebugInfo(`Facing Mode: ${videoTrack.getSettings().facingMode || 'user'}`);
+                }
+            }
 
+            this.videoTest.isActive = true;
+            this.addDebugInfo('Camera test active - video feed should be visible!');
+            
+        } catch (error) {
+            this.addDebugInfo(`Camera test failed: ${error.message}`);
+            this.addDebugInfo('Camera access denied or no camera available');
+        }
+    }
 
-
+    stopVideoTest() {
+        if (this.videoTest.isActive) {
+            this.videoTest.isActive = false;
+            
+            if (this.videoTest.videoStream) {
+                this.videoTest.videoStream.getTracks().forEach(track => track.stop());
+                this.videoTest.videoStream = null;
+            }
+            
+            if (this.videoTest.videoElement) {
+                this.videoTest.videoElement.srcObject = null;
+                this.videoTest.videoElement = null;
+            }
+            
+            this.addDebugInfo('Camera test stopped');
+        }
+    }
 
     async restartAudioContext() {
         await this.startVolumeMonitoring();
     }
 
-    updateDebugInfo() {
-        const debugInfo = document.getElementById('debug-info');
-        if (!debugInfo) return;
 
-        const info = [
-            `=== REAL HARDWARE STATUS ===`,
-            `Audio Context State: ${this.audioContext?.state || 'Not initialized'}`,
-            `Real Input Devices: ${this.devices.input.length}`,
-            `Real Output Devices: ${this.devices.output.length}`,
-            `Active Input: ${this.devices.input[0]?.label || 'System Default'}`,
-            `Active Output: ${this.devices.output[0]?.label || 'System Default'}`,
-            `Real-Time Monitoring: ${this.micTest.isActive ? 'ACTIVE - You should hear yourself!' : 'Idle'}`,
-            `Test Stream Active: ${this.micTest.testStream?.active || false}`,
-            `Real Audio Tracks: ${this.micTest.testStream?.getAudioTracks().length || 0}`,
-            `Input Volume: ${this.settings.inputVolume}% (Gain: ${this.micTest.inputGainNode?.gain.value.toFixed(2) || 'N/A'})`,
-            `Output Volume: ${this.settings.outputVolume}% (Gain: ${this.micTest.outputGainNode?.gain.value.toFixed(2) || 'N/A'})`,
-            `Input Gain Node: ${this.micTest.inputGainNode ? 'Connected' : 'Disconnected'}`,
-            `Output Gain Node: ${this.micTest.outputGainNode ? 'Connected' : 'Disconnected'}`,
-            `=== BROWSER CAPABILITIES ===`,
-            `Browser: ${navigator.userAgent.split(' ')[0]}`,
-            `Platform: ${navigator.platform}`,
-            `WebRTC Support: ${!!navigator.mediaDevices}`,
-            `getUserMedia Support: ${!!navigator.mediaDevices?.getUserMedia}`,
-            `MediaRecorder Support: ${!!window.MediaRecorder}`,
-            `Audio Context Support: ${!!(window.AudioContext || window.webkitAudioContext)}`,
-            `=== DATA VERIFICATION ===`,
-            `Using Mock Data: NO - All data from real hardware`,
-            `Real Device Access Required: YES`,
-            `Permissions Required: Microphone access`
-        ];
-
-        debugInfo.innerHTML = info.map(line => `<div>${line}</div>`).join('');
-    }
 
     addDebugInfo(message) {
         const timestamp = new Date().toLocaleTimeString();
@@ -598,12 +629,7 @@ class VoiceVideoSettings {
             this.debugLog.shift();
         }
 
-        const debugInfo = document.getElementById('debug-info');
-        if (debugInfo && document.querySelector('[data-tab="debugging"]').classList.contains('active')) {
-            this.updateDebugInfo();
-            debugInfo.innerHTML += `<div style="color: #43b581;">${entry}</div>`;
-            debugInfo.scrollTop = debugInfo.scrollHeight;
-        }
+        console.log(`Audio Debug: ${entry}`);
     }
 
     destroy() {
@@ -615,6 +641,9 @@ class VoiceVideoSettings {
         }
         if (this.micTest.testStream) {
             this.micTest.testStream.getTracks().forEach(track => track.stop());
+        }
+        if (this.videoTest.videoStream) {
+            this.videoTest.videoStream.getTracks().forEach(track => track.stop());
         }
         if (this.visualizerInterval) {
             clearInterval(this.visualizerInterval);

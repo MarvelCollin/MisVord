@@ -22,4 +22,8 @@ class CategoryRepository extends Repository {
         }
         return $this->create($data);
     }
+    
+    public function countAll() {
+        return $this->count();
+    }
 }

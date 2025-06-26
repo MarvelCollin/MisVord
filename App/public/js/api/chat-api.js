@@ -50,8 +50,6 @@ class ChatAPI {
         }
     }    async makeRequest(url, options = {}) {
         try {
-            console.log(`🌐 Making ${options.method || 'GET'} request to: ${url}`);
-            
             const response = await fetch(url, {
                 ...options,
                 headers: {
@@ -59,8 +57,6 @@ class ChatAPI {
                     ...options.headers
                 }
             });
-
-            console.log(`🌐 Received status ${response.status} from ${url}`);
             
             if (!response.ok) {
                 console.error('API Request failed with status:', {
@@ -159,21 +155,13 @@ class ChatAPI {
             });
             
             console.log('📥 API Response:', response);
-            console.log('🔍 Response analysis:', {
-                hasSocketData: !!response.socket_data,
-                hasMessage: !!(response.socket_data && response.socket_data.message),
-                messageReactions: response.socket_data?.message?.reactions,
-                reactionsCount: response.socket_data?.message?.reactions?.length || 0,
-                fullResponse: response
-            });
             
             if (response && response.success !== false) {
                 console.log('✅ API success, sending socket message...');
                 
-                // Use the actual message data from the server response which includes reactions
+                // Use the server message data without reactions (reactions only from database)
                 if (response.socket_data && response.socket_data.message) {
-                    const serverMessage = response.socket_data.message;
-                    console.log('🎯 Using server message data with reactions:', serverMessage);
+                    console.log('✅ Using server message data (without reactions)');
                     this.sendDirectSocketMessageWithServerData(targetId, chatType, response.socket_data);
                 } else {
                     console.log('⚠️ No server message data, using fallback method');
@@ -193,13 +181,6 @@ class ChatAPI {
 
     sendDirectSocketMessageWithServerData(targetId, chatType, socketData) {
         console.log('🔌 sendDirectSocketMessageWithServerData called:', { targetId, chatType, socketData });
-        console.log('🔍 Server message data analysis:', {
-            hasMessage: !!socketData.message,
-            messageId: socketData.message?.id,
-            messageReactions: socketData.message?.reactions,
-            reactionsCount: socketData.message?.reactions?.length || 0,
-            serverSocketData: socketData
-        });
         
         if (!window.globalSocketManager) {
             console.error('❌ globalSocketManager not available');
@@ -223,36 +204,42 @@ class ChatAPI {
             
             if (chatType === 'channel') {
                 eventName = 'new-channel-message';
-                // Use the complete message data from server including reactions
+                // Send message data WITHOUT reactions - only from database
                 const messageData = {
-                    ...socketData.message, // This includes ID, reactions, etc.
+                    id: socketData.message.id,
                     channelId: targetId,
-                    userId: socketData.message.user_id, // Use message user_id
-                    user_id: socketData.message.user_id, // Also include user_id field
+                    userId: socketData.message.user_id,
+                    user_id: socketData.message.user_id,
                     username: socketData.message.username || socketData.username,
                     timestamp: socketData.timestamp,
                     content: socketData.message.content,
-                    messageType: socketData.message.message_type || socketData.messageType
+                    messageType: socketData.message.message_type || socketData.messageType,
+                    avatar_url: socketData.message.avatar_url,
+                    sent_at: socketData.message.sent_at
+                    // Deliberately excluding reactions - only get from database
                 };
                 
-                console.log(`🚀 Emitting ${eventName} with server data:`, messageData);
+                console.log(`🚀 Emitting ${eventName} WITHOUT reactions:`, messageData);
                 io.emit(eventName, messageData);
             } 
             else if (chatType === 'direct' || chatType === 'dm') {
                 eventName = 'user-message-dm';
-                // Use the complete message data from server including reactions
+                // Send message data WITHOUT reactions - only from database
                 const messageData = {
-                    ...socketData.message, // This includes ID, reactions, etc.
+                    id: socketData.message.id,
                     roomId: targetId,
-                    userId: socketData.message.user_id, // Use message user_id
-                    user_id: socketData.message.user_id, // Also include user_id field
+                    userId: socketData.message.user_id,
+                    user_id: socketData.message.user_id,
                     username: socketData.message.username || socketData.username,
                     timestamp: socketData.timestamp,
                     content: socketData.message.content,
-                    messageType: socketData.message.message_type || socketData.messageType
+                    messageType: socketData.message.message_type || socketData.messageType,
+                    avatar_url: socketData.message.avatar_url,
+                    sent_at: socketData.message.sent_at
+                    // Deliberately excluding reactions - only get from database
                 };
                 
-                console.log(`🚀 Emitting ${eventName} with server data:`, messageData);
+                console.log(`🚀 Emitting ${eventName} WITHOUT reactions:`, messageData);
                 io.emit(eventName, messageData);
             }
             

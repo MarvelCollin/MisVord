@@ -1300,7 +1300,7 @@ class ChatSection {
         
         const existingMessageElement = document.querySelector(`[data-message-id="${msg.id}"]`);
         if (existingMessageElement) {
-            console.log('Message already exists, preserving existing reactions:', msg.id);
+            console.log('✅ Message already exists, skipping (reactions only from database):', msg.id);
             return;
         }
         
@@ -1684,15 +1684,7 @@ class ChatSection {
             io.removeAllListeners('user-stop-typing-dm');
             
             io.on('new-channel-message', function(data) {
-                console.log('🔥 Received channel message:', data);
-                console.log('🔥 Data structure analysis:', {
-                    hasId: !!data.id,
-                    hasUserId: !!data.userId,
-                    hasUser_id: !!data.user_id,
-                    hasReactions: !!(data.reactions && data.reactions.length > 0),
-                    reactionsCount: data.reactions ? data.reactions.length : 0,
-                    messageData: data
-                });
+                console.log('✅ Received channel message:', data);
                 
                 if (self.chatType === 'channel' && data.channelId == self.targetId) {
                     const messageId = data.id || `${data.userId || data.user_id}-${data.timestamp}`;
@@ -1701,7 +1693,7 @@ class ChatSection {
                     // Check if message already exists in DOM (loaded from database)
                     const existingMessage = document.querySelector(`[data-message-id="${messageId}"]`);
                     if (existingMessage) {
-                        console.log('Message already exists in DOM, skipping socket update:', messageId);
+                        console.log('✅ Channel message already exists in DOM, skipping socket update (reactions only from DB):', messageId);
                         return;
                     }
                     
@@ -1710,15 +1702,7 @@ class ChatSection {
                         
                         if ((data.userId || data.user_id) != self.userId) {
                             self.addMessage(data);
-                            
-                            // Process reactions if they exist in the socket data
-                            if (data.reactions && data.reactions.length > 0) {
-                                setTimeout(() => {
-                                    if (window.emojiReactions) {
-                                        window.emojiReactions.updateReactionsDisplay(messageId, data.reactions);
-                                    }
-                                }, 50);
-                            }
+                            // Note: Reactions only loaded from database, not from socket
                         } else {
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {
@@ -1731,15 +1715,7 @@ class ChatSection {
             });
             
             io.on('user-message-dm', function(data) {
-                console.log('🔥 Received DM message:', data);
-                console.log('🔥 DM Data structure analysis:', {
-                    hasId: !!data.id,
-                    hasUserId: !!data.userId,
-                    hasUser_id: !!data.user_id,
-                    hasReactions: !!(data.reactions && data.reactions.length > 0),
-                    reactionsCount: data.reactions ? data.reactions.length : 0,
-                    messageData: data
-                });
+                console.log('✅ Received DM message:', data);
                 
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId) {
                     const messageId = data.id || `${data.userId || data.user_id}-${data.timestamp}`;
@@ -1748,7 +1724,7 @@ class ChatSection {
                     // Check if message already exists in DOM (loaded from database)
                     const existingMessage = document.querySelector(`[data-message-id="${messageId}"]`);
                     if (existingMessage) {
-                        console.log('Message already exists in DOM, skipping socket update:', messageId);
+                        console.log('✅ DM message already exists in DOM, skipping socket update (reactions only from DB):', messageId);
                         return;
                     }
                     
@@ -1757,15 +1733,7 @@ class ChatSection {
                         
                         if ((data.userId || data.user_id) != self.userId) {
                             self.addMessage(data);
-                            
-                            // Process reactions if they exist in the socket data
-                            if (data.reactions && data.reactions.length > 0) {
-                                setTimeout(() => {
-                                    if (window.emojiReactions) {
-                                        window.emojiReactions.updateReactionsDisplay(messageId, data.reactions);
-                                    }
-                                }, 50);
-                            }
+                            // Note: Reactions only loaded from database, not from socket
                         } else {
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {

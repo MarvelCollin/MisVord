@@ -204,18 +204,6 @@ ob_start();
 
             <div class="flex justify-between items-center mt-8 mb-4">
                 <h2 class="text-xl font-semibold">Activity & Growth</h2>
-                <div class="flex space-x-4 chart-period-control">
-                    <div>
-                        <select id="chart-period-switcher" class="bg-discord-darker border-none rounded px-4 py-2 text-sm">
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                        </select>
-                    </div>
-                    <button id="refresh-charts" class="bg-discord-blue hover:bg-discord-blue-dark px-4 py-2 rounded text-sm">
-                        <i class="fas fa-sync-alt mr-1"></i>
-                        Refresh
-                    </button>
-                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

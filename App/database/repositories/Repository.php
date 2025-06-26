@@ -79,4 +79,9 @@ abstract class Repository {
         $query = new Query();
         return $query->table($this->modelClass::getTable())->count($column);
     }
+    
+    public function countBy($field, $value) {
+        $query = new Query();
+        return $query->table($this->modelClass::getTable())->where($field, $value)->count();
+    }
 }

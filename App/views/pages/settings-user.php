@@ -278,16 +278,12 @@ ob_start();
 
                     <div class="voice-video-tabs mb-6">
                         <button class="voice-tab active" data-tab="voice">
+                            <i class="fas fa-microphone mr-2"></i>
                             Voice
                         </button>
                         <button class="voice-tab" data-tab="video">
+                            <i class="fas fa-video mr-2"></i>
                             Video
-                        </button>
-                        <button class="voice-tab" data-tab="soundboard">
-                            Soundboard
-                        </button>
-                        <button class="voice-tab" data-tab="debugging">
-                            Debugging
                         </button>
                     </div>
 
@@ -385,37 +381,36 @@ ob_start();
                     </div>
 
                     <div id="video-content" class="tab-content hidden">
-                        <div class="bg-discord-darker rounded-lg p-6">
-                            <h3 class="text-lg font-medium mb-4">Camera Settings</h3>
-                            <p class="text-center text-discord-lighter">Video settings coming soon!</p>
+                        <div class="bg-discord-darker rounded-lg p-6 mb-6">
+                            <h3 class="text-lg font-medium mb-4">Camera Device</h3>
+                            <div class="w-full bg-discord-dark border border-gray-600 rounded-md px-3 py-2 text-white">
+                                <div id="current-video-device" class="text-discord-lighter">
+                                    <i class="fas fa-video mr-2"></i>
+                                    <span>Detecting camera...</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div id="soundboard-content" class="tab-content hidden">
                         <div class="bg-discord-darker rounded-lg p-6">
-                            <h3 class="text-lg font-medium mb-4">Soundboard</h3>
-                            <p class="text-center text-discord-lighter">Soundboard features coming soon!</p>
-                        </div>
-                    </div>
-
-                    <div id="debugging-content" class="tab-content hidden">
-                        <div class="bg-discord-darker rounded-lg p-6">
-                            <h3 class="text-lg font-medium mb-4">Debug Information</h3>
+                            <h3 class="text-lg font-medium mb-4">Camera Test</h3>
+                            <div class="video-preview-container">
+                                <video id="video-preview" class="video-preview" autoplay muted playsinline>
+                                    <span class="video-placeholder">Camera preview will appear here</span>
+                                </video>
+                            </div>
                             
-                            <div class="mb-4">
-                                <button id="test-devices-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors">
-                                    Test Device Configuration
+                            <div class="flex items-center gap-4 mt-4">
+                                <button id="video-test-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+                                    Test Camera
                                 </button>
-                                <p class="text-sm text-discord-lighter mt-2">
-                                    Click to verify that your selected input and output devices are working correctly.
-                                </p>
-                            </div>
-                            
-                            <div id="debug-info" class="bg-discord-dark rounded p-4 font-mono text-sm">
-                                <div>Loading debug information...</div>
+                                <div class="text-sm text-discord-lighter">
+                                    Click to test your camera and see the video feed
+                                </div>
                             </div>
                         </div>
                     </div>
+
+
                 </div>
             </div>
         <?php else: ?>

@@ -415,45 +415,30 @@ class EmojiSocketHandler {
 
 const emojiSocketHandler = new EmojiSocketHandler();
 
+// DISABLED: Using main emoji.js system only to prevent conflicts
+// This duplicate emoji system was causing reactions to load multiple times
+// and disappear due to DOM conflicts with the main emoji.js system
+
+console.log('Chat socket handler emoji system DISABLED - using main emoji.js only');
+
+// Provide minimal compatibility objects
 function initEmojiSocketHandler() {
-    if (emojiSocketHandler.initialized) {
-        return;
+    console.log('Chat socket handler init skipped');
+}
+
+window.emojiSocketHandler = {
+    initialized: false,
+    init: () => {},
+    handleReactionAdded: (data) => {
+        // Forward to main emoji system
+        if (window.emojiReactions) {
+            window.emojiReactions.handleReactionAdded(data);
+        }
+    },
+    handleReactionRemoved: (data) => {
+        // Forward to main emoji system
+        if (window.emojiReactions) {
+            window.emojiReactions.handleReactionRemoved(data);
+        }
     }
-    
-    emojiSocketHandler.init();
-    
-    document.addEventListener('emoji-menu-requested', (e) => {
-        const {messageId, x, y} = e.detail;
-        emojiSocketHandler.showMenu(messageId, x, y);
-    });
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initEmojiSocketHandler);
-} else {
-    initEmojiSocketHandler();
-}
-
-window.addEventListener('load', initEmojiSocketHandler);
-
-window.emojiSocketHandler = emojiSocketHandler;
-
-if (document.readyState !== 'loading') {
-    initEmojiSocketHandler();
-}
-
-function setupReactionSocketListeners() {
-    if (window.globalSocketManager && window.globalSocketManager.io) {
-        window.globalSocketManager.io.on('reaction-added', (data) => {
-            emojiSocketHandler.handleReactionAdded(data);
-        });
-        
-        window.globalSocketManager.io.on('reaction-removed', (data) => {
-            emojiSocketHandler.handleReactionRemoved(data);
-        });
-    } else {
-        setTimeout(setupReactionSocketListeners, 100);
-    }
-}
-
-setupReactionSocketListeners();
+};

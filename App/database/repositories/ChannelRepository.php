@@ -41,4 +41,16 @@ class ChannelRepository extends Repository {
             ->first();
         return $result ? (int)$result['max_position'] : 0;
     }
+    
+    public function countByType($type) {
+        return $this->countBy('type', $type);
+    }
+    
+    public function countTextChannels() {
+        return $this->countByType('text');
+    }
+    
+    public function countVoiceChannels() {
+        return $this->countByType('voice');
+    }
 }

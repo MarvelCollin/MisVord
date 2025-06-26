@@ -13,7 +13,6 @@ export class OverviewManager {
 
   init() {
     this.showInitialSkeletons();
-    this.setupChartControls();
     
     setTimeout(() => {
       this.loadSystemStats();
@@ -263,33 +262,40 @@ export class OverviewManager {
     }
   }
 
-  setupChartControls() {
-    const refreshBtn = document.getElementById('refresh-charts');
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', () => {
-        this.loadChartData();
-      });
-    }
-  }
+
 
   loadChartData() {
     fetch("/api/admin/stats/users/growth", {
+      method: 'GET',
+      credentials: 'same-origin',
       headers: {
         "Accept": "application/json",
         "X-Requested-With": "XMLHttpRequest"
       }
     })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then(data => {
         let chartData = [];
         
-        if (data.success && data.data) {
-          chartData = data.data || [];
+        if (data.success && data.data && data.data.data) {
+          chartData = data.data.data || [];
+        } else if (data.error) {
+          console.error("API error:", data.error);
+          chartData = [
+            { label: 'Categories', value: 3 },
+            { label: 'Text Channels', value: 15 },
+            { label: 'Voice Channels', value: 5 }
+          ];
         } else {
           chartData = [
-            { label: 'Online', value: 5 },
-            { label: 'Offline', value: 25 },
-            { label: 'Banned', value: 2 }
+            { label: 'Categories', value: 3 },
+            { label: 'Text Channels', value: 15 },
+            { label: 'Voice Channels', value: 5 }
           ];
         }
         
@@ -298,29 +304,43 @@ export class OverviewManager {
         this.hideChartLoading('users-chart');
       })
       .catch(error => {
-        showToast("Error loading user statistics", "error");
+        console.error("User statistics error:", error);
         
         this.chartData.users = [
-          { label: 'Online', value: 5 },
-          { label: 'Offline', value: 25 },
-          { label: 'Banned', value: 2 }
+          { label: 'Categories', value: 3 },
+          { label: 'Text Channels', value: 15 },
+          { label: 'Voice Channels', value: 5 }
         ];
         this.renderUserChart();
         this.hideChartLoading('users-chart');
       });
     
     fetch("/api/admin/stats/messages/activity", {
+      method: 'GET',
+      credentials: 'same-origin',
       headers: {
         "Accept": "application/json",
         "X-Requested-With": "XMLHttpRequest"
       }
     })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then(data => {
         let chartData = [];
         
-        if (data.success && data.data) {
-          chartData = data.data || [];
+        if (data.success && data.data && data.data.data) {
+          chartData = data.data.data || [];
+        } else if (data.error) {
+          console.error("API error:", data.error);
+          chartData = [
+            { label: 'Total Messages', value: 150 },
+            { label: 'Today', value: 25 },
+            { label: 'Remaining', value: 125 }
+          ];
         } else {
           chartData = [
             { label: 'Total Messages', value: 150 },
@@ -334,7 +354,7 @@ export class OverviewManager {
         this.hideChartLoading('messages-chart');
       })
       .catch(error => {
-        showToast("Error loading message statistics", "error");
+        console.error("Message statistics error:", error);
         
         this.chartData.messages = [
           { label: 'Total Messages', value: 150 },
@@ -346,17 +366,30 @@ export class OverviewManager {
       });
     
     fetch("/api/admin/stats/servers/growth", {
+      method: 'GET',
+      credentials: 'same-origin',
       headers: {
         "Accept": "application/json",
         "X-Requested-With": "XMLHttpRequest"
       }
     })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then(data => {
         let chartData = [];
         
-        if (data.success && data.data) {
-          chartData = data.data || [];
+        if (data.success && data.data && data.data.data) {
+          chartData = data.data.data || [];
+        } else if (data.error) {
+          console.error("API error:", data.error);
+          chartData = [
+            { label: 'Public Servers', value: 8 },
+            { label: 'Private Servers', value: 4 }
+          ];
         } else {
           chartData = [
             { label: 'Public Servers', value: 8 },
@@ -369,7 +402,7 @@ export class OverviewManager {
         this.hideChartLoading('servers-chart');
       })
       .catch(error => {
-        showToast("Error loading server statistics", "error");
+        console.error("Server statistics error:", error);
         
         this.chartData.servers = [
           { label: 'Public Servers', value: 8 },
@@ -394,12 +427,12 @@ export class OverviewManager {
     
     const data = this.chartData.users;
     
-    if (!data || data.length === 0) {
+    if (!data || !Array.isArray(data) || data.length === 0) {
       chartContainer.innerHTML = '<div class="text-center text-discord-lighter p-4">No data available</div>';
       return;
     }
     
-    const chartStructure = this.createChartStructure('bar-chart', 'User Statistics');
+    const chartStructure = this.createChartStructure('bar-chart', 'Channel Statistics');
     chartContainer.innerHTML = '';
     chartContainer.appendChild(chartStructure);
     
@@ -450,7 +483,7 @@ export class OverviewManager {
       bar.style.animationDelay = `${index * 0.1}s`;
       
       bar.addEventListener('mouseenter', (e) => {
-        this.showTooltip(e, `${item.label}: ${item.value} users`);
+        this.showTooltip(e, `${item.label}: ${item.value}`);
         
         bar.style.backgroundColor = '#778aff';
         bar.style.boxShadow = '0 0 10px rgba(88, 101, 242, 0.5)';
@@ -494,7 +527,7 @@ export class OverviewManager {
     
     const data = this.chartData.messages;
     
-    if (!data || data.length === 0) {
+    if (!data || !Array.isArray(data) || data.length === 0) {
       chartContainer.innerHTML = '<div class="text-center text-discord-lighter p-4">No data available</div>';
       return;
     }
@@ -594,7 +627,7 @@ export class OverviewManager {
     
     const data = this.chartData.servers;
     
-    if (!data || data.length === 0) {
+    if (!data || !Array.isArray(data) || data.length === 0) {
       chartContainer.innerHTML = '<div class="text-center text-discord-lighter p-4">No data available</div>';
       return;
     }
