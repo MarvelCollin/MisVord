@@ -632,7 +632,6 @@ class ServerController extends BaseController
                 }
             }
 
-            // Check if the invite is valid (not expired)
             if (!$invite->isValid()) {
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->notFound('Invite has expired');
@@ -654,7 +653,6 @@ class ServerController extends BaseController
                 }
             }
 
-            // For authenticated users, check if they're already a member
             if (isset($_SESSION['user_id'])) {
                 if ($this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $server->id)) {
                     $redirectUrl = "/server/{$server->id}";
@@ -666,7 +664,6 @@ class ServerController extends BaseController
                             'redirect' => $redirectUrl
                         ]);
                     } else {
-                        // Give the user feedback before redirecting
                         $_SESSION['flash_message'] = [
                             'type' => 'info',
                             'message' => 'You are already a member of this server'
@@ -828,7 +825,6 @@ class ServerController extends BaseController
                 return $this->notFound('Server not found');
             }
 
-            // Allow members with appropriate permissions to generate invites
             $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $serverId);
             if (!$membership || (!$this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId) && 
                 $membership->role !== 'admin' && $membership->role !== 'moderator')) {
@@ -839,17 +835,14 @@ class ServerController extends BaseController
             $expiresAt = null;
             
             if (isset($input['expires_in'])) {
-                // expires_in is in hours
                 $hours = (int)$input['expires_in'];
                 if ($hours > 0) {
                     $expiresAt = date('Y-m-d H:i:s', strtotime("+{$hours} hours"));
                 }
             } else if (isset($input['expires_at'])) {
-                // Direct date input
                 $expiresAt = date('Y-m-d H:i:s', strtotime($input['expires_at']));
             }
             
-            // Create the invite using repository
             $invite = $this->inviteRepository->createInvite(
                 $serverId, 
                 $this->getCurrentUserId(),
@@ -860,14 +853,12 @@ class ServerController extends BaseController
                 return $this->serverError('Failed to create invite');
             }
             
-            // Log the activity
                 $this->logActivity('invite_generated', [
                     'server_id' => $serverId,
                 'invite_code' => $invite->invite_link,
                     'expires_at' => $expiresAt
                 ]);
 
-            // Return the invite details
                 return $this->success([
                 'invite_code' => $invite->invite_link,
                 'invite_url' => $this->getBaseUrl() . '/join/' . $invite->invite_link,
@@ -1017,6 +1008,191 @@ class ServerController extends BaseController
         }
     }
 
+    public function promoteMember($serverId, $userId)
+    {
+        $this->requireAuth();
+        $currentUserId = $this->getCurrentUserId();
+
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            if (!$this->userServerMembershipRepository->isOwner($currentUserId, $serverId)) {
+                return $this->forbidden('Only server owners can promote members');
+            }
+
+            if ($userId == $currentUserId) {
+                return $this->validationError(['user' => 'You cannot promote yourself']);
+            }
+
+            $targetMembership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
+            if (!$targetMembership) {
+                return $this->notFound('User is not a member of this server');
+            }
+
+            $currentRole = $targetMembership->role;
+            $newRole = null;
+
+            switch ($currentRole) {
+                case 'member':
+                    $newRole = 'admin';
+                    break;
+                case 'admin':
+                    return $this->validationError(['role' => 'User is already at the highest promotable role']);
+                default:
+                    return $this->validationError(['role' => 'Cannot promote this user']);
+            }
+
+            if ($this->userServerMembershipRepository->updateRole($userId, $serverId, $newRole)) {
+                $this->logActivity('member_promoted', [
+                    'server_id' => $serverId,
+                    'user_id' => $userId,
+                    'old_role' => $currentRole,
+                    'new_role' => $newRole
+                ]);
+
+                return $this->success([
+                    'user_id' => $userId,
+                    'old_role' => $currentRole,
+                    'new_role' => $newRole
+                ], 'Member promoted successfully');
+            } else {
+                throw new Exception('Failed to update member role');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('member_promotion_error', [
+                'server_id' => $serverId,
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to promote member: ' . $e->getMessage());
+        }
+    }
+
+    public function demoteMember($serverId, $userId)
+    {
+        $this->requireAuth();
+        $currentUserId = $this->getCurrentUserId();
+
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            if (!$this->userServerMembershipRepository->isOwner($currentUserId, $serverId)) {
+                return $this->forbidden('Only server owners can demote members');
+            }
+
+            if ($userId == $currentUserId) {
+                return $this->validationError(['user' => 'You cannot demote yourself']);
+            }
+
+            $targetMembership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
+            if (!$targetMembership) {
+                return $this->notFound('User is not a member of this server');
+            }
+
+            $currentRole = $targetMembership->role;
+            $newRole = null;
+
+            switch ($currentRole) {
+                case 'admin':
+                    $newRole = 'member';
+                    break;
+                case 'member':
+                    return $this->validationError(['role' => 'User is already at the lowest role']);
+                case 'owner':
+                    return $this->validationError(['role' => 'Cannot demote server owner']);
+                default:
+                    return $this->validationError(['role' => 'Cannot demote this user']);
+            }
+
+            if ($this->userServerMembershipRepository->updateRole($userId, $serverId, $newRole)) {
+                $this->logActivity('member_demoted', [
+                    'server_id' => $serverId,
+                    'user_id' => $userId,
+                    'old_role' => $currentRole,
+                    'new_role' => $newRole
+                ]);
+
+                return $this->success([
+                    'user_id' => $userId,
+                    'old_role' => $currentRole,
+                    'new_role' => $newRole
+                ], 'Member demoted successfully');
+            } else {
+                throw new Exception('Failed to update member role');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('member_demotion_error', [
+                'server_id' => $serverId,
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to demote member: ' . $e->getMessage());
+        }
+    }
+
+    public function kickMember($serverId, $userId)
+    {
+        $this->requireAuth();
+        $currentUserId = $this->getCurrentUserId();
+
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            $currentUserMembership = $this->userServerMembershipRepository->findByUserAndServer($currentUserId, $serverId);
+            if (!$currentUserMembership || ($currentUserMembership->role !== 'owner' && $currentUserMembership->role !== 'admin')) {
+                return $this->forbidden('Only server owners and admins can kick members');
+            }
+
+            if ($userId == $currentUserId) {
+                return $this->validationError(['user' => 'You cannot kick yourself']);
+            }
+
+            $targetMembership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
+            if (!$targetMembership) {
+                return $this->notFound('User is not a member of this server');
+            }
+
+            if ($targetMembership->role === 'owner') {
+                return $this->validationError(['role' => 'Cannot kick server owner']);
+            }
+
+            if ($currentUserMembership->role === 'admin' && $targetMembership->role === 'admin') {
+                return $this->forbidden('Admins cannot kick other admins');
+            }
+
+            if ($this->userServerMembershipRepository->removeMembership($userId, $serverId)) {
+                $this->logActivity('member_kicked', [
+                    'server_id' => $serverId,
+                    'user_id' => $userId,
+                    'kicked_by' => $currentUserId
+                ]);
+
+                return $this->success([
+                    'user_id' => $userId,
+                    'action' => 'kicked'
+                ], 'Member kicked successfully');
+            } else {
+                throw new Exception('Failed to remove member from server');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('member_kick_error', [
+                'server_id' => $serverId,
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to kick member: ' . $e->getMessage());
+        }
+    }
+
     public function checkInviteValidity($code = null)
     {
         if (!$code) {
@@ -1026,7 +1202,6 @@ class ServerController extends BaseController
 
         if (!$code) {
             if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
-                // Don't redirect with an empty code
                 header('Location: /app');
                 exit;
             }
@@ -1037,8 +1212,6 @@ class ServerController extends BaseController
             $invite = $this->inviteRepository->findByCode($code);
             if (!$invite) {
                 if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
-                    // Instead of redirecting back to this same URL (which would cause a loop),
-                    // we'll set the global error and include the invite page directly
                     $GLOBALS['inviteError'] = 'Invite not found or expired';
                     require_once __DIR__ . '/../views/pages/accept-invite.php';
                     exit;
@@ -1048,7 +1221,6 @@ class ServerController extends BaseController
 
             if (!$invite->isValid()) {
                 if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
-                    // Similar to above, set error and render page directly
                     $GLOBALS['inviteError'] = 'Invite has expired';
                     require_once __DIR__ . '/../views/pages/accept-invite.php';
                     exit;
@@ -1059,7 +1231,6 @@ class ServerController extends BaseController
             $server = $this->serverRepository->find($invite->server_id);
             if (!$server) {
                 if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
-                    // Similar to above, set error and render page directly
                     $GLOBALS['inviteError'] = 'Server not found';
                     require_once __DIR__ . '/../views/pages/accept-invite.php';
                     exit;
@@ -1074,7 +1245,6 @@ class ServerController extends BaseController
             ]);
 
             if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
-                // For direct browser requests, redirect to the proper invite page
                 header('Location: /join/' . $code);
                 exit;
             }
@@ -1090,8 +1260,7 @@ class ServerController extends BaseController
                 'error' => $e->getMessage()
             ]);
             
-            if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
-                // Handle errors for direct browser requests
+            if (!$this->isApiRoute() && !$this->isAjaxRequest()) {      
                 $GLOBALS['inviteError'] = 'Failed to validate invite: ' . $e->getMessage();
                 require_once __DIR__ . '/../views/pages/accept-invite.php';
                 exit;

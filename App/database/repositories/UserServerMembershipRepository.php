@@ -41,12 +41,21 @@ class UserServerMembershipRepository extends Repository {
     }
     
     public function updateRole($userId, $serverId, $role) {
-        $membership = $this->findByUserAndServer($userId, $serverId);
-        if ($membership) {
-            $membership->role = $role;
-            return $membership->save();
+        try {
+            $query = new Query();
+            $updated = $query->table('user_server_memberships')
+                ->where('user_id', $userId)
+                ->where('server_id', $serverId)
+                ->update([
+                    'role' => $role,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            
+            return $updated > 0;
+        } catch (Exception $e) {
+            error_log("Error updating user role: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
     
     public function getMemberCount($serverId) {

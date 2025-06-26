@@ -349,7 +349,7 @@ export class ServerManager {
   }
   
   viewServer(serverId) {
-    window.location.href = `/app/server/${serverId}`;
+    window.location.href = `/server/${serverId}`;
   }
   
   deleteServer(serverId, serverName) {

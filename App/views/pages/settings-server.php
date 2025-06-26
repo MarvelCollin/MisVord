@@ -360,106 +360,109 @@ ob_start();
             </div>
         <?php elseif ($section === 'roles'): ?>
             <div class="p-10 max-w-[740px]">
-                <h1 class="text-2xl font-bold mb-2">Roles</h1>
-                <p class="text-discord-lighter mb-6">Use roles to group your server members and assign permissions.</p>
+                <h1 class="text-2xl font-bold mb-2">Member Management</h1>
+                <p class="text-discord-lighter mb-6">Promote or demote server members to manage permissions and access.</p>
                 
-                <div class="roles-header-section">
-                    <div class="roles-controls">
+                <div class="members-header-section">
+                    <div class="members-controls">
                         <div class="search-container">
                             <div class="search-input-wrapper">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                <input type="text" id="role-search" class="search-input" placeholder="Search roles">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" id="member-search" class="search-input" placeholder="Search members">
                             </div>
                         </div>
                         
                         <div class="controls-right">
-                            <div id="role-filter" class="filter-dropdown-container">
+                            <div id="member-filter" class="filter-dropdown-container">
                                 <button type="button" class="filter-button">
-                                    <span class="filter-selected-text">Role Name (A-Z)</span>
-                                    <svg class="filter-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                    </svg>
+                                    <span class="filter-selected-text">All Members</span>
+                                    <i class="fas fa-chevron-down filter-arrow"></i>
                                 </button>
                                 
                                 <div id="filter-dropdown" class="filter-dropdown hidden">
-                                    <div class="filter-option" data-filter="role-name-asc">
+                                    <div class="filter-option" data-filter="all">
                                         <div class="radio-container">
                                             <input type="radio" name="filter" checked class="radio-input">
                                             <div class="radio-dot"></div>
                                         </div>
-                                        <span>Role Name (A-Z)</span>
+                                        <span>All Members</span>
                                     </div>
-                                    <div class="filter-option" data-filter="role-name-desc">
+                                    <div class="filter-option" data-filter="owner">
                                         <div class="radio-container">
                                             <input type="radio" name="filter" class="radio-input">
                                             <div class="radio-dot"></div>
                                         </div>
-                                        <span>Role Name (Z-A)</span>
+                                        <span>Owners</span>
+                                    </div>
+                                    <div class="filter-option" data-filter="admin">
+                                        <div class="radio-container">
+                                            <input type="radio" name="filter" class="radio-input">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span>Admins</span>
+                                    </div>
+                                    <div class="filter-option" data-filter="member">
+                                        <div class="radio-container">
+                                            <input type="radio" name="filter" class="radio-input">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span>Members</span>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <button type="button" id="create-role-btn" class="create-role-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="create-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                </svg>
-                                <span>Create Role</span>
-                            </button>
                         </div>
                     </div>
                 </div>
                 
-                <div class="roles-table-container">
-                    <div class="roles-table-header">
-                        <div class="table-col table-col-icon">#</div>
-                        <div class="table-col table-col-name">ROLE NAME</div>
-                        <div class="table-col table-col-members">MEMBERS</div>
+                <div class="members-table-container">
+                    <div class="members-table-header">
+                        <div class="table-col table-col-avatar">USER</div>
+                        <div class="table-col table-col-role">ROLE</div>
+                        <div class="table-col table-col-joined">JOINED</div>
                         <div class="table-col table-col-actions">ACTIONS</div>
                     </div>
 
-                    <div id="roles-list" class="max-h-[500px] overflow-y-auto">
-                        <div class="flex items-center justify-center p-8 text-discord-lighter">
-                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span>Loading roles...</span>
+                    <div id="members-list" class="members-list-content">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin mr-3"></i>
+                            <span>Loading members...</span>
                         </div>
                     </div>
                 </div>
                 
                 <div class="text-xs text-discord-lighter mt-3">
-                    <p>Members use the color of the highest role they have on the list. Drag roles to reorder them.</p>
-                    <a href="#" class="text-blue-400 hover:underline">Need help with permissions?</a>
+                    <p><i class="fas fa-info-circle mr-1"></i> Only server owners can promote/demote members. Admins can kick members.</p>
                 </div>
                                         
-                <template id="role-template">
-                    <div class="role-item">
-                        <div class="table-col table-col-icon">
-                            <div class="role-color"></div>
-                        </div>
-                        <div class="table-col table-col-name">
-                            <div class="role-info">
-                                <div class="role-name"></div>
-                                <div class="role-permissions"></div>
+                <template id="member-template">
+                    <div class="member-item">
+                        <div class="table-col table-col-avatar">
+                            <div class="member-avatar-wrapper">
+                                <div class="member-avatar">
+                                    <img src="" alt="Avatar" class="w-full h-full object-cover">
+                                </div>
+                                <div class="member-info">
+                                    <div class="member-username"></div>
+                                    <div class="member-discriminator"></div>
+                                </div>
                             </div>
                         </div>
-                        <div class="table-col table-col-members">
-                            <div class="role-member-count">0 members</div>
+                        <div class="table-col table-col-role">
+                            <div class="member-role-badge"></div>
+                        </div>
+                        <div class="table-col table-col-joined">
+                            <div class="member-joined"></div>
                         </div>
                         <div class="table-col table-col-actions">
-                            <div class="role-actions">
-                                <button class="edit-role-btn" title="Edit Role">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
+                            <div class="member-actions">
+                                <button class="promote-btn action-btn" title="Promote Member">
+                                    <i class="fas fa-arrow-up"></i>
                                 </button>
-                                <button class="delete-role-btn" title="Delete Role">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
+                                <button class="demote-btn action-btn" title="Demote Member">
+                                    <i class="fas fa-arrow-down"></i>
+                                </button>
+                                <button class="kick-btn action-btn" title="Kick Member">
+                                    <i class="fas fa-user-times"></i>
                                 </button>
                             </div>
                         </div>

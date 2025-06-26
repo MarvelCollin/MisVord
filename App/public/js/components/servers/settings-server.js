@@ -84,7 +84,7 @@ function initServerSettingsPage() {
     } else if (activeSection === 'members') {
         initMembersTab();
     } else if (activeSection === 'roles') {
-        initRolesTab();
+        initMemberManagementTab();
     } else if (activeSection === 'delete') {
         initDeleteServerTab();
     }
@@ -707,82 +707,78 @@ function showToast(message, type = 'info') {
 }
 
 /**
- * Initialize the roles tab functionality
+ * Initialize the member management tab functionality
  */
-function initRolesTab() {
-    const rolesList = document.getElementById('roles-list');
-    const roleSearch = document.getElementById('role-search');
-    const roleTemplate = document.getElementById('role-template');
-    const roleFilter = document.getElementById('role-filter');
+function initMemberManagementTab() {
+    const membersList = document.getElementById('members-list');
+    const memberSearch = document.getElementById('member-search');
+    const memberTemplate = document.getElementById('member-template');
+    const memberFilter = document.getElementById('member-filter');
     const filterOptions = document.querySelectorAll('.filter-option');
-    const createRoleBtn = document.getElementById('create-role-btn');
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
     
-    if (!rolesList || !roleTemplate || !serverId) return;
+    if (!membersList || !memberTemplate || !serverId) return;
     
-    let allRoles = [];
-    let currentFilter = 'role-name-asc';
+    let allMembers = [];
+    let currentFilter = 'all';
     
-    if (createRoleBtn) {
-        createRoleBtn.addEventListener('click', () => {
-            showToast('Create new role functionality coming soon', 'info');
-        });
-    }
-    
-    async function loadRoles() {
+    async function loadMembers() {
         try {
-            const response = await window.serverAPI.getServerRoles(serverId);
+            const response = await window.serverAPI.getServerMembers(serverId);
             
             if (response && response.success) {
-                if (response.data && response.data.roles) {
-                    allRoles = response.data.roles;
-                } else if (response.roles) {
-                    allRoles = response.roles;
+                if (response.data && response.data.members) {
+                    allMembers = response.data.members;
+                } else if (response.members) {
+                    allMembers = response.members;
                 } else {
-                    allRoles = [];
+                    allMembers = [];
                 }
                 
-                sortRoles(currentFilter);
+                filterMembers(currentFilter);
             } else if (response && response.error && response.error.code === 401) {
                 window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
                 return;
             } else {
-                throw new Error(response.message || 'Failed to load server roles');
+                throw new Error(response.message || 'Failed to load server members');
             }
         } catch (error) {
-            console.error('Error loading server roles:', error);
+            console.error('Error loading server members:', error);
             
             if (error.message && error.message.toLowerCase().includes('unauthorized')) {
                 window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
                 return;
             }
             
-            rolesList.innerHTML = `
+            membersList.innerHTML = `
                 <div class="flex items-center justify-center p-8 text-discord-lighter">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-[#ed4245]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Error loading roles. Please try again.</span>
+                    <i class="fas fa-exclamation-triangle mr-2 text-red-400"></i>
+                    <span>Error loading members. Please try again.</span>
                 </div>
             `;
         }
     }
     
-    function sortRoles(filterType) {
-        let sortedRoles = [...allRoles];
+    function filterMembers(filterType) {
+        let filteredMembers = [...allMembers];
         
-        switch (filterType) {
-            case 'role-name-asc': 
-                sortedRoles.sort((a, b) => a.name.localeCompare(b.name));
-                break;
-            case 'role-name-desc':
-                sortedRoles.sort((a, b) => b.name.localeCompare(a.name));
-                break;
-            default:
-                sortedRoles.sort((a, b) => a.name.localeCompare(b.name));
+        if (filterType !== 'all') {
+            filteredMembers = filteredMembers.filter(member => member.role === filterType);
         }
         
-        renderRoles(sortedRoles);
+        filteredMembers.sort((a, b) => {
+            const roleOrder = { 'owner': 0, 'admin': 1, 'member': 2 };
+            const roleA = roleOrder[a.role] || 3;
+            const roleB = roleOrder[b.role] || 3;
+            
+            if (roleA !== roleB) {
+                return roleA - roleB;
+            }
+            
+            return a.username.localeCompare(b.username);
+        });
+        
+        renderMembers(filteredMembers);
     }
     
     if (filterOptions) {
@@ -793,8 +789,8 @@ function initRolesTab() {
                 });
                 this.querySelector('input[type="radio"]').checked = true;
                 
-                if (roleFilter) {
-                    roleFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
+                if (memberFilter) {
+                    memberFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
                     
                     const filterDropdown = document.getElementById('filter-dropdown');
                     if (filterDropdown) {
@@ -803,13 +799,13 @@ function initRolesTab() {
                 }
                 
                 currentFilter = this.dataset.filter;
-                sortRoles(currentFilter);
+                filterMembers(currentFilter);
             });
         });
     }
     
-    if (roleFilter) {
-        roleFilter.addEventListener('click', function(e) {
+    if (memberFilter) {
+        memberFilter.addEventListener('click', function(e) {
             const filterDropdown = document.getElementById('filter-dropdown');
             if (filterDropdown) {
                 filterDropdown.classList.toggle('hidden');
@@ -817,7 +813,7 @@ function initRolesTab() {
         });
         
         document.addEventListener('click', function(e) {
-            if (!roleFilter.contains(e.target)) {
+            if (!memberFilter.contains(e.target)) {
                 const filterDropdown = document.getElementById('filter-dropdown');
                 if (filterDropdown && !filterDropdown.classList.contains('hidden')) {
                     filterDropdown.classList.add('hidden');
@@ -826,144 +822,162 @@ function initRolesTab() {
         });
     }
     
-    function renderRoles(roles) {
-        rolesList.innerHTML = '';
-        
-        const everyoneRole = document.createElement('div');
-        everyoneRole.className = 'role-item everyone-role';
-        everyoneRole.innerHTML = `
-            <div class="table-col table-col-icon">
-                <div class="role-color" style="background-color: #99aab5;"></div>
-            </div>
-            <div class="table-col table-col-name">
-                <div class="role-info">
-                    <div class="role-name">@everyone</div>
-                    <div class="role-permissions">Default role for all members</div>
+    function renderMembers(members) {
+        if (!members.length) {
+            membersList.innerHTML = `
+                <div class="flex items-center justify-center p-8 text-discord-lighter">
+                    <i class="fas fa-users mr-2 opacity-50"></i>
+                    <span>No members found</span>
                 </div>
-            </div>
-            <div class="table-col table-col-members">
-                <div class="role-member-count">All Members</div>
-            </div>
-            <div class="table-col table-col-actions">
-                <div class="role-actions">
-                    <button class="edit-role-btn" title="Edit @everyone permissions">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        const defaultRoleEditBtn = everyoneRole.querySelector('.edit-role-btn');
-        if (defaultRoleEditBtn) {
-            defaultRoleEditBtn.addEventListener('click', () => {
-                showToast('Edit @everyone role permissions functionality coming soon', 'info');
-            });
-        }
-        
-        rolesList.appendChild(everyoneRole);
-        
-        if (!roles.length) {
-            const emptyState = document.createElement('div');
-            emptyState.className = 'roles-empty-state mt-4';
-            emptyState.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                </svg>
-                <div class="text-lg font-semibold mb-2">No custom roles yet</div>
-                <p class="text-sm opacity-75">Create your first role to organize your server members and assign permissions.</p>
             `;
-            rolesList.appendChild(emptyState);
             return;
         }
         
-        roles.forEach(role => {
-            const roleElement = document.importNode(roleTemplate.content, true).firstElementChild;
+        membersList.innerHTML = '';
+        
+        members.forEach(member => {
+            const memberElement = document.importNode(memberTemplate.content, true).firstElementChild;
             
-            const roleColor = roleElement.querySelector('.role-color');
-            if (roleColor) {
-                roleColor.style.backgroundColor = role.color || '#95a5a6';
-            }
-            
-            const nameElement = roleElement.querySelector('.role-name');
-            if (nameElement) {
-                nameElement.textContent = role.name;
-                if (role.color && role.color !== '#95a5a6') {
-                    nameElement.style.color = role.color;
+            const avatarImg = memberElement.querySelector('.member-avatar img');
+            if (avatarImg && member.avatar_url) {
+                avatarImg.src = member.avatar_url;
+            } else {
+                const avatarDiv = memberElement.querySelector('.member-avatar');
+                if (avatarDiv) {
+                    avatarDiv.innerHTML = `
+                        <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white font-bold">
+                            ${member.username.charAt(0).toUpperCase()}
+                        </div>
+                    `;
                 }
             }
             
-            const memberCountElement = roleElement.querySelector('.role-member-count');
-            if (memberCountElement) {
-                const count = role.member_count || 0;
-                memberCountElement.textContent = `${count} member${count !== 1 ? 's' : ''}`;
+            const usernameElement = memberElement.querySelector('.member-username');
+            if (usernameElement) {
+                usernameElement.textContent = member.username;
             }
             
-            const permissionsElement = roleElement.querySelector('.role-permissions');
-            if (permissionsElement) {
-                const permissions = [];
-                if (role.permissions) {
-                    if (role.permissions.administrator) {
-                        permissions.push('Administrator');
-                    } else {
-                        if (role.permissions.manage_server) permissions.push('Manage Server');
-                        if (role.permissions.manage_channels) permissions.push('Manage Channels');
-                        if (role.permissions.manage_roles) permissions.push('Manage Roles');
-                        if (role.permissions.kick_members) permissions.push('Kick Members');
-                        if (role.permissions.ban_members) permissions.push('Ban Members');
-                    }
-                }
-                
-                if (permissions.length > 0) {
-                    permissionsElement.innerHTML = permissions.slice(0, 2).join(', ') + 
-                        (permissions.length > 2 ? ` +${permissions.length - 2} more` : '');
-                } else {
-                    permissionsElement.textContent = 'No special permissions';
-                }
+            const discriminatorElement = memberElement.querySelector('.member-discriminator');
+            if (discriminatorElement) {
+                discriminatorElement.textContent = `#${member.discriminator || '0000'}`;
             }
             
-            roleElement.dataset.roleId = role.id;
-            
-            const editRoleBtn = roleElement.querySelector('.edit-role-btn');
-            const deleteRoleBtn = roleElement.querySelector('.delete-role-btn');
-            
-            if (editRoleBtn) {
-                editRoleBtn.addEventListener('click', () => {
-                    showToast(`Edit role: ${role.name} functionality coming soon`, 'info');
-                });
+            const roleElement = memberElement.querySelector('.member-role-badge');
+            if (roleElement) {
+                roleElement.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                roleElement.className = `member-role-badge ${member.role}`;
             }
             
-            if (deleteRoleBtn) {
-                deleteRoleBtn.addEventListener('click', () => {
-                    if (confirm(`Are you sure you want to delete the role "${role.name}"?\n\nThis action cannot be undone and will remove this role from all members.`)) {
-                        showToast(`Delete role: ${role.name} functionality coming soon`, 'info');
-                    }
-                });
+            const joinedElement = memberElement.querySelector('.member-joined');
+            if (joinedElement && member.joined_at) {
+                const joinedDate = new Date(member.joined_at);
+                joinedElement.textContent = joinedDate.toLocaleDateString();
             }
             
-            rolesList.appendChild(roleElement);
+            memberElement.dataset.memberId = member.id;
+            
+            const promoteBtn = memberElement.querySelector('.promote-btn');
+            const demoteBtn = memberElement.querySelector('.demote-btn');
+            const kickBtn = memberElement.querySelector('.kick-btn');
+            
+            if (member.role === 'owner') {
+                if (promoteBtn) promoteBtn.disabled = true;
+                if (demoteBtn) demoteBtn.disabled = true;
+                if (kickBtn) kickBtn.disabled = true;
+            } else if (member.role === 'admin') {
+                if (promoteBtn) promoteBtn.disabled = true;
+            } else if (member.role === 'member') {
+                if (demoteBtn) demoteBtn.disabled = true;
+            }
+            
+            if (promoteBtn && !promoteBtn.disabled) {
+                promoteBtn.addEventListener('click', () => handlePromote(member));
+            }
+            
+            if (demoteBtn && !demoteBtn.disabled) {
+                demoteBtn.addEventListener('click', () => handleDemote(member));
+            }
+            
+            if (kickBtn && !kickBtn.disabled) {
+                kickBtn.addEventListener('click', () => handleKick(member));
+            }
+            
+            membersList.appendChild(memberElement);
         });
     }
     
-    if (roleSearch) {
-        roleSearch.addEventListener('input', debounce(function() {
+    async function handlePromote(member) {
+        if (!confirm(`Are you sure you want to promote ${member.username} to Admin?`)) return;
+        
+        try {
+            const response = await window.serverAPI.promoteMember(serverId, member.id);
+            if (response && response.success) {
+                showToast(`${member.username} has been promoted to ${response.new_role}`, 'success');
+                loadMembers();
+            } else {
+                throw new Error(response.message || 'Failed to promote member');
+            }
+        } catch (error) {
+            console.error('Error promoting member:', error);
+            showToast(error.message || 'Failed to promote member', 'error');
+        }
+    }
+    
+    async function handleDemote(member) {
+        if (!confirm(`Are you sure you want to demote ${member.username} to Member?`)) return;
+        
+        try {
+            const response = await window.serverAPI.demoteMember(serverId, member.id);
+            if (response && response.success) {
+                showToast(`${member.username} has been demoted to ${response.new_role}`, 'success');
+                loadMembers();
+            } else {
+                throw new Error(response.message || 'Failed to demote member');
+            }
+        } catch (error) {
+            console.error('Error demoting member:', error);
+            showToast(error.message || 'Failed to demote member', 'error');
+        }
+    }
+    
+    async function handleKick(member) {
+        if (!confirm(`Are you sure you want to kick ${member.username} from the server?\n\nThis action cannot be undone.`)) return;
+        
+        try {
+            const response = await window.serverAPI.kickMember(serverId, member.id);
+            if (response && response.success) {
+                showToast(`${member.username} has been kicked from the server`, 'success');
+                loadMembers();
+            } else {
+                throw new Error(response.message || 'Failed to kick member');
+            }
+        } catch (error) {
+            console.error('Error kicking member:', error);
+            showToast(error.message || 'Failed to kick member', 'error');
+        }
+    }
+    
+    if (memberSearch) {
+        memberSearch.addEventListener('input', debounce(function() {
             const searchTerm = this.value.toLowerCase().trim();
             
             if (!searchTerm) {
-                sortRoles(currentFilter);
+                filterMembers(currentFilter);
                 return;
             }
             
-            const filteredRoles = allRoles.filter(role => {
-                return role.name.toLowerCase().includes(searchTerm);
+            const filteredMembers = allMembers.filter(member => {
+                return (
+                    member.username.toLowerCase().includes(searchTerm) ||
+                    member.role.toLowerCase().includes(searchTerm)
+                );
             });
             
-            renderRoles(filteredRoles);
+            renderMembers(filteredMembers);
         }, 300));
     }
     
-    loadRoles();
+    loadMembers();
 }
 
 /**

@@ -547,6 +547,21 @@ Route::get('/api/servers/([0-9]+)/members', function($serverId) {
     $controller->getServerMembers($serverId);   
 });
 
+Route::post('/api/servers/([0-9]+)/members/([0-9]+)/promote', function($serverId, $userId) {
+    $controller = new ServerController();
+    $controller->promoteMember($serverId, $userId);
+});
+
+Route::post('/api/servers/([0-9]+)/members/([0-9]+)/demote', function($serverId, $userId) {
+    $controller = new ServerController();
+    $controller->demoteMember($serverId, $userId);
+});
+
+Route::post('/api/servers/([0-9]+)/members/([0-9]+)/kick', function($serverId, $userId) {
+    $controller = new ServerController();
+    $controller->kickMember($serverId, $userId);
+});
+
 Route::get('/api/explore/servers/search', function() {
     $query = $_GET['q'] ?? '';
     $controller = new ExploreController();

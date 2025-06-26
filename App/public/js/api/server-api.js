@@ -152,6 +152,60 @@ const serverAPI = {
             }
             return response.json();
         });
+    },
+
+    promoteMember: function(serverId, userId) {
+        return fetch(`/api/servers/${serverId}/members/${userId}/promote`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    demoteMember: function(serverId, userId) {
+        return fetch(`/api/servers/${serverId}/members/${userId}/demote`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    kickMember: function(serverId, userId) {
+        return fetch(`/api/servers/${serverId}/members/${userId}/kick`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
     }
 };
 

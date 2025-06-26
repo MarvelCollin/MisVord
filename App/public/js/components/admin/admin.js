@@ -34,6 +34,7 @@ class AdminManager {
     this.initLogoutButton();
     this.initSystemLogs();
     this.initUserBanActions();
+    this.initHashChange();
     
     window.nitroManager = new NitroManager();
     window.serverManager = new ServerManager();
@@ -57,6 +58,17 @@ class AdminManager {
         const section = link.getAttribute("data-section");
         this.switchSection(section);
       });
+    });
+  }
+
+  initHashChange() {
+    window.addEventListener('hashchange', () => {
+      const hash = window.location.hash.substring(1);
+      if (hash && hash !== this.currentSection) {
+        this.switchSection(hash);
+      } else if (!hash && this.currentSection !== 'overview') {
+        this.switchSection('overview');
+      }
     });
   }
 
@@ -107,7 +119,7 @@ class AdminManager {
       }
     } else if (section === "servers") {
       if (window.serverManager) {
-        window.serverManager.showInitialSkeletons();
+        window.serverManager.showSkeletons();
         setTimeout(() => {
           window.serverManager.loadServers();
           window.serverManager.loadServerStats();
@@ -130,7 +142,11 @@ class AdminManager {
       }
     }
     
-    history.pushState({}, "", `#${section}`);
+    if (section === "overview") {
+      history.pushState({}, "", window.location.pathname);
+    } else {
+      history.pushState({}, "", `#${section}`);
+    }
   }
 
   initLogoutButton() {

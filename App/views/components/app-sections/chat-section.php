@@ -521,13 +521,22 @@ function initializeChatUI() {
     }
     
     function sendMessage() {
+        console.log('📞 sendMessage() in PHP template called');
+        alert('PHP template sendMessage() called!');
+        
         if (messageInput.value.trim().length === 0) {
+            alert('ERROR: No message content in input!');
             return;
         }
+        
+        alert('Input has content: ' + messageInput.value);
+        
         if (window.chatSection && window.chatSection.sendMessage) {
+            alert('Calling chatSection.sendMessage()');
             window.chatSection.sendMessage();
         } else {
             console.error('ChatSection not initialized');
+            alert('ERROR: ChatSection not initialized!');
         }
     }
     

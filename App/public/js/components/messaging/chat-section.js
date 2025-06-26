@@ -974,16 +974,25 @@ class ChatSection {
     }
     
     async sendMessage() {
+        console.log('🚀 sendMessage() called');
+        alert('sendMessage() function started!');
+        
         if (!this.messageInput) {
             console.error('❌ Message input not found');
+            alert('ERROR: Message input not found!');
             return;
         }
         
         const content = this.messageInput.value.trim();
+        console.log('📝 Message content:', content);
+        
         if (!content && !this.currentFileUpload) {
             console.warn('⚠️ No message content or file to send');
+            alert('ERROR: No content to send!');
             return;
         }
+        
+        alert('Content found: ' + content);
         
         console.log('📤 Attempting to send message:', { 
             content: content.substring(0, 50) + '...', 
@@ -1072,25 +1081,18 @@ class ChatSection {
             
             this.processedMessageIds.add(messageId);
             
-            console.log('📤 Sending message to UI:', {
-                messageId,
-                content,
-                tempMessage,
-                chatMessagesExists: !!this.chatMessages,
-                chatMessagesId: this.chatMessages?.id
-            });
-            
             // Ensure empty state is cleared before adding the message
             this.clearEmptyState();
             
+            console.log('📨 About to call addMessage with:', tempMessage);
+            alert('About to add temp message: ' + tempMessage.content);
+            
             this.addMessage(tempMessage);
+            
+            console.log('✅ addMessage completed');
+            alert('addMessage call completed!');
             this.removeFileUpload();
             this.updateSendButton();
-            
-            console.log('📋 After adding message - container state:', {
-                containerChildren: this.chatMessages?.children.length,
-                hasMessages: this.chatMessages?.children.length > 0
-            });
             
             console.log('Calling ChatAPI.sendMessage...');
             const response = await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, options);
@@ -1286,21 +1288,18 @@ class ChatSection {
     }
     
     addMessage(message) {
+        console.log('🚀 addMessage called with:', message);
+        
         if (!this.chatMessages || !message) {
-            console.error('❌ Cannot add message - missing chatMessages container or message data');
+            console.error('❌ Missing chatMessages or message:', { chatMessages: !!this.chatMessages, message: !!message });
             return;
         }
         
-        console.log('🔄 Adding message to chat:', message);
-        console.log('📊 Chat container state:', {
-            hasContainer: !!this.chatMessages,
-            containerChildren: this.chatMessages.children.length,
-            containerHTML: this.chatMessages.innerHTML.substring(0, 100)
-        });
-        
         // Clear empty state if it exists
-        const clearedEmpty = this.clearEmptyState();
-        console.log('🧹 Empty state cleared:', clearedEmpty);
+        this.clearEmptyState();
+        
+        // Temporary alert for debugging
+        alert('Adding message: ' + (message.content || 'No content'));
         
         const msg = {
             id: message.id || message.messageId || Date.now().toString(),
@@ -1343,54 +1342,32 @@ class ChatSection {
         const isNewGroup = lastSenderId !== msg.user_id || !lastMessageGroup?.classList.contains('message-group');
         
         if (isNewGroup) {
-            console.log('🆕 Creating new message group for:', msg.id);
             const messageGroup = this.createMessageGroup(msg, isOwnMessage);
-            
-            if (!messageGroup) {
-                console.error('❌ Failed to create message group!');
-                return;
-            }
-            
             messageGroup.classList.add('message-fade-in');
             this.chatMessages.appendChild(messageGroup);
             
-            console.log('✅ Added new message group to chat:', {
-                messageId: msg.id,
-                content: msg.content.substring(0, 50),
-                groupExists: !!messageGroup,
-                addedToContainer: this.chatMessages.contains(messageGroup),
-                containerChildren: this.chatMessages.children.length
-            });
-            
-            setTimeout(() => {
-                messageGroup.classList.add('message-appear');
-            }, 10);
+                    console.log('Added new message group to chat:', msg.id, 'Content:', msg.content);
+        console.log('Message group HTML:', messageGroup.outerHTML);
+        console.log('Chat messages container:', this.chatMessages);
+        console.log('Total messages in container:', this.chatMessages.children.length);
+        
+        setTimeout(() => {
+            messageGroup.classList.add('message-appear');
+        }, 10);
         } else {
-            console.log('📎 Adding to existing message group for:', msg.id);
             const messageContent = this.createMessageContent(msg, isOwnMessage);
-            
-            if (!messageContent) {
-                console.error('❌ Failed to create message content!');
-                return;
-            }
-            
             messageContent.classList.add('message-fade-in');
             const contents = lastMessageGroup.querySelector('.message-contents');
             if (contents) {
                 contents.appendChild(messageContent);
                 
-                console.log('✅ Added message content to existing group:', {
-                    messageId: msg.id,
-                    content: msg.content.substring(0, 50),
-                    contentExists: !!messageContent,
-                    addedToGroup: contents.contains(messageContent)
-                });
+                console.log('Added message content to existing group:', msg.id, 'Content:', msg.content);
                 
                 setTimeout(() => {
                     messageContent.classList.add('message-appear');
                 }, 10);
             } else {
-                console.error('❌ Could not find message-contents container in last message group');
+                console.error('Could not find message-contents container in last message group');
             }
         }
         
@@ -1413,16 +1390,16 @@ class ChatSection {
     }
     
     createMessageGroup(message, isOwnMessage = false) {
-        console.log('🏗️ Creating message group for:', {
-            messageId: message.id,
-            username: message.username,
-            content: message.content?.substring(0, 30),
-            isOwnMessage
-        });
-        
         const messageGroup = document.createElement('div');
         messageGroup.className = 'message-group';
         messageGroup.setAttribute('data-user-id', message.user_id || message.userId);
+        
+        // Temporary debugging styles
+        messageGroup.style.border = '2px solid red';
+        messageGroup.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+        messageGroup.style.minHeight = '60px';
+        messageGroup.style.margin = '10px 0';
+        messageGroup.style.padding = '10px';
         
         const avatarContainer = document.createElement('div');
         avatarContainer.className = 'message-avatar';
@@ -1466,14 +1443,6 @@ class ChatSection {
         messageGroup.appendChild(avatarContainer);
         messageGroup.appendChild(contentWrapper);
         
-        console.log('✅ Message group created successfully:', {
-            messageId: message.id,
-            hasAvatar: !!avatarContainer,
-            hasContent: !!contentWrapper,
-            hasMessageContents: !!messageContents,
-            groupHTML: messageGroup.outerHTML.substring(0, 200)
-        });
-        
         return messageGroup;
     }
     
@@ -1482,6 +1451,12 @@ class ChatSection {
         messageElement.className = 'message-content';
         messageElement.setAttribute('data-message-id', message.id);
         messageElement.setAttribute('data-user-id', message.user_id || message.userId);
+        
+        // Temporary debugging styles
+        messageElement.style.border = '2px solid blue';
+        messageElement.style.backgroundColor = 'rgba(0, 0, 255, 0.1)';
+        messageElement.style.margin = '5px 0';
+        messageElement.style.padding = '5px';
         
         if (isOwnMessage) {
             messageElement.classList.add('own-message');
@@ -1568,8 +1543,19 @@ class ChatSection {
         const contentElement = document.createElement('div');
         contentElement.className = 'message-main-text text-[#dcddde]';
         
+        // Temporary debugging styles
+        contentElement.style.border = '2px solid green';
+        contentElement.style.backgroundColor = 'rgba(0, 255, 0, 0.1)';
+        contentElement.style.color = '#ffffff';
+        contentElement.style.padding = '5px';
+        contentElement.style.fontSize = '16px';
+        
         if (message.content && message.content.trim() !== '') {
             contentElement.innerHTML = this.formatMessageContent(message.content);
+            console.log('Setting message content:', message.content);
+        } else {
+            contentElement.innerHTML = '[NO CONTENT]';
+            console.log('No content for message:', message);
         }
         
         if (message.attachment_url) {
@@ -2155,14 +2141,11 @@ class ChatSection {
     }
     
     clearEmptyState() {
-        if (!this.chatMessages) {
-            console.log('❌ No chatMessages container for empty state clearing');
-            return false;
-        }
+        if (!this.chatMessages) return false;
         
         const emptyState = this.chatMessages.querySelector('.flex.flex-col.items-center.justify-center');
         if (emptyState) {
-            console.log('🧹 Clearing empty state from chat container');
+            console.log('Clearing empty state from chat container');
             this.chatMessages.innerHTML = '';
             return true;
         }
@@ -2172,20 +2155,12 @@ class ChatSection {
             const singleChild = this.chatMessages.children[0];
             if (singleChild.textContent.includes('No messages yet') || 
                 singleChild.querySelector('i.fa-comments')) {
-                console.log('🧹 Clearing alternative empty state pattern');
+                console.log('Clearing alternative empty state pattern');
                 this.chatMessages.innerHTML = '';
                 return true;
             }
         }
         
-        // Check if container is completely empty but should have messages
-        if (this.chatMessages.children.length === 0 && this.chatMessages.innerHTML.trim() !== '') {
-            console.log('🧹 Clearing residual content from empty container');
-            this.chatMessages.innerHTML = '';
-            return true;
-        }
-        
-        console.log('ℹ️ No empty state found to clear');
         return false;
     }
     
