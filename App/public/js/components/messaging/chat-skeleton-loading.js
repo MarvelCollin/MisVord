@@ -7,6 +7,7 @@ class ChatSkeletonLoader {
     show() {
         if (!this.container) return;
         
+        this.hideEmptyState();
         this.clear();
         
         for (let i = 0; i < this.skeletonCount; i++) {
@@ -22,9 +23,20 @@ class ChatSkeletonLoader {
         skeletons.forEach(skeleton => skeleton.remove());
     }
 
+    hideEmptyState() {
+        if (!this.container) return;
+        
+        const emptyState = this.container.querySelector('#chat-empty-state');
+        if (emptyState) {
+            emptyState.style.display = 'none';
+        }
+    }
+
     createSkeleton(isAlternate = false) {
         const skeletonGroup = document.createElement('div');
         skeletonGroup.className = 'message-group-item animate-pulse';
+        skeletonGroup.style.position = 'relative';
+        skeletonGroup.style.zIndex = '20';
         
         const groupWrapper = document.createElement('div');
         groupWrapper.className = 'message-group-wrapper';

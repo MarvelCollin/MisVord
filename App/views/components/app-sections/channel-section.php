@@ -208,6 +208,10 @@ async function handleChannelSwitch(serverId, channelId, channelType, clickedElem
         updateActiveChannelUI(clickedElement);
         addSwitchingIndicator(clickedElement);
         
+        if (channelType !== 'voice' && window.voiceState && window.voiceState.isConnected) {
+            window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+        }
+        
         if (window.channelRenderer) {
             await window.channelRenderer.switchToChannel(serverId, channelId, channelType);
         } else {
@@ -219,18 +223,8 @@ async function handleChannelSwitch(serverId, channelId, channelType, clickedElem
             }
         }
         
-
-        
         if (channelType === 'voice') {
-            const tryAutoJoin = () => {
-                const joinBtn = document.getElementById('joinBtn');
-                if (joinBtn && !joinBtn.disabled) {
-                    joinBtn.click();
-                } else {
-                    setTimeout(tryAutoJoin, 300);
-                }
-            };
-            setTimeout(tryAutoJoin, 500);
+            await autoJoinVoiceChannel(channelId);
         }
         
     } catch (error) {
@@ -292,6 +286,115 @@ function showChannelSwitchError(message) {
             </div>
         `;
     }
+}
+
+async function autoJoinVoiceChannel(channelId) {
+    return new Promise((resolve, reject) => {
+        const meetingId = 'voice_channel_' + channelId;
+        const username = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
+        
+        if (!channelId) {
+            console.error('Auto join voice failed: No channel ID provided');
+            showJoinView();
+            return reject(new Error('No channel ID provided'));
+        }
+        
+        if (window.voiceState && window.voiceState.isConnected) {
+            return resolve();
+        }
+        
+        showConnectingView();
+        
+        const tryJoin = async () => {
+            try {
+                if (!window.videoSDKManager) {
+                    throw new Error('VideoSDK Manager not available');
+                }
+                
+                const authToken = await window.videoSDKManager.getAuthToken();
+                window.videoSDKManager.init(authToken);
+                
+                window.videosdkMeeting = window.videoSDKManager.initMeeting({
+                    meetingId: meetingId,
+                    name: username,
+                    micEnabled: true,
+                    webcamEnabled: false
+                });
+                
+                await window.videoSDKManager.joinMeeting();
+                
+                window.dispatchEvent(new CustomEvent('voiceConnect', {
+                    detail: { meetingId: meetingId }
+                }));
+                
+                if (window.voiceState) {
+                    window.voiceState.isConnected = true;
+                }
+                
+                showConnectedView();
+                resolve();
+                
+            } catch (error) {
+                console.error('Auto join voice failed:', error);
+                showJoinView();
+                reject(error);
+            }
+        };
+        
+        if (typeof VideoSDK !== 'undefined' && VideoSDK.config && VideoSDK.initMeeting && window.videoSDKManager) {
+            tryJoin();
+        } else if (window.waitForVideoSDK) {
+            window.waitForVideoSDK(() => {
+                if (window.videoSDKManager) {
+                    tryJoin();
+                } else {
+                    console.error('VideoSDK Manager still not available after waiting');
+                    showJoinView();
+                    reject(new Error('VideoSDK Manager not available'));
+                }
+            });
+        } else {
+            console.error('VideoSDK wait function not available');
+            showJoinView();
+            reject(new Error('VideoSDK not available'));
+        }
+    });
+}
+
+function showJoinView() {
+    const joinView = document.getElementById('joinView');
+    const connectingView = document.getElementById('connectingView');
+    const connectedView = document.getElementById('connectedView');
+    const voiceControls = document.getElementById('voiceControls');
+    
+    if (joinView) joinView.classList.remove('hidden');
+    if (connectingView) connectingView.classList.add('hidden');
+    if (connectedView) connectedView.classList.add('hidden');
+    if (voiceControls) voiceControls.classList.add('hidden');
+}
+
+function showConnectingView() {
+    const joinView = document.getElementById('joinView');
+    const connectingView = document.getElementById('connectingView');
+    const connectedView = document.getElementById('connectedView');
+    const voiceControls = document.getElementById('voiceControls');
+    
+    if (joinView) joinView.classList.add('hidden');
+    if (connectingView) connectingView.classList.remove('hidden');
+    if (connectedView) connectedView.classList.add('hidden');
+    if (voiceControls) voiceControls.classList.add('hidden');
+}
+
+function showConnectedView() {
+    const joinView = document.getElementById('joinView');
+    const connectingView = document.getElementById('connectingView');
+    const connectedView = document.getElementById('connectedView');
+    const voiceControls = document.getElementById('voiceControls');
+    
+    if (joinView) joinView.classList.add('hidden');
+    if (connectingView) connectingView.classList.add('hidden');
+    if (connectedView) connectedView.classList.remove('hidden');
+    if (voiceControls) voiceControls.classList.remove('hidden');
 }
 
 async function loadChannelRenderer() {

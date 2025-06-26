@@ -68,6 +68,8 @@ class ChatSection {
             return;
         }
         
+        this.ensureChatContainerStructure();
+        
         const paramsLoaded = this.loadChatParams();
         
         if (!paramsLoaded) {
@@ -86,6 +88,25 @@ class ChatSection {
         
         this.setupIoListeners();
         console.log('ChatSection initialization complete');
+    }
+    
+    ensureChatContainerStructure() {
+        if (!this.chatMessages) return;
+        
+        this.chatMessages.innerHTML = '';
+        this.chatMessages.style.position = 'relative';
+        this.chatMessages.style.display = 'flex';
+        this.chatMessages.style.flexDirection = 'column';
+        
+        const messagesContainer = document.createElement('div');
+        messagesContainer.className = 'messages-container flex-1';
+        messagesContainer.style.position = 'relative';
+        messagesContainer.style.zIndex = '10';
+        
+        this.chatMessages.appendChild(messagesContainer);
+        this.messagesContainer = messagesContainer;
+        
+        this.initializeSkeletonLoader();
     }
     
     loadElements() {
@@ -115,9 +136,12 @@ class ChatSection {
         if (!this.fileUploadPreview) {
             console.error('File preview not found');
         }
-        
-        if (this.chatMessages && window.ChatSkeletonLoader) {
-            this.skeletonLoader = new window.ChatSkeletonLoader(this.chatMessages);
+    }
+    
+    initializeSkeletonLoader() {
+        if (window.ChatSkeletonLoader) {
+            const container = this.getMessagesContainer();
+            this.skeletonLoader = new window.ChatSkeletonLoader(container);
         }
     }
     
@@ -966,11 +990,13 @@ class ChatSection {
             return;
         }
         
+        this.prepareChatContainer();
+        
         console.log('📤 Attempting to send message:', { 
-            content: content.substring(0, 50) + '...', 
+            content, 
             chatType: this.chatType, 
-            targetId: this.targetId,
-            hasFile: !!this.currentFileUpload
+            targetId: this.targetId, 
+            hasFile: !!this.currentFileUpload 
         });
         
         const timestamp = Date.now();
@@ -1092,6 +1118,36 @@ class ChatSection {
             
             this.showNotification('Failed to send message: ' + (error.message || 'Unknown error'), 'error');
         }
+    }
+    
+    prepareChatContainer() {
+        if (!this.chatMessages) return;
+        
+        this.hideEmptyState();
+        
+        if (this.skeletonLoader) {
+            this.skeletonLoader.clear();
+        }
+        
+        this.ensureMessagesContainer();
+        
+        const nonMessageElements = this.chatMessages.querySelectorAll(':not(.messages-container)');
+        nonMessageElements.forEach(element => {
+            if (element.id !== 'chat-empty-state' && 
+                !element.classList.contains('message-group') && 
+                !element.classList.contains('message-group-item') &&
+                !element.classList.contains('messages-container')) {
+                if (element.textContent.includes('No messages yet') || 
+                    element.textContent.includes('Start the conversation') ||
+                    element.querySelector('i.fa-comments')) {
+                    element.remove();
+                }
+            }
+        });
+        
+        this.chatMessages.style.position = 'relative';
+        
+        console.log('Chat container prepared - messages-container ready for first message');
     }
     
     handleTyping() {
@@ -1220,7 +1276,8 @@ class ChatSection {
             return;
         }
         
-        const existingMessages = this.chatMessages.querySelectorAll('.message-group');
+        const targetContainer = this.getMessagesContainer();
+        const existingMessages = targetContainer.querySelectorAll('.message-group');
         existingMessages.forEach(group => group.remove());
         
         if (this.skeletonLoader) {
@@ -1242,7 +1299,7 @@ class ChatSection {
             
             if (isNewGroup) {
                 currentMessageGroup = this.createMessageGroup(message);
-                this.chatMessages.appendChild(currentMessageGroup);
+                targetContainer.appendChild(currentMessageGroup);
                 lastSenderId = message.user_id;
             } else {
                 const messageContent = this.createMessageContent(message);
@@ -1259,8 +1316,16 @@ class ChatSection {
             return;
         }
         
-        // Hide empty state if it exists
         this.hideEmptyState();
+        
+        if (this.skeletonLoader) {
+            this.skeletonLoader.clear();
+        }
+        
+        const existingEmptyStates = this.chatMessages.querySelectorAll('#chat-empty-state');
+        existingEmptyStates.forEach(state => state.remove());
+        
+        this.ensureMessagesContainer();
         
         const msg = {
             id: message.id || message.messageId || Date.now().toString(),
@@ -1297,17 +1362,19 @@ class ChatSection {
         
         const isOwnMessage = msg.user_id == this.userId;
         
-        const lastMessageGroup = this.chatMessages.lastElementChild;
+        const targetContainer = this.getMessagesContainer();
+        const messageGroups = targetContainer.querySelectorAll('.message-group');
+        const lastMessageGroup = messageGroups.length > 0 ? messageGroups[messageGroups.length - 1] : null;
         const lastSenderId = lastMessageGroup?.getAttribute('data-user-id');
         
-        const isNewGroup = lastSenderId !== msg.user_id || !lastMessageGroup?.classList.contains('message-group');
+        const isNewGroup = !lastMessageGroup || lastSenderId !== msg.user_id;
         
         if (isNewGroup) {
             const messageGroup = this.createMessageGroup(msg, isOwnMessage);
             messageGroup.classList.add('message-fade-in');
-            this.chatMessages.appendChild(messageGroup);
+            targetContainer.appendChild(messageGroup);
             
-            console.log('Added new message group to chat:', msg.id, 'Content:', msg.content);
+            console.log('Added new message group to messages-container:', msg.id, 'Content:', msg.content);
             
             setTimeout(() => {
                 messageGroup.classList.add('message-appear');
@@ -1334,6 +1401,26 @@ class ChatSection {
         }
         
         this.scrollToBottom();
+    }
+    
+    ensureMessagesContainer() {
+        if (!this.messagesContainer) {
+            let container = this.chatMessages.querySelector('.messages-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'messages-container flex-1';
+                container.style.position = 'relative';
+                container.style.zIndex = '10';
+                this.chatMessages.appendChild(container);
+            }
+            this.messagesContainer = container;
+        }
+        return this.messagesContainer;
+    }
+    
+    getMessagesContainer() {
+        this.ensureMessagesContainer();
+        return this.messagesContainer;
     }
     
     createMessageGroup(message, isOwnMessage = false) {
@@ -1889,14 +1976,11 @@ class ChatSection {
             const params = new URLSearchParams({ offset, limit });
             const apiChatType = this.chatType === 'direct' ? 'dm' : this.chatType;
             
-            // Start fetching messages immediately
             const messagesPromise = fetch(`/api/chat/${apiChatType}/${this.targetId}/messages?${params.toString()}`)
                 .then(response => response.json());
             
-            // Wait a bit to ensure skeletons are visible, then start processing
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            // Get the message data
             const data = await messagesPromise;
             
             let messages = [];
@@ -1910,12 +1994,10 @@ class ChatSection {
             }
             
             if (messages && messages.length > 0) {
-                // Immediately start fetching reactions while skeletons are still showing
                 const reactionPromises = [];
                 const messagesToProcess = [];
                 const messagesWithReactions = [];
                 
-                // Process messages and immediately start fetching reactions
                 messages.forEach(msg => {
                     this.processedMessageIds.add(msg.id);
                     
@@ -1925,7 +2007,6 @@ class ChatSection {
                                         
                     if (hasReactions) {
                         messagesWithReactions.push(msg.id);
-                        // Start fetching reactions immediately
                         if (window.ChatAPI) {
                             const promise = window.ChatAPI.getMessageReactions(msg.id)
                                 .then(reactions => {
@@ -1946,17 +2027,14 @@ class ChatSection {
                 
                 console.log(`📊 Starting to fetch reactions for ${messagesWithReactions.length} messages while skeletons are showing`);
                 
-                // Keep skeletons showing for a minimum time to ensure reactions are fetched
-                const minimumSkeletonTime = 800; // Show skeletons for at least 800ms
+                const minimumSkeletonTime = 800;
                 const skeletonStartTime = Date.now();
                 
-                // Wait for reactions to load (or timeout)
                 await Promise.race([
                     Promise.all(reactionPromises),
-                    new Promise(resolve => setTimeout(resolve, 600)) // Give reactions 600ms to load
+                    new Promise(resolve => setTimeout(resolve, 600))
                 ]);
                 
-                // Process fetched reactions into messages
                 messagesToProcess.forEach(item => {
                     const message = messages.find(m => m.id === item.messageId);
                     if (message) {
@@ -1964,19 +2042,14 @@ class ChatSection {
                     }
                 });
                 
-                // Ensure minimum skeleton time has passed
                 const elapsedTime = Date.now() - skeletonStartTime;
                 if (elapsedTime < minimumSkeletonTime) {
                     await new Promise(resolve => setTimeout(resolve, minimumSkeletonTime - elapsedTime));
                 }
                 
-                // Ensure empty state is hidden before rendering
                 this.hideEmptyState();
-                
-                // Now render messages with reactions already loaded
                 this.renderMessages(messages);
                 
-                // Handle any late-arriving reactions
                 Promise.all(reactionPromises).then(() => {
                     messagesToProcess.forEach(item => {
                         if (window.emojiReactions && item.reactions?.length > 0) {
@@ -1987,6 +2060,7 @@ class ChatSection {
                 
                 this.scrollToBottom();
             } else {
+                await new Promise(resolve => setTimeout(resolve, 500));
                 this.showEmptyState();
             }
             
@@ -2008,26 +2082,44 @@ class ChatSection {
     hideEmptyState() {
         if (!this.chatMessages) return false;
         
-        const emptyState = this.chatMessages.querySelector('#chat-empty-state');
-        if (emptyState) {
-            emptyState.style.display = 'none';
-            return true;
+        if (this.skeletonLoader) {
+            this.skeletonLoader.clear();
         }
         
-        return false;
+        const emptyStates = this.chatMessages.querySelectorAll('#chat-empty-state');
+        let removed = false;
+        
+        emptyStates.forEach(emptyState => {
+            emptyState.remove();
+            removed = true;
+        });
+        
+        const allEmptyStateElements = this.chatMessages.querySelectorAll('[id*="empty"], .empty-state, .no-messages');
+        allEmptyStateElements.forEach(element => {
+            if (element.textContent.includes('No messages yet') || element.textContent.includes('Start the conversation')) {
+                element.remove();
+                removed = true;
+            }
+        });
+        
+        return removed;
     }
     
     showEmptyState() {
         if (!this.chatMessages) return;
         
-        // Check if empty state already exists
+        if (this.skeletonLoader) {
+            this.skeletonLoader.clear();
+        }
+        
+        this.ensureMessagesContainer();
+        
         let emptyState = this.chatMessages.querySelector('#chat-empty-state');
         if (emptyState) {
             emptyState.style.display = 'flex';
             return;
         }
         
-        // Create new empty state as background
         emptyState = document.createElement('div');
         emptyState.id = 'chat-empty-state';
         emptyState.className = 'flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full absolute inset-0 z-0';
@@ -2037,9 +2129,10 @@ class ChatSection {
             <p class="text-sm mt-2">Start the conversation by sending a message!</p>
         `;
         
-        // Add as background layer
         this.chatMessages.style.position = 'relative';
         this.chatMessages.appendChild(emptyState);
+        
+        console.log('Empty state shown - messages-container preserved for first message');
     }
 
     truncateText(text, maxLength) {

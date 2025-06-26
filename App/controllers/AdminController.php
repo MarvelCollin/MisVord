@@ -156,22 +156,50 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
+        if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
+            return $this->forbidden('This endpoint requires AJAX request');
+        }
+        
         $query = isset($_GET['q']) ? trim($_GET['q']) : '';
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10;
         
-        $users = $this->userRepository->search($query, $page, $limit);
-        $total = $this->userRepository->countSearch($query);
-        
-        return $this->success([
-            'users' => $users,
-            'pagination' => [
-                'total' => $total,
-                'page' => $page,
-                'limit' => $limit,
-                'pages' => ceil($total / $limit)
-            ]
-        ]);
+        try {
+            $users = $this->userRepository->search($query, $page, $limit);
+            $total = $this->userRepository->countSearch($query);
+            
+            $normalizedUsers = [];
+            foreach ($users as $user) {
+                $userData = is_object($user) && method_exists($user, 'toArray') ? $user->toArray() : (array)$user;
+                
+                $normalizedUsers[] = [
+                    'id' => $userData['id'] ?? null,
+                    'username' => $userData['username'] ?? 'Unknown User',
+                    'discriminator' => $userData['discriminator'] ?? '0000',
+                    'email' => $userData['email'] ?? '',
+                    'status' => $userData['status'] ?? 'active',
+                    'display_name' => $userData['display_name'] ?? $userData['username'] ?? 'Unknown User',
+                    'avatar_url' => $userData['avatar_url'] ?? null,
+                    'banner_url' => $userData['banner_url'] ?? null,
+                    'bio' => $userData['bio'] ?? '',
+                    'created_at' => $userData['created_at'] ?? null,
+                    'updated_at' => $userData['updated_at'] ?? null
+                ];
+            }
+            
+            return $this->success([
+                'users' => $normalizedUsers,
+                'pagination' => [
+                    'total' => $total,
+                    'page' => $page,
+                    'limit' => $limit,
+                    'pages' => ceil($total / $limit)
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log("Error searching users in admin controller: " . $e->getMessage());
+            return $this->serverError("Failed to search users: " . $e->getMessage());
+        }
     }
     
     public function getServers()
@@ -534,6 +562,69 @@ class AdminController extends BaseController
             ], "User has been {$actionType} successfully");
         } catch (Exception $e) {
             return $this->serverError("Error toggling user ban: " . $e->getMessage());
+        }
+    }
+
+    public function getServerDetails($serverId) {
+        $this->requireAdmin();
+        
+        try {
+            require_once __DIR__ . '/../database/models/UserServerMembership.php';
+            
+            $server = $this->serverRepository->find($serverId);
+            
+            if (!$server) {
+                return $this->notFound("Server not found");
+            }
+            
+            $serverData = is_object($server) && method_exists($server, 'toArray') ? $server->toArray() : (array)$server;
+            
+            $members = UserServerMembership::getServerDetailsWithMembers($serverId);
+            
+            $normalizedServer = [
+                'id' => $serverData['id'] ?? null,
+                'name' => $serverData['name'] ?? 'Unknown Server',
+                'description' => $serverData['description'] ?? '',
+                'icon' => $serverData['image_url'] ?? null,
+                'banner' => $serverData['banner_url'] ?? null,
+                'is_public' => $serverData['is_public'] ?? 0,
+                'category' => $serverData['category'] ?? null,
+                'invite_link' => $serverData['invite_link'] ?? null,
+                'created_at' => $serverData['created_at'] ?? null,
+                'updated_at' => $serverData['updated_at'] ?? null,
+                'member_count' => count($members)
+            ];
+            
+            $normalizedMembers = [];
+            foreach ($members as $member) {
+                $normalizedMembers[] = [
+                    'membership_id' => $member['membership_id'] ?? null,
+                    'user_id' => $member['user_id'] ?? null,
+                    'username' => $member['username'] ?? 'Unknown User',
+                    'discriminator' => $member['discriminator'] ?? '0000',
+                    'display_name' => $member['display_name'] ?? $member['username'] ?? 'Unknown User',
+                    'nickname' => $member['nickname'] ?? null,
+                    'email' => $member['email'] ?? '',
+                    'avatar_url' => $member['avatar_url'] ?? null,
+                    'banner_url' => $member['banner_url'] ?? null,
+                    'status' => $member['status'] ?? 'active',
+                    'bio' => $member['bio'] ?? '',
+                    'role' => $member['role'] ?? 'member',
+                    'notification_settings' => $member['notification_settings'] ?? null,
+                    'joined_at' => $member['joined_at'] ?? null,
+                    'membership_updated_at' => $member['membership_updated_at'] ?? null,
+                    'user_created_at' => $member['user_created_at'] ?? null
+                ];
+            }
+            
+            return $this->success([
+                'server' => $normalizedServer,
+                'members' => $normalizedMembers,
+                'total_members' => count($normalizedMembers)
+            ]);
+        } catch (Exception $e) {
+            error_log("Error getting server details in admin controller: " . $e->getMessage());
+            return $this->serverError("Failed to load server details: " . $e->getMessage());
         }
     }
     

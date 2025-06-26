@@ -830,6 +830,11 @@ Route::get('/api/admin/servers/list', function() {
     return $controller->getServers();
 });
 
+Route::get('/api/admin/servers/([0-9]+)', function($id) {
+    $controller = new AdminController();
+    return $controller->getServerDetails($id);
+});
+
 Route::delete('/api/admin/servers/([0-9]+)', function($id) {
     $controller = new AdminController();
     return $controller->deleteServer($id);

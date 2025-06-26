@@ -10,7 +10,7 @@ return [
         'enabled' => true,
         'allowed_origins' => ['*'],
         'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        'allowed_headers' => ['Content-Type', 'Accept', 'Authorization'],
+        'allowed_headers' => ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'],
         'expose_headers' => [],
         'max_age' => 86400,
         'supports_credentials' => true

@@ -211,18 +211,22 @@ class NitroController extends BaseController {
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
         
         $query = new Query();
-        $queryBuilder = $query->table('nitro');
+        
+        // Build query with LEFT JOIN to get user information
+        $queryBuilder = $query->table('nitro')
+            ->select('nitro.id, nitro.code, nitro.user_id, nitro.created_at, nitro.updated_at, users.username, users.discriminator')
+            ->leftJoin('users', 'nitro.user_id', '=', 'users.id');
         
         if (!empty($search)) {
-            $queryBuilder->where('code', 'LIKE', "%{$search}%");
+            $queryBuilder->where('nitro.code', 'LIKE', "%{$search}%");
         }
         
+        // Get total count for pagination
+        $total = $query->table('nitro')->count();
         
-        $total = $queryBuilder->count();
-        
-        
+        // Get paginated results
         $offset = ($page - 1) * $limit;
-        $codes = $queryBuilder->orderBy('created_at', 'DESC')
+        $codes = $queryBuilder->orderBy('nitro.created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
             ->get();

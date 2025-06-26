@@ -14,7 +14,6 @@ export class NitroManager {
     this.initNitroManagement();
     this.initUserSearch();
     
-    // Load skeletons first, then load data after a small delay
     this.showInitialSkeletons();
     
     setTimeout(() => {
@@ -113,7 +112,6 @@ export class NitroManager {
     const userIdInput = document.getElementById('user_id');
     
     if (userSearchInput && userSearchResults && userIdInput) {
-      // Add clear button to input
       const clearButton = document.createElement('button');
       clearButton.type = 'button';
       clearButton.className = 'absolute right-2 top-1/2 transform -translate-y-1/2 text-discord-lighter hover:text-white';
@@ -128,26 +126,22 @@ export class NitroManager {
         userSearchResults.classList.add('hidden');
       });
       
-      // Add clear button to search input parent
       const parent = userSearchInput.parentElement;
       if (parent) {
         parent.style.position = 'relative';
         parent.appendChild(clearButton);
       }
       
-      // Clear user selection when clicking the input
       userSearchInput.addEventListener('click', () => {
         if (userSearchInput.value.trim().length >= 2) {
           userSearchResults.classList.remove('hidden');
         }
       });
       
-      // Handle input typing
       userSearchInput.addEventListener('input', this.debounce(() => {
         const query = userSearchInput.value.trim();
         
         if (query.length === 0) {
-          // Clear selection
           userIdInput.value = '';
           userSearchResults.innerHTML = '<div class="p-2 text-sm text-gray-400">Type to search users...</div>';
           userSearchResults.classList.add('hidden');
@@ -159,14 +153,12 @@ export class NitroManager {
         }
       }, 300));
       
-      // Handle click outside to close dropdown
       document.addEventListener('click', (e) => {
         if (!userSearchInput.contains(e.target) && !userSearchResults.contains(e.target)) {
           userSearchResults.classList.add('hidden');
         }
       });
       
-      // Handle ESC key to close dropdown
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           userSearchResults.classList.add('hidden');
@@ -183,65 +175,57 @@ export class NitroManager {
     userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">Searching...</div>';
     userSearchResults.classList.remove('hidden');
     
-    // Use the admin users search endpoint with proper headers
-    fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}`, {
+    const ajaxConfig = {
+      method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'
-      }
-    })
+      },
+      credentials: 'same-origin'
+    };
+    
+    fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}`, ajaxConfig)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        return response.text();
+        return response.json();
       })
-      .then(text => {
-        try {
-          // Try to parse as JSON first
-          const data = JSON.parse(text);
-          
-          if (data.data && Array.isArray(data.data)) {
-            if (data.data.length === 0) {
-              userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">No users found</div>';
-              return;
-            }
-            
-            // Clear and populate results
-            userSearchResults.innerHTML = '';
-            
-            data.data.forEach(user => {
-              const resultItem = document.createElement('div');
-              resultItem.className = 'p-2 hover:bg-discord-dark cursor-pointer flex items-center';
-              resultItem.dataset.userId = user.id;
-              
-              // Use the appropriate user data format - make sure we handle the fields correctly
-              const username = user.username || '';
-              const discriminator = user.discriminator ? `#${user.discriminator}` : '';
-              const displayName = `${username}${discriminator}`;
-              
-              resultItem.innerHTML = `
-                <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2">
-                  <img src="${user.avatar_url || '/public/assets/common/main-logo.png'}" alt="Avatar" class="w-full h-full object-cover">
-                </div>
-                <div>
-                  <div class="text-sm font-medium">${displayName}</div>
-                  <div class="text-xs text-discord-lighter">${user.email || ''}</div>
-                </div>
-              `;
-              
-              resultItem.addEventListener('click', () => this.selectUser(user));
-              userSearchResults.appendChild(resultItem);
-            });
-          } else {
-            userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">Error: Invalid response format</div>';
-            console.error('Invalid response format:', data);
+      .then(data => {
+        if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
+          if (data.data.users.length === 0) {
+            userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">No users found</div>';
+            return;
           }
-        } catch (e) {
-          // If it's not valid JSON, it's probably an error page
-          console.error('Error parsing response:', e);
-          console.log('Received HTML instead of JSON:', text.substring(0, 200));
-          userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">Server error - please try again later</div>';
+          
+          userSearchResults.innerHTML = '';
+          
+          data.data.users.forEach(user => {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'p-2 hover:bg-discord-dark cursor-pointer flex items-center';
+            resultItem.dataset.userId = user.id;
+
+            const username = user.username || 'Unknown';
+            const discriminator = user.discriminator || '0000';
+            const displayName = `${username}#${discriminator}`;
+            
+            resultItem.innerHTML = `
+              <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2">
+                <img src="${user.avatar_url || '/public/assets/common/main-logo.png'}" alt="Avatar" class="w-full h-full object-cover" onerror="this.src='/public/assets/common/main-logo.png'">
+              </div>
+              <div>
+                <div class="text-sm font-medium text-white">${displayName}</div>
+                <div class="text-xs text-discord-lighter">${user.email || 'No email'}</div>
+              </div>
+            `;
+            
+            resultItem.addEventListener('click', () => this.selectUser(user));
+            userSearchResults.appendChild(resultItem);
+          });
+        } else {
+          userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">Error: Invalid response format</div>';
+          console.error('Invalid response format:', data);
         }
       })
       .catch(error => {
@@ -292,7 +276,6 @@ export class NitroManager {
   }
   
   loadNitroCodes() {
-    // Check if nitroAPI exists
     if (!nitroAPI) {
       console.warn('nitroAPI not available yet, retrying in 500ms');
       setTimeout(() => this.loadNitroCodes(), 500);
@@ -319,7 +302,6 @@ export class NitroManager {
   }
   
   loadNitroStats() {
-    // Check if nitroAPI exists
     if (!nitroAPI) {
       console.warn('nitroAPI not available yet, retrying in 500ms');
       setTimeout(() => this.loadNitroStats(), 500);
@@ -364,16 +346,23 @@ export class NitroManager {
         '<span class="text-yellow-400">Used</span>' : 
         '<span class="text-green-400">Active</span>';
       
-      const userId = code.user_id ? 
-        code.user_id : 
-        '<span class="text-discord-lighter">Unassigned</span>';
+      let userDisplay;
+      if (code.user_id) {
+        if (code.username && code.discriminator) {
+          userDisplay = `<span class="text-white">${code.username}#${code.discriminator}</span>`;
+        } else {
+          userDisplay = `<span class="text-discord-lighter">User ID: ${code.user_id}</span>`;
+        }
+      } else {
+        userDisplay = '<span class="text-discord-lighter">Unassigned</span>';
+      }
       
       row.innerHTML = `
         <td class="py-4">${code.id}</td>
         <td class="py-4">
           <span class="bg-discord-dark px-2 py-1 rounded text-yellow-400 font-mono">${code.code}</span>
         </td>
-        <td class="py-4">${userId}</td>
+        <td class="py-4">${userDisplay}</td>
         <td class="py-4">${status}</td>
         <td class="py-4">${this.formatDate(code.created_at)}</td>
         <td class="py-4">

@@ -238,6 +238,11 @@ function initUserAvatarUpload() {
                     updateAllAvatars('/public/assets/common/main-logo.png');
                     
                     showToast('Profile picture removed successfully', 'success');
+                    
+                    // Reload page after successful removal to ensure all UI is updated
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
                 } else {
                     throw new Error(data.message || data.error?.message || 'Failed to remove profile picture');
                 }
@@ -397,6 +402,11 @@ function initUserBannerUpload() {
                     updateAllBanners(null);
                     
                     showToast('Profile banner removed successfully', 'success');
+                    
+                    // Reload page after successful removal to ensure all UI is updated
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
                 } else {
                     throw new Error(data.message || data.error?.message || 'Failed to remove profile banner');
                 }
@@ -458,6 +468,10 @@ function uploadAvatar(dataUrl) {
             if (removeAvatarBtn && removeAvatarBtn.classList.contains('hidden')) {
                 removeAvatarBtn.classList.remove('hidden');
             }
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
         } else {
             throw new Error(data.message || data.error?.message || 'Failed to update profile picture');
         }
@@ -467,9 +481,6 @@ function uploadAvatar(dataUrl) {
         showToast(error.message || 'Error uploading profile picture', 'error');
     });
 }
-
-/**
- * Upload banner to server
  */
 function uploadBanner(dataUrl) {
     const blob = dataURLtoBlob(dataUrl);
@@ -517,6 +528,11 @@ function uploadBanner(dataUrl) {
             if (removeBannerBtn && removeBannerBtn.classList.contains('hidden')) {
                 removeBannerBtn.classList.remove('hidden');
             }
+            
+            // Reload page after successful upload to ensure all UI is updated
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
         } else {
             throw new Error(data.message || data.error?.message || 'Failed to update profile banner');
         }

@@ -64,7 +64,7 @@ class BaseController
         $allowedMethods = implode(', ', $cors['allowed_methods'] ?? ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']);
         header("Access-Control-Allow-Methods: $allowedMethods");
         
-        $allowedHeaders = implode(', ', $cors['allowed_headers'] ?? ['Content-Type', 'X-Requested-With']);
+        $allowedHeaders = implode(', ', $cors['allowed_headers'] ?? ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With']);
         header("Access-Control-Allow-Headers: $allowedHeaders");
         
         if ($cors['supports_credentials'] ?? true) {

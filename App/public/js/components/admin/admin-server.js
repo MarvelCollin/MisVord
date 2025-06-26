@@ -13,19 +13,19 @@ export class ServerManager {
     this.initServerManagement();
     this.showSkeletons();
     
-    if (window.serverAPI) {
+      if (window.serverAPI) {
       this.loadServerStats().then(() => {
         this.loadServers();
         this.initialized = true;
       });
-    } else {
-      setTimeout(() => {
+      } else {
+        setTimeout(() => {
         this.loadServerStats().then(() => {
           this.loadServers();
           this.initialized = true;
         });
-      }, 500);
-    }
+        }, 500);
+      }
   }
   
   showSkeleton(elementId) {
@@ -76,17 +76,17 @@ export class ServerManager {
                 <td><div class="skeleton" style="width: 40px; height: 20px;"></div></td>
                 <td><div class="skeleton" style="width: 100px; height: 20px;"></div></td>
                 <td>
-                  <div class="flex space-x-2">
+            <div class="flex space-x-2">
                     <div class="skeleton" style="width: 60px; height: 30px;"></div>
                     <div class="skeleton" style="width: 60px; height: 30px;"></div>
-                  </div>
-                </td>
-              </tr>
+            </div>
+          </td>
+        </tr>
             `).join('')}
           </tbody>
         </table>
       </div>
-    `;
+      `;
   }
 
   initServerManagement() {
@@ -99,7 +99,7 @@ export class ServerManager {
           this.currentServerPage--;
           if (!this.isLoading) {
             this.showSkeleton("servers-table-body");
-            this.loadServers();
+          this.loadServers();
           }
         }
       });
@@ -110,7 +110,7 @@ export class ServerManager {
         this.currentServerPage++;
         if (!this.isLoading) {
           this.showSkeleton("servers-table-body");
-          this.loadServers();
+        this.loadServers();
         }
       });
     }
@@ -121,26 +121,30 @@ export class ServerManager {
         this.currentServerPage = 1;
         if (!this.isLoading) {
           this.showSkeleton("servers-table-body");
-          this.loadServers();
+        this.loadServers();
         }
       }, 300));
     }
 
     document.addEventListener('click', (e) => {
-      const viewButton = e.target.closest('.view-server');
+      const serverRow = e.target.closest('.server-row');
       const deleteButton = e.target.closest('.delete-server');
-      
-      if (viewButton) {
-        e.preventDefault();
-        const serverId = viewButton.getAttribute('data-id');
-        this.viewServer(serverId);
-      }
       
       if (deleteButton) {
         e.preventDefault();
+        e.stopPropagation();
         const serverId = deleteButton.getAttribute('data-id');
         const serverName = deleteButton.getAttribute('data-name') || 'this server';
         this.deleteServer(serverId, serverName);
+        return;
+      }
+      
+      if (serverRow) {
+        e.preventDefault();
+        const serverId = serverRow.getAttribute('data-server-id');
+        if (serverId) {
+          this.showServerDetailsModal(serverId);
+        }
       }
     });
   }
@@ -294,6 +298,9 @@ export class ServerManager {
       
       const row = document.createElement('tr');
       
+      row.className = 'server-row cursor-pointer hover:bg-discord-dark transition-colors duration-200';
+      row.setAttribute('data-server-id', serverId);
+      
       row.innerHTML = `
         <td>${serverId}</td>
         <td>
@@ -309,10 +316,6 @@ export class ServerManager {
         <td>${createdAt}</td>
         <td>
           <div class="flex space-x-2">
-            <button class="discord-button primary view-server" data-id="${serverId}">
-              <i class="fas fa-eye mr-2"></i>
-              View
-            </button>
             <button class="discord-button danger delete-server" data-id="${serverId}" data-name="${serverName}">
               <i class="fas fa-trash mr-2"></i>
               Delete
@@ -348,8 +351,308 @@ export class ServerManager {
     }
   }
   
-  viewServer(serverId) {
-    window.location.href = `/server/${serverId}`;
+  showServerDetailsModal(serverId) {
+    if (!window.serverAPI) {
+      showToast("Server API is not available", "error");
+      return;
+    }
+
+    // Show loading skeleton immediately
+    this.renderServerDetailsLoadingSkeleton();
+
+    window.serverAPI.getServerDetails(serverId)
+      .then(response => {
+        // Remove loading skeleton and show actual content
+        this.closeServerModal();
+        if (response.success) {
+          this.renderServerDetailsModal(response.data);
+        } else {
+          showToast(response.message || "Failed to load server details", "error");
+        }
+      })
+      .catch(error => {
+        console.error("Error loading server details:", error);
+        this.closeServerModal();
+        showToast("An error occurred while loading server details", "error");
+      });
+  }
+
+  renderServerDetailsLoadingSkeleton() {
+    const skeletonHTML = `
+      <div id="server-details-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
+        <div class="bg-discord-darker rounded-lg shadow-2xl max-w-6xl max-h-[90vh] w-full mx-4 animate-slide-up overflow-hidden">
+          <!-- Skeleton Header -->
+          <div class="bg-discord-dark p-6 border-b border-discord-light">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-4">
+                <div class="w-16 h-16 bg-discord-light rounded-lg animate-pulse"></div>
+                <div>
+                  <div class="h-6 bg-discord-light rounded w-48 animate-pulse mb-2"></div>
+                  <div class="h-4 bg-discord-light rounded w-64 animate-pulse"></div>
+                </div>
+              </div>
+              <button id="close-server-modal" class="text-discord-lighter hover:text-white transition-colors duration-200">
+                <i class="fas fa-times text-xl"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Skeleton Body -->
+          <div class="p-6 overflow-y-auto max-h-[70vh]">
+            <!-- Server Details Skeleton -->
+            <div class="mb-8">
+              <div class="flex items-center mb-4">
+                <div class="w-6 h-6 bg-discord-light rounded animate-pulse mr-2"></div>
+                <div class="h-6 bg-discord-light rounded w-40 animate-pulse"></div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-discord-dark p-4 rounded-lg">
+                ${Array(6).fill().map(() => `
+                  <div>
+                    <div class="h-3 bg-discord-light rounded w-20 animate-pulse mb-1"></div>
+                    <div class="h-4 bg-discord-light rounded w-32 animate-pulse"></div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Members List Skeleton -->
+            <div>
+              <div class="flex items-center mb-4">
+                <div class="w-6 h-6 bg-discord-light rounded animate-pulse mr-2"></div>
+                <div class="h-6 bg-discord-light rounded w-32 animate-pulse"></div>
+              </div>
+              <div class="space-y-3 max-h-96 overflow-y-auto">
+                ${Array(5).fill().map(() => `
+                  <div class="bg-discord-dark p-4 rounded-lg animate-pulse">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-discord-light rounded-full"></div>
+                        <div>
+                          <div class="flex items-center space-x-2 mb-2">
+                            <div class="h-4 bg-discord-light rounded w-24"></div>
+                            <div class="h-3 bg-discord-light rounded w-12"></div>
+                          </div>
+                          <div class="flex items-center space-x-2">
+                            <div class="h-3 bg-discord-light rounded w-16"></div>
+                            <div class="h-3 bg-discord-light rounded w-20"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="h-3 bg-discord-light rounded w-16 mb-1"></div>
+                        <div class="h-3 bg-discord-light rounded w-20"></div>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', skeletonHTML);
+
+    const modal = document.getElementById('server-details-modal');
+    const closeBtn = document.getElementById('close-server-modal');
+
+    closeBtn.addEventListener('click', () => this.closeServerModal());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.closeServerModal();
+      }
+    });
+
+    // Add escape key handler
+    this.escHandler = (e) => {
+      if (e.key === 'Escape') {
+        this.closeServerModal();
+      }
+    };
+    document.addEventListener('keydown', this.escHandler);
+  }
+
+  closeServerModal() {
+    const modal = document.getElementById('server-details-modal');
+    if (modal) {
+      modal.classList.add('animate-fade-out');
+      setTimeout(() => {
+        if (modal && modal.parentNode) {
+          modal.parentNode.removeChild(modal);
+        }
+      }, 300);
+    }
+    
+    // Remove escape key handler
+    if (this.escHandler) {
+      document.removeEventListener('keydown', this.escHandler);
+      this.escHandler = null;
+    }
+  }
+
+  renderServerDetailsModal(data) {
+    // First, ensure any existing modal is completely removed
+    this.closeServerModal();
+    
+    // Wait a bit to ensure DOM cleanup is complete
+    setTimeout(() => {
+      const server = data.server;
+      const members = data.members;
+
+      const modalHTML = `
+        <div id="server-details-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
+          <div class="bg-discord-darker rounded-lg shadow-2xl max-w-6xl max-h-[90vh] w-full mx-4 animate-slide-up overflow-hidden">
+            <!-- Modal Header -->
+            <div class="bg-discord-dark p-6 border-b border-discord-light">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                  ${server.icon ? 
+                    `<img src="${server.icon}" alt="${server.name}" class="w-16 h-16 rounded-lg object-cover">` : 
+                    `<div class="w-16 h-16 bg-discord-primary rounded-lg flex items-center justify-center text-2xl font-bold text-white">${server.name.charAt(0).toUpperCase()}</div>`
+                  }
+                  <div>
+                    <h2 class="text-2xl font-bold text-white">${server.name}</h2>
+                    <p class="text-discord-lighter">${server.description || 'No description available'}</p>
+                  </div>
+                </div>
+                <button id="close-server-modal" class="text-discord-lighter hover:text-white transition-colors duration-200">
+                  <i class="fas fa-times text-xl"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto max-h-[70vh]">
+              <!-- Server Details -->
+              <div class="mb-8">
+                <h3 class="text-xl font-bold text-white mb-4">
+                  <i class="fas fa-server mr-2 text-discord-primary"></i>
+                  Server Information
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-discord-dark p-4 rounded-lg">
+                  <div>
+                    <span class="text-discord-lighter text-sm">Server ID:</span>
+                    <p class="text-white font-mono">${server.id}</p>
+                  </div>
+                  <div>
+                    <span class="text-discord-lighter text-sm">Category:</span>
+                    <p class="text-white capitalize">${server.category || 'None'}</p>
+                  </div>
+                  <div>
+                    <span class="text-discord-lighter text-sm">Public:</span>
+                    <p class="text-white">${server.is_public ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
+                    <span class="text-discord-lighter text-sm">Members:</span>
+                    <p class="text-white">${server.member_count}</p>
+                  </div>
+                  <div>
+                    <span class="text-discord-lighter text-sm">Created:</span>
+                    <p class="text-white">${this.formatDate(server.created_at)}</p>
+                  </div>
+                  <div>
+                    <span class="text-discord-lighter text-sm">Updated:</span>
+                    <p class="text-white">${this.formatDate(server.updated_at)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Members List -->
+              <div>
+                <h3 class="text-xl font-bold text-white mb-4">
+                  <i class="fas fa-users mr-2 text-discord-primary"></i>
+                  Members (${members.length})
+                </h3>
+                <div class="space-y-3 max-h-96 overflow-y-auto">
+                  ${members.map(member => `
+                    <div class="bg-discord-dark p-4 rounded-lg hover:bg-discord-light transition-colors duration-200">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                          ${member.avatar_url ? 
+                            `<img src="${member.avatar_url}" alt="${member.username}" class="w-10 h-10 rounded-full object-cover">` : 
+                            `<div class="w-10 h-10 bg-discord-primary rounded-full flex items-center justify-center text-sm font-bold text-white">${member.username.charAt(0).toUpperCase()}</div>`
+                          }
+                          <div>
+                            <div class="flex items-center space-x-2">
+                              <span class="text-white font-medium">${member.display_name || member.username}</span>
+                              <span class="text-discord-lighter text-sm">#${member.discriminator}</span>
+                              ${member.nickname ? `<span class="text-discord-lighter text-sm">(${member.nickname})</span>` : ''}
+                            </div>
+                            <div class="flex items-center space-x-2 text-sm">
+                              <span class="px-2 py-1 rounded-full text-xs font-medium ${this.getRoleBadgeClass(member.role)}">${member.role}</span>
+                              <span class="text-discord-lighter">Joined: ${this.formatDate(member.joined_at)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="text-right text-sm text-discord-lighter">
+                          <div>ID: ${member.user_id}</div>
+                          <div>Status: <span class="${this.getStatusClass(member.status)}">${member.status}</span></div>
+                        </div>
+                      </div>
+                      ${member.bio ? `<div class="mt-2 text-discord-lighter text-sm">${member.bio}</div>` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+      const modal = document.getElementById('server-details-modal');
+      const closeBtn = document.getElementById('close-server-modal');
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => this.closeServerModal());
+      }
+      
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            this.closeServerModal();
+          }
+        });
+      }
+
+      // Add escape key handler
+      this.escHandler = (e) => {
+        if (e.key === 'Escape') {
+          this.closeServerModal();
+        }
+      };
+      document.addEventListener('keydown', this.escHandler);
+    }, 100);
+  }
+
+  getRoleBadgeClass(role) {
+    switch (role) {
+      case 'owner':
+        return 'bg-red-600 text-white';
+      case 'admin':
+        return 'bg-orange-600 text-white';
+      case 'moderator':
+        return 'bg-yellow-600 text-white';
+      default:
+        return 'bg-discord-light text-discord-lighter';
+    }
+  }
+
+  getStatusClass(status) {
+    switch (status) {
+      case 'online':
+        return 'text-green-400';
+      case 'idle':
+        return 'text-yellow-400';
+      case 'dnd':
+        return 'text-red-400';
+      case 'banned':
+        return 'text-red-600';
+      default:
+        return 'text-discord-lighter';
+    }
   }
   
   deleteServer(serverId, serverName) {
@@ -384,34 +687,34 @@ export class ServerManager {
   showDiscordConfirmation(title, message, confirmCallback) {
     const confirmModal = document.getElementById('confirm-modal');
     if (confirmModal) {
-      const confirmTitle = document.getElementById('confirm-title');
-      const confirmMessage = document.getElementById('confirm-message');
-      const confirmBtn = document.getElementById('confirm-action');
-      const cancelBtn = document.getElementById('cancel-confirm');
+    const confirmTitle = document.getElementById('confirm-title');
+    const confirmMessage = document.getElementById('confirm-message');
+    const confirmBtn = document.getElementById('confirm-action');
+    const cancelBtn = document.getElementById('cancel-confirm');
       const closeBtn = document.getElementById('close-confirm-modal');
-      
-      confirmTitle.textContent = title;
+    
+    confirmTitle.textContent = title;
       confirmMessage.innerHTML = message;
-      
-      const handleConfirm = () => {
+    
+    const handleConfirm = () => {
         confirmModal.classList.add('hidden');
-        confirmBtn.removeEventListener('click', handleConfirm);
-        cancelBtn.removeEventListener('click', handleCancel);
+      confirmBtn.removeEventListener('click', handleConfirm);
+      cancelBtn.removeEventListener('click', handleCancel);
         if (closeBtn) closeBtn.removeEventListener('click', handleCancel);
-        confirmCallback();
-      };
-      
-      const handleCancel = () => {
+      confirmCallback();
+    };
+    
+    const handleCancel = () => {
         confirmModal.classList.add('hidden');
-        confirmBtn.removeEventListener('click', handleConfirm);
-        cancelBtn.removeEventListener('click', handleCancel);
+      confirmBtn.removeEventListener('click', handleConfirm);
+      cancelBtn.removeEventListener('click', handleCancel);
         if (closeBtn) closeBtn.removeEventListener('click', handleCancel);
-      };
-      
-      confirmBtn.addEventListener('click', handleConfirm);
-      cancelBtn.addEventListener('click', handleCancel);
+    };
+    
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', handleCancel);
       if (closeBtn) closeBtn.addEventListener('click', handleCancel);
-      
+    
       confirmModal.classList.remove('hidden');
     }
   }

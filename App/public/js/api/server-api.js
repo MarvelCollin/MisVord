@@ -67,6 +67,22 @@ const serverAPI = {
         });
     },
     
+    getServerDetails: function(serverId) {
+        return fetch(`/api/admin/servers/${serverId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
     deleteServer: function(serverId) {
         return fetch(`/api/admin/servers/${serverId}`, {
             method: 'DELETE',

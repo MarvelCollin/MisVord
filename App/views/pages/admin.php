@@ -525,7 +525,7 @@ ob_start();
                             <tr class="text-left text-discord-lighter border-b border-discord-dark">
                                 <th class="pb-3 font-medium">ID</th>
                                 <th class="pb-3 font-medium">Code</th>
-                                <th class="pb-3 font-medium">User ID</th>
+                                <th class="pb-3 font-medium">User</th>
                                 <th class="pb-3 font-medium">Status</th>
                                 <th class="pb-3 font-medium">Created</th>
                                 <th class="pb-3 font-medium">Actions</th>

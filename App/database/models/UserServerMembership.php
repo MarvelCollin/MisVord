@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class UserServerMembership extends Model {
     protected static $table = 'user_server_memberships';
-    protected $fillable = ['user_id', 'server_id', 'role', 'nickname', 'notification_settings', 'created_at', 'updated_at'];
+    protected $fillable = ['id', 'user_id', 'server_id', 'role', 'nickname', 'notification_settings', 'created_at', 'updated_at'];
 
     public static function findByUserAndServer($userId, $serverId) {
         $result = static::where('user_id', $userId)
@@ -107,6 +107,43 @@ class UserServerMembership extends Model {
             ->get();
         
         return array_column($results, 'server_id');
+    }
+
+    public static function getServerDetailsWithMembers($serverId) {
+        $query = new Query();
+        $sql = "
+            SELECT 
+                usm.id as membership_id,
+                usm.user_id,
+                usm.server_id,
+                usm.role,
+                usm.nickname,
+                usm.notification_settings,
+                usm.created_at as joined_at,
+                usm.updated_at as membership_updated_at,
+                u.username,
+                u.discriminator,
+                u.email,
+                u.avatar_url,
+                u.banner_url,
+                u.status,
+                u.display_name,
+                u.bio,
+                u.created_at as user_created_at
+            FROM user_server_memberships usm
+            JOIN users u ON usm.user_id = u.id
+            WHERE usm.server_id = ?
+            ORDER BY 
+                CASE usm.role 
+                    WHEN 'owner' THEN 1
+                    WHEN 'admin' THEN 2
+                    WHEN 'moderator' THEN 3
+                    ELSE 4
+                END,
+                u.username ASC
+        ";
+        
+        return $query->query($sql, [$serverId]);
     }
 }
 
