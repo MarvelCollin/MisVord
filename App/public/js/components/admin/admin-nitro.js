@@ -260,7 +260,7 @@ export class NitroManager {
       
       resultItem.innerHTML = `
         <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2 flex-shrink-0">
-          <img src="${user.avatar_url || '/public/assets/common/main-logo.png'}" alt="" class="w-full h-full object-cover" loading="lazy" onerror="this.src='/public/assets/common/main-logo.png'">
+          <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="" class="w-full h-full object-cover" loading="lazy" onerror="this.src='/public/assets/common/default-profile-picture.png'">
         </div>
         <div class="flex-1 min-w-0">
           <div class="text-sm font-medium text-white truncate">${displayName}</div>

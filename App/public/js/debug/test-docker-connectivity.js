@@ -69,7 +69,7 @@ async function testDockerConnectivity() {
         console.log(`   Transport: ${testSocket.io.engine.transport.name}`);
         
         testSocket.emit('test-auth', { 
-            userId: 'test-user',
+            user_id: 'test-user',
             username: 'test'
         });
         

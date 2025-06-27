@@ -28,16 +28,16 @@ function setup(io) {
                 return;
             }
             
-            const signature = messageService.generateSignature('new-channel-message', client.data?.userId, data.id, data.content, data.timestamp);
+            const signature = messageService.generateSignature('new-channel-message', client.data?.user_id, data.id, data.content, data.timestamp);
             if (!messageService.isDuplicate(signature)) {
                 messageService.markAsProcessed(signature);
-                if (!data.channelId && !data.channel_id) {
-                    console.warn('Channel message missing channelId:', data);
+                const channel_id = data.channel_id;
+                if (!channel_id) {
+                    console.warn('Channel message missing channel_id:', data);
                     return;
                 }
-                const channelId = data.channelId || data.channel_id;
-                data.channelId = channelId;
-                data.userId = data.userId || data.user_id || client.data.userId;
+                data.channel_id = channel_id;
+                data.user_id = data.user_id || client.data.user_id;
                 data.username = data.username || client.data.username;
                 MessageHandler.forwardMessage(io, client, 'new-channel-message', data);
             }
@@ -51,16 +51,16 @@ function setup(io) {
                 return;
             }
             
-            const signature = messageService.generateSignature('user-message-dm', client.data?.userId, data.id, data.content, data.timestamp);
+            const signature = messageService.generateSignature('user-message-dm', client.data?.user_id, data.id, data.content, data.timestamp);
             if (!messageService.isDuplicate(signature)) {
                 messageService.markAsProcessed(signature);
-                if (!data.roomId && !data.chatRoomId) {
-                    console.warn('DM message missing roomId:', data);
+                const room_id = data.room_id;
+                if (!room_id) {
+                    console.warn('DM message missing room_id:', data);
                     return;
                 }
-                const roomId = data.roomId || data.chatRoomId;
-                data.roomId = roomId;
-                data.userId = data.userId || data.user_id || client.data.userId;
+                data.room_id = room_id;
+                data.user_id = data.user_id || client.data.user_id;
                 data.username = data.username || client.data.username;
                 MessageHandler.forwardMessage(io, client, 'user-message-dm', data);
             }
@@ -73,7 +73,7 @@ function setup(io) {
                 console.warn('Message update missing message_id:', data);
                 return;
             }
-            data.userId = data.userId || data.user_id || client.data.userId;
+            data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
             MessageHandler.forwardMessage(io, client, 'message-updated', data);
         });
@@ -85,16 +85,62 @@ function setup(io) {
                 console.warn('Message deletion missing message_id:', data);
                 return;
             }
-            data.userId = data.userId || data.user_id || client.data.userId;
+            data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
             MessageHandler.forwardMessage(io, client, 'message-deleted', data);
         });
         
-        client.on('reaction-added', (data) => MessageHandler.handleReaction(io, client, 'reaction-added', data));
-        client.on('reaction-removed', (data) => MessageHandler.handleReaction(io, client, 'reaction-removed', data));
+        client.on('reaction-added', (data) => {
+            if (!AuthHandler.requireAuth(client)) return;
+            
+            if (data.source !== 'server-originated') {
+                console.warn('Rejecting client-originated reaction, should come from server:', data);
+                return;
+            }
+            
+            data.user_id = data.user_id || client.data.user_id;
+            data.username = data.username || client.data.username;
+            MessageHandler.handleReaction(io, client, 'reaction-added', data);
+        });
         
-        client.on('message-pinned', (data) => MessageHandler.handlePin(io, client, 'message-pinned', data));
-        client.on('message-unpinned', (data) => MessageHandler.handlePin(io, client, 'message-unpinned', data));
+        client.on('reaction-removed', (data) => {
+            if (!AuthHandler.requireAuth(client)) return;
+            
+            if (data.source !== 'server-originated') {
+                console.warn('Rejecting client-originated reaction, should come from server:', data);
+                return;
+            }
+            
+            data.user_id = data.user_id || client.data.user_id;
+            data.username = data.username || client.data.username;
+            MessageHandler.handleReaction(io, client, 'reaction-removed', data);
+        });
+        
+        client.on('message-pinned', (data) => {
+            if (!AuthHandler.requireAuth(client)) return;
+            
+            if (data.source !== 'server-originated') {
+                console.warn('Rejecting client-originated pin event, should come from server:', data);
+                return;
+            }
+            
+            data.user_id = data.user_id || client.data.user_id;
+            data.username = data.username || client.data.username;
+            MessageHandler.handlePin(io, client, 'message-pinned', data);
+        });
+        
+        client.on('message-unpinned', (data) => {
+            if (!AuthHandler.requireAuth(client)) return;
+            
+            if (data.source !== 'server-originated') {
+                console.warn('Rejecting client-originated pin event, should come from server:', data);
+                return;
+            }
+            
+            data.user_id = data.user_id || client.data.user_id;
+            data.username = data.username || client.data.username;
+            MessageHandler.handlePin(io, client, 'message-unpinned', data);
+        });
         
         client.on('typing', (data) => MessageHandler.handleTyping(io, client, data, true));
         client.on('stop-typing', (data) => MessageHandler.handleTyping(io, client, data, false));
@@ -116,17 +162,17 @@ function setup(io) {
 function handlePresence(io, client, data) {
     if (!AuthHandler.requireAuth(client)) return;
     
-    const { status, activityDetails } = data;
-    const userId = client.data.userId;
+    const { status, activity_details } = data;
+    const user_id = client.data.user_id;
     const username = client.data.username;
     
-    userService.updatePresence(userId, status, activityDetails);
+    userService.updatePresence(user_id, status, activity_details);
     
     io.emit('user-presence-update', {
-        userId,
+        user_id,
         username,
         status,
-        activityDetails
+        activity_details
     });
 }
 
@@ -139,15 +185,15 @@ function handleGetOnlineUsers(io, client) {
     const onlineUsers = {};
     
     for (const [socketId, socket] of io.sockets.sockets.entries()) {
-        if (socket.data?.userId && socket.data?.authenticated) {
-            const userId = socket.data.userId;
-            const presence = userService.getPresence(userId);
+        if (socket.data?.user_id && socket.data?.authenticated) {
+            const user_id = socket.data.user_id;
+            const presence = userService.getPresence(user_id);
             
-            onlineUsers[userId] = {
-                userId,
+            onlineUsers[user_id] = {
+                user_id,
                 username: socket.data.username || 'Unknown',
                 status: presence?.status || 'online',
-                lastSeen: Date.now()
+                last_seen: Date.now()
             };
         }
     }
@@ -162,18 +208,18 @@ function handleCheckVoiceMeeting(io, client, data) {
         return;
     }
     
-    const { channelId } = data;
-    if (!channelId) {
+    const { channel_id } = data;
+    if (!channel_id) {
         client.emit('error', { message: 'Channel ID is required' });
         return;
     }
     
-    const meeting = roomManager.getVoiceMeeting(channelId);
+    const meeting = roomManager.getVoiceMeeting(channel_id);
     
     client.emit('voice-meeting-info', {
-        channelId,
-        meetingId: meeting?.meetingId || null,
-        participantCount: meeting?.participants.size || 0
+        channel_id,
+        meeting_id: meeting?.meeting_id || null,
+        participant_count: meeting?.participants.size || 0
     });
 }
 
@@ -183,21 +229,21 @@ function handleRegisterVoiceMeeting(io, client, data) {
         return;
     }
     
-    const { channelId, meetingId, username } = data;
-    if (!channelId || !meetingId) {
+    const { channel_id, meeting_id, username } = data;
+    if (!channel_id || !meeting_id) {
         client.emit('error', { message: 'Channel ID and Meeting ID are required' });
         return;
     }
     
-    roomManager.addVoiceMeeting(channelId, meetingId, client.id);
+    roomManager.addVoiceMeeting(channel_id, meeting_id, client.id);
     
-    const roomName = roomManager.getChannelRoom(channelId);
+    const roomName = roomManager.getChannelRoom(channel_id);
     roomManager.broadcastToRoom(io, roomName, 'voice-participant-joined', {
-        channelId,
-        meetingId,
+        channel_id,
+        meeting_id,
         username: username || client.data.username,
-        userId: client.data.userId,
-        participantCount: roomManager.getVoiceMeeting(channelId).participants.size
+        user_id: client.data.user_id,
+        participant_count: roomManager.getVoiceMeeting(channel_id).participants.size
     });
 }
 
@@ -207,21 +253,21 @@ function handleUnregisterVoiceMeeting(io, client, data) {
         return;
     }
     
-    const { channelId, meetingId, username } = data;
-    if (!channelId || !meetingId) {
+    const { channel_id, meeting_id, username } = data;
+    if (!channel_id || !meeting_id) {
         client.emit('error', { message: 'Channel ID and Meeting ID are required' });
         return;
     }
     
-    const result = roomManager.removeVoiceMeeting(channelId, client.id);
+    const result = roomManager.removeVoiceMeeting(channel_id, client.id);
     
-    const roomName = roomManager.getChannelRoom(channelId);
+    const roomName = roomManager.getChannelRoom(channel_id);
     roomManager.broadcastToRoom(io, roomName, 'voice-participant-left', {
-        channelId,
-        meetingId,
+        channel_id,
+        meeting_id,
         username: username || client.data.username,
-        userId: client.data.userId,
-        participantCount: result.participantCount
+        user_id: client.data.user_id,
+        participant_count: result.participant_count
     });
 }
 
@@ -246,24 +292,24 @@ function handleDebugRooms(io, client) {
     }
     
     client.emit('debug-rooms-info', {
-        yourSocketId: client.id,
-        yourUserId: client.data.userId,
-        yourRooms: clientRooms,
-        allRooms: roomData
+        your_socket_id: client.id,
+        your_user_id: client.data.user_id,
+        your_rooms: clientRooms,
+        all_rooms: roomData
     });
 }
 
 function handleDisconnect(io, client) {
-    const userId = client.data?.userId;
-    console.log(`Client disconnected: ${client.id}, User: ${userId}`);
+    const user_id = client.data?.user_id;
+    console.log(`Client disconnected: ${client.id}, User: ${user_id}`);
     
-    if (userId) {
-        const isOffline = roomManager.removeUserSocket(userId, client.id);
+    if (user_id) {
+        const isOffline = roomManager.removeUserSocket(user_id, client.id);
         
         if (isOffline) {
-            userService.removePresence(userId);
+            userService.removePresence(user_id);
             io.emit('user-offline', {
-                userId,
+                user_id,
                 username: client.data.username,
                 timestamp: Date.now()
             });
@@ -271,15 +317,15 @@ function handleDisconnect(io, client) {
         
         const allMeetings = roomManager.getAllVoiceMeetings();
         for (const meeting of allMeetings) {
-            const result = roomManager.removeVoiceMeeting(meeting.channelId, client.id);
-            if (result.removed || result.participantCount !== meeting.participantCount) {
-                const roomName = roomManager.getChannelRoom(meeting.channelId);
+            const result = roomManager.removeVoiceMeeting(meeting.channel_id, client.id);
+            if (result.removed || result.participant_count !== meeting.participant_count) {
+                const roomName = roomManager.getChannelRoom(meeting.channel_id);
                 roomManager.broadcastToRoom(io, roomName, 'voice-participant-left', {
-                    channelId: meeting.channelId,
-                    meetingId: meeting.meetingId,
+                    channel_id: meeting.channel_id,
+                    meeting_id: meeting.meeting_id,
                     username: client.data?.username || 'Unknown',
-                    userId: client.data?.userId,
-                    participantCount: result.participantCount
+                    user_id: client.data?.user_id,
+                    participant_count: result.participant_count
                 });
             }
         }

@@ -117,13 +117,15 @@ class MessageController extends BaseController
                 SocketBroadcaster::broadcastMessage($targetType, $targetId, 'reaction-added', $socketData);
                 
                 return $this->success([
-                    'message_id' => $messageId,
-                    'emoji' => $emoji,
-                    'user_id' => $userId,
-                    'username' => $username,
-                    'target_type' => $targetType,
-                    'target_id' => $targetId,
-                    'action' => 'added',
+                    'data' => [
+                        'message_id' => $messageId,
+                        'emoji' => $emoji,
+                        'user_id' => $userId,
+                        'username' => $username,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId,
+                        'action' => 'added'
+                    ],
                     'socket_event' => 'reaction-added',
                     'socket_data' => $socketData,
                     'client_should_emit_socket' => false
@@ -182,26 +184,33 @@ class MessageController extends BaseController
             }
 
             if ($reaction->delete()) {
-            return $this->success([
-                'message_id' => $messageId,
-                'emoji' => $emoji,
-                'user_id' => $userId,
-                'username' => $username,
-                'target_type' => $targetType,
-                'target_id' => $targetId,
-                'action' => 'removed',
-                'socket_event' => 'reaction-removed',
-                'socket_data' => [
+                $socketData = [
                     'message_id' => $messageId,
                     'user_id' => $userId,
                     'username' => $username,
                     'emoji' => $emoji,
                     'target_type' => $targetType,
                     'target_id' => $targetId,
-                    'action' => 'removed'
-                ],
-                'client_should_emit_socket' => true
-            ], 'Reaction removed successfully');
+                    'action' => 'removed',
+                    'source' => 'server-originated'
+                ];
+                
+                SocketBroadcaster::broadcastMessage($targetType, $targetId, 'reaction-removed', $socketData);
+                
+                return $this->success([
+                    'data' => [
+                        'message_id' => $messageId,
+                        'emoji' => $emoji,
+                        'user_id' => $userId,
+                        'username' => $username,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId,
+                        'action' => 'removed'
+                    ],
+                    'socket_event' => 'reaction-removed',
+                    'socket_data' => $socketData,
+                    'client_should_emit_socket' => false
+                ], 'Reaction removed successfully');
             } else {
                 throw new Exception('Failed to remove reaction');
             }
@@ -364,7 +373,7 @@ class MessageController extends BaseController
             'content' => $message->content,
             'user_id' => $message->user_id,
             'username' => $user ? $user->username : 'Unknown User',
-            'avatar_url' => $user && $user->avatar_url ? $user->avatar_url : '/public/assets/common/main-logo.png',
+            'avatar_url' => $user && $user->avatar_url ? $user->avatar_url : '/public/assets/common/default-profile-picture.png',
             'sent_at' => $message->sent_at,
             'message_type' => $message->message_type ?? 'text'
         ];

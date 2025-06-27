@@ -60,29 +60,24 @@ class RoomManager {
             console.log(`🎯 [ROOM] Target room for channel ${data.target_id}: ${room}`);
             return room;
         }
-        if ((data.target_type === 'dm' || data.target_type === 'direct') && data.target_id) {
+        if (data.target_type === 'dm' && data.target_id) {
             const room = this.getDMRoom(data.target_id);
             console.log(`🎯 [ROOM] Target room for DM ${data.target_id}: ${room}`);
             return room;
         }
-        if (data.roomId) {
-            const room = this.getDMRoom(data.roomId);
-            console.log(`🎯 [ROOM] Target room for roomId ${data.roomId}: ${room}`);
-            return room;
-        }
-        if (data.channelId) {
-            const room = this.getChannelRoom(data.channelId);
-            console.log(`🎯 [ROOM] Target room for channelId ${data.channelId}: ${room}`);
-            return room;
-        }
-        if (data.chatRoomId) {
-            const room = this.getDMRoom(data.chatRoomId);
-            console.log(`🎯 [ROOM] Target room for chatRoomId ${data.chatRoomId}: ${room}`);
+        if (data.room_id) {
+            const room = this.getDMRoom(data.room_id);
+            console.log(`🎯 [ROOM] Target room for room_id ${data.room_id}: ${room}`);
             return room;
         }
         if (data.channel_id) {
             const room = this.getChannelRoom(data.channel_id);
             console.log(`🎯 [ROOM] Target room for channel_id ${data.channel_id}: ${room}`);
+            return room;
+        }
+        if (data.chat_room_id) {
+            const room = this.getDMRoom(data.chat_room_id);
+            console.log(`🎯 [ROOM] Target room for chat_room_id ${data.chat_room_id}: ${room}`);
             return room;
         }
         

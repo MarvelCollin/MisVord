@@ -578,7 +578,7 @@ async function getServerData() {
         
         if (response.ok) {
             const data = await response.json();
-            if (data.success && data.data.servers) {
+            if (data.data && data.data.servers) {
                 const serverMap = {};
                 data.data.servers.forEach(server => {
                     serverMap[server.id] = server;

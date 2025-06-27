@@ -23,7 +23,7 @@ function ensureServerDataLoaded() {
             if (serverContainer && serverContainer.children.length === 0) {
                 window.serverAPI.getServer(serverId)
                     .then(response => {
-                        if (response.success) {
+                        if (response.data) {
                             console.log('Server data loaded successfully');
                             
                             return window.serverAPI.getServerChannels(serverId);
@@ -100,7 +100,7 @@ async function initJoinServerForm() {
 
                 const data = await response.json();
 
-                if (data.success) {
+                if (data.data) {
                     showToast('Joined server successfully', 'success');
 
                     const modal = document.getElementById('join-server-modal');
@@ -159,7 +159,7 @@ async function leaveServer(serverId) {
 
         const data = await response.json();
 
-        if (data.success) {
+        if (data.data) {
             showToast('Left server successfully', 'success');
             window.location.href = '/app';
         } else {
@@ -219,7 +219,7 @@ function refreshServerList() {
     if (window.serverAPI) {
         window.serverAPI.getServers()
             .then(response => {
-                if (response.success && response.data && response.data.servers) {
+                if (response.data && response.data.servers) {
                     updateServerListUI(response.data.servers);
                 }
             })

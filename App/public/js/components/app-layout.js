@@ -158,7 +158,7 @@ function loadFriendsForDM() {
                     friendItem.innerHTML = `
                         <div class="relative mr-3">
                             <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="${friend.avatar_url || '/public/assets/main-logo.png'}" 
+                                <img src="${friend.avatar_url || '/public/assets/default-profile-picture.png'}" 
                                      alt="Avatar" class="w-full h-full object-cover">
                             </div>
                             <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-darker ${statusColor}"></span>
@@ -245,7 +245,7 @@ function createDirectMessage(userId) {
                 modal.classList.add('hidden');
             }
 
-            if (data.success && data.data && data.data.channel_id) {
+            if (data.data && data.data.channel_id) {
                 window.location.href = `/app/channels/dm/${data.data.channel_id}`;
             } else {
                 showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
@@ -375,7 +375,7 @@ function loadAllFriends() {
                         <div class="flex items-center">
                             <div class="relative mr-3">
                                 <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                    <img src="${friend.avatar_url || '/public/assets/main-logo.png'}" 
+                                    <img src="${friend.avatar_url || '/public/assets/default-profile-picture.png'}" 
                                          alt="Avatar" class="w-full h-full object-cover">
                                 </div>
                                 <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${statusColor}"></span>
@@ -450,7 +450,7 @@ function loadPendingRequests() {
                                 <div class="flex items-center justify-between p-2 bg-discord-dark rounded">
                                     <div class="flex items-center">
                                         <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                            <img src="${user.avatar_url || '/public/assets/main-logo.png'}" 
+                                            <img src="${user.avatar_url || '/public/assets/default-profile-picture.png'}" 
                                                  alt="Avatar" class="w-full h-full object-cover">
                                         </div>
                                         <div>
@@ -479,7 +479,7 @@ function loadPendingRequests() {
                                 <div class="flex items-center justify-between p-2 bg-discord-dark rounded">
                                     <div class="flex items-center">
                                         <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                            <img src="${user.avatar_url || '/public/assets/main-logo.png'}" 
+                                            <img src="${user.avatar_url || '/public/assets/default-profile-picture.png'}" 
                                                  alt="Avatar" class="w-full h-full object-cover">
                                         </div>
                                         <div>
@@ -577,7 +577,7 @@ function loadBlockedUsers() {
                         <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light">
                             <div class="flex items-center">
                                 <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                    <img src="${user.avatar_url || '/public/assets/main-logo.png'}" 
+                                    <img src="${user.avatar_url || '/public/assets/default-profile-picture.png'}" 
                                          alt="Avatar" class="w-full h-full object-cover">
                                 </div>
                                 <div class="font-medium text-white">${escapeHtml(user.username)}</div>

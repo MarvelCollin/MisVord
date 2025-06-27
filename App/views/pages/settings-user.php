@@ -44,7 +44,7 @@ ob_start();
 
 <meta name="user-status" content="<?php echo htmlspecialchars($user->status ?? 'offline'); ?>">
 <meta name="user-id" content="<?php echo htmlspecialchars($user->id ?? ''); ?>">
-<meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/main-logo.png'); ?>">
+<meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/default-profile-picture.png'); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($user->username ?? ''); ?>">
 <meta name="display-name" content="<?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?>">
 
@@ -112,7 +112,7 @@ ob_start();
                                             <img id="user-avatar-preview" src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar">
                                         <?php else: ?>
                                             <div id="user-avatar-placeholder">
-                                                <img src="<?php echo asset('/common/main-logo.png'); ?>" alt="Default Avatar">
+                                                <img src="<?php echo asset('/common/default-profile-picture.png'); ?>" alt="Default Avatar">
                                             </div>
                                         <?php endif; ?>
                                         

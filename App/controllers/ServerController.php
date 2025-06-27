@@ -6,6 +6,7 @@ require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/ServerInviteRepository.php';
+require_once __DIR__ . '/../database/models/Channel.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ServerController extends BaseController
@@ -167,63 +168,57 @@ class ServerController extends BaseController
             'category' => 'required'
         ]);
 
-        $name = $input['name'];
-        $description = $input['description'] ?? '';
-        
+        $serverData = [
+            'name' => $input['name'],
+            'description' => $input['description'],
+            'is_public' => isset($input['is_public']) ? (bool)$input['is_public'] : false,
+            'category' => $input['category']
+        ];
+
+        if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
+            $this->validateUploadedFile($_FILES['server_icon']);
+            $imageUrl = $this->uploadImage($_FILES['server_icon']);
+            if ($imageUrl !== false) {
+                $serverData['image_url'] = $imageUrl;
+            }
+        }
+
+        if (isset($_FILES['server_banner']) && $_FILES['server_banner']['error'] === UPLOAD_ERR_OK) {
+            $this->validateUploadedFile($_FILES['server_banner']);
+            $bannerUrl = $this->uploadImage($_FILES['server_banner']);
+            if ($bannerUrl !== false) {
+                $serverData['banner_url'] = $bannerUrl;
+            }
+        }
+
         try {
-            require_once __DIR__ . '/../database/models/Server.php';
-            require_once __DIR__ . '/../database/models/UserServerMembership.php';
-            require_once __DIR__ . '/../database/models/Channel.php';
+            $server = $this->serverRepository->createWithOwner($serverData, $this->getCurrentUserId());
             
-            $server = new Server();
-            $server->name = $name;
-            $server->description = $description;
-            $server->is_public = isset($input['is_public']) ? (bool)$input['is_public'] : false;
-            $server->category = $input['category'] ?? null;
-
-            if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
-                $imageUrl = $this->uploadImage($_FILES['server_icon'], 'servers');
-                if ($imageUrl !== false) {
-                    $server->image_url = $imageUrl;
-                }
-            }
-            if (isset($_FILES['server_banner']) && $_FILES['server_banner']['error'] === UPLOAD_ERR_OK) {
-                $bannerUrl = $this->uploadImage($_FILES['server_banner'], 'banners');
-                if ($bannerUrl !== false) {
-                    $server->banner_url = $bannerUrl;
-                }
+            if (!$server) {
+                throw new Exception('Failed to create server');
             }
 
-            if ($server->save()) {
-                $membership = new UserServerMembership();
-                $membership->user_id = $this->getCurrentUserId();
-                $membership->server_id = $server->id;
-                $membership->role = 'owner';
-                $membership->save();
-                
-                $generalChannel = new Channel();
-                $generalChannel->name = 'general';
-                $generalChannel->type = 'text';
-                $generalChannel->server_id = $server->id;
-                if (!$generalChannel->save()) {
-                    throw new Exception('Failed to create default channel');
-                }
-
-                $this->logActivity('server_created', [
-                    'server_id' => $server->id,
-                    'server_name' => $name
-                ]);
-
-                return $this->success([
-                    'server' => $this->formatServer($server),
-                    'redirect' => "/server/{$server->id}"
-                ], 'Server created successfully');
-            } else {
-                throw new Exception('Failed to save server');
+            $generalChannel = new Channel();
+            $generalChannel->name = 'general';
+            $generalChannel->type = 'text';
+            $generalChannel->server_id = $server->id;
+            if (!$generalChannel->save()) {
+                throw new Exception('Failed to create default channel');
             }
+
+            $this->logActivity('server_created', [
+                'server_id' => $server->id,
+                'server_name' => $serverData['name']
+            ]);
+
+            return $this->success([
+                'server' => $this->formatServer($server),
+                'redirect' => "/server/{$server->id}"
+            ], 'Server created successfully');
+
         } catch (Exception $e) {
             $this->logActivity('server_create_error', [
-                'server_name' => $name,
+                'server_name' => $serverData['name'],
                 'error' => $e->getMessage()
             ]);
             return $this->serverError('Failed to create server: ' . $e->getMessage());
@@ -1565,6 +1560,28 @@ class ServerController extends BaseController
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         return $protocol . $host;
+    }
+
+    private function validateUploadedFile($file)
+    {
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $maxSize = 100 * 1024 * 1024;
+
+        if (!in_array($file['type'], $allowedTypes)) {
+            throw new Exception('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.');
+        }
+
+        if ($file['size'] > $maxSize) {
+            throw new Exception('File size too large. Maximum size is 100MB.');
+        }
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+
+        if (!in_array($mimeType, $allowedTypes)) {
+            throw new Exception('Invalid file content. File does not match its extension.');
+        }
     }
 
     private function acceptInvite() {

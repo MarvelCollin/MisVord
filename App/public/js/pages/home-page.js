@@ -70,7 +70,7 @@ function createProfileCardContent(user) {
         <div class="profile-content">
             <div class="flex items-start mb-3">
                 <div class="relative">                    <div class="profile-avatar">
-                        <img src="${user.avatar_url || '/public/assets/main-logo.png'}" 
+                        <img src="${user.avatar_url || '/public/assets/default-profile-picture.png'}" 
                              alt="Avatar" class="w-full h-full object-cover rounded-full">
                     </div>
                     <span class="absolute bottom-0 right-0 w-5 h-5 rounded-full border-4 border-[#18191c] ${statusColor}"></span>
@@ -190,7 +190,7 @@ function handleFriendRequest(data) {
 }
 
 function updateFriendStatus(data) {
-    const { userId, status } = data;
+    const { user_id: userId, status } = data;
     const friendItems = document.querySelectorAll(`.friend-item[data-user-id="${userId}"]`);
 
     const statusColors = {
@@ -224,7 +224,7 @@ function updateFriendStatus(data) {
 }
 
 function updateFriendActivity(data) {
-    const { userId, activity } = data;
+    const { user_id: userId, activity } = data;
     const activeNowSection = document.querySelector('.active-now-list');
 
     if (!activeNowSection) return;
@@ -252,7 +252,7 @@ function createActivityItem(data) {
                 <div class="p-3">                    <div class="flex items-center mb-2">
                         <div class="relative mr-2">
                             <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="${user.avatar_url || '/public/assets/main-logo.png'}" 
+                                <img src="${user.avatar_url || '/public/assets/default-profile-picture.png'}" 
                                      alt="Avatar" class="w-full h-full object-cover">
                             </div>
                             <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-discord-green"></span>
@@ -355,7 +355,7 @@ function createPendingRequestItem(user) {
     return `
         <div class="flex items-center justify-between p-2 bg-discord-background rounded">
             <div class="flex items-center">                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                    <img src="${user.avatar_url || '/public/assets/main-logo.png'}" 
+                    <img src="${user.avatar_url || '/public/assets/default-profile-picture.png'}" 
                          alt="Avatar" class="w-full h-full object-cover">
                 </div>
                 <div>
@@ -377,7 +377,7 @@ function createOutgoingRequestItem(user) {
     return `
         <div class="flex items-center justify-between p-2 bg-discord-background rounded">
             <div class="flex items-center">                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                    <img src="${user.avatar_url || '/public/assets/main-logo.png'}" 
+                    <img src="${user.avatar_url || '/public/assets/default-profile-picture.png'}" 
                          alt="Avatar" class="w-full h-full object-cover">
                 </div>
                 <div>
@@ -395,7 +395,7 @@ function createOutgoingRequestItem(user) {
 
 function acceptFriendRequest(userId) {
     const io = window.globalSocketManager.io;
-    io.emit('friend-request-response', { userId, action: 'accept' });
+    io.emit('friend-request-response', { user_id: userId, action: 'accept' });
     
     const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
     if (requestElement) {
@@ -407,7 +407,7 @@ function acceptFriendRequest(userId) {
 
 function ignoreFriendRequest(userId) {
     const io = window.globalSocketManager.io;
-    io.emit('friend-request-response', { userId, action: 'ignore' });
+    io.emit('friend-request-response', { user_id: userId, action: 'ignore' });
     
     const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
     if (requestElement) {
@@ -419,7 +419,7 @@ function ignoreFriendRequest(userId) {
 
 function cancelFriendRequest(userId) {
     const io = window.globalSocketManager.io;
-    io.emit('friend-request-response', { userId, action: 'cancel' });
+    io.emit('friend-request-response', { user_id: userId, action: 'cancel' });
     
     const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
     if (requestElement) {
@@ -476,7 +476,7 @@ function addNewFriend(user) {
         <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item" data-user-id="${user.id}">
             <div class="flex items-center">
                 <div class="relative mr-3">                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                        <img src="${user.avatar_url || '/public/assets/main-logo.png'}" 
+                        <img src="${user.avatar_url || '/public/assets/default-profile-picture.png'}" 
                              alt="Avatar" class="w-full h-full object-cover">
                     </div>
                     <span class="status-indicator bg-discord-green"></span>

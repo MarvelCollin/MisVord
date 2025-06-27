@@ -47,13 +47,12 @@ if (file_exists($tooltipPath)) {
 <?php endif; ?>
 
 <div class="flex h-full">
-    <div class="w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 overflow-visible">
+    <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 overflow-visible transition-all duration-200">
         <div id="server-list" class="server-list flex-1 overflow-y-auto">
-            <!-- Home Button -->
             <div class="server-icon mb-2 <?php echo $isHomePage ? 'active' : ''; ?>">
                 <a href="/home" class="server-button flex items-center justify-center">
-                    <div class="server-button <?php echo $isHomePage ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark hover:bg-discord-primary hover:rounded-2xl'; ?> flex items-center justify-center">
-                        <i class="fa-brands fa-discord text-white text-xl"></i>
+                    <div class="server-button <?php echo $isHomePage ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark hover:bg-discord-primary hover:rounded-2xl'; ?> flex items-center justify-center transition-all duration-200">
+                        <img src="<?php echo asset('/common/main-logo.png'); ?>" alt="Home" class="discord-home-logo">
                     </div>
                 </a>
                 <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">
@@ -61,12 +60,10 @@ if (file_exists($tooltipPath)) {
                 </div>
             </div>
             
-            <!-- Server List Divider -->
             <?php if (!empty($servers)): ?>
             <div class="server-divider"></div>
             <?php endif; ?>
             
-            <!-- Server Icons will be populated here -->
             <?php if (!empty($servers)): ?>
                 <?php foreach ($servers as $server): ?>
                     <?php 
@@ -79,11 +76,11 @@ if (file_exists($tooltipPath)) {
                     
                     <div class="server-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>" data-server-id="<?php echo $serverId; ?>">
                         <a href="/server/<?php echo $serverId; ?>" class="block">
-                            <div class="server-button <?php echo $isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark'; ?> flex items-center justify-center">
+                            <div class="server-button <?php echo $isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark'; ?> flex items-center justify-center transition-all duration-200">
                                 <?php if (!empty($serverImage)): ?>
                                     <img src="<?php echo htmlspecialchars($serverImage); ?>" alt="<?php echo htmlspecialchars($serverName); ?>" class="w-full h-full object-cover">
                                 <?php else: ?>
-                                    <span class="text-white font-bold text-xl"><?php echo htmlspecialchars($serverInitials); ?></span>
+                                    <span class="text-white font-bold text-xl sm:text-lg md:text-xl"><?php echo htmlspecialchars($serverInitials); ?></span>
                                 <?php endif; ?>
                             </div>
                         </a>
@@ -94,21 +91,19 @@ if (file_exists($tooltipPath)) {
                 <?php endforeach; ?>
             <?php endif; ?>
             
-            <!-- Add Server Button -->
             <div class="server-icon mt-2">
-                <button onclick="javascript:openServerModal(); return false;" data-action="create-server" class="server-button bg-discord-dark rounded-full hover:rounded-2xl hover:bg-discord-green border-none cursor-pointer outline-none">
-                    <i class="fas fa-plus text-green-500 hover:text-white text-xl transition-colors duration-200"></i>
+                <button onclick="javascript:openServerModal(); return false;" data-action="create-server" class="discord-add-server-button">
+                    <i class="fas fa-plus discord-add-server-icon"></i>
                 </button>
                 <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">
                     Add a Server
                 </div>
             </div>
             
-            <!-- Explore Servers Button -->
             <div class="server-icon mt-2 <?php echo $isExplorePage ? 'active' : ''; ?>">
                 <a href="/explore-servers" class="block">
-                    <div class="server-button <?php echo $isExplorePage ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark hover:bg-discord-green hover:rounded-2xl'; ?> flex items-center justify-center">
-                        <i class="fas fa-compass <?php echo $isExplorePage ? 'text-white' : 'text-green-500 hover:text-white'; ?> text-xl transition-colors duration-200"></i>
+                    <div class="discord-explore-server-button <?php echo $isExplorePage ? 'active' : ''; ?>">
+                        <i class="fas fa-compass discord-explore-server-icon"></i>
                     </div>
                 </a>
                 <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">

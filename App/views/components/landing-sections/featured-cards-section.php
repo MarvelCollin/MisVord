@@ -4,7 +4,7 @@ if (!function_exists('asset')) {
 }
 ?>
 
-<section id="featured-cards" class="featured-cards-section scroll-section min-h-screen relative flex items-center justify-center overflow-hidden py-16" data-section="featured-cards">
+<section id="featured-cards" class="swipe-section featured-cards-section scroll-section min-h-screen relative flex items-center justify-center overflow-hidden py-16" data-section="featured-cards">
     <div class="cosmos-background">
         <div class="stars-layer">
             <?php for ($i = 0; $i < 40; $i++): ?>

@@ -184,9 +184,8 @@ Route::post('/api/servers/create', function() {
 });
 
 Route::post('/servers/create', function() {
-    require_once __DIR__ . '/../controllers/ServerController.php';
-    $controller = new ServerController();
-    return $controller->create();
+    header('Location: /api/servers/create', true, 301);
+    exit;
 });
 
 Route::post('/api/channels', function() {
@@ -385,6 +384,11 @@ Route::post('/api/messages/([0-9]+)/reactions', function($messageId) {
     $controller->addReaction($messageId);
 });
 
+Route::delete('/api/messages/([0-9]+)/reactions', function($messageId) {
+    $controller = new MessageController();
+    $controller->removeReaction($messageId);
+});
+
 Route::post('/api/messages/([0-9]+)/pin', function($messageId) {
     $controller = new MessageController();
     $controller->pinMessage($messageId);
@@ -423,6 +427,11 @@ Route::get('/api/auth/check', function() {
 Route::get('/api/captcha/generate', function() {
     $controller = new AuthenticationController();
     $controller->generateCaptcha();
+});
+
+Route::post('/api/captcha/verify', function() {
+    $controller = new AuthenticationController();
+    $controller->verifyCaptcha();
 });
 
 Route::get('/api/debug-simple', function() {

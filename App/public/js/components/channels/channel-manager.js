@@ -27,7 +27,7 @@ function loadServerChannels() {
 
     window.serverAPI.getServerChannels(serverId)
         .then(response => {
-            if (response.success) {
+            if (response.data) {
                 renderChannelList(response.data);
             }
             if (loadingEl) loadingEl.classList.add('hidden');
@@ -53,7 +53,7 @@ function initUpdateChannelForms() {
             
             window.channelAPI.updateChannel(channelId, data)
                 .then(response => {
-                    if (response.success) {
+                    if (response.data) {
                         showToast('Channel updated successfully', 'success');
 
                         const modal = document.getElementById(`edit-channel-modal-${channelId}`);
@@ -96,7 +96,7 @@ function initDeleteChannelButtons() {
 function deleteChannel(channelId) {
     window.channelAPI.deleteChannel(channelId)
         .then(response => {
-            if (response.success) {
+            if (response.data) {
                 showToast('Channel deleted successfully', 'success');
                 refreshChannelList();
             }
@@ -114,7 +114,7 @@ function refreshChannelList() {
     if (serverId) {
         window.serverAPI.getServerChannels(serverId)
             .then(response => {
-                if (response.success) {
+                if (response.data) {
                     renderChannelList(response.data);
                 }
             })
@@ -344,7 +344,7 @@ function createChannelAtPosition(name, type, serverId, categoryId = null, positi
 
     return window.channelAPI.createChannel(formData)
         .then(data => {
-            if (data.success) {
+            if (data.data) {
                 console.log('Channel created at position:', position);
                 showToast('Channel created successfully', 'success');
                 refreshChannelList();
@@ -372,7 +372,7 @@ function createCategoryAtPosition(name, serverId, position = null) {
 
     return window.channelAPI.createCategory(formData)
         .then(data => {
-            if (data.success) {
+            if (data.data) {
                 console.log('Category created at position:', position);
                 showToast('Category created successfully', 'success');
                 refreshChannelList();

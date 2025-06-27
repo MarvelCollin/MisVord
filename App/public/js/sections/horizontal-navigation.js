@@ -1,10 +1,13 @@
-class ScrollNavigation {
+class HorizontalNavigation {
     constructor() {
         this.currentIndex = 0;
         this.totalSections = 3;
         this.isTransitioning = false;
         this.scrollThreshold = 50;
-        this.inScrollableSection = false;
+        this.inHorizontalSection = false;
+        this.touchStartX = 0;
+        this.touchStartY = 0;
+        this.threshold = 50;
         
         this.init();
     }
@@ -14,7 +17,7 @@ class ScrollNavigation {
         this.heroSection = document.querySelector('.hero-section');
         if (!this.wrapper) return;
         
-        this.sections = this.wrapper.querySelectorAll('.scroll-section');
+        this.sections = this.wrapper.querySelectorAll('.swipe-section');
         this.navDots = document.querySelectorAll('.nav-dot');
         this.setupEventListeners();
         this.checkScrollPosition();
@@ -32,6 +35,12 @@ class ScrollNavigation {
         
         window.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
         
+        this.wrapper.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+        this.wrapper.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+        this.wrapper.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: false });
+        
+        document.addEventListener('keydown', this.handleKeyDown.bind(this));
+        
         this.navDots.forEach((dot, index) => {
             dot.addEventListener('click', () => this.goToSection(index));
         });
@@ -41,27 +50,27 @@ class ScrollNavigation {
     
     handleScroll() {
         this.checkScrollPosition();
+    }
+    
+    checkScrollPosition() {
+        const heroRect = this.heroSection.getBoundingClientRect();
+        const wrapperRect = this.wrapper.getBoundingClientRect();
         
-        if (this.inScrollableSection && !this.isTransitioning) {
-            const currentSection = this.sections[this.currentIndex];
-            if (currentSection) {
-                currentSection.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        }
+        this.inHorizontalSection = heroRect.bottom <= 100 && wrapperRect.top <= 100 && wrapperRect.bottom >= 100;
     }
     
     handleWheel(e) {
-        if (!this.inScrollableSection || this.isTransitioning) return;
+        if (!this.inHorizontalSection || this.isTransitioning || window.innerWidth <= 768) return;
         
         const deltaY = e.deltaY;
+        const deltaX = e.deltaX;
         
-        if (Math.abs(deltaY) > this.scrollThreshold) {
+        const major = Math.abs(deltaX) >= Math.abs(deltaY) ? deltaX : deltaY;
+        
+        if (Math.abs(major) > this.scrollThreshold) {
             e.preventDefault();
             
-            if (deltaY > 0) {
+            if (major > 0) {
                 this.goToNext();
             } else {
                 this.goToPrev();
@@ -69,22 +78,51 @@ class ScrollNavigation {
         }
     }
     
-    checkScrollPosition() {
-        const heroRect = this.heroSection.getBoundingClientRect();
-        const wrapperRect = this.wrapper.getBoundingClientRect();
+    handleTouchStart(e) {
+        if (!this.inHorizontalSection) return;
         
-        this.inScrollableSection = heroRect.bottom <= 100 && wrapperRect.top <= 100;
+        this.touchStartX = e.touches[0].clientX;
+        this.touchStartY = e.touches[0].clientY;
+    }
+    
+    handleTouchMove(e) {
+        if (!this.inHorizontalSection || window.innerWidth <= 768) return;
         
-        if (this.inScrollableSection) {
-            this.sections.forEach((section, index) => {
-                const rect = section.getBoundingClientRect();
-                const isVisible = rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2;
-                
-                if (isVisible && index !== this.currentIndex) {
-                    this.currentIndex = index;
-                    this.updateActiveSection();
-                }
-            });
+        const deltaX = Math.abs(this.touchStartX - e.touches[0].clientX);
+        const deltaY = Math.abs(this.touchStartY - e.touches[0].clientY);
+        
+        if (deltaX > deltaY) {
+            e.preventDefault();
+        }
+    }
+    
+    handleTouchEnd(e) {
+        if (!this.inHorizontalSection) return;
+        
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        
+        const deltaX = this.touchStartX - touchEndX;
+        const deltaY = Math.abs(this.touchStartY - touchEndY);
+        
+        if (Math.abs(deltaX) > this.threshold && Math.abs(deltaX) > deltaY) {
+            if (deltaX > 0) {
+                this.goToNext();
+            } else {
+                this.goToPrev();
+            }
+        }
+    }
+    
+    handleKeyDown(e) {
+        if (!this.inHorizontalSection || this.isTransitioning || window.innerWidth <= 768) return;
+        
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            this.goToPrev();
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            this.goToNext();
         }
     }
     
@@ -105,16 +143,17 @@ class ScrollNavigation {
     navigateToSection(index) {
         if (this.isTransitioning) return;
         
+        if (window.innerWidth <= 768) {
+            this.currentIndex = index;
+            this.updateActiveSection();
+            return;
+        }
+        
         this.isTransitioning = true;
         this.currentIndex = index;
         
-        const targetSection = this.sections[index];
-        if (targetSection) {
-            targetSection.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
+        const translateX = -index * 100;
+        this.wrapper.style.transform = `translateX(${translateX}vw)`;
         
         setTimeout(() => {
             this.isTransitioning = false;
@@ -161,11 +200,17 @@ class ScrollNavigation {
     handleResize() {
         this.isTransitioning = false;
         this.checkScrollPosition();
+        
+        if (window.innerWidth <= 768) {
+            this.wrapper.style.transform = 'translateX(0)';
+        } else {
+            this.navigateToSection(this.currentIndex);
+        }
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    window.scrollNavigation = new ScrollNavigation();
+    window.horizontalNavigation = new HorizontalNavigation();
 });
 
-window.ScrollNavigation = ScrollNavigation; 
+window.HorizontalNavigation = HorizontalNavigation; 

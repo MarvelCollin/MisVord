@@ -42,6 +42,7 @@ function initUserSettingsPage() {
     
     initSidebarNavigation(activeSection);
     initLogoutButton();
+    initGlobalClickHandlers();
     
     if (activeSection === 'my-account') {
         initUserAvatarUpload();
@@ -222,7 +223,7 @@ function initUserAvatarUpload() {
             .then(data => {
                 if (data.success) {
                     if (iconPreview) {
-                        iconPreview.src = '/public/assets/common/main-logo.png';
+                        iconPreview.src = '/public/assets/common/default-profile-picture.png';
                     }
                     
                     if (iconContainer) {
@@ -235,7 +236,7 @@ function initUserAvatarUpload() {
                         iconInput.value = '';
                     }
                     
-                    updateAllAvatars('/public/assets/common/main-logo.png');
+                    updateAllAvatars('/public/assets/common/default-profile-picture.png');
                     
                     showToast('Profile picture removed successfully', 'success');
                     
@@ -639,8 +640,43 @@ function initCloseButton() {
 function initLogoutButton() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', logoutUser);
+        console.log('Logout button found, attaching click handler');
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            logoutUser();
+        });
+    } else {
+        console.warn('Logout button not found');
+        
+        setTimeout(() => {
+            const logoutBtnRetry = document.getElementById('logout-btn');
+            if (logoutBtnRetry) {
+                console.log('Logout button found on retry, attaching click handler');
+                logoutBtnRetry.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    logoutUser();
+                });
+            } else {
+                console.error('Logout button still not found after retry');
+            }
+        }, 1000);
     }
+}
+
+/**
+ * Initialize global click handlers as fallback
+ */
+function initGlobalClickHandlers() {
+    document.addEventListener('click', function(e) {
+        if (e.target && (e.target.id === 'logout-btn' || e.target.closest('#logout-btn'))) {
+            console.log('Logout button clicked via global handler');
+            e.preventDefault();
+            e.stopPropagation();
+            logoutUser();
+        }
+    });
 }
 
 /**
@@ -1309,13 +1345,33 @@ function debounce(func, wait) {
 }
 
 function logoutUser() {
-    localStorage.removeItem('user_token');
-    localStorage.removeItem('connect_socket_on_login');
-    localStorage.removeItem('active_channel');
-    localStorage.removeItem('active_dm');
-    localStorage.removeItem('active_server');
+    console.log('Logout function called');
     
-    window.location.href = '/logout';
+    if (confirm('Are you sure you want to log out?')) {
+        console.log('Logout confirmed, clearing data...');
+        
+        try {
+            localStorage.removeItem('user_token');
+            localStorage.removeItem('connect_socket_on_login');
+            localStorage.removeItem('active_channel');
+            localStorage.removeItem('active_dm');
+            localStorage.removeItem('active_server');
+            
+            if (window.globalSocketManager && typeof window.globalSocketManager.disconnect === 'function') {
+                console.log('Disconnecting socket...');
+                window.globalSocketManager.disconnect();
+            }
+            
+            console.log('Redirecting to logout...');
+            window.location.href = '/logout';
+        } catch (error) {
+            console.error('Error during logout:', error);
+            
+            window.location.href = '/logout';
+        }
+    } else {
+        console.log('Logout cancelled by user');
+    }
 }
 
 function getStatusDisplayName(status) {

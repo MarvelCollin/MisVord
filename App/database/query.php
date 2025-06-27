@@ -563,6 +563,55 @@ class Query {
         }
     }
 
+    public function insertGetId(array $data) {
+        $startTime = microtime(true);
+        $columns = array_keys($data);
+        $values = array_values($data);
+        $columnsList = '`' . implode('`, `', $columns) . '`';
+        $placeholders = implode(', ', array_fill(0, count($columns), '?'));
+
+        $query = "INSERT INTO {$this->table} ($columnsList) VALUES ($placeholders)";
+
+        try {
+            $stmt = $this->pdo->prepare($query);
+            $this->execute($stmt, $values);
+            $insertId = $this->pdo->lastInsertId();
+
+            if (function_exists('logger')) {
+                $duration = microtime(true) - $startTime;
+                logger()->dbQuery($query, $duration, null, [
+                    'table' => $this->table,
+                    'data' => $data,
+                    'insert_id' => $insertId,
+                    'affected_rows' => $stmt->rowCount()
+                ]);
+            }
+
+            return $insertId;
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
+                $duration = microtime(true) - $startTime;
+                logger()->dbQuery($query, $duration, $e->getMessage(), [
+                    'table' => $this->table,
+                    'data' => $data
+                ]);
+            }
+            throw $e;
+        }
+    }
+
+    public function beginTransaction() {
+        return $this->pdo->beginTransaction();
+    }
+
+    public function commit() {
+        return $this->pdo->commit();
+    }
+
+    public function rollback() {
+        return $this->pdo->rollBack();
+    }
+
     public function insertBatch(array $data) {
         if (empty($data)) {
             return 0;

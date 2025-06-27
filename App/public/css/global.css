@@ -338,7 +338,7 @@ button:focus {
 }
 
 [data-action="create-server"] {
-  transition: all 0.2s ease;
+  transition: all 0.2s ease !important;
 }
 
 [data-action="create-server"]:hover {
@@ -348,6 +348,10 @@ button:focus {
 
 [data-action="create-server"]:hover i {
   color: white !important;
+}
+
+[data-action="create-server"] i {
+  color: #23a559 !important;
 }
 
 .global-server-icon,
@@ -680,3 +684,194 @@ button[type="submit"]:hover,
 .animate-delay-200 { animation-delay: 200ms; }
 .animate-delay-300 { animation-delay: 300ms; }
 .animate-delay-500 { animation-delay: 500ms; }
+
+.text-discord-green {
+  color: #23a559;
+}
+
+.hover\:text-discord-green:hover {
+  color: #23a559;
+}
+
+.hover\:bg-discord-green:hover {
+  background-color: #23a559;
+}
+
+.text-discord-lighter {
+  color: #b5bac1;
+}
+
+.mic-btn, .deafen-btn {
+  background: none !important;
+  border: none;
+  padding: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mic-btn:hover, .deafen-btn:hover {
+  background-color: rgba(79, 84, 92, 0.16) !important;
+}
+
+.user-profile-section {
+  transition: all 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .user-profile-section {
+    padding: 8px;
+  }
+  
+  .user-profile-section .w-8 {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  
+  .user-profile-section .text-sm {
+    font-size: 12px;
+  }
+  
+  .user-profile-section .text-xs {
+    font-size: 11px;
+  }
+  
+  .mic-btn, .deafen-btn {
+    padding: 4px;
+  }
+  
+  .mic-btn i, .deafen-btn i {
+    font-size: 14px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-profile-section {
+    padding: 6px;
+  }
+  
+  .user-profile-section .space-x-2 {
+    gap: 4px;
+  }
+  
+  .user-profile-section .w-8 {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  
+  .user-profile-section .w-3 {
+    width: 10px !important;
+    height: 10px !important;
+  }
+}
+
+.bg-discord-background-modifier-hover {
+  background-color: rgba(79, 84, 92, 0.16);
+}
+
+.hover\:bg-discord-background-modifier-hover:hover {
+  background-color: rgba(79, 84, 92, 0.16);
+}
+
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.hover\:scale-105:hover {
+  transform: scale(1.05);
+}
+
+.transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (max-width: 1024px) {
+  .w-60 {
+    width: 240px !important;
+    min-width: 240px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .w-60 {
+    width: 200px !important;
+    min-width: 200px !important;
+  }
+  
+  .text-sm {
+    font-size: 12px;
+  }
+  
+  .text-xs {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .w-60 {
+    width: 180px !important;
+    min-width: 180px !important;
+  }
+  
+  .p-4 {
+    padding: 12px !important;
+  }
+  
+  .px-4 {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .w-60 {
+    width: 160px !important;
+    min-width: 160px !important;
+  }
+  
+  .text-sm {
+    font-size: 11px;
+  }
+  
+  .text-xs {
+    font-size: 9px;
+  }
+  
+  .p-4 {
+    padding: 8px !important;
+  }
+}
+
+/* Discord Server Sidebar Override */
+[data-action="create-server"] {
+  transition: all 0.2s ease !important;
+}
+
+[data-action="create-server"]:hover {
+  background-color: #23a559 !important;
+  border-radius: 1rem !important;
+}
+
+[data-action="create-server"]:hover i {
+  color: white !important;
+}
+
+[data-action="create-server"] i {
+  color: #23a559 !important;
+}
+
+/* Force Discord Green Color */
+.text-discord-green,
+.discord-add-server-icon,
+.discord-explore-server-icon {
+  color: #23a559 !important;
+}
+
+.bg-discord-green,
+.hover\:bg-discord-green:hover {
+  background-color: #23a559 !important;
+}

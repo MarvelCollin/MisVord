@@ -24,7 +24,10 @@ class ChannelMessageRepository extends Repository {
     public function getMessagesByChannelId($channelId, $limit = 50, $offset = 0) {
         $query = new Query();
         $sql = "
-            SELECT m.*, u.username, u.avatar_url,
+            SELECT m.id as id, m.user_id, m.content, m.sent_at, m.edited_at, 
+                   m.message_type, m.attachment_url, m.reply_message_id,
+                   m.created_at, m.updated_at,
+                   u.username, u.avatar_url,
                    cm.created_at as channel_message_created_at
             FROM channel_messages cm
             INNER JOIN messages m ON cm.message_id = m.id

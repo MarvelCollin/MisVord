@@ -39,10 +39,12 @@ $success = $_SESSION['success'] ?? null;
 $securityQuestion = $_SESSION['security_question'] ?? null;
 $email = $_SESSION['reset_email'] ?? '';
 $token = $_SESSION['reset_token'] ?? '';
+$registerFailedStep = $_SESSION['register_failed_step'] ?? 1;
 
 $_SESSION['errors'] = [];
 $_SESSION['old_input'] = [];
 $_SESSION['success'] = null;
+unset($_SESSION['register_failed_step']);
 
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
 header('Pragma: no-cache');
@@ -87,12 +89,17 @@ try {
     }
 
     #register-step-1 {
-        display: block;
+        display: <?php echo $registerFailedStep === 1 ? 'block' : 'none'; ?>;
     }
 
     #register-step-2 {
-        display: none;
+        display: <?php echo $registerFailedStep === 2 ? 'block' : 'none'; ?>;
     }
+    
+    <?php if ($registerFailedStep === 2): ?>
+    .step-line { width: 100% !important; }
+    .step-indicator.active { background-color: #5865f2; color: white; }
+    <?php endif; ?>
 </style>
 
 <body data-page="auth">
@@ -101,7 +108,7 @@ try {
     <div class="w-full max-w-md mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10 p-6 sm:p-8" id="authContainer">
 
         <div class="flex justify-center mb-6 sm:mb-8 relative">
-            <img src="<?php echo asset('/landing-page/main-logo.svg'); ?>" alt="misvord Logo" class="h-8 sm:h-10 md:h-12 transition-all" id="logo">
+            <img src="<?php echo asset('/common/main-logo.png'); ?>" alt="misvord Logo" class="h-8 sm:h-10 md:h-12 transition-all" id="logo">
             <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-gradient-to-r from-discord-blue to-discord-pink w-0" id="logoUnderline"></div>
         </div>
 
@@ -206,19 +213,29 @@ try {
             </form>
 
             <form action="/register" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm">
+                <?php if (isset($errors['general'])): ?>
+                    <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse" id="form-error-message">
+                        <?php echo $errors['general']; ?>
+                    </div>
+                <?php endif; ?>
                 <div class="flex items-center justify-center mb-4">
                     <div class="flex items-center">
                         <div class="step-indicator active" id="step-1-indicator">
                             <span>1</span>
                         </div>
-                        <div class="step-line" id="step-line"></div>
-                        <div class="step-indicator" id="step-2-indicator">
+                        <div class="step-line <?php echo $registerFailedStep === 2 ? 'active' : ''; ?>" id="step-line"></div>
+                        <div class="step-indicator <?php echo $registerFailedStep === 2 ? 'active' : ''; ?>" id="step-2-indicator">
                             <span>2</span>
                         </div>
                     </div>
                 </div>
 
                 <div id="register-step-1" class="register-step active">
+                    <?php if (isset($errors['username']) || isset($errors['email']) || isset($errors['password']) || isset($errors['password_confirm'])): ?>
+                        <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse">
+                            Please correct the errors below.
+                        </div>
+                    <?php endif; ?>
                     <div class="form-group">
                         <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
                         <input 
@@ -291,6 +308,11 @@ try {
                 </div>
 
                 <div id="register-step-2" class="register-step hidden">
+                    <?php if (isset($errors['security_question']) || isset($errors['security_answer']) || isset($errors['captcha'])): ?>
+                        <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse">
+                            Please correct the errors below.
+                        </div>
+                    <?php endif; ?>
                     <div class="form-group">
                         <label for="security_question" class="block text-sm font-medium text-gray-300 mb-1">Security Question</label>
                         <select 
@@ -318,6 +340,7 @@ try {
                             name="security_answer" 
                             class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                             placeholder="Answer to your security question"
+                            value="<?php echo $oldInput['security_answer'] ?? ''; ?>"
                         >
                         <?php if (isset($errors['security_answer'])): ?>
                             <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_answer']; ?></p>
@@ -520,6 +543,11 @@ try {
 </div>
 
 
+    <?php if ($registerFailedStep === 2): ?>
+    <script>
+        window.initialRegisterStep = 2;
+    </script>
+    <?php endif; ?>
 </body>
 <?php 
 $content = ob_get_clean(); 

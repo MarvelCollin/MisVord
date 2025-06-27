@@ -3,7 +3,10 @@ const serverAPI = {
         return fetch('/api/servers/create', {
             method: 'POST',
             body: formData,
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         })
         .then(response => {
             if (!response.ok) {

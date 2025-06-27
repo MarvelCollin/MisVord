@@ -1,11 +1,6 @@
 export class AuthManager {
   constructor() {
-    const isAuthPage =
-      document.body && document.body.getAttribute("data-page") === "auth";
-
-    if (!isAuthPage) {
-      this.init();
-    }
+    this.init();
   }
 
   init() {
@@ -81,6 +76,4 @@ export class AuthManager {
   }
 }
 
-const isAuthPage =
-  document.body && document.body.getAttribute("data-page") === "auth";
-export const authManager = !isAuthPage ? new AuthManager() : null;
+export const authManager = new AuthManager();

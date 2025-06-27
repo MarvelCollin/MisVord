@@ -608,7 +608,7 @@ function createFriendElement(friend) {
     el.dataset.userId = friend.id;
     el.dataset.username = friend.username;
     
-    const avatarUrl = friend.avatar_url || '/public/assets/common/main-logo.png';
+    const avatarUrl = friend.avatar_url || '/public/assets/common/default-profile-picture.png';
     
     el.innerHTML = `
         <div style="flex-shrink: 0; margin-right: 12px;">
@@ -990,7 +990,7 @@ function generateNewInvite(serverId, expirationValue = null) {
             console.log('Invite generation response:', data);
             
             
-            if (data && (data.success || data.invite_code || (data.data && data.data.invite_code))) {
+            if (data && (data.data || data.invite_code || (data.data && data.data.invite_code))) {
                 let inviteCode = data.invite_code;
                 let inviteUrl = data.invite_url;
                 let expiresAt = data.expires_at;
@@ -1080,7 +1080,7 @@ function createChannel(e, serverId) {
 
     channelAPI.createChannel(formData)
         .then(data => {
-            if (data.success) {
+            if (data.data) {
                 showToast('Channel created successfully!', 'success');
                 closeModal('create-channel-modal');
                 resetForm('create-channel-form');
@@ -1111,7 +1111,7 @@ function createCategory(e, serverId) {
     
     channelAPI.createCategory(formData)
         .then(data => {
-            if (data.success) {
+            if (data.data) {
                 showToast('Category created successfully!', 'success');
                 closeModal('create-category-modal');
 
@@ -1129,8 +1129,8 @@ function createCategory(e, serverId) {
 function loadNotificationSettings(serverId) {
     serverAPI.getNotificationSettings(serverId)
         .then(data => {
-            if (data.success && data.settings) {
-                const settings = data.settings;
+            if (data.data && data.data.settings) {
+                const settings = data.data.settings;
 
                 if (settings.all_messages) {
                     document.querySelector('input[value="all_messages"]').checked = true;
@@ -1166,7 +1166,7 @@ function updateNotificationSettings(e, serverId) {
     
     serverAPI.updateNotificationSettings(serverId, data)
         .then(data => {
-            if (data.success) {
+            if (data.data) {
                 showToast('Notification settings updated!', 'success');
                 closeModal('notification-settings-modal');
             } else {
@@ -1182,8 +1182,8 @@ function updateNotificationSettings(e, serverId) {
 function loadPerServerProfile(serverId) {
     serverAPI.getPerServerProfile(serverId)
         .then(data => {
-            if (data.success && data.profile) {
-                document.getElementById('profile-nickname').value = data.profile.nickname || '';
+            if (data.data && data.data.profile) {
+                document.getElementById('profile-nickname').value = data.data.profile.nickname || '';
             }
         })
         .catch(error => {
@@ -1202,7 +1202,7 @@ function updatePerServerProfile(e, serverId) {
 
     serverAPI.updatePerServerProfile(serverId, data)
         .then(data => {
-            if (data.success) {
+            if (data.data) {
                 showToast('Server profile updated!', 'success');
                 closeModal('edit-profile-modal');
             } else {
@@ -1218,7 +1218,7 @@ function updatePerServerProfile(e, serverId) {
 function leaveServer(serverId) {
     serverAPI.leaveServer(serverId)
         .then(data => {
-            if (data.success) {
+            if (data.data) {
                 showToast('You have left the server', 'success');
                 closeModal('leave-server-modal');
 
@@ -1287,7 +1287,7 @@ function refreshChannelList(serverId) {
 
     serverAPI.getServerChannels(serverId)
         .then(data => {
-            if (data.success) {
+            if (data.data) {
                 console.log('Channels loaded successfully');
                 window.location.reload();
             } else {

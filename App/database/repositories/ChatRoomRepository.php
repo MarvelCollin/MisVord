@@ -20,7 +20,7 @@ class ChatRoomRepository extends Repository {
             ->where('cr.type', 'direct')
             ->where('cp1.user_id', $userId1)
             ->where('cp2.user_id', $userId2)
-            ->where('cp1.user_id', '!=', 'cp2.user_id')
+            ->whereRaw('cp1.user_id != cp2.user_id')
             ->select('cr.*')
             ->first();
             

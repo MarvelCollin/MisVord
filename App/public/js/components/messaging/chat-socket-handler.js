@@ -304,69 +304,11 @@ class EmojiSocketHandler {
         this.hideMenu();
         
         try {
-            const messageReactions = document.querySelector(`.message-reactions[data-message-id="${messageId}"]`);
-            const existingReaction = messageReactions?.querySelector(`.message-reaction[data-emoji="${emoji}"]`);
-            const isRemoving = existingReaction && existingReaction.getAttribute('data-user-reacted') === 'true';
-            
-            if (isRemoving) {
-                await window.ChatAPI.removeReaction(messageId, emoji);
-                
-                if (window.globalSocketManager && window.globalSocketManager.io) {
-                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                    const isChannelMessage = messageElement?.closest('.channel-messages');
-                    const isDMMessage = messageElement?.closest('.dm-messages');
-                    
-                    const socketData = {
-                        message_id: messageId,
-                        emoji: emoji,
-                        user_id: document.querySelector('meta[name="user-id"]')?.content,
-                        username: document.querySelector('meta[name="username"]')?.content
-                    };
-                    
-                    if (isChannelMessage) {
-                        const channelId = messageElement.dataset.channelId || window.currentChannelId;
-                        socketData.target_type = 'channel';
-                        socketData.target_id = channelId;
-                        socketData.channelId = channelId;
-                    } else if (isDMMessage) {
-                        const roomId = messageElement.dataset.roomId || window.currentRoomId;
-                        socketData.target_type = 'dm';
-                        socketData.target_id = roomId;
-                        socketData.roomId = roomId;
-                    }
-                    
-                    window.globalSocketManager.io.emit('reaction-removed', socketData);
-                }
-            } else {
-                await window.ChatAPI.addReaction(messageId, emoji);
-                
-                if (window.globalSocketManager && window.globalSocketManager.io) {
-                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                    const isChannelMessage = messageElement?.closest('.channel-messages');
-                    const isDMMessage = messageElement?.closest('.dm-messages');
-                    
-                    const socketData = {
-                        message_id: messageId,
-                        emoji: emoji,
-                        user_id: document.querySelector('meta[name="user-id"]')?.content,
-                        username: document.querySelector('meta[name="username"]')?.content
-                    };
-                    
-                    if (isChannelMessage) {
-                        const channelId = messageElement.dataset.channelId || window.currentChannelId;
-                        socketData.target_type = 'channel';
-                        socketData.target_id = channelId;
-                        socketData.channelId = channelId;
-                    } else if (isDMMessage) {
-                        const roomId = messageElement.dataset.roomId || window.currentRoomId;
-                        socketData.target_type = 'dm';
-                        socketData.target_id = roomId;
-                        socketData.roomId = roomId;
-                    }
-                    
-                    window.globalSocketManager.io.emit('reaction-added', socketData);
-                }
+            if (!window.ChatAPI) {
+                throw new Error('ChatAPI not available');
             }
+            
+            await window.ChatAPI.addReaction(messageId, emoji);
             
             const reactionEvent = new CustomEvent('reaction-updated', {
                 detail: {
@@ -380,8 +322,6 @@ class EmojiSocketHandler {
             console.error('Error adding/removing reaction:', error);
         }
     }
-
-
 
     async loadReactions(messageId) {
         try {
@@ -399,23 +339,10 @@ class EmojiSocketHandler {
             console.error('Error loading reactions:', error);
         }
     }
-
-    handleReactionAdded(data) {
-        if (window.emojiReactions) {
-            window.emojiReactions.handleReactionAdded(data);
-        }
-    }
-
-    handleReactionRemoved(data) {
-        if (window.emojiReactions) {
-            window.emojiReactions.handleReactionRemoved(data);
-        }
-    }
 }
 
 const emojiSocketHandler = new EmojiSocketHandler();
 
-        
 function initEmojiSocketHandler() {
     console.log('Chat socket handler init skipped');
 }
@@ -423,14 +350,9 @@ function initEmojiSocketHandler() {
 window.emojiSocketHandler = {
     initialized: false,
     init: () => {},
-    handleReactionAdded: (data) => {
-        if (window.emojiReactions) {
-            window.emojiReactions.handleReactionAdded(data);
-        }
-    },
-    handleReactionRemoved: (data) => {
-        if (window.emojiReactions) {
-            window.emojiReactions.handleReactionRemoved(data);
+    showMenu: (messageId, x, y) => {
+        if (emojiSocketHandler) {
+            emojiSocketHandler.showMenu(messageId, x, y);
         }
     }
 };

@@ -177,7 +177,7 @@ function truncateText($text, $length = 100, $append = '...') {
 }
 
 function getDefaultAvatar($username = 'User') {
-    return asset('/common/main-logo.png');
+    return asset('/common/default-profile-picture.png');
 }
 
 function getUserAvatar($avatarUrl, $username = 'User') {

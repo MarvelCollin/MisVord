@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             friendItem.innerHTML = `
                                 <div class="relative mr-3">
                                     <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                        <img src="${friend.avatar_url || '/public/assets/common/main-logo.png'}" 
+                                        <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                                              alt="Avatar" class="w-full h-full object-cover">
                                     </div>
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-darker ${statusColor}"></span>

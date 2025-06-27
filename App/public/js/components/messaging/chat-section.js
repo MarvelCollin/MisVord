@@ -152,7 +152,7 @@ class ChatSection {
         this.userId = document.querySelector('meta[name="user-id"]')?.content;
         this.username = document.querySelector('meta[name="username"]')?.content;
         
-        console.log(`Chat parameters loaded: type=${this.chatType}, targetId=${this.targetId}, userId=${this.userId}`);
+        console.log(`Chat parameters loaded: type=${this.chatType}, target_id=${this.targetId}, user_id=${this.userId}`);
         
         if (!this.targetId) {
             console.error('Missing targetId in chat parameters');
@@ -1055,11 +1055,11 @@ class ChatSection {
                 user_id: this.userId,
                 userId: this.userId,
                 username: this.username,
-                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/main-logo.png',
+                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/default-profile-picture.png',
                 sent_at: timestamp,
                 timestamp: timestamp,
                 isLocalOnly: true,
-                messageType: messageType,
+                message_type: messageType,
                 attachment_url: attachmentUrl,
                 _localMessage: true
             };
@@ -1071,16 +1071,16 @@ class ChatSection {
             }
             
             const options = {
-                messageType: messageType,
-                attachmentUrl: attachmentUrl
+                message_type: messageType,
+                attachment_url: attachmentUrl
             };
             
             if (this.activeReplyingTo) {
                 tempMessage.reply_message_id = this.activeReplyingTo.messageId;
                 tempMessage.reply_data = this.activeReplyingTo;
                 
-                options.replyToMessageId = this.activeReplyingTo.messageId;
-                options.replyData = this.activeReplyingTo;
+                options.reply_message_id = this.activeReplyingTo.messageId;
+                options.reply_data = this.activeReplyingTo;
                 
                 this.cancelReply();
             }
@@ -1391,16 +1391,16 @@ class ChatSection {
         const msg = {
             id: message.id || message.messageId || Date.now().toString(),
             content: message.content || message.message?.content || '',
-            user_id: message.userId || message.user_id || '',
+            user_id: message.user_id || message.userId || '',
             username: message.username || message.message?.username || 'Unknown User',
-            avatar_url: message.avatar_url || message.message?.avatar_url || '/public/assets/main-logo.png',
+            avatar_url: message.avatar_url || message.message?.avatar_url || '/public/assets/default-profile-picture.png',
             sent_at: message.timestamp || message.sent_at || Date.now(),
             isLocalOnly: message.isLocalOnly || false,
             reply_message_id: message.reply_message_id || null,
             reply_data: message.reply_data || null,
             edited_at: message.edited_at || null,
-            messageType: message.messageType || message.message_type || 'text',
-            attachment_url: message.attachment_url || message.attachmentUrl || null,
+            message_type: message.message_type || 'text',
+            attachment_url: message.attachment_url || null,
             reactions: message.reactions || []
         };
         
@@ -1628,11 +1628,11 @@ class ChatSection {
         avatarContainer.className = 'message-avatar';
         
         const avatar = document.createElement('img');
-        avatar.src = message.avatar_url || '/public/assets/main-logo.png';
+        avatar.src = message.avatar_url || '/public/assets/default-profile-picture.png';
         avatar.alt = `${message.username}'s avatar`;
         avatar.onerror = function() {
             this.onerror = null;
-            this.src = '/public/assets/main-logo.png';
+            this.src = '/public/assets/default-profile-picture.png';
         };
         
         avatarContainer.appendChild(avatar);
@@ -1695,9 +1695,9 @@ class ChatSection {
                 replyContent.setAttribute('aria-label', `Jump to reply from ${message.reply_data.username}`);
                 
                 const replyAvatar = document.createElement('img');
-                replyAvatar.src = message.reply_data.avatar_url || '/public/assets/main-logo.png';
+                replyAvatar.src = message.reply_data.avatar_url || '/public/assets/default-profile-picture.png';
                 replyAvatar.className = 'reply-avatar';
-                replyAvatar.onerror = function() { this.src = '/public/assets/main-logo.png'; };
+                replyAvatar.onerror = function() { this.src = '/public/assets/default-profile-picture.png'; };
 
                 const replyUsername = document.createElement('span');
                 replyUsername.className = 'reply-username';
@@ -1711,9 +1711,9 @@ class ChatSection {
                 replyContent.appendChild(replyUsername);
                 replyContent.appendChild(replyMessage);
 
-                const jumpToMessage = () => {
-                    const targetMessageId = message.reply_data.messageId || message.reply_message_id;
-                    const repliedMessage = document.querySelector(`[data-message-id="${targetMessageId}"]`);
+                                    const jumpToMessage = () => {
+                        const targetMessageId = message.reply_data.message_id || message.reply_message_id;
+                        const repliedMessage = document.querySelector(`[data-message-id="${targetMessageId}"]`);
                     
                     if (repliedMessage) {
                         const messageElement = repliedMessage.closest('.message-group') || repliedMessage;
@@ -1768,7 +1768,7 @@ class ChatSection {
             const attachmentContainer = document.createElement('div');
             attachmentContainer.className = 'message-attachment mt-2';
             
-            if (message.messageType === 'image' || 
+            if (message.message_type === 'image' || 
                 (message.attachment_url && 
                  (/\.(jpeg|jpg|gif|png|webp)$/i.test(message.attachment_url) || 
                   message.attachment_url.includes('image/')))) {
@@ -1783,7 +1783,7 @@ class ChatSection {
                 image.loading = 'lazy';
                 image.onerror = function() {
                     this.onerror = null;
-                    this.src = '/public/assets/common/main-logo.png';
+                    this.src = '/public/assets/common/default-profile-picture.png';
                     this.classList.add('w-16', 'h-16');
                     imageWrapper.classList.add('bg-[#2b2d31]', 'p-3', 'rounded-lg');
                     
@@ -1800,7 +1800,7 @@ class ChatSection {
                 imageWrapper.appendChild(image);
                 attachmentContainer.appendChild(imageWrapper);
                 
-            } else if (message.messageType === 'video' || 
+            } else if (message.message_type === 'video' || 
                        (message.attachment_url && 
                         (/\.(mp4|webm|mov|avi|wmv)$/i.test(message.attachment_url) || 
                          message.attachment_url.includes('video/')))) {
@@ -2014,19 +2014,19 @@ class ChatSection {
             io.removeAllListeners('user-stop-typing-dm');
             io.removeAllListeners('message-pinned');
             io.removeAllListeners('message-unpinned');
+            io.removeAllListeners('reaction-added');
+            io.removeAllListeners('reaction-removed');
             
             io.on('new-channel-message', function(data) {
-                const channelId = data.channelId || data.channel_id;
-                if (self.chatType === 'channel' && channelId == self.targetId) {
-                    const messageId = data.id || data.message?.id || `${data.userId || data.user_id}-${data.timestamp}`;
-                    data.id = messageId;
-                    
-                    if (!self.processedMessageIds.has(messageId)) {
-                        const senderId = data.userId || data.user_id;
+                const channelId = data.channel_id;
+                                  if (self.chatType === 'channel' && channelId == self.targetId) {
+                      const messageId = data.id || data.message?.id || `${data.user_id}-${data.timestamp}`;
+                      data.id = messageId;
+                      
+                      if (!self.processedMessageIds.has(messageId)) {
+                          const senderId = data.user_id;
                         
-                        // Handle server-originated messages properly
                         if (data.source === 'server-originated' || senderId != self.userId) {
-                            // Use message data from server if available
                             const messageToAdd = data.message || data;
                             messageToAdd.id = messageId;
                             messageToAdd.reactions = messageToAdd.reactions || [];
@@ -2037,7 +2037,6 @@ class ChatSection {
                                 self.processedMessageIds.add(messageId);
                             }
                         } else if (senderId == self.userId) {
-                            // Update temp message with real ID
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {
                                 tempMessage.setAttribute('data-message-id', messageId);
@@ -2049,17 +2048,15 @@ class ChatSection {
             });
             
             io.on('user-message-dm', function(data) {
-                const roomId = data.roomId || data.chatRoomId;
+                const roomId = data.room_id;
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && roomId == self.targetId) {
-                    const messageId = data.id || data.message?.id || `${data.userId || data.user_id}-${data.timestamp}`;
+                    const messageId = data.id || data.message?.id || `${data.user_id}-${data.timestamp}`;
                     data.id = messageId;
                     
                     if (!self.processedMessageIds.has(messageId)) {
-                        const senderId = data.userId || data.user_id;
+                        const senderId = data.user_id;
                         
-                        // Handle server-originated messages properly
                         if (data.source === 'server-originated' || senderId != self.userId) {
-                            // Use message data from server if available
                             const messageToAdd = data.message || data;
                             messageToAdd.id = messageId;
                             messageToAdd.reactions = messageToAdd.reactions || [];
@@ -2070,7 +2067,6 @@ class ChatSection {
                                 self.processedMessageIds.add(messageId);
                             }
                         } else if (senderId == self.userId) {
-                            // Update temp message with real ID
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {
                                 tempMessage.setAttribute('data-message-id', messageId);
@@ -2078,6 +2074,36 @@ class ChatSection {
                             self.processedMessageIds.add(messageId);
                         }
                     }
+                }
+            });
+            
+            io.on('reaction-added', function(data) {
+                const targetType = data.target_type;
+                const targetId = String(data.target_id);
+                const selfTargetId = String(self.targetId);
+                
+                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
+                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
+                                  targetType === 'dm' && 
+                                  targetId === selfTargetId;
+                
+                if (isChannelMatch || isDMMatch) {
+                    self.handleReactionAdded(data);
+                }
+            });
+            
+            io.on('reaction-removed', function(data) {
+                const targetType = data.target_type;
+                const targetId = String(data.target_id);
+                const selfTargetId = String(self.targetId);
+                
+                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
+                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
+                                  targetType === 'dm' && 
+                                  targetId === selfTargetId;
+                
+                if (isChannelMatch || isDMMatch) {
+                    self.handleReactionRemoved(data);
                 }
             });
             
@@ -2093,7 +2119,7 @@ class ChatSection {
                 
                 const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
                 const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
-                                  (targetType === 'dm' || targetType === 'direct') && 
+                                  targetType === 'dm' && 
                                   targetId === selfTargetId;
                 
                 if ((isChannelMatch || isDMMatch) && data.message_id) {
@@ -2113,7 +2139,7 @@ class ChatSection {
                 
                 const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
                 const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
-                                  (targetType === 'dm' || targetType === 'direct') && 
+                                  targetType === 'dm' && 
                                   targetId === selfTargetId;
                 
                 if (isChannelMatch || isDMMatch) {
@@ -2126,26 +2152,26 @@ class ChatSection {
             
             // Typing indicators
             io.on('user-typing', function(data) {
-                if (self.chatType === 'channel' && data.channelId == self.targetId && data.userId != self.userId) {
-                    self.showTypingIndicator(data.userId, data.username);
+                if (self.chatType === 'channel' && data.channel_id == self.targetId && data.user_id != self.userId) {
+                    self.showTypingIndicator(data.user_id, data.username);
                 }
             });
             
             io.on('user-typing-dm', function(data) {        
-                if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId && data.userId != self.userId) {
-                    self.showTypingIndicator(data.userId, data.username);
+                if ((self.chatType === 'direct' || self.chatType === 'dm') && data.room_id == self.targetId && data.user_id != self.userId) {
+                    self.showTypingIndicator(data.user_id, data.username);
                 }
             });
             
             io.on('user-stop-typing', function(data) {
-                if (self.chatType === 'channel' && data.channelId == self.targetId && data.userId != self.userId) {
-                    self.removeTypingIndicator(data.userId);
+                if (self.chatType === 'channel' && data.channel_id == self.targetId && data.user_id != self.userId) {
+                    self.removeTypingIndicator(data.user_id);
                 }
             });
             
             io.on('user-stop-typing-dm', function(data) {
-                if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId && data.userId != self.userId) {
-                    self.removeTypingIndicator(data.userId);
+                if ((self.chatType === 'direct' || self.chatType === 'dm') && data.room_id == self.targetId && data.user_id != self.userId) {
+                    self.removeTypingIndicator(data.user_id);
                 }
             });
             
@@ -2157,7 +2183,7 @@ class ChatSection {
                 
                 const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
                 const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
-                                  (targetType === 'dm' || targetType === 'direct') && 
+                                  targetType === 'dm' && 
                                   targetId === selfTargetId;
                 
                 if (isChannelMatch || isDMMatch) {
@@ -2172,7 +2198,7 @@ class ChatSection {
                 
                 const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
                 const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
-                                  (targetType === 'dm' || targetType === 'direct') && 
+                                  targetType === 'dm' && 
                                   targetId === selfTargetId;
                 
                 if (isChannelMatch || isDMMatch) {
@@ -2310,12 +2336,12 @@ class ChatSection {
             
             let messages = [];
             
-            if (data.messages) {
-                messages = data.messages;
-                console.log(`Found ${messages.length} messages in response.messages`);
-            } else if (data.data && data.data.messages) {
+            if (data.data && data.data.messages) {
                 messages = data.data.messages;
                 console.log(`Found ${messages.length} messages in response.data.messages`);
+            } else if (data.messages) {
+                messages = data.messages;
+                console.log(`Found ${messages.length} messages in response.messages`);
             }
             
             if (messages && messages.length > 0) {
@@ -2607,7 +2633,7 @@ class ChatSection {
             content: 'TEST MESSAGE - If you see this, the system works!',
             user_id: this.userId,
             username: 'TEST USER',
-            avatar_url: '/public/assets/main-logo.png',
+            avatar_url: '/public/assets/default-profile-picture.png',
             sent_at: Date.now()
         };
         
@@ -2628,5 +2654,25 @@ class ChatSection {
                 return false;
             }
         }, 100);
+    }
+    
+    handleReactionAdded(data) {
+        if (!data.message_id || !data.emoji) return;
+        
+        if (window.emojiReactions && typeof window.emojiReactions.updateReactionDisplay === 'function') {
+            window.emojiReactions.updateReactionDisplay(data.message_id, data.emoji, data.user_id, data.username, 'added');
+        } else {
+            console.warn('emojiReactions not available for reaction update');
+        }
+    }
+    
+    handleReactionRemoved(data) {
+        if (!data.message_id || !data.emoji) return;
+        
+        if (window.emojiReactions && typeof window.emojiReactions.updateReactionDisplay === 'function') {
+            window.emojiReactions.updateReactionDisplay(data.message_id, data.emoji, data.user_id, data.username, 'removed');
+        } else {
+            console.warn('emojiReactions not available for reaction update');
+        }
     }
 }

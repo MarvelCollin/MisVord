@@ -94,7 +94,7 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        if (!$this->debugVerifyCaptcha($captcha)) {
+        if (!$this->verifyCaptchaInternal($captcha)) {
             $this->logFailedLogin($email);
             $_SESSION['errors'] = ['auth' => 'Invalid verification code'];
             $_SESSION['old_input'] = ['email' => $email];
@@ -216,6 +216,7 @@ class AuthenticationController extends BaseController
         $captcha = $input['captcha'] ?? '';
 
         $errors = [];
+        $failedStep = 1;
         
         if (empty($username)) {
             $errors['username'] = 'Username is required';
@@ -251,18 +252,23 @@ class AuthenticationController extends BaseController
         
         if (empty($securityQuestion)) {
             $errors['security_question'] = 'Security question is required';
+            $failedStep = 2;
         }
         
         if (empty($securityAnswer)) {
             $errors['security_answer'] = 'Security answer is required';
+            $failedStep = 2;
         } elseif (strlen($securityAnswer) < 3) {
             $errors['security_answer'] = 'Security answer must be at least 3 characters';
+            $failedStep = 2;
         }
 
         if (empty($captcha)) {
             $errors['captcha'] = 'Verification code is required';
-        } elseif (!$this->verifyCaptcha($captcha)) {
+            $failedStep = 2;
+        } elseif (!$this->verifyCaptchaInternal($captcha)) {
             $errors['captcha'] = 'Invalid verification code';
+            $failedStep = 2;
         }
 
         if (!empty($errors)) {
@@ -272,11 +278,15 @@ class AuthenticationController extends BaseController
                 return $this->validationError($errors);
             }
             $_SESSION['errors'] = $errors;
+            $_SESSION['register_failed_step'] = $failedStep;
             $_SESSION['old_input'] = [
                 'username' => $username,
                 'email' => $email,
                 'security_question' => $securityQuestion
             ];
+            if ($failedStep === 2) {
+                $_SESSION['old_input']['security_answer'] = $securityAnswer;
+            }
             if (!headers_sent()) {
                 header('Location: /register');
             }
@@ -352,6 +362,9 @@ class AuthenticationController extends BaseController
                 $_SESSION['avatar_url'] = $user->avatar_url;
                 $_SESSION['banner_url'] = $user->banner_url;
 
+                unset($_SESSION['captcha_code']);
+                unset($_SESSION['captcha_generated']);
+
                 $this->logActivity('registration_success', ['user_id' => $user->id]);
 
                 $redirect = '/home';
@@ -387,10 +400,12 @@ class AuthenticationController extends BaseController
                 return $this->serverError($errorMessage);
             }
             $_SESSION['errors'] = ['general' => $errorMessage];
+            $_SESSION['register_failed_step'] = 2;
             $_SESSION['old_input'] = [
                 'username' => $username,
                 'email' => $email,
-                'security_question' => $securityQuestion
+                'security_question' => $securityQuestion,
+                'security_answer' => $securityAnswer
             ];
             if (!headers_sent()) {
                 header('Location: /register');
@@ -1170,16 +1185,41 @@ class AuthenticationController extends BaseController
         header('Content-Type: application/json');
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
         header('Pragma: no-cache');
-        echo json_encode(['success' => true, 'captcha_code' => $code]);
+        
+        echo json_encode([
+            'success' => true, 
+            'captcha_code' => $code,
+            'timestamp' => time()
+        ]);
         exit;
     }
 
-    private function verifyCaptcha($userInput)
+    public function verifyCaptcha()
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
         
+        $input = $this->getInput();
+        $captchaInput = $input['captcha'] ?? '';
+        
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        
+        if (empty($captchaInput)) {
+            echo json_encode(['success' => false, 'message' => 'Captcha is required']);
+            exit;
+        }
+        
+        $isValid = $this->verifyCaptchaInternal($captchaInput);
+        
+        echo json_encode(['success' => $isValid]);
+        exit;
+    }
+
+    private function verifyCaptchaInternal($userInput, $consumeOnSuccess = true)
+    {
         if (!isset($_SESSION['captcha_code'])) {
             return false;
         }
@@ -1195,15 +1235,13 @@ class AuthenticationController extends BaseController
         
         $isValid = $userInputLower === $storedCode;
         
-        unset($_SESSION['captcha_code']);
-        unset($_SESSION['captcha_generated']);
+        if ($isValid && $consumeOnSuccess) {
+            unset($_SESSION['captcha_code']);
+            unset($_SESSION['captcha_generated']);
+        }
         
         return $isValid;
     }
     
-    private function debugVerifyCaptcha($userInput) 
-    {
-        $userInputLower = trim($userInput);
-        return !empty($userInputLower);
-    }
+
 }

@@ -8,7 +8,7 @@ import { ServerSidebar } from './server-sidebar.js';
 console.log("create-server-modal.js loaded");
 
 document.addEventListener('DOMContentLoaded', function () {
-    window.serverAPI = serverAPI;
+    
     
     initServerIconUpload();
     initServerBannerUpload();
@@ -281,108 +281,69 @@ function initServerBannerUpload() {
 }
 
 function initServerFormSubmission() {
-    const serverForm = document.getElementById('create-server-form');
-    if (serverForm) {
-        serverForm.addEventListener('submit', function (e) {
-            e.preventDefault();
+            const serverForm = document.getElementById('create-server-form');
+        if (serverForm) {
+            serverForm.addEventListener('submit', function (e) {
+                e.preventDefault();
 
-            if (!validateServerForm(this)) {
-                return;
-            }
-            
-            const submitBtn = this.querySelector('button[type="submit"]');
-            showLoading(submitBtn);
-            
-            const iconContainer = document.getElementById('server-icon-container');
-            const bannerContainer = document.getElementById('server-banner-container');
-            let iconDataUrl = iconContainer ? iconContainer.dataset.croppedImage : null;
-            let bannerDataUrl = bannerContainer ? bannerContainer.dataset.croppedImage : null;
-            
-            if (iconDataUrl || bannerDataUrl) {
-                try {
-                    const promises = [];
-
-                    if (iconDataUrl) {
-                        promises.push(
-                            fetch(iconDataUrl)
-                                .then(res => res.blob())
-                                .then(blob => {
-                                    try {
-                                        const iconFile = new File([blob], 'icon.png', { type: 'image/png' });
-                                        updateFormDataWithFile(this, 'server_icon', iconFile);
-                                    } catch (fileError) {
-                                        console.error('Error creating icon file:', fileError);
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error processing icon image:', error);
-                                })
-                        );
-                    }
-
-                    if (bannerDataUrl) {
-                        promises.push(
-                            fetch(bannerDataUrl)
-                                .then(res => res.blob())
-                                .then(blob => {
-                                    try {
-                                        const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
-                                        updateFormDataWithFile(this, 'server_banner', bannerFile);
-                                    } catch (fileError) {
-                                        console.error('Error creating banner file:', fileError);
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error processing banner image:', error);
-                                })
-                        );
-                    }
-                    
-                    Promise.all(promises)
-                        .then(() => {
-                            handleServerCreation(this);
-                        })
-                        .catch(err => {
-                            console.error('Error processing cropped images:', err);
-                            hideLoading(submitBtn);
-                            showToast('Error processing images. Please try again.', 'error');
-                        });
-                } catch (error) {
-                    console.error('Error in image processing:', error);
-                    hideLoading(submitBtn);
-                    showToast('Error processing images. Please try again.', 'error');
+                if (!validateServerForm(this)) {
+                    return;
                 }
-            } else {
-                handleServerCreation(this);
-            }
-        });
-    }
+                
+                const submitBtn = this.querySelector('button[type="submit"]');
+                showLoading(submitBtn);
+                
+                const iconContainer = document.getElementById('server-icon-container');
+                const bannerContainer = document.getElementById('server-banner-container');
+                let iconDataUrl = iconContainer ? iconContainer.dataset.croppedImage : null;
+                let bannerDataUrl = bannerContainer ? bannerContainer.dataset.croppedImage : null;
+                
+                const formData = new FormData(this);
+                
+                const promises = [];
+                
+                if (iconDataUrl) {
+                    promises.push(
+                        fetch(iconDataUrl)
+                            .then(res => res.blob())
+                            .then(blob => {
+                                const iconFile = new File([blob], 'icon.png', { type: 'image/png' });
+                                formData.set('server_icon', iconFile);
+                            })
+                    );
+                }
+
+                if (bannerDataUrl) {
+                    promises.push(
+                        fetch(bannerDataUrl)
+                            .then(res => res.blob())
+                            .then(blob => {
+                                const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
+                                formData.set('server_banner', bannerFile);
+                            })
+                    );
+                }
+                
+                Promise.all(promises)
+                    .then(() => {
+                        handleServerCreation(this, formData);
+                    })
+                    .catch(err => {
+                        hideLoading(submitBtn);
+                        showToast('Error processing images. Please try again.', 'error');
+                    });
+            });
+        }
 }
 
-/**
- * Helper function to update FormData with file objects
- */
-function updateFormDataWithFile(form, fieldName, file) {
-    const existingInput = form.querySelector(`input[name="${fieldName}"]`);
-    if (existingInput) {
-        existingInput.remove();
-    }
 
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.name = fieldName;
-    input.style.display = 'none';
 
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    input.files = dataTransfer.files;
 
-    form.appendChild(input);
-}
-
-function handleServerCreation(form) {
+function handleServerCreation(form, formData = null) {
     try {
-        const formData = new FormData(form);
+        if (!formData) {
+            formData = new FormData(form);
+        }
         const modal = document.getElementById('create-server-modal');
         const submitBtn = form.querySelector('button[type="submit"]');
         
@@ -390,15 +351,10 @@ function handleServerCreation(form) {
             showLoading(submitBtn);
         }
         
-        if (!validateServerForm(form)) {
-            hideLoading(submitBtn);
-            return;
-        }
-        
         window.serverAPI.createServer(formData)
             .then(data => {
                 hideLoading(submitBtn);
-                if (data.success) {
+                if (data.data) {
                     const server = data.data.server;
                     
                     try {
@@ -832,9 +788,7 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-/**
- * Initialize toggle button animation
- */
+
 function initToggleAnimation() {
     const toggleCheckbox = document.getElementById('is-public');
     const toggleSwitch = toggleCheckbox?.nextElementSibling;

@@ -107,7 +107,7 @@ export class ChannelLoader {
 
         const data = await response.json();
 
-        if (data && data.success) {
+        if (data && data.data) {
           if (container) {
             this.renderChannels(container, data.data);
             console.log(`Channels refreshed for server ${serverId}`);

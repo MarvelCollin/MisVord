@@ -94,7 +94,7 @@ class GoogleAuthController
 
             $this->authenticateUser($userInfo);
 
-            header('Location: /app');
+            header('Location: /home');
             exit;
         } catch (Exception $e) {
             error_log('Google OAuth error: ' . $e->getMessage());

@@ -165,7 +165,7 @@ function initializeSocketConnection() {
             socketConnectionStatus = 'connected';
             
             socket.emit('authenticate', {
-                userId: currentUserId,
+                user_id: currentUserId,
                 username: '<?php echo $_SESSION['username'] ?? 'Unknown'; ?>'
             });
             

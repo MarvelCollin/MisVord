@@ -397,11 +397,13 @@ function initAuth() {
     }
 
     function setupFormSubmission() {
-        document.querySelectorAll('form').forEach(form => {
+        document.querySelectorAll('form:not(#registerForm)').forEach(form => {
             if (form.hasAttribute('data-validation-attached')) return;
             form.setAttribute('data-validation-attached', 'true');
             
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
                 let isValid = true;
                 
                 FormValidator.clearErrors(this);
@@ -427,13 +429,17 @@ function initAuth() {
                     }
                     
                     const captcha = this.querySelector('#login_captcha');
-                    if (captcha && !captcha.value.trim()) {
-                        FormValidator.showFieldError(captcha, 'Verification code is required');
-                        isValid = false;
+                    if (captcha) {
+                        if (!captcha.value.trim()) {
+                            FormValidator.showFieldError(captcha, 'Verification code is required');
+                            isValid = false;
+                        } else if (window.loginCaptchaInstance && !window.loginCaptchaInstance.isValid(captcha.value)) {
+                            FormValidator.showFieldError(captcha, 'Invalid verification code');
+                            isValid = false;
+                            refreshCaptcha();
+                        }
                     }
                     
-                } else if (this.id === 'registerForm') {
-                    return true;
                 } else if (this.id === 'forgotForm') {
                     isValid = FormValidator.validateForgotForm(this);
                 } else if (this.id === 'securityQuestionForm') {
@@ -459,10 +465,6 @@ function initAuth() {
                     setTimeout(() => {
                         formErrorContainer.remove();
                     }, 5000);
-                }
-
-                if (!isValid) {
-                    e.preventDefault(); 
                     
                     const firstInvalidField = document.querySelector('.border-red-500');
                     if (firstInvalidField) {
@@ -485,14 +487,16 @@ function initAuth() {
                 const submitBtn = this.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     submitBtn.disabled = true;
+                    const originalText = submitBtn.innerHTML;
                     submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing...';
 
                     setTimeout(() => {
                         submitBtn.disabled = false;
-                        submitBtn.innerHTML = submitBtn.getAttribute('data-original-text') || 'Submit';
+                        submitBtn.innerHTML = originalText;
                     }, 5000);
                 }
                 
+                this.submit();
                 return true;
             });
                     
@@ -519,14 +523,16 @@ function initAuth() {
             if (loginCaptchaContainer && !window.loginCaptchaInstance) {
                 window.loginCaptchaInstance = new TextCaptcha('login-captcha-container', {
                     length: 6,
-                    inputId: 'login_captcha'
+                    inputId: 'login_captcha',
+                    showDebug: true
                 });
             }
             
             if (registerCaptchaContainer && !window.registerCaptchaInstance) {
                 window.registerCaptchaInstance = new TextCaptcha('register-captcha-container', {
                     length: 6,
-                    inputId: 'register_captcha'
+                    inputId: 'register_captcha',
+                    showDebug: true
                 });
             }
         } catch (e) {
@@ -537,9 +543,25 @@ function initAuth() {
     function refreshCaptcha() {
         if (window.loginCaptchaInstance) {
             window.loginCaptchaInstance.refresh();
+            const loginInput = document.getElementById('login_captcha');
+            if (loginInput) {
+                loginInput.classList.remove('border-red-500');
+                const errorElement = loginInput.parentElement.querySelector('.text-red-500');
+                if (errorElement) {
+                    errorElement.remove();
+                }
+            }
         }
         if (window.registerCaptchaInstance) {
             window.registerCaptchaInstance.refresh();
+            const registerInput = document.getElementById('register_captcha');
+            if (registerInput) {
+                registerInput.classList.remove('border-red-500');
+                const errorElement = registerInput.parentElement.querySelector('.text-red-500');
+                if (errorElement) {
+                    errorElement.remove();
+                }
+            }
         }
     }
 
@@ -583,6 +605,22 @@ function initAuth() {
                 refreshCaptcha();
             }
         });
+        
+        const allErrorElements = document.querySelectorAll('[class*="text-red-500"], [class*="bg-red-500"]');
+        let foundCaptchaError = false;
+        allErrorElements.forEach(error => {
+            if (error.textContent && (error.textContent.includes('verification') || 
+                error.textContent.includes('captcha') || 
+                error.textContent.includes('Invalid verification'))) {
+                foundCaptchaError = true;
+            }
+        });
+        
+        if (foundCaptchaError) {
+            setTimeout(() => {
+                refreshCaptcha();
+            }, 500);
+        }
     }
 
     function clearStoredAuthData() {
@@ -677,6 +715,21 @@ function initAuth() {
         if (!nextStepBtn || !prevStepBtn || !step1 || !step2 || !registerForm) return;
         
         let currentStep = 1;
+        
+        if (window.initialRegisterStep === 2) {
+            step1.style.display = 'none';
+            step2.style.display = 'block';
+            step1.classList.remove('active');
+            step2.classList.add('active');
+            stepLine.classList.add('active');
+            step1Indicator.classList.add('active');
+            step2Indicator.classList.add('active');
+            currentStep = 2;
+            setupCaptcha();
+            setTimeout(() => {
+                updateFormHeight();
+            }, 100);
+        }
         
         nextStepBtn.addEventListener('click', function(e) {
             e.preventDefault();
@@ -816,12 +869,14 @@ function initAuth() {
             return isValid;
         }
         
-        registerForm.addEventListener('submit', function(e) {
+        registerForm.addEventListener('submit', async function(e) {
             if (currentStep === 1) {
                 e.preventDefault();
                 nextStepBtn.click();
                 return false;
             }
+            
+            e.preventDefault();
             
             const securityQuestion = document.getElementById('security_question');
             const securityAnswer = document.getElementById('security_answer');
@@ -844,13 +899,34 @@ function initAuth() {
             }
             
             const captcha = document.getElementById('register_captcha');
-            if (captcha && !captcha.value.trim()) {
-                FormValidator.showFieldError(captcha, 'Verification code is required');
-                isValid = false;
+            if (captcha) {
+                if (!captcha.value.trim()) {
+                    FormValidator.showFieldError(captcha, 'Verification code is required');
+                    isValid = false;
+                } else if (window.registerCaptchaInstance && !window.registerCaptchaInstance.isValid(captcha.value)) {
+                    FormValidator.showFieldError(captcha, 'Invalid verification code');
+                    isValid = false;
+                    refreshCaptcha();
+                }
             }
             
             if (!isValid) {
-                e.preventDefault();
+                const formErrorContainer = document.createElement('div');
+                formErrorContainer.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse form-error-container';
+                formErrorContainer.textContent = 'Please correct the errors below.';
+                
+                const existingError = registerForm.querySelector('.form-error-container');
+                if (existingError) {
+                    existingError.remove();
+                }
+                
+                registerForm.prepend(formErrorContainer);
+                
+                setTimeout(() => {
+                    if (formErrorContainer.parentNode) {
+                        formErrorContainer.remove();
+                    }
+                }, 5000);
                 
                 refreshCaptcha();
                 
@@ -864,6 +940,25 @@ function initAuth() {
                 return false;
             }
             
+            const timestampInput = document.createElement('input');
+            timestampInput.type = 'hidden';
+            timestampInput.name = '_t';
+            timestampInput.value = Date.now();
+            registerForm.appendChild(timestampInput);
+            
+            const submitBtn = registerForm.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creating Account...';
+
+                setTimeout(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }, 5000);
+            }
+            
+            registerForm.submit();
             return true;
         });
     }
@@ -881,6 +976,7 @@ function initAuth() {
         
         setTimeout(function() {
             refreshCaptcha();
+            checkForErrors();
         }, 500);
         initPasswordFieldMasking();
         setupRegistrationSteps();

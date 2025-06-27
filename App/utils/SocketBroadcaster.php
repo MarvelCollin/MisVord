@@ -26,25 +26,28 @@ class SocketBroadcaster {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json',
-            'Accept: application/json'
+            'Accept: application/json',
+            'Connection: keep-alive'
         ]);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 2); // Short timeout
+        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 1);
+        curl_setopt($ch, CURLOPT_TCP_NODELAY, true);
+        curl_setopt($ch, CURLOPT_FRESH_CONNECT, false);
         
         $result = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
-        if (curl_error($ch)) {
-            error_log('Socket broadcast failed: ' . curl_error($ch));
-            curl_close($ch);
-            return false;
-        }
+        $error = curl_error($ch);
         
         curl_close($ch);
         
+        if ($error) {
+            error_log("Socket broadcast failed: $error");
+            return false;
+        }
+        
         if ($httpCode !== 200) {
-            error_log('Socket broadcast failed with HTTP ' . $httpCode . ': ' . $result);
+            error_log("Socket broadcast failed with HTTP $httpCode: $result");
             return false;
         }
         

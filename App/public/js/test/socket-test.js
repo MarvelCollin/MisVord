@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (userIdMeta && usernameMeta) {
                 testSocket.emit('authenticate', {
-                    userId: userIdMeta.content,
+                    user_id: userIdMeta.content,
                     username: usernameMeta.content
                 });
             }

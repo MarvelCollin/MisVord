@@ -140,8 +140,8 @@ class GlobalSocketManager {
             window.dispatchEvent(new CustomEvent('socketAuthenticated', {
                 detail: {
                     manager: this,
-                    userId: data.userId,
-                    socketId: data.socketId
+                    user_id: data.user_id,
+                    socket_id: data.socket_id
                 }
             }));
         });
@@ -179,7 +179,7 @@ class GlobalSocketManager {
         this.log(`Authenticating user: ${this.userId} (${this.username || 'Unknown'})`);
         
         this.io.emit('authenticate', {
-            userId: this.userId,
+            user_id: this.userId,
             username: this.username || `User-${this.userId}`
         });
         
@@ -198,7 +198,7 @@ class GlobalSocketManager {
         }
         
         this.log(`Joining channel: ${channelId}`);
-        this.io.emit('join-channel', { channelId });
+        this.io.emit('join-channel', { channel_id: channelId });
         this.joinedChannels.add(channelId);
         return true;
     }
@@ -207,7 +207,7 @@ class GlobalSocketManager {
         if (!this.isReady()) return false;
         
         this.log(`Leaving channel: ${channelId}`);
-        this.io.emit('leave-channel', { channelId });
+        this.io.emit('leave-channel', { channel_id: channelId });
         this.joinedChannels.delete(channelId);
         return true;
     }
@@ -224,7 +224,7 @@ class GlobalSocketManager {
         }
         
         this.log(`Joining DM room: ${roomId}`);
-        this.io.emit('join-dm-room', { roomId });
+        this.io.emit('join-dm-room', { room_id: roomId });
         this.joinedDMRooms.add(roomId);
         return true;
     }
@@ -233,9 +233,9 @@ class GlobalSocketManager {
         if (!this.isReady()) return false;
         
         if (channelId) {
-            this.io.emit('typing', { channelId });
+            this.io.emit('typing', { channel_id: channelId });
         } else if (roomId) {
-            this.io.emit('typing', { roomId });
+            this.io.emit('typing', { room_id: roomId });
         }
         
         return true;
@@ -245,9 +245,9 @@ class GlobalSocketManager {
         if (!this.isReady()) return false;
         
         if (channelId) {
-            this.io.emit('stop-typing', { channelId });
+            this.io.emit('stop-typing', { channel_id: channelId });
         } else if (roomId) {
-            this.io.emit('stop-typing', { roomId });
+            this.io.emit('stop-typing', { room_id: roomId });
         }
         
         return true;
@@ -258,7 +258,7 @@ class GlobalSocketManager {
         
         this.io.emit('update-presence', { 
             status, 
-            activityDetails 
+            activity_details: activityDetails 
         });
         
         return true;
@@ -300,7 +300,7 @@ class GlobalSocketManager {
         this.io.off('user-stop-typing');
         
         this.io.on('new-channel-message', (messageData) => {
-            if (messageData && messageData.channelId === channelId) {
+            if (messageData && messageData.channel_id === channelId) {
                 this.log(`Received message in channel ${channelId}`);
                 
                 const event = new CustomEvent('newChannelMessage', {
@@ -315,27 +315,27 @@ class GlobalSocketManager {
         });
         
         this.io.on('user-typing', (data) => {
-            if (data.channelId === channelId) {
+            if (data.channel_id === channelId) {
                 const event = new CustomEvent('userTyping', {
                     detail: data
                 });
                 window.dispatchEvent(event);
                 
                 if (window.chatSection && typeof window.chatSection.showTypingIndicator === 'function') {
-                    window.chatSection.showTypingIndicator(data.userId, data.username);
+                    window.chatSection.showTypingIndicator(data.user_id, data.username);
                 }
             }
         });
         
         this.io.on('user-stop-typing', (data) => {
-            if (data.channelId === channelId) {
+            if (data.channel_id === channelId) {
                 const event = new CustomEvent('userStopTyping', {
                     detail: data
                 });
                 window.dispatchEvent(event);
                 
                 if (window.chatSection && typeof window.chatSection.removeTypingIndicator === 'function') {
-                    window.chatSection.removeTypingIndicator(data.userId);
+                    window.chatSection.removeTypingIndicator(data.user_id);
                 }
             }
         });
@@ -380,7 +380,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.querySelector('meta[name="user-authenticated"]')?.content === 'true') {
         setTimeout(() => {
             if (!globalSocketManager.connected) {
-                globalSocketManager.init();
+                const userData = {
+                    user_id: document.querySelector('meta[name="user-id"]')?.content,
+                    username: document.querySelector('meta[name="username"]')?.content
+                };
+                
+                if (userData.user_id && userData.username) {
+                    globalSocketManager.init(userData);
+                } else {
+                    globalSocketManager.init();
+                }
             }
         }, 500);
     } else if (localStorage.getItem('connect_socket_on_login') === 'true') {

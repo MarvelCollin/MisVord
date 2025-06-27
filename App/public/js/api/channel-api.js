@@ -35,7 +35,7 @@ class ChannelAPI {
 
             const data = await response.json();
             
-            if (!data.success) {
+            if (!data.data) {
                 throw new Error(data.message || 'API request failed');
             }
 

@@ -98,16 +98,36 @@ $content = ob_get_clean();
     <link rel="stylesheet" href="<?php echo css('landing-page'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('scramble-text'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('featured-cards'); ?>?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="<?php echo css('carousel-section'); ?>?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="<?php echo css('nitro-section'); ?>?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="<?php echo css('swipe-wrapper'); ?>?v=<?php echo time(); ?>">
 </head>
 
 <body class="<?php echo $body_class; ?>">
     <?php echo $content; ?>
     
-    <?php include dirname(dirname(__DIR__)) . '/views/components/landing-sections/featured-cards-section.php'; ?>
+    <div id="swipe-wrapper" class="swipe-wrapper">
+        <?php include dirname(dirname(__DIR__)) . '/views/components/landing-sections/featured-cards-section.php'; ?>
+        <?php include dirname(dirname(__DIR__)) . '/views/components/landing-sections/carousel-section.php'; ?>
+        <?php include dirname(dirname(__DIR__)) . '/views/components/landing-sections/nitro-section.php'; ?>
+    </div>
+
+    <div class="section-navigation">
+        <div class="nav-dot active" data-section="0" title="Featured Extensions"></div>
+        <div class="nav-dot" data-section="1" title="Success Stories"></div>
+        <div class="nav-dot" data-section="2" title="Nitro Premium"></div>
+    </div>
+
+    <div class="swipe-hint">
+        <i class="fas fa-chevron-left"></i> Scroll or swipe horizontally to navigate <i class="fas fa-chevron-right"></i>
+    </div>
 
     <script src="<?php echo js('sections/scramble-text'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/parallax-scroll'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js('sections/horizontal-navigation'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/featured-cards'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js('sections/carousel-section'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js('sections/nitro-section'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('pages/landing-page'); ?>?v=<?php echo time(); ?>"></script>
     
     <script>

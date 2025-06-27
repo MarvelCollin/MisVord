@@ -137,16 +137,16 @@ class ChatAPI {
                 content: content
             };
             
-            if (options.messageType) {
-                requestData.message_type = options.messageType;
+            if (options.message_type) {
+                requestData.message_type = options.message_type;
             }
             
-            if (options.attachmentUrl) {
-                requestData.attachment_url = options.attachmentUrl;
+            if (options.attachment_url) {
+                requestData.attachment_url = options.attachment_url;
             }
             
-            if (options.replyToMessageId) {
-                requestData.reply_message_id = options.replyToMessageId;
+            if (options.reply_message_id) {
+                requestData.reply_message_id = options.reply_message_id;
             }
             
             const response = await this.makeRequest(url, {
@@ -182,12 +182,11 @@ class ChatAPI {
         try {
             const baseMessageData = {
                 id: socketData.message.id,
-                userId: socketData.message.user_id,
                 user_id: socketData.message.user_id,
                 username: socketData.message.username || socketData.username,
                 timestamp: socketData.timestamp,
                 content: socketData.message.content,
-                messageType: socketData.message.message_type || socketData.messageType,
+                message_type: socketData.message.message_type || socketData.message_type,
                 avatar_url: socketData.message.avatar_url,
                 sent_at: socketData.message.sent_at,
                 source: 'api-relay'
@@ -196,7 +195,6 @@ class ChatAPI {
             if (chatType === 'channel') {
                 const messageData = {
                     ...baseMessageData,
-                    channelId: targetId,
                     channel_id: targetId
                 };
                 io.emit('new-channel-message', messageData);
@@ -204,8 +202,7 @@ class ChatAPI {
             else if (chatType === 'direct' || chatType === 'dm') {
                 const messageData = {
                     ...baseMessageData,
-                    roomId: targetId,
-                    chatRoomId: targetId
+                    room_id: targetId
                 };
                 io.emit('user-message-dm', messageData);
             }
@@ -245,42 +242,42 @@ class ChatAPI {
             if (chatType === 'channel') {
                 eventName = 'new-channel-message';
                 messageData = {
-                    id: messageId,
-                    channelId: targetId,
-                    content: content,
-                    messageType: options.messageType || 'text',
-                    attachment_url: options.attachmentUrl || null,
-                    timestamp: timestamp,
-                    userId: userId,
-                    username: username
+                                    id: messageId,
+                channel_id: targetId,
+                content: content,
+                message_type: options.message_type || 'text',
+                attachment_url: options.attachment_url || null,
+                timestamp: timestamp,
+                user_id: userId,
+                username: username
                 };
                 
-                if (options.replyToMessageId) {
-                    messageData.reply_message_id = options.replyToMessageId;
+                if (options.reply_message_id) {
+                    messageData.reply_message_id = options.reply_message_id;
                     
-                    if (options.replyData) {
-                        messageData.reply_data = options.replyData;
+                    if (options.reply_data) {
+                        messageData.reply_data = options.reply_data;
                     }
                 }
             } 
             else if (chatType === 'direct' || chatType === 'dm') {
                 eventName = 'user-message-dm';
                 messageData = {
-                    id: messageId,
-                    roomId: targetId,
-                    content: content,
-                    messageType: options.messageType || 'text',
-                    attachment_url: options.attachmentUrl || null,
-                    timestamp: timestamp,
-                    userId: userId,
-                    username: username
+                                    id: messageId,
+                room_id: targetId,
+                content: content,
+                message_type: options.message_type || 'text',
+                attachment_url: options.attachment_url || null,
+                timestamp: timestamp,
+                user_id: userId,
+                username: username
                 };
                 
-                if (options.replyToMessageId) {
-                    messageData.reply_message_id = options.replyToMessageId;
+                if (options.reply_message_id) {
+                    messageData.reply_message_id = options.reply_message_id;
                     
-                    if (options.replyData) {
-                        messageData.reply_data = options.replyData;
+                    if (options.reply_data) {
+                        messageData.reply_data = options.reply_data;
                     }
                 }
             }
@@ -309,9 +306,8 @@ class ChatAPI {
                 })
             });
             
-            if (response && response.data) {
-                const messageData = response.data;
-                this.sendDirectSocketUpdate(messageId, content, messageData.target_type, messageData.target_id);
+            if (response && response.client_should_emit_socket === true && response.socket_data) {
+                this.sendDirectSocketUpdate(messageId, content, response.socket_data.target_type, response.socket_data.target_id);
             }
             
             return response;
@@ -354,13 +350,8 @@ class ChatAPI {
                 method: 'DELETE'
             });
             
-            if (response && response.data) {
-                const messageData = response.data;
-                this.sendDirectSocketDelete(messageId, messageData.target_type, messageData.target_id);
-            } else if (response && response.socket_data) {
+            if (response && response.client_should_emit_socket === true && response.socket_data) {
                 this.sendDirectSocketDelete(messageId, response.socket_data.target_type, response.socket_data.target_id);
-            } else {
-                console.error('No target info found in delete response');
             }
             
             return response;
@@ -396,54 +387,22 @@ class ChatAPI {
         }
     }
 
-    emitReaction(socketData) {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.warn('Socket not ready for reaction emission');
-            return false;
+    async pinMessage(messageId) {
+        if (!messageId) {
+            throw new Error('Message ID is required');
         }
         
-        const eventName = socketData.action === 'added' ? 'reaction-added' : 'reaction-removed';
-        
-        try {
-            window.globalSocketManager.io.emit(eventName, socketData);
-            console.log(`📡 Emitted ${eventName} for message ${socketData.message_id} emoji ${socketData.emoji}`);
-            return true;
-        } catch (e) {
-            console.error('Failed to emit reaction:', e);
-            return false;
-        }
-    }
-    
-    async addReaction(messageId, emoji) {
-        if (!messageId || !emoji) {
-            throw new Error('Message ID and emoji are required');
-        }
-        
-        const url = `/api/messages/${messageId}/reactions`;
+        const url = `/api/messages/${messageId}/pin`;
         
         try {
             const response = await this.makeRequest(url, {
-                method: 'POST',
-                body: JSON.stringify({ emoji })
+                method: 'POST'
             });
-            
-            // Only emit socket events if server explicitly requests it
-            if (response && response.client_should_emit_socket === true) {
-                if (response.socket_data) {
-                    this.emitReaction(response.socket_data);
-                }
-            }
-            // Server will handle socket broadcasting when client_should_emit_socket is false
             
             return response;
         } catch (error) {
             throw error;
         }
-    }
-    
-    async removeReaction(messageId, emoji) {
-        // Both add and remove use the same toggle endpoint
-        return this.addReaction(messageId, emoji);
     }
 
     async getMessageTarget(messageId) {
@@ -460,47 +419,6 @@ class ChatAPI {
             console.warn('Failed to get message target:', error);
         }
         return null;
-    }
-
-    emitSocketEvent(eventName, data) {
-        console.warn('⚠️ DEPRECATED: emitSocketEvent is deprecated. Use direct socket emission instead.');
-        console.warn('This method will be removed in a future update.');
-        
-        if (window.globalSocketManager && window.globalSocketManager.isReady() && window.globalSocketManager.io) {
-            const userId = window.globalSocketManager.userId;
-            const username = window.globalSocketManager.username;
-            
-            const enhancedData = {
-                ...data,
-                _debug: {
-                    timestamp: new Date().toISOString(),
-                    clientId: window.globalSocketManager.io.id,
-                    emittedBy: username || 'Unknown',
-                    type: 'api-relay-deprecated'
-                }
-            };
-            
-            window.globalSocketManager.io.emit(eventName, enhancedData);
-            
-            if (eventName === 'new-channel-message') {
-                console.log(`📨 API-relayed message to channel ${data.channelId}: "${data.content}"`);
-            } else if (eventName === 'user-message-dm') {
-                console.log(`📨 API-relayed DM to room ${data.roomId || data.chatRoomId}: "${data.content}"`);
-            } else if (eventName === 'message-updated') {
-                console.log(`📝 API-relayed message update: "${data.content}"`);
-            } else if (eventName === 'message-deleted') {
-                console.log(`🗑️ API-relayed message deletion`);
-            } else if (eventName === 'reaction-added' || eventName === 'reaction-removed') {
-                console.log(`${eventName === 'reaction-added' ? '👍' : '👎'} API-relayed reaction ${data.emoji}`);
-            } else {
-                console.log(`📤 API-relayed socket event: ${eventName}`, data);
-            }
-            
-            return true;
-        } else {
-            console.warn(`⚠️ Could not emit socket event "${eventName}": Socket manager not ready`, { eventName, data });
-            return false;
-        }
     }
 
     async createDirectMessage(friendId) {
@@ -525,10 +443,10 @@ class ChatAPI {
             socketConnected: window.globalSocketManager?.connected || false,
             socketAuthenticated: window.globalSocketManager?.authenticated || false,
             socketId: window.globalSocketManager?.io?.id || 'none',
-            userId: window.globalSocketManager?.userId || 'none',
+            user_id: window.globalSocketManager?.userId || 'none',
             username: window.globalSocketManager?.username || 'none',
-            targetId: targetId,
-            chatType: chatType,
+            target_id: targetId,
+            chat_type: chatType,
             chatAPIExists: !!window.ChatAPI,
             chatSectionExists: !!window.chatSection
         };
@@ -592,7 +510,7 @@ class ChatAPI {
             content: message.content,
             user_id: message.user_id,
             username: message.username,
-            avatar_url: message.avatar_url || '/public/assets/main-logo.png',
+            avatar_url: message.avatar_url || '/public/assets/default-profile-picture.png',
             sent_at: message.sent_at,
             edited_at: message.edited_at,
             type: message.type || 'text'
@@ -650,7 +568,11 @@ class ChatAPI {
             const response = await window.MediaAPI.uploadFile(formData);
             
             if (!response || !response.success) {
-                throw new Error(response?.error?.message || response?.message || 'Upload failed');
+                const errorMessage = response?.error?.message || response?.message || 'Upload failed';
+                if (errorMessage.includes('too large') || errorMessage.includes('413')) {
+                    throw new Error('File is too large. Please choose a smaller file.');
+                }
+                throw new Error(errorMessage);
             }
             
             const data = response.data || response;
@@ -663,6 +585,9 @@ class ChatAPI {
             };
         } catch (error) {
             console.error('Error uploading file:', error);
+            if (error.message.includes('too large')) {
+                throw new Error('File is too large. Please choose a smaller file.');
+            }
             throw error;
         }
     }
@@ -684,47 +609,47 @@ class ChatAPI {
         }
     }
 
-    async pinMessage(messageId) {
-        if (!messageId) {
-            throw new Error('Message ID is required');
+    async addReaction(messageId, emoji) {
+        if (!messageId || !emoji) {
+            throw new Error('Message ID and emoji are required');
         }
         
-        const url = `/api/messages/${messageId}/pin`;
+        const url = `/api/messages/${messageId}/reactions`;
         
         try {
             const response = await this.makeRequest(url, {
-                method: 'POST'
+                method: 'POST',
+                body: JSON.stringify({
+                    emoji: emoji
+                })
             });
-            
-            // Only emit socket events if server explicitly requests it
-            if (response && response.client_should_emit_socket === true) {
-                if (response.socket_data) {
-                    this.emitPinEvent(response.socket_data);
-                }
-            }
-            // Server will handle socket broadcasting when client_should_emit_socket is false
             
             return response;
         } catch (error) {
+            console.error('Error adding reaction:', error);
             throw error;
         }
     }
 
-    emitPinEvent(socketData) {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.warn('Socket not ready for pin event emission');
-            return false;
+    async removeReaction(messageId, emoji) {
+        if (!messageId || !emoji) {
+            throw new Error('Message ID and emoji are required');
         }
         
-        const eventName = socketData.action === 'pinned' ? 'message-pinned' : 'message-unpinned';
+        const url = `/api/messages/${messageId}/reactions`;
         
         try {
-            window.globalSocketManager.io.emit(eventName, socketData);
-            console.log(`📌 Emitted ${eventName} for message ${socketData.message_id}`);
-            return true;
-        } catch (e) {
-            console.error('Failed to emit pin event:', e);
-            return false;
+            const response = await this.makeRequest(url, {
+                method: 'DELETE',
+                body: JSON.stringify({
+                    emoji: emoji
+                })
+            });
+            
+            return response;
+        } catch (error) {
+            console.error('Error removing reaction:', error);
+            throw error;
         }
     }
 }

@@ -31,14 +31,40 @@ class ServerRepository extends Repository {
         return $this->getForUser($userId);
     }
       public function createWithOwner($data, $ownerId) {
-        $server = $this->create($data);
+        $query = new Query();
         
-        if ($server && $server->id) {
-            $this->addMemberWithRole($server->id, $ownerId, 'owner');
-            return $server;
+        try {
+            $query->beginTransaction();
+            
+            $data['created_at'] = date('Y-m-d H:i:s');
+            $data['updated_at'] = date('Y-m-d H:i:s');
+            
+            $serverId = $query->table('servers')->insertGetId($data);
+            
+            if (!$serverId) {
+                throw new Exception('Failed to create server');
+            }
+            
+            $membershipResult = $query->table('user_server_memberships')->insert([
+                'user_id' => $ownerId,
+                'server_id' => $serverId,
+                'role' => 'owner',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+            
+            if (!$membershipResult) {
+                throw new Exception('Failed to create server ownership');
+            }
+            
+            $query->commit();
+            
+            return $this->find($serverId);
+            
+        } catch (Exception $e) {
+            $query->rollback();
+            throw $e;
         }
-        
-        return null;
     }
       public function addMember($serverId, $userId, $role = 'member') {
         return $this->addMemberWithRole($serverId, $userId, $role);

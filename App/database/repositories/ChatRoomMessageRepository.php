@@ -24,7 +24,10 @@ class ChatRoomMessageRepository extends Repository {
     public function getMessagesByRoomId($roomId, $limit = 50, $offset = 0) {
         $query = new Query();
         $sql = "
-            SELECT m.*, u.username, u.avatar_url,
+            SELECT m.id as id, m.user_id, m.content, m.sent_at, m.edited_at,
+                   m.message_type, m.attachment_url, m.reply_message_id,
+                   m.created_at, m.updated_at,
+                   u.username, u.avatar_url,
                    crm.created_at as chat_room_message_created_at
             FROM chat_room_messages crm
             INNER JOIN messages m ON crm.message_id = m.id

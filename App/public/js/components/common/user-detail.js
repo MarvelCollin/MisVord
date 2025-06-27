@@ -210,14 +210,14 @@ class UserDetailModal {
         if (this.avatarContainer) {
             this.avatarContainer.innerHTML = `
                 <div class="user-avatar">
-                    <img src="/assets/main-logo.png" alt="Default Avatar" id="user-detail-avatar" class="opacity-30">
+                    <img src="/assets/default-profile-picture.png" alt="Default Avatar" id="user-detail-avatar" class="opacity-30">
                     <div class="skeleton-loading skeleton-avatar absolute top-0 left-0 right-0 bottom-0"></div>
                 </div>
             `;
         }
         
         if (this.banner) {
-            this.banner.style.backgroundImage = `url(/assets/main-logo.png)`;
+            this.banner.style.backgroundImage = `url(/assets/default-profile-picture.png)`;
             this.banner.style.backgroundSize = 'contain';
             this.banner.style.backgroundRepeat = 'no-repeat';
             this.banner.style.backgroundPosition = 'center';
@@ -274,13 +274,13 @@ class UserDetailModal {
         if (this.avatarContainer) {
             this.avatarContainer.innerHTML = `
                 <div class="user-avatar">
-                    <img src="/assets/main-logo.png" alt="Default Avatar" id="user-detail-avatar">
+                    <img src="/assets/default-profile-picture.png" alt="Default Avatar" id="user-detail-avatar">
                 </div>
             `;
         }
         
         if (this.banner) {
-            this.banner.style.backgroundImage = `url(/assets/main-logo.png)`;
+            this.banner.style.backgroundImage = `url(/assets/default-profile-picture.png)`;
             this.banner.style.backgroundSize = 'contain';
             this.banner.style.backgroundRepeat = 'no-repeat';
             this.banner.style.backgroundPosition = 'center';
@@ -339,7 +339,7 @@ class UserDetailModal {
                     const mutualData = await userApi.getMutualRelations(this.currentUserId);
                     console.log('Mutual relations API response:', mutualData);
                     
-                    if (mutualData && mutualData.success && mutualData.data) {
+                    if (mutualData && mutualData.data) {
                         userData.data.mutualData = mutualData.data;
                     } else {
                         console.warn('Mutual data API returned unsuccessful response:', mutualData);
@@ -431,7 +431,7 @@ class UserDetailModal {
                     avatarWrapper.appendChild(img);
                 } else {
                     const img = document.createElement('img');
-                    img.src = '/assets/main-logo.png';
+                    img.src = '/assets/default-profile-picture.png';
                     img.alt = 'Default Avatar';
                     img.id = 'user-detail-avatar';
                     avatarWrapper.appendChild(img);
@@ -450,7 +450,7 @@ class UserDetailModal {
                 if (user.banner_url) {
                     this.banner.style.backgroundImage = `url(${user.banner_url})`;
                 } else {
-                    this.banner.style.backgroundImage = `url(/assets/main-logo.png)`;
+                    this.banner.style.backgroundImage = `url(/assets/default-profile-picture.png)`;
                     this.banner.style.backgroundSize = 'contain';
                     this.banner.style.backgroundRepeat = 'no-repeat';
                     this.banner.style.backgroundPosition = 'center';
@@ -635,8 +635,8 @@ class UserDetailModal {
 
             const data = await response.json();
 
-            if (data.success && data.room_id) {
-                window.location.href = `/app/channels/dm/${data.room_id}`;
+            if (data.data && data.data.room_id) {
+                window.location.href = `/app/channels/dm/${data.data.room_id}`;
             } else {
                 console.error('Failed to create DM:', data.message || 'Unknown error');
             }

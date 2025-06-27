@@ -49,7 +49,7 @@ class ChatController extends BaseController
             } elseif ($targetType === 'dm') {
                 return $this->getDirectMessages($targetId, $userId);
             } else {
-                return $this->validationError(['type' => 'Invalid target type']);
+                return $this->validationError(['target_type' => 'Invalid target type. Must be "channel" or "dm"']);
             }
         } catch (Exception $e) {
             error_log("Error in getMessages: " . $e->getMessage());
@@ -90,7 +90,6 @@ class ChatController extends BaseController
     private function respondMessages($type, $targetId, $messages, $hasMore = false)
     {
         return $this->success([
-            'success' => true,
             'data' => [
                 'type' => $type,
                 'target_id' => $targetId,
@@ -156,10 +155,10 @@ class ChatController extends BaseController
 
         if ($targetType === 'channel') {
             return $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachmentUrl, $mentions, $replyMessageId);
-        } elseif ($targetType === 'dm' || $targetType === 'direct') {
+        } elseif ($targetType === 'dm') {
             return $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachmentUrl, $mentions, $replyMessageId);
         } else {
-            return $this->validationError(['target_type' => 'Invalid target type']);
+            return $this->validationError(['target_type' => 'Invalid target type. Must be "channel" or "dm"']);
         }
     }
 
@@ -211,11 +210,11 @@ class ChatController extends BaseController
                         $repliedUser = $this->userRepository->find($repliedMessage->user_id);
                         $formattedMessage['reply_message_id'] = $message->reply_message_id;
                         $formattedMessage['reply_data'] = [
-                            'messageId' => $message->reply_message_id,
+                            'message_id' => $message->reply_message_id,
                             'content' => $repliedMessage->content,
                             'user_id' => $repliedMessage->user_id,
                             'username' => $repliedUser ? $repliedUser->username : 'Unknown',
-                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/main-logo.png'
+                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/default-profile-picture.png'
                         ];
                     }
                 }
@@ -229,20 +228,21 @@ class ChatController extends BaseController
                 // Broadcast to socket server
                 $socketData = [
                     'id' => $message->id,
-                    'channelId' => $channelId,
+                    'channel_id' => $channelId,
                     'content' => $content,
-                    'messageType' => $messageType,
+                    'message_type' => $messageType,
                     'timestamp' => time(),
                     'message' => $formattedMessage,
                     'user_id' => $userId,
                     'username' => $_SESSION['username'] ?? 'Unknown',
+                    'target_type' => 'channel',
+                    'target_id' => $channelId,
                     'source' => 'server-originated'
                 ];
                 
                 SocketBroadcaster::broadcastToChannel($channelId, 'new-channel-message', $socketData);
                 
                 return $this->success([
-                    'success' => true,
                     'data' => [
                         'message' => $formattedMessage,
                         'channel_id' => $channelId
@@ -306,11 +306,11 @@ class ChatController extends BaseController
                         $repliedUser = $this->userRepository->find($repliedMessage->user_id);
                         $formattedMessage['reply_message_id'] = $message->reply_message_id;
                         $formattedMessage['reply_data'] = [
-                            'messageId' => $message->reply_message_id,
+                            'message_id' => $message->reply_message_id,
                             'content' => $repliedMessage->content,
                             'user_id' => $repliedMessage->user_id,
                             'username' => $repliedUser ? $repliedUser->username : 'Unknown',
-                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/main-logo.png'
+                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/default-profile-picture.png'
                         ];
                     }
                 }
@@ -337,21 +337,21 @@ class ChatController extends BaseController
                 // Broadcast to socket server
                 $socketData = [
                     'id' => $message->id,
-                    'roomId' => $chatRoomId,
+                    'room_id' => $chatRoomId,
                     'content' => $content,
-                    'messageType' => $messageType,
+                    'message_type' => $messageType,
                     'timestamp' => time(),
                     'message' => $formattedMessage,
-                    'chatRoomId' => $chatRoomId,
                     'user_id' => $userId,
                     'username' => $senderUsername,
+                    'target_type' => 'dm',
+                    'target_id' => $chatRoomId,
                     'source' => 'server-originated'
                 ];
                 
                 SocketBroadcaster::broadcastToDM($chatRoomId, 'user-message-dm', $socketData);
 
                 return $this->success([
-                    'success' => true,
                     'data' => [
                         'message' => $formattedMessage,
                         'room_id' => $chatRoomId
@@ -403,7 +403,6 @@ class ChatController extends BaseController
                     'updated_at' => $existingRoom->updated_at
                 ];
                 return $this->success([
-                'success' => true,
                 'data' => ['chat_room' => $chatRoomData]
             ]);
             }
@@ -428,8 +427,7 @@ class ChatController extends BaseController
                 'created_at' => $chatRoom->created_at,
                 'updated_at' => $chatRoom->updated_at
             ];
-            return $this->success([
-                'success' => true,
+                            return $this->success([
                 'data' => ['chat_room' => $chatRoomData]
             ], 'Direct message created');
         } catch (Exception $e) {
@@ -680,11 +678,11 @@ class ChatController extends BaseController
                 $repliedUser = $this->userRepository->find($repliedUserId);
                 
                 $formatted['reply_data'] = [
-                    'messageId' => $replyMessageId,
+                    'message_id' => $replyMessageId,
                     'content' => $repliedMessage->content,
-                    'userId' => $repliedUserId,
+                    'user_id' => $repliedUserId,
                     'username' => $repliedUser ? $repliedUser->username : 'Unknown User',
-                    'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/main-logo.png'
+                    'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/default-profile-picture.png'
                 ];
             }
         }
@@ -898,20 +896,28 @@ class ChatController extends BaseController
                 
                 $formattedMessage = $this->formatMessage($message);
                 
-                return $this->success([
+                $socketData = [
+                    'message_id' => $messageId,
+                    'target_type' => $targetType,
+                    'target_id' => $targetId,
                     'message' => $formattedMessage,
-                    'socket_event' => 'message-updated',
-                    'socket_data' => [
-                        'target_type' => $targetType,
-                        'target_id' => $targetId,
-                        'message' => $formattedMessage
-                    ],
-                    'data' => [
-                        'target_type' => $targetType,
-                        'target_id' => $targetId,
-                        'message' => $formattedMessage
-                    ]
-                ], 'Message updated successfully');
+                    'user_id' => $userId,
+                    'username' => $_SESSION['username'] ?? 'Unknown',
+                    'source' => 'server-originated'
+                ];
+                
+                SocketBroadcaster::broadcastMessage($targetType, $targetId, 'message-updated', $socketData);
+                
+                            return $this->success([
+                'data' => [
+                    'message' => $formattedMessage,
+                    'target_type' => $targetType,
+                    'target_id' => $targetId
+                ],
+                'socket_event' => 'message-updated',
+                'socket_data' => $socketData,
+                'client_should_emit_socket' => false
+            ], 'Message updated successfully');
             } else {
                 throw new Exception('Failed to update message');
             }
@@ -961,19 +967,26 @@ class ChatController extends BaseController
             }
             
             if ($this->messageRepository->delete($messageId)) {
-                return $this->success([
+                $socketData = [
                     'message_id' => $messageId,
-                    'socket_event' => 'message-deleted',
-                    'socket_data' => [
-                        'target_type' => $targetType,
-                        'target_id' => $targetId,
-                        'message_id' => $messageId
-                    ],
+                    'target_type' => $targetType,
+                    'target_id' => $targetId,
+                    'user_id' => $userId,
+                    'username' => $_SESSION['username'] ?? 'Unknown',
+                    'source' => 'server-originated'
+                ];
+                
+                SocketBroadcaster::broadcastMessage($targetType, $targetId, 'message-deleted', $socketData);
+                
+                return $this->success([
                     'data' => [
+                        'message_id' => $messageId,
                         'target_type' => $targetType,
-                        'target_id' => $targetId,
-                        'message_id' => $messageId
-                    ]
+                        'target_id' => $targetId
+                    ],
+                    'socket_event' => 'message-deleted',
+                    'socket_data' => $socketData,
+                    'client_should_emit_socket' => false
                 ], 'Message deleted successfully');
             } else {
                 throw new Exception('Failed to delete message');

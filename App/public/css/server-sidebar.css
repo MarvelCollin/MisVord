@@ -4,7 +4,7 @@
   --discord-darker: #1e1f22;
   --discord-dark: #2b2d31;
   --discord-primary: #5865f2;
-  --discord-green: #3ba55c;
+  --discord-green: #23a559;
   --discord-red: #ed4245;
   --discord-text-normal: #dcddde;
   --discord-text-muted: #a3a6aa;
@@ -39,7 +39,7 @@
   height: 48px;
   border-radius: 50%;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -64,8 +64,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.server-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 /* Server groups/folders */
@@ -232,6 +238,7 @@
 .server-icon.active .server-button {
   border-radius: 16px !important;
   background-color: var(--discord-primary) !important;
+  transform: scale(1.05);
 }
 
 .server-icon.active::before {
@@ -244,12 +251,13 @@
   height: 40px;
   background-color: white;
   border-radius: 0 4px 4px 0;
+  transition: all 0.2s ease;
 }
 
 /* Hover effects */
 .server-icon:not(.active):hover .server-button {
   border-radius: 16px;
-  background-color: var(--discord-primary);
+  background-color: var(--discord-green);
 }
 
 .server-icon:not(.active):hover::before {
@@ -306,7 +314,9 @@
   pointer-events: none;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateX(8px);
+  visibility: hidden;
 }
 
 .tooltip::before {
@@ -318,6 +328,13 @@
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
   border-right: 6px solid #18191c;
+}
+
+.server-icon:hover .tooltip {
+  transform: translateX(0);
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0.5s;
 }
 
 /* Drag and drop styles */
@@ -386,4 +403,181 @@
   box-shadow: 0 0 0 4px var(--discord-darker);
   z-index: 5;
   padding: 0 5px;
+}
+
+@media (max-width: 768px) {
+  .server-list {
+    width: 60px;
+    gap: 6px;
+    padding: 6px 0;
+  }
+  
+  .server-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .server-button {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .tooltip {
+    left: 50px;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .server-list {
+    width: 56px;
+    gap: 4px;
+  }
+  
+  .server-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .server-button {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .tooltip {
+    left: 46px;
+  }
+}
+
+/* Add Server Button - Discord Style */
+.discord-add-server-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #36393f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.discord-add-server-button:hover {
+  border-radius: 16px;
+  background-color: #23a559;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(35, 165, 89, 0.25);
+}
+
+.discord-add-server-icon {
+  color: #23a559 !important;
+  font-size: 20px;
+  transition: color 0.2s ease;
+}
+
+.discord-add-server-button:hover .discord-add-server-icon {
+  color: #ffffff !important;
+}
+
+/* Explore Server Button - Discord Style */
+.discord-explore-server-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #36393f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.discord-explore-server-button:hover {
+  border-radius: 16px;
+  background-color: #23a559;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(35, 165, 89, 0.25);
+}
+
+.discord-explore-server-button.active {
+  border-radius: 16px;
+  background-color: #5865f2;
+  transform: scale(1.05);
+}
+
+.discord-explore-server-icon {
+  color: #23a559 !important;
+  font-size: 20px;
+  transition: color 0.2s ease;
+}
+
+.discord-explore-server-button:hover .discord-explore-server-icon {
+  color: #ffffff !important;
+}
+
+.discord-explore-server-button.active .discord-explore-server-icon {
+  color: #ffffff !important;
+}
+
+@media (max-width: 768px) {
+  .discord-add-server-button,
+  .discord-explore-server-button {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .discord-add-server-icon,
+  .discord-explore-server-icon {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .discord-add-server-button,
+  .discord-explore-server-button {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .discord-add-server-icon,
+  .discord-explore-server-icon {
+    font-size: 14px;
+  }
+}
+
+/* Home Button Logo */
+.discord-home-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  transition: all 0.2s ease;
+  filter: brightness(1);
+}
+
+.server-button:hover .discord-home-logo {
+  filter: brightness(1.1);
+}
+
+.server-button.active .discord-home-logo {
+  filter: brightness(1.2);
+}
+
+@media (max-width: 768px) {
+  .discord-home-logo {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .discord-home-logo {
+    width: 18px;
+    height: 18px;
+  }
 }

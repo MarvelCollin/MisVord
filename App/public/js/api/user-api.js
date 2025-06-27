@@ -77,7 +77,7 @@ class UserAPI {
                 };
             }
 
-            if (data.success) {
+            if (data.data) {
                 return data;
             } else {
                 return {

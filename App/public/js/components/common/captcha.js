@@ -6,14 +6,20 @@ export class TextCaptcha {
             return;
         }
 
+        const isProduction = window.location.hostname !== 'localhost' && 
+                           !window.location.hostname.includes('127.0.0.1') && 
+                           !window.location.hostname.includes('dev');
+
         this.options = {
             length: options.length || 6,
             refreshButtonId: options.refreshButtonId || null,
             inputId: options.inputId || null,
             caseSensitive: options.caseSensitive || false,
+            showDebug: options.showDebug !== undefined ? options.showDebug : !isProduction,
         };
 
         this.code = '';
+        this.serverCode = '';
         this.init();
     }
 
@@ -35,6 +41,7 @@ export class TextCaptcha {
                     <i class="fa-solid fa-rotate-right"></i>
                 </button>
             </div>
+            ${this.options.showDebug ? `<div class="captcha-debug" id="${this.container.id}-debug" style="margin-top: 4px; padding: 4px 8px; background: #36393f; border-radius: 4px; font-size: 12px; color: #b9bbbe; font-family: monospace;">Debug: Loading...</div>` : ''}
         `;
         
         const style = document.createElement('style');
@@ -99,6 +106,11 @@ export class TextCaptcha {
                 outline: none;
                 box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
             }
+            
+            .captcha-debug {
+                user-select: text;
+                cursor: text;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -113,33 +125,38 @@ export class TextCaptcha {
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`Server error: ${response.status}`);
             }
             
             const data = await response.json();
 
-            if (data.captcha_code) {
+            if (data.success && data.captcha_code) {
                 this.code = data.captcha_code;
+                this.serverCode = data.captcha_code.toLowerCase();
                 this.displayCode();
+                this.updateDebugDisplay();
             } else {
-                this.fallbackGenerate();
+                throw new Error('Server did not return captcha code');
             }
         } catch (error) {
             console.error('Error generating captcha:', error);
-            this.fallbackGenerate();
+            this.displayError('Failed to load captcha. Please refresh the page.');
         }
     }
 
-    fallbackGenerate() {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-        let code = '';
-        
-        for (let i = 0; i < this.options.length; i++) {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
+    displayError(message) {
+        const codeDisplay = document.getElementById(`${this.container.id}-code`);
+        if (codeDisplay) {
+            codeDisplay.innerHTML = `<div style="color: #f87171; text-align: center; padding: 10px; font-size: 12px;">${message}</div>`;
         }
         
-        this.code = code;
-        this.displayCode();
+        if (this.options.showDebug) {
+            const debugDisplay = document.getElementById(`${this.container.id}-debug`);
+            if (debugDisplay) {
+                debugDisplay.textContent = `Debug: Error - ${message}`;
+                debugDisplay.style.color = '#f87171';
+            }
+        }
     }
 
     displayCode() {
@@ -187,24 +204,45 @@ export class TextCaptcha {
         });
     }
 
+    updateDebugDisplay() {
+        if (!this.options.showDebug) return;
+        
+        const debugDisplay = document.getElementById(`${this.container.id}-debug`);
+        if (debugDisplay) {
+            debugDisplay.textContent = `Debug: Correct answer is "${this.serverCode}" (case insensitive)`;
+            debugDisplay.style.color = '#4ade80';
+        }
+    }
+
     setupListeners() {
         const refreshBtn = document.getElementById(`${this.container.id}-refresh`);
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {
                 this.generateCode();
+                if (this.options.inputId) {
+                    const input = document.getElementById(this.options.inputId);
+                    if (input) {
+                        input.value = '';
+                    }
+                }
             });
         }
     }
 
     verify(input) {
         if (!input) return false;
-        if (!this.code) return true; 
+        if (!this.serverCode) return false;
         
-        if (this.options.caseSensitive) {
-            return input === this.code;
-        } else {
-            return input.toLowerCase() === this.code.toLowerCase();
-        }
+        const inputLower = input.toLowerCase().trim();
+        
+        console.log('Captcha verification:', {
+            input: input,
+            inputLower: inputLower,
+            serverCode: this.serverCode,
+            match: inputLower === this.serverCode
+        });
+        
+        return inputLower === this.serverCode;
     }
 
     async verifyWithServer(input) {
@@ -213,11 +251,18 @@ export class TextCaptcha {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache'
                 },
+                credentials: 'include',
                 body: JSON.stringify({ captcha: input })
             });
+            
+            if (!response.ok) {
+                return false;
+            }
+            
             const data = await response.json();
-            return data.success && data.valid;
+            return data.success === true;
         } catch (error) {
             console.error('Error verifying captcha with server:', error);
             return this.verify(input);
@@ -230,10 +275,30 @@ export class TextCaptcha {
             if (codeDisplay) {
                 codeDisplay.innerHTML = '<div style="text-align:center;padding:10px;">Loading...</div>';
             }
+            
+            if (this.options.showDebug) {
+                const debugDisplay = document.getElementById(`${this.container.id}-debug`);
+                if (debugDisplay) {
+                    debugDisplay.textContent = 'Debug: Loading new captcha...';
+                    debugDisplay.style.color = '#b9bbbe';
+                }
+            }
+            
             this.generateCode();
+            
+            if (this.options.inputId) {
+                const input = document.getElementById(this.options.inputId);
+                if (input) {
+                    input.value = '';
+                }
+            }
         } catch (e) {
             console.error('Error refreshing captcha:', e);
         }
+    }
+
+    isValid(input) {
+        return this.verify(input);
     }
 }
 

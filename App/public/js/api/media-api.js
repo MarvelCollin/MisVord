@@ -13,6 +13,11 @@ class MediaAPI {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Upload response error:', errorText);
+                
+                if (response.status === 413) {
+                    throw new Error('File is too large. Please choose a smaller file.');
+                }
+                
                 throw new Error(`Failed to upload file: ${response.status} - ${response.statusText}`);
             }
             

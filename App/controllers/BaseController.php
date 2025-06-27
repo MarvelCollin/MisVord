@@ -541,7 +541,23 @@ class BaseController
             }
         }
 
-        $filename = uniqid() . '_' . basename($file['name']);
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (empty($extension)) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+            
+            $mimeToExt = [
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/gif' => 'gif',
+                'image/webp' => 'webp'
+            ];
+            
+            $extension = $mimeToExt[$mimeType] ?? 'jpg';
+        }
+
+        $filename = uniqid() . '.' . $extension;
         $targetFile = $targetDir . $filename;
 
         if (!move_uploaded_file($file['tmp_name'], $targetFile)) {

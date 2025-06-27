@@ -58,7 +58,7 @@ class FriendAPI {
             body: JSON.stringify({ username })
         });
         
-        if (!data.success) {
+        if (!data.data) {
             throw new Error(data.message || 'Failed to send friend request');
         }
         
@@ -67,15 +67,15 @@ class FriendAPI {
 
     async getFriends() {
         const data = await this.makeRequest(this.baseURL);
-        return data.success ? data.data : [];
+        return data.data || [];
     }
 
     async getOnlineFriends() {
         const data = await this.makeRequest(`${this.baseURL}/online`);
-        return data.success ? data.data : [];
+        return data.data || [];
     }    async getPendingRequests() {
         const data = await this.makeRequest(`${this.baseURL}/pending`);
-        return data.success ? data.data : { incoming: [], outgoing: [] };
+        return data.data || { incoming: [], outgoing: [] };
     }
 
     async getPendingCount() {
@@ -86,7 +86,7 @@ class FriendAPI {
             method: 'POST'
         });
         
-        if (!data.success) {
+        if (!data.data) {
             throw new Error(data.message || 'Failed to accept friend request');
         }
         
@@ -98,7 +98,7 @@ class FriendAPI {
             method: 'POST'
         });
         
-        if (!data.success) {
+        if (!data.data) {
             throw new Error(data.message || 'Failed to decline friend request');
         }
         
@@ -111,7 +111,7 @@ class FriendAPI {
             body: JSON.stringify({ user_id: userId })
         });
         
-        if (!data.success) {
+        if (!data.data) {
             throw new Error(data.message || 'Failed to remove friend');
         }
         
@@ -124,7 +124,7 @@ class FriendAPI {
             body: JSON.stringify({ user_id: userId })
         });
         
-        if (!data.success) {
+        if (!data.data) {
             throw new Error(data.message || 'Failed to block user');
         }
         
@@ -135,7 +135,7 @@ class FriendAPI {
             body: JSON.stringify({ user_id: userId })
         });
         
-        if (!data.success) {
+        if (!data.data) {
             throw new Error(data.message || 'Failed to unblock user');
         }
         
@@ -144,7 +144,7 @@ class FriendAPI {
 
     async getBlockedUsers() {
         const data = await this.makeRequest('/api/users/blocked');
-        return data.success ? data.data : [];
+        return data.data || [];
     }
 
     validateUsername(username) {

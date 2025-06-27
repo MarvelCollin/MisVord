@@ -25,21 +25,7 @@ class UserRepository extends Repository {
     public function findByGoogleId($googleId) {
         return User::findByGoogleId($googleId);
     }
-      public function createWithHashedPassword($data) {
-        $password = null;
-        if (isset($data['password'])) {
-            $password = $data['password'];
-            unset($data['password']); 
-        }
-        
-        $user = new User($data);
-        
-        if ($password) {
-            $user->setPassword($password);
-        }
-        
-        return $user->save() ? $user : null;
-    }
+
     
     public function updatePassword($userId, $newPassword) {
         $user = $this->find($userId);

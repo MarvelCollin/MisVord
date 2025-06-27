@@ -5,6 +5,8 @@ require_once __DIR__ . '/../database/repositories/MessageRepository.php';
 require_once __DIR__ . '/../database/repositories/ChannelMessageRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
+require_once __DIR__ . '/../database/repositories/UserRepository.php';
+require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ChannelController extends BaseController
@@ -362,7 +364,7 @@ class ChannelController extends BaseController
                     'content' => $message->content,
                     'user_id' => $message->user_id,
                     'username' => $user ? $user->username : ($_SESSION['username'] ?? 'Unknown'),
-                    'avatar_url' => $user && $user->avatar_url ? $user->avatar_url : '/public/assets/common/main-logo.png',
+                    'avatar_url' => $user && $user->avatar_url ? $user->avatar_url : '/public/assets/common/default-profile-picture.png',
                     'sent_at' => $message->sent_at,
                     'edited_at' => $message->edited_at,
                     'type' => $message->message_type ?? 'text',
@@ -379,11 +381,11 @@ class ChannelController extends BaseController
                         $repliedUser = $userRepository->find($repliedMessage->user_id);
                         $formattedMessage['reply_message_id'] = $message->reply_message_id;
                         $formattedMessage['reply_data'] = [
-                            'messageId' => $message->reply_message_id,
+                            'message_id' => $message->reply_message_id,
                             'content' => $repliedMessage->content,
                             'user_id' => $repliedMessage->user_id,
                             'username' => $repliedUser ? $repliedUser->username : 'Unknown',
-                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/main-logo.png'
+                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/default-profile-picture.png'
                         ];
                     }
                 }
@@ -396,13 +398,15 @@ class ChannelController extends BaseController
                 
                 $socketData = [
                     'id' => $message->id,
-                    'channelId' => $targetId,
+                    'channel_id' => $targetId,
                     'content' => $content,
-                    'messageType' => $messageType,
+                    'message_type' => $messageType,
                     'timestamp' => time(),
                     'message' => $formattedMessage,
                     'user_id' => $userId,
                     'username' => $_SESSION['username'] ?? 'Unknown',
+                    'target_type' => 'channel',
+                    'target_id' => $targetId,
                     'source' => 'server-originated'
                 ];
                 
