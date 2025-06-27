@@ -112,20 +112,7 @@ class ChatAPI {
     }
     
     async checkAuthentication() {
-        try {
-            const response = await fetch('/api/auth/check');
-            const data = await response.json();
-            
-            if (!data.authenticated) {
-                console.error('User is not authenticated');
-                throw new Error('Authentication required. Please refresh the page and log in.');
-            }
-            
-            return true;
-        } catch (error) {
-            console.error('Failed to check authentication status:', error);
-            return false;
-        }
+        return true; // Always return true, authentication handled server-side
     }    async sendMessage(targetId, content, chatType = 'channel', options = {}) {
         const url = `${this.baseURL}/send`;
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;

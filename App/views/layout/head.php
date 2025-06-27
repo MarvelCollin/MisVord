@@ -21,10 +21,8 @@ $cache_version = time();
 <meta name="user-id" content="<?php echo htmlspecialchars($_SESSION['user_id']); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>">
 <meta name="user-authenticated" content="true">
-<!-- Debug: User ID = <?php echo $_SESSION['user_id']; ?>, Username = <?php echo $_SESSION['username'] ?? 'none'; ?> -->
 <?php else: ?>
 <meta name="user-authenticated" content="false">
-<!-- Debug: No user session found -->
 <?php endif; ?>
 
 <?php if (isset($extraHeadContent)): ?>

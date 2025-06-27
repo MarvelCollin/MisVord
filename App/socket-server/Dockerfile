@@ -13,4 +13,4 @@ COPY . .
 
 EXPOSE 1002
 
-CMD ["node", "server.js"]
+CMD ["npm", "run", "dev"]

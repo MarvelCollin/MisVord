@@ -240,8 +240,8 @@ class CarouselHandler {
     
     init() {
         this.track = document.getElementById('carouselTrack');
-        this.slides = document.querySelectorAll('.carousel-slide');
-        this.indicators = document.querySelectorAll('.carousel-indicators .indicator');
+        this.slides = document.querySelectorAll('.book-page');
+        this.indicators = document.querySelectorAll('.book-bookmark .bookmark');
         this.prevBtn = document.getElementById('carouselPrev');
         this.nextBtn = document.getElementById('carouselNext');
         
@@ -325,33 +325,31 @@ class CarouselHandler {
         
         this.isAnimating = true;
         
-        // Update slide positions for book effect
+        // Move the track to show the current slide
+        const translateX = -this.currentSlide * 25; // 25% per slide since each slide is 25% width
+        if (this.track) {
+            this.track.style.transform = `translateX(${translateX}%)`;
+        }
+        
+        // Update active states
         this.slides.forEach((slide, index) => {
-            slide.classList.remove('active');
-            
-            if (index <= this.currentSlide) {
-                slide.style.transform = 'rotateY(-180deg)';
-                slide.style.zIndex = index + 1;
+            if (index === this.currentSlide) {
+                slide.classList.add('active');
             } else {
-                slide.style.transform = 'rotateY(0deg)';
-                slide.style.zIndex = this.totalSlides - index;
+                slide.classList.remove('active');
             }
         });
         
-        // Set current slide as active
-        if (this.slides[this.currentSlide]) {
-            this.slides[this.currentSlide].classList.add('active');
-        }
-        
         this.updateIndicators();
         
+        // Animate content after track movement
         setTimeout(() => {
             this.animateSlideContent();
-        }, 500);
+        }, 100);
         
         setTimeout(() => {
             this.isAnimating = false;
-        }, 1000);
+        }, 600);
     }
     
     updateIndicators() {
@@ -364,130 +362,51 @@ class CarouselHandler {
         const activeSlide = this.slides[this.currentSlide];
         if (!activeSlide) return;
         
-        const title = activeSlide.querySelector('.slide-title');
-        const description = activeSlide.querySelector('.slide-description');
-        const stats = activeSlide.querySelectorAll('.stat-item');
-        const image = activeSlide.querySelector('.image-placeholder');
-        const icon = image?.querySelector('i');
+        const title = activeSlide.querySelector('.chapter-title');
+        const description = activeSlide.querySelector('.story-text');
+        const stats = activeSlide.querySelectorAll('.metric-badge');
+        const image = activeSlide.querySelector('.chapter-icon');
         
-        // Reset all animations first
-        this.slides.forEach(slide => {
-            const elements = slide.querySelectorAll('.slide-title, .slide-description, .stat-item, .image-placeholder');
-            elements.forEach(el => {
-                el.style.opacity = '';
-                el.style.transform = '';
-                el.style.transition = '';
-            });
-        });
-        
-        // Animate title with advanced effects
+        // Animate title
         if (title) {
             title.style.opacity = '0';
-            title.style.transform = 'translateY(40px) translateZ(-20px) rotateX(15deg)';
+            title.style.transform = 'translateY(30px)';
             setTimeout(() => {
-                title.style.transition = 'all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1)';
+                title.style.transition = 'all 0.6s ease';
                 title.style.opacity = '1';
-                title.style.transform = 'translateY(0) translateZ(0) rotateX(0deg)';
-            }, 150);
-        }
-        
-        // Animate description with slide-in effect
-        if (description) {
-            description.style.opacity = '0';
-            description.style.transform = 'translateX(-30px) translateZ(-10px)';
-            setTimeout(() => {
-                description.style.transition = 'all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1)';
-                description.style.opacity = '1';
-                description.style.transform = 'translateX(0) translateZ(0)';
-            }, 300);
-        }
-        
-        // Animate stats with staggered 3D effects
-        stats.forEach((stat, index) => {
-            stat.style.opacity = '0';
-            stat.style.transform = 'translateY(30px) translateZ(-15px) rotateY(15deg) scale(0.8)';
-            setTimeout(() => {
-                stat.style.transition = 'all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1)';
-                stat.style.opacity = '1';
-                stat.style.transform = 'translateY(0) translateZ(0) rotateY(0deg) scale(1)';
-            }, 450 + (index * 150));
-        });
-        
-        // Animate image with dramatic entrance
-        if (image) {
-            image.style.transform = 'scale(0.6) rotateY(-25deg) translateZ(-40px)';
-            image.style.opacity = '0.3';
-            setTimeout(() => {
-                image.style.transition = 'all 1s cubic-bezier(0.165, 0.84, 0.44, 1)';
-                image.style.transform = 'scale(1) rotateY(0deg) translateZ(0)';
-                image.style.opacity = '1';
+                title.style.transform = 'translateY(0)';
             }, 100);
         }
         
-        // Animate icon with bounce effect
-        if (icon) {
-            icon.style.transform = 'scale(0.5) translateZ(-30px) rotateZ(-45deg)';
+        // Animate description
+        if (description) {
+            description.style.opacity = '0';
+            description.style.transform = 'translateY(20px)';
             setTimeout(() => {
-                icon.style.transition = 'all 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-                icon.style.transform = 'scale(1) translateZ(30px) rotateZ(0deg)';
-            }, 250);
+                description.style.transition = 'all 0.6s ease';
+                description.style.opacity = '1';
+                description.style.transform = 'translateY(0)';
+            }, 200);
         }
         
-        // Add particle effect
-        this.createParticleEffect(activeSlide);
-    }
-    
-    createParticleEffect(slide) {
-        const container = slide.querySelector('.slide-content');
-        if (!container) return;
-        
-        // Remove existing particles
-        const existingParticles = container.querySelectorAll('.particle');
-        existingParticles.forEach(p => p.remove());
-        
-        // Create new particles
-        for (let i = 0; i < 8; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.cssText = `
-                position: absolute;
-                width: 4px;
-                height: 4px;
-                background: linear-gradient(45deg, #ff6b9d, #4834d4);
-                border-radius: 50%;
-                pointer-events: none;
-                top: ${Math.random() * 100}%;
-                left: ${Math.random() * 100}%;
-                animation: particleFloat ${3 + Math.random() * 2}s ease-in-out infinite;
-                animation-delay: ${Math.random() * 2}s;
-                opacity: 0;
-                box-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
-            `;
-            
-            container.appendChild(particle);
-            
+        // Animate stats
+        stats.forEach((stat, index) => {
+            stat.style.opacity = '0';
+            stat.style.transform = 'translateY(20px)';
             setTimeout(() => {
-                particle.style.opacity = '0.8';
-            }, Math.random() * 1000);
-        }
+                stat.style.transition = 'all 0.6s ease';
+                stat.style.opacity = '1';
+                stat.style.transform = 'translateY(0)';
+            }, 300 + (index * 100));
+        });
         
-        // Add CSS for particle animation if not exists
-        if (!document.querySelector('#particle-styles')) {
-            const style = document.createElement('style');
-            style.id = 'particle-styles';
-            style.textContent = `
-                @keyframes particleFloat {
-                    0%, 100% { 
-                        transform: translateY(0) scale(1); 
-                        opacity: 0.8; 
-                    }
-                    50% { 
-                        transform: translateY(-20px) scale(1.2); 
-                        opacity: 1; 
-                    }
-                }
-            `;
-            document.head.appendChild(style);
+        // Animate image
+        if (image) {
+            image.style.transform = 'scale(0.8) rotate(-5deg)';
+            setTimeout(() => {
+                image.style.transition = 'all 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
+                image.style.transform = 'scale(1) rotate(0deg)';
+            }, 150);
         }
     }
     
@@ -540,5 +459,5 @@ document.addEventListener('DOMContentLoaded', function() {
     window.horizontalNavigation = new HorizontalNavigation();
 });
 
-window.HorizontalNavigation = HorizontalNavigation;
+window.HorizontalNavigation = HorizontalNavigation; 
 window.CarouselHandler = CarouselHandler; 

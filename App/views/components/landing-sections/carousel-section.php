@@ -23,119 +23,150 @@ if (!function_exists('asset')) {
             <p class="text-xl text-gray-300 max-w-2xl mx-auto carousel-subtitle" data-animate="subtitle">See how communities thrive on MisVord platform</p>
         </div>
 
-        <div class="carousel-container relative">
-            <div class="carousel-track" id="carouselTrack">
-                <div class="carousel-slide active" data-slide="0">
-                    <div class="slide-content">
-                        <div class="slide-image">
-                            <div class="image-placeholder">
-                                <i class="fas fa-users text-6xl text-purple-400"></i>
+        <div class="book-container relative">
+            <div class="book-spine">
+                <div class="spine-title">MisVord Success</div>
+                <div class="spine-author">Community Stories</div>
+            </div>
+            
+            <div class="book-wrapper">
+                <div class="book-cover">
+                    <div class="cover-title">Success Stories</div>
+                    <div class="cover-subtitle">Real Communities, Real Growth</div>
+                    <div class="cover-decoration">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+                
+                <div class="book-pages" id="carouselTrack">
+                    <div class="book-page active" data-slide="0">
+                        <div class="page-number">01</div>
+                        <div class="page-header">
+                            <div class="chapter-icon">
+                                <i class="fas fa-users"></i>
                             </div>
+                            <h3 class="chapter-title">Gaming Community</h3>
                         </div>
-                        <div class="slide-text">
-                            <h3 class="slide-title">Gaming Community</h3>
-                            <p class="slide-description">Over 50,000 gamers connected through voice channels and organized tournaments</p>
-                            <div class="slide-stats">
-                                <div class="stat-item">
-                                    <span class="stat-number">50K+</span>
-                                    <span class="stat-label">Members</span>
+                        <div class="page-content">
+                            <p class="story-text">In the heart of the digital realm, over 50,000 passionate gamers found their sanctuary. Through crystal-clear voice channels and seamless tournament organization, friendships were forged and legends were born.</p>
+                            <div class="story-metrics">
+                                <div class="metric-badge">
+                                    <span class="metric-value">50K+</span>
+                                    <span class="metric-label">Active Members</span>
                                 </div>
-                                <div class="stat-item">
-                                    <span class="stat-number">24/7</span>
-                                    <span class="stat-label">Active</span>
+                                <div class="metric-badge">
+                                    <span class="metric-value">24/7</span>
+                                    <span class="metric-label">Always Online</span>
                                 </div>
+                            </div>
+                            <div class="page-footer">
+                                <i class="fas fa-quote-left"></i>
+                                <span>Where gamers become legends</span>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="carousel-slide" data-slide="1">
-                    <div class="slide-content">
-                        <div class="slide-image">
-                            <div class="image-placeholder">
-                                <i class="fas fa-graduation-cap text-6xl text-blue-400"></i>
+                    <div class="book-page" data-slide="1">
+                        <div class="page-number">02</div>
+                        <div class="page-header">
+                            <div class="chapter-icon">
+                                <i class="fas fa-graduation-cap"></i>
                             </div>
+                            <h3 class="chapter-title">Study Groups</h3>
                         </div>
-                        <div class="slide-text">
-                            <h3 class="slide-title">Study Groups</h3>
-                            <p class="slide-description">Students collaborate on projects with screen sharing and voice study sessions</p>
-                            <div class="slide-stats">
-                                <div class="stat-item">
-                                    <span class="stat-number">15K+</span>
-                                    <span class="stat-label">Students</span>
+                        <div class="page-content">
+                            <p class="story-text">Across universities worldwide, 15,000+ students discovered the power of collaborative learning. Screen sharing sessions and voice study groups transformed academic struggles into shared victories.</p>
+                            <div class="story-metrics">
+                                <div class="metric-badge">
+                                    <span class="metric-value">15K+</span>
+                                    <span class="metric-label">Students</span>
                                 </div>
-                                <div class="stat-item">
-                                    <span class="stat-number">95%</span>
-                                    <span class="stat-label">Success Rate</span>
+                                <div class="metric-badge">
+                                    <span class="metric-value">95%</span>
+                                    <span class="metric-label">Success Rate</span>
                                 </div>
+                            </div>
+                            <div class="page-footer">
+                                <i class="fas fa-quote-left"></i>
+                                <span>Learning together, achieving more</span>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="carousel-slide" data-slide="2">
-                    <div class="slide-content">
-                        <div class="slide-image">
-                            <div class="image-placeholder">
-                                <i class="fas fa-music text-6xl text-green-400"></i>
+                    <div class="book-page" data-slide="2">
+                        <div class="page-number">03</div>
+                        <div class="page-header">
+                            <div class="chapter-icon">
+                                <i class="fas fa-music"></i>
                             </div>
+                            <h3 class="chapter-title">Music Creators</h3>
                         </div>
-                        <div class="slide-text">
-                            <h3 class="slide-title">Music Creators</h3>
-                            <p class="slide-description">Artists share their work and collaborate in real-time with high-quality audio</p>
-                            <div class="slide-stats">
-                                <div class="stat-item">
-                                    <span class="stat-number">25K+</span>
-                                    <span class="stat-label">Artists</span>
+                        <div class="page-content">
+                            <p class="story-text">A symphony of creativity emerged as 25,000+ artists found their stage. High-quality audio channels became the canvas where over a million musical masterpieces were shared and celebrated.</p>
+                            <div class="story-metrics">
+                                <div class="metric-badge">
+                                    <span class="metric-value">25K+</span>
+                                    <span class="metric-label">Artists</span>
                                 </div>
-                                <div class="stat-item">
-                                    <span class="stat-number">1M+</span>
-                                    <span class="stat-label">Tracks Shared</span>
+                                <div class="metric-badge">
+                                    <span class="metric-value">1M+</span>
+                                    <span class="metric-label">Tracks Shared</span>
                                 </div>
+                            </div>
+                            <div class="page-footer">
+                                <i class="fas fa-quote-left"></i>
+                                <span>Music connects souls worldwide</span>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="carousel-slide" data-slide="3">
-                    <div class="slide-content">
-                        <div class="slide-image">
-                            <div class="image-placeholder">
-                                <i class="fas fa-code text-6xl text-yellow-400"></i>
+                    <div class="book-page" data-slide="3">
+                        <div class="page-number">04</div>
+                        <div class="page-header">
+                            <div class="chapter-icon">
+                                <i class="fas fa-code"></i>
                             </div>
+                            <h3 class="chapter-title">Dev Teams</h3>
                         </div>
-                        <div class="slide-text">
-                            <h3 class="slide-title">Dev Teams</h3>
-                            <p class="slide-description">Development teams streamline workflows with integrated bots and project management</p>
-                            <div class="slide-stats">
-                                <div class="stat-item">
-                                    <span class="stat-number">10K+</span>
-                                    <span class="stat-label">Developers</span>
+                        <div class="page-content">
+                            <p class="story-text">Innovation thrived as 10,000+ developers united their skills. Through integrated bots and streamlined workflows, 500+ groundbreaking projects came to life, changing the digital landscape forever.</p>
+                            <div class="story-metrics">
+                                <div class="metric-badge">
+                                    <span class="metric-value">10K+</span>
+                                    <span class="metric-label">Developers</span>
                                 </div>
-                                <div class="stat-item">
-                                    <span class="stat-number">500+</span>
-                                    <span class="stat-label">Projects</span>
+                                <div class="metric-badge">
+                                    <span class="metric-value">500+</span>
+                                    <span class="metric-label">Projects</span>
                                 </div>
+                            </div>
+                            <div class="page-footer">
+                                <i class="fas fa-quote-left"></i>
+                                <span>Code that shapes tomorrow</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="carousel-controls">
-                <button class="carousel-nav prev" id="carouselPrev">
+            <div class="book-controls">
+                <button class="page-turner prev" id="carouselPrev">
                     <i class="fas fa-chevron-left"></i>
+                    <span>Previous</span>
                 </button>
-                <button class="carousel-nav next" id="carouselNext">
+                <button class="page-turner next" id="carouselNext">
+                    <span>Next</span>
                     <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
 
-            <div class="carousel-indicators">
-                <div class="indicator active" data-slide="0"></div>
-                <div class="indicator" data-slide="1"></div>
-                <div class="indicator" data-slide="2"></div>
-                <div class="indicator" data-slide="3"></div>
+            <div class="book-bookmark">
+                <div class="bookmark active" data-slide="0">1</div>
+                <div class="bookmark" data-slide="1">2</div>
+                <div class="bookmark" data-slide="2">3</div>
+                <div class="bookmark" data-slide="3">4</div>
             </div>
         </div>
     </div>
