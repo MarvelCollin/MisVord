@@ -68,10 +68,10 @@ if (file_exists($tooltipPath)) {
                 <?php foreach ($servers as $server): ?>
                     <?php 
                     $isActive = (string)$currentServerId === (string)($server['id'] ?? $server->id);
-                    $serverInitials = substr($server['name'] ?? $server->name ?? 'S', 0, 1);
+                    $serverName = $server['name'] ?? $server->name ?? 'Server';
+                    $serverInitials = substr($serverName, 0, 1);
                     $serverImage = $server['image_url'] ?? $server->image_url ?? '';
                     $serverId = $server['id'] ?? $server->id;
-                    $serverName = $server['name'] ?? $server->name ?? 'Server';
                     ?>
                     
                     <div class="server-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>" data-server-id="<?php echo $serverId; ?>">

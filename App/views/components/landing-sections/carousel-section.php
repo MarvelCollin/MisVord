@@ -31,14 +31,17 @@ if (!function_exists('asset')) {
             
             <div class="book-content" id="bookContent">
                 <div class="page active" data-page="0">
+                    <div class="page-decoration"></div>
                     <h4>🎮 Gaming Community</h4>
                     <p>Over 50,000 passionate gamers have found their digital home, connecting through crystal-clear voice channels and competitive tournaments.</p>
                 </div>
                 <div class="page" data-page="1">
+                    <div class="page-decoration"></div>
                     <h4>📚 Study Groups</h4>
                     <p>15,000+ students worldwide collaborate on projects, sharing screens and knowledge to achieve academic excellence together.</p>
                 </div>
                 <div class="page" data-page="2">
+                    <div class="page-decoration"></div>
                     <h4>🎵 Music Creators</h4>
                     <p>A vibrant community of 25,000+ artists sharing their musical masterpieces and collaborating in real-time.</p>
                 </div>

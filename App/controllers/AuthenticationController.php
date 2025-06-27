@@ -287,14 +287,14 @@ class AuthenticationController extends BaseController
         ]);
 
         if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
-            $avatarUrl = $this->uploadImage($_FILES['avatar'], 'avatars');
+            $avatarUrl = $this->uploadImage($_FILES['avatar'], 'avatar');
             if ($avatarUrl !== false) {
                 $userData['avatar_url'] = $avatarUrl;
             }
         }
         
         if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
-            $bannerUrl = $this->uploadImage($_FILES['banner'], 'banners');
+            $bannerUrl = $this->uploadImage($_FILES['banner'], 'banner');
             if ($bannerUrl !== false) {
                 $userData['banner_url'] = $bannerUrl;
             }

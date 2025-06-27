@@ -6,7 +6,6 @@ let cacheExpiry = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerSidebar();
-    bindCreateServerButton();
 });
 
 function initServerSidebar() {
@@ -169,34 +168,40 @@ async function buildServerImageData() {
         const serverId = icon.getAttribute('data-server-id');
         
         const apiServer = serverData[serverId];
-        if (apiServer && apiServer.image_url) {
-            serverImageData.set(serverId, {
-                type: 'image',
-                src: apiServer.image_url,
-                alt: apiServer.name || 'Server'
-            });
+        if (apiServer) {
+            if (apiServer.image_url) {
+                serverImageData.set(serverId, {
+                    type: 'image',
+                    src: apiServer.image_url,
+                    alt: apiServer.name || 'Server'
+                });
+            } else {
+                serverImageData.set(serverId, {
+                    type: 'text',
+                    text: (apiServer.name || 'Server').charAt(0).toUpperCase()
+                });
+            }
             return;
         }
         
         const existingImg = icon.querySelector('.server-button img');
         const existingText = icon.querySelector('.server-button span');
         
-        if (existingImg) {
+        if (existingImg && existingImg.src && !existingImg.src.includes('main-logo')) {
             serverImageData.set(serverId, {
                 type: 'image',
                 src: existingImg.src,
                 alt: existingImg.alt || 'Server'
             });
-        } else if (existingText) {
+        } else if (existingText && existingText.textContent) {
             serverImageData.set(serverId, {
                 type: 'text',
                 text: existingText.textContent.charAt(0).toUpperCase()
             });
         } else {
-            const serverName = apiServer ? apiServer.name : `Server ${serverId}`;
             serverImageData.set(serverId, {
                 type: 'text',
-                text: serverName.charAt(0).toUpperCase()
+                text: 'S'
             });
         }
     });
@@ -625,38 +630,3 @@ export const ServerSidebar = {
     renderFolders: () => performCompleteRender(),
     refresh: () => performCompleteRender()
 };
-
-function bindCreateServerButton() {
-    const createServerButton = document.querySelector('[data-action="create-server"]');
-    if (createServerButton) {
-        if (typeof window.openCreateServerModal !== 'function') {
-            const script = document.createElement('script');
-            script.src = '/public/js/components/servers/create-server-modal.js';
-            script.type = 'module';
-            document.body.appendChild(script);
-            
-            window.openCreateServerModal = function() {
-                const modal = document.getElementById('create-server-modal');
-                if (modal) {
-                    modal.classList.remove('hidden');
-                    modal.style.display = 'flex';
-                    setTimeout(() => {
-                        modal.classList.remove('opacity-0');
-                    }, 10);
-                }
-            };
-        }
-        
-        const newButton = createServerButton.cloneNode(true);
-        createServerButton.parentNode.replaceChild(newButton, createServerButton);
-        
-        newButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            if (typeof window.openCreateServerModal === 'function') {
-                window.openCreateServerModal();
-            }
-        });
-    }
-}

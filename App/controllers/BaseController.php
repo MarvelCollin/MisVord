@@ -541,16 +541,6 @@ class BaseController
             }
         }
 
-        $targetDir = $baseDir;
-        if ($folder) {
-            $targetDir = $baseDir . $folder . '/';
-            if (!is_dir($targetDir)) {
-                if (!mkdir($targetDir, 0755, true)) {
-                    throw new Exception('Failed to create folder directory: ' . $folder);
-                }
-            }
-        }
-
         $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (empty($extension)) {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -567,21 +557,14 @@ class BaseController
             $extension = $mimeToExt[$mimeType] ?? 'jpg';
         }
 
-        $originalFilename = pathinfo($file['name'], PATHINFO_FILENAME);
-        $filename = $originalFilename . '_' . uniqid() . '.' . $extension;
-        $targetFile = $targetDir . $filename;
+        $filename = uniqid() . '_' . ($folder ? $folder : 'file') . '.' . $extension;
+        $targetFile = $baseDir . $filename;
 
         if (!move_uploaded_file($file['tmp_name'], $targetFile)) {
             throw new Exception('Failed to upload file');
         }
 
-        $publicPath = '/storage/';
-        if ($folder) {
-            $publicPath .= $folder . '/';
-        }
-        $publicPath .= $filename;
-
-        return $publicPath;
+        return '/public/storage/' . $filename;
     }
     
     protected function notifyViaSocket($userId, $event, $data)

@@ -296,11 +296,19 @@ class SimpleBookHandler {
                 if (this.bookContent) {
                     this.bookContent.style.opacity = '1';
                     this.bookContent.style.visibility = 'visible';
+                    this.bookContent.style.zIndex = '1';
                 }
                 if (this.bookNav) {
                     this.bookNav.style.opacity = '1';
                     this.bookNav.style.visibility = 'visible';
                 }
+                
+                // Ensure pages are positioned correctly
+                this.pages.forEach((page, index) => {
+                    page.style.top = '0';
+                    page.style.left = '0';
+                });
+                
                 this.updatePage(); // Ensure first page is visible
             }, 800);
         }
@@ -319,10 +327,13 @@ class SimpleBookHandler {
     }
     
     flipPageForward() {
+        if (this.isFlipping) return;
+        
         this.isFlipping = true;
         const currentPageEl = this.pages[this.currentPage];
         
         // Start flip animation
+        currentPageEl.style.zIndex = '20';
         currentPageEl.classList.add('flipping-forward');
         
         // Update page number
@@ -338,11 +349,14 @@ class SimpleBookHandler {
     }
     
     flipPageBackward() {
+        if (this.isFlipping) return;
+        
         this.isFlipping = true;
         this.currentPage--;
         const newPageEl = this.pages[this.currentPage];
         
         // Start flip animation
+        newPageEl.style.zIndex = '20';
         newPageEl.classList.remove('behind');
         newPageEl.classList.add('flipping-backward');
         
@@ -364,9 +378,13 @@ class SimpleBookHandler {
             
             if (index === this.currentPage) {
                 page.classList.add('active');
+                page.style.zIndex = '10';
                 console.log('Activated page:', index);
             } else if (index < this.currentPage) {
                 page.classList.add('behind');
+                page.style.zIndex = '2';
+            } else {
+                page.style.zIndex = '8';
             }
         });
         
