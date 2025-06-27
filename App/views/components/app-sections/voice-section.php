@@ -15,6 +15,8 @@ if (!$activeChannel) {
 
 $meetingId = 'voice_channel_' . $activeChannelId;
 $userName = $_SESSION['username'] ?? 'Anonymous';
+$currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
+$serverChannels = $GLOBALS['serverChannels'] ?? [];
 ?>
 
 <link rel="stylesheet" href="/public/css/voice-section.css">
@@ -22,6 +24,7 @@ $userName = $_SESSION['username'] ?? 'Anonymous';
 <meta name="meeting-id" content="<?php echo htmlspecialchars($meetingId); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($userName); ?>">
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
+<meta name="server-id" content="<?php echo htmlspecialchars($currentServer->id ?? ''); ?>">
 
 <div class="flex flex-col h-screen bg-[#313338] text-white" id="voice-container">
     <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 bg-[#313338] z-20">
@@ -43,10 +46,6 @@ $userName = $_SESSION['username'] ?? 'Anonymous';
         </div>
     </div>
 </div>
-
-
-
-
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -97,7 +96,9 @@ function initializeVoiceUI() {
         await connectToVoice();
     };
     
-    window.addEventListener('voiceConnect', () => {
+    window.addEventListener('voiceConnect', (event) => {
+        const details = event.detail || {};
+        
         elements.connectingView.classList.add('hidden');
         elements.joinView.classList.add('hidden');
         elements.connectedView.classList.remove('hidden');
@@ -106,14 +107,55 @@ function initializeVoiceUI() {
         toggleVoiceIndicator(false);
         elements.joinBtn.disabled = false;
         elements.joinBtn.textContent = 'Connected';
+        
+        if (details.channelName) {
+            const channelNameElements = document.querySelectorAll('.channel-name, .voice-ind-title');
+            channelNameElements.forEach(el => {
+                if (el.classList.contains('channel-name')) {
+                    el.textContent = details.channelName.length > 10 
+                        ? details.channelName.substring(0, 8) + '...' 
+                        : details.channelName;
+                } else {
+                    el.textContent = details.channelName;
+                }
+            });
+        }
+        
+        if (details.meetingId && details.channelName) {
+            localStorage.setItem("voiceConnectionState", JSON.stringify({
+                isConnected: true,
+                channelName: details.channelName,
+                meetingId: details.meetingId,
+                currentChannelId: details.channelId,
+                connectionTime: Date.now()
+            }));
+        }
+        
+        setTimeout(() => {
+            if (window.initializeVoiceTools) {
+                window.initializeVoiceTools();
+            }
+            if (window.voiceStateManager) {
+                window.voiceStateManager.updateAllControls();
+            }
+        }, 100);
+        
+        console.log('Voice connected successfully:', details);
     });
     
     window.addEventListener('voiceDisconnect', () => {
         window.voiceState.isConnected = false;
+        
         if (window.videosdkMeeting) {
+            try {
             window.videoSDKManager?.leaveMeeting();
             window.videosdkMeeting = null;
+            } catch (e) {
+                console.error("Error when leaving VideoSDK meeting:", e);
+            }
         }
+        
+        localStorage.removeItem("voiceConnectionState");
         
         elements.connectedView.classList.add('hidden');
         elements.connectingView.classList.add('hidden');
@@ -122,6 +164,10 @@ function initializeVoiceUI() {
         elements.joinBtn.disabled = false;
         elements.joinBtn.textContent = 'Join Voice';
         toggleVoiceIndicator(true);
+        
+        if (window.voiceStateManager) {
+            window.voiceStateManager.reset();
+        }
     });
 
     if (window.voiceState?.isConnected || window.voiceManager?.isConnected) {
@@ -134,4 +180,6 @@ function initializeVoiceUI() {
         toggleVoiceIndicator(false);
     }
 }
+
+window.initializeVoiceUI = initializeVoiceUI;
 </script>

@@ -28,137 +28,139 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     }
 </style>
 
-<div id="create-channel-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 hidden animate-fade-in">
-    <div class="w-full max-w-md transform transition-all">
-        <div class="bg-[#313338] modal-content rounded-md shadow-xl overflow-hidden">
-            <div class="px-4 py-3 border-b border-[#232428] flex justify-between items-center">
-                <h2 class="text-[#f2f3f5] text-base font-semibold">Create Channel</h2>
-                <button id="close-create-channel-modal" class="text-[#b5bac1] hover:text-white" aria-label="Close">
-                    <svg xmlns="http:
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
+<div id="create-channel-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden opacity-0" style="display: none;">
+    <div class="bg-[#36393f] rounded-md w-full max-w-md shadow-xl transform scale-95 overflow-hidden">
+        <div class="p-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-white text-xl font-bold">Create Channel</h2>
+                <button id="close-create-channel-modal" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
             
-            <form id="create-channel-form" action="/api/channels" method="POST" onsubmit="return submitChannelForm(event)" class="p-4">
+            <p class="text-gray-400 mt-2 mb-6">Create a new channel for your server</p>
+
+            <form id="create-channel-form" action="/api/channels" method="POST" onsubmit="return submitChannelForm(event)" class="space-y-4">
                 <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                 <input type="hidden" name="position" id="channel-position" value="">
                 <input type="hidden" name="category_id" id="category-id" value="">
                 <input type="hidden" name="ajax_fallback" id="channel-ajax-fallback" value="false">
                 
                 <div class="mb-4">
-                    <label class="flex items-center text-xs font-bold text-[#b5bac1] mb-2">
-                        CHANNEL TYPE
-                    </label>
+                    <label class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Type</label>
                     <div class="relative">
                         <select id="channel-type" name="type" 
-                                class="w-full bg-[#1e1f22] border border-[#1a1b1e] rounded-[3px] px-3 py-2 text-white appearance-none focus:outline-none focus:border-[#5865f2] text-sm">
+                                class="bg-[#1e1f22] text-white w-full px-3 py-2 rounded appearance-none focus:outline-none focus:ring-2 focus:ring-discord-blue border border-[#1e1f22]">
                             <option value="text">Text</option>
                             <option value="voice">Voice</option>
                         </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                            <svg class="w-4 h-4 text-[#b5bac1]" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                            <i class="fas fa-chevron-down text-xs"></i>
                         </div>
                     </div>
-                </div>
-
-                <div class="mb-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <label for="channel-name" class="text-xs font-bold text-[#b5bac1]">CHANNEL NAME</label>
-                    </div>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <span class="text-[#b5bac1]">#</span>
-                        </div>
-                        <input type="text" id="channel-name" name="name" 
-                              class="w-full bg-[#1e1f22] border border-[#1a1b1e] rounded-[3px] pl-8 pr-3 py-2 text-white focus:outline-none focus:border-[#5865f2] text-sm" 
-                              placeholder="new-channel" required>
-                    </div>
-                    <p class="text-xs text-[#949ba4] mt-1">Use lowercase letters, numbers, hyphens, and underscores</p>
                 </div>
                 
                 <div class="mb-4">
-                    <div class="flex items-center gap-2">
-                        <div class="relative">
-                            <input type="checkbox" id="is-private" name="is_private" 
-                                class="absolute w-4 h-4 opacity-0 cursor-pointer peer">
-                            <div class="w-5 h-5 bg-[#1e1f22] border border-[#1a1b1e] rounded peer-checked:bg-[#5865f2] peer-checked:border-[#5865f2] transition-all peer-focus:ring-2 peer-focus:ring-[#5865f2]/25">
-                                <svg class="w-5 h-5 text-white opacity-0 peer-checked:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <label for="is-private" class="text-sm text-[#dbdee1] cursor-pointer">Private Channel</label>
-                            <div class="group relative">
-                                <span class="text-[#949ba4] cursor-help">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-                                    </svg>
-                                </span>
-                                <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 invisible group-hover:visible bg-black text-white text-xs p-2 rounded w-48">
-                                    Only specific members will be able to view this channel
-                                </div>
-                            </div>
+                    <label for="channel-name" class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Name</label>
+                    <div class="relative flex items-center bg-[#1e1f22] rounded border border-[#1e1f22]">
+                        <span class="text-gray-400 pl-3">#</span>
+                        <input type="text" id="channel-name" name="name" 
+                              class="bg-transparent border-none text-white w-full px-2 py-2 focus:outline-none" 
+                              placeholder="new-channel" required>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">Use lowercase letters, numbers, hyphens, and underscores</p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Category</label>
+                    <div class="relative">
+                        <select id="channel-category" name="category_id"
+                                class="bg-[#1e1f22] text-white w-full px-3 py-2 rounded appearance-none focus:outline-none focus:ring-2 focus:ring-discord-blue border border-[#1e1f22]">
+                            <option value="">No Category</option>
+                            <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo $category->id; ?>"><?php echo htmlspecialchars($category->name); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                            <i class="fas fa-chevron-down text-xs"></i>
                         </div>
                     </div>
                 </div>
-            
-                <!-- Footer -->
-                <div class="bg-[#2b2d31] mt-4 -mx-4 -mb-4 px-4 py-3 flex justify-end gap-3">
-                    <button type="button" id="cancel-create-channel" class="px-3 py-2 text-sm font-medium text-[#dbdee1] hover:underline">
-                        Cancel
-                    </button>
-                    <button type="submit" class="bg-[#5865f2] hover:bg-[#4752c4] text-white text-sm font-medium px-4 py-2 rounded-[3px] transition-colors">
-                        Create Channel
-                    </button>
+                
+                <div class="flex items-center mb-4">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="is-private" name="is_private" class="sr-only peer">
+                        <div class="relative w-10 h-5 bg-[#4e5058] rounded-full peer 
+                            peer-focus:outline-none peer-focus:ring-0
+                            peer-checked:bg-discord-green transition-colors duration-300 ease-in-out
+                            before:content-[''] before:absolute before:top-[2px] before:left-[2px] 
+                            before:bg-white before:rounded-full before:h-4 before:w-4 
+                            before:transition-all before:duration-300 
+                            peer-checked:before:translate-x-5">
+                        </div>
+                        <span class="ms-3 text-gray-300 text-sm">Private Channel</span>
+                    </label>
+                    <div class="group relative ml-2">
+                        <span class="text-gray-500 cursor-help">
+                            <i class="fas fa-circle-info text-xs"></i>
+                        </span>
+                        <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 invisible group-hover:visible bg-black text-white text-xs p-2 rounded w-48 z-10">
+                            Only specific members will be able to view this channel
+                        </div>
+                    </div>
                 </div>
             </form>
+        </div>
+        
+        <div class="bg-[#2b2d31] py-4 px-6 flex justify-end gap-3">
+            <button type="button" id="cancel-create-channel" 
+                    class="px-4 py-2 text-sm font-medium text-white hover:underline">
+                Cancel
+            </button>
+            <button type="submit" form="create-channel-form" id="create-channel-btn"
+                    class="bg-discord-blue text-white px-4 py-2 rounded text-sm font-medium hover:bg-opacity-80 transition-colors">
+                Create Channel
+            </button>
         </div>
     </div>
 </div>
 
-<div id="create-category-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 hidden animate-fade-in">
-    <div class="w-full max-w-md transform transition-all">
-        <div class="bg-[#313338] modal-content rounded-md shadow-xl overflow-hidden">
-            <div class="px-4 py-3 border-b border-[#232428] flex justify-between items-center">
-                <h2 class="text-[#f2f3f5] text-base font-semibold">Create Category</h2>
-                <button id="close-create-category-modal" class="text-[#b5bac1] hover:text-white" aria-label="Close">
-                    <svg xmlns="http:
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
+<div id="create-category-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden opacity-0" style="display: none;">
+    <div class="bg-[#36393f] rounded-md w-full max-w-md shadow-xl transform scale-95 overflow-hidden">
+        <div class="p-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-white text-xl font-bold">Create Category</h2>
+                <button id="close-create-category-modal" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
             
-            <form id="create-category-form" action="/api/categories" method="POST" onsubmit="return submitCategoryForm(event)" class="p-4">
+            <p class="text-gray-400 mt-2 mb-6">Create a new category to organize your channels</p>
+
+            <form id="create-category-form" action="/api/categories" method="POST" onsubmit="return submitCategoryForm(event)" class="space-y-4">
                 <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                 <input type="hidden" name="position" id="category-position" value="">
                 <input type="hidden" name="ajax_fallback" id="category-ajax-fallback" value="false">
                 
                 <div class="mb-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <label for="category-name" class="text-xs font-bold text-[#b5bac1]">CATEGORY NAME</label>
-                    </div>
+                    <label for="category-name" class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Category Name</label>
                     <input type="text" id="category-name" name="name" 
-                          class="w-full bg-[#1e1f22] border border-[#1a1b1e] rounded-[3px] px-3 py-2 text-white focus:outline-none focus:border-[#5865f2] text-sm" 
+                          class="bg-[#1e1f22] text-white w-full px-3 py-2 rounded border border-[#1e1f22] focus:outline-none focus:ring-2 focus:ring-discord-blue" 
                           placeholder="NEW CATEGORY" required>
-                    <p class="text-xs text-[#949ba4] mt-1">Category names are typically displayed in uppercase</p>
-                </div>
-                
-                <!-- Footer -->
-                <div class="bg-[#2b2d31] mt-4 -mx-4 -mb-4 px-4 py-3 flex justify-end gap-3">
-                    <button type="button" id="cancel-create-category" class="px-3 py-2 text-sm font-medium text-[#dbdee1] hover:underline">
-                        Cancel
-                    </button>
-                    <button type="submit" class="bg-[#5865f2] hover:bg-[#4752c4] text-white text-sm font-medium px-4 py-2 rounded-[3px] transition-colors">
-                        Create Category
-                    </button>
+                    <p class="text-xs text-gray-400 mt-1">Category names are typically displayed in uppercase</p>
                 </div>
             </form>
+        </div>
+        
+        <div class="bg-[#2b2d31] py-4 px-6 flex justify-end gap-3">
+            <button type="button" id="cancel-create-category" 
+                    class="px-4 py-2 text-sm font-medium text-white hover:underline">
+                Cancel
+            </button>
+            <button type="submit" form="create-category-form" id="create-category-btn"
+                    class="bg-discord-blue text-white px-4 py-2 rounded text-sm font-medium hover:bg-opacity-80 transition-colors">
+                Create Category
+            </button>
         </div>
     </div>
 </div>
@@ -417,19 +419,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const cancelChannelBtn = document.getElementById('cancel-create-channel');
     
     function closeCreateChannelModal() {
-        if (!createChannelModal) return;
+        const modal = document.getElementById('create-channel-modal');
+        if (!modal) return;
         
-        createChannelModal.classList.add('opacity-0');
-        createChannelModal.style.transition = 'opacity 150ms ease-in-out';
+        modal.classList.add('opacity-0');
+        const modalContent = modal.querySelector('.bg-discord-background');
+        if (modalContent) {
+            modalContent.classList.add('scale-95');
+        }
         
         setTimeout(() => {
-            createChannelModal.classList.add('hidden');
-            createChannelModal.classList.remove('opacity-0');
-            createChannelModal.style.transition = '';
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
             
-            const form = createChannelModal.querySelector('form');
+            const form = modal.querySelector('form');
             if (form) form.reset();
-        }, 150);
+        }, 300);
     }
     
     if (closeChannelBtn) {
@@ -453,19 +458,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const cancelCategoryBtn = document.getElementById('cancel-create-category');
     
     function closeCreateCategoryModal() {
-        if (!createCategoryModal) return;
+        const modal = document.getElementById('create-category-modal');
+        if (!modal) return;
         
-        createCategoryModal.classList.add('opacity-0');
-        createCategoryModal.style.transition = 'opacity 150ms ease-in-out';
+        modal.classList.add('opacity-0');
+        const modalContent = modal.querySelector('.bg-discord-background');
+        if (modalContent) {
+            modalContent.classList.add('scale-95');
+        }
         
         setTimeout(() => {
-            createCategoryModal.classList.add('hidden');
-            createCategoryModal.classList.remove('opacity-0');
-            createCategoryModal.style.transition = '';
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
             
-            const form = createCategoryModal.querySelector('form');
+            const form = modal.querySelector('form');
             if (form) form.reset();
-        }, 150);
+        }, 300);
     }
     
     if (closeCategoryBtn) {
@@ -491,65 +499,62 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     window.openCreateChannelModal = function(categoryId = null, position = null) {
-        const form = createChannelModal.querySelector('form');
-        if (form) form.reset();
-        
-        if (categoryId) {
-            const categoryInput = document.getElementById('category-id');
-            if (categoryInput) {
-                categoryInput.value = categoryId;
-            }
-        } else {
-            const categoryInput = document.getElementById('category-id');
-            if (categoryInput) {
-                categoryInput.value = '';
-            }
+        const modal = document.getElementById('create-channel-modal');
+        if (!modal) return;
+
+        const form = modal.querySelector('form');
+        if (form) {
+            form.reset();
+            const categorySelect = form.querySelector('#channel-category');
+            if (categorySelect) categorySelect.value = categoryId || '';
+
+            const posInput = form.querySelector('#channel-position');
+            if (posInput) posInput.value = position !== null ? position : '';
         }
+
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
         
-        if (position !== null) {
-            const positionInput = document.getElementById('channel-position');
-            if (positionInput) {
-                positionInput.value = position;
+        requestAnimationFrame(() => {
+            modal.classList.remove('opacity-0');
+            const modalContent = modal.querySelector('.bg-discord-background');
+            if (modalContent) {
+                modalContent.classList.remove('scale-95');
             }
-        } else {
-            const positionInput = document.getElementById('channel-position');
-            if (positionInput) {
-                positionInput.value = '';
-            }
-        }
-        
-        createChannelModal.classList.remove('hidden');
-        
+        });
+
         setTimeout(() => {
-            const nameInput = document.getElementById('channel-name');
-            if (nameInput) nameInput.focus();
-        }, 100);
+            modal.querySelector('#channel-name')?.focus();
+        }, 300);
     };
     
     window.closeCreateChannelModal = closeCreateChannelModal;
     
     window.openCreateCategoryModal = function(position = null) {
-        const form = createCategoryModal.querySelector('form');
-        if (form) form.reset();
-        
-        if (position !== null) {
-            const positionInput = document.getElementById('category-position');
-            if (positionInput) {
-                positionInput.value = position;
-            }
-        } else {
-            const positionInput = document.getElementById('category-position');
-            if (positionInput) {
-                positionInput.value = '';
-            }
+        const modal = document.getElementById('create-category-modal');
+        if (!modal) return;
+
+        const form = modal.querySelector('form');
+        if (form) {
+            form.reset();
+            const posInput = form.querySelector('#category-position');
+            if (posInput) posInput.value = position !== null ? position : '';
         }
+
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
         
-        createCategoryModal.classList.remove('hidden');
-        
+        requestAnimationFrame(() => {
+            modal.classList.remove('opacity-0');
+            const modalContent = modal.querySelector('.bg-discord-background');
+            if (modalContent) {
+                modalContent.classList.remove('scale-95');
+            }
+        });
+
         setTimeout(() => {
-            const nameInput = document.getElementById('category-name');
-            if (nameInput) nameInput.focus();
-        }, 100);
+            modal.querySelector('#category-name')?.focus();
+        }, 300);
     };
     
     window.closeCreateCategoryModal = closeCreateCategoryModal;

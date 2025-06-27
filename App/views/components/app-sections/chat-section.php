@@ -7,8 +7,9 @@ $chatData = $GLOBALS['chatData'] ?? null;
 $messages = $GLOBALS['messages'] ?? [];
 
 if (!$chatType) {
-    $currentServer = $GLOBALS['currentServer'] ?? null;
+    $currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
     $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
+    $activeChannel = $GLOBALS['activeChannel'] ?? null;
     $channelMessages = $GLOBALS['channelMessages'] ?? [];
     $serverChannels = $GLOBALS['serverChannels'] ?? [];
 
@@ -21,21 +22,32 @@ if (!$chatType) {
     $targetId = $activeChannelId;
     $messages = $channelMessages;
     
-    $activeChannel = null;
-    foreach ($serverChannels as $channel) {
-        if ($channel['id'] == $activeChannelId) {
-            $activeChannel = $channel;
-            break;
-        }
-    }
-    
     if ($activeChannel) {
-        $chatData = $activeChannel;
-        $chatTitle = $activeChannel['name'];
+        $chatData = is_array($activeChannel) ? $activeChannel : [
+            'id' => $activeChannel->id,
+            'name' => $activeChannel->name,
+            'type' => $activeChannel->type ?? 'text',
+            'description' => $activeChannel->description ?? '',
+            'server_id' => $activeChannel->server_id
+        ];
+        $chatTitle = $chatData['name'];
         $chatIcon = 'fas fa-hashtag';
         $placeholder = "Message #{$chatTitle}";
     } else {
+        foreach ($serverChannels as $channel) {
+            if ($channel['id'] == $activeChannelId) {
+                $activeChannel = $channel;
+                $chatData = $channel;
+                $chatTitle = $channel['name'];
+                $chatIcon = 'fas fa-hashtag';
+                $placeholder = "Message #{$chatTitle}";
+                break;
+            }
+        }
+        
+        if (!$activeChannel) {
         $chatType = null;
+        }
     }
 }
 
@@ -49,7 +61,7 @@ if ($chatType === 'channel') {
     $chatIcon = 'fas fa-user';
     $placeholder = "Message @{$chatTitle}";
 } else {
-    $currentServer = $GLOBALS['currentServer'] ?? null;
+    $currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
     $serverChannels = $GLOBALS['serverChannels'] ?? [];
     
     if ($currentServer) {

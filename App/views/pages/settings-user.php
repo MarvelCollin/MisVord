@@ -84,10 +84,10 @@ ob_start();
             <div class="sidebar-category">
                 <span>USER ACTIONS</span>
             </div>
-            <button id="logout-btn" class="sidebar-item text-red-500 hover:text-red-400">
+            <a href="#" id="logout-btn" onclick="if(window.logoutUser) window.logoutUser(); else window.location.href='/logout'; return false;" class="sidebar-item text-red-500 hover:text-red-400">
                 <i class="fas fa-sign-out-alt"></i>
                 Log Out
-            </button>
+            </a>
         </nav>
     </aside>
 

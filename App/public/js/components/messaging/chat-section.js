@@ -14,15 +14,27 @@ function isExcludedPage() {
 
 function initializeChatSection() {
     if (typeof window.ChatAPI === 'undefined') {
-        console.log('ChatAPI not ready, retrying...');
+        console.log('ChatAPI not ready, retrying...', {
+            ChatAPI: typeof window.ChatAPI,
+            chatAPI: typeof window.chatAPI,
+            loadedScripts: Array.from(document.scripts).map(s => s.src).filter(s => s.includes('chat-api'))
+        });
         setTimeout(initializeChatSection, 100);
         return;
     }
     
-    console.log('Initializing ChatSection with ChatAPI ready');
+    console.log('✅ Initializing ChatSection with ChatAPI ready');
     const chatSection = new ChatSection();
     chatSection.init();
     window.chatSection = chatSection;
+    
+    // Make sure emoji reactions system is initialized
+    if (typeof window.emojiReactions === 'undefined' || !window.emojiReactions.initialized) {
+        console.log('Ensuring emoji reactions system is initialized from ChatSection');
+        if (typeof window.initializeEmojiReactions === 'function') {
+            window.initializeEmojiReactions();
+        }
+    }
 }
 
 console.log('Chat section script immediate execution');
@@ -40,21 +52,27 @@ class ChatSection {
         this.sendButton = null;
         this.fileUploadInput = null;
         this.fileUploadPreview = null;
+        this.contextMenu = null;
         this.currentFileUpload = null;
-        this.currentReplyMessageId = null;
-        this.replyingContainer = null;
-        this.typingIndicator = null;
-        this.typingUsers = new Map();
+        this.currentEditingMessage = null;
+        this.activeReplyingTo = null;
+        this.activeMessageActions = null;
         this.typingTimeout = null;
+        this.lastTypingUpdate = 0;
+        this.typingDebounceTime = 2000;
         this.messagesLoaded = false;
-        this.joinedRooms = new Set();
-        this.skeletonLoader = null;
+        this.processedMessageIds = new Set();
+        this.socketListenersSetup = false; // Track if socket listeners are setup
+        this.typingUsers = new Map(); // Track typing users
+        this.joinedRooms = new Set(); // Track joined rooms
         
         this.chatType = null;
         this.targetId = null;
         this.userId = null;
-        this.currentServerId = null;
-        this.processedMessageIds = new Set();
+        this.username = null;
+        this.avatar_url = null;
+        
+        this.loadChatParams();
     }
     
     init() {
@@ -2049,83 +2067,41 @@ class ChatSection {
     setupIoListeners() {
         const self = this;
         
-        const setupSocketHandlers = function() {
-            const io = window.globalSocketManager.io;
+        // Ensure socket is ready before setting up listeners
+        const setupSocketHandlers = function(io) {
+            console.log('Setting up socket handlers for ChatSection');
             
-            io.removeAllListeners('new-channel-message');
-            io.removeAllListeners('user-message-dm');
-            io.removeAllListeners('message-sent');
-            io.removeAllListeners('message-updated');
-            io.removeAllListeners('message-deleted');
-            io.removeAllListeners('user-typing');
-            io.removeAllListeners('user-typing-dm');
-            io.removeAllListeners('user-stop-typing');
-            io.removeAllListeners('user-stop-typing-dm');
-            io.removeAllListeners('message-pinned');
-            io.removeAllListeners('message-unpinned');
-            io.removeAllListeners('reaction-added');
-            io.removeAllListeners('reaction-removed');
+            // Check if we're already listening to avoid duplicates
+            if (self.socketListenersSetup) {
+                console.log('Socket listeners already setup, skipping');
+                return;
+            }
             
+            // Channel message handling
             io.on('new-channel-message', function(data) {
-                const channelId = data.channel_id;
-                                  if (self.chatType === 'channel' && channelId == self.targetId) {
-                      const messageId = data.id || data.message?.id || `${data.user_id}-${data.timestamp}`;
-                      data.id = messageId;
-                      
-                      if (!self.processedMessageIds.has(messageId)) {
-                          const senderId = data.user_id;
-                        
-                        if (data.source === 'server-originated' || senderId != self.userId) {
-                            const messageToAdd = data.message || data;
-                            messageToAdd.id = messageId;
-                            messageToAdd.reactions = messageToAdd.reactions || [];
-                            
-                            self.addMessage(messageToAdd);
-                            
-                            if (document.querySelector(`[data-message-id="${messageId}"]`)) {
-                                self.processedMessageIds.add(messageId);
-                            }
-                        } else if (senderId == self.userId) {
-                            const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
-                            if (tempMessage) {
-                                tempMessage.setAttribute('data-message-id', messageId);
-                            }
-                            self.processedMessageIds.add(messageId);
-                        }
+                console.log('Received new-channel-message:', data);
+                
+                if (self.chatType === 'channel' && data.channel_id == self.targetId) {
+                    if (!self.processedMessageIds.has(data.id)) {
+                        self.addMessage(data);
+                        self.processedMessageIds.add(data.id);
                     }
                 }
             });
             
+            // DM message handling
             io.on('user-message-dm', function(data) {
-                const roomId = data.room_id;
-                if ((self.chatType === 'direct' || self.chatType === 'dm') && roomId == self.targetId) {
-                    const messageId = data.id || data.message?.id || `${data.user_id}-${data.timestamp}`;
-                    data.id = messageId;
-                    
-                    if (!self.processedMessageIds.has(messageId)) {
-                        const senderId = data.user_id;
-                        
-                        if (data.source === 'server-originated' || senderId != self.userId) {
-                            const messageToAdd = data.message || data;
-                            messageToAdd.id = messageId;
-                            messageToAdd.reactions = messageToAdd.reactions || [];
-                            
-                            self.addMessage(messageToAdd);
-                            
-                            if (document.querySelector(`[data-message-id="${messageId}"]`)) {
-                                self.processedMessageIds.add(messageId);
-                            }
-                        } else if (senderId == self.userId) {
-                            const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
-                            if (tempMessage) {
-                                tempMessage.setAttribute('data-message-id', messageId);
-                            }
-                            self.processedMessageIds.add(messageId);
-                        }
+                console.log('Received user-message-dm:', data);
+                
+                if ((self.chatType === 'direct' || self.chatType === 'dm') && data.room_id == self.targetId) {
+                    if (!self.processedMessageIds.has(data.id)) {
+                        self.addMessage(data);
+                        self.processedMessageIds.add(data.id);
                     }
                 }
             });
             
+            // Reaction handling
             io.on('reaction-added', function(data) {
                 if (data.message_id) {
                     const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
@@ -2187,38 +2163,46 @@ class ChatSection {
                 }
             });
             
-            // Pin message handlers
-            io.on('message-pinned', function(data) {
-                if (data.message_id) {
-                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
-                    if (messageElement) {
-                        self.handleMessagePinned(data);
-                    }
-                }
-            });
-            
-            io.on('message-unpinned', function(data) {
-                if (data.message_id) {
-                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
-                    if (messageElement) {
-                        self.handleMessageUnpinned(data);
-                    }
-                }
-            });
-            
-            // Join appropriate room after setting up listeners
+            self.socketListenersSetup = true;
+            console.log('Socket listeners setup complete');
         };
         
-        window.addEventListener('socketAuthenticated', function() {
-            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-                setupSocketHandlers();
-                self.joinChannel();
-            }
-        });
-        
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            setupSocketHandlers();
-            self.joinChannel();
+        // Check if socket is ready
+        if (window.globalSocketManager && window.globalSocketManager.isReady() && window.globalSocketManager.io) {
+            console.log('Socket is ready, setting up handlers immediately');
+            setupSocketHandlers(window.globalSocketManager.io);
+            
+            // Join appropriate room using unified method
+            this.joinChannel();
+        } else {
+            console.log('Socket not ready, waiting for socketAuthenticated event');
+            
+            // Listen for socket ready event
+            const socketReadyHandler = (event) => {
+                console.log('Socket authenticated event received in ChatSection');
+                if (event.detail && event.detail.manager && event.detail.manager.io) {
+                    setupSocketHandlers(event.detail.manager.io);
+                    
+                    // Join appropriate room using unified method
+                    this.joinChannel();
+                    
+                    // Remove the event listener since we only need it once
+                    window.removeEventListener('socketAuthenticated', socketReadyHandler);
+                }
+            };
+            
+            window.addEventListener('socketAuthenticated', socketReadyHandler);
+            
+            // Also try again in a few seconds in case the event was missed
+            setTimeout(() => {
+                if (!self.socketListenersSetup && window.globalSocketManager && window.globalSocketManager.isReady()) {
+                    console.log('Retry: Setting up socket handlers after delay');
+                    setupSocketHandlers(window.globalSocketManager.io);
+                    
+                    // Join appropriate room using unified method
+                    self.joinChannel();
+                }
+            }, 3000);
         }
     }
     
@@ -2226,7 +2210,7 @@ class ChatSection {
         const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
         if (messageElement) {
             const messageTextElement = messageElement.querySelector('.message-main-text');
-            if (messageTextElement && data.message) {
+            if (messageTextElement && data.message && data.message.content) {
                 messageTextElement.innerHTML = this.formatMessageContent(data.message.content);
                 
                 let editedBadge = messageElement.querySelector('.edited-badge');
@@ -2308,24 +2292,27 @@ class ChatSection {
     
     joinChannel() {
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            console.warn('Socket not ready for room joining');
             return;
         }
 
-        const roomId = this.chatType === 'channel' ? this.targetId : null;
-        const dmRoomId = (this.chatType === 'direct' || this.chatType === 'dm') ? this.targetId : null;
+        const roomType = this.chatType === 'channel' ? 'channel' : 'dm';
+        const roomKey = `${roomType}-${this.targetId}`;
         
-        if (roomId && !this.joinedRooms.has(`channel-${roomId}`)) {
-            const success = window.globalSocketManager.joinChannel(roomId);
+        if (!this.joinedRooms.has(roomKey)) {
+            console.log(`🚪 Joining room: ${roomType} - ${this.targetId}`);
+            
+            // Use the new unified joinRoom method with source field
+            const success = window.globalSocketManager.joinRoom(roomType, this.targetId);
+            
             if (success) {
-                this.joinedRooms.add(`channel-${roomId}`);
-                console.log(`Joined channel room: ${roomId}`);
+                this.joinedRooms.add(roomKey);
+                console.log(`✅ Successfully joined ${roomType} room: ${this.targetId}`);
+            } else {
+                console.error(`❌ Failed to join ${roomType} room: ${this.targetId}`);
             }
-        } else if (dmRoomId && !this.joinedRooms.has(`dm-${dmRoomId}`)) {
-            const success = window.globalSocketManager.joinDMRoom(dmRoomId);
-            if (success) {
-                this.joinedRooms.add(`dm-${dmRoomId}`);
-                console.log(`Joined DM room: ${dmRoomId}`);
-            }
+        } else {
+            console.log(`Already joined ${roomType} room: ${this.targetId}`);
         }
     }
     
@@ -2686,8 +2673,8 @@ class ChatSection {
     handleReactionAdded(data) {
         if (!data.message_id || !data.emoji) return;
         
-        if (window.emojiReactions && typeof window.emojiReactions.updateReactionDisplay === 'function') {
-            window.emojiReactions.updateReactionDisplay(data.message_id, data.emoji, data.user_id, data.username, 'added');
+        if (window.emojiReactions && typeof window.emojiReactions.handleReactionAdded === 'function') {
+            window.emojiReactions.handleReactionAdded(data);
         } else {
             console.warn('emojiReactions not available for reaction update');
         }
@@ -2696,8 +2683,8 @@ class ChatSection {
     handleReactionRemoved(data) {
         if (!data.message_id || !data.emoji) return;
         
-        if (window.emojiReactions && typeof window.emojiReactions.updateReactionDisplay === 'function') {
-            window.emojiReactions.updateReactionDisplay(data.message_id, data.emoji, data.user_id, data.username, 'removed');
+        if (window.emojiReactions && typeof window.emojiReactions.handleReactionRemoved === 'function') {
+            window.emojiReactions.handleReactionRemoved(data);
         } else {
             console.warn('emojiReactions not available for reaction update');
         }

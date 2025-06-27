@@ -24,6 +24,11 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         document.body.appendChild(hiddenElements);
     }
+    
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.setAttribute('onclick', 'window.location.href="/logout"');
+    }
 });
 
         
@@ -641,11 +646,22 @@ function initLogoutButton() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         console.log('Logout button found, attaching click handler');
-        logoutBtn.addEventListener('click', function(e) {
+        
+        const logoutLink = document.createElement('a');
+        logoutLink.href = '#';
+        logoutLink.className = logoutBtn.className;
+        logoutLink.id = 'logout-btn';
+        logoutLink.innerHTML = logoutBtn.innerHTML;
+        
+        logoutLink.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             logoutUser();
         });
+        
+        if (logoutBtn.parentNode) {
+            logoutBtn.parentNode.replaceChild(logoutLink, logoutBtn);
+        }
     } else {
         console.warn('Logout button not found');
         
@@ -653,13 +669,51 @@ function initLogoutButton() {
             const logoutBtnRetry = document.getElementById('logout-btn');
             if (logoutBtnRetry) {
                 console.log('Logout button found on retry, attaching click handler');
-                logoutBtnRetry.addEventListener('click', function(e) {
+                
+                const logoutLink = document.createElement('a');
+                logoutLink.href = '#';
+                logoutLink.className = logoutBtnRetry.className;
+                logoutLink.id = 'logout-btn';
+                logoutLink.innerHTML = logoutBtnRetry.innerHTML;
+                
+                logoutLink.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
                     logoutUser();
                 });
+                
+                if (logoutBtnRetry.parentNode) {
+                    logoutBtnRetry.parentNode.replaceChild(logoutLink, logoutBtnRetry);
+                }
             } else {
                 console.error('Logout button still not found after retry');
+                
+                const possibleLogoutButtons = document.querySelectorAll('button.sidebar-item, .sidebar-item');
+                possibleLogoutButtons.forEach(btn => {
+                    if (btn.textContent.toLowerCase().includes('log out') || 
+                        btn.textContent.toLowerCase().includes('logout') ||
+                        btn.innerHTML.toLowerCase().includes('log out') ||
+                        btn.innerHTML.toLowerCase().includes('logout')) {
+                        
+                        console.log('Found potential logout button via text content, creating clickable link');
+                        
+                        const logoutLink = document.createElement('a');
+                        logoutLink.href = '#';
+                        logoutLink.className = btn.className;
+                        logoutLink.id = 'logout-btn';
+                        logoutLink.innerHTML = btn.innerHTML;
+                        
+                        logoutLink.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            logoutUser();
+                        });
+                        
+                        if (btn.parentNode) {
+                            btn.parentNode.replaceChild(logoutLink, btn);
+                        }
+                    }
+                });
             }
         }, 1000);
     }
@@ -670,11 +724,46 @@ function initLogoutButton() {
  */
 function initGlobalClickHandlers() {
     document.addEventListener('click', function(e) {
+        // Check if it's the logout button by ID
         if (e.target && (e.target.id === 'logout-btn' || e.target.closest('#logout-btn'))) {
             console.log('Logout button clicked via global handler');
             e.preventDefault();
             e.stopPropagation();
             logoutUser();
+            return;
+        }
+        
+        // Check if it's a logout button by content
+        if (e.target && (
+            (e.target.textContent && e.target.textContent.toLowerCase().includes('log out')) ||
+            (e.target.innerHTML && e.target.innerHTML.toLowerCase().includes('log out')) ||
+            (e.target.textContent && e.target.textContent.toLowerCase().includes('logout')) ||
+            (e.target.innerHTML && e.target.innerHTML.toLowerCase().includes('logout'))
+        )) {
+            // Additional check to ensure it's really a button or link
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.classList.contains('sidebar-item')) {
+                console.log('Logout link/button clicked via content detection');
+                e.preventDefault();
+                e.stopPropagation();
+                logoutUser();
+                return;
+            }
+        }
+        
+        // Check parent elements for logout content
+        let parent = e.target.parentElement;
+        for (let i = 0; i < 3 && parent; i++) { // Check up to 3 levels up
+            if (parent && (
+                (parent.textContent && parent.textContent.toLowerCase().includes('log out')) ||
+                (parent.innerHTML && parent.innerHTML.toLowerCase().includes('log out'))
+            ) && (parent.tagName === 'BUTTON' || parent.tagName === 'A' || parent.classList.contains('sidebar-item'))) {
+                console.log('Parent logout element clicked via content detection');
+                e.preventDefault();
+                e.stopPropagation();
+                logoutUser();
+                return;
+            }
+            parent = parent.parentElement;
         }
     });
 }
@@ -1351,28 +1440,54 @@ function logoutUser() {
         console.log('Logout confirmed, clearing data...');
         
         try {
-            localStorage.removeItem('user_token');
-            localStorage.removeItem('connect_socket_on_login');
-            localStorage.removeItem('active_channel');
-            localStorage.removeItem('active_dm');
-            localStorage.removeItem('active_server');
+            const authKeys = [
+                'authToken', 'rememberMe', 'userAuth', 'lastEmail', 
+                'user_id', 'username', 'discriminator', 'avatar_url', 
+                'banner_url', 'auth_data', 'session_id', 'login_state',
+                'user_data', 'admin_access', 'login_history', 'user_settings',
+                'user_status', 'fresh_login', 'csrf_token',
+                'user_token', 'connect_socket_on_login', 'active_channel',
+                'active_dm', 'active_server'
+            ];
+            
+            authKeys.forEach(key => {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
+            });
             
             if (window.globalSocketManager && typeof window.globalSocketManager.disconnect === 'function') {
                 console.log('Disconnecting socket...');
                 window.globalSocketManager.disconnect();
             }
             
-            console.log('Redirecting to logout...');
-            window.location.href = '/logout';
+            fetch('/logout', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            })
+            .then(response => {
+                console.log('Logout response received:', response.status);
+                window.location.href = '/login';
+            })
+            .catch(error => {
+                console.error('Error during logout request:', error);
+                window.location.href = '/login';
+            });
         } catch (error) {
             console.error('Error during logout:', error);
-            
             window.location.href = '/logout';
         }
     } else {
         console.log('Logout cancelled by user');
     }
 }
+
+// Make the function globally available
+window.logoutUser = logoutUser;
 
 function getStatusDisplayName(status) {
     const statusMap = {

@@ -1,9 +1,6 @@
 const options = {
     cors: {
-        origin: process.env.CORS_ALLOWED_ORIGINS?.split(',') || [
-            "http://localhost:1001",
-            "http://127.0.0.1:1001"
-        ],
+        origin: process.env.CORS_ALLOWED_ORIGINS?.split(',') || '*',
         methods: ["GET", "POST"],
         credentials: true
     },

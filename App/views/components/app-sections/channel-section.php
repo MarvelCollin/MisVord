@@ -237,7 +237,13 @@ async function handleChannelSwitch(serverId, channelId, channelType, clickedElem
         }
         
         if (channelType === 'voice') {
+            setTimeout(async () => {
+                try {
             await autoJoinVoiceChannel(channelId);
+                } catch (error) {
+                    console.error('Failed to auto-join voice channel:', error);
+                }
+            }, 500);
         }
         
     } catch (error) {
@@ -340,10 +346,24 @@ async function autoJoinVoiceChannel(channelId) {
             managerScript.onload = resolve;
             managerScript.onerror = reject;
         });
+        
+        let attempts = 0;
+        while (!window.videoSDKManager && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        if (!window.videoSDKManager) {
+            throw new Error('Failed to load VideoSDK Manager');
+        }
     }
     
     try {
         let meetingId = await getVoiceMeetingId(channelId);
+        
+        if (!window.videoSDKManager.getAuthToken) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
         
         const authToken = await window.videoSDKManager.getAuthToken();
         window.videoSDKManager.init(authToken);
@@ -365,9 +385,7 @@ async function autoJoinVoiceChannel(channelId) {
             });
         }
         
-        window.dispatchEvent(new CustomEvent('voiceConnect', {
-            detail: { meetingId: meetingId }
-        }));
+        const channelName = getChannelNameById(channelId) || 'Voice Channel';
         
         if (window.voiceState) {
             window.voiceState.isConnected = true;
@@ -377,13 +395,99 @@ async function autoJoinVoiceChannel(channelId) {
             window.voiceManager.isConnected = true;
         }
         
+        window.dispatchEvent(new CustomEvent('voiceConnect', {
+            detail: { 
+                meetingId: meetingId,
+                channelName: channelName,
+                channelId: channelId 
+            }
+        }));
+        
+        setTimeout(() => {
         showConnectedView();
+            ensureConnectedViewVisible();
+        }, 200);
         
     } catch (error) {
         console.error('Auto join voice failed:', error);
         showJoinView();
         throw error;
     }
+}
+
+function getChannelNameById(channelId) {
+    const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+    if (channelElement) {
+        const nameElement = channelElement.querySelector('span');
+        if (nameElement) {
+            return nameElement.textContent.trim();
+        }
+    }
+    return null;
+}
+
+function ensureConnectedViewVisible() {
+    // Wait for UI elements to be available with better handling for SPA navigation
+    const maxAttempts = 20;
+    let attempts = 0;
+    
+    const checkAndShow = () => {
+        attempts++;
+        
+        const joinView = document.getElementById('joinView');
+        const connectingView = document.getElementById('connectingView');
+        const connectedView = document.getElementById('connectedView');
+        const voiceControls = document.getElementById('voiceControls');
+        
+        // Check if we're in a voice channel by looking for voice section
+        const voiceContainer = document.getElementById('voice-container');
+        if (!voiceContainer) {
+            console.log('Not in a voice channel, skipping voice UI update');
+            return;
+        }
+        
+        if (connectedView && voiceControls) {
+            // All elements exist, now ensure they are properly shown
+            if (joinView) joinView.classList.add('hidden');
+            if (connectingView) connectingView.classList.add('hidden');
+            connectedView.classList.remove('hidden');
+            voiceControls.classList.remove('hidden');
+            
+            console.log('Voice UI successfully updated to connected view');
+            return;
+        } 
+        
+        if (attempts < maxAttempts) {
+            // Try again after a longer delay for SPA navigation
+            setTimeout(checkAndShow, 150);
+        } else {
+            // If elements still not found, try to initialize voice UI
+            console.log('Voice UI elements not found, attempting to initialize...');
+            if (window.initializeVoiceUI && typeof window.initializeVoiceUI === 'function') {
+                try {
+                    window.initializeVoiceUI();
+                    // Try one more time after initialization
+                    setTimeout(() => {
+                        const connectedViewRetry = document.getElementById('connectedView');
+                        const voiceControlsRetry = document.getElementById('voiceControls');
+                        if (connectedViewRetry && voiceControlsRetry) {
+                            connectedViewRetry.classList.remove('hidden');
+                            voiceControlsRetry.classList.remove('hidden');
+                            console.log('Voice UI initialized and updated successfully');
+                        } else {
+                            console.warn('Could not find voice UI elements even after initialization');
+                        }
+                    }, 200);
+                } catch (error) {
+                    console.error('Failed to initialize voice UI:', error);
+                }
+            } else {
+                console.warn('initializeVoiceUI function not available');
+            }
+        }
+    };
+    
+    checkAndShow();
 }
 
 async function getVoiceMeetingId(channelId) {
@@ -455,6 +559,8 @@ function showConnectedView() {
     if (connectingView) connectingView.classList.add('hidden');
     if (connectedView) connectedView.classList.remove('hidden');
     if (voiceControls) voiceControls.classList.remove('hidden');
+    
+    console.log('showConnectedView called - UI elements updated');
 }
 
 async function loadChannelRenderer() {

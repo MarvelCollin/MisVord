@@ -422,55 +422,171 @@ class VideoSDKManager {
         }
     }
     
-    toggleWebcam() {
-        if (!this.meeting) return false;
+    async checkCameraPermissions() {
+        try {
+            if (navigator.permissions) {
+                const permission = await navigator.permissions.query({ name: 'camera' });
+                this.log(`Camera permission state: ${permission.state}`);
+                return permission.state === 'granted';
+            } else {
+                this.log("Permissions API not available, testing direct access");
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream.getTracks().forEach(track => track.stop());
+                this.log("Camera access test successful");
+                return true;
+            }
+        } catch (error) {
+            this.logError("Camera permission check failed:", error);
+            return false;
+        }
+    }
+
+    async toggleWebcam() {
+        if (!this.meeting) {
+            this.logError("No meeting available for webcam toggle");
+            return false;
+        }
         
         try {
-            const isWebcamEnabled = this.sdkVersion === "0.2.x" 
-                ? this.meeting.localParticipant.isWebcamEnabled
-                : this.meeting.localParticipant.streams.has("video");
+            const localParticipant = this.meeting.localParticipant;
+            if (!localParticipant) {
+                this.logError("No local participant found");
+                return false;
+            }
+            
+            const currentWebcamState = this.getWebcamState();
+            this.log(`Current webcam state: ${currentWebcamState}`);
                 
-            if (isWebcamEnabled) {
-                this.meeting.disableWebcam();
-                if (window.voiceStateManager) {
-                    window.voiceStateManager.setState({ isVideoOn: false });
+            if (currentWebcamState) {
+                this.log("Disabling webcam...");
+                if (this.meeting.disableWebcam) {
+                    await this.meeting.disableWebcam();
+                } else if (localParticipant.disableWebcam) {
+                    await localParticipant.disableWebcam();
+                } else if (localParticipant.disableCam) {
+                    await localParticipant.disableCam();
                 }
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const finalState = this.getWebcamState();
+                this.log(`Webcam disabled, final state: ${finalState}`);
+                return false;
             } else {
-                this.meeting.enableWebcam();
-                if (window.voiceStateManager) {
-                    window.voiceStateManager.setState({ isVideoOn: true });
+                this.log("Enabling webcam...");
+                
+                const hasPermission = await this.checkCameraPermissions();
+                if (!hasPermission) {
+                    throw new Error("Camera permission denied");
+                }
+                
+                try {
+                    let stream;
+                    if (this.meeting.enableWebcam) {
+                        stream = await this.meeting.enableWebcam();
+                    } else if (localParticipant.enableWebcam) {
+                        stream = await localParticipant.enableWebcam();
+                    } else if (localParticipant.enableCam) {
+                        stream = await localParticipant.enableCam();
+                    } else {
+                        throw new Error("No webcam enable method found");
+                    }
+                    
+                    this.log("Webcam enabled, waiting for stream...");
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    const finalState = this.getWebcamState();
+                    this.log(`Webcam enable attempted, final state: ${finalState}`);
+                    
+                    if (!finalState) {
+                        throw new Error("Webcam failed to enable - final state is false");
+                    }
+                    
+                    // Manually trigger stream event if needed
+                    if (stream && !localParticipant.streams.has('video')) {
+                        this.log("Manually triggering stream event");
+                        localParticipant.emit('stream-enabled', {
+                            kind: 'video',
+                            track: stream.getVideoTracks()[0],
+                            stream: stream
+                        });
+                    }
+                    
+                    this.log("Webcam enabled successfully");
+                    return true;
+                } catch (permissionError) {
+                    this.logError("Camera permission denied or failed to enable:", permissionError);
+                    if (window.showToast) {
+                        window.showToast('Camera failed to enable. Please check permissions.', 'error', 5000);
+                    }
+                    return false;
                 }
             }
-            return !isWebcamEnabled;
         } catch (error) {
             this.logError("Error toggling webcam:", error);
             return false;
         }
     }
     
-    toggleScreenShare() {
-        if (!this.meeting) return false;
+    async toggleScreenShare() {
+        if (!this.meeting) {
+            this.logError("No meeting available for screen share toggle");
+            return false;
+        }
         
         try {
+            const localParticipant = this.meeting.localParticipant;
+            if (!localParticipant) {
+                this.logError("No local participant found");
+                return false;
+            }
+            
             const isScreenShareEnabled = this.sdkVersion === "0.2.x" 
-                ? this.meeting.localParticipant.isScreenShareEnabled
-                : this.meeting.localParticipant.streams.has("share");
+                ? localParticipant.screenShareEnabled || localParticipant.isScreenShareEnabled
+                : localParticipant.streams.has("share");
+                
+            this.log(`Current screen share state: ${isScreenShareEnabled}`);
                 
             if (isScreenShareEnabled) {
-                this.meeting.disableScreenShare();
+                if (this.meeting.disableScreenShare) {
+                    this.meeting.disableScreenShare();
+                } else if (localParticipant.disableScreenShare) {
+                    localParticipant.disableScreenShare();
+                }
+                
                 if (window.voiceStateManager) {
                     window.voiceStateManager.setState({ isScreenSharing: false });
                 }
+                this.log("Screen share disabled");
+                return false;
             } else {
-                this.meeting.enableScreenShare();
-                if (window.voiceStateManager) {
-                    window.voiceStateManager.setState({ isScreenSharing: true });
+                try {
+                    if (this.meeting.enableScreenShare) {
+                        await this.meeting.enableScreenShare();
+                    } else if (localParticipant.enableScreenShare) {
+                        await localParticipant.enableScreenShare();
+                    }
+                    
+                    if (window.voiceStateManager) {
+                        window.voiceStateManager.setState({ isScreenSharing: true });
+                    }
+                    this.log("Screen share enabled");
+                    return true;
+                } catch (permissionError) {
+                    this.logError("Screen share permission denied or not available:", permissionError);
+                    if (window.showToast) {
+                        window.showToast('Screen share permission required. Please allow screen access.', 'error', 5000);
+                    }
+                    return false;
                 }
             }
-            return !isScreenShareEnabled;
         } catch (error) {
             this.logError("Error toggling screen share:", error);
-            return false;
+            const newState = !this.getScreenShareState();
+            if (window.voiceStateManager) {
+                window.voiceStateManager.setState({ isScreenSharing: newState });
+            }
+            return newState;
         }
     }
     
@@ -609,6 +725,67 @@ class VideoSDKManager {
             window.logger.error('videosdk', message, ...args);
         } else {
             console.error(`[VideoSDK Error] ${message}`, ...args);
+        }
+    }
+
+    getWebcamState() {
+        if (!this.meeting || !this.meeting.localParticipant) {
+            this.log("getWebcamState: No meeting or participant");
+            return false;
+        }
+        
+        try {
+            const participant = this.meeting.localParticipant;
+            let isEnabled = false;
+            
+            if (this.sdkVersion === "0.2.x") {
+                isEnabled = participant.isWebcamEnabled || participant.webcamEnabled || false;
+            } else {
+                isEnabled = participant.streams && participant.streams.has && participant.streams.has("video");
+            }
+            
+            this.log(`getWebcamState: SDK version ${this.sdkVersion}, isEnabled: ${isEnabled}`);
+            
+            if (participant.streams) {
+                const streamKeys = Array.from(participant.streams.keys ? participant.streams.keys() : []);
+                this.log(`getWebcamState: Available streams: ${streamKeys.join(', ')}`);
+                
+                if (participant.streams.get && participant.streams.get('video')) {
+                    const videoStream = participant.streams.get('video');
+                    this.log(`getWebcamState: Video stream details:`, videoStream);
+                }
+            }
+            
+            return isEnabled;
+        } catch (error) {
+            this.logError("Error getting webcam state:", error);
+            return false;
+        }
+    }
+    
+    getScreenShareState() {
+        if (!this.meeting || !this.meeting.localParticipant) return false;
+        
+        try {
+            return this.sdkVersion === "0.2.x" 
+                ? this.meeting.localParticipant.isScreenShareEnabled
+                : this.meeting.localParticipant.streams.has("share");
+        } catch (error) {
+            this.logError("Error getting screen share state:", error);
+            return false;
+        }
+    }
+    
+    getMicState() {
+        if (!this.meeting || !this.meeting.localParticipant) return false;
+        
+        try {
+            return this.sdkVersion === "0.2.x" 
+                ? this.meeting.localParticipant.isMicEnabled
+                : this.meeting.localParticipant.streams.has("audio");
+        } catch (error) {
+            this.logError("Error getting mic state:", error);
+            return false;
         }
     }
 }

@@ -16,9 +16,7 @@ $is_auth_page = isset($data_page) && $data_page === 'auth';
 
 $core_scripts = ['core/ui/toast'];
 if (!$is_auth_page) {
-    if (!$is_auth_page) {
-        $core_scripts[] = 'core/socket/global-socket-manager';
-    }
+    $core_scripts[] = 'core/socket/global-socket-manager';
 }
 
 $auth_scripts = [];
@@ -28,19 +26,17 @@ if ($is_auth_page) {
 }
 ?>
 
-<?php if (!$is_auth_page): ?>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
-
 <script>
 (function() {
     const socketHost = document.querySelector('meta[name="socket-host"]')?.content;
     const socketPort = document.querySelector('meta[name="socket-port"]')?.content;
+    const socketSecure = document.querySelector('meta[name="socket-secure"]')?.content === 'true';
     
     if (socketHost) window.SOCKET_HOST = socketHost;
     if (socketPort) window.SOCKET_PORT = parseInt(socketPort);
+    if (socketSecure !== undefined) window.SOCKET_SECURE = socketSecure;
 })();
 </script>
-<?php endif; ?>
 
 <?php if (!$is_auth_page): ?>
 <script src="<?php echo js('api/chat-api'); ?>?v=<?php echo time(); ?>"></script>
@@ -72,5 +68,6 @@ if ($is_auth_page) {
 <?php endforeach; ?>
 
 <?php if (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true'): ?>
-
+    <script src="<?php echo js('debug/socket-debug-panel'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js('debug/comprehensive-chat-test'); ?>?v=<?php echo time(); ?>"></script>
 <?php endif; ?>

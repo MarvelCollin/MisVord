@@ -428,20 +428,48 @@ class EmojiReactions {
     }
 
     setupSocketListeners() {
+        const self = this;
+        
+        // First, clear any existing listeners to avoid duplicates
+        if (window.globalSocketManager?.io) {
+            window.globalSocketManager.io.off('reaction-added');
+            window.globalSocketManager.io.off('reaction-removed');
+            console.log('🧹 Cleared existing reaction socket listeners');
+        }
+        
         const setupListeners = () => {
             if (window.globalSocketManager?.io) {
-                window.globalSocketManager.io.on('reaction-added', (data) => {
+                console.log('🔌 Setting up emoji reaction socket listeners...');
+                
+                window.globalSocketManager.io.on('reaction-added', function(data) {
                     console.log('📥 Received reaction-added:', data);
-                    this.handleReactionAdded(data);
+                    
+                    // Only process if the message is in the current view
+                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+                    if (messageElement) {
+                        console.log('📍 Found message element for reaction, updating UI');
+                        self.handleReactionAdded(data);
+                    } else {
+                        console.log('⚠️ Message element not found for reaction-added');
+                    }
                 });
                 
-                window.globalSocketManager.io.on('reaction-removed', (data) => {
+                window.globalSocketManager.io.on('reaction-removed', function(data) {
                     console.log('📥 Received reaction-removed:', data);
-                    this.handleReactionRemoved(data);
+                    
+                    // Only process if the message is in the current view
+                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+                    if (messageElement) {
+                        console.log('📍 Found message element for reaction, updating UI');
+                        self.handleReactionRemoved(data);
+                    } else {
+                        console.log('⚠️ Message element not found for reaction-removed');
+                    }
                 });
                 
-                console.log('✅ Emoji reaction socket listeners set up');
+                console.log('✅ Emoji reaction socket listeners set up successfully');
             } else {
+                console.log('⏳ Socket not ready yet, retrying in 200ms...');
                 setTimeout(setupListeners, 200);
             }
         };
@@ -452,12 +480,20 @@ class EmojiReactions {
     handleReactionAdded(data) {
         const { message_id, emoji, user_id, username } = data;
         
+        console.log('🔔 handleReactionAdded called with:', { message_id, emoji, user_id, username });
+        
         if (!this.currentReactions[message_id]) {
             this.currentReactions[message_id] = [];
         }
 
         const existingIndex = this.currentReactions[message_id].findIndex(r => 
             String(r.user_id) === String(user_id) && r.emoji === emoji);
+         
+        console.log('🔍 Existing reaction check:', { 
+            messageId: message_id, 
+            existingReaction: existingIndex !== -1,
+            currentReactions: this.currentReactions[message_id].length
+        });
             
         if (existingIndex === -1) {
             this.currentReactions[message_id].push({
@@ -466,15 +502,19 @@ class EmojiReactions {
                 username
             });
             
+            console.log('👆 Added reaction to memory, updating display for message:', message_id);
             this.updateReactionsDisplay(message_id, this.currentReactions[message_id]);
             
             setTimeout(() => {
                 const reactionElement = document.querySelector(`[data-message-id="${message_id}"] .message-reaction-pill[data-emoji="${emoji}"]`);
                 if (reactionElement) {
+                    console.log('✨ Adding animation to reaction element');
                     reactionElement.classList.add('reaction-pop');
                     setTimeout(() => {
                         reactionElement.classList.remove('reaction-pop');
                     }, 1000);
+                } else {
+                    console.warn('⚠️ Could not find reaction element for animation');
                 }
             }, 50);
         }
@@ -510,17 +550,45 @@ const emojiReactions = new EmojiReactions();
 
 function initEmojiReactions() {
     if (emojiReactions.initialized) return;
-    emojiReactions.init();
+    
+    try {
+        console.log('🚀 Initializing emoji reactions system...');
+        emojiReactions.init();
+        console.log('✅ Emoji reactions system initialized successfully');
+        
+        // Attach to window object for global access
+        window.emojiReactions = emojiReactions;
+        
+        // Check if socket is connected
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            console.log('📡 Socket is already connected, setting up reaction listeners');
+            emojiReactions.setupSocketListeners();
+        } else {
+            console.log('🔌 Socket not ready, will set up listeners when authenticated');
+            window.addEventListener('socketAuthenticated', function() {
+                console.log('📡 Socket authenticated, setting up reaction listeners');
+                emojiReactions.setupSocketListeners();
+            });
+        }
+    } catch (err) {
+        console.error('❌ Error initializing emoji reactions:', err);
+    }
 }
 
+// Initialize on page load
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initEmojiReactions);
 } else {
     initEmojiReactions();
 }
 
+// Make sure it's attached to window
 window.emojiReactions = emojiReactions; 
 
+// Add a deferred init method for when DOM is ready but other components need to initialize it
+window.initializeEmojiReactions = initEmojiReactions;
+
+// Debug utilities
 window.debugEmojis = function() {
     console.log('🔬 EmojiReactions Debug Info:');
     console.log('✅ Initialized:', emojiReactions.initialized);
@@ -552,11 +620,12 @@ window.debugEmojis = function() {
     return {
         reactionsLoaded: Object.keys(emojiReactions.currentReactions).length,
         messageCount: messages.length,
-        initialized: emojiReactions.initialized
+        initialized: emojiReactions.initialized,
+        socketConnected: !!(window.globalSocketManager && window.globalSocketManager.isReady())
     };
 };
 
-// Add a function to force-load reactions for all visible messages
+// Force-load all reactions
 window.forceLoadAllReactions = function() {
     console.log('🔄 Force loading reactions for all visible messages...');
     const messages = document.querySelectorAll('.message-content[data-message-id]');
@@ -573,4 +642,34 @@ window.forceLoadAllReactions = function() {
     });
     
     return `Started loading reactions for ${messages.length} messages`;
+};
+
+// Helper to reinitialize if needed
+window.reinitializeEmojiSystem = function() {
+    try {
+        console.log('🔄 Reinitializing emoji reactions system...');
+        
+        // Reset state
+        emojiReactions.initialized = false;
+        emojiReactions.currentReactions = {};
+        emojiReactions.loadedMessageIds.clear();
+        emojiReactions.loadingReactions.clear();
+        
+        // Reinit
+        initEmojiReactions();
+        
+        // Check for messages and load reactions
+        const messages = document.querySelectorAll('.message-content[data-message-id]');
+        messages.forEach(msg => {
+            const messageId = msg.dataset.messageId;
+            if (/^\d+$/.test(String(messageId))) {
+                emojiReactions.loadMessageReactions(messageId);
+            }
+        });
+        
+        return `Reinitialized emoji system and found ${messages.length} messages`;
+    } catch (err) {
+        console.error('❌ Error reinitializing emoji system:', err);
+        return `Error: ${err.message}`;
+    }
 };

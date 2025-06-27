@@ -7,15 +7,21 @@ class GlobalSocketManager {
         this.username = null;
         this.socketHost = null;
         this.socketPort = null;
+        this.socketSecure = false;
         this.lastError = null;
         this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 5;
+        this.maxReconnectAttempts = Infinity;
         this.reconnectDelay = 3000;
         this.joinedChannels = new Set();
         this.joinedDMRooms = new Set();
     }
     
     init(userData = null) {
+        if (window.__SOCKET_INITIALISED__) {
+            return false;
+        }
+        window.__SOCKET_INITIALISED__ = true;
+        
         if (userData) {
             this.userId = userData.user_id;
             this.username = userData.username;
@@ -34,7 +40,6 @@ class GlobalSocketManager {
             return false;
         }
         
-        
         if (typeof io === 'undefined') {
             this.error('Socket.io library not available, skipping connection');
             return false;
@@ -50,8 +55,10 @@ class GlobalSocketManager {
     }
     
     loadConnectionDetails() {
-        this.socketHost = document.querySelector('meta[name="socket-host"]')?.content || 'localhost';
-        this.socketPort = document.querySelector('meta[name="socket-port"]')?.content || '1002';
+        // Force connection details to localhost:1002
+        this.socketHost = 'localhost';
+        this.socketPort = '1002';
+        this.socketSecure = false;
         
         // Try multiple sources for user data
         let metaUserId = document.querySelector('meta[name="user-id"]')?.content;
@@ -89,7 +96,7 @@ class GlobalSocketManager {
             });
         }
         
-        this.log(`Socket details loaded - Host: ${this.socketHost}, Port: ${this.socketPort}`);
+        this.log(`Socket details loaded - Host: ${this.socketHost}, Port: ${this.socketPort}, Secure: ${this.socketSecure}`);
     }
     
     connect() {
@@ -98,11 +105,11 @@ class GlobalSocketManager {
             return;
         }
         
-        const socketUrl = `http://${this.socketHost}:${this.socketPort}`;
+        // Simple hardcoded connection
+        const socketUrl = 'http://localhost:1002';
         this.log(`Connecting to socket: ${socketUrl}`);
         
         try {
-            
             if (typeof io === 'undefined') {
                 throw new Error('Socket.io library (io) is not defined. This is normal on authentication pages.');
             }
@@ -112,7 +119,7 @@ class GlobalSocketManager {
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
-                reconnectionAttempts: 5
+                reconnectionAttempts: 10
             });
             
             this.setupEventHandlers();
@@ -128,8 +135,16 @@ class GlobalSocketManager {
         this.io.on('connect', () => {
             this.connected = true;
             this.reconnectAttempts = 0;
-            this.authenticated = true;
             this.log(`Socket connected: ${this.io.id}`);
+            
+            // Send authentication immediately after connection
+            this.sendAuthentication();
+        });
+        
+        // Handle authentication success
+        this.io.on('auth-success', (data) => {
+            this.authenticated = true;
+            this.log(`Socket authenticated successfully:`, data);
             
             const event = new CustomEvent('globalSocketReady', {
                 detail: {
@@ -151,6 +166,12 @@ class GlobalSocketManager {
             window.dispatchEvent(authEvent);
         });
         
+        // Handle authentication error
+        this.io.on('auth-error', (data) => {
+            this.authenticated = false;
+            this.error('Socket authentication failed:', data);
+        });
+        
         this.io.on('channel-joined', (data) => {
             this.log(`Channel joined confirmation: ${data.channel_id}`);
         });
@@ -159,8 +180,19 @@ class GlobalSocketManager {
             this.log(`DM room joined confirmation: ${data.room_id}`);
         });
         
+        this.io.on('room-joined', (data) => {
+            this.log(`Room joined confirmation: ${data.room_type} - ${data.room_id}`);
+            
+            if (data.room_type === 'channel') {
+                this.joinedChannels.add(data.room_id);
+            } else if (data.room_type === 'dm') {
+                this.joinedDMRooms.add(data.room_id);
+            }
+        });
+        
         this.io.on('disconnect', () => {
             this.connected = false;
+            this.authenticated = false;
             this.log('Socket disconnected');
             
             window.dispatchEvent(new Event('globalSocketDisconnected'));
@@ -181,8 +213,6 @@ class GlobalSocketManager {
             }
         });
         
-
-        
         this.io.on('error', (error) => {
             this.error('Socket error', error);
         });
@@ -197,13 +227,37 @@ class GlobalSocketManager {
         });
     }
     
-    authenticate() {
+    sendAuthentication() {
+        if (!this.io || !this.userId || !this.username) {
+            this.error('Cannot authenticate: missing socket or user data', {
+                hasSocket: !!this.io,
+                userId: this.userId,
+                username: this.username
+            });
+            return false;
+        }
+        
+        const authData = {
+            user_id: this.userId,
+            username: this.username
+        };
+        
+        this.log('Sending authentication to socket server:', authData);
+        this.io.emit('authenticate', authData);
         return true;
     }
     
+    authenticate() {
+        return this.sendAuthentication();
+    }
+    
     joinChannel(channelId) {
-        if (!this.connected || !this.io) {
-            this.error('Cannot join channel: socket not connected');
+        if (!this.connected || !this.io || !this.authenticated) {
+            this.error('Cannot join channel: socket not connected or not authenticated', {
+                connected: this.connected,
+                authenticated: this.authenticated,
+                hasSocket: !!this.io
+            });
             return false;
         }
         
@@ -219,7 +273,7 @@ class GlobalSocketManager {
     }
     
     leaveChannel(channelId) {
-        if (!this.connected || !this.io) return false;
+        if (!this.connected || !this.io || !this.authenticated) return false;
         
         this.log(`Leaving channel: ${channelId}`);
         this.io.emit('leave-channel', { channel_id: channelId });
@@ -228,8 +282,12 @@ class GlobalSocketManager {
     }
     
     joinDMRoom(roomId) {
-        if (!this.connected || !this.io) {
-            this.error('Cannot join DM room: socket not connected');
+        if (!this.connected || !this.io || !this.authenticated) {
+            this.error('Cannot join DM room: socket not connected or not authenticated', {
+                connected: this.connected,
+                authenticated: this.authenticated,
+                hasSocket: !!this.io
+            });
             return false;
         }
         
@@ -244,13 +302,45 @@ class GlobalSocketManager {
         return true;
     }
     
+    joinRoom(roomType, roomId) {
+        if (!this.connected || !this.io || !this.authenticated) {
+            this.error('Cannot join room: socket not connected or not authenticated', {
+                connected: this.connected,
+                authenticated: this.authenticated,
+                hasSocket: !!this.io
+            });
+            return false;
+        }
+        
+        this.log(`Joining room: ${roomType} - ${roomId}`);
+        this.io.emit('join-room', { 
+            room_type: roomType, 
+            room_id: roomId,
+            source: 'client-originated'
+        });
+        
+        if (roomType === 'channel') {
+            this.joinedChannels.add(roomId);
+        } else if (roomType === 'dm') {
+            this.joinedDMRooms.add(roomId);
+        }
+        
+        return true;
+    }
+    
     sendTyping(channelId = null, roomId = null) {
         if (!this.connected || !this.io) return false;
         
         if (channelId) {
-            this.io.emit('typing', { channel_id: channelId });
+            this.io.emit('typing', { 
+                channel_id: channelId,
+                source: 'client-originated'
+            });
         } else if (roomId) {
-            this.io.emit('typing', { room_id: roomId });
+            this.io.emit('typing', { 
+                room_id: roomId,
+                source: 'client-originated'
+            });
         }
         
         return true;
@@ -260,9 +350,15 @@ class GlobalSocketManager {
         if (!this.connected || !this.io) return false;
         
         if (channelId) {
-            this.io.emit('stop-typing', { channel_id: channelId });
+            this.io.emit('stop-typing', { 
+                channel_id: channelId,
+                source: 'client-originated'
+            });
         } else if (roomId) {
-            this.io.emit('stop-typing', { room_id: roomId });
+            this.io.emit('stop-typing', { 
+                room_id: roomId,
+                source: 'client-originated'
+            });
         }
         
         return true;
@@ -286,13 +382,14 @@ class GlobalSocketManager {
         }
         
         this.connected = false;
+        this.authenticated = false;
         this.joinedChannels.clear();
         this.joinedDMRooms.clear();
         this.log('Socket manually disconnected');
     }
     
     isReady() {
-        return this.connected && this.io !== null;
+        return this.connected && this.authenticated && this.io !== null;
     }
     
     setupChannelListeners(channelId) {

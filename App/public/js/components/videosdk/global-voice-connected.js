@@ -349,14 +349,14 @@ class GlobalVoiceIndicator {
     this.hideIndicator();
     this.stopTimer();
     
-    
+    // Clear stored connection state
     localStorage.removeItem("voiceConnectionState");
     
-    
+    // Dispatch global voice disconnect event
     const event = new CustomEvent("globalVoiceDisconnect");
     window.dispatchEvent(event);
 
-    
+    // Properly cleanup VideoSDK meeting
     if (window.videosdkMeeting) {
       try {
         window.videosdkMeeting.leave();
@@ -366,9 +366,17 @@ class GlobalVoiceIndicator {
       }
     }
     
+    // Additional cleanup - check for Manager instance
+    if (window.videoSDKManager && typeof window.videoSDKManager.leaveMeeting === 'function') {
+      try {
+        window.videoSDKManager.leaveMeeting();
+      } catch (e) {
+        console.error("Error when trying to use videoSDKManager.leaveMeeting", e);
+      }
+    }
     
+    // Reset state and trigger full cleanup
     this.resetState();
-    
     
     setTimeout(() => {
       this.cleanup();
@@ -419,13 +427,12 @@ class GlobalVoiceIndicator {
   }
 
   startConnectionVerification() {
-    
     if (this.verificationInterval) {
       clearInterval(this.verificationInterval);
     }
     
     this.verificationInterval = setInterval(() => {
-      
+      // Check if UI state and actual connection state are in sync
       if (this.isConnected && !window.videosdkMeeting) {
         console.log("Voice connection state mismatch - no VideoSDK meeting exists. Disconnecting.");
         this.handleDisconnect();
@@ -434,6 +441,26 @@ class GlobalVoiceIndicator {
       else if (!this.isConnected && this.indicator) {
         console.log("Voice indicator showing but not connected. Cleaning up.");
         this.cleanup();
+      }
+      
+      // Check for orphaned voice state
+      if (window.voiceState?.isConnected && !window.videosdkMeeting) {
+        console.log("Voice state says connected but no active meeting. Resetting state.");
+        window.voiceState.isConnected = false;
+        if (typeof window.dispatchEvent === 'function') {
+          window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+        }
+      }
+      
+      // Check for mismatched state in voiceStateManager
+      if (window.voiceStateManager && 
+          window.voiceStateManager.getState && 
+          window.voiceStateManager.getState().isConnected && 
+          !window.videosdkMeeting) {
+        console.log("VoiceStateManager reports connected but no meeting exists. Resetting.");
+        if (typeof window.voiceStateManager.reset === 'function') {
+          window.voiceStateManager.reset();
+        }
       }
     }, 3000);
   }

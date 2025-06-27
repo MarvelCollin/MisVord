@@ -333,7 +333,12 @@ class EmojiSocketHandler {
             const reactions = await window.ChatAPI.getMessageReactions(messageId);
             
             if (window.emojiReactions) {
-                window.emojiReactions.updateReactionsDisplay(messageId, reactions || []);
+                // If it has the more specific method, use it
+                if (typeof window.emojiReactions.updateReactionsDisplay === 'function') {
+                    window.emojiReactions.updateReactionsDisplay(messageId, reactions || []);
+                } else {
+                    console.warn('emojiReactions.updateReactionsDisplay not available');
+                }
             }
         } catch (error) {
             console.error('Error loading reactions:', error);

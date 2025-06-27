@@ -71,8 +71,8 @@ class EventValidator {
             warnings.push(`Unknown source value: ${data.source}`);
         }
 
-        if (eventName.includes('message') && !eventName.includes('typing') && data.source !== 'server-originated') {
-            errors.push('Message events must have source: server-originated');
+            if (eventName.includes('message') && !eventName.includes('typing') && data.source && !['server-originated', 'client-originated'].includes(data.source)) {
+        errors.push('Message events must have valid source');
         }
 
         return {
@@ -83,21 +83,48 @@ class EventValidator {
     }
 
     validateAndLog(eventName, data, context = '') {
+        console.log(`🔍 [EVENT-VALIDATOR] Starting validation for ${eventName} ${context}`);
+        console.log(`📊 [EVENT-VALIDATOR] Event data overview:`, {
+            event: eventName,
+            hasId: !!(data.id || data.message_id),
+            hasUserId: !!data.user_id,
+            hasUsername: !!data.username,
+            hasSource: !!data.source,
+            hasChannelId: !!data.channel_id,
+            hasRoomId: !!data.room_id,
+            hasTargetType: !!data.target_type,
+            hasTargetId: !!data.target_id,
+            hasContent: !!data.content
+        });
+        
         const result = this.validate(eventName, data);
         
         if (!result.valid) {
-            console.error(`❌ Event validation failed for ${eventName} ${context}:`, {
+            console.error(`❌ [EVENT-VALIDATOR] Event validation failed for ${eventName} ${context}:`, {
                 errors: result.errors,
-                data: data
+                providedFields: Object.keys(data),
+                requiredFields: this.schemas[eventName]?.required || []
             });
+        } else {
+            console.log(`✅ [EVENT-VALIDATOR] Event validation passed for ${eventName} ${context}`);
         }
 
         if (result.warnings.length > 0) {
-            console.warn(`⚠️ Event validation warnings for ${eventName} ${context}:`, {
+            console.warn(`⚠️ [EVENT-VALIDATOR] Event validation warnings for ${eventName} ${context}:`, {
                 warnings: result.warnings,
-                data: data
+                eventData: {
+                    source: data.source,
+                    hasRequiredFields: result.valid
+                }
             });
         }
+
+        console.log(`📋 [EVENT-VALIDATOR] Validation summary for ${eventName}:`, {
+            valid: result.valid,
+            errorCount: result.errors.length,
+            warningCount: result.warnings.length,
+            context: context
+        });
 
         return result;
     }

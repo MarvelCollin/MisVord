@@ -129,254 +129,71 @@ function showInvitePeopleModal() {
 
     if (modal) {
         modal.classList.remove('hidden');
-        modal.style.display = 'flex';
-        modal.style.alignItems = 'center';
-        modal.style.justifyContent = 'center';
-        modal.style.position = 'fixed';
-        modal.style.top = '0';
-        modal.style.left = '0';
-        modal.style.width = '100%';
-        modal.style.height = '100%';
-        modal.style.zIndex = '9999';
+        modal.className = 'modal-overlay';
         
         const modalContent = modal.querySelector('.modal-content');
         if (modalContent) {
-            modalContent.classList.add('animate-fade-in');
-            modalContent.style.maxHeight = '80vh';
-            modalContent.style.width = '450px';
-            modalContent.style.maxWidth = '95vw';
-            modalContent.style.overflowY = 'auto';
-            modalContent.style.position = 'relative';
-            modalContent.style.margin = '0 auto';
-            modalContent.style.padding = '24px';
-            modalContent.style.borderRadius = '8px';
-            modalContent.style.backgroundColor = '#36393f';
-            modalContent.style.boxShadow = '0 0 0 1px rgba(32,34,37,.6), 0 2px 10px 0 rgba(0,0,0,.2)';
+            modalContent.className = 'modal-container';
+            
+            const modalHeading = modal.querySelector('h2');
+            if (modalHeading) {
+                modalHeading.className = 'modal-header';
+            }
+            
+            const closeBtn = document.getElementById('close-invite-modal');
+            if (closeBtn) {
+                closeBtn.className = 'close-modal-btn';
+                
+                if (!closeBtn.hasAttribute('data-listener')) {
+                    closeBtn.addEventListener('click', () => closeModal('invite-people-modal'));
+                    closeBtn.setAttribute('data-listener', 'true');
+                }
+            }
         }
         
         loadInviteLink(serverId);
 
         const copyBtn = document.getElementById('copy-invite-link');
         const generateBtn = document.getElementById('generate-new-invite');
-        const closeBtn = document.getElementById('close-invite-modal');
         const expirationSelect = document.getElementById('invite-expiration');
-        const expirationInfo = document.getElementById('invite-expiration-info');
         const friendSearchInput = document.getElementById('friend-search');
         const sendInvitesBtn = document.getElementById('send-invites-btn');
-        const inviteLinkSection = document.getElementById('invite-link-section');
-        const friendsSection = document.getElementById('invite-friends-section');
-        const searchResults = document.getElementById('friend-search-results');
         
-        
-        if (friendsSection) {
-            friendsSection.style.position = 'relative';
+        if (copyBtn && !copyBtn.hasAttribute('data-listener')) {
+            copyBtn.className = 'btn btn-primary';
+            copyBtn.addEventListener('click', copyInviteLink);
+            copyBtn.setAttribute('data-listener', 'true');
         }
 
-        
-        if (inviteLinkSection) {
-            inviteLinkSection.style.marginBottom = '24px';
-            inviteLinkSection.style.padding = '16px';
-            inviteLinkSection.style.borderRadius = '8px';
-            inviteLinkSection.style.backgroundColor = '#2f3136';
-            inviteLinkSection.style.border = '1px solid #202225';
-        }
-        
-        if (friendsSection) {
-            friendsSection.style.padding = '16px';
-            friendsSection.style.borderRadius = '8px';
-            friendsSection.style.backgroundColor = '#2f3136';
-            friendsSection.style.border = '1px solid #202225';
-            friendsSection.style.marginBottom = '40px'; 
-        }
-        
-        
-        if (searchResults) {
-            searchResults.style.position = 'absolute';
-            searchResults.style.zIndex = '10000';
-            searchResults.style.width = '100%';
-            searchResults.style.left = '0';
-            searchResults.style.marginTop = '4px';
-            searchResults.style.maxHeight = '300px'; 
-            searchResults.style.overflowY = 'auto';
-            searchResults.style.backgroundColor = '#36393f';
-            searchResults.style.borderRadius = '4px';
-            searchResults.style.border = '1px solid #202225';
-            searchResults.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.24)';
-        }
-
-        
-        const inviteLinkInput = document.getElementById('invite-link');
-        if (inviteLinkInput) {
-            inviteLinkInput.style.backgroundColor = '#36393f';
-            inviteLinkInput.style.color = 'white';
-            inviteLinkInput.style.border = '1px solid #202225';
-            inviteLinkInput.style.borderRadius = '4px';
-            inviteLinkInput.style.padding = '8px 10px';
-            inviteLinkInput.style.width = '100%';
-            inviteLinkInput.style.marginBottom = '8px';
-        }
-        
-        if (expirationSelect) {
-            expirationSelect.style.backgroundColor = '#36393f';
-            expirationSelect.style.color = 'white';
-            expirationSelect.style.border = '1px solid #202225';
-            expirationSelect.style.borderRadius = '4px';
-            expirationSelect.style.padding = '8px 10px';
-            expirationSelect.style.width = '100%';
-            expirationSelect.style.marginBottom = '12px';
-            expirationSelect.style.cursor = 'pointer';
-        }
-        
-        if (generateBtn) {
-            generateBtn.style.backgroundColor = '#3ba55c';
-            generateBtn.style.color = 'white';
-            generateBtn.style.border = 'none';
-            generateBtn.style.borderRadius = '4px';
-            generateBtn.style.padding = '8px 16px';
-            generateBtn.style.cursor = 'pointer';
-            generateBtn.style.fontWeight = 'bold';
-            generateBtn.style.transition = 'background-color 0.2s';
-            generateBtn.style.display = 'block';
-            generateBtn.style.margin = '0 auto';
-            generateBtn.style.width = 'auto';
-            
-            generateBtn.addEventListener('mouseover', () => {
-                generateBtn.style.backgroundColor = '#2d7d46';
-            });
-            
-            generateBtn.addEventListener('mouseout', () => {
-                generateBtn.style.backgroundColor = '#3ba55c';
-            });
-            
-            if (!generateBtn.hasAttribute('data-listener')) {
+        if (generateBtn && !generateBtn.hasAttribute('data-listener')) {
+            generateBtn.className = 'btn btn-primary';
             generateBtn.addEventListener('click', () => {
                 const expirationValue = expirationSelect ? expirationSelect.value : null;
                 generateNewInvite(serverId, expirationValue);
             });
             generateBtn.setAttribute('data-listener', 'true');
-            }
-        }
-        
-        if (copyBtn && !copyBtn.hasAttribute('data-listener')) {
-            copyBtn.style.backgroundColor = '#5865f2';
-            copyBtn.style.color = 'white';
-            copyBtn.style.border = 'none';
-            copyBtn.style.borderRadius = '4px';
-            copyBtn.style.padding = '8px 16px';
-            copyBtn.style.cursor = 'pointer';
-            copyBtn.style.transition = 'background-color 0.2s';
-            
-            copyBtn.addEventListener('mouseover', () => {
-                copyBtn.style.backgroundColor = '#4752c4';
-            });
-            
-            copyBtn.addEventListener('mouseout', () => {
-                copyBtn.style.backgroundColor = '#5865f2';
-            });
-            
-            copyBtn.addEventListener('click', copyInviteLink);
-            copyBtn.setAttribute('data-listener', 'true');
-        }
-
-        if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
-            closeBtn.style.position = 'absolute';
-            closeBtn.style.top = '16px';
-            closeBtn.style.right = '16px';
-            closeBtn.style.backgroundColor = 'transparent';
-            closeBtn.style.border = 'none';
-            closeBtn.style.color = '#b9bbbe';
-            closeBtn.style.fontSize = '24px';
-            closeBtn.style.cursor = 'pointer';
-            closeBtn.style.transition = 'color 0.2s';
-            
-            closeBtn.addEventListener('mouseover', () => {
-                closeBtn.style.color = 'white';
-            });
-            
-            closeBtn.addEventListener('mouseout', () => {
-                closeBtn.style.color = '#b9bbbe';
-            });
-            
-            closeBtn.addEventListener('click', () => closeModal('invite-people-modal'));
-            closeBtn.setAttribute('data-listener', 'true');
         }
         
         if (friendSearchInput && !friendSearchInput.hasAttribute('data-listener')) {
-            friendSearchInput.style.backgroundColor = '#36393f';
-            friendSearchInput.style.color = 'white';
-            friendSearchInput.style.border = '1px solid #202225';
-            friendSearchInput.style.borderRadius = '4px';
-            friendSearchInput.style.padding = '8px 10px';
-            friendSearchInput.style.width = '100%';
-            friendSearchInput.style.marginBottom = '8px';
-            
+            friendSearchInput.className = 'form-input';
             initFriendSearch(friendSearchInput);
             friendSearchInput.setAttribute('data-listener', 'true');
         }
         
+        if (expirationSelect) {
+            expirationSelect.className = 'form-select';
+        }
+        
         if (sendInvitesBtn && !sendInvitesBtn.hasAttribute('data-listener')) {
-            sendInvitesBtn.style.backgroundColor = '#5865f2';
-            sendInvitesBtn.style.color = 'white';
-            sendInvitesBtn.style.border = 'none';
-            sendInvitesBtn.style.borderRadius = '4px';
-            sendInvitesBtn.style.padding = '8px 16px';
-            sendInvitesBtn.style.cursor = 'pointer';
-            sendInvitesBtn.style.marginTop = '12px';
-            sendInvitesBtn.style.fontWeight = 'bold';
-            sendInvitesBtn.style.transition = 'background-color 0.2s';
-            
-            sendInvitesBtn.addEventListener('mouseover', () => {
-                sendInvitesBtn.style.backgroundColor = '#4752c4';
-            });
-            
-            sendInvitesBtn.addEventListener('mouseout', () => {
-                sendInvitesBtn.style.backgroundColor = '#5865f2';
-            });
-            
+            sendInvitesBtn.className = 'btn btn-primary';
             sendInvitesBtn.addEventListener('click', () => sendServerInvitesToFriends(serverId));
             sendInvitesBtn.setAttribute('data-listener', 'true');
         }
-        
-        
-        const selectedFriendsContainer = document.getElementById('selected-friends');
-        if (selectedFriendsContainer) {
-            selectedFriendsContainer.style.display = 'flex';
-            selectedFriendsContainer.style.flexWrap = 'wrap';
-            selectedFriendsContainer.style.gap = '8px';
-            selectedFriendsContainer.style.marginTop = '12px';
-            selectedFriendsContainer.style.marginBottom = '12px';
-            selectedFriendsContainer.innerHTML = '';
-        }
-        
-        const friendsActionsContainer = document.getElementById('invite-friends-actions');
-        if (friendsActionsContainer) {
-            friendsActionsContainer.classList.add('hidden');
-}
 
-        
-        const modalHeading = modal.querySelector('h2, h3');
-        if (modalHeading) {
-            modalHeading.style.fontSize = '24px';
-            modalHeading.style.fontWeight = 'bold';
-            modalHeading.style.marginBottom = '12px';
-            modalHeading.style.color = 'white';
+        const inviteLinkInput = document.getElementById('invite-link');
+        if (inviteLinkInput) {
+            inviteLinkInput.className = 'form-input';
         }
-        
-        const modalSubHeading = modal.querySelector('p:not(.selected-friend)');
-        if (modalSubHeading) {
-            modalSubHeading.style.fontSize = '14px';
-            modalSubHeading.style.color = '#b9bbbe';
-            modalSubHeading.style.marginBottom = '16px';
-        }
-        
-        
-        const sectionHeadings = modal.querySelectorAll('h4');
-        sectionHeadings.forEach(heading => {
-            heading.style.fontSize = '16px';
-            heading.style.fontWeight = 'bold';
-            heading.style.marginBottom = '8px';
-            heading.style.color = 'white';
-        });
     }
 }
 
@@ -777,15 +594,15 @@ function showCreateChannelModal() {
             window.openCreateChannelModal();
         } else {
             modal.classList.remove('hidden');
-            modal.className = 'modal-overlay';
+            modal.className = 'modal-overlay animate-fade-in';
             
             const modalContent = modal.querySelector('.modal-content');
             if (modalContent) {
-                modalContent.className = 'modal-container';
+                modalContent.className = 'modal-container animate-scale-in';
                 
                 modalContent.innerHTML = `
                     <h2 class="modal-header">Create Channel</h2>
-                    <button id="close-create-channel-modal" class="close-modal-btn">×</button>
+                    <button id="close-create-channel-modal" class="close-modal-btn">&times;</button>
                     
                     <form id="create-channel-form" class="channel-form">
                         <div class="form-group">
@@ -802,7 +619,7 @@ function showCreateChannelModal() {
                             <label class="form-label">Channel Name</label>
                             <div class="channel-input-prefix">
                                 <span>#</span>
-                                <input type="text" id="channel-name" class="form-input" placeholder="new-channel">
+                                <input type="text" id="channel-name" placeholder="new-channel">
                             </div>
                             <div class="form-help-text">Use lowercase letters, numbers, hyphens, and underscores</div>
                         </div>
@@ -872,19 +689,19 @@ function showCreateCategoryModal() {
             window.openCreateCategoryModal();
         } else {
             modal.classList.remove('hidden');
-            modal.className = 'modal-overlay';
+            modal.className = 'modal-overlay animate-fade-in';
             
             const modalContent = modal.querySelector('.modal-content');
             if (modalContent) {
-                modalContent.className = 'modal-container';
+                modalContent.className = 'modal-container animate-scale-in';
                 
                 modalContent.innerHTML = `
                     <h2 class="modal-header">Create Category</h2>
-                    <button id="close-create-category-modal" class="close-modal-btn">×</button>
+                    <button id="close-create-category-modal" class="close-modal-btn">&times;</button>
                     
                     <form id="create-category-form">
                         <div class="form-group">
-                            <label class="form-label">Category Name</label>
+                            <label for="category-name" class="form-label">Category Name</label>
                             <input type="text" id="category-name" class="form-input" placeholder="NEW CATEGORY">
                             <div class="form-help-text">Category names are typically displayed in uppercase</div>
                         </div>
@@ -1336,12 +1153,52 @@ function getCurrentServerName() {
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-        modal.classList.add('hidden');
+        modal.classList.add('animate-fade-out');
+        modal.classList.remove('animate-fade-in');
         
-        const searchResults = document.getElementById('friend-search-results');
-        if (searchResults) {
-            searchResults.classList.add('hidden');
+        const modalContent = modal.querySelector('.modal-container');
+        if (modalContent) {
+            modalContent.classList.add('animate-scale-out');
+            modalContent.classList.remove('animate-scale-in');
         }
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+            
+            if (modalContent) {
+                modalContent.classList.remove('animate-scale-out');
+            }
+            
+            const form = modal.querySelector('form');
+            if (form) {
+                form.reset();
+            }
+            
+            const searchResults = document.getElementById('friend-search-results');
+            if (searchResults) {
+                searchResults.classList.add('hidden');
+            }
+        }, 300);
+    }
+}
+
+function showToastMessage(message, type = 'success') {
+    if (typeof window.showToast === 'function') {
+        window.showToast(message, type);
+    } else {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-500' :
+            type === 'error' ? 'bg-red-500' :
+            type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+        } text-white`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
     }
 }
 

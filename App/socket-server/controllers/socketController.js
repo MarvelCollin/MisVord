@@ -12,168 +12,320 @@ const voiceMeetings = new Map();
 
 function setup(io) {
     io.on('connection', (client) => {
-        console.log(`Client connected: ${client.id}`);
+        console.log(`🔌 [CONNECTION] Client connected: ${client.id}`);
         
-        client.on('authenticate', (data) => AuthHandler.handle(io, client, data));
+        client.on('authenticate', (data) => {
+            console.log(`🔐 [AUTH] Authentication request from ${client.id}:`, data);
+            AuthHandler.handle(io, client, data);
+        });
         
-        client.on('join-channel', (data) => RoomHandler.joinChannel(io, client, data));
-        client.on('leave-channel', (data) => RoomHandler.leaveChannel(io, client, data));
-        client.on('join-dm-room', (data) => RoomHandler.joinDMRoom(io, client, data));
+        client.on('join-room', (data) => {
+            console.log(`🚪 [ROOM] Client ${client.id} joining room:`, data);
+            if (data.room_type === 'channel' && data.room_id) {
+                const roomName = data.room_id.startsWith('channel_') ? data.room_id.replace('channel_', 'channel-') : `channel-${data.room_id}`;
+                roomManager.joinRoom(client, roomName);
+                client.emit('room-joined', { room_id: roomName, room_type: 'channel' });
+                console.log(`✅ [ROOM] Client ${client.id} joined channel room: ${roomName}`);
+            } else if (data.room_type === 'dm' && data.room_id) {
+                const roomName = data.room_id.startsWith('dm-room-') ? data.room_id : `dm-room-${data.room_id}`;
+                roomManager.joinRoom(client, roomName);
+                client.emit('room-joined', { room_id: roomName, room_type: 'dm' });
+                console.log(`✅ [ROOM] Client ${client.id} joined DM room: ${roomName}`);
+            } else {
+                console.warn('⚠️ [ROOM] Invalid room join request:', data);
+            }
+        });
+        
+        client.on('join-channel', (data) => {
+            console.log(`📺 [CHANNEL] Join channel request from ${client.id}:`, data);
+            RoomHandler.joinChannel(io, client, data);
+        });
+        
+        client.on('leave-channel', (data) => {
+            console.log(`🚪 [CHANNEL] Leave channel request from ${client.id}:`, data);
+            RoomHandler.leaveChannel(io, client, data);
+        });
+        
+        client.on('join-dm-room', (data) => {
+            console.log(`💬 [DM] Join DM room request from ${client.id}:`, data);
+            RoomHandler.joinDMRoom(io, client, data);
+        });
         
         client.on('new-channel-message', (data) => {
-            
-            if (data.source !== 'server-originated') {
-                console.warn('Rejecting client-originated message, should come from server:', data);
-                return;
-            }
+            console.log(`📨 [MESSAGE-CHANNEL] New channel message from ${client.id}:`, {
+                messageId: data.id,
+                channelId: data.channel_id,
+                userId: data.user_id,
+                username: data.username,
+                content: data.content?.substring(0, 50) + (data.content?.length > 50 ? '...' : ''),
+                messageType: data.message_type,
+                source: data.source
+            });
             
             const signature = messageService.generateSignature('new-channel-message', client.data?.user_id, data.id, data.content, data.timestamp);
             if (!messageService.isDuplicate(signature)) {
                 messageService.markAsProcessed(signature);
                 const channel_id = data.channel_id;
                 if (!channel_id) {
-                    console.warn('Channel message missing channel_id:', data);
+                    console.warn('⚠️ [MESSAGE-CHANNEL] Channel message missing channel_id:', data);
                     return;
                 }
                 data.channel_id = channel_id;
                 data.user_id = data.user_id || client.data.user_id;
                 data.username = data.username || client.data.username;
+                console.log(`✅ [MESSAGE-CHANNEL] Processing new channel message for channel ${channel_id}`);
                 MessageHandler.forwardMessage(io, client, 'new-channel-message', data);
+            } else {
+                console.log(`🔄 [MESSAGE-CHANNEL] Duplicate message detected, skipping: ${data.id}`);
             }
         });
         
         client.on('user-message-dm', (data) => {
-            
-            if (data.source !== 'server-originated') {
-                console.warn('Rejecting client-originated DM message, should come from server:', data);
-                return;
-            }
+            console.log(`📨 [MESSAGE-DM] New DM message from ${client.id}:`, {
+                messageId: data.id,
+                roomId: data.room_id,
+                userId: data.user_id,
+                username: data.username,
+                content: data.content?.substring(0, 50) + (data.content?.length > 50 ? '...' : ''),
+                messageType: data.message_type,
+                source: data.source
+            });
             
             const signature = messageService.generateSignature('user-message-dm', client.data?.user_id, data.id, data.content, data.timestamp);
             if (!messageService.isDuplicate(signature)) {
                 messageService.markAsProcessed(signature);
                 const room_id = data.room_id;
                 if (!room_id) {
-                    console.warn('DM message missing room_id:', data);
+                    console.warn('⚠️ [MESSAGE-DM] DM message missing room_id:', data);
                     return;
                 }
                 data.room_id = room_id;
                 data.user_id = data.user_id || client.data.user_id;
                 data.username = data.username || client.data.username;
+                console.log(`✅ [MESSAGE-DM] Processing new DM message for room ${room_id}`);
                 MessageHandler.forwardMessage(io, client, 'user-message-dm', data);
+            } else {
+                console.log(`🔄 [MESSAGE-DM] Duplicate message detected, skipping: ${data.id}`);
             }
         });
         
         client.on('message-updated', (data) => {
-            
-            if (data.source !== 'server-originated') {
-                console.warn('Rejecting client-originated message update, should come from server:', data);
-                return;
-            }
+            console.log(`✏️ [MESSAGE-EDIT] Message update from ${client.id}:`, {
+                messageId: data.message_id,
+                userId: data.user_id,
+                username: data.username,
+                newContent: data.message?.content?.substring(0, 50) + (data.message?.content?.length > 50 ? '...' : ''),
+                targetType: data.target_type,
+                targetId: data.target_id
+            });
             
             if (!data.message_id) {
-                console.warn('Message update missing message_id:', data);
+                console.warn('⚠️ [MESSAGE-EDIT] Message update missing message_id:', data);
                 return;
             }
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
+            console.log(`✅ [MESSAGE-EDIT] Processing message update for message ${data.message_id}`);
             MessageHandler.forwardMessage(io, client, 'message-updated', data);
         });
         
         client.on('message-deleted', (data) => {
-            
-            if (data.source !== 'server-originated') {
-                console.warn('Rejecting client-originated message deletion, should come from server:', data);
-                return;
-            }
+            console.log(`🗑️ [MESSAGE-DELETE] Message deletion from ${client.id}:`, {
+                messageId: data.message_id,
+                userId: data.user_id,
+                username: data.username,
+                targetType: data.target_type,
+                targetId: data.target_id
+            });
             
             if (!data.message_id) {
-                console.warn('Message deletion missing message_id:', data);
+                console.warn('⚠️ [MESSAGE-DELETE] Message deletion missing message_id:', data);
                 return;
             }
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
+            console.log(`✅ [MESSAGE-DELETE] Processing message deletion for message ${data.message_id}`);
             MessageHandler.forwardMessage(io, client, 'message-deleted', data);
         });
         
         client.on('reaction-added', (data) => {
-            
-            if (data.source !== 'server-originated') {
-                console.warn('Rejecting client-originated reaction, should come from server:', data);
-                return;
-            }
+            console.log(`😊 [REACTION-ADD] Reaction added from ${client.id}:`, {
+                messageId: data.message_id,
+                emoji: data.emoji,
+                userId: data.user_id,
+                username: data.username,
+                targetType: data.target_type,
+                targetId: data.target_id
+            });
             
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
+            console.log(`✅ [REACTION-ADD] Processing reaction add: ${data.emoji} on message ${data.message_id}`);
             MessageHandler.handleReaction(io, client, 'reaction-added', data);
         });
         
         client.on('reaction-removed', (data) => {
-            
-            if (data.source !== 'server-originated') {
-                console.warn('Rejecting client-originated reaction, should come from server:', data);
-                return;
-            }
+            console.log(`😐 [REACTION-REMOVE] Reaction removed from ${client.id}:`, {
+                messageId: data.message_id,
+                emoji: data.emoji,
+                userId: data.user_id,
+                username: data.username,
+                targetType: data.target_type,
+                targetId: data.target_id
+            });
             
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
+            console.log(`✅ [REACTION-REMOVE] Processing reaction removal: ${data.emoji} from message ${data.message_id}`);
             MessageHandler.handleReaction(io, client, 'reaction-removed', data);
         });
         
         client.on('message-pinned', (data) => {
-            
-            if (data.source !== 'server-originated') {
-                console.warn('Rejecting client-originated pin event, should come from server:', data);
-                return;
-            }
+            console.log(`📌 [MESSAGE-PIN] Message pinned from ${client.id}:`, {
+                messageId: data.message_id,
+                userId: data.user_id,
+                username: data.username,
+                targetType: data.target_type,
+                targetId: data.target_id
+            });
             
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
+            console.log(`✅ [MESSAGE-PIN] Processing message pin for message ${data.message_id}`);
             MessageHandler.handlePin(io, client, 'message-pinned', data);
         });
         
         client.on('message-unpinned', (data) => {
-            
-            if (data.source !== 'server-originated') {
-                console.warn('Rejecting client-originated pin event, should come from server:', data);
-                return;
-            }
+            console.log(`📌 [MESSAGE-UNPIN] Message unpinned from ${client.id}:`, {
+                messageId: data.message_id,
+                userId: data.user_id,
+                username: data.username,
+                targetType: data.target_type,
+                targetId: data.target_id
+            });
             
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
+            console.log(`✅ [MESSAGE-UNPIN] Processing message unpin for message ${data.message_id}`);
             MessageHandler.handlePin(io, client, 'message-unpinned', data);
         });
         
-        client.on('typing', (data) => MessageHandler.handleTyping(io, client, data, true));
-        client.on('stop-typing', (data) => MessageHandler.handleTyping(io, client, data, false));
+        client.on('typing', (data) => {
+            console.log(`⌨️ [TYPING-START] User started typing from ${client.id}:`, {
+                userId: client.data?.user_id,
+                username: client.data?.username,
+                channelId: data.channel_id,
+                roomId: data.room_id
+            });
+            MessageHandler.handleTyping(io, client, data, true);
+        });
         
-        client.on('update-presence', (data) => handlePresence(io, client, data));
+        client.on('stop-typing', (data) => {
+            console.log(`⌨️ [TYPING-STOP] User stopped typing from ${client.id}:`, {
+                userId: client.data?.user_id,
+                username: client.data?.username,
+                channelId: data.channel_id,
+                roomId: data.room_id
+            });
+            MessageHandler.handleTyping(io, client, data, false);
+        });
         
-        client.on('check-voice-meeting', (data) => handleCheckVoiceMeeting(io, client, data));
+        client.on('update-presence', (data) => {
+            console.log(`👤 [PRESENCE] Presence update from ${client.id}:`, {
+                userId: client.data?.user_id,
+                username: client.data?.username,
+                status: data.status,
+                activityDetails: data.activity_details
+            });
+            handlePresence(io, client, data);
+        });
+        
+        client.on('check-voice-meeting', (data) => {
+            console.log(`🎤 [VOICE-CHECK] Voice meeting check from ${client.id}:`, {
+                channelId: data.channel_id,
+                userId: client.data?.user_id
+            });
+            handleCheckVoiceMeeting(io, client, data);
+        });
+        
         client.on('register-voice-meeting', (data) => {
+            console.log(`🎤 [VOICE-REGISTER] Voice meeting registration from ${client.id}:`, {
+                channelId: data.channel_id,
+                meetingId: data.meeting_id,
+                userId: client.data?.user_id,
+                username: client.data?.username
+            });
+            
             if (!client.data?.authenticated) {
-                console.warn('Rejecting voice meeting registration from unauthenticated client');
+                console.warn('⚠️ [VOICE-REGISTER] Rejecting voice meeting registration from unauthenticated client');
                 return;
             }
             handleRegisterVoiceMeeting(io, client, data);
         });
+        
         client.on('unregister-voice-meeting', (data) => {
+            console.log(`🎤 [VOICE-UNREGISTER] Voice meeting unregistration from ${client.id}:`, {
+                channelId: data.channel_id,
+                userId: client.data?.user_id,
+                username: client.data?.username
+            });
+            
             if (!client.data?.authenticated) {
-                console.warn('Rejecting voice meeting unregistration from unauthenticated client');
+                console.warn('⚠️ [VOICE-UNREGISTER] Rejecting voice meeting unregistration from unauthenticated client');
                 return;
             }
             handleUnregisterVoiceMeeting(io, client, data);
         });
         
-        client.on('get-online-users', () => handleGetOnlineUsers(io, client));
-        client.on('debug-rooms', () => handleDebugRooms(io, client));
-        client.on('heartbeat', () => client.emit('heartbeat-response', { time: Date.now() }));
+        client.on('get-online-users', () => {
+            console.log(`👥 [USERS] Online users request from ${client.id}`);
+            handleGetOnlineUsers(io, client);
+        });
         
-        client.on('disconnect', () => handleDisconnect(io, client));
+        client.on('debug-rooms', () => {
+            console.log(`🔍 [DEBUG] Debug rooms request from ${client.id}`);
+            handleDebugRooms(io, client);
+        });
+        
+        client.on('heartbeat', () => {
+            console.log(`💓 [HEARTBEAT] Heartbeat from ${client.id}`);
+            client.emit('heartbeat-response', { time: Date.now() });
+        });
+        
+        client.on('diagnostic-ping', (data) => {
+            console.log(`🏓 [DIAGNOSTIC] Diagnostic ping from ${client.id}:`, data);
+            client.emit('diagnostic-pong', { clientTime: data.startTime, serverTime: Date.now() });
+        });
+
+        client.on('debug-broadcast-test', (data) => {
+            console.log(`🧪 [DEBUG-BROADCAST] Broadcast test from ${client.id}:`, data);
+            const room = roomManager.getChannelRoom(data.room);
+            if (room) {
+                console.log(`📡 [DEBUG-BROADCAST] Broadcasting test message to room: ${room}`);
+                io.to(room).emit('debug-broadcast-received', { 
+                    message: 'This is a broadcast test message.',
+                    room: room,
+                    sourceSocket: client.id 
+                });
+            } else {
+                console.warn(`⚠️ [DEBUG-BROADCAST] Room not found: ${data.room}`);
+            }
+        });
+        
+        client.on('disconnect', () => {
+            console.log(`❌ [DISCONNECT] Client disconnected: ${client.id}`);
+            handleDisconnect(io, client);
+        });
     });
 }
 
 function handlePresence(io, client, data) {
+    console.log(`👤 [PRESENCE-HANDLER] Processing presence update:`, {
+        userId: client.data?.user_id,
+        username: client.data?.username,
+        status: data.status,
+        activityDetails: data.activity_details
+    });
     
     const { status, activity_details } = data;
     const user_id = client.data.user_id;
@@ -181,6 +333,7 @@ function handlePresence(io, client, data) {
     
     userService.updatePresence(user_id, status, activity_details);
     
+    console.log(`📡 [PRESENCE-HANDLER] Broadcasting presence update for user ${user_id}`);
     io.emit('user-presence-update', {
         user_id,
         username,
@@ -190,6 +343,7 @@ function handlePresence(io, client, data) {
 }
 
 function handleGetOnlineUsers(io, client) {
+    console.log(`👥 [USERS-HANDLER] Processing online users request from ${client.id}`);
     
     const onlineUsers = {};
     
@@ -207,121 +361,187 @@ function handleGetOnlineUsers(io, client) {
         }
     }
     
+    console.log(`✅ [USERS-HANDLER] Sending ${Object.keys(onlineUsers).length} online users to client ${client.id}`);
     client.emit('online-users-response', { users: onlineUsers });
-    console.log(`Sent ${Object.keys(onlineUsers).length} online users to client ${client.id}`);
 }
 
 function handleCheckVoiceMeeting(io, client, data) {
+    console.log(`🎤 [VOICE-CHECK-HANDLER] Processing voice meeting check:`, {
+        channelId: data.channel_id,
+        userId: client.data?.user_id
+    });
     
     const { channel_id } = data;
     if (!channel_id) {
+        console.warn(`⚠️ [VOICE-CHECK-HANDLER] Channel ID is required`);
         client.emit('error', { message: 'Channel ID is required' });
         return;
     }
-    
-    const meeting = roomManager.getVoiceMeeting(channel_id);
-    
-    client.emit('voice-meeting-info', {
-        channel_id,
-        meeting_id: meeting?.meeting_id || null,
-        participant_count: meeting?.participants.size || 0
-    });
+
+    const meeting = voiceMeetings.get(channel_id);
+    if (meeting) {
+        console.log(`✅ [VOICE-CHECK-HANDLER] Voice meeting found for channel ${channel_id}:`, {
+            meetingId: meeting.meeting_id,
+            participantCount: meeting.participants.size
+        });
+        client.emit('voice-meeting-status', {
+            channel_id,
+            has_meeting: true,
+            meeting_id: meeting.meeting_id,
+            participant_count: meeting.participants.size
+        });
+    } else {
+        console.log(`📭 [VOICE-CHECK-HANDLER] No voice meeting found for channel ${channel_id}`);
+        client.emit('voice-meeting-status', {
+            channel_id,
+            has_meeting: false,
+            participant_count: 0
+        });
+    }
 }
 
 function handleRegisterVoiceMeeting(io, client, data) {
+    console.log(`🎤 [VOICE-REGISTER-HANDLER] Processing voice meeting registration:`, {
+        channelId: data.channel_id,
+        meetingId: data.meeting_id,
+        userId: client.data?.user_id,
+        username: client.data?.username
+    });
     
-    const { channel_id, meeting_id, username } = data;
+    const { channel_id, meeting_id } = data;
+    
     if (!channel_id || !meeting_id) {
+        console.warn(`⚠️ [VOICE-REGISTER-HANDLER] Channel ID and Meeting ID are required`);
         client.emit('error', { message: 'Channel ID and Meeting ID are required' });
         return;
     }
+
+    if (!voiceMeetings.has(channel_id)) {
+        voiceMeetings.set(channel_id, {
+            meeting_id,
+            channel_id,
+            participants: new Set()
+        });
+        console.log(`✅ [VOICE-REGISTER-HANDLER] Created new voice meeting for channel ${channel_id}`);
+    }
+
+    voiceMeetings.get(channel_id).participants.add(client.id);
+    console.log(`👤 [VOICE-REGISTER-HANDLER] Added participant ${client.id} to voice meeting in channel ${channel_id}`);
     
-    roomManager.addVoiceMeeting(channel_id, meeting_id, client.id);
+    const participantCount = voiceMeetings.get(channel_id).participants.size;
+    console.log(`📡 [VOICE-REGISTER-HANDLER] Broadcasting voice meeting update for channel ${channel_id}, participants: ${participantCount}`);
     
-    const roomName = roomManager.getChannelRoom(channel_id);
-    roomManager.broadcastToRoom(io, roomName, 'voice-participant-joined', {
+    io.emit('voice-meeting-update', {
         channel_id,
         meeting_id,
-        username: username || client.data.username,
-        user_id: client.data.user_id,
-        participant_count: roomManager.getVoiceMeeting(channel_id).participants.size
+        participant_count: participantCount,
+        action: 'join'
     });
 }
 
 function handleUnregisterVoiceMeeting(io, client, data) {
+    console.log(`🎤 [VOICE-UNREGISTER-HANDLER] Processing voice meeting unregistration:`, {
+        channelId: data.channel_id,
+        userId: client.data?.user_id,
+        username: client.data?.username
+    });
     
-    const { channel_id, meeting_id, username } = data;
-    if (!channel_id || !meeting_id) {
-        client.emit('error', { message: 'Channel ID and Meeting ID are required' });
+    const { channel_id } = data;
+    
+    if (!channel_id) {
+        console.warn(`⚠️ [VOICE-UNREGISTER-HANDLER] Channel ID is required`);
+        client.emit('error', { message: 'Channel ID is required' });
         return;
     }
-    
-    const result = roomManager.removeVoiceMeeting(channel_id, client.id);
-    
-    const roomName = roomManager.getChannelRoom(channel_id);
-    roomManager.broadcastToRoom(io, roomName, 'voice-participant-left', {
-        channel_id,
-        meeting_id,
-        username: username || client.data.username,
-        user_id: client.data.user_id,
-        participant_count: result.participant_count
-    });
+
+    const meeting = voiceMeetings.get(channel_id);
+    if (meeting) {
+        meeting.participants.delete(client.id);
+        console.log(`👤 [VOICE-UNREGISTER-HANDLER] Removed participant ${client.id} from voice meeting in channel ${channel_id}`);
+        
+        if (meeting.participants.size === 0) {
+            voiceMeetings.delete(channel_id);
+            console.log(`🗑️ [VOICE-UNREGISTER-HANDLER] Removed empty voice meeting for channel ${channel_id}`);
+        }
+        
+        const participantCount = meeting.participants.size;
+        console.log(`📡 [VOICE-UNREGISTER-HANDLER] Broadcasting voice meeting update for channel ${channel_id}, participants: ${participantCount}`);
+        
+        io.emit('voice-meeting-update', {
+            channel_id,
+            meeting_id: meeting.meeting_id,
+            participant_count: participantCount,
+            action: 'leave'
+        });
+    } else {
+        console.warn(`⚠️ [VOICE-UNREGISTER-HANDLER] No voice meeting found for channel ${channel_id}`);
+    }
 }
 
 function handleDebugRooms(io, client) {
+    console.log(`🔍 [DEBUG-ROOMS-HANDLER] Processing debug rooms request from ${client.id}`);
     
-    const clientRooms = Array.from(client.rooms).filter(room => room !== client.id);
-    const roomData = {};
+    const roomInfo = {
+        clientId: client.id,
+        userId: client.data?.user_id,
+        username: client.data?.username,
+        authenticated: client.data?.authenticated,
+        rooms: Array.from(client.rooms),
+        totalSockets: io.sockets.sockets.size,
+        voiceMeetings: Array.from(voiceMeetings.keys())
+    };
     
-    if (io.sockets?.adapter?.rooms) {
-        for (const [roomId, room] of io.sockets.adapter.rooms.entries()) {
-            if (roomId.includes('channel-') || roomId.includes('dm-room-')) {
-                roomData[roomId] = {
-                    size: room.size,
-                    sockets: Array.from(room)
-                };
-            }
-        }
-    }
-    
-    client.emit('debug-rooms-info', {
-        your_socket_id: client.id,
-        your_user_id: client.data.user_id,
-        your_rooms: clientRooms,
-        all_rooms: roomData
-    });
+    console.log(`📊 [DEBUG-ROOMS-HANDLER] Room info for client ${client.id}:`, roomInfo);
+    client.emit('debug-rooms-info', roomInfo);
 }
 
 function handleDisconnect(io, client) {
-    const user_id = client.data?.user_id;
-    console.log(`Client disconnected: ${client.id}, User: ${user_id}`);
+    console.log(`❌ [DISCONNECT-HANDLER] Processing disconnect for client ${client.id}`);
     
-    if (user_id) {
-        const isOffline = roomManager.removeUserSocket(user_id, client.id);
+    if (client.data?.user_id) {
+        const user_id = client.data.user_id;
+        const username = client.data.username;
         
-        if (isOffline) {
-            userService.removePresence(user_id);
-            io.emit('user-offline', {
-                user_id,
-                username: client.data.username,
-                timestamp: Date.now()
-            });
-        }
+        console.log(`👤 [DISCONNECT-HANDLER] User disconnecting:`, {
+            userId: user_id,
+            username: username,
+            socketId: client.id
+        });
         
-        const allMeetings = roomManager.getAllVoiceMeetings();
-        for (const meeting of allMeetings) {
-            const result = roomManager.removeVoiceMeeting(meeting.channel_id, client.id);
-            if (result.removed || result.participant_count !== meeting.participant_count) {
-                const roomName = roomManager.getChannelRoom(meeting.channel_id);
-                roomManager.broadcastToRoom(io, roomName, 'voice-participant-left', {
-                    channel_id: meeting.channel_id,
+        userSockets.delete(client.id);
+        
+        // Clean up voice meetings
+        let voiceMeetingsUpdated = [];
+        for (const [channel_id, meeting] of voiceMeetings.entries()) {
+            if (meeting.participants.has(client.id)) {
+                meeting.participants.delete(client.id);
+                console.log(`🎤 [DISCONNECT-HANDLER] Removed ${client.id} from voice meeting in channel ${channel_id}`);
+                
+                if (meeting.participants.size === 0) {
+                    voiceMeetings.delete(channel_id);
+                    console.log(`🗑️ [DISCONNECT-HANDLER] Removed empty voice meeting for channel ${channel_id}`);
+                }
+                
+                voiceMeetingsUpdated.push({
+                    channel_id,
                     meeting_id: meeting.meeting_id,
-                    username: client.data?.username || 'Unknown',
-                    user_id: client.data?.user_id,
-                    participant_count: result.participant_count
+                    participant_count: meeting.participants.size
                 });
             }
         }
+        
+        // Broadcast voice meeting updates
+        voiceMeetingsUpdated.forEach(update => {
+            console.log(`📡 [DISCONNECT-HANDLER] Broadcasting voice meeting update for channel ${update.channel_id}`);
+            io.emit('voice-meeting-update', {
+                ...update,
+                action: 'leave'
+            });
+        });
+        
+        console.log(`✅ [DISCONNECT-HANDLER] Cleanup completed for user ${user_id}`);
+    } else {
+        console.log(`❓ [DISCONNECT-HANDLER] Unauthenticated client disconnected: ${client.id}`);
     }
 }
 

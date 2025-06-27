@@ -10,6 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $page_title = $page_title ?? $title ?? 'MisVord';
 $page_description = $page_description ?? 'A modern Discord-like communication platform';
 $cache_version = time();
+$include_socket_io = true;
 ?>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,11 +30,9 @@ $cache_version = time();
 <?php echo $extraHeadContent; ?>
 <?php endif; ?>
 
-<meta name="socket-host" content="<?php 
-    $socketHost = 'localhost'; 
-    echo htmlspecialchars($socketHost);
-?>">
-<meta name="socket-port" content="<?php echo htmlspecialchars($_ENV['SOCKET_PORT'] ?? '1002'); ?>">
+<meta name="socket-host" content="localhost">
+<meta name="socket-port" content="1002">
+<meta name="socket-secure" content="false">
 
 <title><?php echo htmlspecialchars($page_title); ?></title>
 
@@ -81,6 +80,7 @@ $cache_version = time();
 <link rel="stylesheet" href="<?= asset('/css/friends-mobile-menu.css') ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?= asset('/css/user-detail.css') ?>">
 <link rel="stylesheet" href="<?= asset('/css/voice-indicator.css') ?>">
+<link rel="stylesheet" href="<?= asset('/css/server-dropdown.css') ?>?v=<?php echo $cache_version; ?>">
 
 <?php if (isset($page_css)): ?>
     <?php if (is_array($page_css)): ?>
@@ -104,7 +104,94 @@ $cache_version = time();
 <?php endif; ?>
 
 <?php if (isset($include_socket_io) && $include_socket_io): ?>
-    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
+    
+    <!-- Socket Initialization Diagnostic -->
+    <script>
+    console.log('🔍 SOCKET DIAGNOSTIC: Starting early diagnostic checks...');
+    
+    // Early check for Socket.IO availability
+    window.addEventListener('DOMContentLoaded', function() {
+        console.log('🔍 DOM Loaded - Socket.IO available:', typeof io !== 'undefined');
+        
+        if (typeof io === 'undefined') {
+            console.error('❌ CRITICAL: Socket.IO library failed to load!');
+            return;
+        }
+        
+        // Check user authentication status
+        const isAuthenticated = document.querySelector('meta[name="user-authenticated"]')?.content === 'true';
+        const userId = document.querySelector('meta[name="user-id"]')?.content;
+        const username = document.querySelector('meta[name="username"]')?.content;
+        const socketHost = document.querySelector('meta[name="socket-host"]')?.content;
+        const socketPort = document.querySelector('meta[name="socket-port"]')?.content;
+        
+        console.log('🔍 Early User Check:', {
+            isAuthenticated,
+            userId,
+            username,
+            socketHost,
+            socketPort
+        });
+        
+        // Wait for global socket manager to load
+        let checkCount = 0;
+        const maxChecks = 20; // 10 seconds max
+        
+        const checkSocketManager = () => {
+            checkCount++;
+            
+            if (window.globalSocketManager) {
+                console.log('✅ GlobalSocketManager found after', checkCount * 500, 'ms');
+                
+                // Give it time to initialize
+                setTimeout(() => {
+                    const status = window.globalSocketManager.getStatus();
+                    console.log('🔍 Initial Socket Status:', status);
+                    
+                    if (!status.connected && !status.lastError) {
+                        console.log('🔧 Socket not connected, attempting manual initialization...');
+                        
+                        // Force initialization
+                        if (isAuthenticated && userId && username) {
+                            window.__SOCKET_INITIALISED__ = false;
+                            const initResult = window.globalSocketManager.init({ user_id: userId, username: username });
+                            console.log('🔧 Manual init result:', initResult);
+                        }
+                    }
+                }, 1000);
+                
+                return;
+            }
+            
+            if (checkCount >= maxChecks) {
+                console.error('❌ GlobalSocketManager not found after 10 seconds');
+                return;
+            }
+            
+            setTimeout(checkSocketManager, 500);
+        };
+        
+        // Start checking after a brief delay
+        setTimeout(checkSocketManager, 500);
+    });
+    
+    // Listen for socket events
+    window.addEventListener('globalSocketReady', function(event) {
+        console.log('🎉 SOCKET READY EVENT:', event.detail);
+    });
+    
+    window.addEventListener('socketAuthenticated', function(event) {
+        console.log('🔐 SOCKET AUTHENTICATED EVENT:', event.detail);
+    });
+    
+    // Global error handler for socket issues
+    window.addEventListener('error', function(event) {
+        if (event.message && (event.message.includes('socket') || event.message.includes('Socket') || event.message.includes('io'))) {
+            console.error('🚨 SOCKET-RELATED ERROR:', event.error);
+        }
+    });
+    </script>
 <?php endif; ?>
 
 <?php if (isset($include_channel_loader) && $include_channel_loader): ?>
@@ -513,7 +600,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return status;
     }
     
-    console.log('Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status), Ctrl+9 (auth reset)');
+    console.log('Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status), Ctrl+8 (socket debug panel), Ctrl+9 (auth reset)');
     
     if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
         console.log('MisVordMessaging exists but not initialized, attempting manual initialization...');

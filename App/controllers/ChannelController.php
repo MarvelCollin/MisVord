@@ -396,32 +396,12 @@ class ChannelController extends BaseController
 
                 $query->commit();
                 
-                $socketData = [
-                    'id' => $message->id,
-                    'channel_id' => $targetId,
-                    'content' => $content,
-                    'message_type' => $messageType,
-                    'timestamp' => time(),
-                    'message' => $formattedMessage,
-                    'user_id' => $userId,
-                    'username' => $_SESSION['username'] ?? 'Unknown',
-                    'target_type' => 'channel',
-                    'target_id' => $targetId,
-                    'source' => 'server-originated'
-                ];
-                
-                require_once __DIR__ . '/../utils/SocketBroadcaster.php';
-                SocketBroadcaster::broadcastToChannel($targetId, 'new-channel-message', $socketData);
-                
                 return $this->success([
                     'success' => true,
                     'data' => [
                         'message' => $formattedMessage,
                         'channel_id' => $targetId
-                    ],
-                    'socket_event' => 'new-channel-message',
-                    'socket_data' => $socketData,
-                    'client_should_emit_socket' => false
+                    ]
                 ], 'Message sent successfully');
             } else {
                 $query->rollback();
@@ -747,6 +727,19 @@ class ChannelController extends BaseController
                 return $this->forbidden('Access denied to server');
             }
             
+            require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+            require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
+            require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+            
+            $serverRepository = new ServerRepository();
+            $categoryRepository = new CategoryRepository();
+            $userServerMembershipRepository = new UserServerMembershipRepository();
+            
+            $server = $serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+            
             $channel = $this->channelRepository->find($channelId);
             if (!$channel) {
                 return $this->notFound('Channel not found');
@@ -756,7 +749,61 @@ class ChannelController extends BaseController
                 return $this->forbidden('Channel not in specified server');
             }
             
-            $responseData = [
+            $channels = $this->channelRepository->getByServerId($serverId);
+            $categories = $categoryRepository->getForServer($serverId);
+            $serverMembers = $userServerMembershipRepository->getServerMembers($serverId);
+            $channelMessages = [];
+            
+            if ($type === 'text') {
+                try {
+                    $channelMessages = $this->messageRepository->getForChannel($channelId, 50, 0);
+                } catch (Exception $e) {
+                    $channelMessages = [];
+                }
+            }
+            
+            $GLOBALS['server'] = $server;
+            $GLOBALS['currentServer'] = $server;
+            $GLOBALS['serverChannels'] = $channels;
+            $GLOBALS['serverCategories'] = $categories;
+            $GLOBALS['activeChannelId'] = $channelId;
+            $GLOBALS['activeChannel'] = $channel;
+            $GLOBALS['channelMessages'] = $channelMessages;
+            $GLOBALS['serverMembers'] = $serverMembers;
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                if (isset($_GET['render_html']) && $_GET['render_html'] === 'true') {
+                    ob_start();
+                    
+                    if ($type === 'voice') {
+                        require_once __DIR__ . '/../views/components/app-sections/voice-section.php';
+                    } else {
+                        require_once __DIR__ . '/../views/components/app-sections/chat-section.php';
+                    }
+                    
+                    $html = ob_get_clean();
+                    
+                    return $this->success([
+                        'html' => $html,
+                        'server' => [
+                            'id' => $server->id,
+                            'name' => $server->name
+                        ],
+                        'channel' => [
+                            'id' => $channel->id,
+                            'name' => $channel->name,
+                            'type' => $channel->type
+                        ],
+                        'channels' => $channels,
+                        'categories' => $categories,
+                        'messages' => $channelMessages,
+                        'members' => $serverMembers,
+                        'activeChannelId' => $channelId,
+                        'type' => $type
+                    ]);
+                }
+                
+                return $this->success([
                 'channel' => [
                     'id' => $channel->id,
                     'name' => $channel->name,
@@ -764,17 +811,20 @@ class ChannelController extends BaseController
                     'description' => $channel->description,
                     'server_id' => $channel->server_id
                 ],
+                    'server' => [
+                        'id' => $server->id,
+                        'name' => $server->name
+                    ],
+                    'channels' => $channels,
+                    'categories' => $categories,
+                    'messages' => $channelMessages,
+                    'members' => $serverMembers,
+                    'activeChannelId' => $channelId,
                 'server_id' => $serverId,
-                'channel_type' => $type
-            ];
-            
-            if ($type === 'voice') {
-                $responseData['meeting_id'] = 'voice_channel_' . $channelId;
-                $responseData['username'] = $_SESSION['username'] ?? 'Anonymous';
-                $responseData['participants'] = [];
-            } else {
-                $messages = $this->messageRepository->getForChannel($channelId, 50);
-                $responseData['messages'] = $messages;
+                    'channel_type' => $type,
+                    'meeting_id' => $type === 'voice' ? 'voice_channel_' . $channelId : null,
+                    'username' => $_SESSION['username'] ?? 'Anonymous'
+                ]);
             }
             
             $this->logActivity('channel_content_api_accessed', [
@@ -783,7 +833,11 @@ class ChannelController extends BaseController
                 'type' => $type
             ]);
             
-            return $this->success($responseData);
+            if ($type === 'voice') {
+                require_once __DIR__ . '/../views/components/app-sections/voice-section.php';
+            } else {
+                require_once __DIR__ . '/../views/components/app-sections/chat-section.php';
+            }
             
         } catch (Exception $e) {
             $this->logActivity('channel_content_api_error', [

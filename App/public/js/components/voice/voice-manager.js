@@ -17,10 +17,6 @@ class VoiceManager {
     attachEventListeners() {
         const joinBtn = document.getElementById('joinBtn');
         const leaveBtn = document.getElementById('leaveBtn');
-        const micBtn = document.getElementById('micBtn');
-        const deafenBtn = document.getElementById('deafenBtn');
-        const joinVideoBtn = document.getElementById('joinVideoBtn');
-        const screenBtn = document.getElementById('screenBtn');
         
         if (joinBtn) {
             joinBtn.addEventListener('click', () => this.joinVoice());
@@ -28,22 +24,6 @@ class VoiceManager {
         
         if (leaveBtn) {
             leaveBtn.addEventListener('click', () => this.leaveVoice());
-        }
-        
-        if (micBtn) {
-            micBtn.addEventListener('click', () => this.toggleMic());
-        }
-        
-        if (deafenBtn) {
-            deafenBtn.addEventListener('click', () => this.toggleDeafen());
-        }
-        
-        if (joinVideoBtn) {
-            joinVideoBtn.addEventListener('click', () => this.toggleVideo());
-        }
-        
-        if (screenBtn) {
-            screenBtn.addEventListener('click', () => this.toggleScreenShare());
         }
     }
     
@@ -80,87 +60,7 @@ class VoiceManager {
         this.showToast('Disconnected from voice', 'info');
     }
     
-    toggleMic() {
-        this.isMuted = !this.isMuted;
-        const micBtn = document.getElementById('micBtn');
-        
-        if (micBtn) {
-            if (this.isMuted) {
-                micBtn.innerHTML = '<i class="fas fa-microphone-slash text-sm"></i>';
-                micBtn.classList.add('bg-[#ED4245]', 'text-white');
-                micBtn.classList.remove('bg-[#2f3136]', 'text-gray-300');
-                micBtn.title = 'Unmute';
-            } else {
-                micBtn.innerHTML = '<i class="fas fa-microphone text-sm"></i>';
-                micBtn.classList.remove('bg-[#ED4245]', 'text-white');
-                micBtn.classList.add('bg-[#2f3136]', 'text-gray-300');
-                micBtn.title = 'Mute';
-            }
-        }
-        
-        this.showToast(this.isMuted ? 'Muted' : 'Unmuted', 'info');
-    }
-    
-    toggleDeafen() {
-        this.isDeafened = !this.isDeafened;
-        const deafenBtn = document.getElementById('deafenBtn');
-        
-        if (deafenBtn) {
-            if (this.isDeafened) {
-                deafenBtn.innerHTML = '<i class="fas fa-volume-xmark text-sm"></i>';
-                deafenBtn.classList.add('bg-[#ED4245]', 'text-white');
-                deafenBtn.classList.remove('bg-[#2f3136]', 'text-gray-300');
-                deafenBtn.title = 'Undeafen';
-            } else {
-                deafenBtn.innerHTML = '<i class="fas fa-headphones text-sm"></i>';
-                deafenBtn.classList.remove('bg-[#ED4245]', 'text-white');
-                deafenBtn.classList.add('bg-[#2f3136]', 'text-gray-300');
-                deafenBtn.title = 'Deafen';
-            }
-        }
-        
-        this.showToast(this.isDeafened ? 'Deafened' : 'Undeafened', 'info');
-    }
-    
-    toggleVideo() {
-        this.isVideoOn = !this.isVideoOn;
-        const joinVideoBtn = document.getElementById('joinVideoBtn');
-        
-        if (joinVideoBtn) {
-            if (this.isVideoOn) {
-                joinVideoBtn.innerHTML = '<i class="fas fa-video text-sm"></i>';
-                joinVideoBtn.classList.add('bg-[#3ba55c]', 'text-white');
-                joinVideoBtn.classList.remove('bg-[#2f3136]', 'text-gray-300');
-                joinVideoBtn.title = 'Turn Off Camera';
-            } else {
-                joinVideoBtn.innerHTML = '<i class="fas fa-video-slash text-sm"></i>';
-                joinVideoBtn.classList.remove('bg-[#3ba55c]', 'text-white');
-                joinVideoBtn.classList.add('bg-[#2f3136]', 'text-gray-300');
-                joinVideoBtn.title = 'Turn On Camera';
-            }
-        }
-        
-        this.showToast(this.isVideoOn ? 'Camera enabled' : 'Camera disabled', 'info');
-    }
-    
-    toggleScreenShare() {
-        this.isScreenSharing = !this.isScreenSharing;
-        const screenBtn = document.getElementById('screenBtn');
-        
-        if (screenBtn) {
-            if (this.isScreenSharing) {
-                screenBtn.classList.add('bg-[#5865F2]', 'text-white');
-                screenBtn.classList.remove('bg-[#2f3136]', 'text-gray-300');
-                screenBtn.title = 'Stop Sharing';
-            } else {
-                screenBtn.classList.remove('bg-[#5865F2]', 'text-white');
-                screenBtn.classList.add('bg-[#2f3136]', 'text-gray-300');
-                screenBtn.title = 'Share Your Screen';
-            }
-        }
-        
-        this.showToast(this.isScreenSharing ? 'Screen sharing started' : 'Screen sharing stopped', 'info');
-    }
+
     
     addParticipant(participant) {
         this.participants.set(participant.id, participant);

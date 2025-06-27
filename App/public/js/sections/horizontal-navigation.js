@@ -242,8 +242,6 @@ class SimpleBookHandler {
         this.bookContent = document.getElementById('bookContent');
         this.bookNav = document.getElementById('bookNav');
         this.pages = document.querySelectorAll('.page');
-        this.prevBtn = document.getElementById('prevPage');
-        this.nextBtn = document.getElementById('nextPage');
         this.pageIndicator = document.getElementById('pageIndicator');
         
         console.log('Book elements found:', {
@@ -251,16 +249,26 @@ class SimpleBookHandler {
             content: !!this.bookContent,
             nav: !!this.bookNav,
             pages: this.pages.length,
-            prevBtn: !!this.prevBtn,
-            nextBtn: !!this.nextBtn,
             indicator: !!this.pageIndicator
         });
         
         if (!this.bookCover) return;
         
+        // Apply hardware acceleration to all elements
+        const applyHardwareAcceleration = (element) => {
+            element.style.willChange = 'transform';
+            element.style.transform = 'translateZ(0)';
+        };
+        
         // Ensure cover has highest z-index initially
         if (this.bookCover) {
             this.bookCover.style.zIndex = '100';
+            this.bookCover.style.transform = 'rotateY(0deg) translateZ(0)';
+            this.bookCover.style.transformOrigin = 'left center';
+            this.bookCover.style.backfaceVisibility = 'visible';
+            this.bookCover.style.cursor = 'pointer';
+            this.bookCover.style.transition = 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s ease';
+            applyHardwareAcceleration(this.bookCover);
         }
         
         // Make book content visible immediately but behind cover
@@ -268,6 +276,7 @@ class SimpleBookHandler {
             this.bookContent.style.opacity = '1';
             this.bookContent.style.visibility = 'visible';
             this.bookContent.style.zIndex = '10';
+            applyHardwareAcceleration(this.bookContent);
         }
         
         // Initialize all pages immediately
@@ -276,16 +285,18 @@ class SimpleBookHandler {
             page.style.visibility = 'visible';
             page.style.top = '0';
             page.style.left = '0';
-            page.style.transition = 'transform 0.8s ease, box-shadow 0.3s ease';
+            page.style.transition = 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s ease';
             page.style.transformOrigin = 'left center';
             page.style.backfaceVisibility = 'visible';
+            page.style.cursor = 'pointer';
+            applyHardwareAcceleration(page);
             
             if (index === 0) {
-                page.style.transform = 'rotateY(0deg)';
+                page.style.transform = 'rotateY(0deg) translateZ(0)';
                 page.style.zIndex = '20';
-                page.style.boxShadow = '0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+                page.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 30px rgba(102, 126, 234, 0.3)';
             } else {
-                page.style.transform = 'rotateY(0deg)';
+                page.style.transform = 'rotateY(0deg) translateZ(0)';
                 page.style.zIndex = this.totalPages - index + 3;
             }
         });
@@ -295,19 +306,52 @@ class SimpleBookHandler {
     }
     
     setupEventListeners() {
-        this.bookCover?.addEventListener('click', () => this.openBook());
+        this.bookCover?.addEventListener('click', () => {
+            if (!this.isBookOpen) {
+                this.openBook();
+            } else {
+                this.closeBook();
+            }
+        });
         
-        this.prevBtn?.addEventListener('click', () => this.prevPage());
-        this.nextBtn?.addEventListener('click', () => this.nextPage());
+        // Add click events to pages
+        this.pages.forEach((page, index) => {
+            // Left side click - go to previous page
+            page.addEventListener('click', (e) => {
+                const pageRect = page.getBoundingClientRect();
+                const clickX = e.clientX - pageRect.left;
+                
+                if (this.isBookOpen) {
+                    if (clickX < pageRect.width / 2) {
+                        // Left side click
+                        this.prevPage();
+                    } else {
+                        // Right side click
+                        this.nextPage();
+                    }
+                }
+            });
+        });
         
         document.addEventListener('keydown', (e) => {
-            if (this.isBookOpen && this.isCarouselSectionActive()) {
+            if (this.isCarouselSectionActive()) {
                 if (e.key === 'ArrowLeft') {
                     e.preventDefault();
-                    this.prevPage();
+                    if (this.isBookOpen) {
+                        this.prevPage();
+                    }
                 } else if (e.key === 'ArrowRight') {
                     e.preventDefault();
-                    this.nextPage();
+                    if (this.isBookOpen) {
+                        this.nextPage();
+                    } else {
+                        this.openBook();
+                    }
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    if (this.isBookOpen) {
+                        this.closeBook();
+                    }
                 }
             }
         });
@@ -322,13 +366,20 @@ class SimpleBookHandler {
         if (!this.isBookOpen) {
             this.isBookOpen = true;
             
-            this.bookCover.style.transition = 'transform 0.8s ease, box-shadow 0.3s ease';
+            this.bookCover.style.zIndex = '80';
+            this.bookCover.style.transition = 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s ease';
             this.bookCover.style.transformOrigin = 'left center';
             this.bookCover.style.backfaceVisibility = 'visible';
-            this.bookCover.classList.add('opened');
+            this.bookCover.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 30px rgba(102, 126, 234, 0.3)';
+            
+            // Use requestAnimationFrame for smoother animation
+            requestAnimationFrame(() => {
+                this.bookCover.style.transform = 'rotateY(-180deg) translateZ(0)';
+            });
             
             setTimeout(() => {
-                this.bookCover.style.zIndex = '1';
+                this.bookCover.style.zIndex = '5';
+                this.bookCover.style.pointerEvents = 'auto';
                 
                 if (this.bookContent) {
                     this.bookContent.style.opacity = '1';
@@ -341,21 +392,23 @@ class SimpleBookHandler {
                     this.bookNav.style.visibility = 'visible';
                 }
                 
+                // Batch DOM operations
+                const pageUpdates = document.createDocumentFragment();
                 this.pages.forEach((page, index) => {
                     page.style.top = '0';
                     page.style.left = '0';
-                    page.style.transition = 'transform 0.8s ease, box-shadow 0.3s ease';
+                    page.style.transition = 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s ease';
                     page.style.transformOrigin = 'left center';
                     page.style.backfaceVisibility = 'visible';
                     page.style.opacity = '1';
                     page.style.visibility = 'visible';
                     
                     if (index === 0) {
-                        page.style.transform = 'rotateY(0deg)';
+                        page.style.transform = 'rotateY(0deg) translateZ(0)';
                         page.style.zIndex = '60';
-                        page.style.boxShadow = '0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+                        page.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 30px rgba(102, 126, 234, 0.3)';
                     } else {
-                        page.style.transform = 'rotateY(0deg)';
+                        page.style.transform = 'rotateY(0deg) translateZ(0)';
                         page.style.zIndex = 59 - index;
                     }
                 });
@@ -365,15 +418,71 @@ class SimpleBookHandler {
         }
     }
     
+    closeBook() {
+        if (this.isBookOpen) {
+            // Reset all pages without hiding them
+            this.pages.forEach((page, index) => {
+                page.style.transition = 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s ease';
+                page.style.transform = 'rotateY(0deg) translateZ(0)';
+                page.style.zIndex = this.totalPages - index + 3;
+                page.style.opacity = '1';
+                page.style.visibility = 'visible';
+            });
+            
+            // Reset current page
+            this.currentPage = 0;
+            
+            // Animate the cover back to closed position
+            this.bookCover.style.zIndex = '80';
+            this.bookCover.style.transition = 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s ease';
+            this.bookCover.style.transformOrigin = 'left center';
+            this.bookCover.style.backfaceVisibility = 'visible';
+            this.bookCover.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 30px rgba(102, 126, 234, 0.3)';
+            this.bookCover.style.pointerEvents = 'auto';
+            
+            // Use requestAnimationFrame for smoother animation
+            requestAnimationFrame(() => {
+                this.bookCover.style.transform = 'rotateY(0deg) translateZ(0)';
+            });
+            
+            // Keep book content visible
+            if (this.bookContent) {
+                this.bookContent.style.opacity = '1';
+                this.bookContent.style.visibility = 'visible';
+            }
+            
+            // Keep navigation visible
+            if (this.bookNav) {
+                this.bookNav.style.opacity = '1';
+                this.bookNav.style.visibility = 'visible';
+            }
+            
+            setTimeout(() => {
+                this.bookCover.style.zIndex = '100';
+                this.isBookOpen = false;
+                
+                if (this.pageIndicator) {
+                    this.pageIndicator.textContent = `${this.currentPage + 1} / ${this.totalPages}`;
+                }
+            }, 800);
+        }
+    }
+    
     prevPage() {
         if (this.currentPage > 0 && !this.isFlipping) {
             this.flipPageBackward();
+        } else if (this.currentPage === 0 && !this.isFlipping) {
+            // If we're on the first page, close the book
+            this.closeBook();
         }
     }
     
     nextPage() {
         if (this.currentPage < this.totalPages - 1 && !this.isFlipping) {
             this.flipPageForward();
+        } else if (this.currentPage === this.totalPages - 1 && !this.isFlipping) {
+            // If we're on the last page, close the book
+            this.closeBook();
         }
     }
     
@@ -385,14 +494,14 @@ class SimpleBookHandler {
         
         // Set high z-index during animation
         currentPageEl.style.zIndex = '80';
-        currentPageEl.style.boxShadow = '0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
-        currentPageEl.style.transition = 'transform 0.8s ease, box-shadow 0.3s ease';
+        currentPageEl.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 30px rgba(102, 126, 234, 0.3)';
+        currentPageEl.style.transition = 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s ease';
         currentPageEl.style.backfaceVisibility = 'visible';
         
-        // Start flip animation
-        setTimeout(() => {
-            currentPageEl.style.transform = 'rotateY(-180deg)';
-        }, 50);
+        // Start flip animation with requestAnimationFrame
+        requestAnimationFrame(() => {
+            currentPageEl.style.transform = 'rotateY(-180deg) translateZ(0)';
+        });
         
         // Update page number
         this.currentPage++;
@@ -414,15 +523,15 @@ class SimpleBookHandler {
         
         // Set high z-index during animation
         newPageEl.style.zIndex = '80';
-        newPageEl.style.transform = 'rotateY(-180deg)';
-        newPageEl.style.boxShadow = '0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
-        newPageEl.style.transition = 'transform 0.8s ease, box-shadow 0.3s ease';
+        newPageEl.style.transform = 'rotateY(-180deg) translateZ(0)';
+        newPageEl.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 30px rgba(102, 126, 234, 0.3)';
+        newPageEl.style.transition = 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s ease';
         newPageEl.style.backfaceVisibility = 'visible';
         
-        // Start flip animation
-        setTimeout(() => {
-            newPageEl.style.transform = 'rotateY(0deg)';
-        }, 50);
+        // Start flip animation with requestAnimationFrame
+        requestAnimationFrame(() => {
+            newPageEl.style.transform = 'rotateY(0deg) translateZ(0)';
+        });
         
         // After animation completes
         setTimeout(() => {
@@ -436,36 +545,29 @@ class SimpleBookHandler {
         console.log('Updating page to:', this.currentPage);
         console.log('Total pages found:', this.pages.length);
         
+        // Batch DOM operations
         this.pages.forEach((page, index) => {
-            page.style.transition = 'transform 0.8s ease, box-shadow 0.3s ease';
+            page.style.transition = 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s ease';
             page.style.backfaceVisibility = 'visible';
             page.style.opacity = '1';
             
             if (index === this.currentPage) {
-                page.style.transform = 'rotateY(0deg)';
+                page.style.transform = 'rotateY(0deg) translateZ(0)';
                 page.style.zIndex = '60';
-                page.style.boxShadow = '0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+                page.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 30px rgba(102, 126, 234, 0.3)';
                 console.log('Activated page:', index);
             } else if (index < this.currentPage) {
-                page.style.transform = 'rotateY(-180deg)';
+                page.style.transform = 'rotateY(-180deg) translateZ(0)';
                 page.style.zIndex = '20';
-                page.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.3)';
+                page.style.boxShadow = '0 15px 40px rgba(0, 0, 0, 0.4)';
             } else {
-                page.style.transform = 'rotateY(0deg)';
+                page.style.transform = 'rotateY(0deg) translateZ(0)';
                 page.style.zIndex = 59 - index;
             }
         });
         
         if (this.pageIndicator) {
             this.pageIndicator.textContent = `${this.currentPage + 1} / ${this.totalPages}`;
-        }
-        
-        if (this.prevBtn) {
-            this.prevBtn.disabled = this.currentPage === 0;
-        }
-        
-        if (this.nextBtn) {
-            this.nextBtn.disabled = this.currentPage === this.totalPages - 1;
         }
     }
     

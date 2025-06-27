@@ -1,5 +1,7 @@
 <?php
 $activeChannel = $GLOBALS['activeChannel'] ?? null;
+$currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
+$channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name'] : $activeChannel->name) : 'Voice Channel';
 ?>
 
 <div id="joinView" class="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a0f] via-[#1a1a2e] to-[#16213e] relative overflow-hidden" onmousemove="handleMouseMove(event)">
@@ -41,7 +43,7 @@ $activeChannel = $GLOBALS['activeChannel'] ?? null;
     <div class="relative z-10 text-center space-y-8 animate-fade-in-cosmic">
         <div class="relative">
             <h2 class="text-4xl font-bold text-white mb-2 drop-shadow-2xl tracking-wide bg-gradient-to-r from-white via-blue-100 via-purple-100 to-cyan-100 bg-clip-text text-transparent animate-cosmic-shimmer">
-                <?php echo htmlspecialchars($activeChannel->name ?? 'Voice Channel'); ?>
+                <?php echo htmlspecialchars($channelName); ?>
             </h2>
         </div>
         
@@ -95,7 +97,10 @@ function handleMouseMove(event) {
     });
 }
 
-document.getElementById('joinView').addEventListener('mouseleave', function() {
+document.addEventListener('DOMContentLoaded', function() {
+    const joinView = document.getElementById('joinView');
+    if (joinView) {
+        joinView.addEventListener('mouseleave', function() {
     const interactiveGlow = document.getElementById('interactive-glow');
     if (interactiveGlow) {
         interactiveGlow.style.opacity = '0';
@@ -105,6 +110,8 @@ document.getElementById('joinView').addEventListener('mouseleave', function() {
     driftElements.forEach(element => {
         element.style.transform = '';
     });
+        });
+    }
 });
 </script>
 

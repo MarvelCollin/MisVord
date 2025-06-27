@@ -73,43 +73,32 @@ class ChannelAPI {
         this.cache.clear();
     }
 
-    async getChannelData(serverId, channelId, type = 'text') {
+    async getChannelData(serverId, channelId, type = 'text', requestHTML = false) {
         if (!serverId || !channelId) {
             throw new Error('Server ID and Channel ID are required');
         }
         
-        const cached = this.getCachedData(serverId, channelId, type);
-        if (cached) {
+        const cacheKey = requestHTML ? `${serverId}-${channelId}-${type}-html` : `${serverId}-${channelId}-${type}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
             console.log('Using cached channel data');
-            return cached;
+            return cached.data;
         }
         
         try {
-            // Get basic channel info
-            const channelUrl = `${this.baseURL}/channel-content?server_id=${encodeURIComponent(serverId)}&channel_id=${encodeURIComponent(channelId)}&type=${encodeURIComponent(type)}`;
-            const channelData = await this.makeRequest(channelUrl, { method: 'GET' });
+            let channelUrl = `${this.baseURL}/channel-content?server_id=${encodeURIComponent(serverId)}&channel_id=${encodeURIComponent(channelId)}&type=${encodeURIComponent(type)}`;
             
-            // If it's a text channel, load messages using ChatAPI for consistency
-            if (type === 'text' && window.chatAPI) {
-                try {
-                    const messagesResponse = await window.chatAPI.getMessages('channel', channelId, 50, 0);
-                    if (messagesResponse && messagesResponse.messages) {
-                        channelData.messages = messagesResponse.messages;
-                    }
-                } catch (messageError) {
-                    console.warn('Failed to load messages via ChatAPI, using fallback:', messageError);
-                    // Fallback to direct channel message API
-                    try {
-                        const messagesData = await this.getChannelMessages(channelId, 50, 0);
-                        channelData.messages = messagesData.messages || [];
-                    } catch (fallbackError) {
-                        console.warn('Fallback message loading also failed:', fallbackError);
-                        channelData.messages = [];
-                    }
-                }
+            if (requestHTML) {
+                channelUrl += '&render_html=true';
             }
             
-            this.setCachedData(serverId, channelId, type, channelData);
+            const channelData = await this.makeRequest(channelUrl, { method: 'GET' });
+            
+            this.cache.set(cacheKey, {
+                data: channelData,
+                timestamp: Date.now()
+            });
+            
             return channelData;
         } catch (error) {
             console.error('Failed to load channel data:', error);
@@ -177,6 +166,7 @@ class ChannelAPI {
         if (channelId && type) {
             const key = this.getCacheKey(serverId, channelId, type);
             this.cache.delete(key);
+            this.cache.delete(`${key}-html`);
         } else {
             for (let key of this.cache.keys()) {
                 if (key.startsWith(`${serverId}-`)) {
@@ -264,10 +254,10 @@ class ChannelRenderer {
             this.updateMetaTags(channelId, channelType);
             this.updateURL(serverId, channelId, channelType);
             
-            const channelData = await this.api.getChannelData(serverId, channelId, channelType);
+            const channelData = await this.api.getChannelData(serverId, channelId, channelType, true);
             
+            this.updateGlobalState(channelData);
             this.renderChannelContent(channelData, channelType);
-            
             this.dispatchChannelSwitchEvent(channelData);
             
         } catch (error) {
@@ -278,14 +268,61 @@ class ChannelRenderer {
         }
     }
 
+    updateGlobalState(data) {
+        if (data.server) {
+            window.currentServer = data.server;
+        }
+        
+        if (data.channel) {
+            window.currentChannel = data.channel;
+        }
+        
+        if (data.channels) {
+            window.serverChannels = data.channels;
+        }
+        
+        if (data.categories) {
+            window.serverCategories = data.categories;
+        }
+        
+        if (data.activeChannelId) {
+            window.activeChannelId = data.activeChannelId;
+        }
+    }
+
     renderChannelContent(data, type) {
         const mainContent = document.querySelector('.main-content-area');
         if (!mainContent) return;
 
-        if (type === 'voice') {
-            this.renderVoiceChannel(data, mainContent);
+        if (data.html) {
+            mainContent.innerHTML = data.html;
+            this.executeScripts(mainContent);
         } else {
-            this.renderChatChannel(data, mainContent);
+            this.renderFallbackContent(data, type, mainContent);
+        }
+    }
+
+    executeScripts(container) {
+        const scripts = container.querySelectorAll('script');
+        scripts.forEach(oldScript => {
+            const newScript = document.createElement('script');
+            if (oldScript.src) {
+                newScript.src = oldScript.src;
+            } else {
+                newScript.textContent = oldScript.textContent;
+            }
+            Array.from(oldScript.attributes).forEach(attr => {
+                newScript.setAttribute(attr.name, attr.value);
+            });
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+    }
+
+    renderFallbackContent(data, type, container) {
+        if (type === 'voice') {
+            this.renderVoiceChannel(data, container);
+        } else {
+            this.renderChatChannel(data, container);
         }
     }
 
@@ -395,18 +432,15 @@ class ChannelRenderer {
                     sendButton.disabled = true;
                     messageInput.disabled = true;
                     
-                    // Use chat API for consistency with socket handling
                     if (window.chatAPI) {
                         await window.chatAPI.sendMessage(channel.id, content, 'channel');
                     } else {
-                        // Fallback to channel API
                         await this.api.sendChannelMessage(channel.id, content);
                     }
                     
                     messageInput.value = '';
                 } catch (error) {
                     console.error('Failed to send message:', error);
-                    // Show error to user
                 } finally {
                     sendButton.disabled = false;
                     messageInput.disabled = false;
@@ -479,6 +513,5 @@ const channelRenderer = new ChannelRenderer(channelAPI);
 window.channelAPI = channelAPI;
 window.channelRenderer = channelRenderer;
 
-// ES6 exports
 export { ChannelAPI, ChannelRenderer };
 export default channelAPI;

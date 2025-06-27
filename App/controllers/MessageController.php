@@ -5,7 +5,7 @@ require_once __DIR__ . '/../database/models/MessageReaction.php';
 require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/BaseController.php';
-require_once __DIR__ . '/../utils/SocketBroadcaster.php';
+
 
 class MessageController extends BaseController
 {
@@ -64,30 +64,16 @@ class MessageController extends BaseController
             $existingReaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
             if ($existingReaction) {
                 if ($existingReaction->delete()) {
-                    $socketData = [
-                        'message_id' => $messageId,
-                        'user_id' => $userId,
-                        'username' => $username,
-                        'emoji' => $emoji,
-                        'target_type' => $targetType,
-                        'target_id' => $targetId,
-                        'action' => 'removed',
-                        'source' => 'server-originated'
-                    ];
-                    
-                    SocketBroadcaster::broadcastMessage($targetType, $targetId, 'reaction-removed', $socketData);
-                    
                     return $this->success([
+                        'data' => [
                         'message_id' => $messageId,
                         'emoji' => $emoji,
                         'user_id' => $userId,
                         'username' => $username,
                         'target_type' => $targetType,
                         'target_id' => $targetId,
-                        'action' => 'removed',
-                        'socket_event' => 'reaction-removed',
-                        'socket_data' => $socketData,
-                        'client_should_emit_socket' => false
+                            'action' => 'removed'
+                        ]
                     ], 'Reaction removed successfully');
                 } else {
                     return $this->serverError('Failed to remove reaction');
@@ -102,20 +88,6 @@ class MessageController extends BaseController
             ]);
 
             if ($reaction->save()) {
-                // Broadcast reaction to socket server
-                $socketData = [
-                    'message_id' => $messageId,
-                    'user_id' => $userId,
-                    'username' => $username,
-                    'emoji' => $emoji,
-                    'target_type' => $targetType,
-                    'target_id' => $targetId,
-                    'action' => 'added',
-                    'source' => 'server-originated'
-                ];
-                
-                SocketBroadcaster::broadcastMessage($targetType, $targetId, 'reaction-added', $socketData);
-                
                 return $this->success([
                     'data' => [
                         'message_id' => $messageId,
@@ -125,10 +97,7 @@ class MessageController extends BaseController
                         'target_type' => $targetType,
                         'target_id' => $targetId,
                         'action' => 'added'
-                    ],
-                    'socket_event' => 'reaction-added',
-                    'socket_data' => $socketData,
-                    'client_should_emit_socket' => false
+                    ]
                 ], 'Reaction added successfully');
             } else {
                 throw new Exception('Failed to save reaction');
@@ -184,19 +153,6 @@ class MessageController extends BaseController
             }
 
             if ($reaction->delete()) {
-                $socketData = [
-                    'message_id' => $messageId,
-                    'user_id' => $userId,
-                    'username' => $username,
-                    'emoji' => $emoji,
-                    'target_type' => $targetType,
-                    'target_id' => $targetId,
-                    'action' => 'removed',
-                    'source' => 'server-originated'
-                ];
-                
-                SocketBroadcaster::broadcastMessage($targetType, $targetId, 'reaction-removed', $socketData);
-                
                 return $this->success([
                     'data' => [
                         'message_id' => $messageId,
@@ -206,10 +162,7 @@ class MessageController extends BaseController
                         'target_type' => $targetType,
                         'target_id' => $targetId,
                         'action' => 'removed'
-                    ],
-                    'socket_event' => 'reaction-removed',
-                    'socket_data' => $socketData,
-                    'client_should_emit_socket' => false
+                    ]
                 ], 'Reaction removed successfully');
             } else {
                 throw new Exception('Failed to remove reaction');
@@ -288,39 +241,23 @@ class MessageController extends BaseController
                 return $this->serverError('Could not determine message target');
             }
 
-            // Check if message is already pinned
             $query = new Query();
             $existingPin = $query->table('pinned_messages')
                 ->where('message_id', $messageId)
                 ->first();
 
             if ($existingPin) {
-                // Unpin message
                 $query->table('pinned_messages')
                     ->where('message_id', $messageId)
                     ->delete();
 
-                // Broadcast unpin to socket server
-                $socketData = [
-                    'message_id' => $messageId,
-                    'user_id' => $userId,
-                    'username' => $username,
-                    'target_type' => $targetType,
-                    'target_id' => $targetId,
-                    'action' => 'unpinned',
-                    'source' => 'server-originated'
-                ];
-                
-                SocketBroadcaster::broadcastMessage($targetType, $targetId, 'message-unpinned', $socketData);
-
                 return $this->success([
+                    'data' => [
                     'message_id' => $messageId,
                     'action' => 'unpinned',
                     'target_type' => $targetType,
-                    'target_id' => $targetId,
-                    'socket_event' => 'message-unpinned',
-                    'socket_data' => $socketData,
-                    'client_should_emit_socket' => false
+                        'target_id' => $targetId
+                    ]
                 ], 'Message unpinned successfully');
             } else {
                 // Pin message
@@ -333,28 +270,14 @@ class MessageController extends BaseController
                 ]);
 
                 if ($pinId) {
-                    // Broadcast pin to socket server
-                    $socketData = [
-                        'message_id' => $messageId,
-                        'user_id' => $userId,
-                        'username' => $username,
-                        'target_type' => $targetType,
-                        'target_id' => $targetId,
-                        'action' => 'pinned',
-                        'message' => $this->formatMessageForPin($message),
-                        'source' => 'server-originated'
-                    ];
-                    
-                    SocketBroadcaster::broadcastMessage($targetType, $targetId, 'message-pinned', $socketData);
-                    
                     return $this->success([
+                        'data' => [
                         'message_id' => $messageId,
                         'action' => 'pinned',
                         'target_type' => $targetType,
                         'target_id' => $targetId,
-                        'socket_event' => 'message-pinned',
-                        'socket_data' => $socketData,
-                        'client_should_emit_socket' => false
+                            'message' => $this->formatMessageForPin($message)
+                        ]
                     ], 'Message pinned successfully');
                 } else {
                     return $this->serverError('Failed to save pin');

@@ -270,9 +270,8 @@
 }
 
 .pricing-section {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 2rem;
+    display: flex;
+    justify-content: center;
     margin-top: 2rem;
 }
 
@@ -284,6 +283,9 @@
     border: 2px solid rgba(255, 215, 0, 0.3);
     position: relative;
     overflow: hidden;
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
 }
 
 .pricing-card::before {
@@ -359,6 +361,10 @@
 
 .pricing-features {
     margin-bottom: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    text-align: left;
 }
 
 .feature-item {
@@ -376,6 +382,7 @@
 
 .nitro-btn {
     width: 100%;
+    max-width: 300px;
     padding: 1rem 2rem;
     border-radius: 12px;
     background: linear-gradient(135deg, #ffd700, #ff69b4);
@@ -391,7 +398,7 @@
     justify-content: center;
     gap: 0.5rem;
     transition: all 0.3s ease;
-    margin-bottom: 1rem;
+    margin: 0 auto 1rem;
 }
 
 .nitro-btn:hover {
@@ -415,72 +422,6 @@
 
 .pricing-note {
     text-align: center;
-    color: #b0b0b0;
-    font-size: 0.9rem;
-}
-
-.code-section {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 2rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    text-align: center;
-}
-
-.code-title {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 1.5rem;
-}
-
-.code-input-group {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.code-input {
-    flex: 1;
-    padding: 1rem;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    font-size: 1rem;
-}
-
-.code-input::placeholder {
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.code-input:focus {
-    outline: none;
-    border-color: #ffd700;
-    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
-}
-
-.code-btn {
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #9370db, #6a0572);
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.3s ease;
-}
-
-.code-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(147, 112, 219, 0.3);
-}
-
-.code-note {
     color: #b0b0b0;
     font-size: 0.9rem;
 }
@@ -515,11 +456,6 @@
         gap: 1.5rem;
     }
     
-    .pricing-section {
-        grid-template-columns: 1fr;
-        gap: 2rem;
-    }
-    
     .section-indicator {
         display: none;
     }
@@ -544,10 +480,6 @@
     
     .pricing-card {
         padding: 2rem;
-    }
-    
-    .code-input-group {
-        flex-direction: column;
     }
     
     .crown-icon i {

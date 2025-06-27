@@ -1,6 +1,7 @@
 <?php
 $userName = $_SESSION['username'] ?? 'Anonymous';
 $activeChannel = $GLOBALS['activeChannel'] ?? null;
+$currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
 ?>
 
 <div id="connectedView" class="flex-1 flex flex-col bg-[#2b2d31] hidden">
@@ -62,59 +63,161 @@ $activeChannel = $GLOBALS['activeChannel'] ?? null;
 </div>
 
 <script>
- document.addEventListener('DOMContentLoaded', () => {
-     const videoGrid = document.getElementById('videoGrid');
-     const localAvatarWrapper = document.getElementById('localAvatarWrapper');
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.voiceConnectedInitialized) {
+        return;
+    }
+    window.voiceConnectedInitialized = true;
 
-     function attachStream(participantId, mediaStream) {
-         let videoEl = document.querySelector(`video[data-pid="${participantId}"]`);
-         if (!videoEl) {
-             videoEl = document.createElement('video');
-             videoEl.autoplay = true;
-             videoEl.playsInline = true;
-             videoEl.muted = participantId === 'local';
-             videoEl.dataset.pid = participantId;
-             videoEl.className = 'rounded-lg w-[320px] h-[240px] object-cover bg-black';
-             videoGrid.appendChild(videoEl);
-         }
-         videoEl.srcObject = mediaStream;
-     }
+    const videoGrid = document.getElementById('videoGrid');
+    const localAvatarWrapper = document.getElementById('localAvatarWrapper');
 
-     function detachStream(participantId) {
-         const videoEl = document.querySelector(`video[data-pid="${participantId}"]`);
-         if (videoEl) videoEl.remove();
-     }
+    function attachStream(participantId, stream) {
+        console.log('Attaching stream for', participantId, stream);
+        
+        let videoEl = document.querySelector(`video[data-participant-id="${participantId}"]`);
+        if (!videoEl) {
+            videoEl = document.createElement('video');
+            videoEl.dataset.participantId = participantId;
+            videoEl.autoplay = true;
+            videoEl.playsInline = true;
+            videoEl.muted = (participantId === 'local');
+            videoEl.className = 'rounded-lg w-[300px] h-[200px] object-cover bg-black border-2 border-gray-600';
+            videoGrid.appendChild(videoEl);
+            console.log('Created new video element for', participantId);
+        }
 
-     function handleStreamEnabled(stream, participant) {
-         if (stream.kind !== 'video') return;
-         attachStream(participant.id === window.videosdkMeeting?.localParticipant.id ? 'local' : participant.id, stream.track);
-         if (participant.id === window.videosdkMeeting?.localParticipant.id) {
-             localAvatarWrapper.style.display = 'none';
-         }
-     }
+        let mediaStream;
+        if (stream instanceof MediaStream) {
+            mediaStream = stream;
+        } else if (stream.track) {
+            mediaStream = new MediaStream([stream.track]);
+        } else if (stream.mediaStream) {
+            mediaStream = stream.mediaStream;
+        } else if (stream.stream) {
+            mediaStream = stream.stream;
+        } else {
+            console.error('Could not extract MediaStream from:', stream);
+            return;
+        }
 
-     function handleStreamDisabled(stream, participant) {
-         if (stream.kind !== 'video') return;
-         detachStream(participant.id === window.videosdkMeeting?.localParticipant.id ? 'local' : participant.id);
-         if (participant.id === window.videosdkMeeting?.localParticipant.id) {
-             localAvatarWrapper.style.display = 'block';
-         }
-     }
+        videoEl.srcObject = mediaStream;
+        videoEl.play().catch(e => {
+            console.error("Video play failed for " + participantId, e);
+            if (e.name === 'NotAllowedError') {
+                window.showToast?.('Please allow camera access to enable video', 'error');
+            }
+        });
 
-     window.waitForVideoSDK(() => {
-         if (!window.videosdkMeeting) return;
+        if (participantId === 'local') {
+            localAvatarWrapper.style.display = 'none';
+        }
+        
+        console.log('Stream attached successfully for', participantId);
+    }
 
-         const meeting = window.videosdkMeeting;
-         meeting.on('stream-enabled', (p, stream) => handleStreamEnabled(stream, p));
-         meeting.on('stream-disabled', (p, stream) => handleStreamDisabled(stream, p));
+    function detachStream(participantId) {
+        console.log('Detaching stream for', participantId);
+        const videoEl = document.querySelector(`video[data-participant-id="${participantId}"]`);
+        if (videoEl) {
+            if (videoEl.srcObject) {
+                const tracks = videoEl.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+            videoEl.srcObject = null;
+            videoEl.remove();
+            console.log('Video element removed for', participantId);
+        }
+        if (participantId === 'local') {
+            localAvatarWrapper.style.display = 'block';
+        }
+    }
 
-         const lp = meeting.localParticipant;
-         if (lp && (lp.isWebcamEnabled || lp.streams?.has?.('video'))) {
-             const videoTrack = lp.getCameraStream ? lp.getCameraStream() : null;
-             if (videoTrack) attachStream('local', videoTrack);
-             localAvatarWrapper.style.display = 'none';
-         }
-     });
- });
+    function setupMeetingEventHandlers(meeting) {
+        console.log('Setting up VideoSDK event handlers');
+        
+        // Handle remote participants' video
+        meeting.on('stream-enabled', (participant, stream) => {
+            console.log('Stream enabled event:', { participantId: participant.id, stream });
+            if (stream.kind === 'video') {
+                attachStream(participant.id, stream);
+            }
+        });
+
+        meeting.on('stream-disabled', (participant, stream) => {
+            console.log('Stream disabled event:', { participantId: participant.id, stream });
+            if (stream.kind === 'video') {
+                detachStream(participant.id);
+            }
+        });
+
+        meeting.on('participant-left', (participant) => {
+            console.log('Participant left:', participant.id);
+            detachStream(participant.id);
+        });
+
+        // Handle local participant's video
+        meeting.localParticipant.on('stream-enabled', (stream) => {
+            console.log('Local stream enabled:', stream);
+            if (stream.kind === 'video') {
+                attachStream('local', stream);
+            }
+        });
+
+        meeting.localParticipant.on('stream-disabled', (stream) => {
+            console.log('Local stream disabled:', stream);
+            if (stream.kind === 'video') {
+                detachStream('local');
+            }
+        });
+
+        // Check for existing streams
+        if (meeting.localParticipant.streams) {
+            console.log('Checking existing streams');
+            meeting.localParticipant.streams.forEach((stream, kind) => {
+                console.log('Found existing stream:', { kind, stream });
+                if (kind === 'video') {
+                    attachStream('local', stream);
+                }
+            });
+        }
+    }
+
+    function initializeView() {
+        if (!window.videosdkMeeting) {
+            console.log("Waiting for meeting to initialize...");
+            return;
+        }
+
+        console.log('Initializing view with meeting:', window.videosdkMeeting.id);
+        setupMeetingEventHandlers(window.videosdkMeeting);
+
+        // Check for existing video state
+        if (window.videoSDKManager?.getWebcamState()) {
+            console.log('Camera is enabled, checking for stream');
+            const localParticipant = window.videosdkMeeting.localParticipant;
+            if (localParticipant) {
+                const videoStream = localParticipant.streams.get('video');
+                if (videoStream) {
+                    console.log('Found existing video stream');
+                    attachStream('local', videoStream);
+                } else {
+                    console.log('No existing video stream found');
+                }
+            }
+        }
+    }
+
+    window.addEventListener('voiceConnect', () => {
+        console.log('Voice connect event received');
+        setTimeout(initializeView, 500);
+    });
+
+    if (window.videosdkMeeting) {
+        console.log('Meeting already exists, initializing view');
+        initializeView();
+    }
+});
 </script>
+
 

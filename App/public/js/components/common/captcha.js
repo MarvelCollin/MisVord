@@ -16,6 +16,7 @@ export class TextCaptcha {
             inputId: options.inputId || null,
             caseSensitive: options.caseSensitive || false,
             showDebug: options.showDebug !== undefined ? options.showDebug : !isProduction,
+            bypassCaptcha: options.bypassCaptcha !== undefined ? options.bypassCaptcha : (window.BYPASS_CAPTCHA || false),
         };
 
         this.code = '';
@@ -24,12 +25,24 @@ export class TextCaptcha {
 
     init() {
         try {
+            if (this.options.bypassCaptcha) {
+                this.createBypassUI();
+                return;
+            }
             this.createCaptchaUI();
             this.generateCode();
             this.setupListeners();
         } catch (e) {
             console.error('Error initializing captcha:', e);
         }
+    }
+
+    createBypassUI() {
+        this.container.innerHTML = `
+            <div class="captcha-wrapper">
+                <div class="captcha-code" style="color: #4ade80; font-weight: bold;">CAPTCHA BYPASSED FOR TESTING</div>
+            </div>
+        `;
     }
 
     createCaptchaUI() {
@@ -198,6 +211,11 @@ export class TextCaptcha {
     }
 
     verify(input) {
+        if (this.options.bypassCaptcha) {
+            console.log('Captcha bypassed for testing - returning true');
+            return true;
+        }
+        
         if (!input) return false;
         if (!this.code) return false;
         
@@ -214,6 +232,11 @@ export class TextCaptcha {
     }
 
     refresh() {
+        if (this.options.bypassCaptcha) {
+            console.log('Captcha refresh bypassed for testing');
+            return;
+        }
+        
         try {
             const codeDisplay = document.getElementById(`${this.container.id}-code`);
             if (codeDisplay) {

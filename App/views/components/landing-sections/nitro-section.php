@@ -117,6 +117,18 @@ if (!function_exists('asset')) {
                             <i class="fas fa-check"></i>
                             <span>24/7 premium support</span>
                         </div>
+                        <div class="feature-item">
+                            <i class="fas fa-check"></i>
+                            <span>100MB file uploads</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-check"></i>
+                            <span>HD voice & video</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-check"></i>
+                            <span>Custom status & emojis</span>
+                        </div>
                     </div>
 
                     <div class="pricing-footer">
@@ -127,18 +139,6 @@ if (!function_exists('asset')) {
                         </button>
                         <p class="pricing-note">Start your premium journey today</p>
                     </div>
-                </div>
-
-                <div class="code-section">
-                    <h4 class="code-title">Have a Nitro Code?</h4>
-                    <div class="code-input-group">
-                        <input type="text" class="code-input" placeholder="Enter your Nitro code" maxlength="20">
-                        <button class="code-btn">
-                            <i class="fas fa-gift"></i>
-                            Redeem
-                        </button>
-                    </div>
-                    <p class="code-note">Redeem codes from events, giveaways, or purchases</p>
                 </div>
             </div>
         </div>

@@ -12,7 +12,7 @@ require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/models/User.php';
 require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/BaseController.php';
-require_once __DIR__ . '/../utils/SocketBroadcaster.php';
+
 
 class ChatController extends BaseController
 {
@@ -225,31 +225,11 @@ class ChatController extends BaseController
 
                 $query->commit();
                 
-                // Broadcast to socket server
-                $socketData = [
-                    'id' => $message->id,
-                    'channel_id' => $channelId,
-                    'content' => $content,
-                    'message_type' => $messageType,
-                    'timestamp' => time(),
-                    'message' => $formattedMessage,
-                    'user_id' => $userId,
-                    'username' => $_SESSION['username'] ?? 'Unknown',
-                    'target_type' => 'channel',
-                    'target_id' => $channelId,
-                    'source' => 'server-originated'
-                ];
-                
-                SocketBroadcaster::broadcastToChannel($channelId, 'new-channel-message', $socketData);
-                
                 return $this->success([
                     'data' => [
                         'message' => $formattedMessage,
                         'channel_id' => $channelId
-                    ],
-                    'socket_event' => 'new-channel-message',
-                    'socket_data' => $socketData,
-                    'client_should_emit_socket' => false
+                    ]
                 ], 'Message sent successfully');
             } else {
                 $query->rollback();
@@ -297,6 +277,9 @@ class ChatController extends BaseController
             if ($message && isset($message->id)) {
                 $this->chatRoomMessageRepository->addMessageToRoom($chatRoomId, $message->id);
 
+                error_log("DEBUG: Message created successfully with ID: " . $message->id);
+                error_log("DEBUG: Message object: " . json_encode($message));
+                
                 $formattedMessage = $this->formatMessage($message);
 
                 
@@ -334,32 +317,19 @@ class ChatController extends BaseController
 
                 $query->commit();
 
-                // Broadcast to socket server
-                $socketData = [
-                    'id' => $message->id,
-                    'room_id' => $chatRoomId,
-                    'content' => $content,
-                    'message_type' => $messageType,
-                    'timestamp' => time(),
-                    'message' => $formattedMessage,
-                    'user_id' => $userId,
-                    'username' => $senderUsername,
-                    'target_type' => 'dm',
-                    'target_id' => $chatRoomId,
-                    'source' => 'server-originated'
-                ];
+                error_log("DEBUG: Sending DM response with message ID: " . $formattedMessage['id']);
+                error_log("DEBUG: Formatted message data: " . json_encode($formattedMessage));
                 
-                SocketBroadcaster::broadcastToDM($chatRoomId, 'user-message-dm', $socketData);
-
-                return $this->success([
+                $response = $this->success([
                     'data' => [
                         'message' => $formattedMessage,
                         'room_id' => $chatRoomId
-                    ],
-                    'socket_event' => 'user-message-dm',
-                    'socket_data' => $socketData,
-                    'client_should_emit_socket' => false
+                    ]
                 ], 'Message sent successfully');
+                
+                error_log("DEBUG: Final response structure: " . json_encode($response));
+                
+                return $response;
             } else {
                 $query->rollback();
                 throw new Exception('Failed to save message');
@@ -878,23 +848,12 @@ class ChatController extends BaseController
                 
                 $formattedMessage = $this->formatMessage($message);
                 
-                $socketData = [
-                    'message_id' => $messageId,
-                    'message' => $formattedMessage,
-                    'user_id' => $userId,
-                    'username' => $_SESSION['username'] ?? 'Unknown',
-                    'source' => 'server-originated'
-                ];
-                
-                SocketBroadcaster::broadcastMessage($targetType, $targetId, 'message-updated', $socketData);
-                
                 return $this->success([
                 'data' => [
-                    'message' => $formattedMessage
-                ],
-                'socket_event' => 'message-updated',
-                'socket_data' => $socketData,
-                'client_should_emit_socket' => false
+                        'message' => $formattedMessage,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId
+                    ]
             ], 'Message updated successfully');
             } else {
                 throw new Exception('Failed to update message');
@@ -945,22 +904,12 @@ class ChatController extends BaseController
             }
             
             if ($this->messageRepository->delete($messageId)) {
-                $socketData = [
-                    'message_id' => $messageId,
-                    'user_id' => $userId,
-                    'username' => $_SESSION['username'] ?? 'Unknown',
-                    'source' => 'server-originated'
-                ];
-                
-                SocketBroadcaster::broadcastMessage($targetType, $targetId, 'message-deleted', $socketData);
-                
                 return $this->success([
                     'data' => [
-                        'message_id' => $messageId
-                    ],
-                    'socket_event' => 'message-deleted',
-                    'socket_data' => $socketData,
-                    'client_should_emit_socket' => false
+                        'message_id' => $messageId,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId
+                    ]
                 ], 'Message deleted successfully');
             } else {
                 throw new Exception('Failed to delete message');

@@ -1140,6 +1140,57 @@ Route::get('/api/chat/dm/([0-9]+)', function($roomId) {
     $controller->getDirectMessageRoom($roomId);
 });
 
+Route::get('/api/test-message-flow', function() {
+    require_once __DIR__ . '/../public/api/test-message-flow.php';
+});
+
+Route::post('/api/test-message-flow', function() {
+    require_once __DIR__ . '/../public/api/test-message-flow.php';
+});
+
+Route::get('/api/debug/socket-status', function() {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'message' => 'Socket debugging now handled directly by frontend',
+        'new_flow' => [
+            'database' => 'PHP backend handles database operations',
+            'websocket' => 'Frontend handles socket emissions directly',
+            'simplified' => 'No PHP-to-socket HTTP bridge'
+        ],
+        'timestamp' => date('Y-m-d H:i:s')
+    ]);
+});
+
+Route::get('/api/test-socket-realtime', function() {
+    require_once __DIR__ . '/../public/api/test-socket-realtime.php';
+});
+
+Route::get('/debug/socket-test', function() {
+    require_once __DIR__ . '/../public/api/test-socket-realtime.php';
+});
+
+Route::get('/api/debug/database', function() {
+    header('Content-Type: application/json');
+    try {
+        $db = require_once __DIR__ . '/db.php';
+        $stmt = $db->prepare("SELECT 1 as test");
+        $stmt->execute();
+        $result = $stmt->fetch();
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Database connection successful',
+            'test_query' => $result ? 'passed' : 'failed'
+        ]);
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Database connection failed: ' . $e->getMessage()
+        ]);
+    }
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

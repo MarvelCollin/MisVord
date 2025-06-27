@@ -109,10 +109,17 @@ $head_scripts = ['logger-init'];
 </div>
 <?php endif; ?>
 
+<!-- Ensure user data is available for socket -->
 <div id="socket-data" style="display: none;" 
      data-user-id="<?php echo htmlspecialchars($currentUserId); ?>"
-     data-username="<?php echo htmlspecialchars($GLOBALS['currentUser']['username'] ?? ''); ?>"
+     data-username="<?php echo htmlspecialchars($_SESSION['username'] ?? $GLOBALS['currentUser']['username'] ?? ''); ?>"
      data-channel-id=""></div>
+
+<script>
+// Ensure user data is available globally for socket initialization
+window.currentUserId = <?php echo json_encode($currentUserId); ?>;
+window.currentUsername = <?php echo json_encode($_SESSION['username'] ?? $GLOBALS['currentUser']['username'] ?? ''); ?>;
+</script>
 
 <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/app-layout.php'; ?>
 

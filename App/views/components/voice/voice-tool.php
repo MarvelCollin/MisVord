@@ -27,6 +27,9 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
             <button id="settingsBtn" class="flex items-center justify-center h-8 w-11 rounded-md bg-transparent text-gray-300 hover:bg-[#36373d] transition-colors" title="Voice Settings">
                 <i class="fas fa-cog text-lg"></i>
             </button>
+            <button id="debugBtn" class="flex items-center justify-center h-8 w-11 rounded-md bg-transparent text-gray-300 hover:bg-[#36373d] transition-colors" title="Debug Test" style="display: none;">
+                <i class="fas fa-bug text-lg"></i>
+            </button>
         </div>
 
         <button id="leaveBtn" class="flex items-center justify-center h-9 w-12 rounded-md bg-[#ED4245] text-white hover:bg-[#c93b3f] transition-colors" title="Disconnect">
@@ -34,3 +37,50 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
         </button>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initializeVoiceTools();
+});
+
+function initializeVoiceTools() {
+    console.log('VoiceTools: Initializing voice tools...');
+    
+    if (!window.voiceStateManager) {
+        console.error('VoiceTools: voiceStateManager not available');
+        return;
+    }
+
+    const controls = {
+        micBtn: { id: 'micBtn', handler: () => window.voiceStateManager.toggleMic() },
+        joinVideoBtn: { id: 'joinVideoBtn', handler: () => window.voiceStateManager.toggleVideo() },
+        screenBtn: { id: 'screenBtn', handler: () => window.voiceStateManager.toggleScreenShare() },
+        deafenBtn: { id: 'deafenBtn', handler: () => window.voiceStateManager.toggleDeafen() },
+        leaveBtn: { id: 'leaveBtn', handler: () => window.voiceStateManager.disconnectVoice() }
+    };
+
+    Object.values(controls).forEach(control => {
+        const btn = document.getElementById(control.id);
+        if (btn) {
+            // Replace the node to clear all existing listeners
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            // Add the single, correct listener
+            newBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                control.handler();
+            });
+        }
+    });
+
+    if (window.voiceStateManager) {
+        window.voiceStateManager.updateAllControls();
+    }
+    
+    console.log('VoiceTools: Initialization complete');
+}
+
+window.initializeVoiceTools = initializeVoiceTools;
+</script>

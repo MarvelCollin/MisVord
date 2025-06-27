@@ -147,12 +147,24 @@ function initGlobalSocketManager() {
     }
 
     if (typeof io === 'undefined') {
-        logger.error('socket', 'Socket.io library not loaded, skipping socket initialization');
+        logger.error('socket', 'Socket.io library not loaded, attempting to load it');
+        const script = document.createElement('script');
+        script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+        script.crossOrigin = 'anonymous';
+        script.onload = function() {
+            logger.info('socket', 'Socket.io library loaded, initializing socket');
+            initSocketAfterLoad();
+        };
+        document.head.appendChild(script);
         return;
     }
     
-    if (window.globalSocketManager) {
-        logger.info('socket', 'Global socket manager already initialized, skipping...');
+    initSocketAfterLoad();
+}
+
+function initSocketAfterLoad() {
+    if (window.__SOCKET_INITIALISED__) {
+        logger.info('socket', 'Socket already initialized, skipping...');
         return;
     }
     
@@ -160,26 +172,25 @@ function initGlobalSocketManager() {
 
     const userData = getUserDataFromPage();
     
-    if (userData && userData.user_id) {
-        logger.info('socket', 'User authenticated, initializing socket connection for:', userData.username);
-        
-        try {
-            globalSocketManager.init(userData);
-            window.globalSocketManager = globalSocketManager;
-            
-            window.addEventListener('globalSocketReady', function(event) {
-                logger.info('socket', 'Global socket manager ready:', event.detail);
-                
-                window.dispatchEvent(new CustomEvent('misVordGlobalReady', {
-                    detail: { socketManager: event.detail.manager }
-                }));
-            });
-        } catch (error) {
-            logger.error('socket', 'Failed to initialize socket manager:', error);
-        }
-    } else {
-        logger.info('socket', 'Guest user detected, socket connection disabled');
+    try {
+        const result = globalSocketManager.init(userData);
         window.globalSocketManager = globalSocketManager;
+        
+        if (result) {
+            logger.info('socket', 'Socket initialization started');
+        } else {
+            logger.warn('socket', 'Socket initialization bypassed or already running');
+        }
+        
+        window.addEventListener('globalSocketReady', function(event) {
+            logger.info('socket', 'Global socket manager ready:', event.detail);
+            
+            window.dispatchEvent(new CustomEvent('misVordGlobalReady', {
+                detail: { socketManager: event.detail.manager }
+            }));
+        });
+    } catch (error) {
+        logger.error('socket', 'Failed to initialize socket manager:', error);
     }
 }
 

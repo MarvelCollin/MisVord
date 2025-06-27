@@ -1,0 +1,19 @@
+{
+  "name": "socket-test",
+  "version": "1.0.0",
+  "description": "Socket testing script",
+  "main": "test-socket.js",
+  "scripts": {
+    "test": "node test-socket.js",
+    "install-deps": "npm install"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.2",
+    "node-fetch": "^2.6.7",
+    "form-data": "^4.0.0",
+    "puppeteer": "^21.6.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+} 
