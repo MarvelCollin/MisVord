@@ -2,7 +2,9 @@
 
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
 require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
+require_once __DIR__ . '/../database/repositories/ChannelMessageRepository.php';
 require_once __DIR__ . '/../database/repositories/ChatRoomRepository.php';
+require_once __DIR__ . '/../database/repositories/ChatRoomMessageRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/../database/repositories/FriendListRepository.php';
@@ -10,12 +12,15 @@ require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/models/User.php';
 require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../utils/SocketBroadcaster.php';
 
 class ChatController extends BaseController
 {
     private $messageRepository;
     private $channelRepository;
+    private $channelMessageRepository;
     private $chatRoomRepository;
+    private $chatRoomMessageRepository;
     private $userServerMembershipRepository;
     private $userRepository;
     private $friendListRepository;
@@ -25,7 +30,9 @@ class ChatController extends BaseController
         parent::__construct();
         $this->messageRepository = new MessageRepository();
         $this->channelRepository = new ChannelRepository();
+        $this->channelMessageRepository = new ChannelMessageRepository();
         $this->chatRoomRepository = new ChatRoomRepository();
+        $this->chatRoomMessageRepository = new ChatRoomMessageRepository();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
         $this->userRepository = new UserRepository();
         $this->friendListRepository = new FriendListRepository();
@@ -68,55 +75,31 @@ class ChatController extends BaseController
             $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int)$_GET['limit'] : 20;
             $offset = isset($_GET['offset']) && is_numeric($_GET['offset']) ? (int)$_GET['offset'] : 0;
 
-            $messages = $this->messageRepository->getForChannel($channelId, $limit, $offset);
+            $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             error_log("Returning " . count($formattedMessages) . " messages for channel $channelId");
             
-            $this->sendJsonResponse([
-                'success' => true,
-                'timestamp' => date('Y-m-d H:i:s'),
-                'message' => 'Success',
-                'status' => 'success',
-                'type' => 'channel',
-                'target_id' => $channelId,
-                'messages' => $formattedMessages,
-                'has_more' => count($messages) >= $limit
-            ]);
+            return $this->respondMessages('channel', $channelId, $formattedMessages, count($messages) >= $limit);
         } catch (Exception $e) {
             error_log("Error getting channel messages: " . $e->getMessage());
-            $this->sendJsonError('Failed to load channel messages: ' . $e->getMessage(), 500);
+            return $this->serverError('Failed to load channel messages: ' . $e->getMessage());
         }
     }
     
-    private function sendJsonResponse($data)
+    private function respondMessages($type, $targetId, $messages, $hasMore = false)
     {
-        if (headers_sent()) {
-            error_log("Headers already sent when trying to send JSON response");
-        } else {
-            header('Content-Type: application/json');
-            header('X-Content-Type-Options: nosniff');
-        }
-        echo json_encode($data);
-        exit;
-    }
-    
-    private function sendJsonError($message, $code = 400)
-    {
-        if (headers_sent()) {
-            error_log("Headers already sent when trying to send JSON error");
-        } else {
-            http_response_code($code);
-            header('Content-Type: application/json');
-            header('X-Content-Type-Options: nosniff');
-        }
-        echo json_encode([
-            'success' => false,
-            'message' => $message,
-            'status' => 'error',
-            'timestamp' => date('Y-m-d H:i:s')
+        return $this->success([
+            'success' => true,
+            'data' => [
+                'type' => $type,
+                'target_id' => $targetId,
+                'messages' => $messages,
+                'has_more' => $hasMore
+            ],
+            'timestamp' => date('Y-m-d H:i:s'),
+            'message' => 'Messages retrieved successfully'
         ]);
-        exit;
     }
 
     private function getDirectMessages($chatRoomId, $userId)
@@ -134,24 +117,15 @@ class ChatController extends BaseController
             $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int)$_GET['limit'] : 20;
             $offset = isset($_GET['offset']) && is_numeric($_GET['offset']) ? (int)$_GET['offset'] : 0;
 
-            $messages = $this->chatRoomRepository->getMessages($chatRoomId, $limit, $offset);
+            $messages = $this->chatRoomMessageRepository->getMessagesByRoomId($chatRoomId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             error_log("Returning " . count($formattedMessages) . " messages for DM room $chatRoomId");
 
-            $this->sendJsonResponse([
-                'success' => true,
-                'timestamp' => date('Y-m-d H:i:s'),
-                'message' => 'Success',
-                'status' => 'success',
-                'type' => 'dm',
-                'target_id' => $chatRoomId,
-                'messages' => $formattedMessages,
-                'has_more' => count($messages) >= $limit
-            ]);
+            return $this->respondMessages('dm', $chatRoomId, $formattedMessages, count($messages) >= $limit);
         } catch (Exception $e) {
             error_log("Error getting DM messages: " . $e->getMessage());
-            $this->sendJsonError('Failed to load direct messages: ' . $e->getMessage(), 500);
+            return $this->serverError('Failed to load direct messages: ' . $e->getMessage());
         }
     }
 
@@ -202,25 +176,31 @@ class ChatController extends BaseController
             }
         }
 
+        $query = new Query();
         try {
-            $message = new Message();
-            $message->content = $content;
-            $message->user_id = $userId;
-            $message->message_type = $messageType;
-            $message->attachment_url = $attachmentUrl;
+            $query->beginTransaction();
             
+            $messageData = [
+                'content' => $content,
+                'user_id' => $userId,
+                'message_type' => $messageType,
+                'attachment_url' => $attachmentUrl,
+                'sent_at' => date('Y-m-d H:i:s'),
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
             
             if ($replyMessageId) {
-                
                 $repliedMessage = $this->messageRepository->find($replyMessageId);
                 if ($repliedMessage) {
-                    $message->reply_message_id = $replyMessageId;
+                    $messageData['reply_message_id'] = $replyMessageId;
                 }
             }
 
-            if ($message->save()) {
-                
-                $message->associateWithChannel($channelId);
+            $message = $this->messageRepository->create($messageData);
+
+            if ($message && isset($message->id)) {
+                $this->channelMessageRepository->addMessageToChannel($channelId, $message->id);
                 
                 $formattedMessage = $this->formatMessage($message);
                 
@@ -231,6 +211,7 @@ class ChatController extends BaseController
                         $repliedUser = $this->userRepository->find($repliedMessage->user_id);
                         $formattedMessage['reply_message_id'] = $message->reply_message_id;
                         $formattedMessage['reply_data'] = [
+                            'messageId' => $message->reply_message_id,
                             'content' => $repliedMessage->content,
                             'user_id' => $repliedMessage->user_id,
                             'username' => $repliedUser ? $repliedUser->username : 'Unknown',
@@ -243,26 +224,39 @@ class ChatController extends BaseController
                     $formattedMessage['mentions'] = $mentions;
                 }
 
-                return $this->success([
+                $query->commit();
+                
+                // Broadcast to socket server
+                $socketData = [
+                    'id' => $message->id,
+                    'channelId' => $channelId,
+                    'content' => $content,
+                    'messageType' => $messageType,
+                    'timestamp' => time(),
                     'message' => $formattedMessage,
-                    'channel_id' => $channelId,
-                    'socket_event' => 'new-channel-message',
-                    'socket_data' => [
-                        'channelId' => $channelId,
-                        'content' => $content,
-                        'messageType' => $messageType,
-                        'timestamp' => time(),
+                    'user_id' => $userId,
+                    'username' => $_SESSION['username'] ?? 'Unknown',
+                    'source' => 'server-originated'
+                ];
+                
+                SocketBroadcaster::broadcastToChannel($channelId, 'new-channel-message', $socketData);
+                
+                return $this->success([
+                    'success' => true,
+                    'data' => [
                         'message' => $formattedMessage,
-                        'user_id' => $userId,
-                        'username' => $_SESSION['username'] ?? 'Unknown',
-                        'source' => 'client-relay'
+                        'channel_id' => $channelId
                     ],
-                    'client_should_emit_socket' => true
+                    'socket_event' => 'new-channel-message',
+                    'socket_data' => $socketData,
+                    'client_should_emit_socket' => false
                 ], 'Message sent successfully');
             } else {
+                $query->rollback();
                 throw new Exception('Failed to save message');
             }
         } catch (Exception $e) {
+            $query->rollback();
             return $this->serverError('Failed to send message');
         }
     }
@@ -277,24 +271,31 @@ class ChatController extends BaseController
             return $this->forbidden('You are not a participant in this chat');
         }
 
+        $query = new Query();
         try {
-            $message = new Message();
-            $message->content = $content;
-            $message->user_id = $userId;
-            $message->message_type = $messageType;
-            $message->attachment_url = $attachmentUrl;
+            $query->beginTransaction();
             
+            $messageData = [
+                'content' => $content,
+                'user_id' => $userId,
+                'message_type' => $messageType,
+                'attachment_url' => $attachmentUrl,
+                'sent_at' => date('Y-m-d H:i:s'),
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
             
             if ($replyMessageId) {
-                
                 $repliedMessage = $this->messageRepository->find($replyMessageId);
                 if ($repliedMessage) {
-                    $message->reply_message_id = $replyMessageId;
+                    $messageData['reply_message_id'] = $replyMessageId;
                 }
             }
 
-            if ($message->save()) {
-                $this->chatRoomRepository->addMessageToRoom($chatRoomId, $message->id);
+            $message = $this->messageRepository->create($messageData);
+
+            if ($message && isset($message->id)) {
+                $this->chatRoomMessageRepository->addMessageToRoom($chatRoomId, $message->id);
 
                 $formattedMessage = $this->formatMessage($message);
 
@@ -305,6 +306,7 @@ class ChatController extends BaseController
                         $repliedUser = $this->userRepository->find($repliedMessage->user_id);
                         $formattedMessage['reply_message_id'] = $message->reply_message_id;
                         $formattedMessage['reply_data'] = [
+                            'messageId' => $message->reply_message_id,
                             'content' => $repliedMessage->content,
                             'user_id' => $repliedMessage->user_id,
                             'username' => $repliedUser ? $repliedUser->username : 'Unknown',
@@ -330,27 +332,40 @@ class ChatController extends BaseController
                 
                 error_log("$senderUsername direct message to $targetUsername : $content");
 
-                return $this->success([
+                $query->commit();
+
+                // Broadcast to socket server
+                $socketData = [
+                    'id' => $message->id,
+                    'roomId' => $chatRoomId,
+                    'content' => $content,
+                    'messageType' => $messageType,
+                    'timestamp' => time(),
                     'message' => $formattedMessage,
-                    'room_id' => $chatRoomId,
-                    'socket_event' => 'user-message-dm',
-                    'socket_data' => [
-                        'roomId' => $chatRoomId,
-                        'content' => $content,
-                        'messageType' => $messageType,
-                        'timestamp' => time(),
+                    'chatRoomId' => $chatRoomId,
+                    'user_id' => $userId,
+                    'username' => $senderUsername,
+                    'source' => 'server-originated'
+                ];
+                
+                SocketBroadcaster::broadcastToDM($chatRoomId, 'user-message-dm', $socketData);
+
+                return $this->success([
+                    'success' => true,
+                    'data' => [
                         'message' => $formattedMessage,
-                        'chatRoomId' => $chatRoomId,
-                        'user_id' => $userId,
-                        'username' => $senderUsername,
-                        'source' => 'client-relay'
+                        'room_id' => $chatRoomId
                     ],
-                    'client_should_emit_socket' => true
+                    'socket_event' => 'user-message-dm',
+                    'socket_data' => $socketData,
+                    'client_should_emit_socket' => false
                 ], 'Message sent successfully');
             } else {
+                $query->rollback();
                 throw new Exception('Failed to save message');
             }
         } catch (Exception $e) {
+            $query->rollback();
             return $this->serverError('Failed to send message');
         }
     }
@@ -387,7 +402,10 @@ class ChatController extends BaseController
                     'created_at' => $existingRoom->created_at,
                     'updated_at' => $existingRoom->updated_at
                 ];
-                return $this->success(['chat_room' => $chatRoomData]);
+                return $this->success([
+                'success' => true,
+                'data' => ['chat_room' => $chatRoomData]
+            ]);
             }
 
             $friend = $this->userRepository->find($friendId);
@@ -410,7 +428,10 @@ class ChatController extends BaseController
                 'created_at' => $chatRoom->created_at,
                 'updated_at' => $chatRoom->updated_at
             ];
-            return $this->success(['chat_room' => $chatRoomData], 'Direct message created');
+            return $this->success([
+                'success' => true,
+                'data' => ['chat_room' => $chatRoomData]
+            ], 'Direct message created');
         } catch (Exception $e) {
             error_log('CreateDirectMessage Error: ' . $e->getMessage());
             return $this->serverError('Failed to create direct message: ' . $e->getMessage());
@@ -609,7 +630,7 @@ class ChatController extends BaseController
             $limit = $_GET['limit'] ?? 20;
             $offset = $_GET['offset'] ?? 0;
 
-            $messages = $this->chatRoomRepository->getMessages($roomId, $limit, $offset);
+            $messages = $this->messageRepository->getForChatRoom($roomId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             return $this->success([
@@ -638,7 +659,7 @@ class ChatController extends BaseController
             'avatar_url' => $avatarUrl,
             'sent_at' => is_array($message) ? ($message['sent_at'] ?? $message['created_at']) : ($message->sent_at ?? $message->created_at),
             'edited_at' => is_array($message) ? ($message['edited_at'] ?? null) : ($message->edited_at ?? null),
-            'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->type ?? 'text'),
+            'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->message_type ?? 'text'),
             'message_type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->message_type ?? 'text'),
             'attachment_url' => is_array($message) ? ($message['attachment_url'] ?? null) : ($message->attachment_url ?? null),
             // Default to false for has_reactions
@@ -745,7 +766,7 @@ class ChatController extends BaseController
                 try {
                     $limit = 20;
                     $offset = 0;
-                    $rawMessages = $this->chatRoomRepository->getMessages($chatId, $limit, $offset);
+                    $rawMessages = $this->messageRepository->getForChatRoom($chatId, $limit, $offset);
                     $messages = array_map([$this, 'formatMessage'], $rawMessages);
                 } catch (Exception $e) {
                     $messages = [];
@@ -1072,90 +1093,5 @@ class ChatController extends BaseController
         }
     }
     
-    public function toggleReaction($messageId) {
-        $this->requireAuth();
-        $userId = $this->getCurrentUserId();
-        $username = $_SESSION['username'] ?? 'Unknown User';
-        
-        $message = $this->messageRepository->find($messageId);
-        if (!$message) {
-            return $this->notFound('Message not found');
-        }
-        
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-        $this->validate($input, ['emoji' => 'required']);
-        $emoji = $input['emoji'];
-        
-        try {
-            require_once __DIR__ . '/../database/models/MessageReaction.php';
-            require_once __DIR__ . '/../database/models/ChannelMessage.php';
-            
-            $targetId = null;
-            $targetType = 'channel';
-            
-            $channelMessage = ChannelMessage::findByMessageId($messageId);
-            if ($channelMessage) {
-                $targetId = $channelMessage->channel_id;
-                $targetType = 'channel';
-            } else {
-                $query = new Query();
-                $chatRoomMessage = $query->table('chat_room_messages')
-                    ->where('message_id', $messageId)
-                    ->first();
-                if ($chatRoomMessage) {
-                    $targetId = $chatRoomMessage['room_id'];
-                    $targetType = 'dm';
-                }
-            }
-            
-            if (!$targetId) {
-                return $this->serverError('Could not determine message target');
-            }
-            
-            $existingReaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
-            
-            if ($existingReaction) {
-                if (!$existingReaction->delete()) {
-                    return $this->serverError('Failed to remove reaction');
-                }
-                return $this->success([
-                    'action' => 'removed',
-                    'socket_data' => [
-                        'message_id' => $messageId,
-                        'emoji' => $emoji,
-                        'user_id' => $userId,
-                        'username' => $username,
-                        'target_type' => $targetType,
-                        'target_id' => $targetId
-                    ]
-                ]);
-            } else {
-                $reaction = new MessageReaction([
-                    'message_id' => $messageId,
-                    'user_id' => $userId,
-                    'emoji' => $emoji
-                ]);
-                
-                if (!$reaction->save()) {
-                    return $this->serverError('Failed to save reaction');
-                }
-                
-                return $this->success([
-                    'action' => 'added',
-                    'socket_data' => [
-                        'message_id' => $messageId,
-                        'emoji' => $emoji,
-                        'user_id' => $userId,
-                        'username' => $username,
-                        'target_type' => $targetType,
-                        'target_id' => $targetId
-                    ]
-                ]);
-            }
-        } catch (Exception $e) {
-            error_log('Reaction error: ' . $e->getMessage() . ' - ' . $e->getTraceAsString());
-            return $this->serverError('Failed to toggle reaction: ' . $e->getMessage());
-        }
-    }
+
 }

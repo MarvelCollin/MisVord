@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/Model.php';
+require_once __DIR__ . '/../query.php';
 
 class Message extends Model {
     protected static $table = 'messages';
@@ -13,47 +14,30 @@ class Message extends Model {
         
         return parent::save();
     }
-      public static function getForChannel($channelId, $limit = 50, $offset = 0) {
-        $query = new Query();
-        
-        error_log("Getting messages for channel $channelId with limit $limit and offset $offset");
-        
-        $results = $query->table('messages m')
-                ->select('m.*, u.username, u.avatar_url, m.sent_at as timestamp') 
-                ->join('channel_messages cm', 'm.id', '=', 'cm.message_id')
-                ->join('users u', 'm.user_id', '=', 'u.id')
-                ->where('cm.channel_id', $channelId)
-                ->orderBy('m.sent_at', 'DESC')
-                ->limit($limit)
-                ->offset($offset)
-                ->get();
-        
-        error_log("Found " . count($results) . " messages for channel $channelId");
-        
-        return array_reverse($results);
-    }
-      public static function getRecentForChannel($channelId, $limit = 10) {
-        $query = new Query();
-        return $query->table('messages m')
-                ->join('channel_messages cm', 'm.id', '=', 'cm.message_id')
-                ->join('users u', 'm.user_id', '=', 'u.id')
-                ->where('cm.channel_id', $channelId)
-                ->select('m.*, u.username, u.avatar_url')
-                ->orderBy('m.sent_at', 'DESC')
-                ->limit($limit)
-                ->get();
-    }
+
     
-    public function associateWithChannel($channelId) {
-        if (!$this->id) {
-            return false;
+    public function getMessageLocation() {
+        require_once __DIR__ . '/ChannelMessage.php';
+        $channelMessage = ChannelMessage::findByMessageId($this->id);
+        if ($channelMessage) {
+            return [
+                'type' => 'channel',
+                'id' => $channelMessage->channel_id
+            ];
         }
         
         $query = new Query();
-        return $query->table('channel_messages')->insert([
-            'channel_id' => $channelId,
-            'message_id' => $this->id
-        ]);
+        $chatRoomMessage = $query->table('chat_room_messages')
+            ->where('message_id', $this->id)
+            ->first();
+        if ($chatRoomMessage) {
+            return [
+                'type' => 'chat_room',
+                'id' => $chatRoomMessage['room_id']
+            ];
+        }
+        
+        return null;
     }
     
     public function user() {
@@ -113,7 +97,7 @@ class Message extends Model {
                         sent_at DATETIME NOT NULL,
                         edited_at DATETIME NULL,
                         message_type VARCHAR(50) NOT NULL DEFAULT 'text',
-                        attachment_url VARCHAR(255) NULL,
+                        attachment_url VARCHAR(512) NULL,
                         reply_message_id INT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

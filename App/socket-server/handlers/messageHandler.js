@@ -14,12 +14,20 @@ class MessageHandler {
         delete cleanData._debug;
         delete cleanData._serverDebug;
         
+        cleanData.userId = cleanData.userId || cleanData.user_id || client.data.userId;
+        cleanData.username = cleanData.username || client.data.username;
+        cleanData.timestamp = cleanData.timestamp || Date.now();
+        
         if (targetRoom) {
-            client.to(targetRoom).emit(eventName, cleanData);
-            console.log(`Forwarded ${eventName} to room: ${targetRoom}`);
+            const isInRoom = client.rooms.has(targetRoom);
+            if (isInRoom) {
+                client.to(targetRoom).emit(eventName, cleanData);
+                console.log(`✅ Forwarded ${eventName} to room: ${targetRoom} (user in room)`);
+            } else {
+                console.warn(`⚠️ User ${client.data.userId} not in room ${targetRoom}, skipping forward`);
+            }
         } else {
-            client.broadcast.emit(eventName, cleanData);
-            console.log(`Broadcasted ${eventName} to all clients`);
+            console.warn(`⚠️ No target room found for ${eventName}, data:`, data);
         }
     }
 
@@ -43,6 +51,35 @@ class MessageHandler {
             roomManager.broadcastToRoom(io, targetRoom, eventName, data);
         } else {
             console.warn(`⚠️ [REACTION] No target room found for ${eventName}:`, data);
+        }
+    }
+
+    static handlePin(io, client, eventName, data) {
+        if (!AuthHandler.requireAuth(client)) {
+            client.emit('error', { message: 'Authentication required' });
+            return;
+        }
+        
+        // Only accept server-originated pin events
+        if (data.source !== 'server-originated') {
+            console.warn('Rejecting client-originated pin event, should come from server:', data);
+            return;
+        }
+        
+        console.log(`📌 [PIN] Handling ${eventName}:`, {
+            messageId: data.message_id,
+            userId: data.user_id,
+            targetType: data.target_type,
+            targetId: data.target_id,
+            action: data.action
+        });
+        
+        const targetRoom = roomManager.getTargetRoom(data);
+        if (targetRoom) {
+            console.log(`📌 [PIN] Broadcasting ${eventName} to room: ${targetRoom}`);
+            roomManager.broadcastToRoom(io, targetRoom, eventName, data);
+        } else {
+            console.warn(`⚠️ [PIN] No target room found for ${eventName}:`, data);
         }
     }
 

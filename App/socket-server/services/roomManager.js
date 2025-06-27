@@ -39,7 +39,7 @@ class RoomManager {
             this.userSockets.get(userId).delete(socketId);
             if (this.userSockets.get(userId).size === 0) {
                 this.userSockets.delete(userId);
-                return true; // User is now offline
+                return true;
             }
         }
         return false;

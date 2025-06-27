@@ -2,7 +2,7 @@ class MessageService {
     constructor() {
         this.recentMessages = new Map();
         this.maxRecentMessages = 100;
-        this.messageTTL = 5000; // 5 seconds
+        this.messageTTL = 5000;
     }
     
     isDuplicate(messageSignature) {
@@ -14,8 +14,10 @@ class MessageService {
         this.cleanOldMessages();
     }
     
-    generateSignature(eventName, userId, messageId, content) {
-        return `${eventName}_${userId}_${messageId}_${content?.substring(0, 20) || ''}`;
+    generateSignature(eventName, userId, messageId, content, timestamp) {
+        const contentHash = content?.substring(0, 20) || '';
+        const timestampHash = timestamp || Date.now();
+        return `${eventName}_${userId}_${messageId}_${contentHash}_${timestampHash}`;
     }
     
     cleanOldMessages() {

@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
+require_once __DIR__ . '/../database/repositories/ChannelMessageRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
 require_once __DIR__ . '/BaseController.php';
@@ -19,6 +20,7 @@ class ChannelController extends BaseController
         parent::__construct();
         $this->channelRepository = new ChannelRepository();
         $this->messageRepository = new MessageRepository();
+        $this->channelMessageRepository = new ChannelMessageRepository();
         $this->membershipRepository = new UserServerMembershipRepository();
         $this->categoryRepository = new CategoryRepository();
     }
@@ -243,12 +245,14 @@ class ChannelController extends BaseController
         }
     }
 
-    public function getMessages()
+    public function getMessages($channelId = null)
     {
         $this->requireAuth();
 
-        $input = $this->getInput();
-        $channelId = $input['channel_id'] ?? null;
+        if (!$channelId) {
+            $input = $this->getInput();
+            $channelId = $input['channel_id'] ?? null;
+        }
 
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
@@ -263,7 +267,9 @@ class ChannelController extends BaseController
                 return $this->forbidden('You do not have access to this channel');
             }
 
-            $messages = [];
+            $limit = $_GET['limit'] ?? 50;
+            $offset = $_GET['offset'] ?? 0;
+            $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, $offset);
 
             $this->logActivity('channel_messages_viewed', [
                 'channel_id' => $channelId,
@@ -273,7 +279,8 @@ class ChannelController extends BaseController
             return $this->success([
                 'messages' => $messages,
                 'channel_id' => $channelId,
-                'total' => count($messages)
+                'total' => count($messages),
+                'has_more' => count($messages) >= $limit
             ]);
         } catch (Exception $e) {
             $this->logActivity('channel_messages_error', [
@@ -284,54 +291,143 @@ class ChannelController extends BaseController
         }
     }
 
-    public function sendMessage()
+    public function sendMessage($channelId = null)
     {
         $this->requireAuth();
 
         $input = $this->getInput();
         $input = $this->sanitize($input);
 
+        if ($channelId) {
+            $input['channel_id'] = $channelId;
+        }
+
         $this->validate($input, [
             'channel_id' => 'required',
             'content' => 'required'
         ]);
+
+        $targetId = $input['channel_id'];
+        $content = trim($input['content']);
+        $userId = $this->getCurrentUserId();
+        $messageType = $input['message_type'] ?? 'text';
+        $attachmentUrl = $input['attachment_url'] ?? null;
+        $mentions = $input['mentions'] ?? [];
+        $replyMessageId = $input['reply_message_id'] ?? null;
+
         try {
-            $channel = $this->channelRepository->find($input['channel_id']);
+            $channel = $this->channelRepository->find($targetId);
             if (!$channel) {
                 return $this->notFound('Channel not found');
             }
 
-            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $channel->server_id)) {
-                return $this->forbidden('You do not have access to this channel');
+            if ($channel->server_id != 0) {
+                $membership = $this->membershipRepository->findByUserAndServer($userId, $channel->server_id);
+                if (!$membership) {
+                    return $this->forbidden('You are not a member of this server');
+                }
             }
 
+            $query = new Query();
+            $query->beginTransaction();
+            
             $messageData = [
-                'channel_id' => $input['channel_id'],
-                'user_id' => $this->getCurrentUserId(),
-                'content' => $input['content'],
-                'message_type' => $input['message_type'] ?? 'text',
-                'created_at' => date('Y-m-d H:i:s')
+                'content' => $content,
+                'user_id' => $userId,
+                'message_type' => $messageType,
+                'attachment_url' => $attachmentUrl,
+                'sent_at' => date('Y-m-d H:i:s'),
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
             ];
+            
+            if ($replyMessageId) {
+                $repliedMessage = $this->messageRepository->find($replyMessageId);
+                if ($repliedMessage) {
+                    $messageData['reply_message_id'] = $replyMessageId;
+                }
+            }
+
             $message = $this->messageRepository->create($messageData);
 
-            if ($message) {
-                $this->logActivity('channel_message_sent', [
-                    'channel_id' => $input['channel_id'],
-                    'message_id' => $message->id
-                ]);
+            if ($message && isset($message->id)) {
+                $this->channelMessageRepository->addMessageToChannel($targetId, $message->id);
+                
+                require_once __DIR__ . '/../database/repositories/UserRepository.php';
+                $userRepository = new UserRepository();
+                $user = $userRepository->find($userId);
+                
+                $formattedMessage = [
+                    'id' => $message->id,
+                    'content' => $message->content,
+                    'user_id' => $message->user_id,
+                    'username' => $user ? $user->username : ($_SESSION['username'] ?? 'Unknown'),
+                    'avatar_url' => $user && $user->avatar_url ? $user->avatar_url : '/public/assets/common/main-logo.png',
+                    'sent_at' => $message->sent_at,
+                    'edited_at' => $message->edited_at,
+                    'type' => $message->message_type ?? 'text',
+                    'message_type' => $message->message_type ?? 'text',
+                    'attachment_url' => $message->attachment_url,
+                    'has_reactions' => false,
+                    'reaction_count' => 0,
+                    'reactions' => []
+                ];
+                
+                if ($message->reply_message_id) {
+                    $repliedMessage = $this->messageRepository->find($message->reply_message_id);
+                    if ($repliedMessage) {
+                        $repliedUser = $userRepository->find($repliedMessage->user_id);
+                        $formattedMessage['reply_message_id'] = $message->reply_message_id;
+                        $formattedMessage['reply_data'] = [
+                            'messageId' => $message->reply_message_id,
+                            'content' => $repliedMessage->content,
+                            'user_id' => $repliedMessage->user_id,
+                            'username' => $repliedUser ? $repliedUser->username : 'Unknown',
+                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/main-logo.png'
+                        ];
+                    }
+                }
 
+                if (!empty($mentions)) {
+                    $formattedMessage['mentions'] = $mentions;
+                }
+
+                $query->commit();
+                
+                $socketData = [
+                    'id' => $message->id,
+                    'channelId' => $targetId,
+                    'content' => $content,
+                    'messageType' => $messageType,
+                    'timestamp' => time(),
+                    'message' => $formattedMessage,
+                    'user_id' => $userId,
+                    'username' => $_SESSION['username'] ?? 'Unknown',
+                    'source' => 'server-originated'
+                ];
+                
+                require_once __DIR__ . '/../utils/SocketBroadcaster.php';
+                SocketBroadcaster::broadcastToChannel($targetId, 'new-channel-message', $socketData);
+                
                 return $this->success([
-                    'message' => 'Message sent successfully',
-                    'message_id' => $message->id
-                ], 201);
+                    'success' => true,
+                    'data' => [
+                        'message' => $formattedMessage,
+                        'channel_id' => $targetId
+                    ],
+                    'socket_event' => 'new-channel-message',
+                    'socket_data' => $socketData,
+                    'client_should_emit_socket' => false
+                ], 'Message sent successfully');
             } else {
-                return $this->serverError('Failed to send message');
+                $query->rollback();
+                throw new Exception('Failed to save message');
             }
         } catch (Exception $e) {
-            $this->logActivity('channel_message_error', [
-                'channel_id' => $input['channel_id'],
-                'error' => $e->getMessage()
-            ]);
+            if (isset($query)) {
+                $query->rollback();
+            }
+            error_log('Channel message send error: ' . $e->getMessage());
             return $this->serverError('Failed to send message');
         }
     }

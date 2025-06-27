@@ -1,4 +1,3 @@
-// TextCaptcha class for generating and handling captcha verification
 export class TextCaptcha {
     constructor(containerId, options = {}) {
         this.container = document.getElementById(containerId);

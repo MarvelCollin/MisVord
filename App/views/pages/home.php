@@ -74,7 +74,9 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
         
         $GLOBALS['chatData'] = $chatData;
         
-        $messages = $chatRoomRepository->getMessages($activeDmId, 20, 0);
+        require_once __DIR__ . '/../../database/repositories/ChatRoomMessageRepository.php';
+$chatRoomMessageRepository = new ChatRoomMessageRepository();
+$messages = $chatRoomMessageRepository->getMessagesByRoomId($activeDmId, 20, 0);
         $GLOBALS['messages'] = $messages;
     }
 }

@@ -5,6 +5,7 @@ require_once __DIR__ . '/../database/models/MessageReaction.php';
 require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../utils/SocketBroadcaster.php';
 
 class MessageController extends BaseController
 {
@@ -34,11 +35,66 @@ class MessageController extends BaseController
         }
 
         try {
-            $existingReaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
-            if ($existingReaction) {
-                return $this->success(['message' => 'Reaction already exists']);
+            // Find target info first
+            require_once __DIR__ . '/../database/models/ChannelMessage.php';
+            
+            $targetId = null;
+            $targetType = 'channel';
+            
+            $channelMessage = ChannelMessage::findByMessageId($messageId);
+            if ($channelMessage) {
+                $targetId = $channelMessage->channel_id;
+                $targetType = 'channel';
+            } else {
+                $query = new Query();
+                $chatRoomMessage = $query->table('chat_room_messages')
+                    ->where('message_id', $messageId)
+                    ->first();
+                if ($chatRoomMessage) {
+                    $targetId = $chatRoomMessage['room_id'];
+                    $targetType = 'dm';
+                }
             }
 
+            if (!$targetId) {
+                return $this->serverError('Could not determine message target');
+            }
+
+            // Check if reaction already exists (toggle behavior)
+            $existingReaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
+            if ($existingReaction) {
+                if ($existingReaction->delete()) {
+                    $socketData = [
+                        'message_id' => $messageId,
+                        'user_id' => $userId,
+                        'username' => $username,
+                        'emoji' => $emoji,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId,
+                        'action' => 'removed',
+                        'source' => 'server-originated'
+                    ];
+                    
+                    SocketBroadcaster::broadcastMessage($targetType, $targetId, 'reaction-removed', $socketData);
+                    
+                    return $this->success([
+                        'message_id' => $messageId,
+                        'emoji' => $emoji,
+                        'user_id' => $userId,
+                        'username' => $username,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId,
+                        'action' => 'removed',
+                        'socket_event' => 'reaction-removed',
+                        'socket_data' => $socketData,
+                        'client_should_emit_socket' => false
+                    ], 'Reaction removed successfully');
+                } else {
+                    return $this->serverError('Failed to remove reaction');
+                }
+            }
+
+            // Add new reaction
             $reaction = new MessageReaction([
                 'message_id' => $messageId,
                 'user_id' => $userId,
@@ -46,42 +102,32 @@ class MessageController extends BaseController
             ]);
 
             if ($reaction->save()) {
-                require_once __DIR__ . '/../database/models/ChannelMessage.php';
+                // Broadcast reaction to socket server
+                $socketData = [
+                    'message_id' => $messageId,
+                    'user_id' => $userId,
+                    'username' => $username,
+                    'emoji' => $emoji,
+                    'target_type' => $targetType,
+                    'target_id' => $targetId,
+                    'action' => 'added',
+                    'source' => 'server-originated'
+                ];
                 
-                $targetId = null;
-                $targetType = 'channel';
+                SocketBroadcaster::broadcastMessage($targetType, $targetId, 'reaction-added', $socketData);
                 
-                $channelMessage = ChannelMessage::findByMessageId($messageId);
-                if ($channelMessage) {
-                    $targetId = $channelMessage->channel_id;
-                    $targetType = 'channel';
-                } else {
-                    $query = new Query();
-                    $chatRoomMessage = $query->table('chat_room_messages')
-                        ->where('message_id', $messageId)
-                        ->first();
-                    if ($chatRoomMessage) {
-                        $targetId = $chatRoomMessage['room_id'];
-                        $targetType = 'dm';
-                    }
-                }
-
                 return $this->success([
                     'message_id' => $messageId,
                     'emoji' => $emoji,
                     'user_id' => $userId,
                     'username' => $username,
-                'socket_event' => 'reaction-added',
-                'socket_data' => [
-                    'message_id' => $messageId,
-                    'user_id' => $userId,
-                        'username' => $username,
-                        'emoji' => $emoji,
-                        'target_type' => $targetType,
-                        'target_id' => $targetId
-                ],
-                'client_should_emit_socket' => true
-            ], 'Reaction added successfully');
+                    'target_type' => $targetType,
+                    'target_id' => $targetId,
+                    'action' => 'added',
+                    'socket_event' => 'reaction-added',
+                    'socket_data' => $socketData,
+                    'client_should_emit_socket' => false
+                ], 'Reaction added successfully');
             } else {
                 throw new Exception('Failed to save reaction');
             }
@@ -140,15 +186,19 @@ class MessageController extends BaseController
                 'message_id' => $messageId,
                 'emoji' => $emoji,
                 'user_id' => $userId,
-                    'username' => $username,
+                'username' => $username,
+                'target_type' => $targetType,
+                'target_id' => $targetId,
+                'action' => 'removed',
                 'socket_event' => 'reaction-removed',
                 'socket_data' => [
                     'message_id' => $messageId,
                     'user_id' => $userId,
-                        'username' => $username,
-                        'emoji' => $emoji,
-                        'target_type' => $targetType,
-                        'target_id' => $targetId
+                    'username' => $username,
+                    'emoji' => $emoji,
+                    'target_type' => $targetType,
+                    'target_id' => $targetId,
+                    'action' => 'removed'
                 ],
                 'client_should_emit_socket' => true
             ], 'Reaction removed successfully');
@@ -195,6 +245,7 @@ class MessageController extends BaseController
     {
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
+        $username = $_SESSION['username'] ?? 'Unknown User';
 
         $message = $this->messageRepository->find($messageId);
         if (!$message) {
@@ -202,18 +253,121 @@ class MessageController extends BaseController
         }
 
         try {
-            return $this->success([
-                'message_id' => $messageId,
-                'socket_event' => 'message-pinned',
-                'socket_data' => [
-                'message_id' => $messageId,
-                'user_id' => $userId
-                ],
-                'client_should_emit_socket' => true
-            ], 'Message pinned successfully');
+            // Find target info
+            require_once __DIR__ . '/../database/models/ChannelMessage.php';
+            require_once __DIR__ . '/../database/models/PinnedMessage.php';
+            
+            $targetId = null;
+            $targetType = 'channel';
+            
+            $channelMessage = ChannelMessage::findByMessageId($messageId);
+            if ($channelMessage) {
+                $targetId = $channelMessage->channel_id;
+                $targetType = 'channel';
+            } else {
+                $query = new Query();
+                $chatRoomMessage = $query->table('chat_room_messages')
+                    ->where('message_id', $messageId)
+                    ->first();
+                if ($chatRoomMessage) {
+                    $targetId = $chatRoomMessage['room_id'];
+                    $targetType = 'dm';
+                }
+            }
+
+            if (!$targetId) {
+                return $this->serverError('Could not determine message target');
+            }
+
+            // Check if message is already pinned
+            $query = new Query();
+            $existingPin = $query->table('pinned_messages')
+                ->where('message_id', $messageId)
+                ->first();
+
+            if ($existingPin) {
+                // Unpin message
+                $query->table('pinned_messages')
+                    ->where('message_id', $messageId)
+                    ->delete();
+
+                // Broadcast unpin to socket server
+                $socketData = [
+                    'message_id' => $messageId,
+                    'user_id' => $userId,
+                    'username' => $username,
+                    'target_type' => $targetType,
+                    'target_id' => $targetId,
+                    'action' => 'unpinned',
+                    'source' => 'server-originated'
+                ];
+                
+                SocketBroadcaster::broadcastMessage($targetType, $targetId, 'message-unpinned', $socketData);
+
+                return $this->success([
+                    'message_id' => $messageId,
+                    'action' => 'unpinned',
+                    'target_type' => $targetType,
+                    'target_id' => $targetId,
+                    'socket_event' => 'message-unpinned',
+                    'socket_data' => $socketData,
+                    'client_should_emit_socket' => false
+                ], 'Message unpinned successfully');
+            } else {
+                // Pin message
+                $pinId = $query->table('pinned_messages')->insert([
+                    'message_id' => $messageId,
+                    'pinned_by' => $userId,
+                    'pinned_at' => date('Y-m-d H:i:s'),
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+                if ($pinId) {
+                    // Broadcast pin to socket server
+                    $socketData = [
+                        'message_id' => $messageId,
+                        'user_id' => $userId,
+                        'username' => $username,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId,
+                        'action' => 'pinned',
+                        'message' => $this->formatMessageForPin($message),
+                        'source' => 'server-originated'
+                    ];
+                    
+                    SocketBroadcaster::broadcastMessage($targetType, $targetId, 'message-pinned', $socketData);
+                    
+                    return $this->success([
+                        'message_id' => $messageId,
+                        'action' => 'pinned',
+                        'target_type' => $targetType,
+                        'target_id' => $targetId,
+                        'socket_event' => 'message-pinned',
+                        'socket_data' => $socketData,
+                        'client_should_emit_socket' => false
+                    ], 'Message pinned successfully');
+                } else {
+                    return $this->serverError('Failed to save pin');
+                }
+            }
         } catch (Exception $e) {
-            return $this->serverError('Failed to pin message');
+            return $this->serverError('Failed to pin message: ' . $e->getMessage());
         }
+    }
+
+    private function formatMessageForPin($message)
+    {
+        $user = $this->getUserRepository()->find($message->user_id);
+        return [
+            'id' => $message->id,
+            'content' => $message->content,
+            'user_id' => $message->user_id,
+            'username' => $user ? $user->username : 'Unknown User',
+            'avatar_url' => $user && $user->avatar_url ? $user->avatar_url : '/public/assets/common/main-logo.png',
+            'sent_at' => $message->sent_at,
+            'message_type' => $message->message_type ?? 'text'
+        ];
     }
 
     public function debugMessageStorage()

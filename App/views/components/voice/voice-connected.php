@@ -9,7 +9,6 @@ $activeChannel = $GLOBALS['activeChannel'] ?? null;
             <div id="videoGrid" class="flex flex-wrap gap-6 justify-center mb-8"></div>
 
             <div id="participants" class="flex flex-wrap gap-6 justify-center">
-                <!-- Current user card -->
                 <div class="voice-participant-card bg-[#2b2d31] rounded-lg p-6 flex flex-col items-center justify-center min-w-[200px] min-h-[240px] border border-[#3e4146] hover:border-[#5865f2] transition-all duration-200 shadow-lg" id="localParticipantCard">
                     <div class="relative mb-4" id="localAvatarWrapper">
                         <div class="w-20 h-20 rounded-full bg-[#5865F2] flex items-center justify-center overflow-hidden border-4 border-[#3ba55c] shadow-lg" id="localAvatar">
@@ -31,13 +30,11 @@ $activeChannel = $GLOBALS['activeChannel'] ?? null;
                     </div>
                 </div>
                 
-                <!-- Example participant card (will be populated by JavaScript) -->
                 <div class="voice-participant-card bg-[#2b2d31] rounded-lg p-6 flex flex-col items-center justify-center min-w-[200px] min-h-[240px] border border-[#3e4146] hover:border-[#5865f2] transition-all duration-200 shadow-lg opacity-50" style="display: none;" id="participant-template">
                     <div class="relative mb-4">
                         <div class="w-20 h-20 rounded-full bg-[#36393f] flex items-center justify-center overflow-hidden border-4 border-[#747f8d] shadow-lg">
                             <span class="text-white text-2xl font-bold">U</span>
                         </div>
-                        <!-- Voice indicator for participant -->
                         <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-[#ed4245] rounded-full border-2 border-[#2b2d31] flex items-center justify-center">
                             <i class="fas fa-microphone-slash text-white text-xs"></i>
                         </div>
@@ -52,7 +49,6 @@ $activeChannel = $GLOBALS['activeChannel'] ?? null;
                 </div>
             </div>
             
-            <!-- Empty state when no other participants -->
             <div id="emptyParticipants" class="text-center mt-8">
                 <div class="text-[#b9bbbe] text-lg mb-2">🎤 You're the only one here</div>
                 <p class="text-[#747f8d] text-sm">Invite friends to join your voice channel!</p>
@@ -112,7 +108,6 @@ $activeChannel = $GLOBALS['activeChannel'] ?? null;
          meeting.on('stream-enabled', (p, stream) => handleStreamEnabled(stream, p));
          meeting.on('stream-disabled', (p, stream) => handleStreamDisabled(stream, p));
 
-         // attach existing local video if already enabled
          const lp = meeting.localParticipant;
          if (lp && (lp.isWebcamEnabled || lp.streams?.has?.('video'))) {
              const videoTrack = lp.getCameraStream ? lp.getCameraStream() : null;

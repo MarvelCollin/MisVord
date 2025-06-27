@@ -214,6 +214,16 @@ Route::get('/api/channels/([0-9]+)/participants', function($channelId) {
     $controller->getChannelParticipants($channelId);
 });
 
+Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
+    $controller = new ChannelController();
+    $controller->getMessages($channelId);
+});
+
+Route::post('/api/channels/([0-9]+)/messages', function($channelId) {
+    $controller = new ChannelController();
+    $controller->sendMessage($channelId);
+});
+
 Route::get('/api/servers/([0-9]+)', function($serverId) {
     $controller = new ServerController();
     $controller->getServerDetails($serverId);
@@ -269,8 +279,6 @@ Route::get('/debug/logs', function() {
     require_once __DIR__ . '/../public/debug-logs.html';
     exit;
 });
-
-
 
 Route::get('/api/friends', function() {
     $controller = new FriendController();
@@ -368,18 +376,18 @@ Route::post('/api/chat/send', function() {
 });
 
 Route::get('/api/messages/([0-9]+)/reactions', function($messageId) {
-    $controller = new ChatController();
-    $controller->getMessageReactions($messageId);
+    $controller = new MessageController();
+    $controller->getReactions($messageId);
 });
 
 Route::post('/api/messages/([0-9]+)/reactions', function($messageId) {
-    $controller = new ChatController();
-    $controller->toggleReaction($messageId);
+    $controller = new MessageController();
+    $controller->addReaction($messageId);
 });
 
 Route::post('/api/messages/([0-9]+)/pin', function($messageId) {
-    $controller = new ChatController();
-    $controller->togglePin($messageId);
+    $controller = new MessageController();
+    $controller->pinMessage($messageId);
 });
 
 Route::put('/api/messages/([0-9]+)', function($messageId) {

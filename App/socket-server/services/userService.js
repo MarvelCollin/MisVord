@@ -27,7 +27,7 @@ class UserService {
         return presence;
     }
 
-    cleanOldPresence(maxAge = 300000) { // 5 minutes
+    cleanOldPresence(maxAge = 300000) {
         const now = Date.now();
         for (const [userId, data] of this.userPresence.entries()) {
             if (now - data.lastUpdated > maxAge) {

@@ -10,6 +10,10 @@ class CreateMessageReactionsTableMigration {
             
             $table->foreignKey('message_id', 'messages', 'id', 'CASCADE');
             $table->foreignKey('user_id', 'users', 'id', 'CASCADE');
+            
+            $table->unique(['message_id', 'user_id', 'emoji']);
+            $table->index('message_id');
+            $table->index('user_id');
         });
     }
 

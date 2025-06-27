@@ -84,13 +84,37 @@ class ChannelAPI {
             return cached;
         }
         
-        const url = `${this.baseURL}/channel-content?server_id=${encodeURIComponent(serverId)}&channel_id=${encodeURIComponent(channelId)}&type=${encodeURIComponent(type)}`;
-        
-        const data = await this.makeRequest(url, { method: 'GET' });
-        
-        this.setCachedData(serverId, channelId, type, data);
-        
-        return data;
+        try {
+            // Get basic channel info
+            const channelUrl = `${this.baseURL}/channel-content?server_id=${encodeURIComponent(serverId)}&channel_id=${encodeURIComponent(channelId)}&type=${encodeURIComponent(type)}`;
+            const channelData = await this.makeRequest(channelUrl, { method: 'GET' });
+            
+            // If it's a text channel, load messages using ChatAPI for consistency
+            if (type === 'text' && window.chatAPI) {
+                try {
+                    const messagesResponse = await window.chatAPI.getMessages('channel', channelId, 50, 0);
+                    if (messagesResponse && messagesResponse.messages) {
+                        channelData.messages = messagesResponse.messages;
+                    }
+                } catch (messageError) {
+                    console.warn('Failed to load messages via ChatAPI, using fallback:', messageError);
+                    // Fallback to direct channel message API
+                    try {
+                        const messagesData = await this.getChannelMessages(channelId, 50, 0);
+                        channelData.messages = messagesData.messages || [];
+                    } catch (fallbackError) {
+                        console.warn('Fallback message loading also failed:', fallbackError);
+                        channelData.messages = [];
+                    }
+                }
+            }
+            
+            this.setCachedData(serverId, channelId, type, channelData);
+            return channelData;
+        } catch (error) {
+            console.error('Failed to load channel data:', error);
+            throw error;
+        }
     }
 
     async createChannel(channelData) {
@@ -130,6 +154,22 @@ class ChannelAPI {
         return await this.makeRequest(`${this.baseURL}/categories`, {
             method: 'POST',
             body: JSON.stringify(categoryData)
+        });
+    }
+
+    async getChannelMessages(channelId, limit = 50, offset = 0) {
+        return await this.makeRequest(`${this.baseURL}/channels/${channelId}/messages?limit=${limit}&offset=${offset}`, {
+            method: 'GET'
+        });
+    }
+
+    async sendChannelMessage(channelId, content, messageType = 'text') {
+        return await this.makeRequest(`${this.baseURL}/channels/${channelId}/messages`, {
+            method: 'POST',
+            body: JSON.stringify({
+                content: content,
+                message_type: messageType
+            })
         });
     }
 
@@ -360,12 +400,40 @@ class ChannelRenderer {
         const sendButton = document.getElementById('send-button');
         const messageInput = document.getElementById('message-input');
         
-        if (sendButton && messageInput) {
-            sendButton.addEventListener('click', () => {
-                const content = messageInput.value.trim();
-                if (content) {
-                    console.log('Sending message:', content);
+        const sendMessage = async () => {
+            const content = messageInput.value.trim();
+            if (content) {
+                try {
+                    sendButton.disabled = true;
+                    messageInput.disabled = true;
+                    
+                    // Use chat API for consistency with socket handling
+                    if (window.chatAPI) {
+                        await window.chatAPI.sendMessage(channel.id, content, 'channel');
+                    } else {
+                        // Fallback to channel API
+                        await this.api.sendChannelMessage(channel.id, content);
+                    }
+                    
                     messageInput.value = '';
+                } catch (error) {
+                    console.error('Failed to send message:', error);
+                    // Show error to user
+                } finally {
+                    sendButton.disabled = false;
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                }
+            }
+        };
+        
+        if (sendButton && messageInput) {
+            sendButton.addEventListener('click', sendMessage);
+            
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
                 }
             });
         }

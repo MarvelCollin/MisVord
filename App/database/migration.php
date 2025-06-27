@@ -334,6 +334,22 @@ class Migration {
         return $this;
     }
 
+    public function unique($columns, $name = null) {
+        if (!is_array($columns)) {
+            $columns = [$columns];
+        }
+
+        if ($name === null) {
+            $name = $this->tableName . '_' . implode('_', $columns) . '_unique';
+        }
+
+        $columnStr = implode('`, `', $columns);
+
+        $this->uniqueIndexes[] = "UNIQUE INDEX `$name` (`$columnStr`)";
+
+        return $this;
+    }
+
     protected function buildCreateTableSQL() {
         $temporary = $this->temporary ? 'TEMPORARY' : '';
         $ifNotExists = $this->ifNotExists ? 'IF NOT EXISTS' : '';

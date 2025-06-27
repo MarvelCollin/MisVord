@@ -356,7 +356,6 @@ if ($chatType === 'channel') {
     </div>
 
     <div class="flex-1 overflow-y-auto discord-scrollbar bg-[#313338]" id="chat-messages">
-        <!-- Messages will be loaded via JavaScript with skeleton loading -->
     </div>
 
     <div id="typing-indicator" class="text-xs text-[#b5bac1] pb-1 pl-5 flex items-center hidden">

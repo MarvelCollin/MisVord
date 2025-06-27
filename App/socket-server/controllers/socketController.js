@@ -14,56 +14,101 @@ function setup(io) {
     io.on('connection', (client) => {
         console.log(`Client connected: ${client.id}`);
         
-        // Authentication
         client.on('authenticate', (data) => AuthHandler.handle(io, client, data));
         
-        // Room management
         client.on('join-channel', (data) => RoomHandler.joinChannel(io, client, data));
         client.on('leave-channel', (data) => RoomHandler.leaveChannel(io, client, data));
         client.on('join-dm-room', (data) => RoomHandler.joinDMRoom(io, client, data));
         
-        // Message forwarding
         client.on('new-channel-message', (data) => {
-            const signature = messageService.generateSignature('new-channel-message', client.data?.userId, data.id, data.content);
+            if (!AuthHandler.requireAuth(client)) return;
+            
+            if (data.source !== 'server-originated') {
+                console.warn('Rejecting client-originated message, should come from server:', data);
+                return;
+            }
+            
+            const signature = messageService.generateSignature('new-channel-message', client.data?.userId, data.id, data.content, data.timestamp);
             if (!messageService.isDuplicate(signature)) {
                 messageService.markAsProcessed(signature);
+                if (!data.channelId && !data.channel_id) {
+                    console.warn('Channel message missing channelId:', data);
+                    return;
+                }
+                const channelId = data.channelId || data.channel_id;
+                data.channelId = channelId;
+                data.userId = data.userId || data.user_id || client.data.userId;
+                data.username = data.username || client.data.username;
                 MessageHandler.forwardMessage(io, client, 'new-channel-message', data);
             }
         });
         
         client.on('user-message-dm', (data) => {
-            const signature = messageService.generateSignature('user-message-dm', client.data?.userId, data.id, data.content);
+            if (!AuthHandler.requireAuth(client)) return;
+            
+            if (data.source !== 'server-originated') {
+                console.warn('Rejecting client-originated DM message, should come from server:', data);
+                return;
+            }
+            
+            const signature = messageService.generateSignature('user-message-dm', client.data?.userId, data.id, data.content, data.timestamp);
             if (!messageService.isDuplicate(signature)) {
                 messageService.markAsProcessed(signature);
+                if (!data.roomId && !data.chatRoomId) {
+                    console.warn('DM message missing roomId:', data);
+                    return;
+                }
+                const roomId = data.roomId || data.chatRoomId;
+                data.roomId = roomId;
+                data.userId = data.userId || data.user_id || client.data.userId;
+                data.username = data.username || client.data.username;
                 MessageHandler.forwardMessage(io, client, 'user-message-dm', data);
             }
         });
         
-        client.on('message-updated', (data) => MessageHandler.forwardMessage(io, client, 'message-updated', data));
-        client.on('message-deleted', (data) => MessageHandler.forwardMessage(io, client, 'message-deleted', data));
+        client.on('message-updated', (data) => {
+            if (!AuthHandler.requireAuth(client)) return;
+            
+            if (!data.message_id) {
+                console.warn('Message update missing message_id:', data);
+                return;
+            }
+            data.userId = data.userId || data.user_id || client.data.userId;
+            data.username = data.username || client.data.username;
+            MessageHandler.forwardMessage(io, client, 'message-updated', data);
+        });
         
-        // Reactions
+        client.on('message-deleted', (data) => {
+            if (!AuthHandler.requireAuth(client)) return;
+            
+            if (!data.message_id) {
+                console.warn('Message deletion missing message_id:', data);
+                return;
+            }
+            data.userId = data.userId || data.user_id || client.data.userId;
+            data.username = data.username || client.data.username;
+            MessageHandler.forwardMessage(io, client, 'message-deleted', data);
+        });
+        
         client.on('reaction-added', (data) => MessageHandler.handleReaction(io, client, 'reaction-added', data));
         client.on('reaction-removed', (data) => MessageHandler.handleReaction(io, client, 'reaction-removed', data));
         
-        // Typing indicators
+        client.on('message-pinned', (data) => MessageHandler.handlePin(io, client, 'message-pinned', data));
+        client.on('message-unpinned', (data) => MessageHandler.handlePin(io, client, 'message-unpinned', data));
+        
         client.on('typing', (data) => MessageHandler.handleTyping(io, client, data, true));
         client.on('stop-typing', (data) => MessageHandler.handleTyping(io, client, data, false));
         
-        // Presence
         client.on('update-presence', (data) => handlePresence(io, client, data));
         
-        // Voice meetings
         client.on('check-voice-meeting', (data) => handleCheckVoiceMeeting(io, client, data));
         client.on('register-voice-meeting', (data) => handleRegisterVoiceMeeting(io, client, data));
         client.on('unregister-voice-meeting', (data) => handleUnregisterVoiceMeeting(io, client, data));
         
-        // Utility
         client.on('get-online-users', () => handleGetOnlineUsers(io, client));
         client.on('debug-rooms', () => handleDebugRooms(io, client));
         client.on('heartbeat', () => client.emit('heartbeat-response', { time: Date.now() }));
         
-        // Disconnect
         client.on('disconnect', () => handleDisconnect(io, client));
     });
 }
@@ -224,7 +269,6 @@ function handleDisconnect(io, client) {
             });
         }
         
-        // Clean up voice meetings
         const allMeetings = roomManager.getAllVoiceMeetings();
         for (const meeting of allMeetings) {
             const result = roomManager.removeVoiceMeeting(meeting.channelId, client.id);

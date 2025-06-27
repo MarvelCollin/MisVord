@@ -602,7 +602,7 @@ class ChatSection {
             if (messageElement) {
                 const messageGroup = messageElement.closest('.message-group');
                 
-                if (messageGroup.querySelectorAll('.message-content').length === 1) {
+                if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
                     messageGroup.remove();
                 } else {
                     messageElement.remove();
@@ -669,8 +669,24 @@ class ChatSection {
         this.showNotification('Message marked as unread');
     }
     
-    pinMessage(messageId) {
-        this.showNotification('Feature coming soon: Pin message');
+    async pinMessage(messageId) {
+        try {
+            if (!window.ChatAPI) {
+                throw new Error('ChatAPI not available');
+            }
+            
+            const response = await window.ChatAPI.pinMessage(messageId);
+            
+            if (response && response.data) {
+                const action = response.data.action || response.action;
+                const message = action === 'pinned' ? 'Message pinned successfully' : 'Message unpinned successfully';
+                this.showNotification(message, 'success');
+            }
+            
+        } catch (error) {
+            console.error('Failed to pin/unpin message:', error);
+            this.showNotification('Failed to pin/unpin message: ' + (error.message || 'Unknown error'), 'error');
+        }
     }
     
     startThread(messageId) {
@@ -773,7 +789,6 @@ class ChatSection {
             return;
         }
         
-        // Use the emoji reactions system's showEmojiPicker method
         window.emojiReactions.showEmojiPicker(messageId, targetElement);
     }
     
@@ -1017,7 +1032,13 @@ class ChatSection {
                     
                     if (uploadResponse && uploadResponse.url) {
                         attachmentUrl = uploadResponse.url;
-                        messageType = fileType && fileType.startsWith('image/') ? 'image' : 'file';
+                        if (fileType && fileType.startsWith('image/')) {
+                            messageType = 'image';
+                        } else if (fileType && fileType.startsWith('video/')) {
+                            messageType = 'video';
+                        } else {
+                            messageType = 'file';
+                        }
                     } else {
                         throw new Error('Failed to upload file');
                     }
@@ -1065,7 +1086,6 @@ class ChatSection {
             }
             
             this.addMessage(tempMessage);
-            // Now mark the temporary message ID as processed so it's not added twice
             this.processedMessageIds.add(messageId);
             this.removeFileUpload();
             this.updateSendButton();
@@ -1292,13 +1312,11 @@ class ChatSection {
         
         const targetContainer = this.getMessagesContainer();
         const existingMessages = targetContainer.querySelectorAll('.message-group');
-        // If messages array is empty AND there are already message bubbles in DOM (e.g., user just sent first message)
         if ((!messages || messages.length === 0) && existingMessages.length > 0) {
             console.log('📭 renderMessages received 0 messages but DOM already has messages; skipping clear to preserve local messages');
             return;
         }
 
-        // Otherwise, clear previous render and replace with new set
         existingMessages.forEach(group => group.remove());
         
         if (this.skeletonLoader) {
@@ -1782,6 +1800,30 @@ class ChatSection {
                 imageWrapper.appendChild(image);
                 attachmentContainer.appendChild(imageWrapper);
                 
+            } else if (message.messageType === 'video' || 
+                       (message.attachment_url && 
+                        (/\.(mp4|webm|mov|avi|wmv)$/i.test(message.attachment_url) || 
+                         message.attachment_url.includes('video/')))) {
+                
+                const videoWrapper = document.createElement('div');
+                videoWrapper.className = 'video-attachment cursor-pointer relative';
+                
+                const video = document.createElement('video');
+                video.className = 'max-w-md max-h-96 rounded-lg';
+                video.src = message.attachment_url;
+                video.controls = true;
+                video.preload = 'metadata';
+                video.onerror = function() {
+                    this.onerror = null;
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'bg-[#2b2d31] p-3 rounded-lg flex items-center';
+                    errorDiv.innerHTML = '<i class="fas fa-file-video text-2xl mr-2"></i><span>Video failed to load</span>';
+                    videoWrapper.replaceWith(errorDiv);
+                };
+                
+                videoWrapper.appendChild(video);
+                attachmentContainer.appendChild(videoWrapper);
+                
             } else {
                 const fileLink = document.createElement('a');
                 fileLink.href = message.attachment_url;
@@ -1960,6 +2002,7 @@ class ChatSection {
         const setupSocketHandlers = function() {
             const io = window.globalSocketManager.io;
             
+            // Remove existing listeners to prevent duplicates
             io.removeAllListeners('new-channel-message');
             io.removeAllListeners('user-message-dm');
             io.removeAllListeners('message-sent');
@@ -1969,23 +2012,32 @@ class ChatSection {
             io.removeAllListeners('user-typing-dm');
             io.removeAllListeners('user-stop-typing');
             io.removeAllListeners('user-stop-typing-dm');
+            io.removeAllListeners('message-pinned');
+            io.removeAllListeners('message-unpinned');
             
             io.on('new-channel-message', function(data) {
-                if (self.chatType === 'channel' && data.channelId == self.targetId) {
-                    const messageId = data.id || `${data.userId || data.user_id}-${data.timestamp}`;
+                const channelId = data.channelId || data.channel_id;
+                if (self.chatType === 'channel' && channelId == self.targetId) {
+                    const messageId = data.id || data.message?.id || `${data.userId || data.user_id}-${data.timestamp}`;
                     data.id = messageId;
                     
-                    // Avoid duplicate processing only AFTER we have successfully appended
                     if (!self.processedMessageIds.has(messageId)) {
-                        if ((data.userId || data.user_id) != self.userId) {
-                            // Ensure no reactions are processed from socket messages
-                            data.reactions = [];
-                            self.addMessage(data);
-                            // Confirm element exists before marking as processed
+                        const senderId = data.userId || data.user_id;
+                        
+                        // Handle server-originated messages properly
+                        if (data.source === 'server-originated' || senderId != self.userId) {
+                            // Use message data from server if available
+                            const messageToAdd = data.message || data;
+                            messageToAdd.id = messageId;
+                            messageToAdd.reactions = messageToAdd.reactions || [];
+                            
+                            self.addMessage(messageToAdd);
+                            
                             if (document.querySelector(`[data-message-id="${messageId}"]`)) {
                                 self.processedMessageIds.add(messageId);
                             }
-                        } else {
+                        } else if (senderId == self.userId) {
+                            // Update temp message with real ID
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {
                                 tempMessage.setAttribute('data-message-id', messageId);
@@ -1997,18 +2049,28 @@ class ChatSection {
             });
             
             io.on('user-message-dm', function(data) {
-                if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId) {
-                    const messageId = data.id || `${data.userId || data.user_id}-${data.timestamp}`;
+                const roomId = data.roomId || data.chatRoomId;
+                if ((self.chatType === 'direct' || self.chatType === 'dm') && roomId == self.targetId) {
+                    const messageId = data.id || data.message?.id || `${data.userId || data.user_id}-${data.timestamp}`;
                     data.id = messageId;
                     
                     if (!self.processedMessageIds.has(messageId)) {
-                        if ((data.userId || data.user_id) != self.userId) {
-                            data.reactions = [];
-                            self.addMessage(data);
+                        const senderId = data.userId || data.user_id;
+                        
+                        // Handle server-originated messages properly
+                        if (data.source === 'server-originated' || senderId != self.userId) {
+                            // Use message data from server if available
+                            const messageToAdd = data.message || data;
+                            messageToAdd.id = messageId;
+                            messageToAdd.reactions = messageToAdd.reactions || [];
+                            
+                            self.addMessage(messageToAdd);
+                            
                             if (document.querySelector(`[data-message-id="${messageId}"]`)) {
                                 self.processedMessageIds.add(messageId);
                             }
-                        } else {
+                        } else if (senderId == self.userId) {
+                            // Update temp message with real ID
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {
                                 tempMessage.setAttribute('data-message-id', messageId);
@@ -2020,7 +2082,11 @@ class ChatSection {
             });
             
             io.on('message-updated', function(data) {
-                const messageId = data.message_id;
+                if (!data.message_id) {
+                    console.warn('Received message-updated without message_id:', data);
+                    return;
+                }
+                
                 const targetType = data.target_type;
                 const targetId = String(data.target_id);
                 const selfTargetId = String(self.targetId);
@@ -2030,56 +2096,35 @@ class ChatSection {
                                   (targetType === 'dm' || targetType === 'direct') && 
                                   targetId === selfTargetId;
                 
-                const isRelevantTarget = isChannelMatch || isDMMatch;
-                
-                if (isRelevantTarget && messageId) {
-                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                    if (messageElement) {
-                        const messageTextElement = messageElement.querySelector('.message-main-text');
-                        if (messageTextElement && data.message) {
-                            messageTextElement.innerHTML = self.formatMessageContent(data.message.content);
-                            
-                            let editedBadge = messageElement.querySelector('.edited-badge');
-                            if (!editedBadge) {
-                                editedBadge = document.createElement('span');
-                                editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
-                                editedBadge.textContent = '(edited)';
-                                messageTextElement.appendChild(editedBadge);
-                            }
-                        }
-                    }
+                if ((isChannelMatch || isDMMatch) && data.message_id) {
+                    self.handleMessageUpdated(data);
                 }
             });
             
             io.on('message-deleted', function(data) {
-                const messageId = data.message_id;
+                if (!data.message_id) {
+                    console.warn('Received message-deleted without message_id:', data);
+                    return;
+                }
                 
-                if (messageId) {
-                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                    
+                const targetType = data.target_type;
+                const targetId = String(data.target_id);
+                const selfTargetId = String(self.targetId);
+                
+                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
+                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
+                                  (targetType === 'dm' || targetType === 'direct') && 
+                                  targetId === selfTargetId;
+                
+                if (isChannelMatch || isDMMatch) {
+                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
                     if (messageElement) {
-                        const messageGroup = messageElement.closest('.message-group');
-                        
-                        if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
-                            messageGroup.remove();
-                        } else {
-                            messageElement.remove();
-                        }
-                        
-                        self.processedMessageIds.delete(messageId);
+                        self.handleMessageDeleted(data);
                     }
                 }
             });
             
-            io.on('message-sent', function(data) {
-                console.log('Message confirmation received:', data);
-                const tempMessage = document.querySelector(`.message-content[data-message-id^="local-"]`);
-                if (tempMessage) {
-                    tempMessage.setAttribute('data-message-id', data.id);
-                    self.processedMessageIds.add(data.id);
-                }
-            });
-            
+            // Typing indicators
             io.on('user-typing', function(data) {
                 if (self.chatType === 'channel' && data.channelId == self.targetId && data.userId != self.userId) {
                     self.showTypingIndicator(data.userId, data.username);
@@ -2104,6 +2149,38 @@ class ChatSection {
                 }
             });
             
+            // Pin message handlers
+            io.on('message-pinned', function(data) {
+                const targetType = data.target_type;
+                const targetId = String(data.target_id);
+                const selfTargetId = String(self.targetId);
+                
+                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
+                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
+                                  (targetType === 'dm' || targetType === 'direct') && 
+                                  targetId === selfTargetId;
+                
+                if (isChannelMatch || isDMMatch) {
+                    self.handleMessagePinned(data);
+                }
+            });
+            
+            io.on('message-unpinned', function(data) {
+                const targetType = data.target_type;
+                const targetId = String(data.target_id);
+                const selfTargetId = String(self.targetId);
+                
+                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
+                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
+                                  (targetType === 'dm' || targetType === 'direct') && 
+                                  targetId === selfTargetId;
+                
+                if (isChannelMatch || isDMMatch) {
+                    self.handleMessageUnpinned(data);
+                }
+            });
+            
+            // Join appropriate room after setting up listeners
             self.joinChannel();
         };
         
@@ -2116,6 +2193,85 @@ class ChatSection {
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
             setupSocketHandlers();
         }
+    }
+    
+    handleMessageUpdated(data) {
+        const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+        if (messageElement) {
+            const messageTextElement = messageElement.querySelector('.message-main-text');
+            if (messageTextElement && data.message) {
+                messageTextElement.innerHTML = this.formatMessageContent(data.message.content);
+                
+                let editedBadge = messageElement.querySelector('.edited-badge');
+                if (!editedBadge) {
+                    editedBadge = document.createElement('span');
+                    editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                    editedBadge.textContent = '(edited)';
+                    messageTextElement.appendChild(editedBadge);
+                }
+            }
+        }
+    }
+    
+    handleMessageDeleted(data) {
+        const messageId = data.message_id;
+        
+        if (messageId) {
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            
+            if (messageElement) {
+                const messageGroup = messageElement.closest('.message-group');
+                
+                if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
+                    messageGroup.remove();
+                } else {
+                    messageElement.remove();
+                }
+                
+                this.processedMessageIds.delete(messageId);
+            }
+        }
+    }
+    
+    handleMessagePinned(data) {
+        const messageId = data.message_id;
+        const username = data.username || 'Someone';
+        
+        // Add visual indicator to the message
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            let pinIndicator = messageElement.querySelector('.pin-indicator');
+            if (!pinIndicator) {
+                pinIndicator = document.createElement('div');
+                pinIndicator.className = 'pin-indicator text-xs text-[#faa61a] flex items-center mt-1';
+                pinIndicator.innerHTML = '<i class="fas fa-thumbtack mr-1"></i>Pinned by ' + username;
+                messageElement.appendChild(pinIndicator);
+            }
+        }
+        
+        // Show notification
+        this.showNotification(`Message pinned by ${username}`, 'info');
+        
+        console.log(`📌 Message ${messageId} pinned by ${username}`);
+    }
+    
+    handleMessageUnpinned(data) {
+        const messageId = data.message_id;
+        const username = data.username || 'Someone';
+        
+        // Remove visual indicator from the message
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            const pinIndicator = messageElement.querySelector('.pin-indicator');
+            if (pinIndicator) {
+                pinIndicator.remove();
+            }
+        }
+        
+        // Show notification
+        this.showNotification(`Message unpinned by ${username}`, 'info');
+        
+        console.log(`📌 Message ${messageId} unpinned by ${username}`);
     }
     
     joinChannel() {

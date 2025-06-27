@@ -1,11 +1,8 @@
-<!-- User Detail Modal Component -->
 <div class="user-detail-modal" id="user-detail-modal">
     <div class="user-detail-container">
-        <!-- Header with banner and avatar -->
         <div class="user-detail-header">
             <div class="user-banner"></div>
             <div id="user-detail-avatar-container" class="user-avatar-container">
-                <!-- Avatar will be inserted here by JavaScript -->
             </div>
             <button class="user-detail-close-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -31,27 +28,22 @@
             
             <div class="user-detail-divider"></div>
             
-            <!-- Bio section -->
             <div class="user-detail-section" id="user-detail-bio-section">
                 <h3 class="user-detail-section-title">ABOUT ME</h3>
                 <div class="user-detail-bio" id="user-detail-bio">
-                    <!-- Bio will be inserted here -->
                 </div>
             </div>
             
             <div class="user-detail-divider"></div>
             
-            <!-- Server join date section -->
             <div class="user-detail-section" id="user-detail-server-section">
                 <h3 class="user-detail-section-title">MEMBER SINCE</h3>
                 <div class="user-detail-server-info" id="user-detail-server-info">
-                    <!-- Server info will be inserted here -->
                 </div>
             </div>
             
             <div class="user-detail-divider"></div>
             
-            <!-- Message section with improved Discord-style input -->
             <div class="user-detail-section user-detail-message-section">
                 <h3 class="user-detail-section-title">MESSAGE</h3>
                 <div class="user-detail-send-message-container">
@@ -63,6 +55,5 @@
             </div>
         </div>
         
-        <!-- Action buttons removed as message sending is now inline -->
     </div>
 </div>

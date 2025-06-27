@@ -415,13 +415,7 @@ class EmojiSocketHandler {
 
 const emojiSocketHandler = new EmojiSocketHandler();
 
-// DISABLED: Using main emoji.js system only to prevent conflicts
-// This duplicate emoji system was causing reactions to load multiple times
-// and disappear due to DOM conflicts with the main emoji.js system
-
-console.log('Chat socket handler emoji system DISABLED - using main emoji.js only');
-
-// Provide minimal compatibility objects
+        
 function initEmojiSocketHandler() {
     console.log('Chat socket handler init skipped');
 }
@@ -430,13 +424,11 @@ window.emojiSocketHandler = {
     initialized: false,
     init: () => {},
     handleReactionAdded: (data) => {
-        // Forward to main emoji system
         if (window.emojiReactions) {
             window.emojiReactions.handleReactionAdded(data);
         }
     },
     handleReactionRemoved: (data) => {
-        // Forward to main emoji system
         if (window.emojiReactions) {
             window.emojiReactions.handleReactionRemoved(data);
         }

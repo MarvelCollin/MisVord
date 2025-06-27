@@ -212,7 +212,6 @@ class NitroController extends BaseController {
         
         $query = new Query();
         
-        // Build query with LEFT JOIN to get user information
         $queryBuilder = $query->table('nitro')
             ->select('nitro.id, nitro.code, nitro.user_id, nitro.created_at, nitro.updated_at, users.username, users.discriminator')
             ->leftJoin('users', 'nitro.user_id', '=', 'users.id');
@@ -221,10 +220,8 @@ class NitroController extends BaseController {
             $queryBuilder->where('nitro.code', 'LIKE', "%{$search}%");
         }
         
-        // Get total count for pagination
         $total = $query->table('nitro')->count();
         
-        // Get paginated results
         $offset = ($page - 1) * $limit;
         $codes = $queryBuilder->orderBy('nitro.created_at', 'DESC')
             ->limit($limit)

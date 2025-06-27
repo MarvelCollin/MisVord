@@ -10,8 +10,12 @@ class CreateMessagesTable2Migration {
             $table->dateTime('sent_at');
             $table->dateTime('edited_at')->nullable(); 
             $table->string('message_type');
-            $table->string('attachment_url', 255, true); 
+            $table->string('attachment_url', 512, true); 
             $table->timestamps();
+            
+            $table->index('user_id');
+            $table->index('sent_at');
+            $table->index('reply_message_id');
         });
 
         

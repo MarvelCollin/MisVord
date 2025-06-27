@@ -245,34 +245,25 @@ class BaseController
         exit;
     }   
     
-    protected function success($data = [], $message = "Success")
+    protected function success($data = [], $message = 'Success', $code = 200)
     {
-        $timestamp = date('Y-m-d H:i:s');
-        $response = [
-            'success' => true,
-            'timestamp' => $timestamp,
-            'message' => $message,
-            'data' => $data
-        ];
+        http_response_code($code);
+        header('Content-Type: application/json');
         
-
-        
-        if (function_exists('logger')) {
-            logger()->debug("API Response sent", [
-                'structure' => json_encode($response, JSON_PRETTY_PRINT),
-                'controller' => get_class($this),
-                'uri' => $_SERVER['REQUEST_URI'] ?? '',
-                'data_keys' => $data ? array_keys($data) : []
-            ]);
-        }
-        
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            header('Content-Type: application/json');
+        if (is_array($data) && isset($data['success'])) {
+            echo json_encode($data);
+        } else {
+            $response = [
+                'success' => true,
+                'message' => $message,
+                'data' => $data,
+                'code' => $code,
+                'timestamp' => date('Y-m-d H:i:s')
+            ];
+            
             echo json_encode($response);
-            exit;
         }
-        
-        return $data;
+        exit;
     }
 
     protected function successResponse($data = null, $message = 'Success')
@@ -302,105 +293,85 @@ class BaseController
         ];
     }
 
-    protected function validationError($errors)
+    protected function validationError($errors, $message = 'Validation failed')
     {
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            http_response_code(422);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'timestamp' => date('Y-m-d H:i:s'),
-                'error' => [
-                    'code' => 422,
-                    'message' => 'Validation failed',
-                    'details' => $errors
-                ]
-            ]);
-            exit;
-        }
+        http_response_code(400);
+        header('Content-Type: application/json');
         
-        return [
+        $response = [
             'success' => false,
-            'code' => 422,
-            'message' => 'Validation failed',
-            'errors' => $errors
+            'message' => $message,
+            'errors' => $errors,
+            'code' => 400,
+            'timestamp' => date('Y-m-d H:i:s')
         ];
+        
+        echo json_encode($response);
+        exit;
     }
 
-    protected function serverError($message = 'Server error')
+    protected function serverError($message = 'Internal server error', $code = 500)
     {
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'timestamp' => date('Y-m-d H:i:s'),
-                'error' => [
-                    'code' => 500,
-                    'message' => $message
-                ]
-            ]);
-            exit;
-        }
+        http_response_code($code);
+        header('Content-Type: application/json');
         
-        return $this->error($message, 500);
+        $response = [
+            'success' => false,
+            'message' => $message,
+            'code' => $code,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+        
+        echo json_encode($response);
+        exit;
     }
 
-    protected function notFound($message = 'Not found')
+    protected function notFound($message = 'Resource not found')
     {
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            http_response_code(404);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'timestamp' => date('Y-m-d H:i:s'),
-                'error' => [
-                    'code' => 404,
-                    'message' => $message
-                ]
-            ]);
-            exit;
-        }
+        http_response_code(404);
+        header('Content-Type: application/json');
         
-        return $this->error($message, 404);
+        $response = [
+            'success' => false,
+            'message' => $message,
+            'code' => 404,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+        
+        echo json_encode($response);
+        exit;
     }
 
-    protected function unauthorized($message = 'Unauthorized')
+    protected function forbidden($message = 'Access forbidden')
     {
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            http_response_code(401);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'timestamp' => date('Y-m-d H:i:s'),
-                'error' => [
-                    'code' => 401,
-                    'message' => $message
-                ]
-            ]);
-            exit;
-        }
+        http_response_code(403);
+        header('Content-Type: application/json');
         
-        return $this->error($message, 401);
+        $response = [
+            'success' => false,
+            'message' => $message,
+            'code' => 403,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+        
+        echo json_encode($response);
+        exit;
     }
 
-    protected function forbidden($message = 'Forbidden')
+    protected function unauthorized($message = 'Unauthorized access')
     {
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            http_response_code(403);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'timestamp' => date('Y-m-d H:i:s'),
-                'error' => [
-                    'code' => 403,
-                    'message' => $message
-                ]
-            ]);
-            exit;
-        }
+        http_response_code(401);
+        header('Content-Type: application/json');
         
-        return $this->error($message, 403);
+        $response = [
+            'success' => false,
+            'message' => $message,
+            'code' => 401,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+        
+        echo json_encode($response);
+        exit;
     }
 
     protected function redirectResponse($url, $message = 'Redirecting')

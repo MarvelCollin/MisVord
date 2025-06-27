@@ -1,7 +1,8 @@
 <?php
 
 class CreateChatRoomMessagesTableMigration {
-    public function up($migration) {        $migration->createTable('chat_room_messages', function($table) {
+    public function up($migration) {
+        $migration->createTable('chat_room_messages', function($table) {
             $table->id();
             $table->integer('room_id');
             $table->integer('message_id');
@@ -9,6 +10,10 @@ class CreateChatRoomMessagesTableMigration {
             
             $table->foreignKey('room_id', 'chat_rooms', 'id', 'CASCADE');
             $table->foreignKey('message_id', 'messages', 'id', 'CASCADE');
+            
+            $table->unique(['room_id', 'message_id']);
+            $table->index('room_id');
+            $table->index('message_id');
         });
     }
 

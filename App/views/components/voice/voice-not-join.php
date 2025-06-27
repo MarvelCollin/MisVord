@@ -86,7 +86,6 @@ function handleMouseMove(event) {
         interactiveGlow.style.opacity = '0.6';
     }
     
-    // Add parallax effect to cosmic drift elements
     const driftElements = document.querySelectorAll('[class*="animate-cosmic-drift"]');
     driftElements.forEach((element, index) => {
         const speed = (index + 1) * 0.02;
@@ -96,14 +95,12 @@ function handleMouseMove(event) {
     });
 }
 
-// Reset glow when mouse leaves
 document.getElementById('joinView').addEventListener('mouseleave', function() {
     const interactiveGlow = document.getElementById('interactive-glow');
     if (interactiveGlow) {
         interactiveGlow.style.opacity = '0';
     }
     
-    // Reset parallax
     const driftElements = document.querySelectorAll('[class*="animate-cosmic-drift"]');
     driftElements.forEach(element => {
         element.style.transform = '';

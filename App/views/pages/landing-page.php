@@ -62,6 +62,7 @@ $content = ob_get_clean();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
@@ -91,7 +92,8 @@ $content = ob_get_clean();
                 }
             }
         }
-    </script>    
+    </script>
+    
     <link rel="stylesheet" href="<?php echo css('global'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('landing-page'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('scramble-text'); ?>?v=<?php echo time(); ?>">
@@ -100,12 +102,21 @@ $content = ob_get_clean();
 
 <body class="<?php echo $body_class; ?>">
     <?php echo $content; ?>
+    
     <?php include dirname(dirname(__DIR__)) . '/views/components/landing-sections/featured-cards-section.php'; ?>
 
-    <script src="<?php echo js('sections/parallax-scroll'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/scramble-text'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js('sections/parallax-scroll'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/featured-cards'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('pages/landing-page'); ?>?v=<?php echo time(); ?>"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof ScrambleText !== 'undefined') {
+                new ScrambleText();
+            }
+        });
+    </script>
 </body>
 
 </html>

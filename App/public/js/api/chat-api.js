@@ -37,6 +37,8 @@ class ChatAPI {
             } else if (response.status === 401 || response.status === 403) {
                 errorMessage = 'Authentication error';
                 window.location.href = '/login';
+            } else if (response.status === 413) {
+                errorMessage = 'File too large - please choose a smaller file';
             }
             
             throw new Error(errorMessage);
@@ -44,8 +46,17 @@ class ChatAPI {
         
         try {
             const cleanedText = text.trim().replace(/^\uFEFF/, '');
-            return JSON.parse(cleanedText);
+            const parsed = JSON.parse(cleanedText);
+            
+            if (parsed.success === false) {
+                throw new Error(parsed.message || 'Request failed');
+            }
+            
+            return parsed;
         } catch (e) {
+            if (e.message.includes('Request failed') || e.message.includes('File too large')) {
+                throw e;
+            }
             throw new Error('JSON parsing failed');
         }
     }    async makeRequest(url, options = {}) {
@@ -144,12 +155,12 @@ class ChatAPI {
             });
             
             if (response && response.success !== false) {
-                // Use the server message data without reactions (reactions only from database)
-                if (response.socket_data && response.socket_data.message) {
-                    this.sendDirectSocketMessageWithServerData(targetId, chatType, response.socket_data);
-                } else {
-                    // Fallback to old method if no server data
-                    this.sendDirectSocketMessage(targetId, content, chatType, options);
+                if (response.client_should_emit_socket === true) {
+                    if (response.socket_data && response.socket_data.message) {
+                        this.sendDirectSocketMessageWithServerData(targetId, chatType, response.socket_data);
+                    } else {
+                        this.sendDirectSocketMessage(targetId, content, chatType, options);
+                    }
                 }
             }
             
@@ -161,63 +172,42 @@ class ChatAPI {
     }
 
     sendDirectSocketMessageWithServerData(targetId, chatType, socketData) {
-        if (!window.globalSocketManager) {
-            console.error('globalSocketManager not available');
-            return false;
-        }
-        
-        if (!window.globalSocketManager.isReady()) {
-            console.error('Socket not ready');
-            return false;
-        }
-        
-        if (!window.globalSocketManager.io) {
-            console.error('Socket IO not available');
+        if (!window.globalSocketManager?.isReady() || !window.globalSocketManager.io) {
+            console.error('Socket not ready for message transmission');
             return false;
         }
         
         const io = window.globalSocketManager.io;
         
         try {
-            let eventName;
+            const baseMessageData = {
+                id: socketData.message.id,
+                userId: socketData.message.user_id,
+                user_id: socketData.message.user_id,
+                username: socketData.message.username || socketData.username,
+                timestamp: socketData.timestamp,
+                content: socketData.message.content,
+                messageType: socketData.message.message_type || socketData.messageType,
+                avatar_url: socketData.message.avatar_url,
+                sent_at: socketData.message.sent_at,
+                source: 'api-relay'
+            };
             
             if (chatType === 'channel') {
-                eventName = 'new-channel-message';
-                // Send message data WITHOUT reactions - only from database
                 const messageData = {
-                    id: socketData.message.id,
+                    ...baseMessageData,
                     channelId: targetId,
-                    userId: socketData.message.user_id,
-                    user_id: socketData.message.user_id,
-                    username: socketData.message.username || socketData.username,
-                    timestamp: socketData.timestamp,
-                    content: socketData.message.content,
-                    messageType: socketData.message.message_type || socketData.messageType,
-                    avatar_url: socketData.message.avatar_url,
-                    sent_at: socketData.message.sent_at
-                    // Deliberately excluding reactions - only get from database
+                    channel_id: targetId
                 };
-                
-                io.emit(eventName, messageData);
+                io.emit('new-channel-message', messageData);
             } 
             else if (chatType === 'direct' || chatType === 'dm') {
-                eventName = 'user-message-dm';
-                // Send message data WITHOUT reactions - only from database
                 const messageData = {
-                    id: socketData.message.id,
+                    ...baseMessageData,
                     roomId: targetId,
-                    userId: socketData.message.user_id,
-                    user_id: socketData.message.user_id,
-                    username: socketData.message.username || socketData.username,
-                    timestamp: socketData.timestamp,
-                    content: socketData.message.content,
-                    messageType: socketData.message.message_type || socketData.messageType,
-                    avatar_url: socketData.message.avatar_url,
-                    sent_at: socketData.message.sent_at
-                    // Deliberately excluding reactions - only get from database
+                    chatRoomId: targetId
                 };
-                
-                io.emit(eventName, messageData);
+                io.emit('user-message-dm', messageData);
             }
             
             return true;
@@ -437,12 +427,13 @@ class ChatAPI {
                 body: JSON.stringify({ emoji })
             });
             
-            if (response && response.socket_data) {
-                response.socket_data.action = response.action;
-                this.emitReaction(response.socket_data);
-            } else {
-                console.warn('No socket_data in response, reaction saved to database but no real-time update');
+            // Only emit socket events if server explicitly requests it
+            if (response && response.client_should_emit_socket === true) {
+                if (response.socket_data) {
+                    this.emitReaction(response.socket_data);
+                }
             }
+            // Server will handle socket broadcasting when client_should_emit_socket is false
             
             return response;
         } catch (error) {
@@ -451,6 +442,7 @@ class ChatAPI {
     }
     
     async removeReaction(messageId, emoji) {
+        // Both add and remove use the same toggle endpoint
         return this.addReaction(messageId, emoji);
     }
 
@@ -691,10 +683,55 @@ class ChatAPI {
             return [];
         }
     }
+
+    async pinMessage(messageId) {
+        if (!messageId) {
+            throw new Error('Message ID is required');
+        }
+        
+        const url = `/api/messages/${messageId}/pin`;
+        
+        try {
+            const response = await this.makeRequest(url, {
+                method: 'POST'
+            });
+            
+            // Only emit socket events if server explicitly requests it
+            if (response && response.client_should_emit_socket === true) {
+                if (response.socket_data) {
+                    this.emitPinEvent(response.socket_data);
+                }
+            }
+            // Server will handle socket broadcasting when client_should_emit_socket is false
+            
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    emitPinEvent(socketData) {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            console.warn('Socket not ready for pin event emission');
+            return false;
+        }
+        
+        const eventName = socketData.action === 'pinned' ? 'message-pinned' : 'message-unpinned';
+        
+        try {
+            window.globalSocketManager.io.emit(eventName, socketData);
+            console.log(`📌 Emitted ${eventName} for message ${socketData.message_id}`);
+            return true;
+        } catch (e) {
+            console.error('Failed to emit pin event:', e);
+            return false;
+        }
+    }
 }
 
 const chatAPI = new ChatAPI();
 window.ChatAPI = chatAPI;
+window.chatAPI = chatAPI; // Also expose as lowercase for consistency
 
 window.debugMessageSend = function() {
     console.log('🔧 Running message send diagnostics...');

@@ -9,8 +9,12 @@ class MessageRepository extends Repository {
         return Message::class;
     }
     
-    public function getForChannel($channelId, $limit = 50, $offset = 0) {
-        return Message::getForChannel($channelId, $limit, $offset);
+    public function create($data) {
+        $message = new Message($data);
+        if ($message->save()) {
+            return $message;
+        }
+        return null;
     }
     
     public function createWithSentAt($data) {
@@ -133,5 +137,41 @@ class MessageRepository extends Repository {
         }
         
         return $stats;
+    }
+    
+    /**
+     * Get messages for a chat room (DM)
+     */
+    public function getForChatRoom($roomId, $limit = 50, $offset = 0) {
+        $query = new Query();
+        $results = $query->table('messages m')
+            ->join('chat_room_messages crm', 'm.id', '=', 'crm.message_id')
+            ->join('users u', 'm.user_id', '=', 'u.id')
+            ->where('crm.room_id', $roomId)
+            ->select('m.*, u.username, u.avatar_url')
+            ->orderBy('m.sent_at', 'DESC')
+            ->limit($limit)
+            ->offset($offset)
+            ->get();
+        
+        return array_reverse($results);
+    }
+    
+    /**
+     * Get messages for a channel
+     */
+    public function getForChannel($channelId, $limit = 50, $offset = 0) {
+        $query = new Query();
+        $results = $query->table('messages m')
+            ->join('channel_messages cm', 'm.id', '=', 'cm.message_id')
+            ->join('users u', 'm.user_id', '=', 'u.id')
+            ->where('cm.channel_id', $channelId)
+            ->select('m.*, u.username, u.avatar_url')
+            ->orderBy('m.sent_at', 'DESC')
+            ->limit($limit)
+            ->offset($offset)
+            ->get();
+        
+        return array_reverse($results);
     }
 }

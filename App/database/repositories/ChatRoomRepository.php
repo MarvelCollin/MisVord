@@ -35,33 +35,43 @@ class ChatRoomRepository extends Repository {
         
         $query = new Query();
         
-        $roomId = $query->table('chat_rooms')->insert([
-            'name' => null,
-            'type' => 'direct',
-            'image_url' => null,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        ]);
-        
-        if ($roomId) {
-            $query->table('chat_participants')->insert([
-                'chat_room_id' => $roomId,
-                'user_id' => $userId1,
+        try {
+            $query->beginTransaction();
+            
+            $roomId = $query->table('chat_rooms')->insert([
+                'name' => null,
+                'type' => 'direct',
+                'image_url' => null,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
             
-            $query->table('chat_participants')->insert([
-                'chat_room_id' => $roomId,
-                'user_id' => $userId2,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ]);
-            
-            return $this->find($roomId);
+            if ($roomId) {
+                $query->table('chat_participants')->insert([
+                    'chat_room_id' => $roomId,
+                    'user_id' => $userId1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+                
+                $query->table('chat_participants')->insert([
+                    'chat_room_id' => $roomId,
+                    'user_id' => $userId2,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+                
+                $query->commit();
+                return $this->find($roomId);
+            } else {
+                $query->rollback();
+                return null;
+            }
+        } catch (Exception $e) {
+            $query->rollback();
+            error_log('Error creating direct message room: ' . $e->getMessage());
+            return null;
         }
-        
-        return null;
     }
     
     public function getUserDirectRooms($userId) {
