@@ -116,8 +116,6 @@ $head_scripts = ['logger-init'];
 
 <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/app-layout.php'; ?>
 
-<?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/create-server-modal.php'; ?>
-
 <?php 
 $content = ob_get_clean(); 
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';

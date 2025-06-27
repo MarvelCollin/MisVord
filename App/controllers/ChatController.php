@@ -620,32 +620,7 @@ class ChatController extends BaseController
         }
     }
 
-    public function getDirectMessageRoomMessages($roomId)
-    {
-        if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-            return $this->unauthorized('You must be logged in to access this resource');
-        }
 
-        $userId = $_SESSION['user_id'];
-
-        try {
-            if (!$this->chatRoomRepository->isParticipant($roomId, $userId)) {
-                return $this->forbidden('You are not a participant in this chat room');
-            }
-            
-            $limit = $_GET['limit'] ?? 20;
-            $offset = $_GET['offset'] ?? 0;
-
-            $messages = $this->messageRepository->getForChatRoom($roomId, $limit, $offset);
-            $formattedMessages = array_map([$this, 'formatMessage'], $messages);
-
-            error_log("Returning " . count($formattedMessages) . " messages for DM room $roomId");
-
-            return $this->respondMessages('dm', $roomId, $formattedMessages, count($messages) >= $limit);
-        } catch (Exception $e) {
-            return $this->serverError('Failed to get messages: ' . $e->getMessage());
-        }
-    }
 
     private function formatMessage($message)
     {

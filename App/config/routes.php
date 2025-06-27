@@ -1140,9 +1140,33 @@ Route::get('/api/chat/dm/([0-9]+)', function($roomId) {
     $controller->getDirectMessageRoom($roomId);
 });
 
-Route::get('/api/chat/dm/([0-9]+)/messages', function($roomId) {
-    $controller = new ChatController();
-    $controller->getDirectMessageRoomMessages($roomId);
+Route::get('/api/debug/dm-test/([0-9]+)', function($roomId) {
+    header('Content-Type: application/json');
+    
+    try {
+        require_once __DIR__ . '/../controllers/ChatController.php';
+        
+        $_SESSION['user_id'] = 1;
+        $_SESSION['username'] = 'kolin';
+        
+        $controller = new ChatController();
+        $result = $controller->getMessages('dm', $roomId);
+        
+        echo json_encode([
+            'success' => true,
+            'room_id' => $roomId,
+            'controller_result' => $result,
+            'timestamp' => date('Y-m-d H:i:s')
+        ], JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+    exit;
 });
 
 return array_merge(Route::getRoutes(), [

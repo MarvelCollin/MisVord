@@ -66,6 +66,11 @@ function setup(io) {
         
         client.on('message-updated', (data) => {
             
+            if (data.source !== 'server-originated') {
+                console.warn('Rejecting client-originated message update, should come from server:', data);
+                return;
+            }
+            
             if (!data.message_id) {
                 console.warn('Message update missing message_id:', data);
                 return;
@@ -76,6 +81,11 @@ function setup(io) {
         });
         
         client.on('message-deleted', (data) => {
+            
+            if (data.source !== 'server-originated') {
+                console.warn('Rejecting client-originated message deletion, should come from server:', data);
+                return;
+            }
             
             if (!data.message_id) {
                 console.warn('Message deletion missing message_id:', data);
@@ -140,8 +150,20 @@ function setup(io) {
         client.on('update-presence', (data) => handlePresence(io, client, data));
         
         client.on('check-voice-meeting', (data) => handleCheckVoiceMeeting(io, client, data));
-        client.on('register-voice-meeting', (data) => handleRegisterVoiceMeeting(io, client, data));
-        client.on('unregister-voice-meeting', (data) => handleUnregisterVoiceMeeting(io, client, data));
+        client.on('register-voice-meeting', (data) => {
+            if (!client.data?.authenticated) {
+                console.warn('Rejecting voice meeting registration from unauthenticated client');
+                return;
+            }
+            handleRegisterVoiceMeeting(io, client, data);
+        });
+        client.on('unregister-voice-meeting', (data) => {
+            if (!client.data?.authenticated) {
+                console.warn('Rejecting voice meeting unregistration from unauthenticated client');
+                return;
+            }
+            handleUnregisterVoiceMeeting(io, client, data);
+        });
         
         client.on('get-online-users', () => handleGetOnlineUsers(io, client));
         client.on('debug-rooms', () => handleDebugRooms(io, client));

@@ -179,7 +179,7 @@ class ServerController extends BaseController
             if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
                 try {
                     $this->validateUploadedFile($_FILES['server_icon']);
-                    $imageUrl = $this->uploadImage($_FILES['server_icon']);
+                    $imageUrl = $this->uploadImage($_FILES['server_icon'], 'servers');
                     if ($imageUrl !== false) {
                         $serverData['image_url'] = $imageUrl;
                     }
@@ -195,7 +195,7 @@ class ServerController extends BaseController
             if (isset($_FILES['server_banner']) && $_FILES['server_banner']['error'] === UPLOAD_ERR_OK) {
                 try {
                     $this->validateUploadedFile($_FILES['server_banner']);
-                    $bannerUrl = $this->uploadImage($_FILES['server_banner']);
+                    $bannerUrl = $this->uploadImage($_FILES['server_banner'], 'banners');
                     if ($bannerUrl !== false) {
                         $serverData['banner_url'] = $bannerUrl;
                     }
@@ -305,9 +305,18 @@ class ServerController extends BaseController
         }
         
         if (isset($_FILES['server_banner']) && $_FILES['server_banner']['error'] === UPLOAD_ERR_OK) {
-            $bannerUrl = $this->uploadImage($_FILES['server_banner'], 'banners');
-            if ($bannerUrl !== false) {
-                $server->banner_url = $bannerUrl;
+            try {
+                $this->validateUploadedFile($_FILES['server_banner']);
+                $bannerUrl = $this->uploadImage($_FILES['server_banner'], 'banners');
+                if ($bannerUrl !== false) {
+                    $server->banner_url = $bannerUrl;
+                }
+            } catch (Exception $e) {
+                if (function_exists('logger')) {
+                    logger()->warning("Failed to upload server banner", [
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
         }
 

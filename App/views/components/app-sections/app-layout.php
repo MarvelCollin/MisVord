@@ -200,5 +200,3 @@ $additional_js[] = 'components/app-layout';
         <?php endif; ?>
     </div>
 </div>
-
-<?php include dirname(__DIR__) . '/app-sections/create-server-modal.php'; ?>

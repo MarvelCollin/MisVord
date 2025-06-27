@@ -204,7 +204,7 @@ class HorizontalNavigation {
     
     initCarousel() {
         if (!this.carouselInstance) {
-            this.carouselInstance = new CarouselHandler();
+            this.carouselInstance = new SimpleBookHandler();
         }
         this.carouselInstance.onSectionVisible();
     }
@@ -227,68 +227,55 @@ class HorizontalNavigation {
     }
 }
 
-class CarouselHandler {
+class SimpleBookHandler {
     constructor() {
-        this.currentSlide = 0;
-        this.totalSlides = 4;
-        this.isAnimating = false;
-        this.autoPlayInterval = null;
-        this.autoPlayDelay = 5000;
+        this.currentPage = 0;
+        this.totalPages = 3;
+        this.isBookOpen = false;
+        this.isFlipping = false;
         
         this.init();
     }
     
     init() {
-        this.track = document.getElementById('carouselTrack');
-        this.slides = document.querySelectorAll('.book-page');
-        this.indicators = document.querySelectorAll('.book-bookmark .bookmark');
-        this.prevBtn = document.getElementById('carouselPrev');
-        this.nextBtn = document.getElementById('carouselNext');
+        this.bookCover = document.getElementById('bookCover');
+        this.bookContent = document.getElementById('bookContent');
+        this.bookNav = document.getElementById('bookNav');
+        this.pages = document.querySelectorAll('.page');
+        this.prevBtn = document.getElementById('prevPage');
+        this.nextBtn = document.getElementById('nextPage');
+        this.pageIndicator = document.getElementById('pageIndicator');
         
-        if (!this.track) return;
+        console.log('Book elements found:', {
+            cover: !!this.bookCover,
+            content: !!this.bookContent,
+            nav: !!this.bookNav,
+            pages: this.pages.length,
+            prevBtn: !!this.prevBtn,
+            nextBtn: !!this.nextBtn,
+            indicator: !!this.pageIndicator
+        });
+        
+        if (!this.bookCover) return;
         
         this.setupEventListeners();
-        this.updateSlides();
+        this.updatePage();
     }
     
     setupEventListeners() {
-        // Carousel navigation buttons
-        this.prevBtn?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            this.prevSlide();
-        });
+        this.bookCover?.addEventListener('click', () => this.openBook());
         
-        this.nextBtn?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            this.nextSlide();
-        });
+        this.prevBtn?.addEventListener('click', () => this.prevPage());
+        this.nextBtn?.addEventListener('click', () => this.nextPage());
         
-        // Carousel indicators
-        this.indicators.forEach((indicator, index) => {
-            indicator.addEventListener('click', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                this.goToSlide(index);
-            });
-        });
-        
-        // Auto-play controls
-        this.track?.addEventListener('mouseenter', () => this.stopAutoPlay());
-        this.track?.addEventListener('mouseleave', () => this.startAutoPlay());
-        
-        // Keyboard navigation (only when carousel section is active)
         document.addEventListener('keydown', (e) => {
-            if (this.isCarouselSectionActive()) {
-                if (e.key === 'ArrowUp') {
-                    e.stopPropagation();
+            if (this.isBookOpen && this.isCarouselSectionActive()) {
+                if (e.key === 'ArrowLeft') {
                     e.preventDefault();
-                    this.prevSlide();
-                } else if (e.key === 'ArrowDown') {
-                    e.stopPropagation();
+                    this.prevPage();
+                } else if (e.key === 'ArrowRight') {
                     e.preventDefault();
-                    this.nextSlide();
+                    this.nextPage();
                 }
             }
         });
@@ -299,133 +286,104 @@ class CarouselHandler {
         return carouselSection && carouselSection.classList.contains('is-active');
     }
     
-    prevSlide() {
-        if (this.isAnimating) return;
-        
-        this.currentSlide = this.currentSlide > 0 ? this.currentSlide - 1 : this.totalSlides - 1;
-        this.updateSlides();
-    }
-    
-    nextSlide() {
-        if (this.isAnimating) return;
-        
-        this.currentSlide = this.currentSlide < this.totalSlides - 1 ? this.currentSlide + 1 : 0;
-        this.updateSlides();
-    }
-    
-    goToSlide(index) {
-        if (this.isAnimating || index === this.currentSlide) return;
-        
-        this.currentSlide = index;
-        this.updateSlides();
-    }
-    
-    updateSlides() {
-        if (this.isAnimating) return;
-        
-        this.isAnimating = true;
-        
-        // Move the track to show the current slide
-        const translateX = -this.currentSlide * 25; // 25% per slide since each slide is 25% width
-        if (this.track) {
-            this.track.style.transform = `translateX(${translateX}%)`;
+    openBook() {
+        if (!this.isBookOpen) {
+            this.isBookOpen = true;
+            this.bookCover.classList.add('opened');
+            
+            // Show the book content after cover animation
+            setTimeout(() => {
+                if (this.bookContent) {
+                    this.bookContent.style.opacity = '1';
+                    this.bookContent.style.visibility = 'visible';
+                }
+                if (this.bookNav) {
+                    this.bookNav.style.opacity = '1';
+                    this.bookNav.style.visibility = 'visible';
+                }
+                this.updatePage(); // Ensure first page is visible
+            }, 800);
         }
+    }
+    
+    prevPage() {
+        if (this.currentPage > 0 && !this.isFlipping) {
+            this.flipPageBackward();
+        }
+    }
+    
+    nextPage() {
+        if (this.currentPage < this.totalPages - 1 && !this.isFlipping) {
+            this.flipPageForward();
+        }
+    }
+    
+    flipPageForward() {
+        this.isFlipping = true;
+        const currentPageEl = this.pages[this.currentPage];
         
-        // Update active states
-        this.slides.forEach((slide, index) => {
-            if (index === this.currentSlide) {
-                slide.classList.add('active');
-            } else {
-                slide.classList.remove('active');
+        // Start flip animation
+        currentPageEl.classList.add('flipping-forward');
+        
+        // Update page number
+        this.currentPage++;
+        
+        // After animation completes
+        setTimeout(() => {
+            currentPageEl.classList.remove('flipping-forward');
+            currentPageEl.classList.add('behind');
+            this.updatePage();
+            this.isFlipping = false;
+        }, 800);
+    }
+    
+    flipPageBackward() {
+        this.isFlipping = true;
+        this.currentPage--;
+        const newPageEl = this.pages[this.currentPage];
+        
+        // Start flip animation
+        newPageEl.classList.remove('behind');
+        newPageEl.classList.add('flipping-backward');
+        
+        // After animation completes
+        setTimeout(() => {
+            newPageEl.classList.remove('flipping-backward');
+            this.updatePage();
+            this.isFlipping = false;
+        }, 800);
+    }
+    
+    updatePage() {
+        console.log('Updating page to:', this.currentPage);
+        console.log('Total pages found:', this.pages.length);
+        
+        this.pages.forEach((page, index) => {
+            // Remove all classes first
+            page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
+            
+            if (index === this.currentPage) {
+                page.classList.add('active');
+                console.log('Activated page:', index);
+            } else if (index < this.currentPage) {
+                page.classList.add('behind');
             }
         });
         
-        this.updateIndicators();
-        
-        // Animate content after track movement
-        setTimeout(() => {
-            this.animateSlideContent();
-        }, 100);
-        
-        setTimeout(() => {
-            this.isAnimating = false;
-        }, 600);
-    }
-    
-    updateIndicators() {
-        this.indicators.forEach((indicator, index) => {
-            indicator.classList.toggle('active', index === this.currentSlide);
-        });
-    }
-    
-    animateSlideContent() {
-        const activeSlide = this.slides[this.currentSlide];
-        if (!activeSlide) return;
-        
-        const title = activeSlide.querySelector('.chapter-title');
-        const description = activeSlide.querySelector('.story-text');
-        const stats = activeSlide.querySelectorAll('.metric-badge');
-        const image = activeSlide.querySelector('.chapter-icon');
-        
-        // Animate title
-        if (title) {
-            title.style.opacity = '0';
-            title.style.transform = 'translateY(30px)';
-            setTimeout(() => {
-                title.style.transition = 'all 0.6s ease';
-                title.style.opacity = '1';
-                title.style.transform = 'translateY(0)';
-            }, 100);
+        if (this.pageIndicator) {
+            this.pageIndicator.textContent = `${this.currentPage + 1} / ${this.totalPages}`;
         }
         
-        // Animate description
-        if (description) {
-            description.style.opacity = '0';
-            description.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-                description.style.transition = 'all 0.6s ease';
-                description.style.opacity = '1';
-                description.style.transform = 'translateY(0)';
-            }, 200);
+        if (this.prevBtn) {
+            this.prevBtn.disabled = this.currentPage === 0;
         }
         
-        // Animate stats
-        stats.forEach((stat, index) => {
-            stat.style.opacity = '0';
-            stat.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-                stat.style.transition = 'all 0.6s ease';
-                stat.style.opacity = '1';
-                stat.style.transform = 'translateY(0)';
-            }, 300 + (index * 100));
-        });
-        
-        // Animate image
-        if (image) {
-            image.style.transform = 'scale(0.8) rotate(-5deg)';
-            setTimeout(() => {
-                image.style.transition = 'all 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
-                image.style.transform = 'scale(1) rotate(0deg)';
-            }, 150);
-        }
-    }
-    
-    startAutoPlay() {
-        this.stopAutoPlay();
-        this.autoPlayInterval = setInterval(() => {
-            this.nextSlide();
-        }, this.autoPlayDelay);
-    }
-    
-    stopAutoPlay() {
-        if (this.autoPlayInterval) {
-            clearInterval(this.autoPlayInterval);
-            this.autoPlayInterval = null;
+        if (this.nextBtn) {
+            this.nextBtn.disabled = this.currentPage === this.totalPages - 1;
         }
     }
     
     onSectionVisible() {
-        // Animate section title and subtitle
         const title = document.querySelector('.carousel-title');
         const subtitle = document.querySelector('.carousel-subtitle');
         
@@ -441,17 +399,9 @@ class CarouselHandler {
             }, 600);
         }
         
-        // Start slide content animation
         setTimeout(() => {
-            this.animateSlideContent();
-        }, 800);
-        
-        // Start auto-play
-        this.startAutoPlay();
-    }
-    
-    destroy() {
-        this.stopAutoPlay();
+            this.openBook();
+        }, 1000);
     }
 }
 
@@ -459,5 +409,5 @@ document.addEventListener('DOMContentLoaded', function() {
     window.horizontalNavigation = new HorizontalNavigation();
 });
 
-window.HorizontalNavigation = HorizontalNavigation; 
-window.CarouselHandler = CarouselHandler; 
+window.HorizontalNavigation = HorizontalNavigation;
+window.SimpleBookHandler = SimpleBookHandler; 

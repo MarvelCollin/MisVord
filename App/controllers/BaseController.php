@@ -534,10 +534,20 @@ class BaseController
             throw new Exception('No file uploaded');
         }
 
-        $targetDir = dirname(__DIR__) . "/public/storage/";
-        if (!is_dir($targetDir)) {
-            if (!mkdir($targetDir, 0755, true)) {
+        $baseDir = dirname(__DIR__) . "/public/storage/";
+        if (!is_dir($baseDir)) {
+            if (!mkdir($baseDir, 0755, true)) {
                 throw new Exception('Failed to create storage directory');
+            }
+        }
+
+        $targetDir = $baseDir;
+        if ($folder) {
+            $targetDir = $baseDir . $folder . '/';
+            if (!is_dir($targetDir)) {
+                if (!mkdir($targetDir, 0755, true)) {
+                    throw new Exception('Failed to create folder directory: ' . $folder);
+                }
             }
         }
 
@@ -557,14 +567,21 @@ class BaseController
             $extension = $mimeToExt[$mimeType] ?? 'jpg';
         }
 
-        $filename = uniqid() . '.' . $extension;
+        $originalFilename = pathinfo($file['name'], PATHINFO_FILENAME);
+        $filename = $originalFilename . '_' . uniqid() . '.' . $extension;
         $targetFile = $targetDir . $filename;
 
         if (!move_uploaded_file($file['tmp_name'], $targetFile)) {
             throw new Exception('Failed to upload file');
         }
 
-        return "/storage/{$filename}";
+        $publicPath = '/storage/';
+        if ($folder) {
+            $publicPath .= $folder . '/';
+        }
+        $publicPath .= $filename;
+
+        return $publicPath;
     }
     
     protected function notifyViaSocket($userId, $event, $data)

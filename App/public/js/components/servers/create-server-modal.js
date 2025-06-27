@@ -5,10 +5,28 @@ import FormValidator from '../common/validation.js';
 import serverAPI from '../../api/server-api.js';
 import { ServerSidebar } from './server-sidebar.js';
 
-console.log("create-server-modal.js loaded");
+console.log("create-server-modal.js loaded at", new Date().toISOString());
+
+if (window.createServerModalLoaded) {
+    console.error("DUPLICATE LOAD DETECTED! create-server-modal.js is being loaded multiple times");
+    throw new Error("create-server-modal.js loaded multiple times");
+} else {
+    window.createServerModalLoaded = true;
+    console.log("create-server-modal.js first load confirmed");
+}
+
+let isFormSubmitting = false;
+let modalInitialized = false;
+let formListenerAttached = false;
 
 document.addEventListener('DOMContentLoaded', function () {
+    console.log("create-server-modal.js DOMContentLoaded, modalInitialized:", modalInitialized);
     
+    if (modalInitialized) {
+        console.warn("Modal already initialized, skipping");
+        return;
+    }
+    modalInitialized = true;
     
     initServerIconUpload();
     initServerBannerUpload();
@@ -17,7 +35,6 @@ document.addEventListener('DOMContentLoaded', function () {
     initTooltips();
     initCategorySelection();
     initCreateServerButton();
-
     initStepNavigation();
 });
 
@@ -281,81 +298,102 @@ function initServerBannerUpload() {
 }
 
 function initServerFormSubmission() {
-            const serverForm = document.getElementById('create-server-form');
-        if (serverForm) {
-            serverForm.addEventListener('submit', function (e) {
-                e.preventDefault();
+    const serverForm = document.getElementById('create-server-form');
+    if (!serverForm) {
+        console.error('Server form not found');
+        return;
+    }
+    
+    if (formListenerAttached) {
+        console.log('Form listener already attached, skipping');
+        return;
+    }
+    
+    formListenerAttached = true;
+    console.log('Attaching form submission listener');
+    
+    serverForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
 
-                if (!validateServerForm(this)) {
-                    return;
-                }
-                
-                const submitBtn = this.querySelector('button[type="submit"]');
-                showLoading(submitBtn);
-                
-                const iconContainer = document.getElementById('server-icon-container');
-                const bannerContainer = document.getElementById('server-banner-container');
-                let iconDataUrl = iconContainer ? iconContainer.dataset.croppedImage : null;
-                let bannerDataUrl = bannerContainer ? bannerContainer.dataset.croppedImage : null;
-                
-                const formData = new FormData(this);
-                
-                const promises = [];
-                
-                if (iconDataUrl && iconDataUrl.startsWith('data:')) {
-                    try {
-                        promises.push(
-                            fetch(iconDataUrl)
-                                .then(res => res.blob())
-                                .then(blob => {
-                                    const iconFile = new File([blob], 'icon.png', { type: 'image/png' });
-                                    formData.set('server_icon', iconFile);
-                                })
-                                .catch(err => {
-                                    console.warn('Failed to process icon image:', err);
-                                })
-                        );
-                    } catch (err) {
-                        console.warn('Failed to create icon fetch promise:', err);
-                    }
-                }
+        console.log('Form submission triggered, isFormSubmitting:', isFormSubmitting);
 
-                if (bannerDataUrl && bannerDataUrl.startsWith('data:')) {
-                    try {
-                        promises.push(
-                            fetch(bannerDataUrl)
-                                .then(res => res.blob())
-                                .then(blob => {
-                                    const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
-                                    formData.set('server_banner', bannerFile);
-                                })
-                                .catch(err => {
-                                    console.warn('Failed to process banner image:', err);
-                                })
-                        );
-                    } catch (err) {
-                        console.warn('Failed to create banner fetch promise:', err);
-                    }
-                }
-                
-                if (promises.length > 0) {
-                    Promise.all(promises)
-                        .then(() => {
-                            handleServerCreation(this, formData);
+        if (isFormSubmitting) {
+            console.log('Form submission already in progress, ignoring duplicate');
+            return false;
+        }
+
+        if (!validateServerForm(this)) {
+            console.log('Form validation failed');
+            return false;
+        }
+        
+        console.log('Starting form submission process');
+        isFormSubmitting = true;
+        const submitBtn = this.querySelector('button[type="submit"]');
+        showLoading(submitBtn);
+        
+        const iconContainer = document.getElementById('server-icon-container');
+        const bannerContainer = document.getElementById('server-banner-container');
+        let iconDataUrl = iconContainer ? iconContainer.dataset.croppedImage : null;
+        let bannerDataUrl = bannerContainer ? bannerContainer.dataset.croppedImage : null;
+        
+        const formData = new FormData(this);
+        
+        const promises = [];
+        
+        if (iconDataUrl && iconDataUrl.startsWith('data:')) {
+            try {
+                promises.push(
+                    fetch(iconDataUrl)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            const iconFile = new File([blob], 'icon.png', { type: 'image/png' });
+                            formData.set('server_icon', iconFile);
                         })
                         .catch(err => {
-                            console.warn('Error processing images, proceeding without them:', err);
-                            handleServerCreation(this, formData);
-                        });
-                } else {
-                    handleServerCreation(this, formData);
-                }
-            });
+                            console.warn('Failed to process icon image:', err);
+                        })
+                );
+            } catch (err) {
+                console.warn('Failed to create icon fetch promise:', err);
+            }
         }
+
+        if (bannerDataUrl && bannerDataUrl.startsWith('data:')) {
+            try {
+                promises.push(
+                    fetch(bannerDataUrl)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
+                            formData.set('server_banner', bannerFile);
+                        })
+                        .catch(err => {
+                            console.warn('Failed to process banner image:', err);
+                        })
+                );
+            } catch (err) {
+                console.warn('Failed to create banner fetch promise:', err);
+            }
+        }
+        
+        if (promises.length > 0) {
+            Promise.all(promises)
+                .then(() => {
+                    handleServerCreation(this, formData);
+                })
+                .catch(err => {
+                    console.warn('Error processing images, proceeding without them:', err);
+                    handleServerCreation(this, formData);
+                });
+        } else {
+            handleServerCreation(this, formData);
+        }
+        
+        return false;
+    });
 }
-
-
-
 
 function handleServerCreation(form, formData = null) {
     try {
@@ -365,13 +403,14 @@ function handleServerCreation(form, formData = null) {
         const modal = document.getElementById('create-server-modal');
         const submitBtn = form.querySelector('button[type="submit"]');
         
-        if (!submitBtn.classList.contains('loading')) {
-            showLoading(submitBtn);
-        }
+        console.log('Calling server API to create server');
         
         window.serverAPI.createServer(formData)
             .then(data => {
+                console.log('Server creation response:', data);
                 hideLoading(submitBtn);
+                isFormSubmitting = false;
+                
                 if (data.data) {
                     const server = data.data.server;
                     
@@ -398,15 +437,17 @@ function handleServerCreation(form, formData = null) {
                 }
             })
             .catch(error => {
-                hideLoading(submitBtn);
-                showToast('Network error occurred. Please try again.', 'error');
                 console.error('Server creation error:', error);
+                hideLoading(submitBtn);
+                isFormSubmitting = false;
+                showToast('Network error occurred. Please try again.', 'error');
             });
     } catch (error) {
+        console.error('Error in server creation:', error);
         const submitBtn = form.querySelector('button[type="submit"]');
         hideLoading(submitBtn);
+        isFormSubmitting = false;
         showToast('An unexpected error occurred. Please try again.', 'error');
-        console.error('Error in server creation:', error);
     }
 }
 
@@ -586,11 +627,13 @@ function loadServerPage(serverId) {
 function showLoading(button) {
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
+    button.classList.add('loading');
 }
 
 function hideLoading(button) {
     button.disabled = false;
     button.innerHTML = 'Create Server';
+    button.classList.remove('loading');
 }
 
 function showPageLoading(container) {
@@ -624,7 +667,6 @@ function showPageLoading(container) {
             </div>
             
             <div class="flex-grow bg-discord-background flex flex-col">
-                <!-- Channel header skeleton -->
                 <div class="h-12 border-b border-discord-600 px-4 flex items-center">
                     <div class="h-5 bg-discord-light rounded w-32 animate-pulse"></div>
                     <div class="ml-auto flex space-x-4">
@@ -706,6 +748,7 @@ function closeModal(modal) {
                 modalContent.classList.remove('animate-scale-out');
             }
             resetForm(form);
+            isFormSubmitting = false;
         }, 300);
     }
 }
@@ -742,6 +785,8 @@ function resetForm(form) {
         stepDots[1].classList.remove('active');
         stepDots[0].classList.add('active');
     }
+    
+    isFormSubmitting = false;
 }
 
 window.navigateToServer = function (serverId) {
@@ -806,7 +851,6 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-
 function initToggleAnimation() {
     const toggleCheckbox = document.getElementById('is-public');
     const toggleSwitch = toggleCheckbox?.nextElementSibling;
@@ -859,8 +903,13 @@ function initCategorySelection() {
 function initCreateServerButton() {
     const createServerButtons = document.querySelectorAll('[data-action="create-server"]');
     createServerButtons.forEach(button => {
+        if (button.hasAttribute('data-listener-attached')) {
+            return;
+        }
+        button.setAttribute('data-listener-attached', 'true');
         button.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             window.openCreateServerModal();
         });
     });

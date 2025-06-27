@@ -1,8 +1,14 @@
 const roomManager = require('../services/roomManager');
 const AuthHandler = require('./authHandler');
+const eventValidator = require('../services/eventValidator');
 
 class MessageHandler {
     static forwardMessage(io, client, eventName, data) {
+        
+        const validation = eventValidator.validateAndLog(eventName, data, 'in forwardMessage');
+        if (!validation.valid) {
+            return;
+        }
         
         console.log(`📡 [MESSAGE] Handling ${eventName}:`, {
             messageId: data.id || data.message_id,
@@ -46,6 +52,11 @@ class MessageHandler {
 
     static handleReaction(io, client, eventName, data) {
         
+        const validation = eventValidator.validateAndLog(eventName, data, 'in handleReaction');
+        if (!validation.valid) {
+            return;
+        }
+        
         console.log(`📡 [REACTION] Handling ${eventName}:`, {
             messageId: data.message_id,
             emoji: data.emoji,
@@ -86,6 +97,11 @@ class MessageHandler {
 
     static handlePin(io, client, eventName, data) {
         
+        const validation = eventValidator.validateAndLog(eventName, data, 'in handlePin');
+        if (!validation.valid) {
+            return;
+        }
+        
         console.log(`📡 [PIN] Handling ${eventName}:`, {
             messageId: data.message_id,
             userId: data.user_id,
@@ -125,7 +141,8 @@ class MessageHandler {
 
     static handleTyping(io, client, data, isTyping = true) {
         
-        const { channelId, roomId } = data;
+        const channelId = data.channel_id || data.channelId;
+        const roomId = data.room_id || data.roomId;
         const user_id = client.data.user_id;
         const username = client.data.username;
         

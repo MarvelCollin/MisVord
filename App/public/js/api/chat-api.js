@@ -141,16 +141,6 @@ class ChatAPI {
                 body: JSON.stringify(requestData)
             });
             
-            if (response && response.success !== false) {
-                if (response.client_should_emit_socket === true) {
-                    if (response.socket_data && response.socket_data.message) {
-                        this.sendDirectSocketMessageWithServerData(targetId, chatType, response.socket_data);
-                    } else {
-                        this.sendDirectSocketMessage(targetId, content, chatType, options);
-                    }
-                }
-            }
-            
             return response;
         } catch (error) {
             console.error('Error sending message to database:', error);
@@ -158,129 +148,7 @@ class ChatAPI {
         }
     }
 
-    sendDirectSocketMessageWithServerData(targetId, chatType, socketData) {
-        if (!window.globalSocketManager?.isReady() || !window.globalSocketManager.io) {
-            console.error('Socket not ready for message transmission');
-            return false;
-        }
-        
-        const io = window.globalSocketManager.io;
-        
-        try {
-            const baseMessageData = {
-                id: socketData.message.id,
-                user_id: socketData.message.user_id,
-                username: socketData.message.username || socketData.username,
-                timestamp: socketData.timestamp,
-                content: socketData.message.content,
-                message_type: socketData.message.message_type || socketData.message_type,
-                avatar_url: socketData.message.avatar_url,
-                sent_at: socketData.message.sent_at,
-                source: 'api-relay'
-            };
-            
-            if (chatType === 'channel') {
-                const messageData = {
-                    ...baseMessageData,
-                    channel_id: targetId
-                };
-                io.emit('new-channel-message', messageData);
-            } 
-            else if (chatType === 'direct' || chatType === 'dm') {
-                const messageData = {
-                    ...baseMessageData,
-                    room_id: targetId
-                };
-                io.emit('user-message-dm', messageData);
-            }
-            
-            return true;
-        } catch (e) {
-            console.error('Failed to send socket message with server data:', e);
-            return false;
-        }
-    }
 
-    sendDirectSocketMessage(targetId, content, chatType = 'channel', options = {}) {
-        if (!window.globalSocketManager) {
-            console.error('globalSocketManager not available');
-            return false;
-        }
-        
-        if (!window.globalSocketManager.isReady()) {
-            console.error('Socket not ready');
-            return false;
-        }
-        
-        if (!window.globalSocketManager.io) {
-            console.error('Socket IO not available');
-            return false;
-        }
-        
-        const userId = window.globalSocketManager.userId;
-        const username = window.globalSocketManager.username;
-        const timestamp = Date.now();
-        const messageId = `msg_${timestamp}_${Math.random().toString(36).substring(2, 9)}`;
-        const io = window.globalSocketManager.io;
-        
-        try {
-            let eventName, messageData;
-            
-            if (chatType === 'channel') {
-                eventName = 'new-channel-message';
-                messageData = {
-                                    id: messageId,
-                channel_id: targetId,
-                content: content,
-                message_type: options.message_type || 'text',
-                attachment_url: options.attachment_url || null,
-                timestamp: timestamp,
-                user_id: userId,
-                username: username
-                };
-                
-                if (options.reply_message_id) {
-                    messageData.reply_message_id = options.reply_message_id;
-                    
-                    if (options.reply_data) {
-                        messageData.reply_data = options.reply_data;
-                    }
-                }
-            } 
-            else if (chatType === 'direct' || chatType === 'dm') {
-                eventName = 'user-message-dm';
-                messageData = {
-                                    id: messageId,
-                room_id: targetId,
-                content: content,
-                message_type: options.message_type || 'text',
-                attachment_url: options.attachment_url || null,
-                timestamp: timestamp,
-                user_id: userId,
-                username: username
-                };
-                
-                if (options.reply_message_id) {
-                    messageData.reply_message_id = options.reply_message_id;
-                    
-                    if (options.reply_data) {
-                        messageData.reply_data = options.reply_data;
-                    }
-                }
-            }
-            
-            if (eventName && messageData) {
-                io.emit(eventName, messageData);
-                return true;
-            } else {
-                console.error('Could not determine event name or message data');
-                return false;
-            }
-        } catch (e) {
-            console.error('Failed to send direct socket message:', e);
-            return false;
-        }
-    }
 
     async updateMessage(messageId, content) {
         const url = `/api/messages/${messageId}`;
@@ -293,10 +161,6 @@ class ChatAPI {
                 })
             });
             
-            if (response && response.client_should_emit_socket === true && response.socket_data) {
-                this.sendDirectSocketUpdate(messageId, content, response.socket_data.target_type, response.socket_data.target_id);
-            }
-            
             return response;
         } catch (error) {
             console.error('Error updating message in database:', error);
@@ -304,28 +168,7 @@ class ChatAPI {
         }
     }
     
-    sendDirectSocketUpdate(messageId, content, targetType, targetId) {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
-            return false;
-        }
-        
-        const userId = window.globalSocketManager.userId;
-        const username = window.globalSocketManager.username;
-        
-        try {
-            window.globalSocketManager.io.emit('message-updated', {
-                message_id: messageId,
-                content: content,
-                user_id: userId,
-                username: username,
-                timestamp: Date.now()
-            });
-            return true;
-        } catch (e) {
-            console.error('Failed to send direct socket update:', e);
-            return false;
-        }
-    }
+
 
     async deleteMessage(messageId) {
         const url = `/api/messages/${messageId}`;
@@ -335,10 +178,6 @@ class ChatAPI {
                 method: 'DELETE'
             });
             
-            if (response && response.client_should_emit_socket === true && response.socket_data) {
-                this.sendDirectSocketDelete(messageId, response.socket_data.target_type, response.socket_data.target_id);
-            }
-            
             return response;
         } catch (error) {
             console.error('Error deleting message from database:', error);
@@ -346,29 +185,7 @@ class ChatAPI {
         }
     }
     
-    sendDirectSocketDelete(messageId, targetType, targetId) {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
-            return false;
-        }
-        
-        const userId = window.globalSocketManager.userId;
-        const username = window.globalSocketManager.username;
-        
-        const socketData = {
-            message_id: messageId,
-            user_id: userId,
-            username: username,
-            timestamp: Date.now()
-        };
-        
-        try {
-            window.globalSocketManager.io.emit('message-deleted', socketData);
-            return true;
-        } catch (e) {
-            console.error('Failed to send direct socket delete:', e);
-            return false;
-        }
-    }
+
 
     async pinMessage(messageId) {
         if (!messageId) {

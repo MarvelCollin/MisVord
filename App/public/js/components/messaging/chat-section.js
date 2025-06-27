@@ -2299,9 +2299,9 @@ class ChatSection {
             const messagesPromise = fetch(endpoint)
                 .then(response => {
                     if (!response.ok) {
-                        if (response.status === 403 && (this.chatType === 'direct' || this.chatType === 'dm')) {
-                            console.error(`🚨 403 ERROR: Target ID ${this.targetId} is likely a friend ID, not a room ID! DM navigation is broken.`);
-                            throw new Error('Invalid room ID - this appears to be a friend ID instead of a room ID');
+                        if (response.status === 403) {
+                            console.error(`🚨 403 ERROR: Access denied for ${this.chatType} ${this.targetId}`);
+                            throw new Error('Access denied - you may not have permission to view this chat');
                         }
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
