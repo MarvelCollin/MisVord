@@ -773,31 +773,89 @@ function showCreateChannelModal() {
     const modal = document.getElementById('create-channel-modal');
 
     if (modal) {
-
         if (typeof window.openCreateChannelModal === 'function') {
             window.openCreateChannelModal();
         } else {
             modal.classList.remove('hidden');
-
-            const closeBtn = document.getElementById('close-create-channel-modal');
-            const cancelBtn = document.getElementById('cancel-create-channel');
-            const nameInput = document.getElementById('channel-name');
-
-            if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
-                closeBtn.addEventListener('click', () => closeModal('create-channel-modal'));
-                closeBtn.setAttribute('data-listener', 'true');
-            }
-
-            if (cancelBtn && !cancelBtn.hasAttribute('data-listener')) {
-                cancelBtn.addEventListener('click', () => closeModal('create-channel-modal'));
-                cancelBtn.setAttribute('data-listener', 'true');
-            }
-
-            if (nameInput && !nameInput.hasAttribute('data-listener')) {
-                nameInput.addEventListener('input', function() {
-                    this.value = this.value.toLowerCase().replace(/[^a-z0-9\-_]/g, '');
-                });
-                nameInput.setAttribute('data-listener', 'true');
+            modal.className = 'modal-overlay';
+            
+            const modalContent = modal.querySelector('.modal-content');
+            if (modalContent) {
+                modalContent.className = 'modal-container';
+                
+                modalContent.innerHTML = `
+                    <h2 class="modal-header">Create Channel</h2>
+                    <button id="close-create-channel-modal" class="close-modal-btn">×</button>
+                    
+                    <form id="create-channel-form" class="channel-form">
+                        <div class="form-group">
+                            <label class="form-label">Channel Type</label>
+                            <div class="select-wrapper">
+                                <select id="channel-type" class="form-select">
+                                    <option value="text">Text</option>
+                                    <option value="voice">Voice</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Channel Name</label>
+                            <div class="channel-input-prefix">
+                                <span>#</span>
+                                <input type="text" id="channel-name" class="form-input" placeholder="new-channel">
+                            </div>
+                            <div class="form-help-text">Use lowercase letters, numbers, hyphens, and underscores</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <div class="select-wrapper">
+                                <select id="channel-category" class="form-select">
+                                    <option value="">No Category</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="private-channel" class="form-checkbox">
+                            <label for="private-channel" class="checkbox-label">Private Channel</label>
+                            <span class="info-icon" title="Only specific members will be able to see this channel"><i class="fas fa-info-circle"></i></span>
+                        </div>
+                        
+                        <div class="button-container">
+                            <button type="button" id="cancel-create-channel" class="btn btn-cancel">Cancel</button>
+                            <button type="submit" id="create-channel-btn" class="btn btn-primary">Create Channel</button>
+                        </div>
+                    </form>
+                `;
+                
+                const closeBtn = modalContent.querySelector('#close-create-channel-modal');
+                const cancelBtn = modalContent.querySelector('#cancel-create-channel');
+                const nameInput = modalContent.querySelector('#channel-name');
+                const form = modalContent.querySelector('#create-channel-form');
+                
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => closeModal('create-channel-modal'));
+                }
+                
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', () => closeModal('create-channel-modal'));
+                }
+                
+                if (nameInput) {
+                    nameInput.addEventListener('input', function() {
+                        this.value = this.value.toLowerCase().replace(/[^a-z0-9\-_]/g, '');
+                    });
+                }
+                
+                if (form) {
+                    form.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        createChannel(e, serverId);
+                    });
+                }
+                
+                loadCategories(serverId);
             }
         }
     } else {
@@ -810,23 +868,52 @@ function showCreateCategoryModal() {
     const modal = document.getElementById('create-category-modal');
 
     if (modal) {
-
         if (typeof window.openCreateCategoryModal === 'function') {
             window.openCreateCategoryModal();
         } else {
             modal.classList.remove('hidden');
-
-            const closeBtn = document.getElementById('close-create-category-modal');
-            const cancelBtn = document.getElementById('cancel-create-category');
-
-            if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
-                closeBtn.addEventListener('click', () => closeModal('create-category-modal'));
-                closeBtn.setAttribute('data-listener', 'true');
-            }
-
-            if (cancelBtn && !cancelBtn.hasAttribute('data-listener')) {
-                cancelBtn.addEventListener('click', () => closeModal('create-category-modal'));
-                cancelBtn.setAttribute('data-listener', 'true');
+            modal.className = 'modal-overlay';
+            
+            const modalContent = modal.querySelector('.modal-content');
+            if (modalContent) {
+                modalContent.className = 'modal-container';
+                
+                modalContent.innerHTML = `
+                    <h2 class="modal-header">Create Category</h2>
+                    <button id="close-create-category-modal" class="close-modal-btn">×</button>
+                    
+                    <form id="create-category-form">
+                        <div class="form-group">
+                            <label class="form-label">Category Name</label>
+                            <input type="text" id="category-name" class="form-input" placeholder="NEW CATEGORY">
+                            <div class="form-help-text">Category names are typically displayed in uppercase</div>
+                        </div>
+                        
+                        <div class="button-container">
+                            <button type="button" id="cancel-create-category" class="btn btn-cancel">Cancel</button>
+                            <button type="submit" id="create-category-btn" class="btn btn-primary">Create Category</button>
+                        </div>
+                    </form>
+                `;
+                
+                const closeBtn = modalContent.querySelector('#close-create-category-modal');
+                const cancelBtn = modalContent.querySelector('#cancel-create-category');
+                const form = modalContent.querySelector('#create-category-form');
+                
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => closeModal('create-category-modal'));
+                }
+                
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', () => closeModal('create-category-modal'));
+                }
+                
+                if (form) {
+                    form.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        createCategory(e, serverId);
+                    });
+                }
             }
         }
     } else {
@@ -1249,29 +1336,11 @@ function getCurrentServerName() {
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            modalContent.classList.add('animate-fade-out');
-            setTimeout(() => {
         modal.classList.add('hidden');
-                modal.style.display = 'none';
-                modalContent.classList.remove('animate-fade-out');
-                
-                
-                const searchResults = document.getElementById('friend-search-results');
-                if (searchResults) {
-                    searchResults.classList.add('hidden');
-                }
-            }, 200);
-        } else {
-            modal.classList.add('hidden');
-            modal.style.display = 'none';
-            
-            
-            const searchResults = document.getElementById('friend-search-results');
-            if (searchResults) {
-                searchResults.classList.add('hidden');
-            }
+        
+        const searchResults = document.getElementById('friend-search-results');
+        if (searchResults) {
+            searchResults.classList.add('hidden');
         }
     }
 }

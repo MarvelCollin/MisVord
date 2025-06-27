@@ -342,18 +342,6 @@ class ChannelRenderer {
                 </div>
                 <div class="px-4 pb-6 bg-[#313338]">
                     <div class="bg-[#383a40] rounded-lg overflow-hidden">
-                        <div class="flex items-center px-4 py-2">
-                            <div class="flex-1 relative mx-3">
-                                <textarea 
-                                    id="message-input" 
-                                    class="w-full bg-transparent text-[#dcddde] placeholder-[#95999e] resize-none border-none outline-none text-base"
-                                    placeholder="Message #${channel.name}"
-                                    rows="1"></textarea>
-                            </div>
-                            <button id="send-button" class="text-[#b5bac1] hover:text-white">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>

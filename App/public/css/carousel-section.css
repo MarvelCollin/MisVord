@@ -147,7 +147,7 @@
     transition: transform 0.8s ease, box-shadow 0.3s ease;
     transform-origin: left center;
     transform-style: preserve-3d;
-    z-index: 2;
+    z-index: 100;
     box-shadow: 
         0 15px 35px rgba(0, 0, 0, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.2),
@@ -203,7 +203,7 @@
 
 .book-cover.opened {
     transform: rotateY(-180deg);
-    z-index: 0;
+    z-index: 1;
     pointer-events: none;
 }
 
@@ -215,9 +215,9 @@
     height: 100%;
     background: transparent;
     border-radius: 15px;
-    z-index: 1;
-    opacity: 0;
-    visibility: hidden;
+    z-index: 50;
+    opacity: 1;
+    visibility: visible;
     transition: opacity 0.5s ease 0.8s, visibility 0.5s ease 0.8s;
     perspective: 1200px;
     transform-style: preserve-3d;
@@ -241,7 +241,7 @@
         radial-gradient(circle at 90% 80%, rgba(118, 75, 162, 0.05), transparent 50%);
     border-radius: 15px;
     box-shadow: 
-        0 10px 30px rgba(0, 0, 0, 0.3),
+        0 15px 35px rgba(0, 0, 0, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.8),
         inset 0 -1px 0 rgba(102, 126, 234, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.5);
@@ -253,10 +253,12 @@
     box-sizing: border-box;
     transform-origin: left center;
     transform-style: preserve-3d;
-    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
+    transition: transform 0.8s ease, box-shadow 0.3s ease;
     z-index: 10;
     overflow: hidden;
-    backface-visibility: hidden;
+    backface-visibility: visible;
+    opacity: 1;
+    visibility: visible;
 }
 
 .page .page-decoration {

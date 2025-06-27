@@ -70,6 +70,188 @@ if ($chatType === 'channel') {
     }
     return;
 }
+
+function formatMessageContent($content) {
+    if (!$content) return '';
+    
+    $escapedContent = htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
+    
+    $formattedContent = $escapedContent;
+    $formattedContent = str_replace("\n", '<br>', $formattedContent);
+    $formattedContent = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $formattedContent);
+    $formattedContent = preg_replace('/\*(.*?)\*/', '<em>$1</em>', $formattedContent);
+    $formattedContent = preg_replace('/```([\s\S]*?)```/', '<div class="bg-[#2b2d31] p-2 my-1 rounded text-sm font-mono"><code>$1</code></div>', $formattedContent);
+    $formattedContent = preg_replace('/`(.*?)`/', '<code class="bg-[#2b2d31] px-1 py-0.5 rounded text-sm font-mono">$1</code>', $formattedContent);
+    
+    return $formattedContent;
+}
+
+function formatTimestamp($timestamp) {
+    if (!$timestamp) return '';
+    
+    try {
+        $date = new DateTime($timestamp);
+        $now = new DateTime();
+        
+        if ($date->format('Y-m-d') === $now->format('Y-m-d')) {
+            return $date->format('H:i');
+        } else {
+            return $date->format('M j');
+        }
+    } catch (Exception $e) {
+        return '';
+    }
+}
+
+function renderMessageGroup($messages, $startIndex) {
+    $message = $messages[$startIndex];
+    $messageId = is_array($message) ? $message['id'] : $message->id;
+    $userId = is_array($message) ? $message['user_id'] : $message->user_id;
+    $username = is_array($message) ? $message['username'] : $message->username;
+    $avatarUrl = is_array($message) ? ($message['avatar_url'] ?? '/public/assets/common/default-profile-picture.png') : ($message->avatar_url ?? '/public/assets/common/default-profile-picture.png');
+    $sentAt = is_array($message) ? ($message['sent_at'] ?? $message['created_at'] ?? '') : ($message->sent_at ?? $message->created_at ?? '');
+    
+    echo '<div class="message-group" data-user-id="' . htmlspecialchars($userId) . '">';
+    echo '<div class="message-avatar">';
+    echo '<img src="' . htmlspecialchars($avatarUrl) . '" alt="' . htmlspecialchars($username) . '\'s avatar" onerror="this.src=\'/public/assets/common/default-profile-picture.png\'">';
+    echo '</div>';
+    echo '<div class="message-content-wrapper">';
+    echo '<div class="message-header">';
+    echo '<span class="message-username">' . htmlspecialchars($username) . '</span>';
+    echo '<span class="message-timestamp">' . formatTimestamp($sentAt) . '</span>';
+    echo '</div>';
+    echo '<div class="message-contents">';
+    
+    for ($i = $startIndex; $i < count($messages); $i++) {
+        $currentMessage = $messages[$i];
+        $currentUserId = is_array($currentMessage) ? $currentMessage['user_id'] : $currentMessage->user_id;
+        
+        if ($currentUserId != $userId) {
+            break;
+        }
+        
+        renderMessageContent($currentMessage);
+    }
+    
+    echo '</div>';
+    echo '</div>';
+    echo '</div>';
+    
+    return $i - 1;
+}
+
+function renderMessageContent($message) {
+    $messageId = is_array($message) ? $message['id'] : $message->id;
+    $userId = is_array($message) ? $message['user_id'] : $message->user_id;
+    $content = is_array($message) ? $message['content'] : $message->content;
+    $editedAt = is_array($message) ? ($message['edited_at'] ?? null) : ($message->edited_at ?? null);
+    $messageType = is_array($message) ? ($message['message_type'] ?? 'text') : ($message->message_type ?? 'text');
+    $attachmentUrl = is_array($message) ? ($message['attachment_url'] ?? null) : ($message->attachment_url ?? null);
+    $replyMessageId = is_array($message) ? ($message['reply_message_id'] ?? null) : ($message->reply_message_id ?? null);
+    $replyData = is_array($message) ? ($message['reply_data'] ?? null) : ($message->reply_data ?? null);
+    $currentUserId = $_SESSION['user_id'] ?? 0;
+    $isOwnMessage = ($userId == $currentUserId);
+    
+    echo '<div class="message-content relative" data-message-id="' . htmlspecialchars($messageId) . '" data-user-id="' . htmlspecialchars($userId) . '">';
+    
+    if ($replyMessageId && $replyData) {
+        echo '<div class="reply-container">';
+        echo '<div class="reply-line"></div>';
+        echo '<div class="reply-content">';
+        
+        if (is_array($replyData)) {
+            $replyUsername = $replyData['username'] ?? 'Unknown';
+            $replyContent = $replyData['content'] ?? '';
+            $replyAvatarUrl = $replyData['avatar_url'] ?? '/public/assets/common/default-profile-picture.png';
+            
+            echo '<img src="' . htmlspecialchars($replyAvatarUrl) . '" class="reply-avatar" onerror="this.src=\'/public/assets/common/default-profile-picture.png\'">';
+            echo '<span class="reply-username">' . htmlspecialchars($replyUsername) . '</span>';
+            echo '<span class="reply-message-text">' . htmlspecialchars(mb_substr($replyContent, 0, 60)) . (mb_strlen($replyContent) > 60 ? '...' : '') . '</span>';
+        } else {
+            echo '<span style="color: #72767d; font-size: 12px; font-style: italic;">Replying to an unavailable message</span>';
+        }
+        
+        echo '</div>';
+        echo '</div>';
+    }
+    
+    echo '<div class="message-main-text text-[#dcddde]">';
+    
+    if ($content && trim($content) !== '') {
+        echo formatMessageContent($content);
+    }
+    
+    if ($attachmentUrl) {
+        echo '<div class="message-attachment mt-2">';
+        
+        if ($messageType === 'image' || preg_match('/\.(jpeg|jpg|gif|png|webp)$/i', $attachmentUrl)) {
+            echo '<div class="image-attachment cursor-pointer relative">';
+            echo '<img class="max-w-md max-h-96 rounded-lg" src="' . htmlspecialchars($attachmentUrl) . '" alt="Image attachment" loading="lazy" onclick="window.open(\'' . htmlspecialchars($attachmentUrl) . '\', \'_blank\')" onerror="this.onerror=null; this.src=\'/public/assets/common/default-profile-picture.png\'; this.classList.add(\'w-16\', \'h-16\'); this.parentNode.classList.add(\'bg-[#2b2d31]\', \'p-3\', \'rounded-lg\'); this.parentNode.innerHTML += \'<div class=\\\"text-sm text-[#b5bac1] mt-2\\\">Image failed to load</div>\';">';
+            echo '</div>';
+        } elseif ($messageType === 'video' || preg_match('/\.(mp4|webm|mov|avi|wmv)$/i', $attachmentUrl)) {
+            echo '<div class="video-attachment cursor-pointer relative">';
+            echo '<video class="max-w-md max-h-96 rounded-lg" src="' . htmlspecialchars($attachmentUrl) . '" controls preload="metadata" onerror="this.parentNode.innerHTML = \'<div class=\\\"bg-[#2b2d31] p-3 rounded-lg flex items-center\\\"><i class=\\\"fas fa-file-video text-2xl mr-2\\\"></i><span>Video failed to load</span></div>\';">';
+            echo '</video>';
+            echo '</div>';
+        } else {
+            $fileName = basename(parse_url($attachmentUrl, PHP_URL_PATH)) ?: 'File';
+            $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            
+            $fileIcon = 'fas fa-file';
+            if (in_array($extension, ['doc', 'docx'])) $fileIcon = 'fas fa-file-word';
+            elseif (in_array($extension, ['xls', 'xlsx', 'csv'])) $fileIcon = 'fas fa-file-excel';
+            elseif (in_array($extension, ['ppt', 'pptx'])) $fileIcon = 'fas fa-file-powerpoint';
+            elseif ($extension === 'pdf') $fileIcon = 'fas fa-file-pdf';
+            elseif (in_array($extension, ['zip', 'rar', 'tar', 'gz'])) $fileIcon = 'fas fa-file-archive';
+            elseif (in_array($extension, ['txt', 'log', 'md'])) $fileIcon = 'fas fa-file-alt';
+            elseif (in_array($extension, ['js', 'php', 'html', 'css', 'py', 'java', 'cpp', 'cs', 'rb'])) $fileIcon = 'fas fa-file-code';
+            elseif (in_array($extension, ['mp3', 'wav', 'ogg'])) $fileIcon = 'fas fa-file-audio';
+            elseif (in_array($extension, ['mp4', 'avi', 'mov', 'wmv'])) $fileIcon = 'fas fa-file-video';
+            
+            echo '<a href="' . htmlspecialchars($attachmentUrl) . '" target="_blank" class="block no-underline">';
+            echo '<div class="bg-[#2b2d31] p-3 rounded-lg inline-flex items-center max-w-md hover:bg-[#36373d] transition-colors">';
+            echo '<div class="text-3xl text-[#b5bac1] mr-3"><i class="' . $fileIcon . '"></i></div>';
+            echo '<div class="overflow-hidden">';
+            echo '<div class="text-[#dcddde] font-medium text-sm truncate">' . htmlspecialchars($fileName) . '</div>';
+            echo '<div class="text-[#b5bac1] text-xs">Click to download</div>';
+            echo '</div>';
+            echo '</div>';
+            echo '</a>';
+        }
+        
+        echo '</div>';
+    }
+    
+    if ($editedAt) {
+        echo '<span class="edited-badge text-xs text-[#a3a6aa] ml-1">(edited)</span>';
+    }
+    
+    echo '</div>';
+    
+    echo '<div class="message-actions absolute -top-4 right-4 bg-[#2b2d31] rounded-md shadow-lg flex items-center p-1 space-x-1 z-10 hidden" style="opacity: 0; visibility: hidden; position: absolute;">';
+    
+    echo '<button class="message-action-reaction w-8 h-8 flex items-center justify-center text-[#b9bbbe] hover:text-white rounded hover:bg-[#3c3f45] transition-colors" title="Add Reaction">';
+    echo '<i class="fas fa-face-smile"></i>';
+    echo '</button>';
+    
+    echo '<button class="message-action-reply w-8 h-8 flex items-center justify-center text-[#b9bbbe] hover:text-white rounded hover:bg-[#3c3f45] transition-colors" title="Reply">';
+    echo '<i class="fas fa-reply"></i>';
+    echo '</button>';
+    
+    if ($isOwnMessage) {
+        echo '<button class="message-action-edit w-8 h-8 flex items-center justify-center text-[#b9bbbe] hover:text-white rounded hover:bg-[#3c3f45] transition-colors" title="Edit">';
+        echo '<i class="fas fa-pen-to-square"></i>';
+        echo '</button>';
+    }
+    
+    echo '<button class="message-action-more w-8 h-8 flex items-center justify-center text-[#b9bbbe] hover:text-white rounded hover:bg-[#3c3f45] transition-colors" title="More">';
+    echo '<i class="fas fa-ellipsis-h"></i>';
+    echo '</button>';
+    
+    echo '</div>';
+    
+    echo '</div>';
+}
 ?>
 
 <link rel="stylesheet" href="<?php echo css('chat-section'); ?>?v=<?php echo time(); ?>">
@@ -356,6 +538,22 @@ if ($chatType === 'channel') {
     </div>
 
     <div class="flex-1 overflow-y-auto discord-scrollbar bg-[#313338]" id="chat-messages">
+        <div class="messages-container flex-1" style="position: relative; z-index: 10;">
+            <?php if (!empty($messages)): ?>
+                <?php
+                $i = 0;
+                while ($i < count($messages)) {
+                    $i = renderMessageGroup($messages, $i) + 1;
+                }
+                ?>
+            <?php else: ?>
+                <div id="chat-empty-state" class="flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full absolute inset-0 z-0">
+                    <i class="fas fa-comments text-6xl mb-4 opacity-50"></i>
+                    <p class="text-lg font-medium">No messages yet</p>
+                    <p class="text-sm mt-2">Start the conversation by sending a message!</p>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 
     <div id="typing-indicator" class="text-xs text-[#b5bac1] pb-1 pl-5 flex items-center hidden">

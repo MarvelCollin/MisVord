@@ -80,14 +80,51 @@ class ChatSection {
             console.log(`Checking if target ID ${this.targetId} is valid room ID for direct messages`);
         }
         
-        this.showLoadingSkeletons();
+                 const existingMessages = this.chatMessages.querySelectorAll('.message-group');
+         if (existingMessages.length > 0) {
+             console.log('Messages already rendered by PHP, marking processed and setting up listeners');
+             existingMessages.forEach(group => {
+                 const messageElements = group.querySelectorAll('.message-content');
+                 messageElements.forEach(msgEl => {
+                     const messageId = msgEl.dataset.messageId;
+                     if (messageId) {
+                         this.processedMessageIds.add(messageId);
+                         
+                         // Ensure hover actions work on PHP-rendered messages
+                         msgEl.addEventListener('mouseover', () => this.showMessageActions(msgEl));
+                         msgEl.addEventListener('mouseout', (e) => {
+                             const relatedTarget = e.relatedTarget;
+                             if (!msgEl.contains(relatedTarget) && !relatedTarget?.closest('.message-actions')) {
+                                 this.hideMessageActions(msgEl);
+                             }
+                         });
+                         
+                         // Setup action buttons
+                         const actionsContainer = msgEl.querySelector('.message-actions');
+                         if (actionsContainer) {
+                             const reactionBtn = actionsContainer.querySelector('.message-action-reaction');
+                             const replyBtn = actionsContainer.querySelector('.message-action-reply');
+                             const editBtn = actionsContainer.querySelector('.message-action-edit');
+                             const moreBtn = actionsContainer.querySelector('.message-action-more');
+                             
+                             if (reactionBtn) reactionBtn.addEventListener('click', () => this.showEmojiPicker(messageId, reactionBtn));
+                             if (replyBtn) replyBtn.addEventListener('click', () => this.replyToMessage(messageId));
+                             if (editBtn) editBtn.addEventListener('click', () => this.editMessage(messageId));
+                             if (moreBtn) moreBtn.addEventListener('click', (e) => this.showContextMenu(e.clientX, e.clientY, msgEl));
+                         }
+                     }
+                 });
+             });
+             this.messagesLoaded = true;
+             this.scrollToBottom();
+         } else {
+             this.showLoadingSkeletons();
+             setTimeout(() => {
+                 this.loadMessages();
+             }, 100);
+         }
         
         this.setupEventListeners();
-        
-        setTimeout(() => {
-            this.loadMessages();
-        }, 100);
-        
         this.setupIoListeners();
         console.log('ChatSection initialization complete');
     }
@@ -1318,8 +1355,15 @@ class ChatSection {
         
         const targetContainer = this.getMessagesContainer();
         const existingMessages = targetContainer.querySelectorAll('.message-group');
+        
         if ((!messages || messages.length === 0) && existingMessages.length > 0) {
             console.log('📭 renderMessages received 0 messages but DOM already has messages; skipping clear to preserve local messages');
+            return;
+        }
+
+        const hasPhpRenderedMessages = existingMessages.length > 0 && existingMessages[0].querySelector('.message-content[data-message-id]');
+        if (hasPhpRenderedMessages && messages && messages.length > 0) {
+            console.log('📭 PHP-rendered messages detected, skipping JS render to avoid duplication');
             return;
         }
 
@@ -2212,6 +2256,11 @@ class ChatSection {
                 }
                 
                 this.processedMessageIds.delete(messageId);
+                
+                const remainingMessages = this.getMessagesContainer().querySelectorAll('.message-group');
+                if (remainingMessages.length === 0) {
+                    this.showEmptyState();
+                }
             }
         }
     }
