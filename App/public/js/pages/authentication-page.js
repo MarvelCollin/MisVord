@@ -431,8 +431,8 @@ function initAuth() {
                     const captcha = this.querySelector('#login_captcha');
                     if (captcha) {
                         if (!captcha.value.trim()) {
-                            FormValidator.showFieldError(captcha, 'Verification code is required');
-                            isValid = false;
+                        FormValidator.showFieldError(captcha, 'Verification code is required');
+                        isValid = false;
                         } else if (window.loginCaptchaInstance && !window.loginCaptchaInstance.isValid(captcha.value)) {
                             FormValidator.showFieldError(captcha, 'Invalid verification code');
                             isValid = false;
@@ -901,8 +901,8 @@ function initAuth() {
             const captcha = document.getElementById('register_captcha');
             if (captcha) {
                 if (!captcha.value.trim()) {
-                    FormValidator.showFieldError(captcha, 'Verification code is required');
-                    isValid = false;
+                FormValidator.showFieldError(captcha, 'Verification code is required');
+                isValid = false;
                 } else if (window.registerCaptchaInstance && !window.registerCaptchaInstance.isValid(captcha.value)) {
                     FormValidator.showFieldError(captcha, 'Invalid verification code');
                     isValid = false;

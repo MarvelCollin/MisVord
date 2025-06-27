@@ -30,7 +30,7 @@ function ensureServerDataLoaded() {
                         }
                     })
                     .then(channelResponse => {
-                        if (channelResponse && channelResponse.success) {
+                        if (channelResponse && channelResponse.data) {
                             console.log('Channels loaded successfully');
                             if (typeof window.channelLoader !== 'undefined' && 
                                 typeof window.channelLoader.renderChannels === 'function') {
@@ -193,7 +193,7 @@ async function initServerSettingsForm() {
 
                 const data = await response.json();
 
-                if (data.success) {
+                if (data.data) {
                     showToast('Server settings updated successfully', 'success');
 
                     const modal = document.getElementById('server-settings-modal');

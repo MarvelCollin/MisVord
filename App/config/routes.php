@@ -424,15 +424,7 @@ Route::get('/api/auth/check', function() {
     exit;
 });
 
-Route::get('/api/captcha/generate', function() {
-    $controller = new AuthenticationController();
-    $controller->generateCaptcha();
-});
 
-Route::post('/api/captcha/verify', function() {
-    $controller = new AuthenticationController();
-    $controller->verifyCaptcha();
-});
 
 Route::get('/api/debug-simple', function() {
     header('Content-Type: application/json');

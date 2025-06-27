@@ -19,7 +19,6 @@ export class TextCaptcha {
         };
 
         this.code = '';
-        this.serverCode = '';
         this.init();
     }
 
@@ -115,59 +114,28 @@ export class TextCaptcha {
         document.head.appendChild(style);
     }
 
-    async generateCode() {
-        try {
-            const timestamp = new Date().getTime();
-            const response = await fetch(`/api/captcha/generate?_t=${timestamp}`, {
-                method: 'GET',
-                credentials: 'include',
-                headers: { 'Cache-Control': 'no-cache' }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-
-            if (data.success && data.captcha_code) {
-                this.code = data.captcha_code;
-                this.serverCode = data.captcha_code.toLowerCase();
-                this.displayCode();
-                this.updateDebugDisplay();
-            } else {
-                throw new Error('Server did not return captcha code');
-            }
-        } catch (error) {
-            console.error('Error generating captcha:', error);
-            this.displayError('Failed to load captcha. Please refresh the page.');
-        }
-    }
-
-    displayError(message) {
-        const codeDisplay = document.getElementById(`${this.container.id}-code`);
-        if (codeDisplay) {
-            codeDisplay.innerHTML = `<div style="color: #f87171; text-align: center; padding: 10px; font-size: 12px;">${message}</div>`;
+    generateCode() {
+        const chars = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
+        let code = '';
+        
+        for (let i = 0; i < this.options.length; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         
-        if (this.options.showDebug) {
-            const debugDisplay = document.getElementById(`${this.container.id}-debug`);
-            if (debugDisplay) {
-                debugDisplay.textContent = `Debug: Error - ${message}`;
-                debugDisplay.style.color = '#f87171';
-            }
-        }
+        this.code = code.toLowerCase();
+        this.displayCode(code);
+        this.updateDebugDisplay();
     }
 
-    displayCode() {
+    displayCode(displayCode) {
         const codeDisplay = document.getElementById(`${this.container.id}-code`);
         if (!codeDisplay) return;
         
         codeDisplay.innerHTML = '';
         
-        for (let i = 0; i < this.code.length; i++) {
+        for (let i = 0; i < displayCode.length; i++) {
             const charSpan = document.createElement('span');
-            charSpan.textContent = this.code[i];
+            charSpan.textContent = displayCode[i];
             charSpan.className = `captcha-char-${i % 6}`;
             
             const hue = Math.floor(Math.random() * 360);
@@ -209,7 +177,7 @@ export class TextCaptcha {
         
         const debugDisplay = document.getElementById(`${this.container.id}-debug`);
         if (debugDisplay) {
-            debugDisplay.textContent = `Debug: Correct answer is "${this.serverCode}" (case insensitive)`;
+            debugDisplay.textContent = `Debug: Correct answer is "${this.code}" (case insensitive)`;
             debugDisplay.style.color = '#4ade80';
         }
     }
@@ -231,42 +199,18 @@ export class TextCaptcha {
 
     verify(input) {
         if (!input) return false;
-        if (!this.serverCode) return false;
+        if (!this.code) return false;
         
         const inputLower = input.toLowerCase().trim();
         
         console.log('Captcha verification:', {
             input: input,
             inputLower: inputLower,
-            serverCode: this.serverCode,
-            match: inputLower === this.serverCode
+            correctCode: this.code,
+            match: inputLower === this.code
         });
         
-        return inputLower === this.serverCode;
-    }
-
-    async verifyWithServer(input) {
-        try {
-            const response = await fetch('/api/captcha/verify', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'no-cache'
-                },
-                credentials: 'include',
-                body: JSON.stringify({ captcha: input })
-            });
-            
-            if (!response.ok) {
-                return false;
-            }
-            
-            const data = await response.json();
-            return data.success === true;
-        } catch (error) {
-            console.error('Error verifying captcha with server:', error);
-            return this.verify(input);
-        }
+        return inputLower === this.code;
     }
 
     refresh() {

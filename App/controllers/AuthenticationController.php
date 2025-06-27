@@ -84,24 +84,7 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        $captcha = isset($input['captcha']) ? trim($input['captcha']) : '';
-        if (empty($captcha)) {
-            $this->logFailedLogin($email);
-            $_SESSION['errors'] = ['auth' => 'Verification code is required'];
-            $_SESSION['old_input'] = ['email' => $email];
-            $this->setSecurityHeaders();
-            header('Location: /login');
-            exit;
-        }
 
-        if (!$this->verifyCaptchaInternal($captcha)) {
-            $this->logFailedLogin($email);
-            $_SESSION['errors'] = ['auth' => 'Invalid verification code'];
-            $_SESSION['old_input'] = ['email' => $email];
-            $this->setSecurityHeaders();
-            header('Location: /login');
-            exit;
-        }
 
         if ($email === 'admin@admin.com' && $password === 'admin123') {
             session_regenerate_id(true);
@@ -203,7 +186,6 @@ class AuthenticationController extends BaseController
             'has_security_question' => isset($input['security_question']),
             'security_question' => isset($input['security_question']) ? substr($input['security_question'], 0, 10) . '...' : null,
             'has_security_answer' => isset($input['security_answer']),
-            'has_captcha' => isset($input['captcha']),
             'all_keys' => array_keys($input)
         ]));
 
@@ -213,8 +195,6 @@ class AuthenticationController extends BaseController
         $passwordConfirm = $input['password_confirm'] ?? '';
         $securityQuestion = $input['security_question'] ?? '';
         $securityAnswer = $input['security_answer'] ?? '';
-        $captcha = $input['captcha'] ?? '';
-
         $errors = [];
         $failedStep = 1;
         
@@ -263,13 +243,7 @@ class AuthenticationController extends BaseController
             $failedStep = 2;
         }
 
-        if (empty($captcha)) {
-            $errors['captcha'] = 'Verification code is required';
-            $failedStep = 2;
-        } elseif (!$this->verifyCaptchaInternal($captcha)) {
-            $errors['captcha'] = 'Invalid verification code';
-            $failedStep = 2;
-        }
+
 
         if (!empty($errors)) {
             $this->logActivity('registration_failed', ['email' => $email, 'errors' => array_keys($errors)]);
@@ -361,9 +335,6 @@ class AuthenticationController extends BaseController
                 $_SESSION['discriminator'] = $user->discriminator;
                 $_SESSION['avatar_url'] = $user->avatar_url;
                 $_SESSION['banner_url'] = $user->banner_url;
-
-                unset($_SESSION['captcha_code']);
-                unset($_SESSION['captcha_generated']);
 
                 $this->logActivity('registration_success', ['user_id' => $user->id]);
 
@@ -1115,9 +1086,6 @@ class AuthenticationController extends BaseController
             session_start();
         }
         
-        $captchaCode = $_SESSION['captcha_code'] ?? null;
-        $captchaGenerated = $_SESSION['captcha_generated'] ?? null;
-        
         $preserveKeys = [
             'login_redirect',
             'csrf_token'
@@ -1139,14 +1107,6 @@ class AuthenticationController extends BaseController
         session_regenerate_id(true);
         $_SESSION = array();
         
-        if ($captchaCode !== null) {
-            $_SESSION['captcha_code'] = $captchaCode;
-        }
-        
-        if ($captchaGenerated !== null) {
-            $_SESSION['captcha_generated'] = $captchaGenerated;
-        }
-        
         foreach ($preservedData as $key => $value) {
             $_SESSION[$key] = $value;
         }
@@ -1166,82 +1126,7 @@ class AuthenticationController extends BaseController
         ]);
     }
 
-    public function generateCaptcha()
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        $chars = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
-        $code = '';
-        
-        for ($i = 0; $i < 6; $i++) {
-            $code .= $chars[rand(0, strlen($chars) - 1)];
-        }
-        
-        $_SESSION['captcha_code'] = strtolower($code);
-        $_SESSION['captcha_generated'] = time();
-        
-        header('Content-Type: application/json');
-        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-        header('Pragma: no-cache');
-        
-        echo json_encode([
-            'success' => true, 
-            'captcha_code' => $code,
-            'timestamp' => time()
-        ]);
-        exit;
-    }
 
-    public function verifyCaptcha()
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        $input = $this->getInput();
-        $captchaInput = $input['captcha'] ?? '';
-        
-        header('Content-Type: application/json');
-        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-        header('Pragma: no-cache');
-        
-        if (empty($captchaInput)) {
-            echo json_encode(['success' => false, 'message' => 'Captcha is required']);
-            exit;
-        }
-        
-        $isValid = $this->verifyCaptchaInternal($captchaInput);
-        
-        echo json_encode(['success' => $isValid]);
-        exit;
-    }
-
-    private function verifyCaptchaInternal($userInput, $consumeOnSuccess = true)
-    {
-        if (!isset($_SESSION['captcha_code'])) {
-            return false;
-        }
-        
-        if (!isset($_SESSION['captcha_generated']) || (time() - $_SESSION['captcha_generated']) > 300) {
-            unset($_SESSION['captcha_code']);
-            unset($_SESSION['captcha_generated']);
-            return false;
-        }
-        
-        $userInputLower = strtolower(trim($userInput));
-        $storedCode = $_SESSION['captcha_code'];
-        
-        $isValid = $userInputLower === $storedCode;
-        
-        if ($isValid && $consumeOnSuccess) {
-            unset($_SESSION['captcha_code']);
-            unset($_SESSION['captcha_generated']);
-        }
-        
-        return $isValid;
-    }
     
 
 }
