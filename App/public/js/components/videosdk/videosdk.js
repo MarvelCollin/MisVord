@@ -406,8 +406,14 @@ class VideoSDKManager {
                 
             if (isMicEnabled) {
                 this.meeting.muteMic();
+                if (window.voiceStateManager) {
+                    window.voiceStateManager.setState({ isMuted: true });
+                }
             } else {
                 this.meeting.unmuteMic();
+                if (window.voiceStateManager) {
+                    window.voiceStateManager.setState({ isMuted: false });
+                }
             }
             return !isMicEnabled;
         } catch (error) {
@@ -426,8 +432,14 @@ class VideoSDKManager {
                 
             if (isWebcamEnabled) {
                 this.meeting.disableWebcam();
+                if (window.voiceStateManager) {
+                    window.voiceStateManager.setState({ isVideoOn: false });
+                }
             } else {
                 this.meeting.enableWebcam();
+                if (window.voiceStateManager) {
+                    window.voiceStateManager.setState({ isVideoOn: true });
+                }
             }
             return !isWebcamEnabled;
         } catch (error) {
@@ -446,12 +458,45 @@ class VideoSDKManager {
                 
             if (isScreenShareEnabled) {
                 this.meeting.disableScreenShare();
+                if (window.voiceStateManager) {
+                    window.voiceStateManager.setState({ isScreenSharing: false });
+                }
             } else {
                 this.meeting.enableScreenShare();
+                if (window.voiceStateManager) {
+                    window.voiceStateManager.setState({ isScreenSharing: true });
+                }
             }
             return !isScreenShareEnabled;
         } catch (error) {
             this.logError("Error toggling screen share:", error);
+            return false;
+        }
+    }
+    
+    toggleDeafen() {
+        if (!this.meeting) return false;
+        
+        try {
+            const currentDeafenState = window.voiceStateManager ? window.voiceStateManager.getState().isDeafened : false;
+            const newDeafenState = !currentDeafenState;
+            
+            if (newDeafenState) {
+                this.meeting.muteMic();
+                if (window.voiceStateManager) {
+                    window.voiceStateManager.setState({ 
+                        isDeafened: true, 
+                        isMuted: true 
+                    });
+                }
+            } else {
+                if (window.voiceStateManager) {
+                    window.voiceStateManager.setState({ isDeafened: false });
+                }
+            }
+            return newDeafenState;
+        } catch (error) {
+            this.logError("Error toggling deafen:", error);
             return false;
         }
     }

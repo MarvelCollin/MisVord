@@ -6,7 +6,6 @@ require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/ServerInviteRepository.php';
-require_once __DIR__ . '/../database/repositories/RoleRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ServerController extends BaseController
@@ -17,7 +16,6 @@ class ServerController extends BaseController
     private $messageRepository;
     private $userServerMembershipRepository;
     private $inviteRepository;
-    private $roleRepository;
 
     public function __construct()
     {
@@ -28,7 +26,6 @@ class ServerController extends BaseController
         $this->messageRepository = new MessageRepository();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
         $this->inviteRepository = new ServerInviteRepository();
-        $this->roleRepository = new RoleRepository();
     }
 
     public function show($id)
@@ -66,16 +63,13 @@ class ServerController extends BaseController
                 $categories = $this->categoryRepository->getForServer($id);
 
                 $serverMembers = $this->userServerMembershipRepository->getServerMembers($id);
-                
-                $serverRoles = $this->roleRepository->getForServer($id);
 
                 if (function_exists('logger')) {
                     logger()->debug("Loaded server data", [
                         'server_id' => $id,
                         'channels_count' => count($channels),
                         'categories_count' => count($categories),
-                        'members_count' => count($serverMembers),
-                        'roles_count' => count($serverRoles)
+                        'members_count' => count($serverMembers)
                     ]);
                 }
 
@@ -121,8 +115,7 @@ class ServerController extends BaseController
                         'categories' => $categories,
                         'active_channel' => $activeChannel ? $this->formatChannel($activeChannel) : null,
                         'messages' => $channelMessages,
-                        'members' => $serverMembers,
-                        'roles' => $serverRoles
+                        'members' => $serverMembers
                     ]);
                 }
                 
@@ -133,7 +126,6 @@ class ServerController extends BaseController
                 $GLOBALS['activeChannelId'] = $activeChannelId;
                 $GLOBALS['channelMessages'] = $channelMessages;
                 $GLOBALS['serverMembers'] = $serverMembers;
-                $GLOBALS['serverRoles'] = $serverRoles;
 
                 $this->logActivity('server_view', ['server_id' => $id]);
 

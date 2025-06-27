@@ -1072,7 +1072,7 @@ class ChatController extends BaseController
         }
     }
     
-    public function addReaction($messageId) {
+    public function toggleReaction($messageId) {
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
         $username = $_SESSION['username'] ?? 'Unknown User';
@@ -1157,9 +1157,5 @@ class ChatController extends BaseController
             error_log('Reaction error: ' . $e->getMessage() . ' - ' . $e->getTraceAsString());
             return $this->serverError('Failed to toggle reaction: ' . $e->getMessage());
         }
-    }
-    
-    public function removeReaction($messageId) {
-        return $this->addReaction($messageId);
     }
 }

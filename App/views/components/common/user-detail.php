@@ -31,31 +31,21 @@
             
             <div class="user-detail-divider"></div>
             
-            <!-- About Me section -->
-            <div class="user-detail-section">
+            <!-- Bio section -->
+            <div class="user-detail-section" id="user-detail-bio-section">
                 <h3 class="user-detail-section-title">ABOUT ME</h3>
-                <div class="user-detail-about" id="user-detail-about">
-                    <!-- About me content will be inserted here -->
+                <div class="user-detail-bio" id="user-detail-bio">
+                    <!-- Bio will be inserted here -->
                 </div>
             </div>
             
             <div class="user-detail-divider"></div>
             
-            <!-- Member Since section -->
-            <div class="user-detail-section">
+            <!-- Server join date section -->
+            <div class="user-detail-section" id="user-detail-server-section">
                 <h3 class="user-detail-section-title">MEMBER SINCE</h3>
-                <div class="user-detail-member-since" id="user-detail-member-since">
-                    <!-- Join date will be inserted here -->
-                </div>
-            </div>
-            
-            <div class="user-detail-divider"></div>
-            
-            <!-- Roles section -->
-            <div class="user-detail-section" id="user-detail-roles-section">
-                <h3 class="user-detail-section-title">ROLES</h3>
-                <div class="user-detail-roles" id="user-detail-roles">
-                    <!-- Roles will be inserted here -->
+                <div class="user-detail-server-info" id="user-detail-server-info">
+                    <!-- Server info will be inserted here -->
                 </div>
             </div>
             

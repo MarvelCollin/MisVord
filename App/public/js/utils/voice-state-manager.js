@@ -17,6 +17,7 @@ class VoiceStateManager {
         this.loadState();
         this.setupStorageListener();
         this.setupVoiceControlListeners();
+        this.setupVideoSDKListeners();
     }
 
     loadState() {
@@ -53,6 +54,40 @@ class VoiceStateManager {
         });
     }
 
+    setupVideoSDKListeners() {
+        window.addEventListener('voiceConnect', () => {
+            this.syncWithVideoSDK();
+        });
+
+        window.addEventListener('voiceDisconnect', () => {
+            this.reset();
+        });
+    }
+
+    syncWithVideoSDK() {
+        if (window.videoSDKManager && window.videosdkMeeting && window.videosdkMeeting.localParticipant) {
+            try {
+                const participant = window.videosdkMeeting.localParticipant;
+                
+                if (window.videoSDKManager.sdkVersion === "0.2.x") {
+                    this.state.isMuted = !participant.isMicEnabled;
+                    this.state.isVideoOn = participant.isWebcamEnabled;
+                    this.state.isScreenSharing = participant.isScreenShareEnabled;
+                } else {
+                    this.state.isMuted = !participant.streams.has("audio");
+                    this.state.isVideoOn = participant.streams.has("video");
+                    this.state.isScreenSharing = participant.streams.has("share");
+                }
+                
+                this.saveState();
+                this.updateAllControls();
+                this.notifyListeners();
+            } catch (error) {
+                console.error('Error syncing with VideoSDK:', error);
+            }
+        }
+    }
+
     setupVoiceControlListeners() {
         document.addEventListener('click', (e) => {
             const button = e.target.closest('button');
@@ -70,70 +105,95 @@ class VoiceStateManager {
             } else if (button.id === 'screenBtn' || button.classList.contains('screen-btn')) {
                 e.preventDefault();
                 this.toggleScreenShare();
+            } else if (button.id === 'leaveBtn' || button.classList.contains('disconnect-btn')) {
+                e.preventDefault();
+                this.disconnectVoice();
             }
         });
     }
 
     toggleMic() {
-        this.state.isMuted = !this.state.isMuted;
+        if (window.videoSDKManager && window.videosdkMeeting) {
+            try {
+                const newMutedState = window.videoSDKManager.toggleMic();
+                this.state.isMuted = newMutedState;
+            } catch (error) {
+                console.error('Error toggling VideoSDK mic:', error);
+                this.state.isMuted = !this.state.isMuted;
+            }
+        } else {
+            this.state.isMuted = !this.state.isMuted;
+        }
+        
         this.saveState();
         this.updateAllControls();
         this.notifyListeners();
-        
-        if (window.videoSDKManager && window.videosdkMeeting) {
-            try {
-                window.videoSDKManager.toggleMic();
-            } catch (error) {
-                console.error('Error toggling VideoSDK mic:', error);
-            }
-        }
-        
         this.showToast(this.state.isMuted ? 'Muted' : 'Unmuted');
     }
 
     toggleDeafen() {
-        this.state.isDeafened = !this.state.isDeafened;
-        if (this.state.isDeafened) {
-            this.state.isMuted = true;
+        if (window.videoSDKManager && window.videosdkMeeting) {
+            try {
+                const newDeafenState = window.videoSDKManager.toggleDeafen();
+                this.state.isDeafened = newDeafenState;
+                if (newDeafenState) {
+                    this.state.isMuted = true;
+                }
+            } catch (error) {
+                console.error('Error toggling VideoSDK deafen:', error);
+                this.state.isDeafened = !this.state.isDeafened;
+                if (this.state.isDeafened) {
+                    this.state.isMuted = true;
+                }
+            }
+        } else {
+            this.state.isDeafened = !this.state.isDeafened;
+            if (this.state.isDeafened) {
+                this.state.isMuted = true;
+            }
         }
+        
         this.saveState();
         this.updateAllControls();
         this.notifyListeners();
-        
         this.showToast(this.state.isDeafened ? 'Deafened' : 'Undeafened');
     }
 
     toggleVideo() {
-        this.state.isVideoOn = !this.state.isVideoOn;
+        if (window.videoSDKManager && window.videosdkMeeting) {
+            try {
+                const newVideoState = window.videoSDKManager.toggleWebcam();
+                this.state.isVideoOn = newVideoState;
+            } catch (error) {
+                console.error('Error toggling VideoSDK webcam:', error);
+                this.state.isVideoOn = !this.state.isVideoOn;
+            }
+        } else {
+            this.state.isVideoOn = !this.state.isVideoOn;
+        }
+        
         this.saveState();
         this.updateAllControls();
         this.notifyListeners();
-        
-        if (window.videoSDKManager && window.videosdkMeeting) {
-            try {
-                window.videoSDKManager.toggleWebcam();
-            } catch (error) {
-                console.error('Error toggling VideoSDK webcam:', error);
-            }
-        }
-        
         this.showToast(this.state.isVideoOn ? 'Camera enabled' : 'Camera disabled');
     }
 
     toggleScreenShare() {
-        this.state.isScreenSharing = !this.state.isScreenSharing;
+        if (window.videoSDKManager && window.videosdkMeeting) {
+            try {
+                const newScreenShareState = window.videoSDKManager.toggleScreenShare();
+                this.state.isScreenSharing = newScreenShareState;
+            } catch (error) {
+                console.error('Error toggling VideoSDK screen share:', error);
+                this.state.isScreenSharing = !this.state.isScreenSharing;
+            }
+        } else {
+            this.state.isScreenSharing = !this.state.isScreenSharing;
+        }
+        
         this.saveState();
         this.updateAllControls();
         this.notifyListeners();
-        
-        if (window.videoSDKManager && window.videosdkMeeting) {
-            try {
-                window.videoSDKManager.toggleScreenShare();
-            } catch (error) {
-                console.error('Error toggling VideoSDK screen share:', error);
-            }
-        }
-        
         this.showToast(this.state.isScreenSharing ? 'Screen sharing started' : 'Screen sharing stopped');
     }
 
@@ -231,6 +291,24 @@ class VoiceStateManager {
         this.saveState();
         this.updateAllControls();
         this.notifyListeners();
+    }
+
+    disconnectVoice() {
+        if (window.videoSDKManager && window.videosdkMeeting) {
+            try {
+                window.videoSDKManager.leaveMeeting();
+                window.videosdkMeeting = null;
+            } catch (error) {
+                console.error('Error disconnecting from VideoSDK:', error);
+            }
+        }
+        
+        if (window.globalVoiceIndicator) {
+            window.globalVoiceIndicator.handleDisconnect();
+        }
+        
+        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+        this.showToast('Disconnected from voice channel');
     }
 
     addListener(callback) {

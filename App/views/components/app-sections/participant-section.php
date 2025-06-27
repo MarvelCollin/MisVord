@@ -5,16 +5,6 @@ if (!isset($currentServer) || empty($currentServer)) {
 
 $currentServerId = $currentServer->id ?? 0;
 $members = $GLOBALS['serverMembers'] ?? [];
-$roles = $GLOBALS['serverRoles'] ?? [];
-
-$membersById = [];
-foreach ($members as $member) {
-    $roleId = $member['role_id'] ?? 'default';
-    if (!isset($membersById[$roleId])) {
-        $membersById[$roleId] = [];
-    }
-    $membersById[$roleId][] = $member;
-}
 
 $totalMemberCount = count($members);
 
@@ -29,18 +19,6 @@ function renderMemberSkeleton($count = 1) {
         echo '</div>';
     }
 }
-
-function renderRoleSkeleton($count = 1) {
-    for ($i = 0; $i < $count; $i++) {
-        echo '<div class="mb-2">';
-        echo '  <div class="flex items-center px-2 py-1">';
-        echo '    <div class="h-3 bg-gray-700 rounded w-24 animate-pulse"></div>';
-        echo '    <div class="ml-auto h-3 bg-gray-700 rounded w-4 animate-pulse"></div>';
-        echo '  </div>';
-        renderMemberSkeleton(rand(3, 5));
-        echo '</div>';
-    }
-}
 ?>
 
 <div class="w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-full max-h-screen">
@@ -51,188 +29,56 @@ function renderRoleSkeleton($count = 1) {
     <div class="participant-skeleton flex-1 overflow-y-auto p-2 skeleton-loader">
         <div class="mb-4">
             <div class="h-3 bg-gray-700 rounded w-28 ml-2 mb-3 animate-pulse"></div>
-            <?php renderMemberSkeleton(6); ?>
-        </div>
-        
-        <?php renderRoleSkeleton(2); ?>
-        
-        <div class="mt-4">
-            <div class="h-3 bg-gray-700 rounded w-24 ml-2 mb-3 animate-pulse"></div>
-            <?php renderMemberSkeleton(4); ?>
+            <?php renderMemberSkeleton(8); ?>
         </div>
     </div>
     
     <div class="participant-content flex-1 overflow-y-auto p-2 hidden" data-lazyload="participant-list">
-        <?php if (!empty($roles)): ?>
-            <?php 
-            $hasDefaultRole = false;
-            foreach ($roles as $role): 
-                if ($role['name'] === '@everyone') {
-                    $hasDefaultRole = true;
-                    continue;
-                }
-                
-                $roleMembers = $membersById[$role['id']] ?? [];
-                if (empty($roleMembers)) continue;
-            ?>
-                <div class="mb-2">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase px-2 py-1">
-                        <?php echo htmlspecialchars($role['name']); ?> — <?php echo count($roleMembers); ?>
-                    </h3>
-                    <div class="space-y-0.5 members-section" data-role-id="<?php echo $role['id']; ?>">
-                        <?php foreach ($roleMembers as $member):
+        <div class="px-2">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase py-1">
+                Members — <?php echo $totalMemberCount; ?>
+            </h3>
+            <div class="space-y-0.5 members-section">
+                <?php foreach ($members as $member):
+                    $statusColor = 'bg-gray-500';
+                    
+                    switch ($member['status']) {
+                        case 'appear':
                             $statusColor = 'bg-discord-green';
-                            
-                            switch ($member['status']) {
-                                case 'appear':
-                                    $statusColor = 'bg-discord-green';
-                                    break;
-                                case 'invisible':
-                                    $statusColor = 'bg-gray-500';
-                                    break;
-                                case 'do_not_disturb':
-                                    $statusColor = 'bg-discord-red';
-                                    break;
-                                case 'offline':
-                                    $statusColor = 'bg-[#747f8d]';
-                                    break;
-                                case 'banned':
-                                    $statusColor = 'bg-black';
-                                    break;
-                                default:
-                                    $statusColor = 'bg-discord-green';
-                            }
-                            
-                            $isOffline = $member['status'] === 'offline';
-                            $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
-                            $imgOpacityClass = $isOffline ? 'opacity-70' : '';
-                        ?>
-                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" data-server-id="<?php echo $currentServerId; ?>">
-                                <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                        <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
-                                             alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
-                                    </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
-                                </div>
-                                <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-            
-            <?php
-            $defaultMembers = [];
-            if ($hasDefaultRole) {
-                $defaultMembers = array_filter($members, function($member) use ($roles) {
-                    foreach ($roles as $role) {
-                        if ($role['name'] !== '@everyone' && isset($member['role_id']) && $member['role_id'] === $role['id']) {
-                            return false;
-                        }
-                    }
-                    return true;
-                });
-                
-                if (!empty($defaultMembers)):
-            ?>
-                <div class="mb-2">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase px-2 py-1">
-                        Members — <?php echo count($defaultMembers); ?>
-                    </h3>
-                    <div class="space-y-0.5 members-section" data-role-id="default">
-                        <?php foreach ($defaultMembers as $member):
+                            break;
+                        case 'invisible':
                             $statusColor = 'bg-gray-500';
-                            
-                            switch ($member['status']) {
-                                case 'appear':
-                                    $statusColor = 'bg-discord-green';
-                                    break;
-                                case 'invisible':
-                                    $statusColor = 'bg-gray-500';
-                                    break;
-                                case 'do_not_disturb':
-                                    $statusColor = 'bg-discord-red';
-                                    break;
-                                case 'offline':
-                                    $statusColor = 'bg-[#747f8d]';
-                                    break;
-                                case 'banned':
-                                    $statusColor = 'bg-black';
-                                    break;
-                                default:
-                                    $statusColor = 'bg-discord-green';
-                            }
-                            
-                            $isOffline = $member['status'] === 'offline';
-                            $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
-                            $imgOpacityClass = $isOffline ? 'opacity-70' : '';
-                        ?>
-                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" data-server-id="<?php echo $currentServerId; ?>">
-                                <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                        <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
-                                             alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
-                                    </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
-                                </div>
-                                <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
+                            break;
+                        case 'do_not_disturb':
+                            $statusColor = 'bg-discord-red';
+                            break;
+                        case 'offline':
+                            $statusColor = 'bg-[#747f8d]';
+                            break;
+                        case 'banned':
+                            $statusColor = 'bg-black';
+                            break;
+                        default:
+                            $statusColor = 'bg-discord-green';
+                    }
+                    
+                    $isOffline = $member['status'] === 'offline';
+                    $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
+                    $imgOpacityClass = $isOffline ? 'opacity-70' : '';
+                ?>
+                    <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" data-server-id="<?php echo $currentServerId; ?>">
+                        <div class="relative mr-2">
+                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
+                                     alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
                             </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php 
-                endif;
-            }
-            ?>
-            
-        <?php else: ?>
-            <div class="px-2">
-                <h3 class="text-xs font-semibold text-gray-400 uppercase py-1">
-                    Members — <?php echo $totalMemberCount; ?>
-                </h3>
-                <div class="space-y-0.5 members-section">
-                    <?php foreach ($members as $member):
-                        $statusColor = 'bg-gray-500';
-                        
-                        switch ($member['status']) {
-                            case 'appear':
-                                $statusColor = 'bg-discord-green';
-                                break;
-                            case 'invisible':
-                                $statusColor = 'bg-gray-500';
-                                break;
-                            case 'do_not_disturb':
-                                $statusColor = 'bg-discord-red';
-                                break;
-                            case 'offline':
-                                $statusColor = 'bg-[#747f8d]';
-                                break;
-                            case 'banned':
-                                $statusColor = 'bg-black';
-                                break;
-                            default:
-                                $statusColor = 'bg-discord-green';
-                        }
-                        
-                        $isOffline = $member['status'] === 'offline';
-                        $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
-                        $imgOpacityClass = $isOffline ? 'opacity-70' : '';
-                    ?>
-                        <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" data-server-id="<?php echo $currentServerId; ?>">
-                            <div class="relative mr-2">
-                                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                    <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
-                                         alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
-                                </div>
-                                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
-                            </div>
-                            <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
+                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                         </div>
-                    <?php endforeach; ?>
-                </div>
+                        <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
+                    </div>
+                <?php endforeach; ?>
             </div>
-        <?php endif; ?>
+        </div>
     </div>
 </div>
 

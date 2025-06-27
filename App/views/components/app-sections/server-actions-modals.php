@@ -285,22 +285,24 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                     </div>
                     
                     <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="text-white font-medium">Suppress @everyone and @here</div>
-                                <div class="text-gray-400 text-sm">Don't notify me for @everyone or @here mentions</div>
-                            </div>
-                            <input type="checkbox" id="suppress-everyone" name="suppress_everyone" 
-                                   class="h-4 w-4 accent-discord-primary bg-discord-dark border-gray-700">
+                        <div class="notification-option">
+                            <div class="text-white font-medium">Suppress @here and @everyone</div>
+                            <div class="text-gray-400 text-sm">Don't notify me when @here and @everyone are used</div>
+                            <label class="notification-switch">
+                                <input type="checkbox" id="suppress-everyone" name="suppress_everyone"
+                                       class="notification-checkbox">
+                                <span class="notification-slider"></span>
+                            </label>
                         </div>
                         
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="text-white font-medium">Suppress Role @mentions</div>
-                                <div class="text-gray-400 text-sm">Don't notify me when roles I have are mentioned</div>
-                            </div>
-                            <input type="checkbox" id="suppress-roles" name="suppress_roles" 
-                                   class="h-4 w-4 accent-discord-primary bg-discord-dark border-gray-700">
+                        <div class="notification-option">
+                            <div class="text-white font-medium">Mobile push notifications</div>
+                            <div class="text-gray-400 text-sm">Send push notifications to your mobile device</div>
+                            <label class="notification-switch">
+                                <input type="checkbox" id="mobile-notifications" name="mobile_notifications"
+                                       class="notification-checkbox">
+                                <span class="notification-slider"></span>
+                            </label>
                         </div>
                     </div>
                     

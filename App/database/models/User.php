@@ -101,14 +101,7 @@ class User extends Model {
             ->get();
     }
 
-    public function roles() {
-        $query = new Query();
-        return $query->table('roles r')
-            ->join('user_roles ur', 'r.id', '=', 'ur.role_id')
-            ->where('ur.user_id', $this->id)
-            ->select('r.*')
-            ->get();
-    }
+
 
     public function friends() {
         $query = new Query();

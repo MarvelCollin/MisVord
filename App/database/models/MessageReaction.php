@@ -5,7 +5,7 @@ require_once __DIR__ . '/../query.php';
 
 class MessageReaction extends Model {
     protected static $table = 'message_reactions';
-    protected $fillable = ['message_id', 'user_id', 'emoji', 'created_at', 'updated_at'];
+    protected $fillable = ['id', 'message_id', 'user_id', 'emoji', 'created_at', 'updated_at'];
     
     public static function findByMessageAndUser($messageId, $userId, $emoji) {
         $query = new Query();
@@ -55,7 +55,7 @@ class MessageReaction extends Model {
     public static function getTableSchema() {
         try {
             $query = new Query();
-            $db = $query->getConnection();
+            $db = $query->getPdo();
             $stmt = $db->prepare("DESCRIBE " . static::$table);
             $stmt->execute();
             return [

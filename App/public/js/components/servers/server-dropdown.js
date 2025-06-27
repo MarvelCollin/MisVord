@@ -1141,7 +1141,7 @@ function loadNotificationSettings(serverId) {
                 }
 
                 document.getElementById('suppress-everyone').checked = settings.suppress_everyone || false;
-                document.getElementById('suppress-roles').checked = settings.suppress_roles || false;
+                document.getElementById('mobile-notifications').checked = settings.mobile_notifications || false;
             }
         })
         .catch(error => {
@@ -1161,7 +1161,7 @@ function updateNotificationSettings(e, serverId) {
         mentions_only: notificationType === 'mentions_only',
         muted: notificationType === 'muted',
         suppress_everyone: formData.has('suppress_everyone'),
-        suppress_roles: formData.has('suppress_roles')
+        mobile_notifications: formData.has('mobile_notifications')
     };
     
     serverAPI.updateNotificationSettings(serverId, data)

@@ -6,7 +6,6 @@ require_once __DIR__ . '/../controllers/ChannelController.php';
 require_once __DIR__ . '/../controllers/MessageController.php';
 require_once __DIR__ . '/../controllers/ChatController.php';
 require_once __DIR__ . '/../controllers/GoogleAuthController.php';
-require_once __DIR__ . '/../controllers/RoleController.php';
 require_once __DIR__ . '/../controllers/FriendController.php';
 require_once __DIR__ . '/../controllers/NitroController.php';
 require_once __DIR__ . '/../controllers/HealthController.php';
@@ -271,46 +270,6 @@ Route::get('/debug/logs', function() {
     exit;
 });
 
-Route::get('/api/servers/([0-9]+)/roles', function($serverId) {
-    $controller = new RoleController();
-    $controller->getServerRoles($serverId);
-});
-
-Route::post('/api/servers/([0-9]+)/roles', function($serverId) {
-    $controller = new RoleController();
-    $controller->createRole($serverId);
-});
-
-Route::post('/api/roles/([0-9]+)', function($roleId) {
-    $controller = new RoleController();
-    $controller->updateRole($roleId);
-});
-
-Route::delete('/api/roles/([0-9]+)', function($roleId) {
-    $controller = new RoleController();
-    $controller->deleteRole($roleId);
-});
-
-Route::post('/api/roles/([0-9]+)/assign', function($roleId) {
-    $controller = new RoleController();
-    $controller->assignRoleToUser($roleId);
-});
-
-Route::post('/api/roles/([0-9]+)/remove', function($roleId) {
-    $controller = new RoleController();
-    $controller->removeRoleFromUser($roleId);
-});
-
-Route::post('/api/roles/([0-9]+)/permissions', function($roleId) {
-    $controller = new RoleController();
-    $controller->updateRolePermissions($roleId);
-});
-
-Route::get('/api/roles/([0-9]+)/permissions', function($roleId) {
-    $controller = new RoleController();
-    $controller->getRolePermissions($roleId);
-});
-
 
 
 Route::get('/api/friends', function() {
@@ -408,39 +367,19 @@ Route::post('/api/chat/send', function() {
     $controller->sendMessage();
 });
 
-Route::post('/api/chat/create', function() {
+Route::get('/api/messages/([0-9]+)/reactions', function($messageId) {
     $controller = new ChatController();
-    $controller->create();
+    $controller->getMessageReactions($messageId);
 });
 
-Route::post('/api/chat/dm/create', function() {
+Route::post('/api/messages/([0-9]+)/reactions', function($messageId) {
     $controller = new ChatController();
-    $controller->createDirectMessage();
+    $controller->toggleReaction($messageId);
 });
 
-Route::get('/api/chat/dm/rooms', function() {
+Route::post('/api/messages/([0-9]+)/pin', function($messageId) {
     $controller = new ChatController();
-    $controller->getDirectMessageRooms();
-});
-
-Route::get('/api/chat/dm/room', function() {
-    $controller = new ChatController();
-    $controller->getDirectMessageRoomByFriendId();
-});
-
-Route::get('/api/chat/dm/([0-9]+)', function($roomId) {
-    $controller = new ChatController();
-    $controller->getDirectMessageRoom($roomId);
-});
-
-Route::get('/api/chat/dm/([0-9]+)/messages', function($roomId) {
-    $controller = new ChatController();
-    $controller->getDirectMessageRoomMessages($roomId);
-});
-
-Route::get('/api/chat/render/(channel|dm|direct)/([0-9]+)', function($chatType, $chatId) {
-    $controller = new ChatController();
-    $controller->renderChatSection($chatType, $chatId);
+    $controller->togglePin($messageId);
 });
 
 Route::put('/api/messages/([0-9]+)', function($messageId) {
@@ -453,37 +392,9 @@ Route::delete('/api/messages/([0-9]+)', function($messageId) {
     $controller->deleteMessage($messageId);
 });
 
-Route::get('/api/messages/([0-9]+)', function($messageId) {
+Route::get('/api/chat/render/(channel|dm|direct)/([0-9]+)', function($chatType, $chatId) {
     $controller = new ChatController();
-    $controller->getMessage($messageId);
-});
-
-Route::get('/api/messages/([0-9]+)/reactions', function($messageId) {
-    require_once __DIR__ . '/../controllers/ChatController.php';
-    $controller = new ChatController();
-    $controller->getMessageReactions($messageId);
-});
-
-Route::post('/api/messages/([0-9]+)/reactions', function($messageId) {
-    require_once __DIR__ . '/../controllers/ChatController.php';
-    $controller = new ChatController();
-    $controller->addReaction($messageId);
-});
-
-Route::delete('/api/messages/([0-9]+)/reactions', function($messageId) {
-    require_once __DIR__ . '/../controllers/ChatController.php';
-    $controller = new ChatController();
-    $controller->removeReaction($messageId);
-});
-
-Route::get('/api/channels/([0-9]+)/search', function($channelId) {
-    $controller = new ChatController();
-    $controller->searchMessages($channelId);
-});
-
-Route::post('/api/messages/([0-9]+)/pin', function($messageId) {
-    $controller = new MessageController();
-    $controller->pinMessage($messageId);
+    $controller->renderChatSection($chatType, $chatId);
 });
 
 Route::get('/api/auth/check', function() {

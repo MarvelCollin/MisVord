@@ -556,17 +556,6 @@ class UserController extends BaseController
             ];
             
             if ($serverId) {
-                require_once __DIR__ . '/../database/repositories/RoleRepository.php';
-                $roleRepository = new RoleRepository();
-                
-                try {
-                    $roles = $roleRepository->getUserRolesInServer($userId, $serverId);
-                    $responseData['roles'] = $roles;
-                } catch (Exception $roleError) {
-                    error_log("Error loading roles: " . $roleError->getMessage());
-                    $responseData['roles'] = [];
-                }
-                
                 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
                 $membershipRepository = new UserServerMembershipRepository();
                 
