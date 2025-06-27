@@ -20,7 +20,7 @@ $memberships = $homeData['memberships'];
 $contentType = 'home';
 
 $currentUri = $_SERVER['REQUEST_URI'] ?? '';
-$isFriendsPage = strpos($currentUri, '/app/friends') === 0;
+$isFriendsPage = strpos($currentUri, '/home/friends') === 0;
 $isHomePage = $currentUri === '/home' || $currentUri === '/home/';
 
 if ($isFriendsPage || $isHomePage) {

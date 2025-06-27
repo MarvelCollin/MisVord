@@ -422,13 +422,13 @@ class BaseController
 
         foreach ($rules as $field => $rule) {
             if ($rule === 'required' && (!isset($data[$field]) || empty($data[$field]))) {
-                $errors[] = "Field '{$field}' is required";
+                $errors[$field] = "Field '{$field}' is required";
             }
         }
 
         if (!empty($errors)) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                $this->error('Validation failed', 400, ['validation_errors' => $errors]);
+                $this->validationError($errors, 'Validation failed');
             } else {
                 $_SESSION['errors'] = ['validation' => $errors];
                 $_SESSION['old_input'] = $data;
@@ -564,7 +564,7 @@ class BaseController
             throw new Exception('Failed to upload file');
         }
 
-        return "/public/storage/{$filename}";
+        return "/storage/{$filename}";
     }
     
     protected function notifyViaSocket($userId, $event, $data)

@@ -622,21 +622,17 @@ class UserDetailModal {
 
     async createOrOpenDM(userId) {
         try {
-            const response = await fetch('/api/chat/dm/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ user_id: userId })
-            });
+            if (!window.ChatAPI) {
+                console.error('ChatAPI not available');
+                return;
+            }
 
-            if (!response.ok) throw new Error('Failed to create DM');
-
-            const data = await response.json();
+            const data = await window.ChatAPI.createDirectMessage(userId);
 
             if (data.data && data.data.room_id) {
-                window.location.href = `/app/channels/dm/${data.data.room_id}`;
+                window.location.href = `/home/channels/dm/${data.data.room_id}`;
+            } else if (data.data && data.data.channel_id) {
+                window.location.href = `/home/channels/dm/${data.data.channel_id}`;
             } else {
                 console.error('Failed to create DM:', data.message || 'Unknown error');
             }
@@ -707,13 +703,13 @@ class UserDetailModal {
         try {
             const chatApi = await import('../../api/chat-api.js').then(module => module.default);
 
-            const dmRoomData = await chatApi.createDirectMessageRoom(this.currentUserId);
+            const dmRoomData = await chatApi.createDirectMessage(this.currentUserId);
             
-            if (!dmRoomData.success || !dmRoomData.room_id) {
+            if (!dmRoomData.data || (!dmRoomData.data.room_id && !dmRoomData.data.channel_id)) {
                 throw new Error(dmRoomData.message || 'Could not open a DM with this user.');
             }
 
-            const roomId = dmRoomData.room_id;
+            const roomId = dmRoomData.data.room_id || dmRoomData.data.channel_id;
 
             await chatApi.sendMessage(roomId, content, 'direct');
             this.hide();

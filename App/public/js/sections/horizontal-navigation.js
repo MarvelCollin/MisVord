@@ -56,7 +56,13 @@ class HorizontalNavigation {
         const heroRect = this.heroSection.getBoundingClientRect();
         const wrapperRect = this.wrapper.getBoundingClientRect();
         
-        this.inHorizontalSection = heroRect.bottom <= 100 && wrapperRect.top <= 100 && wrapperRect.bottom >= 100;
+        const wasInSection = this.inHorizontalSection;
+        this.inHorizontalSection = heroRect.bottom <= 50 && wrapperRect.top <= 50 && wrapperRect.bottom >= window.innerHeight / 2;
+        
+        if (!wasInSection && this.inHorizontalSection) {
+            this.currentIndex = 0;
+            this.navigateToSection(0);
+        }
     }
     
     handleWheel(e) {
@@ -189,6 +195,18 @@ class HorizontalNavigation {
             const event = new CustomEvent(`${currentSection}Visible`);
             document.dispatchEvent(event);
         }
+        
+        // Initialize carousel when it becomes active
+        if (currentSection === 'carousel') {
+            this.initCarousel();
+        }
+    }
+    
+    initCarousel() {
+        if (!this.carouselInstance) {
+            this.carouselInstance = new CarouselHandler();
+        }
+        this.carouselInstance.onSectionVisible();
     }
     
     goToSection(index) {
@@ -209,8 +227,318 @@ class HorizontalNavigation {
     }
 }
 
+class CarouselHandler {
+    constructor() {
+        this.currentSlide = 0;
+        this.totalSlides = 4;
+        this.isAnimating = false;
+        this.autoPlayInterval = null;
+        this.autoPlayDelay = 5000;
+        
+        this.init();
+    }
+    
+    init() {
+        this.track = document.getElementById('carouselTrack');
+        this.slides = document.querySelectorAll('.carousel-slide');
+        this.indicators = document.querySelectorAll('.carousel-indicators .indicator');
+        this.prevBtn = document.getElementById('carouselPrev');
+        this.nextBtn = document.getElementById('carouselNext');
+        
+        if (!this.track) return;
+        
+        this.setupEventListeners();
+        this.updateSlides();
+    }
+    
+    setupEventListeners() {
+        // Carousel navigation buttons
+        this.prevBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            this.prevSlide();
+        });
+        
+        this.nextBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            this.nextSlide();
+        });
+        
+        // Carousel indicators
+        this.indicators.forEach((indicator, index) => {
+            indicator.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                this.goToSlide(index);
+            });
+        });
+        
+        // Auto-play controls
+        this.track?.addEventListener('mouseenter', () => this.stopAutoPlay());
+        this.track?.addEventListener('mouseleave', () => this.startAutoPlay());
+        
+        // Keyboard navigation (only when carousel section is active)
+        document.addEventListener('keydown', (e) => {
+            if (this.isCarouselSectionActive()) {
+                if (e.key === 'ArrowUp') {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    this.prevSlide();
+                } else if (e.key === 'ArrowDown') {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    this.nextSlide();
+                }
+            }
+        });
+    }
+    
+    isCarouselSectionActive() {
+        const carouselSection = document.querySelector('.carousel-section');
+        return carouselSection && carouselSection.classList.contains('is-active');
+    }
+    
+    prevSlide() {
+        if (this.isAnimating) return;
+        
+        this.currentSlide = this.currentSlide > 0 ? this.currentSlide - 1 : this.totalSlides - 1;
+        this.updateSlides();
+    }
+    
+    nextSlide() {
+        if (this.isAnimating) return;
+        
+        this.currentSlide = this.currentSlide < this.totalSlides - 1 ? this.currentSlide + 1 : 0;
+        this.updateSlides();
+    }
+    
+    goToSlide(index) {
+        if (this.isAnimating || index === this.currentSlide) return;
+        
+        this.currentSlide = index;
+        this.updateSlides();
+    }
+    
+    updateSlides() {
+        if (this.isAnimating) return;
+        
+        this.isAnimating = true;
+        
+        // Update slide positions for book effect
+        this.slides.forEach((slide, index) => {
+            slide.classList.remove('active');
+            
+            if (index <= this.currentSlide) {
+                slide.style.transform = 'rotateY(-180deg)';
+                slide.style.zIndex = index + 1;
+            } else {
+                slide.style.transform = 'rotateY(0deg)';
+                slide.style.zIndex = this.totalSlides - index;
+            }
+        });
+        
+        // Set current slide as active
+        if (this.slides[this.currentSlide]) {
+            this.slides[this.currentSlide].classList.add('active');
+        }
+        
+        this.updateIndicators();
+        
+        setTimeout(() => {
+            this.animateSlideContent();
+        }, 500);
+        
+        setTimeout(() => {
+            this.isAnimating = false;
+        }, 1000);
+    }
+    
+    updateIndicators() {
+        this.indicators.forEach((indicator, index) => {
+            indicator.classList.toggle('active', index === this.currentSlide);
+        });
+    }
+    
+    animateSlideContent() {
+        const activeSlide = this.slides[this.currentSlide];
+        if (!activeSlide) return;
+        
+        const title = activeSlide.querySelector('.slide-title');
+        const description = activeSlide.querySelector('.slide-description');
+        const stats = activeSlide.querySelectorAll('.stat-item');
+        const image = activeSlide.querySelector('.image-placeholder');
+        const icon = image?.querySelector('i');
+        
+        // Reset all animations first
+        this.slides.forEach(slide => {
+            const elements = slide.querySelectorAll('.slide-title, .slide-description, .stat-item, .image-placeholder');
+            elements.forEach(el => {
+                el.style.opacity = '';
+                el.style.transform = '';
+                el.style.transition = '';
+            });
+        });
+        
+        // Animate title with advanced effects
+        if (title) {
+            title.style.opacity = '0';
+            title.style.transform = 'translateY(40px) translateZ(-20px) rotateX(15deg)';
+            setTimeout(() => {
+                title.style.transition = 'all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1)';
+                title.style.opacity = '1';
+                title.style.transform = 'translateY(0) translateZ(0) rotateX(0deg)';
+            }, 150);
+        }
+        
+        // Animate description with slide-in effect
+        if (description) {
+            description.style.opacity = '0';
+            description.style.transform = 'translateX(-30px) translateZ(-10px)';
+            setTimeout(() => {
+                description.style.transition = 'all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1)';
+                description.style.opacity = '1';
+                description.style.transform = 'translateX(0) translateZ(0)';
+            }, 300);
+        }
+        
+        // Animate stats with staggered 3D effects
+        stats.forEach((stat, index) => {
+            stat.style.opacity = '0';
+            stat.style.transform = 'translateY(30px) translateZ(-15px) rotateY(15deg) scale(0.8)';
+            setTimeout(() => {
+                stat.style.transition = 'all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1)';
+                stat.style.opacity = '1';
+                stat.style.transform = 'translateY(0) translateZ(0) rotateY(0deg) scale(1)';
+            }, 450 + (index * 150));
+        });
+        
+        // Animate image with dramatic entrance
+        if (image) {
+            image.style.transform = 'scale(0.6) rotateY(-25deg) translateZ(-40px)';
+            image.style.opacity = '0.3';
+            setTimeout(() => {
+                image.style.transition = 'all 1s cubic-bezier(0.165, 0.84, 0.44, 1)';
+                image.style.transform = 'scale(1) rotateY(0deg) translateZ(0)';
+                image.style.opacity = '1';
+            }, 100);
+        }
+        
+        // Animate icon with bounce effect
+        if (icon) {
+            icon.style.transform = 'scale(0.5) translateZ(-30px) rotateZ(-45deg)';
+            setTimeout(() => {
+                icon.style.transition = 'all 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+                icon.style.transform = 'scale(1) translateZ(30px) rotateZ(0deg)';
+            }, 250);
+        }
+        
+        // Add particle effect
+        this.createParticleEffect(activeSlide);
+    }
+    
+    createParticleEffect(slide) {
+        const container = slide.querySelector('.slide-content');
+        if (!container) return;
+        
+        // Remove existing particles
+        const existingParticles = container.querySelectorAll('.particle');
+        existingParticles.forEach(p => p.remove());
+        
+        // Create new particles
+        for (let i = 0; i < 8; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.cssText = `
+                position: absolute;
+                width: 4px;
+                height: 4px;
+                background: linear-gradient(45deg, #ff6b9d, #4834d4);
+                border-radius: 50%;
+                pointer-events: none;
+                top: ${Math.random() * 100}%;
+                left: ${Math.random() * 100}%;
+                animation: particleFloat ${3 + Math.random() * 2}s ease-in-out infinite;
+                animation-delay: ${Math.random() * 2}s;
+                opacity: 0;
+                box-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+            `;
+            
+            container.appendChild(particle);
+            
+            setTimeout(() => {
+                particle.style.opacity = '0.8';
+            }, Math.random() * 1000);
+        }
+        
+        // Add CSS for particle animation if not exists
+        if (!document.querySelector('#particle-styles')) {
+            const style = document.createElement('style');
+            style.id = 'particle-styles';
+            style.textContent = `
+                @keyframes particleFloat {
+                    0%, 100% { 
+                        transform: translateY(0) scale(1); 
+                        opacity: 0.8; 
+                    }
+                    50% { 
+                        transform: translateY(-20px) scale(1.2); 
+                        opacity: 1; 
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
+    startAutoPlay() {
+        this.stopAutoPlay();
+        this.autoPlayInterval = setInterval(() => {
+            this.nextSlide();
+        }, this.autoPlayDelay);
+    }
+    
+    stopAutoPlay() {
+        if (this.autoPlayInterval) {
+            clearInterval(this.autoPlayInterval);
+            this.autoPlayInterval = null;
+        }
+    }
+    
+    onSectionVisible() {
+        // Animate section title and subtitle
+        const title = document.querySelector('.carousel-title');
+        const subtitle = document.querySelector('.carousel-subtitle');
+        
+        if (title) {
+            setTimeout(() => {
+                title.classList.add('revealed');
+            }, 200);
+        }
+        
+        if (subtitle) {
+            setTimeout(() => {
+                subtitle.classList.add('revealed');
+            }, 600);
+        }
+        
+        // Start slide content animation
+        setTimeout(() => {
+            this.animateSlideContent();
+        }, 800);
+        
+        // Start auto-play
+        this.startAutoPlay();
+    }
+    
+    destroy() {
+        this.stopAutoPlay();
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     window.horizontalNavigation = new HorizontalNavigation();
 });
 
-window.HorizontalNavigation = HorizontalNavigation; 
+window.HorizontalNavigation = HorizontalNavigation;
+window.CarouselHandler = CarouselHandler; 

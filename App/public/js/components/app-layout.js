@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', function () {
     initTabHandling();
     initFriendRequestForm();
     updatePendingCount();
+    initResponsiveHandling();
+    initMobileMenu();
             
     if (window.location.pathname === '/app/friends' || window.location.pathname === '/home') {
         const urlParams = new URLSearchParams(window.location.search);
@@ -158,7 +160,7 @@ function loadFriendsForDM() {
                     friendItem.innerHTML = `
                         <div class="relative mr-3">
                             <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="${friend.avatar_url || '/public/assets/default-profile-picture.png'}" 
+                                <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                                      alt="Avatar" class="w-full h-full object-cover">
                             </div>
                             <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-darker ${statusColor}"></span>
@@ -231,22 +233,21 @@ function selectFriendForDM(element) {
 function createDirectMessage(userId) {
     const modal = document.getElementById('new-direct-modal');
 
-    fetch('/api/chat/create', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ user_id: userId })
-    })
-        .then(response => response.json())
+    if (!window.ChatAPI) {
+        showToast('Chat system not ready. Please try again.', 'error');
+        return;
+    }
+
+    window.ChatAPI.createDirectMessage(userId)
         .then(data => {
             if (modal) {
                 modal.classList.add('hidden');
             }
 
-            if (data.data && data.data.channel_id) {
-                window.location.href = `/app/channels/dm/${data.data.channel_id}`;
+            if (data.data && data.data.room_id) {
+                window.location.href = `/home/channels/dm/${data.data.room_id}`;
+            } else if (data.data && data.data.channel_id) {
+                window.location.href = `/home/channels/dm/${data.data.channel_id}`;
             } else {
                 showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
             }
@@ -322,8 +323,6 @@ function updateTabUI(tabName, tabs, tabContents) {
                 loadAllFriends();
             } else if (tabName === 'pending') {
                 loadPendingRequests();
-            } else if (tabName === 'blocked') {
-                loadBlockedUsers();
             }
         } else {
             content.classList.add('hidden');
@@ -371,25 +370,25 @@ function loadAllFriends() {
                 const statusText = getStatusText(status);
                 
                 friendsHtml += `
-                    <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item" data-user-id="${friend.id}">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-3 rounded hover:bg-discord-light group friend-item gap-2 sm:gap-0" data-user-id="${friend.id}">
                         <div class="flex items-center">
                             <div class="relative mr-3">
-                                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                    <img src="${friend.avatar_url || '/public/assets/default-profile-picture.png'}" 
+                                <div class="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                    <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                                          alt="Avatar" class="w-full h-full object-cover">
                                 </div>
                                 <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${statusColor}"></span>
                             </div>
                             <div>
-                                <div class="font-medium text-white friend-name">${escapeHtml(friend.username)}</div>
+                                <div class="font-medium text-white friend-name text-sm sm:text-base">${escapeHtml(friend.username)}</div>
                                 <div class="text-xs text-gray-400 friend-status">${statusText}</div>
                             </div>
                         </div>
-                        <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="createDirectMessage('${friend.id}')">
+                        <div class="flex space-x-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-end sm:self-auto">
+                            <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full text-sm" title="Message" onclick="createDirectMessage('${friend.id}')">
                                 <i class="fa-solid fa-message"></i>
                             </button>
-                            <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
+                            <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full text-sm" title="More">
                                 <i class="fa-solid fa-ellipsis-vertical"></i>
                             </button>
                         </div>
@@ -447,21 +446,21 @@ function loadPendingRequests() {
                         <h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Incoming Friend Requests — ${incoming.length}</h3>
                         <div class="space-y-2">
                             ${incoming.map(user => `
-                                <div class="flex items-center justify-between p-2 bg-discord-dark rounded">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
                                     <div class="flex items-center">
-                                        <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                            <img src="${user.avatar_url || '/public/assets/default-profile-picture.png'}" 
+                                        <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
+                                            <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                                                  alt="Avatar" class="w-full h-full object-cover">
                                         </div>
                                         <div>
-                                            <div class="font-medium text-white">${escapeHtml(user.username)}</div>
+                                            <div class="font-medium text-white text-sm sm:text-base">${escapeHtml(user.username)}</div>
                                             <div class="text-xs text-gray-400">Incoming Friend Request</div>
                                         </div>
                                     </div>
-                                    <div class="flex space-x-2">
-                                        <button class="bg-discord-green hover:bg-discord-green/90 text-white rounded-md px-3 py-1 text-sm"
+                                    <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
+                                        <button class="bg-discord-green hover:bg-discord-green/90 text-white rounded-md px-3 py-2 sm:py-1 text-sm order-1 sm:order-none"
                                                 onclick="acceptFriendRequest('${user.friendship_id}')">Accept</button>
-                                        <button class="bg-discord-dark hover:bg-discord-light text-white rounded-md px-3 py-1 text-sm"
+                                        <button class="bg-discord-dark hover:bg-discord-light text-white rounded-md px-3 py-2 sm:py-1 text-sm border border-gray-600 order-2 sm:order-none"
                                                 onclick="ignoreFriendRequest('${user.friendship_id}')">Ignore</button>
                                     </div>
                                 </div>
@@ -476,19 +475,19 @@ function loadPendingRequests() {
                         <h3 class="text-xs uppercase font-semibold text-gray-400 mt-4 mb-2">Outgoing Friend Requests — ${outgoing.length}</h3>
                         <div class="space-y-2">
                             ${outgoing.map(user => `
-                                <div class="flex items-center justify-between p-2 bg-discord-dark rounded">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
                                     <div class="flex items-center">
-                                        <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                            <img src="${user.avatar_url || '/public/assets/default-profile-picture.png'}" 
+                                        <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
+                                            <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                                                  alt="Avatar" class="w-full h-full object-cover">
                                         </div>
                                         <div>
-                                            <div class="font-medium text-white">${escapeHtml(user.username)}</div>
+                                            <div class="font-medium text-white text-sm sm:text-base">${escapeHtml(user.username)}</div>
                                             <div class="text-xs text-gray-400">Outgoing Friend Request</div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <button class="bg-discord-red hover:bg-discord-red/90 text-white rounded-md px-3 py-1 text-sm"
+                                    <div class="self-start sm:self-auto">
+                                        <button class="bg-discord-red hover:bg-discord-red/90 text-white rounded-md px-3 py-2 sm:py-1 text-sm w-full sm:w-auto"
                                                 onclick="cancelFriendRequest('${user.id}')">Cancel</button>
                                     </div>
                                 </div>
@@ -562,51 +561,7 @@ function generateSkeletonPendingItems(count) {
     return html;
 }
 
-function loadBlockedUsers() {
-    const container = document.getElementById('blocked-users-container');
-    if (!container) return;
 
-    container.innerHTML = generateSkeletonItems(3);
-
-    friendAPI.getBlockedUsers()
-        .then(blockedUsers => {
-            if (blockedUsers && blockedUsers.length > 0) {
-                let blockedHtml = '';
-                blockedUsers.forEach(user => {
-                    blockedHtml += `
-                        <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light">
-                            <div class="flex items-center">
-                                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                    <img src="${user.avatar_url || '/public/assets/default-profile-picture.png'}" 
-                                         alt="Avatar" class="w-full h-full object-cover">
-                                </div>
-                                <div class="font-medium text-white">${escapeHtml(user.username)}</div>
-                            </div>
-                            <button class="text-gray-400 hover:text-white bg-discord-dark hover:bg-discord-light px-2 py-1 rounded text-sm"
-                                    onclick="unblockUser('${user.id}')">
-                                Unblock
-                            </button>
-                        </div>
-                    `;
-                });
-
-                container.innerHTML = blockedHtml;
-            } else {
-                container.innerHTML = `
-                    <div class="p-4 bg-discord-dark rounded text-center">
-                        <div class="mb-2 text-gray-400">
-                            <i class="fa-solid fa-ban text-3xl"></i>
-                        </div>
-                        <p class="text-gray-300 mb-1">You haven't blocked anyone</p>
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Error loading blocked users:', error);
-            container.innerHTML = '<div class="text-gray-400 p-4">Failed to load blocked users</div>';
-        });
-}
 
 function getStatusColor(status) {
     const statusColors = {
@@ -684,17 +639,7 @@ function cancelFriendRequest(userId) {
         });
 }
 
-function unblockUser(userId) {
-    friendAPI.unblockUser(userId)
-        .then(() => {
-            showToast('User unblocked', 'success');
-            loadBlockedUsers();
-        })
-        .catch(error => {
-            console.error('Error unblocking user:', error);
-            showToast(error.message || 'Failed to unblock user', 'error');
-        });
-}
+
 
 function initFriendRequestForm() {
     const friendUsernameInput = document.getElementById('friend-username-input');
@@ -825,3 +770,153 @@ window.ignoreFriendRequest = async function (friendshipId) {
 };
 
 window.createDirectMessage = createDirectMessage;
+
+function initResponsiveHandling() {
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            const activeTab = document.querySelector('.tab-content:not(.hidden)');
+            if (activeTab && window.innerWidth < 640) {
+                adjustMobileElements();
+            }
+            
+            const mobileMenu = document.getElementById('friends-mobile-menu');
+            const menuIcon = document.querySelector('#friends-menu-toggle i');
+            
+            if (window.innerWidth >= 768 && mobileMenu && !mobileMenu.classList.contains('hidden')) {
+                mobileMenu.classList.add('hidden');
+                mobileMenu.style.maxHeight = '';
+                mobileMenu.style.overflow = '';
+                mobileMenu.style.transition = '';
+                
+                if (menuIcon) {
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                }
+            }
+        }, 250);
+    });
+    
+    if (window.innerWidth < 640) {
+        adjustMobileElements();
+    }
+}
+
+function adjustMobileElements() {
+    const searchInputs = document.querySelectorAll('input[placeholder="Search"]');
+    searchInputs.forEach(input => {
+        if (window.innerWidth < 640) {
+            input.style.minHeight = '44px';
+        } else {
+            input.style.minHeight = '';
+        }
+    });
+    
+    const buttons = document.querySelectorAll('.tab-content button');
+    buttons.forEach(button => {
+        if (window.innerWidth < 640) {
+            button.style.minHeight = '44px';
+        } else {
+            button.style.minHeight = '';
+        }
+    });
+}
+
+function initMobileMenu() {
+    const toggleBtn = document.getElementById('friends-menu-toggle');
+    const mobileMenu = document.getElementById('friends-mobile-menu');
+    const menuIcon = toggleBtn?.querySelector('i');
+    
+    if (!toggleBtn || !mobileMenu) return;
+    
+    toggleBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const isHidden = mobileMenu.classList.contains('hidden');
+        
+        if (isHidden) {
+            mobileMenu.classList.remove('hidden');
+            mobileMenu.style.maxHeight = '0px';
+            mobileMenu.style.overflow = 'hidden';
+            mobileMenu.style.transition = 'max-height 0.3s ease-out';
+            
+            requestAnimationFrame(() => {
+                mobileMenu.style.maxHeight = mobileMenu.scrollHeight + 'px';
+            });
+            
+            if (menuIcon) {
+                menuIcon.classList.remove('fa-bars');
+                menuIcon.classList.add('fa-times');
+            }
+        } else {
+            mobileMenu.style.maxHeight = '0px';
+            
+            setTimeout(() => {
+                mobileMenu.classList.add('hidden');
+                mobileMenu.style.maxHeight = '';
+                mobileMenu.style.overflow = '';
+                mobileMenu.style.transition = '';
+            }, 300);
+            
+            if (menuIcon) {
+                menuIcon.classList.remove('fa-times');
+                menuIcon.classList.add('fa-bars');
+            }
+        }
+    });
+    
+    const mobileMenuLinks = mobileMenu.querySelectorAll('a[data-tab]');
+    mobileMenuLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            mobileMenu.style.maxHeight = '0px';
+            
+            setTimeout(() => {
+                mobileMenu.classList.add('hidden');
+                mobileMenu.style.maxHeight = '';
+                mobileMenu.style.overflow = '';
+                mobileMenu.style.transition = '';
+            }, 300);
+            
+            if (menuIcon) {
+                menuIcon.classList.remove('fa-times');
+                menuIcon.classList.add('fa-bars');
+            }
+        });
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (!toggleBtn.contains(e.target) && !mobileMenu.contains(e.target)) {
+            if (!mobileMenu.classList.contains('hidden')) {
+                mobileMenu.style.maxHeight = '0px';
+                
+                setTimeout(() => {
+                    mobileMenu.classList.add('hidden');
+                    mobileMenu.style.maxHeight = '';
+                    mobileMenu.style.overflow = '';
+                    mobileMenu.style.transition = '';
+                }, 300);
+                
+                if (menuIcon) {
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                }
+            }
+        }
+    });
+    
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 768) {
+            mobileMenu.classList.add('hidden');
+            mobileMenu.style.maxHeight = '';
+            mobileMenu.style.overflow = '';
+            mobileMenu.style.transition = '';
+            
+            if (menuIcon) {
+                menuIcon.classList.remove('fa-times');
+                menuIcon.classList.add('fa-bars');
+            }
+        }
+    });
+}

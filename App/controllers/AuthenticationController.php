@@ -146,7 +146,7 @@ class AuthenticationController extends BaseController
         $_SESSION['banner_url'] = $user->banner_url;
         $_SESSION['last_activity'] = time();
         
-        $redirect = isset($_SESSION['login_redirect']) ? $_SESSION['login_redirect'] : '/app';
+        $redirect = isset($_SESSION['login_redirect']) ? $_SESSION['login_redirect'] : '/home';
         unset($_SESSION['login_redirect']);
         
         $this->setSecurityHeaders();

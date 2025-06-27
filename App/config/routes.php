@@ -49,11 +49,11 @@ class Route {
 Route::get('/', 'pages/landing-page.php');
 Route::get('/home', 'pages/home.php');
 Route::get('/app', function() {
-    $controller = new HomeController();
-    $controller->redirectToApp();
+    header('Location: /home');
+    exit;
 });
-Route::get('/app/friends', 'pages/home.php');
-Route::get('/app/channels/dm/([0-9]+)', function($dmId) {
+Route::get('/home/friends', 'pages/home.php');
+Route::get('/home/channels/dm/([0-9]+)', function($dmId) {
     $_SESSION['active_dm'] = $dmId;
     require_once __DIR__ . '/../views/pages/home.php';
 });
@@ -324,20 +324,7 @@ Route::delete('/api/friends', function() {
     $controller->removeFriend();
 });
 
-Route::post('/api/users/block', function() {
-    $controller = new FriendController();
-    $controller->blockUser();
-});
 
-Route::post('/api/users/unblock', function() {
-    $controller = new FriendController();
-    $controller->unblockUser();
-});
-
-Route::get('/api/users/blocked', function() {
-    $controller = new UserController();
-    $controller->getBlockedUsers();
-});
 
 Route::get('/api/users/([0-9]+)/mutual', function($userId) {
     $controller = new UserController();
@@ -1125,6 +1112,37 @@ Route::post('/api/debug/set-security', function() {
     }
     
     exit;
+});
+
+// Add missing DM creation routes
+Route::post('/api/chat/create', function() {
+    $controller = new ChatController();
+    $controller->create();
+});
+
+Route::post('/api/chat/dm/create', function() {
+    $controller = new ChatController();
+    $controller->createDirectMessage();
+});
+
+Route::get('/api/chat/dm/rooms', function() {
+    $controller = new ChatController();
+    $controller->getDirectMessageRooms();
+});
+
+Route::get('/api/chat/dm/room', function() {
+    $controller = new ChatController();
+    $controller->getDirectMessageRoomByFriendId();
+});
+
+Route::get('/api/chat/dm/([0-9]+)', function($roomId) {
+    $controller = new ChatController();
+    $controller->getDirectMessageRoom($roomId);
+});
+
+Route::get('/api/chat/dm/([0-9]+)/messages', function($roomId) {
+    $controller = new ChatController();
+    $controller->getDirectMessageRoomMessages($roomId);
 });
 
 return array_merge(Route::getRoutes(), [

@@ -1,0 +1,132 @@
+#friends-menu-toggle {
+    transition: all 0.2s ease;
+    border: none;
+    outline: none;
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#friends-menu-toggle:focus {
+    outline: 2px solid rgba(88, 101, 242, 0.3);
+    outline-offset: 2px;
+}
+
+#friends-menu-toggle i {
+    transition: transform 0.2s ease;
+}
+
+#friends-menu-toggle:hover i {
+    transform: scale(1.1);
+}
+
+#friends-mobile-menu {
+    background-color: #2b2d31;
+    border-bottom: 1px solid #4f545c;
+    opacity: 1;
+    transition: max-height 0.3s ease-out, opacity 0.2s ease;
+}
+
+#friends-mobile-menu.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#friends-mobile-menu .flex.flex-col.space-y-2 {
+    gap: 8px;
+}
+
+#friends-mobile-menu a {
+    transition: all 0.2s ease;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+#friends-mobile-menu a:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+#friends-mobile-menu a:active {
+    transform: translateY(0);
+}
+
+#friends-mobile-menu a[data-tab="add-friend"] {
+    background-color: #3ba55c !important;
+    color: white !important;
+    border-color: #3ba55c;
+}
+
+#friends-mobile-menu a[data-tab="add-friend"]:hover {
+    background-color: #2d8049 !important;
+    border-color: #2d8049;
+}
+
+@media (min-width: 768px) {
+    #friends-menu-toggle,
+    #friends-mobile-menu {
+        display: none !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .friends-desktop-tabs {
+        display: none !important;
+    }
+    
+    #friends-mobile-menu a {
+        font-size: 14px;
+        padding: 12px 16px;
+    }
+    
+    #friends-menu-toggle {
+        display: flex !important;
+    }
+}
+
+@media (max-width: 480px) {
+    #friends-mobile-menu {
+        padding: 12px;
+    }
+    
+    #friends-mobile-menu a {
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+}
+
+.mobile-menu-slide-down {
+    animation: slideDown 0.3s ease-out;
+}
+
+.mobile-menu-slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}

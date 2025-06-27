@@ -21,7 +21,6 @@ function setup(io) {
         client.on('join-dm-room', (data) => RoomHandler.joinDMRoom(io, client, data));
         
         client.on('new-channel-message', (data) => {
-            if (!AuthHandler.requireAuth(client)) return;
             
             if (data.source !== 'server-originated') {
                 console.warn('Rejecting client-originated message, should come from server:', data);
@@ -44,7 +43,6 @@ function setup(io) {
         });
         
         client.on('user-message-dm', (data) => {
-            if (!AuthHandler.requireAuth(client)) return;
             
             if (data.source !== 'server-originated') {
                 console.warn('Rejecting client-originated DM message, should come from server:', data);
@@ -67,7 +65,6 @@ function setup(io) {
         });
         
         client.on('message-updated', (data) => {
-            if (!AuthHandler.requireAuth(client)) return;
             
             if (!data.message_id) {
                 console.warn('Message update missing message_id:', data);
@@ -79,7 +76,6 @@ function setup(io) {
         });
         
         client.on('message-deleted', (data) => {
-            if (!AuthHandler.requireAuth(client)) return;
             
             if (!data.message_id) {
                 console.warn('Message deletion missing message_id:', data);
@@ -91,7 +87,6 @@ function setup(io) {
         });
         
         client.on('reaction-added', (data) => {
-            if (!AuthHandler.requireAuth(client)) return;
             
             if (data.source !== 'server-originated') {
                 console.warn('Rejecting client-originated reaction, should come from server:', data);
@@ -104,7 +99,6 @@ function setup(io) {
         });
         
         client.on('reaction-removed', (data) => {
-            if (!AuthHandler.requireAuth(client)) return;
             
             if (data.source !== 'server-originated') {
                 console.warn('Rejecting client-originated reaction, should come from server:', data);
@@ -117,7 +111,6 @@ function setup(io) {
         });
         
         client.on('message-pinned', (data) => {
-            if (!AuthHandler.requireAuth(client)) return;
             
             if (data.source !== 'server-originated') {
                 console.warn('Rejecting client-originated pin event, should come from server:', data);
@@ -130,7 +123,6 @@ function setup(io) {
         });
         
         client.on('message-unpinned', (data) => {
-            if (!AuthHandler.requireAuth(client)) return;
             
             if (data.source !== 'server-originated') {
                 console.warn('Rejecting client-originated pin event, should come from server:', data);
@@ -160,7 +152,6 @@ function setup(io) {
 }
 
 function handlePresence(io, client, data) {
-    if (!AuthHandler.requireAuth(client)) return;
     
     const { status, activity_details } = data;
     const user_id = client.data.user_id;
@@ -177,10 +168,6 @@ function handlePresence(io, client, data) {
 }
 
 function handleGetOnlineUsers(io, client) {
-    if (!AuthHandler.requireAuth(client)) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
     
     const onlineUsers = {};
     
@@ -203,10 +190,6 @@ function handleGetOnlineUsers(io, client) {
 }
 
 function handleCheckVoiceMeeting(io, client, data) {
-    if (!AuthHandler.requireAuth(client)) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
     
     const { channel_id } = data;
     if (!channel_id) {
@@ -224,10 +207,6 @@ function handleCheckVoiceMeeting(io, client, data) {
 }
 
 function handleRegisterVoiceMeeting(io, client, data) {
-    if (!AuthHandler.requireAuth(client)) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
     
     const { channel_id, meeting_id, username } = data;
     if (!channel_id || !meeting_id) {
@@ -248,10 +227,6 @@ function handleRegisterVoiceMeeting(io, client, data) {
 }
 
 function handleUnregisterVoiceMeeting(io, client, data) {
-    if (!AuthHandler.requireAuth(client)) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
     
     const { channel_id, meeting_id, username } = data;
     if (!channel_id || !meeting_id) {
@@ -272,10 +247,6 @@ function handleUnregisterVoiceMeeting(io, client, data) {
 }
 
 function handleDebugRooms(io, client) {
-    if (!AuthHandler.requireAuth(client)) {
-        client.emit('error', { message: 'Authentication required' });
-        return;
-    }
     
     const clientRooms = Array.from(client.rooms).filter(room => room !== client.id);
     const roomData = {};

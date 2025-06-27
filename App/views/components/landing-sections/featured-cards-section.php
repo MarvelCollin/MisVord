@@ -26,13 +26,10 @@ if (!function_exists('asset')) {
     <div class="nebula nebula-3"></div>
 
     <div class="container mx-auto px-4 relative z-10">
-        <div class="text-center mb-16">
-            <h2 class="text-5xl md:text-6xl font-bold text-white mb-6" data-animate="title">Featured Extensions</h2>
-            <p class="text-xl text-gray-300 max-w-2xl mx-auto" data-animate="subtitle">Discover powerful features that enhance your MisVord communication experience</p>
-        </div>
+
 
         <div class="cards-container relative">
-            <div class="featured-card" data-tilt="true">
+            <div class="featured-card card-voice" data-tilt="true">
                 <div class="card-background"></div>
                 <div class="card-content">
                     <div class="card-header">
@@ -74,7 +71,7 @@ if (!function_exists('asset')) {
                 <div class="card-glow"></div>
             </div>
 
-            <div class="featured-card" data-tilt="true">
+            <div class="featured-card card-nitro" data-tilt="true">
                 <div class="card-background"></div>
                 <div class="card-content">
                     <div class="card-header">
@@ -116,7 +113,7 @@ if (!function_exists('asset')) {
                 <div class="card-glow"></div>
             </div>
 
-            <div class="featured-card" data-tilt="true">
+            <div class="featured-card card-bots" data-tilt="true">
                 <div class="card-background"></div>
                 <div class="card-content">
                     <div class="card-header">
@@ -158,7 +155,7 @@ if (!function_exists('asset')) {
                 <div class="card-glow"></div>
             </div>
 
-            <div class="featured-card" data-tilt="true">
+            <div class="featured-card card-server" data-tilt="true">
                 <div class="card-background"></div>
                 <div class="card-content">
                     <div class="card-header">
@@ -200,7 +197,7 @@ if (!function_exists('asset')) {
                 <div class="card-glow"></div>
             </div>
 
-            <div class="featured-card" data-tilt="true">
+            <div class="featured-card card-friends" data-tilt="true">
                 <div class="card-background"></div>
                 <div class="card-content">
                     <div class="card-header">
@@ -242,7 +239,7 @@ if (!function_exists('asset')) {
                 <div class="card-glow"></div>
             </div>
 
-            <div class="featured-card" data-tilt="true">
+            <div class="featured-card card-explorer" data-tilt="true">
                 <div class="card-background"></div>
                 <div class="card-content">
                     <div class="card-header">
@@ -292,4 +289,9 @@ if (!function_exists('asset')) {
     <div class="cosmic-glow glow-1"></div>
     <div class="cosmic-glow glow-2"></div>
     <div class="cosmic-glow glow-3"></div>
+
+    <div class="section-indicator">
+        <span class="indicator-text">Extensions</span>
+        <div class="indicator-line"></div>
+    </div>
 </section>

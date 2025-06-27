@@ -3,39 +3,48 @@ const AuthHandler = require('./authHandler');
 
 class MessageHandler {
     static forwardMessage(io, client, eventName, data) {
-        if (!AuthHandler.requireAuth(client)) {
-            client.emit('error', { message: 'Authentication required' });
-            return;
+        
+        console.log(`📡 [MESSAGE] Handling ${eventName}:`, {
+            messageId: data.id || data.message_id,
+            userId: data.user_id,
+            targetType: data.target_type,
+            targetId: data.target_id,
+            channelId: data.channel_id,
+            roomId: data.room_id
+        });
+        
+        // Determine the target room based on message type
+        let targetRoom;
+        if (eventName === 'new-channel-message' && data.channel_id) {
+            targetRoom = roomManager.getChannelRoom(data.channel_id);
+        } else if (eventName === 'user-message-dm' && data.room_id) {
+            targetRoom = roomManager.getDMRoom(data.room_id);
+        } else if (data.target_type && data.target_id) {
+            // For update/delete events that have target_type/target_id
+            if (data.target_type === 'channel') {
+                targetRoom = roomManager.getChannelRoom(data.target_id);
+            } else if (data.target_type === 'dm') {
+                targetRoom = roomManager.getDMRoom(data.target_id);
+            }
         }
         
-        const targetRoom = roomManager.getTargetRoom(data);
-        const cleanData = { ...data };
-        
-        delete cleanData._debug;
-        delete cleanData._serverDebug;
-        
-        cleanData.user_id = cleanData.user_id || client.data.user_id;
-        cleanData.username = cleanData.username || client.data.username;
-        cleanData.timestamp = cleanData.timestamp || Date.now();
-        
         if (targetRoom) {
-            const isInRoom = client.rooms.has(targetRoom);
-            if (isInRoom) {
-                client.to(targetRoom).emit(eventName, cleanData);
-                console.log(`✅ Forwarded ${eventName} to room: ${targetRoom} (user in room)`);
-            } else {
-                console.warn(`⚠️ User ${client.data.user_id} not in room ${targetRoom}, skipping forward`);
-            }
+            console.log(`📡 [MESSAGE] Broadcasting ${eventName} to room: ${targetRoom}`);
+            
+            // Ensure consistent data structure
+            const broadcastData = {
+                ...data,
+                timestamp: data.timestamp || Date.now(),
+                source: data.source || 'server-originated'
+            };
+            
+            roomManager.broadcastToRoom(io, targetRoom, eventName, broadcastData);
         } else {
-            console.warn(`⚠️ No target room found for ${eventName}, data:`, data);
+            console.warn(`⚠️ [MESSAGE] No target room found for ${eventName}:`, data);
         }
     }
 
     static handleReaction(io, client, eventName, data) {
-        if (!AuthHandler.requireAuth(client)) {
-            client.emit('error', { message: 'Authentication required' });
-            return;
-        }
         
         console.log(`📡 [REACTION] Handling ${eventName}:`, {
             messageId: data.message_id,
@@ -45,40 +54,76 @@ class MessageHandler {
             targetId: data.target_id
         });
         
-        const targetRoom = roomManager.getTargetRoom(data);
+        // Determine target room
+        let targetRoom;
+        if (data.target_type === 'channel' && data.target_id) {
+            targetRoom = roomManager.getChannelRoom(data.target_id);
+        } else if (data.target_type === 'dm' && data.target_id) {
+            targetRoom = roomManager.getDMRoom(data.target_id);
+        }
+        
         if (targetRoom) {
             console.log(`📡 [REACTION] Broadcasting ${eventName} to room: ${targetRoom}`);
-            roomManager.broadcastToRoom(io, targetRoom, eventName, data);
+            
+            // Ensure consistent data structure for reactions
+            const reactionData = {
+                message_id: data.message_id,
+                emoji: data.emoji,
+                user_id: data.user_id,
+                username: data.username,
+                target_type: data.target_type,
+                target_id: data.target_id,
+                action: data.action,
+                timestamp: Date.now(),
+                source: data.source || 'server-originated'
+            };
+            
+            roomManager.broadcastToRoom(io, targetRoom, eventName, reactionData);
         } else {
             console.warn(`⚠️ [REACTION] No target room found for ${eventName}:`, data);
         }
     }
 
     static handlePin(io, client, eventName, data) {
-        if (!AuthHandler.requireAuth(client)) {
-            client.emit('error', { message: 'Authentication required' });
-            return;
-        }
         
-        console.log(`📌 [PIN] Handling ${eventName}:`, {
+        console.log(`📡 [PIN] Handling ${eventName}:`, {
             messageId: data.message_id,
             userId: data.user_id,
             targetType: data.target_type,
-            targetId: data.target_id,
-            action: data.action
+            targetId: data.target_id
         });
         
-        const targetRoom = roomManager.getTargetRoom(data);
+        // Determine target room
+        let targetRoom;
+        if (data.target_type === 'channel' && data.target_id) {
+            targetRoom = roomManager.getChannelRoom(data.target_id);
+        } else if (data.target_type === 'dm' && data.target_id) {
+            targetRoom = roomManager.getDMRoom(data.target_id);
+        }
+        
         if (targetRoom) {
-            console.log(`📌 [PIN] Broadcasting ${eventName} to room: ${targetRoom}`);
-            roomManager.broadcastToRoom(io, targetRoom, eventName, data);
+            console.log(`📡 [PIN] Broadcasting ${eventName} to room: ${targetRoom}`);
+            
+            // Ensure consistent data structure for pin events
+            const pinData = {
+                message_id: data.message_id,
+                user_id: data.user_id,
+                username: data.username,
+                target_type: data.target_type,
+                target_id: data.target_id,
+                action: data.action,
+                message: data.message,
+                timestamp: Date.now(),
+                source: data.source || 'server-originated'
+            };
+            
+            roomManager.broadcastToRoom(io, targetRoom, eventName, pinData);
         } else {
             console.warn(`⚠️ [PIN] No target room found for ${eventName}:`, data);
         }
     }
 
     static handleTyping(io, client, data, isTyping = true) {
-        if (!AuthHandler.requireAuth(client)) return;
         
         const { channelId, roomId } = data;
         const user_id = client.data.user_id;

@@ -302,36 +302,54 @@ function initServerFormSubmission() {
                 
                 const promises = [];
                 
-                if (iconDataUrl) {
-                    promises.push(
-                        fetch(iconDataUrl)
-                            .then(res => res.blob())
-                            .then(blob => {
-                                const iconFile = new File([blob], 'icon.png', { type: 'image/png' });
-                                formData.set('server_icon', iconFile);
-                            })
-                    );
+                if (iconDataUrl && iconDataUrl.startsWith('data:')) {
+                    try {
+                        promises.push(
+                            fetch(iconDataUrl)
+                                .then(res => res.blob())
+                                .then(blob => {
+                                    const iconFile = new File([blob], 'icon.png', { type: 'image/png' });
+                                    formData.set('server_icon', iconFile);
+                                })
+                                .catch(err => {
+                                    console.warn('Failed to process icon image:', err);
+                                })
+                        );
+                    } catch (err) {
+                        console.warn('Failed to create icon fetch promise:', err);
+                    }
                 }
 
-                if (bannerDataUrl) {
-                    promises.push(
-                        fetch(bannerDataUrl)
-                            .then(res => res.blob())
-                            .then(blob => {
-                                const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
-                                formData.set('server_banner', bannerFile);
-                            })
-                    );
+                if (bannerDataUrl && bannerDataUrl.startsWith('data:')) {
+                    try {
+                        promises.push(
+                            fetch(bannerDataUrl)
+                                .then(res => res.blob())
+                                .then(blob => {
+                                    const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
+                                    formData.set('server_banner', bannerFile);
+                                })
+                                .catch(err => {
+                                    console.warn('Failed to process banner image:', err);
+                                })
+                        );
+                    } catch (err) {
+                        console.warn('Failed to create banner fetch promise:', err);
+                    }
                 }
                 
-                Promise.all(promises)
-                    .then(() => {
-                        handleServerCreation(this, formData);
-                    })
-                    .catch(err => {
-                        hideLoading(submitBtn);
-                        showToast('Error processing images. Please try again.', 'error');
-                    });
+                if (promises.length > 0) {
+                    Promise.all(promises)
+                        .then(() => {
+                            handleServerCreation(this, formData);
+                        })
+                        .catch(err => {
+                            console.warn('Error processing images, proceeding without them:', err);
+                            handleServerCreation(this, formData);
+                        });
+                } else {
+                    handleServerCreation(this, formData);
+                }
             });
         }
 }

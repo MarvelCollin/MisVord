@@ -37,7 +37,7 @@ class ChannelMessageRepository extends Repository {
             LIMIT ? OFFSET ?
         ";
         
-        $results = $query->raw($sql, [$channelId, $limit, $offset]);
+        $results = $query->query($sql, [$channelId, $limit, $offset]);
         return array_reverse($results);
     }
     

@@ -140,7 +140,7 @@ class MessageRepository extends Repository {
     }
     
     /**
-     * Get messages for a chat room (DM)
+     * Get messages for a chat room
      */
     public function getForChatRoom($roomId, $limit = 50, $offset = 0) {
         $query = new Query();

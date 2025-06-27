@@ -36,10 +36,6 @@ class FriendListRepository extends Repository {
         $relationship = $this->findRelationship($fromUserId, $toUserId);
         
         if ($relationship) {
-            if ($relationship->status === 'blocked') {
-                return false;
-            }
-            
             if ($relationship->status === 'pending' || $relationship->status === 'accepted') {
                 return true;
             }
@@ -82,45 +78,13 @@ class FriendListRepository extends Repository {
         return $result > 0;
     }
     
-    public function blockUser($userId, $blockedUserId) {
-        $relationship = $this->findRelationship($userId, $blockedUserId);
-        
-        if ($relationship) {
-            if ($relationship->user_id === $userId && $relationship->user_id2 === $blockedUserId) {
-                return $this->update($relationship->id, ['status' => 'blocked']);
-            } else {
-                $relationship->delete();
-            }
-        }
-        
-        return $this->create([
-            'user_id' => $userId,
-            'user_id2' => $blockedUserId,
-            'status' => 'blocked'
-        ]);
-    }
-    
-    public function unblockUser($userId, $blockedUserId) {
-        $query = new Query();
-        return $query->table('friend_list')
-            ->where('user_id', $userId)
-            ->where('user_id2', $blockedUserId)
-            ->where('status', 'blocked')
-            ->delete();
-    }
+
     
     public function removeFriend($userId, $friendId) {
         $relationship = $this->findRelationship($userId, $friendId);
         return $relationship ? $relationship->delete() : false;
     }
-      public function getBlockedUsers($userId) {
-        $query = new Query();
-        return $query->raw("SELECT u.id, u.username, u.discriminator, u.avatar_url, u.status, u.created_at
-                  FROM users u
-                  JOIN friend_list f ON u.id = f.user_id2
-                  WHERE f.user_id = ? AND f.status = 'blocked' AND u.status != 'bot'
-                  ORDER BY u.username ASC", [$userId]);
-    }
+
     
     public function findFriendship($friendshipId) {
         return $this->find($friendshipId);
@@ -162,8 +126,6 @@ class FriendListRepository extends Repository {
                     return 'friends';
                 } elseif ($result['status'] === 'pending') {
                     return 'pending_sent';
-                } elseif ($result['status'] === 'blocked') {
-                    return 'blocked';
                 }
             }
             
@@ -177,8 +139,6 @@ class FriendListRepository extends Repository {
                     return 'friends';
                 } elseif ($result['status'] === 'pending') {
                     return 'pending_received';
-                } elseif ($result['status'] === 'blocked') {
-                    return 'blocked_by';
                 }
             }
         } catch (Exception $e) {

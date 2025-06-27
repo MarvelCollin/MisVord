@@ -18,12 +18,20 @@ class RoomManager {
 
     joinRoom(client, roomName) {
         client.join(roomName);
-        console.log(`Client ${client.id} joined room: ${roomName}`);
+        console.log(`👥 Client ${client.id} joined room: ${roomName}`);
+        
+        // Track user sockets for presence management
+        if (client.data?.user_id) {
+            if (!this.userSockets.has(client.data.user_id)) {
+                this.userSockets.set(client.data.user_id, new Set());
+            }
+            this.userSockets.get(client.data.user_id).add(client.id);
+        }
     }
 
     leaveRoom(client, roomName) {
         client.leave(roomName);
-        console.log(`Client ${client.id} left room: ${roomName}`);
+        console.log(`👥 Client ${client.id} left room: ${roomName}`);
     }
 
     addUserSocket(userId, socketId) {
@@ -35,14 +43,17 @@ class RoomManager {
     }
 
     removeUserSocket(userId, socketId) {
-        if (this.userSockets.has(userId)) {
-            this.userSockets.get(userId).delete(socketId);
-            if (this.userSockets.get(userId).size === 0) {
+        const userSocketSet = this.userSockets.get(userId);
+        if (userSocketSet) {
+            userSocketSet.delete(socketId);
+            
+            if (userSocketSet.size === 0) {
                 this.userSockets.delete(userId);
-                return true;
+                return true; // User is now offline
             }
         }
-        return false;
+        
+        return false; // User still has other connections
     }
 
     isUserOnline(userId) {
@@ -50,87 +61,68 @@ class RoomManager {
     }
 
     getTargetRoom(data) {
-        if (!data) {
-            console.warn('⚠️ [ROOM] No data provided to getTargetRoom');
-            return null;
-        }
-        
-        if (data.target_type === 'channel' && data.target_id) {
-            const room = this.getChannelRoom(data.target_id);
-            console.log(`🎯 [ROOM] Target room for channel ${data.target_id}: ${room}`);
-            return room;
-        }
-        if (data.target_type === 'dm' && data.target_id) {
-            const room = this.getDMRoom(data.target_id);
-            console.log(`🎯 [ROOM] Target room for DM ${data.target_id}: ${room}`);
-            return room;
-        }
-        if (data.room_id) {
-            const room = this.getDMRoom(data.room_id);
-            console.log(`🎯 [ROOM] Target room for room_id ${data.room_id}: ${room}`);
-            return room;
-        }
         if (data.channel_id) {
-            const room = this.getChannelRoom(data.channel_id);
-            console.log(`🎯 [ROOM] Target room for channel_id ${data.channel_id}: ${room}`);
-            return room;
+            return this.getChannelRoom(data.channel_id);
+        } else if (data.room_id) {
+            return this.getDMRoom(data.room_id);
+        } else if (data.target_type && data.target_id) {
+            if (data.target_type === 'channel') {
+                return this.getChannelRoom(data.target_id);
+            } else if (data.target_type === 'dm') {
+                return this.getDMRoom(data.target_id);
+            }
         }
-        if (data.chat_room_id) {
-            const room = this.getDMRoom(data.chat_room_id);
-            console.log(`🎯 [ROOM] Target room for chat_room_id ${data.chat_room_id}: ${room}`);
-            return room;
-        }
-        
-        console.warn('⚠️ [ROOM] Could not determine target room from data:', data);
         return null;
     }
 
     broadcastToRoom(io, roomName, eventName, data) {
         if (!roomName) {
-            console.warn('⚠️ [BROADCAST] No room name provided');
+            console.warn(`⚠️ Cannot broadcast to undefined room for event: ${eventName}`);
             return;
         }
         
+        console.log(`📡 Broadcasting ${eventName} to room: ${roomName}`);
         io.to(roomName).emit(eventName, data);
-        console.log(`📡 [BROADCAST] ${eventName} to room: ${roomName}`);
     }
 
     addVoiceMeeting(channelId, meetingId, socketId) {
         if (!this.voiceMeetings.has(channelId)) {
             this.voiceMeetings.set(channelId, {
-                meetingId,
-                participants: new Set([socketId])
+                meeting_id: meetingId,
+                channel_id: channelId,
+                participants: new Set()
             });
-        } else {
-            this.voiceMeetings.get(channelId).participants.add(socketId);
         }
+        
+        this.voiceMeetings.get(channelId).participants.add(socketId);
+        console.log(`🎤 Added participant to voice meeting in channel ${channelId}`);
     }
 
     removeVoiceMeeting(channelId, socketId) {
-        if (this.voiceMeetings.has(channelId)) {
-            const meeting = this.voiceMeetings.get(channelId);
+        const meeting = this.voiceMeetings.get(channelId);
+        if (meeting) {
             meeting.participants.delete(socketId);
             
             if (meeting.participants.size === 0) {
                 this.voiceMeetings.delete(channelId);
-                return { removed: true, participantCount: 0 };
+                console.log(`🎤 Removed empty voice meeting for channel ${channelId}`);
             }
             
-            return { removed: false, participantCount: meeting.participants.size };
+            return {
+                removed: true,
+                participant_count: meeting.participants.size
+            };
         }
-        return { removed: false, participantCount: 0 };
+        
+        return { removed: false, participant_count: 0 };
     }
 
     getVoiceMeeting(channelId) {
-        return this.voiceMeetings.get(channelId) || null;
+        return this.voiceMeetings.get(channelId);
     }
 
     getAllVoiceMeetings() {
-        return Array.from(this.voiceMeetings.entries()).map(([channelId, meeting]) => ({
-            channelId,
-            meetingId: meeting.meetingId,
-            participantCount: meeting.participants.size
-        }));
+        return Array.from(this.voiceMeetings.values());
     }
 }
 

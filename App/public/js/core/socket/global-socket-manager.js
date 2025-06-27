@@ -52,8 +52,42 @@ class GlobalSocketManager {
     loadConnectionDetails() {
         this.socketHost = document.querySelector('meta[name="socket-host"]')?.content || 'localhost';
         this.socketPort = document.querySelector('meta[name="socket-port"]')?.content || '1002';
-        this.userId = document.querySelector('meta[name="user-id"]')?.content;
-        this.username = document.querySelector('meta[name="username"]')?.content;
+        
+        // Try multiple sources for user data
+        let metaUserId = document.querySelector('meta[name="user-id"]')?.content;
+        let metaUsername = document.querySelector('meta[name="username"]')?.content;
+        
+        // Fallback to body attributes if meta tags don't exist
+        if (!metaUserId) {
+            metaUserId = document.body?.getAttribute('data-user-id');
+        }
+        if (!metaUsername) {
+            metaUsername = document.body?.getAttribute('data-username');
+        }
+        
+        // Additional fallback to window globals if they exist
+        if (!metaUserId && window.currentUserId) {
+            metaUserId = window.currentUserId;
+        }
+        if (!metaUsername && window.currentUsername) {
+            metaUsername = window.currentUsername;
+        }
+        
+        if (metaUserId && metaUsername) {
+            this.userId = metaUserId;
+            this.username = metaUsername;
+            this.log(`User data loaded - ID: ${this.userId}, Username: ${this.username}`);
+        } else {
+            this.error('No user data found! Checking all sources:', {
+                metaUserId: document.querySelector('meta[name="user-id"]')?.content,
+                metaUsername: document.querySelector('meta[name="username"]')?.content,
+                bodyUserId: document.body?.getAttribute('data-user-id'),
+                bodyUsername: document.body?.getAttribute('data-username'),
+                windowUserId: window.currentUserId,
+                windowUsername: window.currentUsername,
+                isAuthenticated: document.querySelector('meta[name="user-authenticated"]')?.content
+            });
+        }
         
         this.log(`Socket details loaded - Host: ${this.socketHost}, Port: ${this.socketPort}`);
     }
@@ -94,6 +128,7 @@ class GlobalSocketManager {
         this.io.on('connect', () => {
             this.connected = true;
             this.reconnectAttempts = 0;
+            this.authenticated = true;
             this.log(`Socket connected: ${this.io.id}`);
             
             const event = new CustomEvent('globalSocketReady', {
@@ -105,14 +140,27 @@ class GlobalSocketManager {
             
             window.dispatchEvent(event);
             
-            if (this.userId && this.username) {
-                this.authenticate();
-            }
+            const authEvent = new CustomEvent('socketAuthenticated', {
+                detail: {
+                    manager: this,
+                    user_id: this.userId,
+                    socket_id: this.io.id
+                }
+            });
+            
+            window.dispatchEvent(authEvent);
+        });
+        
+        this.io.on('channel-joined', (data) => {
+            this.log(`Channel joined confirmation: ${data.channel_id}`);
+        });
+        
+        this.io.on('dm-room-joined', (data) => {
+            this.log(`DM room joined confirmation: ${data.room_id}`);
         });
         
         this.io.on('disconnect', () => {
             this.connected = false;
-            this.authenticated = false;
             this.log('Socket disconnected');
             
             window.dispatchEvent(new Event('globalSocketDisconnected'));
@@ -133,23 +181,7 @@ class GlobalSocketManager {
             }
         });
         
-        this.io.on('auth-success', (data) => {
-            this.authenticated = true;
-            this.log('Authentication successful', data);
-            
-            window.dispatchEvent(new CustomEvent('socketAuthenticated', {
-                detail: {
-                    manager: this,
-                    user_id: data.user_id,
-                    socket_id: data.socket_id
-                }
-            }));
-        });
-        
-        this.io.on('auth-error', (error) => {
-            this.authenticated = false;
-            this.error('Authentication error', error);
-        });
+
         
         this.io.on('error', (error) => {
             this.error('Socket error', error);
@@ -166,29 +198,12 @@ class GlobalSocketManager {
     }
     
     authenticate() {
-        if (!this.connected || !this.io) {
-            this.error('Cannot authenticate: socket not connected');
-            return false;
-        }
-        
-        if (!this.userId) {
-            this.error('Cannot authenticate: user ID not available');
-            return false;
-        }
-        
-        this.log(`Authenticating user: ${this.userId} (${this.username || 'Unknown'})`);
-        
-        this.io.emit('authenticate', {
-            user_id: this.userId,
-            username: this.username || `User-${this.userId}`
-        });
-        
         return true;
     }
     
     joinChannel(channelId) {
-        if (!this.isReady()) {
-            this.error('Cannot join channel: socket not ready');
+        if (!this.connected || !this.io) {
+            this.error('Cannot join channel: socket not connected');
             return false;
         }
         
@@ -204,7 +219,7 @@ class GlobalSocketManager {
     }
     
     leaveChannel(channelId) {
-        if (!this.isReady()) return false;
+        if (!this.connected || !this.io) return false;
         
         this.log(`Leaving channel: ${channelId}`);
         this.io.emit('leave-channel', { channel_id: channelId });
@@ -213,8 +228,8 @@ class GlobalSocketManager {
     }
     
     joinDMRoom(roomId) {
-        if (!this.isReady()) {
-            this.error('Cannot join DM room: socket not ready');
+        if (!this.connected || !this.io) {
+            this.error('Cannot join DM room: socket not connected');
             return false;
         }
         
@@ -230,7 +245,7 @@ class GlobalSocketManager {
     }
     
     sendTyping(channelId = null, roomId = null) {
-        if (!this.isReady()) return false;
+        if (!this.connected || !this.io) return false;
         
         if (channelId) {
             this.io.emit('typing', { channel_id: channelId });
@@ -242,7 +257,7 @@ class GlobalSocketManager {
     }
     
     sendStopTyping(channelId = null, roomId = null) {
-        if (!this.isReady()) return false;
+        if (!this.connected || !this.io) return false;
         
         if (channelId) {
             this.io.emit('stop-typing', { channel_id: channelId });
@@ -254,7 +269,7 @@ class GlobalSocketManager {
     }
     
     updatePresence(status, activityDetails = null) {
-        if (!this.isReady()) return false;
+        if (!this.connected || !this.io) return false;
         
         this.io.emit('update-presence', { 
             status, 
@@ -271,19 +286,18 @@ class GlobalSocketManager {
         }
         
         this.connected = false;
-        this.authenticated = false;
         this.joinedChannels.clear();
         this.joinedDMRooms.clear();
         this.log('Socket manually disconnected');
     }
     
     isReady() {
-        return this.connected && this.authenticated && this.io !== null;
+        return this.connected && this.io !== null;
     }
     
     setupChannelListeners(channelId) {
-        if (!this.isReady()) {
-            console.warn('Socket not ready, cannot setup channel listeners');
+        if (!this.connected || !this.io) {
+            console.warn('Socket not connected, cannot setup channel listeners');
             return false;
         }
         
@@ -380,14 +394,34 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.querySelector('meta[name="user-authenticated"]')?.content === 'true') {
         setTimeout(() => {
             if (!globalSocketManager.connected) {
-                const userData = {
-                    user_id: document.querySelector('meta[name="user-id"]')?.content,
-                    username: document.querySelector('meta[name="username"]')?.content
-                };
+                // Try multiple sources for user data
+                let userId = document.querySelector('meta[name="user-id"]')?.content;
+                let username = document.querySelector('meta[name="username"]')?.content;
+                
+                // Fallback to body/container attributes
+                if (!userId) {
+                    userId = document.body?.getAttribute('data-user-id') || 
+                             document.querySelector('[data-user-id]')?.getAttribute('data-user-id');
+                }
+                if (!username) {
+                    username = document.body?.getAttribute('data-username') || 
+                               document.querySelector('[data-username]')?.getAttribute('data-username');
+                }
+                
+                const userData = { user_id: userId, username: username };
                 
                 if (userData.user_id && userData.username) {
+                    console.log('🔌 Initializing socket with user data:', userData);
                     globalSocketManager.init(userData);
                 } else {
+                    console.error('❌ No user data found for socket initialization:', {
+                        metaUserId: document.querySelector('meta[name="user-id"]')?.content,
+                        metaUsername: document.querySelector('meta[name="username"]')?.content,
+                        bodyUserId: document.body?.getAttribute('data-user-id'),
+                        bodyUsername: document.body?.getAttribute('data-username'),
+                        containerUserId: document.querySelector('[data-user-id]')?.getAttribute('data-user-id'),
+                        containerUsername: document.querySelector('[data-username]')?.getAttribute('data-username')
+                    });
                     globalSocketManager.init();
                 }
             }

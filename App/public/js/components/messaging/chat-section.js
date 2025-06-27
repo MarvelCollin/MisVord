@@ -76,6 +76,10 @@ class ChatSection {
             return;
         }
         
+        if (this.chatType === 'direct' && this.targetId) {
+            console.log(`Checking if target ID ${this.targetId} is valid room ID for direct messages`);
+        }
+        
         this.showLoadingSkeletons();
         
         this.setupEventListeners();
@@ -1055,7 +1059,7 @@ class ChatSection {
                 user_id: this.userId,
                 userId: this.userId,
                 username: this.username,
-                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/default-profile-picture.png',
+                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/common/default-profile-picture.png',
                 sent_at: timestamp,
                 timestamp: timestamp,
                 isLocalOnly: true,
@@ -1095,15 +1099,17 @@ class ChatSection {
             
             console.log('Message send response:', response);
             
-            if (response && response.data && response.data.message) {
-                const serverMessage = response.data.message;
-                const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                if (tempMessageElement) {
-                    tempMessageElement.setAttribute('data-message-id', serverMessage.id);
-                    const reactionButton = tempMessageElement.querySelector('.message-action-reaction');
-                    if (reactionButton) {
-                        reactionButton.style.pointerEvents = '';
-                        reactionButton.style.opacity = '';
+            if (response && response.success && response.data) {
+                if (response.data.message && response.data.message.id) {
+                    const serverMessage = response.data.message;
+                    const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                    if (tempMessageElement) {
+                        tempMessageElement.setAttribute('data-message-id', serverMessage.id);
+                        const reactionButton = tempMessageElement.querySelector('.message-action-reaction');
+                        if (reactionButton) {
+                            reactionButton.style.pointerEvents = '';
+                            reactionButton.style.opacity = '';
+                        }
                     }
                 }
             } else {
@@ -1393,7 +1399,7 @@ class ChatSection {
             content: message.content || message.message?.content || '',
             user_id: message.user_id || message.userId || '',
             username: message.username || message.message?.username || 'Unknown User',
-            avatar_url: message.avatar_url || message.message?.avatar_url || '/public/assets/default-profile-picture.png',
+            avatar_url: message.avatar_url || message.message?.avatar_url || '/public/assets/common/default-profile-picture.png',
             sent_at: message.timestamp || message.sent_at || Date.now(),
             isLocalOnly: message.isLocalOnly || false,
             reply_message_id: message.reply_message_id || null,
@@ -1628,11 +1634,11 @@ class ChatSection {
         avatarContainer.className = 'message-avatar';
         
         const avatar = document.createElement('img');
-        avatar.src = message.avatar_url || '/public/assets/default-profile-picture.png';
+        avatar.src = message.avatar_url || '/public/assets/common/default-profile-picture.png';
         avatar.alt = `${message.username}'s avatar`;
         avatar.onerror = function() {
             this.onerror = null;
-            this.src = '/public/assets/default-profile-picture.png';
+            this.src = '/public/assets/common/default-profile-picture.png';
         };
         
         avatarContainer.appendChild(avatar);
@@ -1695,9 +1701,9 @@ class ChatSection {
                 replyContent.setAttribute('aria-label', `Jump to reply from ${message.reply_data.username}`);
                 
                 const replyAvatar = document.createElement('img');
-                replyAvatar.src = message.reply_data.avatar_url || '/public/assets/default-profile-picture.png';
+                replyAvatar.src = message.reply_data.avatar_url || '/public/assets/common/default-profile-picture.png';
                 replyAvatar.className = 'reply-avatar';
-                replyAvatar.onerror = function() { this.src = '/public/assets/default-profile-picture.png'; };
+                replyAvatar.onerror = function() { this.src = '/public/assets/common/default-profile-picture.png'; };
 
                 const replyUsername = document.createElement('span');
                 replyUsername.className = 'reply-username';
@@ -2002,7 +2008,6 @@ class ChatSection {
         const setupSocketHandlers = function() {
             const io = window.globalSocketManager.io;
             
-            // Remove existing listeners to prevent duplicates
             io.removeAllListeners('new-channel-message');
             io.removeAllListeners('user-message-dm');
             io.removeAllListeners('message-sent');
@@ -2078,71 +2083,34 @@ class ChatSection {
             });
             
             io.on('reaction-added', function(data) {
-                const targetType = data.target_type;
-                const targetId = String(data.target_id);
-                const selfTargetId = String(self.targetId);
-                
-                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
-                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
-                                  targetType === 'dm' && 
-                                  targetId === selfTargetId;
-                
-                if (isChannelMatch || isDMMatch) {
-                    self.handleReactionAdded(data);
+                if (data.message_id) {
+                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+                    if (messageElement) {
+                        self.handleReactionAdded(data);
+                    }
                 }
             });
             
             io.on('reaction-removed', function(data) {
-                const targetType = data.target_type;
-                const targetId = String(data.target_id);
-                const selfTargetId = String(self.targetId);
-                
-                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
-                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
-                                  targetType === 'dm' && 
-                                  targetId === selfTargetId;
-                
-                if (isChannelMatch || isDMMatch) {
-                    self.handleReactionRemoved(data);
+                if (data.message_id) {
+                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+                    if (messageElement) {
+                        self.handleReactionRemoved(data);
+                    }
                 }
             });
             
             io.on('message-updated', function(data) {
-                if (!data.message_id) {
-                    console.warn('Received message-updated without message_id:', data);
-                    return;
-                }
-                
-                const targetType = data.target_type;
-                const targetId = String(data.target_id);
-                const selfTargetId = String(self.targetId);
-                
-                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
-                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
-                                  targetType === 'dm' && 
-                                  targetId === selfTargetId;
-                
-                if ((isChannelMatch || isDMMatch) && data.message_id) {
-                    self.handleMessageUpdated(data);
+                if (data.message_id) {
+                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+                    if (messageElement) {
+                        self.handleMessageUpdated(data);
+                    }
                 }
             });
             
             io.on('message-deleted', function(data) {
-                if (!data.message_id) {
-                    console.warn('Received message-deleted without message_id:', data);
-                    return;
-                }
-                
-                const targetType = data.target_type;
-                const targetId = String(data.target_id);
-                const selfTargetId = String(self.targetId);
-                
-                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
-                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
-                                  targetType === 'dm' && 
-                                  targetId === selfTargetId;
-                
-                if (isChannelMatch || isDMMatch) {
+                if (data.message_id) {
                     const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
                     if (messageElement) {
                         self.handleMessageDeleted(data);
@@ -2177,47 +2145,36 @@ class ChatSection {
             
             // Pin message handlers
             io.on('message-pinned', function(data) {
-                const targetType = data.target_type;
-                const targetId = String(data.target_id);
-                const selfTargetId = String(self.targetId);
-                
-                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
-                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
-                                  targetType === 'dm' && 
-                                  targetId === selfTargetId;
-                
-                if (isChannelMatch || isDMMatch) {
-                    self.handleMessagePinned(data);
+                if (data.message_id) {
+                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+                    if (messageElement) {
+                        self.handleMessagePinned(data);
+                    }
                 }
             });
             
             io.on('message-unpinned', function(data) {
-                const targetType = data.target_type;
-                const targetId = String(data.target_id);
-                const selfTargetId = String(self.targetId);
-                
-                const isChannelMatch = self.chatType === 'channel' && targetType === 'channel' && targetId === selfTargetId;
-                const isDMMatch = (self.chatType === 'direct' || self.chatType === 'dm') && 
-                                  targetType === 'dm' && 
-                                  targetId === selfTargetId;
-                
-                if (isChannelMatch || isDMMatch) {
-                    self.handleMessageUnpinned(data);
+                if (data.message_id) {
+                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+                    if (messageElement) {
+                        self.handleMessageUnpinned(data);
+                    }
                 }
             });
             
             // Join appropriate room after setting up listeners
-            self.joinChannel();
         };
         
-        window.addEventListener('globalSocketReady', function() {
-            if (window.globalSocketManager && window.globalSocketManager.io) {
+        window.addEventListener('socketAuthenticated', function() {
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
                 setupSocketHandlers();
+                self.joinChannel();
             }
         });
         
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
             setupSocketHandlers();
+            self.joinChannel();
         }
     }
     
@@ -2302,7 +2259,6 @@ class ChatSection {
     
     joinChannel() {
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            setTimeout(() => this.joinChannel(), 1000);
             return;
         }
 
@@ -2310,11 +2266,17 @@ class ChatSection {
         const dmRoomId = (this.chatType === 'direct' || this.chatType === 'dm') ? this.targetId : null;
         
         if (roomId && !this.joinedRooms.has(`channel-${roomId}`)) {
-            window.globalSocketManager.joinChannel(roomId);
-            this.joinedRooms.add(`channel-${roomId}`);
+            const success = window.globalSocketManager.joinChannel(roomId);
+            if (success) {
+                this.joinedRooms.add(`channel-${roomId}`);
+                console.log(`Joined channel room: ${roomId}`);
+            }
         } else if (dmRoomId && !this.joinedRooms.has(`dm-${dmRoomId}`)) {
-            window.globalSocketManager.joinDMRoom(dmRoomId);
-            this.joinedRooms.add(`dm-${dmRoomId}`);
+            const success = window.globalSocketManager.joinDMRoom(dmRoomId);
+            if (success) {
+                this.joinedRooms.add(`dm-${dmRoomId}`);
+                console.log(`Joined DM room: ${dmRoomId}`);
+            }
         }
     }
     
@@ -2327,8 +2289,24 @@ class ChatSection {
             const params = new URLSearchParams({ offset, limit });
             const apiChatType = this.chatType === 'direct' ? 'dm' : this.chatType;
             
-            const messagesPromise = fetch(`/api/chat/${apiChatType}/${this.targetId}/messages?${params.toString()}`)
-                .then(response => response.json());
+            let endpoint;
+            if (this.chatType === 'direct' || this.chatType === 'dm') {
+                endpoint = `/api/chat/dm/${this.targetId}/messages?${params.toString()}`;
+            } else {
+                endpoint = `/api/chat/${this.chatType}/${this.targetId}/messages?${params.toString()}`;
+            }
+            
+            const messagesPromise = fetch(endpoint)
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 403 && (this.chatType === 'direct' || this.chatType === 'dm')) {
+                            console.error(`🚨 403 ERROR: Target ID ${this.targetId} is likely a friend ID, not a room ID! DM navigation is broken.`);
+                            throw new Error('Invalid room ID - this appears to be a friend ID instead of a room ID');
+                        }
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                });
             
             await new Promise(resolve => setTimeout(resolve, 100));
             
@@ -2633,7 +2611,7 @@ class ChatSection {
             content: 'TEST MESSAGE - If you see this, the system works!',
             user_id: this.userId,
             username: 'TEST USER',
-            avatar_url: '/public/assets/default-profile-picture.png',
+            avatar_url: '/public/assets/common/default-profile-picture.png',
             sent_at: Date.now()
         };
         

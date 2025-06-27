@@ -118,34 +118,7 @@ class FriendAPI {
         return data;
     }
 
-    async blockUser(userId) {
-        const data = await this.makeRequest('/api/users/block', {
-            method: 'POST',
-            body: JSON.stringify({ user_id: userId })
-        });
-        
-        if (!data.data) {
-            throw new Error(data.message || 'Failed to block user');
-        }
-        
-        return data;
-    }    async unblockUser(userId) {
-        const data = await this.makeRequest('/api/users/unblock', {
-            method: 'POST',
-            body: JSON.stringify({ user_id: userId })
-        });
-        
-        if (!data.data) {
-            throw new Error(data.message || 'Failed to unblock user');
-        }
-        
-        return data;
-    }
 
-    async getBlockedUsers() {
-        const data = await this.makeRequest('/api/users/blocked');
-        return data.data || [];
-    }
 
     validateUsername(username) {
         if (!username || username.length < 2) {

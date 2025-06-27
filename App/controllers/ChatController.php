@@ -403,8 +403,11 @@ class ChatController extends BaseController
                     'updated_at' => $existingRoom->updated_at
                 ];
                 return $this->success([
-                'data' => ['chat_room' => $chatRoomData]
-            ]);
+                    'data' => [
+                        'chat_room' => $chatRoomData,
+                        'room_id' => $existingRoom->id
+                    ]
+                ]);
             }
 
             $friend = $this->userRepository->find($friendId);
@@ -427,8 +430,11 @@ class ChatController extends BaseController
                 'created_at' => $chatRoom->created_at,
                 'updated_at' => $chatRoom->updated_at
             ];
-                            return $this->success([
-                'data' => ['chat_room' => $chatRoomData]
+            return $this->success([
+                'data' => [
+                    'chat_room' => $chatRoomData,
+                    'room_id' => $chatRoom->id
+                ]
             ], 'Direct message created');
         } catch (Exception $e) {
             error_log('CreateDirectMessage Error: ' . $e->getMessage());
@@ -462,7 +468,8 @@ class ChatController extends BaseController
             if ($existingRoom) {
                 return $this->success([
                     'data' => [
-                        'channel_id' => $existingRoom->id
+                        'channel_id' => $existingRoom->id,
+                        'room_id' => $existingRoom->id
                     ]
                 ]);
             }
@@ -479,7 +486,8 @@ class ChatController extends BaseController
 
             return $this->success([
                 'data' => [
-                    'channel_id' => $chatRoom->id
+                    'channel_id' => $chatRoom->id,
+                    'room_id' => $chatRoom->id
                 ]
             ], 'Direct message created');
         } catch (Exception $e) {
@@ -621,20 +629,19 @@ class ChatController extends BaseController
         $userId = $_SESSION['user_id'];
 
         try {
-
             if (!$this->chatRoomRepository->isParticipant($roomId, $userId)) {
                 return $this->forbidden('You are not a participant in this chat room');
             }
+            
             $limit = $_GET['limit'] ?? 20;
             $offset = $_GET['offset'] ?? 0;
 
             $messages = $this->messageRepository->getForChatRoom($roomId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
-            return $this->success([
-                'messages' => $formattedMessages,
-                'has_more' => count($messages) == $limit
-            ]);
+            error_log("Returning " . count($formattedMessages) . " messages for DM room $roomId");
+
+            return $this->respondMessages('dm', $roomId, $formattedMessages, count($messages) >= $limit);
         } catch (Exception $e) {
             return $this->serverError('Failed to get messages: ' . $e->getMessage());
         }
@@ -898,8 +905,6 @@ class ChatController extends BaseController
                 
                 $socketData = [
                     'message_id' => $messageId,
-                    'target_type' => $targetType,
-                    'target_id' => $targetId,
                     'message' => $formattedMessage,
                     'user_id' => $userId,
                     'username' => $_SESSION['username'] ?? 'Unknown',
@@ -908,11 +913,9 @@ class ChatController extends BaseController
                 
                 SocketBroadcaster::broadcastMessage($targetType, $targetId, 'message-updated', $socketData);
                 
-                            return $this->success([
+                return $this->success([
                 'data' => [
-                    'message' => $formattedMessage,
-                    'target_type' => $targetType,
-                    'target_id' => $targetId
+                    'message' => $formattedMessage
                 ],
                 'socket_event' => 'message-updated',
                 'socket_data' => $socketData,
@@ -969,8 +972,6 @@ class ChatController extends BaseController
             if ($this->messageRepository->delete($messageId)) {
                 $socketData = [
                     'message_id' => $messageId,
-                    'target_type' => $targetType,
-                    'target_id' => $targetId,
                     'user_id' => $userId,
                     'username' => $_SESSION['username'] ?? 'Unknown',
                     'source' => 'server-originated'
@@ -980,9 +981,7 @@ class ChatController extends BaseController
                 
                 return $this->success([
                     'data' => [
-                        'message_id' => $messageId,
-                        'target_type' => $targetType,
-                        'target_id' => $targetId
+                        'message_id' => $messageId
                     ],
                     'socket_event' => 'message-deleted',
                     'socket_data' => $socketData,

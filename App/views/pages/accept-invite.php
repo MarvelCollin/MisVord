@@ -47,7 +47,7 @@ ob_start();
                     <p class="error-description">The invite may have expired or been revoked by the server owner.</p>
                 </div>
                 <div class="btn-container">
-                    <a href="/app" class="btn btn-secondary">Back to App</a>
+                    <a href="/home" class="btn btn-secondary">Back to Home</a>
                 </div>
             </div>
         <?php else: ?>
@@ -57,7 +57,7 @@ ob_start();
                     <p class="error-description">The invite may have expired or been revoked by the server owner.</p>
                 </div>
                 <div class="btn-container">
-                    <a href="/app" class="btn btn-secondary">Back to App</a>
+                    <a href="/home" class="btn btn-secondary">Back to Home</a>
                 </div>
             </div>
             
@@ -117,7 +117,7 @@ ob_start();
                                 <a href="/api/servers/join/<?php echo htmlspecialchars($inviteCode); ?>" id="join-server-btn" class="btn btn-primary">
                                     Accept Invitation
                                 </a>
-                                <a href="/app" class="btn btn-secondary">
+                                <a href="/home" class="btn btn-secondary">
                                     Cancel
                                 </a>
                             </div>
@@ -130,8 +130,8 @@ ob_start();
                         </div>
                         <h2>Invalid Invite</h2>
                         <p>This invite may be expired, or you might not have permission to join.</p>
-                        <a href="/app" class="btn btn-primary">
-                            Back to App
+                        <a href="/home" class="btn btn-primary">
+                            Back to Home
                         </a>
                     </div>
                 <?php endif; ?>

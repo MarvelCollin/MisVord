@@ -4,8 +4,7 @@ class SocketBroadcaster {
     private static $socketServerUrl = null;
     
     public static function init() {
-        // Get socket server URL from environment or use default
-        self::$socketServerUrl = $_ENV['SOCKET_SERVER_URL'] ?? 'http://localhost:3001';
+        self::$socketServerUrl = $_ENV['SOCKET_SERVER_URL'] ?? 'http://localhost:1002';
     }
     
     public static function broadcast($event, $data, $room = null) {

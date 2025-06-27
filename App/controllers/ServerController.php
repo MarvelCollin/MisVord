@@ -157,53 +157,86 @@ class ServerController extends BaseController
 
     public function create()
     {
-        $this->requireAuth();
-
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-
-        $this->validate($input, [
-            'name' => 'required',
-            'description' => 'required',
-            'category' => 'required'
-        ]);
-
-        $serverData = [
-            'name' => $input['name'],
-            'description' => $input['description'],
-            'is_public' => isset($input['is_public']) ? (bool)$input['is_public'] : false,
-            'category' => $input['category']
-        ];
-
-        if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
-            $this->validateUploadedFile($_FILES['server_icon']);
-            $imageUrl = $this->uploadImage($_FILES['server_icon']);
-            if ($imageUrl !== false) {
-                $serverData['image_url'] = $imageUrl;
-            }
-        }
-
-        if (isset($_FILES['server_banner']) && $_FILES['server_banner']['error'] === UPLOAD_ERR_OK) {
-            $this->validateUploadedFile($_FILES['server_banner']);
-            $bannerUrl = $this->uploadImage($_FILES['server_banner']);
-            if ($bannerUrl !== false) {
-                $serverData['banner_url'] = $bannerUrl;
-            }
-        }
-
         try {
+            $this->requireAuth();
+
+            $input = $this->getInput();
+            $input = $this->sanitize($input);
+
+            $this->validate($input, [
+                'name' => 'required',
+                'description' => 'required',
+                'category' => 'required'
+            ]);
+
+            $serverData = [
+                'name' => $input['name'],
+                'description' => $input['description'],
+                'is_public' => isset($input['is_public']) ? (bool)$input['is_public'] : false,
+                'category' => $input['category']
+            ];
+
+            if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
+                try {
+                    $this->validateUploadedFile($_FILES['server_icon']);
+                    $imageUrl = $this->uploadImage($_FILES['server_icon']);
+                    if ($imageUrl !== false) {
+                        $serverData['image_url'] = $imageUrl;
+                    }
+                } catch (Exception $e) {
+                    if (function_exists('logger')) {
+                        logger()->warning("Failed to upload server icon", [
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+
+            if (isset($_FILES['server_banner']) && $_FILES['server_banner']['error'] === UPLOAD_ERR_OK) {
+                try {
+                    $this->validateUploadedFile($_FILES['server_banner']);
+                    $bannerUrl = $this->uploadImage($_FILES['server_banner']);
+                    if ($bannerUrl !== false) {
+                        $serverData['banner_url'] = $bannerUrl;
+                    }
+                } catch (Exception $e) {
+                    if (function_exists('logger')) {
+                        logger()->warning("Failed to upload server banner", [
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+
             $server = $this->serverRepository->createWithOwner($serverData, $this->getCurrentUserId());
             
             if (!$server) {
                 throw new Exception('Failed to create server');
             }
 
-            $generalChannel = new Channel();
-            $generalChannel->name = 'general';
-            $generalChannel->type = 'text';
-            $generalChannel->server_id = $server->id;
-            if (!$generalChannel->save()) {
-                throw new Exception('Failed to create default channel');
+            try {
+                $query = $this->query();
+                $channelData = [
+                    'name' => 'general',
+                    'type' => 1,
+                    'server_id' => $server->id,
+                    'position' => 0,
+                    'is_private' => 0,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+                
+                $channelId = $query->table('channels')->insertGetId($channelData);
+                if (!$channelId) {
+                    throw new Exception('Failed to create default channel');
+                }
+            } catch (Exception $channelError) {
+                if (function_exists('logger')) {
+                    logger()->warning("Failed to create default channel", [
+                        'server_id' => $server->id,
+                        'error' => $channelError->getMessage()
+                    ]);
+                }
             }
 
             $this->logActivity('server_created', [
@@ -217,8 +250,9 @@ class ServerController extends BaseController
             ], 'Server created successfully');
 
         } catch (Exception $e) {
+            $serverName = isset($serverData) && isset($serverData['name']) ? $serverData['name'] : 'unknown';
             $this->logActivity('server_create_error', [
-                'server_name' => $serverData['name'],
+                'server_name' => $serverName,
                 'error' => $e->getMessage()
             ]);
             return $this->serverError('Failed to create server: ' . $e->getMessage());

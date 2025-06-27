@@ -37,7 +37,7 @@ class ChatRoomMessageRepository extends Repository {
             LIMIT ? OFFSET ?
         ";
         
-        $results = $query->raw($sql, [$roomId, $limit, $offset]);
+        $results = $query->query($sql, [$roomId, $limit, $offset]);
         return array_reverse($results);
     }
     

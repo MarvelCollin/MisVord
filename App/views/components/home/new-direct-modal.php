@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (data.success && data.data && data.data.channel_id) {
-                window.location.href = `/app/channels/dm/${data.data.channel_id}`;
+                                        window.location.href = `/home/channels/dm/${data.data.channel_id}`;
             } else {
                 if (window.showToast) {
                     window.showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');

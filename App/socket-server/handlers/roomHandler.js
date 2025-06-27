@@ -3,11 +3,6 @@ const AuthHandler = require('./authHandler');
 
 class RoomHandler {
     static joinChannel(io, client, data) {
-        if (!AuthHandler.requireAuth(client)) {
-            client.emit('error', { message: 'Authentication required' });
-            return;
-        }
-        
         const { channel_id } = data;
         if (!channel_id) {
             client.emit('error', { message: 'Channel ID is required' });
@@ -41,11 +36,6 @@ class RoomHandler {
     }
 
     static joinDMRoom(io, client, data) {
-        if (!AuthHandler.requireAuth(client)) {
-            client.emit('error', { message: 'Authentication required' });
-            return;
-        }
-        
         const { room_id } = data;
         if (!room_id) {
             client.emit('error', { message: 'Room ID is required' });

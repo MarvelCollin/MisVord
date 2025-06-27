@@ -329,8 +329,6 @@ class ChatAPI {
             window.globalSocketManager.io.emit('message-updated', {
                 message_id: messageId,
                 content: content,
-                target_type: targetType,
-                target_id: targetId,
                 user_id: userId,
                 username: username,
                 timestamp: Date.now()
@@ -371,8 +369,6 @@ class ChatAPI {
         
         const socketData = {
             message_id: messageId,
-            target_type: targetType,
-            target_id: targetId,
             user_id: userId,
             username: username,
             timestamp: Date.now()
@@ -510,7 +506,7 @@ class ChatAPI {
             content: message.content,
             user_id: message.user_id,
             username: message.username,
-            avatar_url: message.avatar_url || '/public/assets/default-profile-picture.png',
+            avatar_url: message.avatar_url || '/public/assets/common/default-profile-picture.png',
             sent_at: message.sent_at,
             edited_at: message.edited_at,
             type: message.type || 'text'
@@ -541,10 +537,25 @@ class ChatAPI {
     }
 
     async createDirectMessageRoom(userId) {
-        return await this.makeRequest('/api/chat/dm/create', {
-            method: 'POST',
-            body: JSON.stringify({ user_id: userId })
-        });
+        try {
+            const response = await this.makeRequest('/api/chat/dm/create', {
+                method: 'POST',
+                body: JSON.stringify({ friend_id: userId })
+            });
+            
+            if (response && response.success && response.data) {
+                return {
+                    success: true,
+                    room_id: response.data.room_id || response.data.chat_room?.id,
+                    data: response.data
+                };
+            }
+            
+            throw new Error(response?.message || 'Failed to create DM room');
+        } catch (error) {
+            console.error('Error creating DM room:', error);
+            throw error;
+        }
     }
 
     async sendMessageToServer(messageData) {

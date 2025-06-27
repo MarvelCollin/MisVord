@@ -25,6 +25,8 @@ class ImageCutter {
         this.modal = null;
         this.scale = 1;
         this.imageOffset = { x: 0, y: 0 };
+        this.sizeSlider = null;
+        this.sizeValueDisplay = null;
 
         this.init();
     }
@@ -61,11 +63,152 @@ class ImageCutter {
         }
     }
 
+    createSliderControls() {
+        const controlsSection = document.createElement('div');
+        controlsSection.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #36393f;
+            border-radius: 6px;
+        `;
+        
+        const infoText = document.createElement('span');
+        infoText.style.cssText = `
+            color: #b9bbbe;
+            font-size: 14px;
+            text-align: center;
+        `;
+        infoText.textContent = this.options.type === 'profile' 
+            ? 'Drag to move • Use slider to resize • 1:1 aspect ratio' 
+            : 'Drag to move • Use slider to resize • 2:1 aspect ratio';
+        controlsSection.appendChild(infoText);
+
+        const sliderContainer = document.createElement('div');
+        sliderContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #b9bbbe;
+            font-size: 14px;
+            visibility: visible;
+            opacity: 1;
+            width: 100%;
+        `;
+
+        const sliderLabel = document.createElement('span');
+        sliderLabel.textContent = 'Size:';
+        sliderLabel.style.minWidth = '40px';
+        sliderContainer.appendChild(sliderLabel);
+
+        this.sizeSlider = document.createElement('input');
+        this.sizeSlider.type = 'range';
+        this.sizeSlider.min = '20';
+        this.sizeSlider.max = '100';
+        this.sizeSlider.value = '70';
+        this.sizeSlider.style.cssText = `
+            flex: 1;
+            height: 6px;
+            background: #40444b;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            display: block;
+            visibility: visible;
+        `;
+
+        this.ensureSliderStyles();
+
+        this.sizeSlider.addEventListener('input', (e) => {
+            this.updateCropSize(parseInt(e.target.value));
+        });
+
+        sliderContainer.appendChild(this.sizeSlider);
+
+        const sliderValue = document.createElement('span');
+        sliderValue.textContent = '70%';
+        sliderValue.style.minWidth = '40px';
+        sliderValue.style.textAlign = 'right';
+        this.sizeValueDisplay = sliderValue;
+        sliderContainer.appendChild(sliderValue);
+
+        controlsSection.appendChild(sliderContainer);
+        
+        return controlsSection;
+    }
+
+    ensureSliderStyles() {
+        if (document.getElementById('image-cutter-slider-styles')) {
+            return;
+        }
+
+        const sliderStyle = document.createElement('style');
+        sliderStyle.id = 'image-cutter-slider-styles';
+        sliderStyle.textContent = `
+            input[type="range"]::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                height: 20px;
+                width: 20px;
+                border-radius: 50%;
+                background: #5865f2;
+                cursor: pointer;
+                border: 2px solid #fff;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            }
+            input[type="range"]::-webkit-slider-thumb:hover {
+                background: #4752c4;
+                transform: scale(1.1);
+            }
+            input[type="range"]::-moz-range-thumb {
+                height: 20px;
+                width: 20px;
+                border-radius: 50%;
+                background: #5865f2;
+                cursor: pointer;
+                border: 2px solid #fff;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+                border: none;
+            }
+            input[type="range"]::-moz-range-thumb:hover {
+                background: #4752c4;
+                transform: scale(1.1);
+            }
+            @media (max-width: 768px) {
+                input[type="range"]::-webkit-slider-thumb {
+                    height: 24px;
+                    width: 24px;
+                }
+                input[type="range"]::-moz-range-thumb {
+                    height: 24px;
+                    width: 24px;
+                }
+                .image-cutter-overlay {
+                    touch-action: pan-x pan-y;
+                }
+            }
+            @media (max-width: 480px) {
+                .image-cutter-modal {
+                    padding: 5px !important;
+                }
+                .image-cutter-modal-content {
+                    border-radius: 6px !important;
+                }
+            }
+        `;
+        document.head.appendChild(sliderStyle);
+    }
+
     createModal() {
         try {
             let existingModal = document.getElementById('image-cutter-modal');
             if (existingModal) {
                 this.modal = existingModal;
+                this.initializeSliderIfMissing();
                 return;
             }
 
@@ -218,142 +361,8 @@ class ImageCutter {
             `;
             this.cutterContainer.appendChild(this.overlay);
 
-            const controlsSection = document.createElement('div');
-            controlsSection.style.cssText = `
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-                margin-bottom: 20px;
-                padding: 15px;
-                background-color: #36393f;
-                border-radius: 6px;
-            `;
-            
-            const infoText = document.createElement('span');
-            infoText.style.cssText = `
-                color: #b9bbbe;
-                font-size: 14px;
-                text-align: center;
-            `;
-            infoText.textContent = this.options.type === 'profile' 
-                ? 'Drag to move • Use slider to resize • 1:1 aspect ratio' 
-                : 'Drag to move • Use slider to resize • 2:1 aspect ratio';
-            controlsSection.appendChild(infoText);
-            
-            console.log('Creating slider for type:', this.options.type);
-
-            const sliderContainer = document.createElement('div');
-            sliderContainer.style.cssText = `
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                color: #b9bbbe;
-                font-size: 14px;
-                visibility: visible;
-                opacity: 1;
-                width: 100%;
-            `;
-
-            const sliderLabel = document.createElement('span');
-            sliderLabel.textContent = 'Size:';
-            sliderLabel.style.minWidth = '40px';
-            sliderContainer.appendChild(sliderLabel);
-
-            this.sizeSlider = document.createElement('input');
-            this.sizeSlider.type = 'range';
-            this.sizeSlider.min = '20';
-            this.sizeSlider.max = '100';
-            this.sizeSlider.value = '70';
-            this.sizeSlider.style.cssText = `
-                flex: 1;
-                height: 6px;
-                background: #40444b;
-                border-radius: 3px;
-                outline: none;
-                cursor: pointer;
-                -webkit-appearance: none;
-                appearance: none;
-                display: block;
-                visibility: visible;
-            `;
-            
-            console.log('Slider created for type:', this.options.type, 'Value:', this.sizeSlider.value);
-
-            const sliderStyle = document.createElement('style');
-            sliderStyle.textContent = `
-                input[type="range"]::-webkit-slider-thumb {
-                    -webkit-appearance: none;
-                    appearance: none;
-                    height: 20px;
-                    width: 20px;
-                    border-radius: 50%;
-                    background: #5865f2;
-                    cursor: pointer;
-                    border: 2px solid #fff;
-                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-                }
-                input[type="range"]::-webkit-slider-thumb:hover {
-                    background: #4752c4;
-                    transform: scale(1.1);
-                }
-                input[type="range"]::-moz-range-thumb {
-                    height: 20px;
-                    width: 20px;
-                    border-radius: 50%;
-                    background: #5865f2;
-                    cursor: pointer;
-                    border: 2px solid #fff;
-                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-                    border: none;
-                }
-                input[type="range"]::-moz-range-thumb:hover {
-                    background: #4752c4;
-                    transform: scale(1.1);
-                }
-                @media (max-width: 768px) {
-                    input[type="range"]::-webkit-slider-thumb {
-                        height: 24px;
-                        width: 24px;
-                    }
-                    input[type="range"]::-moz-range-thumb {
-                        height: 24px;
-                        width: 24px;
-                    }
-                    .image-cutter-overlay {
-                        touch-action: pan-x pan-y;
-                    }
-                }
-                @media (max-width: 480px) {
-                    .image-cutter-modal {
-                        padding: 5px !important;
-                    }
-                    .image-cutter-modal-content {
-                        border-radius: 6px !important;
-                    }
-                }
-            `;
-            document.head.appendChild(sliderStyle);
-
-            this.sizeSlider.addEventListener('input', (e) => {
-                this.updateCropSize(parseInt(e.target.value));
-            });
-
-            sliderContainer.appendChild(this.sizeSlider);
-
-            const sliderValue = document.createElement('span');
-            sliderValue.textContent = '70%';
-            sliderValue.style.minWidth = '40px';
-            sliderValue.style.textAlign = 'right';
-            this.sizeValueDisplay = sliderValue;
-            sliderContainer.appendChild(sliderValue);
-
-            controlsSection.appendChild(sliderContainer);
+            const controlsSection = this.createSliderControls();
             modalContent.appendChild(controlsSection);
-            
-            console.log('Controls section appended. Type:', this.options.type);
-            console.log('Slider container children:', sliderContainer.children.length);
-            console.log('Controls section visible:', controlsSection.style.display !== 'none');
-            console.log('Size slider exists:', !!this.sizeSlider);
 
             const buttonContainer = document.createElement('div');
             buttonContainer.style.cssText = `
@@ -432,10 +441,28 @@ class ImageCutter {
         }
     }
 
+    initializeSliderIfMissing() {
+        if (!this.sizeSlider || !this.sizeSlider.parentElement) {
+            const modalContent = this.modal.querySelector('.image-cutter-modal-content');
+            if (modalContent) {
+                const existingControls = modalContent.querySelector('.image-cutter-container').nextElementSibling;
+                if (existingControls && existingControls.querySelector('input[type="range"]')) {
+                    this.sizeSlider = existingControls.querySelector('input[type="range"]');
+                    this.sizeValueDisplay = existingControls.querySelector('span:last-child');
+                } else {
+                    const cutterContainer = modalContent.querySelector('.image-cutter-container');
+                    const buttonContainer = modalContent.querySelector('div:last-child');
+                    if (cutterContainer && buttonContainer) {
+                        const controlsSection = this.createSliderControls();
+                        modalContent.insertBefore(controlsSection, buttonContainer);
+                    }
+                }
+            }
+        }
+    }
+
     updateCropSize(percentage) {
         if (!this.image || !this.image.complete) return;
-        
-        console.log('updateCropSize called with:', percentage, 'for type:', this.options.type);
         
         const { width: imgWidth, height: imgHeight } = this.image;
         const scale = percentage / 100;
@@ -445,12 +472,10 @@ class ImageCutter {
         if (this.options.type === 'profile') {
             const maxSize = Math.min(imgWidth, imgHeight);
             newWidth = newHeight = maxSize * scale;
-            console.log('Profile resize - maxSize:', maxSize, 'newSize:', newWidth);
         } else {
             const maxSize = Math.min(imgWidth, imgHeight * 2);
             newWidth = maxSize * scale;
             newHeight = newWidth / 2;
-            console.log('Banner resize - maxSize:', maxSize, 'newWidth:', newWidth, 'newHeight:', newHeight);
         }
         
         const centerX = this.cropArea.x + this.cropArea.width / 2;
@@ -462,8 +487,6 @@ class ImageCutter {
             width: newWidth,
             height: newHeight
         };
-        
-        console.log('New crop area:', this.cropArea);
         
         this.updateCropOverlay();
         
@@ -595,7 +618,6 @@ class ImageCutter {
             this.modal.style.display = 'flex';
             
             if (!this.cutterContainer) {
-                console.warn('Cutter container is missing, attempting to recreate modal content');
                 this.recreateModalContent();
             }
             
@@ -605,24 +627,30 @@ class ImageCutter {
                 return;
             }
             
+            this.initializeSliderIfMissing();
+            
             this.updateImageDisplay();
             this.attachEventListeners();
             
-            if (this.sizeSlider && this.image) {
-                const { width: imgWidth, height: imgHeight } = this.image;
-                const maxSize = this.options.type === 'profile' ? Math.min(imgWidth, imgHeight) : Math.min(imgWidth, imgHeight * 2);
-                const currentSize = this.options.type === 'profile' ? this.cropArea.width : this.cropArea.width;
-                const percentage = Math.round((currentSize / maxSize) * 100);
-                this.sizeSlider.value = percentage;
-                if (this.sizeValueDisplay) {
-                    this.sizeValueDisplay.textContent = percentage + '%';
-                }
-            }
+            this.initializeSliderValue();
             
             document.body.style.overflow = 'hidden';
         } catch (error) {
             console.error('Error showing modal:', error);
             this.cleanupFailedModal();
+        }
+    }
+
+    initializeSliderValue() {
+        if (this.sizeSlider && this.image && this.image.complete) {
+            const { width: imgWidth, height: imgHeight } = this.image;
+            const maxSize = this.options.type === 'profile' ? Math.min(imgWidth, imgHeight) : Math.min(imgWidth, imgHeight * 2);
+            const currentSize = this.options.type === 'profile' ? this.cropArea.width : this.cropArea.width;
+            const percentage = Math.round((currentSize / maxSize) * 100);
+            this.sizeSlider.value = percentage;
+            if (this.sizeValueDisplay) {
+                this.sizeValueDisplay.textContent = percentage + '%';
+            }
         }
     }
 
@@ -662,8 +690,6 @@ class ImageCutter {
     calculateInitialCrop() {
         const { width: imgWidth, height: imgHeight } = this.image;
         
-        console.log('calculateInitialCrop for type:', this.options.type, 'Image size:', imgWidth, 'x', imgHeight);
-        
         let cropSize = Math.min(imgWidth, imgHeight) * 0.7;
         
         if (this.options.type === 'profile') {
@@ -673,7 +699,6 @@ class ImageCutter {
                 width: cropSize,
                 height: cropSize
             };
-            console.log('Profile crop area set:', this.cropArea);
         } else {
             cropSize = Math.min(imgWidth, imgHeight * 2) * 0.7;
             this.cropArea = {
@@ -682,7 +707,6 @@ class ImageCutter {
                 width: cropSize,
                 height: cropSize / 2
             };
-            console.log('Banner crop area set:', this.cropArea);
         }
     }
 
@@ -822,7 +846,6 @@ class ImageCutter {
         }
         
         this.options.type = type;
-        console.log('Type set to:', type);
         
         if (this.overlay) {
             this.overlay.style.borderRadius = type === 'profile' ? '50%' : '0';
@@ -838,17 +861,7 @@ class ImageCutter {
         if (this.image.src) {
             this.calculateInitialCrop();
             this.updateImageDisplay();
-            
-            if (this.sizeSlider && this.image) {
-                const { width: imgWidth, height: imgHeight } = this.image;
-                const maxSize = type === 'profile' ? Math.min(imgWidth, imgHeight) : Math.min(imgWidth, imgHeight * 2);
-                const currentSize = this.cropArea.width;
-                const percentage = Math.round((currentSize / maxSize) * 100);
-                this.sizeSlider.value = percentage;
-                if (this.sizeValueDisplay) {
-                    this.sizeValueDisplay.textContent = percentage + '%';
-                }
-            }
+            this.initializeSliderValue();
         }
     }
 
@@ -862,16 +875,33 @@ class ImageCutter {
                 return;
             }
             
+            const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+            const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+            
             const modalContent = document.createElement('div');
             modalContent.className = 'image-cutter-modal-content';
+            
+            let maxWidth = '90vw';
+            let padding = '16px';
+            if (vw > 768) {
+                maxWidth = '700px';
+                padding = '24px';
+            } else if (vw > 480) {
+                maxWidth = '95vw';
+                padding = '20px';
+            }
+            
             modalContent.style.cssText = `
                 background-color: #2f3136;
                 border-radius: 8px;
-                padding: 24px;
+                padding: ${padding};
                 width: 100%;
-                max-width: 700px;
+                max-width: ${maxWidth};
+                max-height: 95vh;
                 position: relative;
                 box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+                box-sizing: border-box;
+                overflow-y: auto;
             `;
             
             const modalHeader = document.createElement('div');
@@ -884,10 +914,16 @@ class ImageCutter {
             
             const modalTitle = document.createElement('h3');
             modalTitle.textContent = this.options.modalTitle || 'Crop Image';
+            
+            let titleFontSize = '18px';
+            if (vw > 768) {
+                titleFontSize = '20px';
+            }
+            
             modalTitle.style.cssText = `
                 color: #fff;
                 margin: 0;
-                font-size: 20px;
+                font-size: ${titleFontSize};
                 font-weight: 600;
             `;
             
@@ -901,7 +937,16 @@ class ImageCutter {
                 cursor: pointer;
                 padding: 8px;
                 border-radius: 4px;
+                transition: all 0.2s ease;
             `;
+            closeButton.addEventListener('mouseenter', () => {
+                closeButton.style.backgroundColor = '#f04747';
+                closeButton.style.color = '#fff';
+            });
+            closeButton.addEventListener('mouseleave', () => {
+                closeButton.style.backgroundColor = 'transparent';
+                closeButton.style.color = '#b9bbbe';
+            });
             closeButton.addEventListener('click', () => this.hideModal());
             
             modalHeader.appendChild(modalTitle);
@@ -910,10 +955,20 @@ class ImageCutter {
             
             this.cutterContainer = document.createElement('div');
             this.cutterContainer.className = 'image-cutter-container';
+            
+            let containerHeight = '400px';
+            if (vh > 800) {
+                containerHeight = '500px';
+            } else if (vh > 600) {
+                containerHeight = '350px';
+            } else {
+                containerHeight = '250px';
+            }
+            
             this.cutterContainer.style.cssText = `
                 position: relative;
                 width: 100%;
-                height: 500px;
+                height: ${containerHeight};
                 background-color: #18191c;
                 margin-bottom: 20px;
                 overflow: hidden;
@@ -921,47 +976,7 @@ class ImageCutter {
                 border: 2px solid #40444b;
             `;
             modalContent.appendChild(this.cutterContainer);
-            
-            const buttonContainer = document.createElement('div');
-            buttonContainer.style.cssText = `
-                display: flex;
-                justify-content: flex-end;
-                gap: 12px;
-            `;
-            
-            this.cancelButton = document.createElement('button');
-            this.cancelButton.textContent = 'Cancel';
-            this.cancelButton.style.cssText = `
-                background-color: transparent;
-                color: #b9bbbe;
-                border: 1px solid #4f545c;
-                border-radius: 4px;
-                padding: 12px 20px;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: 500;
-            `;
-            this.cancelButton.addEventListener('click', () => this.hideModal());
-            buttonContainer.appendChild(this.cancelButton);
-            
-            this.applyButton = document.createElement('button');
-            this.applyButton.textContent = 'Apply';
-            this.applyButton.style.cssText = `
-                background-color: #5865f2;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 12px 20px;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: 500;
-            `;
-            this.applyButton.addEventListener('click', () => this.applyCrop());
-            buttonContainer.appendChild(this.applyButton);
-            
-            modalContent.appendChild(buttonContainer);
-            this.modal.appendChild(modalContent);
-            
+
             this.imageElement = document.createElement('img');
             this.imageElement.style.cssText = `
                 position: absolute;
@@ -986,8 +1001,77 @@ class ImageCutter {
                 border: 3px solid #5865f2;
                 box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
                 box-sizing: border-box;
+                transition: border-color 0.2s ease;
             `;
             this.cutterContainer.appendChild(this.overlay);
+
+            const controlsSection = this.createSliderControls();
+            modalContent.appendChild(controlsSection);
+            
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = `
+                display: flex;
+                justify-content: flex-end;
+                gap: 12px;
+            `;
+            
+            let buttonPadding = '10px 16px';
+            let buttonFontSize = '14px';
+            if (vw > 768) {
+                buttonPadding = '12px 20px';
+            } else if (vw <= 480) {
+                buttonPadding = '8px 12px';
+                buttonFontSize = '13px';
+            }
+            
+            this.cancelButton = document.createElement('button');
+            this.cancelButton.textContent = 'Cancel';
+            this.cancelButton.style.cssText = `
+                background-color: transparent;
+                color: #b9bbbe;
+                border: 1px solid #4f545c;
+                border-radius: 4px;
+                padding: ${buttonPadding};
+                cursor: pointer;
+                font-size: ${buttonFontSize};
+                font-weight: 500;
+                transition: all 0.2s ease;
+            `;
+            this.cancelButton.addEventListener('mouseenter', () => {
+                this.cancelButton.style.backgroundColor = '#4f545c';
+                this.cancelButton.style.color = '#fff';
+            });
+            this.cancelButton.addEventListener('mouseleave', () => {
+                this.cancelButton.style.backgroundColor = 'transparent';
+                this.cancelButton.style.color = '#b9bbbe';
+            });
+            this.cancelButton.addEventListener('click', () => this.hideModal());
+            buttonContainer.appendChild(this.cancelButton);
+            
+            this.applyButton = document.createElement('button');
+            this.applyButton.textContent = 'Apply';
+            this.applyButton.style.cssText = `
+                background-color: #5865f2;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: ${buttonPadding};
+                cursor: pointer;
+                font-size: ${buttonFontSize};
+                font-weight: 500;
+                transition: background-color 0.2s ease;
+            `;
+            this.applyButton.addEventListener('mouseenter', () => {
+                this.applyButton.style.backgroundColor = '#4752c4';
+            });
+            this.applyButton.addEventListener('mouseleave', () => {
+                this.applyButton.style.backgroundColor = '#5865f2';
+            });
+            this.applyButton.addEventListener('click', () => this.applyCrop());
+            buttonContainer.appendChild(this.applyButton);
+            
+            modalContent.appendChild(buttonContainer);
+            this.modal.appendChild(modalContent);
         } catch (error) {
             console.error('Error recreating modal content:', error);
         }
@@ -1008,6 +1092,8 @@ class ImageCutter {
             this.cutterContainer = null;
             this.imageElement = null;
             this.overlay = null;
+            this.sizeSlider = null;
+            this.sizeValueDisplay = null;
             
             document.body.style.overflow = '';
             
@@ -1023,19 +1109,16 @@ class ImageCutter {
     }
 
     testBannerSlider() {
-        console.log('=== BANNER SLIDER DEBUG ===');
-        console.log('Current type:', this.options.type);
-        console.log('Slider exists:', !!this.sizeSlider);
-        console.log('Slider visible:', this.sizeSlider ? this.sizeSlider.style.display !== 'none' : 'N/A');
-        console.log('Slider value:', this.sizeSlider ? this.sizeSlider.value : 'N/A');
-        console.log('Modal active:', this.isActive);
-        console.log('Image loaded:', this.image && this.image.complete);
-        
-        if (this.sizeSlider) {
-            console.log('Slider parent:', this.sizeSlider.parentElement);
-            console.log('Controls section exists:', !!document.querySelector('.image-cutter-modal-content'));
-        }
-        console.log('=== END DEBUG ===');
+        return {
+            type: this.options.type,
+            sliderExists: !!this.sizeSlider,
+            sliderVisible: this.sizeSlider ? this.sizeSlider.style.display !== 'none' : false,
+            sliderValue: this.sizeSlider ? this.sizeSlider.value : null,
+            modalActive: this.isActive,
+            imageLoaded: this.image && this.image.complete,
+            sliderParent: this.sizeSlider ? !!this.sizeSlider.parentElement : false,
+            controlsSectionExists: !!document.querySelector('.image-cutter-modal-content')
+        };
     }
 }
 

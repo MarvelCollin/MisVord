@@ -3,6 +3,10 @@ if (!function_exists('css')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $page_title = $page_title ?? $title ?? 'MisVord';
 $page_description = $page_description ?? 'A modern Discord-like communication platform';
 $cache_version = time();
@@ -17,8 +21,10 @@ $cache_version = time();
 <meta name="user-id" content="<?php echo htmlspecialchars($_SESSION['user_id']); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>">
 <meta name="user-authenticated" content="true">
+<!-- Debug: User ID = <?php echo $_SESSION['user_id']; ?>, Username = <?php echo $_SESSION['username'] ?? 'none'; ?> -->
 <?php else: ?>
 <meta name="user-authenticated" content="false">
+<!-- Debug: No user session found -->
 <?php endif; ?>
 
 <?php if (isset($extraHeadContent)): ?>
@@ -74,6 +80,7 @@ $cache_version = time();
 <link rel="stylesheet" href="<?php echo css('global'); ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?php echo css('lazy-loading'); ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?php echo css('message-context-menu'); ?>?v=<?php echo $cache_version; ?>">
+<link rel="stylesheet" href="<?= asset('/css/friends-mobile-menu.css') ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?= asset('/css/user-detail.css') ?>">
 <link rel="stylesheet" href="<?= asset('/css/voice-indicator.css') ?>">
 
@@ -107,6 +114,78 @@ $cache_version = time();
 <?php endif; ?>
 
 <script>
+function resetAuthSession() {
+    console.log('🔓 Starting authentication reset...');
+    
+    const modal = document.getElementById('auth-reset-modal');
+    if (modal) {
+        const button = modal.querySelector('button[onclick="resetAuthSession()"]');
+        if (button) {
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Resetting...';
+            button.disabled = true;
+        }
+    }
+    
+    try {
+        if (window.globalSocketManager && window.globalSocketManager.io) {
+            console.log('Disconnecting from socket...');
+            window.globalSocketManager.io.disconnect();
+        }
+        
+        if (window.MisVordMessaging && window.MisVordMessaging.disconnect) {
+            console.log('Disconnecting messaging...');
+            window.MisVordMessaging.disconnect();
+        }
+        
+        console.log('Clearing localStorage...');
+        const authKeys = [
+            'authToken', 'rememberMe', 'userAuth', 'lastEmail', 
+            'user_id', 'username', 'discriminator', 'avatar_url', 
+            'banner_url', 'auth_data', 'session_id', 'login_state',
+            'user_data', 'admin_access', 'login_history', 'user_settings',
+            'user_status', 'fresh_login', 'csrf_token'
+        ];
+        
+        authKeys.forEach(key => {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
+        });
+        
+        console.log('Clearing cookies...');
+        document.cookie.split(';').forEach(cookie => {
+            const [name] = cookie.trim().split('=');
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+        });
+        
+        console.log('Making logout request...');
+        fetch('/logout', {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        }).then(() => {
+            console.log('✅ Logout request completed');
+        }).catch(error => {
+            console.warn('Logout request failed, but continuing with redirect:', error);
+        }).finally(() => {
+            console.log('🚀 Redirecting to login...');
+            window.location.href = '/login';
+        });
+        
+    } catch (error) {
+        console.error('❌ Error during auth reset:', error);
+        if (window.showToast) {
+            window.showToast('Error during reset, redirecting anyway...', 'warning');
+        }
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 1000);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     if (window.addEventListener) {
         window.addEventListener('globalSocketReady', function(event) {
@@ -294,6 +373,76 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+
+        if (e.ctrlKey && e.key === '9') {
+            e.preventDefault();
+            
+            console.log('Auth reset modal triggered...');
+            
+            const existingModal = document.getElementById('auth-reset-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            const modal = document.createElement('div');
+            modal.id = 'auth-reset-modal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-discord-dark rounded-lg p-6 max-w-md w-full mx-4 border border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-white flex items-center">
+                            <i class="fas fa-sign-out-alt mr-2 text-red-400"></i>
+                            Reset Authentication
+                        </h3>
+                        <button class="text-gray-400 hover:text-white" onclick="document.getElementById('auth-reset-modal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="mb-6">
+                        <p class="text-gray-300 mb-2">This will:</p>
+                        <ul class="text-gray-400 text-sm space-y-1 ml-4">
+                            <li>• Clear all authentication sessions</li>
+                            <li>• Remove stored user data</li>
+                            <li>• Disconnect from socket connections</li>
+                            <li>• Redirect to login page</li>
+                        </ul>
+                        <div class="mt-4 p-3 bg-red-900/20 border border-red-700/30 rounded">
+                            <p class="text-red-300 text-sm">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                You will need to log in again after this action.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button 
+                            onclick="document.getElementById('auth-reset-modal').remove()" 
+                            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onclick="resetAuthSession()" 
+                            class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition-colors flex items-center justify-center"
+                        >
+                            <i class="fas fa-sign-out-alt mr-2"></i>
+                            Reset & Logout
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+            
+            if (window.showToast) {
+                window.showToast('🔓 Auth reset modal opened', 'info');
+            }
+        }
     });
     
     function getDetailedSocketStatus() {
@@ -366,7 +515,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return status;
     }
     
-    console.log('Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status)');
+    console.log('Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status), Ctrl+9 (auth reset)');
     
     if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
         console.log('MisVordMessaging exists but not initialized, attempting manual initialization...');

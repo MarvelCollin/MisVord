@@ -477,22 +477,7 @@ class UserController extends BaseController
         }
     }
 
-    public function getBlockedUsers()
-    {
-        $this->requireAuth();
-        
-        $userId = $this->getCurrentUserId();
-        
-        try {
-            $blockedUsers = $this->friendListRepository->getBlockedUsers($userId);
-              $this->logActivity('blocked_users_viewed');
-            
-            $this->jsonResponse($blockedUsers);
-            return;
-        } catch (Exception $e) {
-            return $this->serverError('An error occurred while retrieving blocked users: ' . $e->getMessage());
-        }
-    }
+
     
     public function getUserProfile($userId = null)
     {

@@ -44,7 +44,7 @@ ob_start();
 
 <meta name="user-status" content="<?php echo htmlspecialchars($user->status ?? 'offline'); ?>">
 <meta name="user-id" content="<?php echo htmlspecialchars($user->id ?? ''); ?>">
-<meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/default-profile-picture.png'); ?>">
+<meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/common/default-profile-picture.png'); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($user->username ?? ''); ?>">
 <meta name="display-name" content="<?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?>">
 

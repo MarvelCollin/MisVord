@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const friendItem = document.querySelector(`.friend-item[data-user-id="${userId}"]`);
                     if (friendItem) {
                         const currentPath = window.location.pathname;
-                        const isOnFriendsPage = currentPath === '/app/friends' || currentPath === '/home';
+                        const isOnFriendsPage = currentPath === '/home/friends' || currentPath === '/home';
                         const isOnlineTab = !window.location.search.includes('tab=all');
                         
                         if (isOnFriendsPage && isOnlineTab) {
