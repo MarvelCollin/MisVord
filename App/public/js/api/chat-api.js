@@ -136,7 +136,8 @@ class ChatAPI {
             content: content?.substring(0, 50) + (content?.length > 50 ? '...' : ''),
             chatType,
             apiChatType: chatType,
-            options
+            options,
+            timestamp: Date.now()
         });
         
         if (!targetId || !content) {
@@ -150,6 +151,7 @@ class ChatAPI {
             content: content,
             message_type: options.message_type || 'text',
             attachments: options.attachments || [],
+            mentions: options.mentions || [],
             reply_message_id: options.reply_message_id || null,
             reply_data: options.reply_data || null
         };
@@ -173,24 +175,41 @@ class ChatAPI {
                 hasData: !!response?.data,
                 hasNestedData: !!response?.data?.data,
                 hasMessage: !!response?.message,
-                messageId: response?.data?.message_id || response?.data?.id
+                messageId: response?.data?.message?.id || response?.data?.message_id,
+                responseData: response?.data,
+                timestamp: Date.now()
+            });
+
+            if (!response?.success || !response?.data) {
+                console.error('❌ [CHAT-API] Invalid response structure:', response);
+                throw new Error('Invalid response structure from server');
+            }
+            
+            const messageData = response.data.message || response.data;
+            const messageId = messageData.id || messageData.message_id;
+            
+            if (!messageId) {
+                console.error('❌ [CHAT-API] No message ID in response:', messageData);
+                throw new Error('Server response missing message ID');
+            }
+            
+            console.log(`🔍 [CHAT-API] Extracted message data:`, {
+                id: messageId,
+                userId: messageData.user_id,
+                username: messageData.username,
+                hasContent: !!messageData.content,
+                hasAttachments: !!(messageData.attachments && messageData.attachments.length),
+                timestamp: Date.now()
             });
             
             // Prepare socket data
-            console.log(`🚀 [CHAT-API] Preparing socket emission:`, {
-                messageId: response?.data?.message_id || response?.data?.id,
-                userId: response?.data?.user_id || window.globalSocketManager?.userId,
-                username: response?.data?.username || window.globalSocketManager?.username,
-                chatType,
-                targetId
-            });
-            
             const socketData = {
-                id: response?.data?.message_id || response?.data?.id,
+                id: messageId,
+                message_id: messageId, // Add both id and message_id for compatibility
                 content: content,
-                user_id: response?.data?.user_id || window.globalSocketManager?.userId,
-                username: response?.data?.username || window.globalSocketManager?.username,
-                avatar_url: response?.data?.avatar_url || null,
+                user_id: messageData.user_id || window.globalSocketManager?.userId,
+                username: messageData.username || window.globalSocketManager?.username,
+                avatar_url: messageData.avatar_url || null,
                 message_type: options.message_type || 'text',
                 attachments: options.attachments || [],
                 reply_message_id: options.reply_message_id || null,
@@ -206,7 +225,8 @@ class ChatAPI {
                 contentLength: socketData.content?.length,
                 messageType: socketData.message_type,
                 hasAttachments: socketData.attachments?.length > 0,
-                hasReply: !!socketData.reply_message_id
+                hasReply: !!socketData.reply_message_id,
+                timestamp: socketData.timestamp
             });
             
             // Emit socket event
@@ -214,16 +234,18 @@ class ChatAPI {
                 chatType,
                 targetId,
                 'new-message',
-                {
-                    ...socketData,
-                    target_type: chatType,
-                    target_id: targetId
-                }
+                socketData
             );
             
             return response;
         } catch (error) {
-            console.error('❌ [CHAT-API] Error sending message:', error);
+            console.error('❌ [CHAT-API] Error sending message:', {
+                error: error.message,
+                stack: error.stack,
+                targetId,
+                chatType,
+                timestamp: Date.now()
+            });
             throw error;
         }
     }
@@ -886,7 +908,7 @@ window.debugMessageDeletion = function() {
         });
     }
     
-    console.log('�� 3. Testing message-deleted event emission...');
+    console.log('🔍 3. Testing message-deleted event emission...');
     if (window.globalSocketManager?.isReady()) {
         const testData = {
             message_id: 'test-123',

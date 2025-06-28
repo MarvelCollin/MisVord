@@ -11,13 +11,18 @@ class VoiceSection {
         
         this.durationInterval = null;
         this.connectionStartTime = null;
+        this.initializationAttempts = 0;
+        this.maxInitAttempts = 10;
         
         this.init();
     }
     
     init() {
         if (!this.elements.joinBtn) {
-            setTimeout(() => this.init(), 200);
+            if (this.initializationAttempts < this.maxInitAttempts) {
+                this.initializationAttempts++;
+                setTimeout(() => this.init(), 200);
+            }
             return;
         }
         
@@ -25,94 +30,58 @@ class VoiceSection {
             window.voiceState = { isConnected: false };
         }
         
-        this.setupEventListeners();
-        this.checkExistingConnection();
-        
-        // Check for saved connection state
-        const savedState = localStorage.getItem("voiceConnectionState");
-        if (savedState) {
-            try {
-                const state = JSON.parse(savedState);
-                const currentChannelId = document.querySelector('meta[name="channel-id"]')?.content;
-                
-                if (state.isConnected && state.currentChannelId === currentChannelId) {
-                    // Update UI immediately
-                    this.elements.joinView.classList.add('hidden');
-                    this.elements.connectingView.classList.remove('hidden');
-                    this.elements.joinBtn.disabled = true;
-                    this.elements.joinBtn.textContent = 'Connecting...';
-                    
-                    // Update channel names and show voice indicator
-                    if (state.channelName) {
-                        this.updateChannelNames(state.channelName);
-                        
-                        if (this.elements.voiceIndicator) {
-                            this.elements.voiceIndicator.classList.remove('scale-0', 'opacity-0');
-                            
-                            // Update connection duration
-                            const durationEl = this.elements.voiceIndicator.querySelector('.connection-duration');
-                            if (durationEl && state.connectionTime) {
-                                const duration = Math.floor((Date.now() - state.connectionTime) / 1000);
-                                const minutes = Math.floor(duration / 60);
-                                const seconds = duration % 60;
-                                durationEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                            }
-                        }
-                    }
-                    
-                    // Try to reconnect
-                    this.connectToVoice().catch(error => {
-                        console.error('Error auto-connecting to voice:', error);
-                        this.handleConnectionError();
-                    });
+        // Wait for voice manager to be available
+        this.waitForVoiceManager().then(() => {
+            this.setupEventListeners();
+            this.checkExistingConnection();
+        }).catch(error => {
+            console.error('Failed to initialize voice manager:', error);
+        });
+    }
+
+    async waitForVoiceManager(maxAttempts = 20) {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            const checkManager = () => {
+                if (window.voiceManager) {
+                    console.log('✅ Voice manager found');
+                    resolve(window.voiceManager);
+                } else if (attempts >= maxAttempts) {
+                    reject(new Error('Voice manager initialization timeout'));
+                } else {
+                    attempts++;
+                    console.log('⏳ Waiting for voice manager...', attempts);
+                    setTimeout(checkManager, 500);
                 }
-            } catch (error) {
-                console.error('Error parsing saved voice connection state:', error);
-                localStorage.removeItem("voiceConnectionState");
-            }
-        }
+            };
+            checkManager();
+        });
     }
     
     setupEventListeners() {
         if (!this.elements.joinBtn) return;
         
         this.elements.joinBtn.onclick = async () => {
+            console.log('🎯 Join button clicked');
             this.elements.joinBtn.disabled = true;
             this.elements.joinBtn.textContent = 'Connecting...';
             this.elements.joinView.classList.add('hidden');
             this.elements.connectingView.classList.remove('hidden');
             
             try {
+                // Make sure voice manager is available before trying to connect
+                await this.waitForVoiceManager();
                 await this.connectToVoice();
             } catch (error) {
-                console.error('Error connecting to voice:', error);
+                console.error('❌ Error connecting to voice:', error);
                 this.handleConnectionError();
             }
         };
         
         window.addEventListener('voiceConnect', (event) => {
+            console.log('📡 Voice connect event received:', event.detail);
             const details = event.detail || {};
             
-            if (!window.videosdkMeeting) {
-                console.log('No VideoSDK meeting found, skipping UI update');
-                return;
-            }
-            
-            const localParticipant = window.videosdkMeeting.localParticipant;
-            if (!localParticipant) {
-                console.log('No local participant found, skipping UI update');
-                return;
-            }
-            
-            const status = localParticipant.connectionStatus;
-            console.log('Connection status:', status);
-            
-            if (status !== 'connected') {
-                console.log('Participant not fully connected, waiting...');
-                return;
-            }
-            
-            console.log('Participant fully connected, updating UI');
             this.elements.connectingView.classList.add('hidden');
             this.elements.joinView.classList.add('hidden');
             this.elements.connectedView.classList.remove('hidden');
@@ -134,104 +103,87 @@ class VoiceSection {
                     connectionTime: Date.now()
                 }));
             }
-            
-            setTimeout(() => {
-                if (window.initializeVoiceTools) {
-                    window.initializeVoiceTools();
-                }
-                if (window.voiceStateManager) {
-                    window.voiceStateManager.updateAllControls();
-                }
-            }, 100);
         });
         
         window.addEventListener('voiceDisconnect', () => {
-            window.voiceState.isConnected = false;
-            
-            if (window.videosdkMeeting) {
-                try {
-                    window.videoSDKManager?.leaveMeeting();
-                    window.videosdkMeeting = null;
-                } catch (e) {
-                    console.error("Error when leaving VideoSDK meeting:", e);
-                }
-            }
-            
-            localStorage.removeItem("voiceConnectionState");
-            
             this.elements.connectedView.classList.add('hidden');
             this.elements.connectingView.classList.add('hidden');
-            this.elements.voiceControls.classList.add('hidden');
             this.elements.joinView.classList.remove('hidden');
+            this.elements.voiceControls.classList.add('hidden');
             this.elements.joinBtn.disabled = false;
             this.elements.joinBtn.textContent = 'Join Voice';
-            
-            // Reset voice indicator
-            if (this.elements.voiceIndicator) {
-                this.elements.voiceIndicator.classList.add('scale-0', 'opacity-0');
-            }
-            
-            if (window.voiceStateManager) {
-                window.voiceStateManager.reset();
-            }
+            window.voiceState.isConnected = false;
+            localStorage.removeItem("voiceConnectionState");
         });
     }
     
     async connectToVoice() {
-        const activeChannelId = document.querySelector('meta[name="channel-id"]')?.content;
-        if (!activeChannelId) {
-            throw new Error('No active channel ID found');
+        const voiceManager = await this.waitForVoiceManager();
+        if (!voiceManager) {
+            console.error('❌ Voice manager not available');
+            throw new Error('Voice manager not available');
         }
-        
-        if (!window.autoJoinVoiceChannel) {
-            throw new Error('Voice channel join function not available');
+
+        try {
+            await voiceManager.joinVoice();
+        } catch (error) {
+            console.error('❌ Connection error:', error);
+            throw error;
         }
-        
-        await window.autoJoinVoiceChannel(activeChannelId);
     }
     
     handleConnectionError() {
+        console.error('❌ Connection error occurred');
         this.elements.joinBtn.disabled = false;
         this.elements.joinBtn.textContent = 'Join Voice';
         this.elements.joinView.classList.remove('hidden');
         this.elements.connectingView.classList.add('hidden');
+        this.elements.voiceControls.classList.add('hidden');
         window.showToast?.('Failed to connect to voice', 'error', 3000);
-        
-        // Clean up any saved state
         localStorage.removeItem("voiceConnectionState");
-        
-        // Reset voice indicator
-        if (this.elements.voiceIndicator) {
-            this.elements.voiceIndicator.classList.add('scale-0', 'opacity-0');
-        }
     }
     
     checkExistingConnection() {
-        if (window.voiceState?.isConnected && window.videosdkMeeting?.localParticipant?.connectionStatus === 'connected') {
-            this.elements.joinView.classList.add('hidden');
-            this.elements.connectingView.classList.add('hidden');
-            this.elements.connectedView.classList.remove('hidden');
-            this.elements.voiceControls.classList.remove('hidden');
-            this.elements.joinBtn.disabled = false;
-            this.elements.joinBtn.textContent = 'Connected';
-            
-            // Check for saved connection state
-            const savedState = localStorage.getItem("voiceConnectionState");
-            if (savedState) {
-                try {
-                    const state = JSON.parse(savedState);
+        const savedState = localStorage.getItem("voiceConnectionState");
+        if (savedState) {
+            try {
+                const state = JSON.parse(savedState);
+                const currentChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+                
+                if (state.isConnected && state.currentChannelId === currentChannelId) {
+                    this.elements.joinView.classList.add('hidden');
+                    this.elements.connectingView.classList.remove('hidden');
+                    this.elements.joinBtn.disabled = true;
+                    this.elements.joinBtn.textContent = 'Connecting...';
+                    
                     if (state.channelName) {
                         this.updateChannelNames(state.channelName);
+                        
+                        if (this.elements.voiceIndicator) {
+                            const durationEl = this.elements.voiceIndicator.querySelector('.connection-duration');
+                            if (durationEl && state.connectionTime) {
+                                const duration = Math.floor((Date.now() - state.connectionTime) / 1000);
+                                const minutes = Math.floor(duration / 60);
+                                const seconds = duration % 60;
+                                durationEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                            }
+                        }
                     }
                     
-                    // Update voice indicator
-                    if (this.elements.voiceIndicator) {
-                        this.elements.voiceIndicator.classList.remove('scale-0', 'opacity-0');
-                    }
-                } catch (error) {
-                    console.error('Error parsing saved voice connection state:', error);
-                    localStorage.removeItem("voiceConnectionState");
+                    // Wait for voice manager to be available before attempting reconnection
+                    this.waitForVoiceManager().then(() => {
+                        this.connectToVoice().catch(error => {
+                            console.error('❌ Error auto-connecting to voice:', error);
+                            this.handleConnectionError();
+                        });
+                    }).catch(error => {
+                        console.error('❌ Failed to initialize voice manager for auto-connect:', error);
+                        this.handleConnectionError();
+                    });
                 }
+            } catch (error) {
+                console.error('❌ Error parsing saved voice connection state:', error);
+                localStorage.removeItem("voiceConnectionState");
             }
         }
     }
@@ -250,14 +202,18 @@ class VoiceSection {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    window.voiceSection = new VoiceSection();
+// Initialize voice section after DOM is loaded and make sure voice manager is loaded first
+document.addEventListener('DOMContentLoaded', async function() {
+    // Wait a bit for other scripts to load
+    setTimeout(() => {
+        window.voiceSection = new VoiceSection();
+    }, 500);
 });
 
-window.initializeVoiceUI = function() {
-    if (window.voiceSection) {
-        window.voiceSection.init();
-    } else {
+window.initializeVoiceUI = async function() {
+    if (!window.voiceSection) {
         window.voiceSection = new VoiceSection();
+    } else {
+        await window.voiceSection.init();
     }
 }; 

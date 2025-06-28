@@ -19,6 +19,31 @@ function renderMemberSkeleton($count = 1) {
         echo '</div>';
     }
 }
+
+$roleGroups = [
+    'owner' => [],
+    'admin' => [],
+    'member' => [],
+    'offline' => []
+];
+
+foreach ($members as $member) {
+    $role = $member['role'] ?? 'member';
+    $isOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
+    
+    if ($isOffline) {
+        $roleGroups['offline'][] = $member;
+        continue;
+    }
+    
+    if ($role === 'owner') {
+        $roleGroups['owner'][] = $member;
+    } else if ($role === 'admin') {
+        $roleGroups['admin'][] = $member;
+    } else {
+        $roleGroups['member'][] = $member;
+    }
+}
 ?>
 
 <div class="w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-full max-h-screen">
@@ -38,46 +63,72 @@ function renderMemberSkeleton($count = 1) {
             <h3 class="text-xs font-semibold text-gray-400 uppercase py-1">
                 Members — <?php echo $totalMemberCount; ?>
             </h3>
-            <div class="space-y-0.5 members-section">
-                <?php foreach ($members as $member):
-                    $statusColor = 'bg-gray-500';
-                    
-                    switch ($member['status']) {
-                        case 'appear':
-                            $statusColor = 'bg-discord-green';
-                            break;
-                        case 'invisible':
+            
+            <?php 
+            $roleDisplayOrder = ['owner', 'admin', 'member', 'offline'];
+            foreach ($roleDisplayOrder as $role):
+                $roleMembers = $roleGroups[$role];
+                if (empty($roleMembers)) continue;
+                
+                $roleDisplay = $role === 'offline' ? 'Offline' : ucfirst($role);
+                $roleColor = match($role) {
+                    'owner' => 'text-yellow-500',
+                    'admin' => 'text-red-500',
+                    'offline' => 'text-gray-500',
+                    default => 'text-gray-400'
+                };
+            ?>
+                <div class="mb-4 role-group" data-role="<?php echo $role; ?>">
+                    <h4 class="text-xs font-semibold <?php echo $roleColor; ?> uppercase py-1">
+                        <?php echo $roleDisplay; ?> — <span class="role-count"><?php echo count($roleMembers); ?></span>
+                    </h4>
+                    <div class="space-y-0.5 members-list">
+                        <?php foreach ($roleMembers as $member):
                             $statusColor = 'bg-gray-500';
-                            break;
-                        case 'do_not_disturb':
-                            $statusColor = 'bg-discord-red';
-                            break;
-                        case 'offline':
-                            $statusColor = 'bg-[#747f8d]';
-                            break;
-                        case 'banned':
-                            $statusColor = 'bg-black';
-                            break;
-                        default:
-                            $statusColor = 'bg-discord-green';
-                    }
-                    
-                    $isOffline = $member['status'] === 'offline';
-                    $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
-                    $imgOpacityClass = $isOffline ? 'opacity-70' : '';
-                ?>
-                    <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" data-server-id="<?php echo $currentServerId; ?>">
-                        <div class="relative mr-2">
-                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
-                                     alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
+                            
+                            switch ($member['status']) {
+                                case 'appear':
+                                case 'online':
+                                    $statusColor = 'bg-discord-green';
+                                    break;
+                                case 'invisible':
+                                    $statusColor = 'bg-gray-500';
+                                    break;
+                                case 'do_not_disturb':
+                                    $statusColor = 'bg-discord-red';
+                                    break;
+                                case 'offline':
+                                    $statusColor = 'bg-[#747f8d]';
+                                    break;
+                                case 'banned':
+                                    $statusColor = 'bg-black';
+                                    break;
+                                default:
+                                    $statusColor = 'bg-discord-green';
+                            }
+                            
+                            $isOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
+                            $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
+                            $imgOpacityClass = $isOffline ? 'opacity-70' : '';
+                        ?>
+                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" 
+                                 data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" 
+                                 data-server-id="<?php echo $currentServerId; ?>"
+                                 data-role="<?php echo $member['role'] ?? 'member'; ?>"
+                                 data-status="<?php echo $member['status'] ?? 'offline'; ?>">
+                                <div class="relative mr-2">
+                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                        <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
+                                             alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
+                                    </div>
+                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
+                                </div>
+                                <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
                             </div>
-                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
-                        </div>
-                        <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
+                        <?php endforeach; ?>
                     </div>
-                <?php endforeach; ?>
-            </div>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
 </div>
@@ -228,31 +279,68 @@ function updateOnlineStatus(onlineUsers) {
 }
 
 function updateUserStatus(userId, status) {
-    const userElements = document.querySelectorAll(`.user-profile-trigger[data-user-id="${userId}"]`);
+    const userElement = document.querySelector(`.user-profile-trigger[data-user-id="${userId}"]`);
+    if (!userElement) return;
     
-    userElements.forEach(userElement => {
-        const statusIndicator = userElement.parentElement.querySelector('.status-indicator');
-        if (!statusIndicator) return;
-        
+    const isOffline = status === 'offline' || status === 'invisible';
+    const currentRole = userElement.getAttribute('data-role');
+    const currentStatus = userElement.getAttribute('data-status');
+    
+    if ((isOffline && currentStatus !== 'offline') || (!isOffline && currentStatus === 'offline')) {
+        moveUserToSection(userElement, isOffline ? 'offline' : currentRole);
+    }
+    
+    const statusIndicator = userElement.querySelector('.status-indicator');
+    if (statusIndicator) {
         const statusClass = getStatusClass(status);
-        
-        statusIndicator.classList.remove('bg-discord-green', 'bg-discord-yellow', 'bg-discord-red', 'bg-gray-500');
+        statusIndicator.classList.remove('bg-discord-green', 'bg-discord-yellow', 'bg-discord-red', 'bg-gray-500', 'bg-[#747f8d]');
         statusIndicator.classList.add(statusClass);
-        
-        const userContainer = userElement.closest('.flex');
-        const userNameElement = userContainer?.querySelector('.text-sm');
-        if (userNameElement) {
-            if (status === 'offline' || status === 'invisible') {
-                userNameElement.classList.remove('text-gray-300');
-                userNameElement.classList.add('text-gray-500');
-                userElement.querySelector('img')?.classList.add('opacity-70');
-            } else {
-                userNameElement.classList.remove('text-gray-500');
-                userNameElement.classList.add('text-gray-300');
-                userElement.querySelector('img')?.classList.remove('opacity-70');
-            }
+    }
+    
+    const userNameElement = userElement.querySelector('.text-sm');
+    const userImage = userElement.querySelector('img');
+    
+    if (userNameElement) {
+        if (isOffline) {
+            userNameElement.classList.remove('text-gray-300');
+            userNameElement.classList.add('text-gray-500');
+            userImage?.classList.add('opacity-70');
+        } else {
+            userNameElement.classList.remove('text-gray-500');
+            userNameElement.classList.add('text-gray-300');
+            userImage?.classList.remove('opacity-70');
         }
-    });
+    }
+    
+    userElement.setAttribute('data-status', status);
+}
+
+function moveUserToSection(userElement, targetRole) {
+    const targetSection = document.querySelector(`.role-group[data-role="${targetRole}"]`);
+    const sourceSection = userElement.closest('.role-group');
+    
+    if (targetSection && sourceSection) {
+        const membersList = targetSection.querySelector('.members-list');
+        if (membersList) {
+            membersList.appendChild(userElement);
+            
+            updateRoleCount(sourceSection);
+            updateRoleCount(targetSection);
+            
+            if (sourceSection.querySelector('.members-list').children.length === 0) {
+                sourceSection.style.display = 'none';
+            }
+            targetSection.style.display = 'block';
+        }
+    }
+}
+
+function updateRoleCount(section) {
+    const countElement = section.querySelector('.role-count');
+    const membersList = section.querySelector('.members-list');
+    if (countElement && membersList) {
+        countElement.textContent = membersList.children.length;
+    }
 }
 
 function getStatusClass(status) {
@@ -267,7 +355,7 @@ function getStatusClass(status) {
         case 'invisible':
         case 'offline':
         default:
-            return 'bg-gray-500';
+            return 'bg-[#747f8d]';
     }
 }
 

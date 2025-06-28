@@ -1653,15 +1653,27 @@ class ChatSection {
     }
     
     async sendMessage() {
+        console.log('🚀 Starting sendMessage process...');
+        
         if (!this.messageInput || !this.messageInput.value.trim()) {
+            console.log('❌ Message input is empty or invalid');
             return;
         }
-
+        
         const content = this.messageInput.value.trim();
         const messageId = `temp-${Date.now()}`;
         const timestamp = Date.now();
 
+        console.log('📝 Message details:', {
+            messageId,
+            content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+            timestamp,
+            chatType: this.chatType,
+            targetId: this.targetId
+        });
+
         try {
+            console.log('🔄 Creating message data object...');
             // Create message data
             const messageData = {
                 id: messageId,
@@ -1672,7 +1684,7 @@ class ChatSection {
                 timestamp: timestamp,
                 source: 'client-originated'
             };
-
+            
             // Add target info based on chat type
             if (this.chatType === 'channel') {
                 messageData.channel_id = this.targetId;
@@ -1690,13 +1702,26 @@ class ChatSection {
             }
 
             // First emit via socket
+            console.log('🔌 Checking socket manager state...');
             if (window.globalSocketManager && window.globalSocketManager.isReady()) {
                 const eventName = this.chatType === 'channel' ? 'new-channel-message' : 'user-message-dm';
-                window.globalSocketManager.emitToRoom(eventName, messageData, this.chatType, this.targetId);
+                console.log(`📤 Emitting socket event: ${eventName}`, {
+                    chatType: this.chatType,
+                    targetId: this.targetId,
+                    messageId: messageData.id
+                });
+                const emitResult = window.globalSocketManager.emitToRoom(eventName, messageData, this.chatType, this.targetId);
+                console.log(`📨 Socket emit result: ${emitResult ? 'success' : 'failed'}`);
+            } else {
+                console.warn('⚠️ Socket not ready:', {
+                    socketExists: !!window.globalSocketManager,
+                    isReady: window.globalSocketManager?.isReady()
+                });
             }
 
-            // Then save to database using ChatAPI
+            console.log('🔄 Preparing API call...');
             if (!window.ChatAPI) {
+                console.error('❌ ChatAPI not initialized');
                 throw new Error('ChatAPI not initialized');
             }
 
@@ -1708,27 +1733,77 @@ class ChatSection {
                 options.reply_message_id = this.replyingTo.messageId;
             }
 
-            await window.ChatAPI.sendMessage(
-                this.targetId,
-                content,
-                this.chatType,
+            console.log('📡 Sending message via API...', {
+                targetId: this.targetId,
+                chatType: this.chatType,
                 options
-            );
+            });
 
-            // Clear input and reply state
+            try {
+                const apiResponse = await window.ChatAPI.sendMessage(
+                    this.targetId,
+                    content,
+                    this.chatType,
+                    options
+                );
+                console.log('✅ API call successful:', apiResponse);
+
+                // Extract the permanent message ID from the response
+                const permanentMessageId = apiResponse.data?.message?.id || apiResponse.data?.id;
+                if (permanentMessageId) {
+                    console.log('🔄 Updating message ID:', {
+                        from: messageId,
+                        to: permanentMessageId
+                    });
+
+                    // Update any UI elements using the temporary ID
+                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                    if (messageElement) {
+                        messageElement.setAttribute('data-message-id', permanentMessageId);
+                        console.log('✅ Updated message element ID in DOM');
+                    }
+
+                    // Re-emit the socket event with the permanent ID
+                    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                        const updatedMessageData = {
+                            ...messageData,
+                            id: permanentMessageId,
+                            message_id: permanentMessageId
+                        };
+                        const eventName = this.chatType === 'channel' ? 'new-channel-message' : 'user-message-dm';
+                        window.globalSocketManager.emitToRoom(eventName, updatedMessageData, this.chatType, this.targetId);
+                        console.log('✅ Re-emitted socket event with permanent ID');
+                    }
+                } else {
+                    console.warn('⚠️ No permanent message ID in API response');
+                }
+            } catch (apiError) {
+                console.error('❌ API call failed:', apiError);
+                throw apiError;
+            }
+
+            console.log('🧹 Cleaning up after successful send...');
             this.messageInput.value = '';
             this.updateSendButton();
             this.resizeTextarea();
             
             if (this.replyingTo) {
+                console.log('↩️ Clearing reply context');
                 this.cancelReply();
             }
 
-            // Stop typing indicator
             this.sendStopTyping();
+            console.log('✨ Message send process completed successfully');
 
         } catch (error) {
-            console.error('Failed to send message:', error);
+            console.error('❌ Failed to send message:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+                chatType: this.chatType,
+                targetId: this.targetId
+            });
             this.showErrorMessage('Failed to send message. Please try again.');
         }
     }
@@ -1738,8 +1813,6 @@ class ChatSection {
             console.error('❌ prepareChatContainer: chatMessages element not found');
             return;
         }
-        
-        console.log('🔧 Preparing chat container for message...');
         
         this.hideEmptyState();
         
@@ -1964,7 +2037,7 @@ class ChatSection {
             console.error('❌ [CHAT-SECTION] Invalid message data:', message);
             return;
         }
-
+        
         console.log('📨 [CHAT-SECTION] Processing message:', {
             id: message.id,
             userId: message.user_id,
@@ -1974,7 +2047,6 @@ class ChatSection {
             isProcessed: this.processedMessageIds.has(message.id)
         });
         
-        // If this is a temporary message being replaced by its permanent version
         if (message.id && message.id.startsWith('temp-')) {
             const tempElement = document.querySelector(`[data-message-id="${message.id}"]`);
             if (tempElement) {
@@ -1984,8 +2056,6 @@ class ChatSection {
             }
         }
         
-        // Always process server-originated messages
-        // For client-originated messages, only process if we haven't seen them before
         if (message.source === 'server-originated' || !this.processedMessageIds.has(message.id)) {
             try {
                 const isOwnMessage = message.user_id === this.userId;
@@ -1993,18 +2063,17 @@ class ChatSection {
                 
                 if (!container) {
                     console.error('❌ [CHAT-SECTION] No valid container found for message:', message);
-                    return;
-                }
-                
+            return;
+        }
+        
                 let messageGroup = this.findOrCreateMessageGroup(message, isOwnMessage);
                 const messageContent = this.createMessageContent(message, isOwnMessage);
                 
                 if (!messageContent) {
                     console.error('❌ [CHAT-SECTION] Failed to create message content:', message);
-                    return;
-                }
-                
-                // Add hover event listeners for message actions
+            return;
+        }
+        
                 messageContent.addEventListener('mouseover', () => this.showMessageActions(messageContent));
                 messageContent.addEventListener('mouseout', (e) => {
                     const relatedTarget = e.relatedTarget;
@@ -2013,36 +2082,39 @@ class ChatSection {
                     }
                 });
                 
-            // Setup action buttons
-            const actionsContainer = messageContent.querySelector('.message-actions');
-            if (actionsContainer) {
-                const reactionBtn = actionsContainer.querySelector('.message-action-reaction');
-                const replyBtn = actionsContainer.querySelector('.message-action-reply');
-                const editBtn = actionsContainer.querySelector('.message-action-edit');
+                const actionsContainer = messageContent.querySelector('.message-actions');
+                if (actionsContainer) {
+                    const reactionBtn = actionsContainer.querySelector('.message-action-reaction');
+                    const replyBtn = actionsContainer.querySelector('.message-action-reply');
+                    const editBtn = actionsContainer.querySelector('.message-action-edit');
+                    
+                    if (reactionBtn) reactionBtn.addEventListener('click', () => this.showEmojiPicker(message.id, reactionBtn));
+                    if (replyBtn) replyBtn.addEventListener('click', () => this.replyToMessage(message.id));
+                    if (editBtn) editBtn.addEventListener('click', () => this.editMessage(message.id));
+                }
                 
-                if (reactionBtn) reactionBtn.addEventListener('click', () => this.showEmojiPicker(message.id, reactionBtn));
-                if (replyBtn) replyBtn.addEventListener('click', () => this.replyToMessage(message.id));
-                if (editBtn) editBtn.addEventListener('click', () => this.editMessage(message.id));
-            }
-            
-            // Add the message to the group
-            messageGroup.querySelector('.message-group-content').appendChild(messageContent);
-            
-            // Mark as processed to avoid duplicates
+                messageGroup.querySelector('.message-group-content').appendChild(messageContent);
+                
                 this.processedMessageIds.add(message.id);
                 
-            // Scroll to bottom if we're close to it
-            const shouldScroll = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-            if (shouldScroll) {
-                this.scrollToBottom();
+                const shouldScroll = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+                if (shouldScroll) {
+                    this.scrollToBottom();
+                }
+                
+                console.log(`✅ [CHAT-SECTION] Message added successfully:`, {
+                    id: message.id,
+                    isOwnMessage,
+                    shouldScroll
+                });
+            } catch (error) {
+                console.error('❌ [CHAT-SECTION] Error adding message:', error, {
+                    messageId: message.id,
+                    userId: message.user_id,
+                    username: message.username
+                });
             }
-            
-            console.log(`✅ [CHAT-SECTION] Message added successfully:`, {
-                id: message.id,
-                isOwnMessage,
-                shouldScroll
-            });
-        } else {
+                } else {
             console.log(`⏭️ [CHAT-SECTION] Skipping duplicate message:`, {
                 id: message.id,
                 source: message.source
@@ -2055,14 +2127,12 @@ class ChatSection {
         const groups = container.querySelectorAll('.message-group');
         let lastGroup = groups[groups.length - 1];
         
-        // Check if we can add to the last group
         if (lastGroup && 
             lastGroup.dataset.userId === message.user_id.toString() &&
             Date.now() - parseInt(lastGroup.dataset.timestamp) < 300000) { // 5 minutes
             return lastGroup;
         }
         
-        // Create new group
         const newGroup = this.createMessageGroup(message, isOwnMessage);
         this.safeAppendToContainer(container, newGroup);
         return newGroup;
@@ -2133,7 +2203,7 @@ class ChatSection {
             }
             
             return success;
-            } catch (error) {
+        } catch (error) {
             console.error('❌ Exception during append:', error);
             return false;
         }
@@ -2167,7 +2237,7 @@ class ChatSection {
                 
                 console.log('🔍 Chat messages children after append:', this.chatMessages.children.length);
                 console.log('✅ Container appended to chat messages');
-        } else {
+            } else {
                 console.log('✅ Found existing messages-container in DOM');
             }
             
@@ -2311,7 +2381,6 @@ class ChatSection {
         
         messageElement.appendChild(contentElement);
 
-        // Handle attachments (both legacy single attachment and new multiple attachments)
         const attachments = message.attachments || (message.attachment_url ? [message.attachment_url] : []);
         
         if (attachments.length > 0) {
@@ -2548,119 +2617,181 @@ class ChatSection {
         const self = this;
         
         const setupSocketHandlers = function(io) {
-            console.log('Setting up socket handlers for ChatSection');
+            console.log('🔌 [CHAT-SECTION] Setting up socket handlers');
             
             if (self.socketListenersSetup) {
-                console.log('Socket listeners already setup, skipping');
+                console.log('⚠️ [CHAT-SECTION] Socket listeners already setup, skipping');
                 return;
             }
             
             // Channel message handling
             io.on('new-channel-message', function(data) {
-                console.log('Received new-channel-message:', data);
-                
-                // Use strict comparison and check room format
-                const expectedRoom = `channel-${self.targetId}`;
-                const messageRoom = `channel-${data.channel_id}`;
-                
-                if (self.chatType === 'channel' && messageRoom === expectedRoom) {
+                try {
+                    console.log('📨 [CHAT-SECTION] Received new-channel-message:', {
+                        id: data.id,
+                        userId: data.user_id,
+                        username: data.username,
+                        channelId: data.channel_id,
+                        source: data.source,
+                        isProcessed: self.processedMessageIds.has(data.id)
+                    });
+                    
+                    // Use strict comparison and check room format
+                    const expectedRoom = `channel-${self.targetId}`;
+                    const messageRoom = `channel-${data.channel_id}`;
+                    
+                    if (self.chatType === 'channel' && messageRoom === expectedRoom) {
                     if (!self.processedMessageIds.has(data.id)) {
-                        console.log(`✅ Adding message ${data.id} to channel ${data.channel_id}`);
-                        self.addMessage(data);
+                            console.log(`✅ [CHAT-SECTION] Adding message ${data.id} to channel ${data.channel_id}`);
+                            self.addMessage({...data, source: 'server-originated'});
                         self.processedMessageIds.add(data.id);
-                    } else {
-                        console.log(`🔄 Message ${data.id} already processed, skipping`);
+                        } else {
+                            console.log(`🔄 [CHAT-SECTION] Message ${data.id} already processed, skipping`);
                     }
-                } else {
-                    console.log(`❌ Message not for this channel. Expected: ${expectedRoom}, Got: ${messageRoom}`);
+                    } else {
+                        console.log(`❌ [CHAT-SECTION] Message not for this channel. Expected: ${expectedRoom}, Got: ${messageRoom}`);
+                    }
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling new-channel-message:', error);
                 }
             });
             
             // DM message handling
             io.on('user-message-dm', function(data) {
-                console.log('Received user-message-dm:', data);
-                
-                // Use strict comparison and check room format
-                const expectedRoom = `dm-room-${self.targetId}`;
-                const messageRoom = `dm-room-${data.room_id}`;
-                
-                if ((self.chatType === 'direct' || self.chatType === 'dm') && messageRoom === expectedRoom) {
+                try {
+                    console.log('📨 [CHAT-SECTION] Received user-message-dm:', {
+                        id: data.id,
+                        userId: data.user_id,
+                        username: data.username,
+                        roomId: data.room_id,
+                        source: data.source,
+                        isProcessed: self.processedMessageIds.has(data.id)
+                    });
+                    
+                    // Use strict comparison and check room format
+                    const expectedRoom = `dm-room-${self.targetId}`;
+                    const messageRoom = `dm-room-${data.room_id}`;
+                    
+                    if ((self.chatType === 'direct' || self.chatType === 'dm') && messageRoom === expectedRoom) {
                     if (!self.processedMessageIds.has(data.id)) {
-                        console.log(`✅ Adding message ${data.id} to DM room ${data.room_id}`);
-                        self.addMessage(data);
+                            console.log(`✅ [CHAT-SECTION] Adding message ${data.id} to DM room ${data.room_id}`);
+                            self.addMessage({...data, source: 'server-originated'});
                         self.processedMessageIds.add(data.id);
-                    } else {
-                        console.log(`🔄 Message ${data.id} already processed, skipping`);
+                        } else {
+                            console.log(`🔄 [CHAT-SECTION] Message ${data.id} already processed, skipping`);
                     }
-                } else {
-                    console.log(`❌ Message not for this DM. Expected: ${expectedRoom}, Got: ${messageRoom}`);
+                    } else {
+                        console.log(`❌ [CHAT-SECTION] Message not for this DM. Expected: ${expectedRoom}, Got: ${messageRoom}`);
+                    }
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling user-message-dm:', error);
                 }
             });
             
-            // Reaction handling
+            // Reaction handling with improved error handling
             io.on('reaction-added', function(data) {
-                    if (data.message_id) {
-                        const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
-                        if (messageElement) {
-                            self.handleReactionAdded(data);
+                try {
+                if (data.message_id) {
+                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+                    if (messageElement) {
+                        self.handleReactionAdded(data);
+                        } else {
+                            console.warn(`⚠️ [CHAT-SECTION] Message element not found for reaction: ${data.message_id}`);
                     }
+                    }
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling reaction-added:', error);
                 }
             });
             
             io.on('reaction-removed', function(data) {
+                try {
                 if (data.message_id) {
                     const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
                     if (messageElement) {
                         self.handleReactionRemoved(data);
+                        } else {
+                            console.warn(`⚠️ [CHAT-SECTION] Message element not found for reaction removal: ${data.message_id}`);
                     }
+                    }
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling reaction-removed:', error);
                 }
             });
             
             io.on('message-updated', function(data) {
+                try {
                 if (data.message_id) {
                     const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
                     if (messageElement) {
                         self.handleMessageUpdated(data);
+                        } else {
+                            console.warn(`⚠️ [CHAT-SECTION] Message element not found for update: ${data.message_id}`);
                     }
+                    }
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling message-updated:', error);
                 }
             });
             
             io.on('message-deleted', function(data) {
+                try {
                 if (data.message_id) {
                     const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
                     if (messageElement) {
                         self.handleMessageDeleted(data);
+                        } else {
+                            console.warn(`⚠️ [CHAT-SECTION] Message element not found for deletion: ${data.message_id}`);
                     }
+                    }
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling message-deleted:', error);
                 }
             });
             
             // Typing indicators
             io.on('user-typing', function(data) {
+                try {
                 if (self.chatType === 'channel' && data.channel_id == self.targetId && data.user_id != self.userId) {
                     self.showTypingIndicator(data.user_id, data.username);
+                    }
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling user-typing:', error);
                 }
             });
             
             io.on('user-typing-dm', function(data) {        
+                try {
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && data.room_id == self.targetId && data.user_id != self.userId) {
                     self.showTypingIndicator(data.user_id, data.username);
+                    }
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling user-typing-dm:', error);
                 }
             });
             
             io.on('user-stop-typing', function(data) {
+                try {
                 if (self.chatType === 'channel' && data.channel_id == self.targetId && data.user_id != self.userId) {
                     self.removeTypingIndicator(data.user_id);
+                    }
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling user-stop-typing:', error);
                 }
             });
             
             io.on('user-stop-typing-dm', function(data) {
+                try {
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && data.room_id == self.targetId && data.user_id != self.userId) {
                     self.removeTypingIndicator(data.user_id);
+                    }
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling user-stop-typing-dm:', error);
                 }
             });
-            
+
             self.socketListenersSetup = true;
-            console.log('Socket listeners setup complete');
+            console.log('✅ [CHAT-SECTION] Socket listeners setup complete');
         };
         
         // Check if socket is ready
@@ -2798,15 +2929,14 @@ class ChatSection {
         // Use the correct room format for tracking
         const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
         
-        if (!this.joinedRooms.has(roomName)) {
+        if (!window.globalSocketManager.isInRoom(roomName)) {
             console.log(`🚪 Joining room: ${roomType} - ${roomId} (${roomName})`);
             
             // Use the new unified joinRoom method
             const success = window.globalSocketManager.joinRoom(roomType, roomId);
             
             if (success) {
-                this.joinedRooms.add(roomName);
-                console.log(`✅ Successfully joined ${roomType} room: ${roomName}`);
+                console.log(`✅ Successfully requested to join ${roomType} room: ${roomName}`);
             } else {
                 console.error(`❌ Failed to join ${roomType} room: ${roomName}`);
             }
@@ -3241,4 +3371,4 @@ class ChatSection {
             console.error('❌ Chat container preparation failed - container not ready');
         }
     }
-                }
+}

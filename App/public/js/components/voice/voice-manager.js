@@ -8,12 +8,53 @@ class VoiceManager {
         this.participants = new Map();
         this.currentChannelId = null;
         this.currentChannelName = null;
+        this.videoSDKManager = null;
+        this.initializationPromise = null;
+        this.initialized = false;
         
-        this.init();
+        // Don't call init in constructor to avoid timing issues
+        // Let the global initialization handle it
     }
     
-    init() {
-        this.attachEventListeners();
+    async init() {
+        if (this.initialized) return;
+        
+        try {
+            await this.initVideoSDK();
+            this.attachEventListeners();
+            this.initialized = true;
+            console.log('✅ Voice manager initialized');
+        } catch (error) {
+            console.error('❌ Failed to initialize voice manager:', error);
+            throw error;
+        }
+    }
+
+    async initVideoSDK() {
+        // Wait for VideoSDK to be available
+        await new Promise((resolve) => {
+            const checkSDK = () => {
+                if (window.videoSDKManager) {
+                    resolve();
+                } else {
+                    console.warn('VideoSDK not available, waiting...');
+                    setTimeout(checkSDK, 500);
+                }
+            };
+            checkSDK();
+        });
+
+        try {
+            // Use the global instance instead of creating a new one
+            this.videoSDKManager = window.videoSDKManager;
+            const config = this.videoSDKManager.getMetaConfig();
+            await this.videoSDKManager.init(config.authToken);
+            console.log('✅ VideoSDK initialized');
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to initialize VideoSDK:', error);
+            throw error;
+        }
     }
     
     attachEventListeners() {
@@ -38,7 +79,6 @@ class VoiceManager {
         
         this.currentChannelId = channelId;
         
-        // Update channel metadata
         const channelNameElements = document.querySelectorAll('.channel-name, .voice-ind-title');
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
         const channelName = channelElement?.textContent?.trim() || 'Voice Channel';
@@ -56,35 +96,78 @@ class VoiceManager {
     }
     
     async joinVoice() {
-        if (this.isConnected) return Promise.resolve();
+        console.log('🎤 Attempting to join voice channel');
+        if (this.isConnected) {
+            console.log('Already connected to voice');
+            return Promise.resolve();
+        }
         
         const channelId = this.currentChannelId || document.querySelector('meta[name="channel-id"]')?.content;
-        if (channelId && window.autoJoinVoiceChannel) {
-            try {
-                await window.autoJoinVoiceChannel(channelId);
-                this.isConnected = true;
-                this.dispatchEvent('voiceConnect', {
-                    channelId: this.currentChannelId,
-                    channelName: this.currentChannelName,
-                    meetingId: window.videosdkMeeting?.id
-                });
-                return Promise.resolve();
-            } catch (error) {
-                this.showToast('Failed to connect to voice', 'error');
-                return Promise.reject(error);
-            }
-        } else {
+        if (!channelId) {
+            console.error('❌ No channel ID available');
             this.showToast('Channel not available', 'error');
             return Promise.reject(new Error('Channel not available'));
+        }
+
+        try {
+            console.log('🔄 Setting up voice for channel:', channelId);
+            this.setupVoice(channelId);
+
+            // Make sure we're initialized
+            if (!this.initialized) {
+                console.log('⏳ Initializing voice manager...');
+                await this.init();
+            }
+
+            // Wait for VideoSDK initialization if not already done
+            if (!this.videoSDKManager) {
+                console.log('⏳ Waiting for VideoSDK initialization...');
+                await this.initializationPromise;
+            }
+
+            if (!this.videoSDKManager) {
+                throw new Error('VideoSDK initialization failed');
+            }
+
+            const meetingId = `voice_channel_${channelId}`;
+            console.log('🔄 Creating/joining meeting:', meetingId);
+
+            const meeting = await this.videoSDKManager.createMeetingRoom(meetingId);
+            if (!meeting) {
+                throw new Error('Failed to create meeting room');
+            }
+
+            console.log('✅ Meeting room created:', meeting);
+            await this.videoSDKManager.initMeeting({
+                meetingId: meeting,
+                name: window.currentUsername || 'Anonymous',
+                micEnabled: true,
+                webcamEnabled: false
+            });
+
+            await this.videoSDKManager.joinMeeting();
+
+            this.isConnected = true;
+            this.dispatchEvent('voiceConnect', {
+                channelId: this.currentChannelId,
+                channelName: this.currentChannelName,
+                meetingId: meeting
+            });
+
+            console.log('✅ Successfully joined voice channel');
+            return Promise.resolve();
+        } catch (error) {
+            console.error('❌ Failed to join voice:', error);
+            this.showToast('Failed to connect to voice', 'error');
+            return Promise.reject(error);
         }
     }
     
     leaveVoice() {
         if (!this.isConnected) return;
         
-        if (window.videosdkMeeting && window.videoSDKManager) {
-            window.videoSDKManager.leaveMeeting();
-            window.videosdkMeeting = null;
+        if (this.videoSDKManager) {
+            this.videoSDKManager.leaveMeeting();
         }
         
         this.isConnected = false;
@@ -112,8 +195,17 @@ class VoiceManager {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize voice manager after DOM is loaded
+window.addEventListener('DOMContentLoaded', async function() {
     window.voiceManager = new VoiceManager();
+    // Initialize after a short delay to ensure other dependencies are loaded
+    setTimeout(async () => {
+        try {
+            await window.voiceManager.init();
+        } catch (error) {
+            console.error('Failed to initialize voice manager:', error);
+        }
+    }, 1000);
 });
 
 window.addEventListener('voiceDisconnect', function() {

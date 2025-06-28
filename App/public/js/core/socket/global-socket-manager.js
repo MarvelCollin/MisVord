@@ -138,11 +138,9 @@ class GlobalSocketManager {
             this.reconnectAttempts = 0;
             this.log(`Socket connected: ${this.io.id}`);
             
-            // Send authentication immediately after connection
             this.sendAuthentication();
         });
         
-        // Handle authentication success
         this.io.on('auth-success', (data) => {
             this.authenticated = true;
             this.log(`Socket authenticated successfully:`, data);
@@ -167,7 +165,6 @@ class GlobalSocketManager {
             window.dispatchEvent(authEvent);
         });
         
-        // Handle authentication error
         this.io.on('auth-error', (data) => {
             this.authenticated = false;
             this.error('Socket authentication failed:', data);
@@ -175,20 +172,29 @@ class GlobalSocketManager {
         
         this.io.on('channel-joined', (data) => {
             this.log(`Channel joined confirmation: ${data.channel_id}`);
+            this.joinedChannels.add(data.channel_id);
+            this.joinedRooms.add(`channel-${data.channel_id}`);
         });
         
         this.io.on('dm-room-joined', (data) => {
             this.log(`DM room joined confirmation: ${data.room_id}`);
+            this.joinedDMRooms.add(data.room_id);
+            this.joinedRooms.add(`dm-room-${data.room_id}`);
         });
         
         this.io.on('room-joined', (data) => {
             this.log(`Room joined confirmation: ${data.room_type} - ${data.room_id}`);
+            
+            const roomPrefix = data.room_type === 'channel' ? 'channel-' : 'dm-room-';
+            const roomId = `${roomPrefix}${data.room_id}`;
             
             if (data.room_type === 'channel') {
                 this.joinedChannels.add(data.room_id);
             } else if (data.room_type === 'dm') {
                 this.joinedDMRooms.add(data.room_id);
             }
+            
+            this.joinedRooms.add(roomId);
         });
         
         this.io.on('disconnect', () => {
@@ -356,30 +362,88 @@ class GlobalSocketManager {
     }
     
     emitToRoom(eventName, data, roomType, roomId) {
-        if (!this.isReady()) {
-            console.warn('⚠️ [SOCKET] Cannot emit to room - socket not ready');
+        if (!this.connected || !this.io) {
+            console.error('❌ [SOCKET] Cannot emit - socket not connected:', {
+                connected: this.connected,
+                ioExists: !!this.io,
+                authenticated: this.authenticated,
+                socketId: this.io?.id
+            });
             return false;
         }
-        
-        // Use consistent room name format
-        const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
-        
-        // Check if we're in the room
-        if (!this.joinedRooms.has(roomName)) {
-            console.warn(`⚠️ [SOCKET] Cannot emit to room ${roomName} - not joined`);
-            return false;
+
+        console.log(`📤 [SOCKET] Preparing to emit ${eventName}:`, {
+            roomType,
+            roomId,
+            eventName,
+            dataId: data.id,
+            messageId: data.message_id,
+            userId: data.user_id,
+            timestamp: Date.now(),
+            socketState: {
+                connected: this.connected,
+                authenticated: this.authenticated,
+                socketId: this.io.id,
+                joinedRooms: Array.from(this.joinedRooms)
+            }
+        });
+
+        // Validate room format
+        const roomPrefix = roomType === 'channel' ? 'channel-' : 'dm-room-';
+        const targetRoom = `${roomPrefix}${roomId}`;
+
+        // Ensure we're in the room
+        if (!this.isInRoom(targetRoom)) {
+            console.warn(`⚠️ [SOCKET] Not in room ${targetRoom}, attempting to join...`);
+            this.joinRoom(roomType, roomId);
         }
-        
+
         // Add room information to data
-        const roomData = {
+        const enrichedData = {
             ...data,
             room_type: roomType,
-            room_id: roomId
+            room_id: roomId,
+            source: data.source || 'client-originated',
+            timestamp: data.timestamp || Date.now()
         };
-        
-        console.log(`📤 [SOCKET] Emitting ${eventName} to ${roomType} room ${roomName}:`, roomData);
-        this.io.emit(eventName, roomData);
-        return true;
+
+        // Add type-specific fields
+        if (roomType === 'channel') {
+            enrichedData.channel_id = roomId;
+        }
+
+        console.log(`📤 [SOCKET] Emitting ${eventName} to ${roomType} room ${targetRoom}:`, {
+            id: enrichedData.id,
+            messageId: enrichedData.message_id,
+            content: enrichedData.content?.substring(0, 50) + (enrichedData.content?.length > 50 ? '...' : ''),
+            userId: enrichedData.user_id,
+            username: enrichedData.username,
+            source: enrichedData.source,
+            timestamp: enrichedData.timestamp
+        });
+
+        try {
+            this.io.emit(eventName, enrichedData);
+            
+            console.log(`✅ [SOCKET] Successfully emitted ${eventName}:`, {
+                room: targetRoom,
+                eventName,
+                dataId: enrichedData.id,
+                messageId: enrichedData.message_id,
+                timestamp: Date.now()
+            });
+            
+            return true;
+        } catch (error) {
+            console.error(`❌ [SOCKET] Error emitting ${eventName}:`, {
+                error: error.message,
+                stack: error.stack,
+                room: targetRoom,
+                eventName,
+                timestamp: Date.now()
+            });
+            return false;
+        }
     }
     
     sendMessage(messageData, roomType, roomId) {
@@ -544,6 +608,10 @@ class GlobalSocketManager {
         } else {
             console.error('[SOCKET ERROR]', ...args);
         }
+    }
+    
+    isInRoom(roomId) {
+        return this.joinedRooms.has(roomId);
     }
 }
 

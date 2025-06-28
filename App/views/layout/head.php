@@ -197,6 +197,12 @@ $include_socket_io = true;
     </script>
 <?php endif; ?>
 
+<!-- VideoSDK v2 -->
+<script src="https://sdk.videosdk.live/js-sdk/v2/videosdk.js"></script>
+<script>
+    console.log('🎥 VideoSDK script loaded, version:', typeof VideoSDK !== 'undefined' ? VideoSDK.version : 'not loaded');
+</script>
+
 <?php if (isset($include_channel_loader) && $include_channel_loader): ?>
     
 <?php endif; ?>
