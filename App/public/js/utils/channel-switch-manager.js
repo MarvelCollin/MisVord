@@ -37,7 +37,6 @@ class ChannelSwitchManager {
         }
 
         this.isLoading = true;
-        window.channelSwitching = true;
 
         console.log(`🔄 Starting channel switch process...`);
 
@@ -45,20 +44,17 @@ class ChannelSwitchManager {
             console.log(`1️⃣ Updating UI...`);
             this.updateChannelUI(clickedElement);
             
-            console.log(`2️⃣ Updating URL...`);
-            this.updateURL(serverId, channelId);
-            
-            console.log(`3️⃣ Updating meta tags...`);
+            console.log(`2️⃣ Updating meta tags...`);
             this.updateMetaTags(channelId, 'channel');
             
-            console.log(`4️⃣ Loading channel content...`);
+            console.log(`3️⃣ Loading channel content...`);
             await this.loadChannelContent(channelId);
             
-            console.log(`5️⃣ Updating state...`);
+            console.log(`4️⃣ Updating state...`);
             this.currentChannelId = channelId;
             this.currentServerId = serverId;
 
-            console.log(`6️⃣ Dispatching event...`);
+            console.log(`5️⃣ Dispatching event...`);
             this.dispatchChannelSwitchEvent(channelId, serverId);
             
             console.log(`✅ CHANNEL SWITCH COMPLETE: ${serverId} → ${channelId}`);
@@ -67,10 +63,8 @@ class ChannelSwitchManager {
             console.error(`❌ CHANNEL SWITCH FAILED:`, error);
             console.error(`   Server: ${serverId}, Channel: ${channelId}`);
             console.error(`   Error details:`, error.stack);
-            window.location.reload();
         } finally {
             this.isLoading = false;
-            window.channelSwitching = false;
             console.log(`🔓 Channel switch locks released`);
         }
     }
@@ -83,11 +77,6 @@ class ChannelSwitchManager {
         if (clickedElement) {
             clickedElement.classList.add('bg-gray-700', 'text-white', 'active-channel');
         }
-    }
-
-    updateURL(serverId, channelId) {
-        const newUrl = `/server/${serverId}?channel=${channelId}`;
-        window.history.replaceState({ serverId, channelId }, '', newUrl);
     }
 
     updateMetaTags(channelId, chatType) {

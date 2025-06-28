@@ -1,4 +1,5 @@
 import { pageUtils } from '../utils/index.js';
+import ChannelSwitchManager from '../utils/channel-switch-manager.js';
 
 function loadScript(src, type = '', async = false) {
   return new Promise((resolve, reject) => {
@@ -37,70 +38,36 @@ async function loadVoiceScripts() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  console.log("DOM content loaded event triggered in server-page.js");
-  
-  const isVoicePage = window.location.href.includes('type=voice');
-  if (isVoicePage) {
-    console.log("Detected voice channel page, initializing voice page");
-    initVoicePage();
-  } else {
-    initServerPage();
-  }
-  
-  const mainContent = document.querySelector('.flex-1');
-  if (mainContent && mainContent.textContent.trim() === '[object Object]') {
-    window.location.reload();
-  }
-});
-
-window.reinitializeServerPageEvents = function() {
-  console.log("Reinitialize server page events called - disabled to prevent channel section reloading");
-};
-
-document.addEventListener('contentLoaded', function(event) {
-  console.log('Content loaded event received:', event.detail);
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[Server Page] DOM Content Loaded');
+    
+    if (window.location.pathname.includes('/server/')) {
+        initServerPage();
+    }
 });
 
 function initServerPage() {
-  console.log("Server page initialized");
-
-  const path = window.location.pathname;
-  const matches = path.match(/\/server\/(\d+)/);
-
-  if (
-    !document.body.hasAttribute("data-initial-load") &&
-    matches &&
-    matches[1]
-  ) {
-    const serverId = matches[1];
-    console.log(`Loading server page for server ID: ${serverId}`);
-
-    const objectDisplay = document.querySelector('.server-content');
-    if (objectDisplay && objectDisplay.textContent.includes('[object Object]')) {
-      console.log('Fixing [object Object] display issue');
-      window.location.reload();
-      return;
+    console.log('[Server Page] Initializing server page');
+    
+    initializeChannelManager();
+    
+    if (window.globalSocketManager) {
+        console.log('[Server Page] Global socket manager available');
+    } else {
+        console.log('[Server Page] Waiting for global socket manager...');
+        setTimeout(() => {
+            if (window.globalSocketManager) {
+                console.log('[Server Page] Global socket manager loaded');
+            }
+        }, 1000);
     }
+}
 
-    if (!window.initialChannelLoadComplete) {
-    document.dispatchEvent(
-      new CustomEvent("RefreshChannels", {
-        detail: {
-          serverId: serverId,
-        },
-      })
-    );
-      window.initialChannelLoadComplete = true;
+function initializeChannelManager() {
+    if (!window.channelSwitchManager) {
+        window.channelSwitchManager = new ChannelSwitchManager();
+        console.log('[Server Page] Channel switch manager initialized');
     }
-  } else if (document.body.hasAttribute("data-initial-load")) {
-    console.log("Using server-rendered channels, skipping refresh event");
-    window.initialChannelLoadComplete = true;
-  }
-
-  initializeChannelClickHandlers();
-          
-  setupChannelListObserver();
 }
 
 function getServerIdFromUrl() {
@@ -976,3 +943,5 @@ window.ensureServerPageLoaded = function() {
     }
   });
 };
+
+export { initServerPage };

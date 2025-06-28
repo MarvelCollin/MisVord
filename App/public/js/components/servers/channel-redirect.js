@@ -1,24 +1,31 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const currentPath = window.location.pathname;
-    const serverMatch = currentPath.match(/^\/server\/(\d+)$/);
+    const currentURL = window.location.href;
+    const serverId = extractServerIdFromURL(currentURL);
     
-    if (serverMatch && !window.location.search.includes('channel=')) {
-        const serverId = serverMatch[1];
-        
-        const firstTextChannel = document.querySelector('.channel-item[data-channel-type="text"]');
-        
-        if (firstTextChannel) {
-            const channelId = firstTextChannel.getAttribute('data-channel-id');
-            if (channelId) {
-                window.logger.info('channel-redirect', 'Redirecting to first text channel:', channelId);
-                
-                const newUrl = `/server/${serverId}?channel=${channelId}`;
-                window.history.replaceState(null, '', newUrl);
-                
-                window.location.reload();
-            }
-        } else {
-            window.logger.warn('channel-redirect', 'No text channels found for auto-redirect');
-        }
+    if (serverId && !currentURL.includes('?channel=')) {
+        loadDefaultChannel(serverId);
     }
 });
+
+function extractServerIdFromURL(url) {
+    const match = url.match(/\/server\/(\d+)/);
+    return match ? match[1] : null;
+}
+
+async function loadDefaultChannel(serverId) {
+    try {
+        const response = await fetch(`/api/servers/${serverId}/channels`);
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.channels && data.data.channels.length > 0) {
+            const firstChannel = data.data.channels[0];
+            
+            if (window.channelSwitchManager) {
+                const channelElement = document.querySelector(`[data-channel-id="${firstChannel.id}"]`);
+                await window.channelSwitchManager.switchToChannel(serverId, firstChannel.id, channelElement);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load default channel:', error);
+    }
+}

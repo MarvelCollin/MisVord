@@ -1857,107 +1857,43 @@ class ChatSection {
     
     createMessageContent(message, isOwnMessage = false) {
         const messageElement = document.createElement('div');
-        messageElement.className = 'message-content';
-        messageElement.setAttribute('data-message-id', message.id);
-        messageElement.setAttribute('data-user-id', message.user_id || message.userId);
-        messageElement.setAttribute('data-username', message.username);
-        
-        if (isOwnMessage) {
-            messageElement.classList.add('own-message');
-        }
-        
-        if (message.reply_message_id || message.reply_data) {
+        messageElement.className = 'message-content relative';
+        messageElement.dataset.messageId = message.id;
+        messageElement.dataset.userId = message.user_id;
+        messageElement.dataset.username = message.username;
+
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'message-content-wrapper';
+
+        if (message.reply_message_id && message.reply_data) {
             const replyContainer = document.createElement('div');
-            replyContainer.className = 'reply-container flex items-start gap-2 mb-1 text-sm';
-
-            const replyLine = document.createElement('div');
-            replyLine.className = 'reply-line w-[2px] h-full bg-[#4e5058] rounded-full self-stretch';
-
-            const replyContent = document.createElement('div');
-            replyContent.className = 'reply-content flex-1 min-w-0 text-[#b5bac1] hover:text-[#dcddde] cursor-pointer transition-colors';
+            replyContainer.className = 'reply-container flex items-center text-sm text-[#b5bac1] mb-2';
             
-            if (message.reply_data) {
-                replyContent.setAttribute('tabindex', '0');
-                replyContent.setAttribute('role', 'button');
-                replyContent.setAttribute('aria-label', `Jump to reply from ${message.reply_data.username}`);
-                
-                const replyHeader = document.createElement('div');
-                replyHeader.className = 'flex items-center gap-2 mb-0.5';
-                
-                const replyIcon = document.createElement('i');
-                replyIcon.className = 'fas fa-reply text-xs';
-                
-                const replyUsername = document.createElement('span');
-                replyUsername.className = 'text-[#5865f2] font-medium truncate';
-                replyUsername.textContent = message.reply_data.username;
-                
-                const replyMessage = document.createElement('div');
-                replyMessage.className = 'text-[#b5bac1] truncate';
-                replyMessage.textContent = this.truncateText(message.reply_data.content || '', 100);
-                
-                replyHeader.appendChild(replyIcon);
-                replyHeader.appendChild(replyUsername);
-                
-                replyContent.appendChild(replyHeader);
-                replyContent.appendChild(replyMessage);
-
-                const jumpToMessage = () => {
-                    const targetMessageId = message.reply_data.message_id || message.reply_message_id;
-                    const repliedMessage = document.querySelector(`[data-message-id="${targetMessageId}"]`);
-                    
-                    if (repliedMessage) {
-                        const messageElement = repliedMessage.closest('.message-group') || repliedMessage;
-                        
-                        messageElement.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'center',
-                            inline: 'nearest'
-                        });
-                        
-                        repliedMessage.classList.remove('highlight-message');
-                        setTimeout(() => {
-                        repliedMessage.classList.add('highlight-message');
-                        setTimeout(() => {
-                            repliedMessage.classList.remove('highlight-message');
-                            }, 3000);
-                        }, 100);
-                    } else {
-                        this.showNotification('Original message not found in current view', 'info');
-                    }
-                };
-
-                replyContent.addEventListener('click', jumpToMessage);
-                replyContent.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        jumpToMessage();
-                    }
-                });
+            const replyLine = document.createElement('div');
+            replyLine.className = 'reply-line w-[2px] h-[1.5em] bg-[#4f545c] rounded-sm mr-2';
+            
+            const replyContent = document.createElement('div');
+            replyContent.className = 'reply-content flex items-center cursor-pointer hover:text-[#dcddde]';
+            
+            const replyUsername = document.createElement('span');
+            replyUsername.className = 'reply-username font-medium mr-2';
+            replyUsername.textContent = message.reply_data.username;
+            
+            const replyMessage = document.createElement('span');
+            replyMessage.className = 'reply-message truncate';
+            
+            if (message.reply_data.content) {
+                replyMessage.textContent = message.reply_data.content;
             } else {
                 const unavailableSpan = document.createElement('span');
-                unavailableSpan.textContent = 'Loading reply...';
-                unavailableSpan.style.color = '#72767d';
-                unavailableSpan.style.fontSize = '12px';
-                unavailableSpan.style.fontStyle = 'italic';
-                replyContent.appendChild(unavailableSpan);
-
-                // Fetch reply details on demand and update preview
-                if (window.ChatAPI && typeof window.ChatAPI.getMessage === 'function') {
-                    window.ChatAPI.getMessage(message.reply_message_id)
-                        .then((msg) => {
-                            if (msg && msg.content) {
-                                unavailableSpan.remove();
-
-                                const replyUsername = document.createElement('span');
-                                replyUsername.className = 'text-[#5865f2] font-medium truncate';
-                                replyUsername.textContent = msg.username || 'Unknown';
-
-                                const replyMessage = document.createElement('div');
-                                replyMessage.className = 'text-[#b5bac1] truncate';
-                                replyMessage.textContent = msg.content.substring(0, 100) + (msg.content.length > 100 ? '...' : '');
-
-                                replyContent.appendChild(replyUsername);
-                                replyContent.appendChild(replyMessage);
+                unavailableSpan.className = 'italic';
+                replyMessage.appendChild(unavailableSpan);
+                
+                if (message.reply_data.id) {
+                    window.ChatAPI.getMessage(message.reply_data.id)
+                        .then(originalMessage => {
+                            if (originalMessage && originalMessage.content) {
+                                replyMessage.textContent = originalMessage.content;
                             } else {
                                 unavailableSpan.textContent = 'Original message not found';
                             }
@@ -1968,21 +1904,31 @@ class ChatSection {
                 }
             }
             
+            replyContent.appendChild(replyUsername);
+            replyContent.appendChild(replyMessage);
             replyContainer.appendChild(replyLine);
             replyContainer.appendChild(replyContent);
-            messageElement.insertBefore(replyContainer, messageElement.firstChild);
+            contentWrapper.appendChild(replyContainer);
         }
-        
-        const contentElement = document.createElement('div');
-        contentElement.className = 'message-main-text text-[#dcddde]';
+
+        const textContent = document.createElement('div');
+        textContent.className = 'message-main-text';
         
         if (message.content && message.content.trim() !== '') {
-            contentElement.innerHTML = this.formatMessageContent(message.content);
+            textContent.innerHTML = this.formatMessageContent(message.content);
+            if (message.edited_at) {
+                const editedBadge = document.createElement('span');
+                editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                editedBadge.textContent = '(edited)';
+                textContent.appendChild(editedBadge);
+            }
         }
         
+        contentWrapper.appendChild(textContent);
+
         if (message.attachment_url) {
             const attachmentContainer = document.createElement('div');
-            attachmentContainer.className = 'message-attachment mt-2';
+            attachmentContainer.className = 'message-attachment';
             
             if (message.message_type === 'image' || 
                 (message.attachment_url && 
@@ -2091,18 +2037,10 @@ class ChatSection {
                 attachmentContainer.appendChild(fileLink);
             }
             
-            contentElement.appendChild(attachmentContainer);
-        }
-        
-        messageElement.appendChild(contentElement);
-        
-        if (message.edited_at) {
-            const editedBadge = document.createElement('span');
-            editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
-            editedBadge.textContent = '(edited)';
-            contentElement.appendChild(editedBadge);
+            contentWrapper.appendChild(attachmentContainer);
         }
 
+        messageElement.appendChild(contentWrapper);
         return messageElement;
     }
     

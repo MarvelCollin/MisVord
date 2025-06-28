@@ -591,13 +591,16 @@ function renderMessageContent($message) {
                             <div class="px-1">
                                 <label for="file-upload" class="flex items-center cursor-pointer px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
                                     <span class="mr-2"><i class="fas fa-upload"></i></span>
-                                    <span>Upload a File</span>
+                                    <span>Upload Files</span>
                                 </label>
-                                <input type="file" id="file-upload" class="hidden" />
+                                <input type="file" id="file-upload" class="hidden" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
                             </div>
                         </div>
                     </div>
-                    <div class="flex-1 relative flex items-center">
+                    <div class="flex-1 relative flex flex-col">
+                        <div id="file-preview" class="hidden w-full mb-2 p-2 bg-[#2b2d31] rounded-md">
+                            <div id="file-previews-container" class="flex flex-wrap gap-2"></div>
+                        </div>
                         <textarea 
                             id="message-input" 
                             name="content"
@@ -608,24 +611,6 @@ function renderMessageContent($message) {
                             autocomplete="off"
                             spellcheck="true"
                             style="min-height: 24px; padding: 0; margin: 0; vertical-align: middle;"></textarea>
-                    </div>
-
-                    <div id="file-preview" class="hidden absolute bottom-full left-4 mb-2 p-3 bg-[#2b2d31] rounded-md shadow-lg z-10 max-w-md">
-                        <div class="flex items-start">
-                            <div class="flex-grow mr-2 max-w-64 overflow-hidden">
-                                <div id="file-preview-image" class="hidden w-full rounded mb-2 max-h-64 object-cover"></div>
-                                <div id="file-preview-info" class="flex items-center">
-                                    <div id="file-preview-icon" class="text-2xl mr-2 text-[#b5bac1]"><i class="fas fa-file"></i></div>
-                                    <div class="overflow-hidden">
-                                        <div id="file-preview-name" class="text-[#dcddde] font-medium truncate"></div>
-                                        <div id="file-preview-size" class="text-xs text-[#a3a6aa]"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="button" id="file-preview-remove" class="text-[#b5bac1] hover:text-white">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
                     </div>
 
                     <div class="flex items-center space-x-3 ml-3">

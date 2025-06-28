@@ -3,6 +3,7 @@ const roomManager = require('../services/roomManager');
 class BotHandler {
     static bots = new Map();
     static activeConnections = new Map();
+    static processedMessages = new Set();
 
     static registerBot(botId, username) {
         console.log(`🤖 [BOT-HANDLER] Registering bot: ${username} (ID: ${botId})`);
@@ -49,32 +50,17 @@ class BotHandler {
     static setupBotListeners(io, botId, username) {
         console.log(`👂 [BOT-HANDLER] Setting up message listeners for bot ${username}`);
 
+        // Remove any existing listeners for this bot
+        io.removeAllListeners('new-channel-message');
+        io.removeAllListeners('user-message-dm');
+
+        // Add new listeners
         io.on('connection', (client) => {
-            client.on('new-channel-message', (data) => {
-                this.handleMessage(io, data, 'channel', botId, username);
-            });
-
-            client.on('user-message-dm', (data) => {
-                this.handleMessage(io, data, 'dm', botId, username);
-            });
-        });
-
-        const existingConnections = Array.from(io.sockets.sockets.values());
-        existingConnections.forEach(client => {
-            const originalChannelHandler = client.listeners('new-channel-message');
-            const originalDMHandler = client.listeners('user-message-dm');
-
+            // Remove any existing listeners on this client
             client.removeAllListeners('new-channel-message');
             client.removeAllListeners('user-message-dm');
 
-            originalChannelHandler.forEach(handler => {
-                client.on('new-channel-message', handler);
-            });
-            
-            originalDMHandler.forEach(handler => {
-                client.on('user-message-dm', handler);
-            });
-
+            // Add new listeners
             client.on('new-channel-message', (data) => {
                 this.handleMessage(io, data, 'channel', botId, username);
             });
@@ -86,6 +72,24 @@ class BotHandler {
     }
 
     static handleMessage(io, data, messageType, botId, username) {
+        // Generate a unique message ID based on content and timestamp
+        const messageId = `${data.content}-${data.timestamp || Date.now()}`;
+        
+        // Skip if we've already processed this message
+        if (this.processedMessages.has(messageId)) {
+            console.log('🤖 [BOT-HANDLER] Skipping duplicate message:', messageId);
+            return;
+        }
+        
+        // Add to processed messages
+        this.processedMessages.add(messageId);
+        
+        // Clean up old messages (keep last 100)
+        if (this.processedMessages.size > 100) {
+            const oldestMessage = Array.from(this.processedMessages)[0];
+            this.processedMessages.delete(oldestMessage);
+        }
+
         if (data.channelId && !data.channel_id) {
             data.channel_id = data.channelId;
         }
@@ -103,6 +107,7 @@ class BotHandler {
 
         console.log(`📨 [BOT-HANDLER] Bot ${username} received message: "${content.substring(0, 50)}..." in ${messageType}`);
 
+        // Process commands
         if (content === '/titibot ping') {
             console.log(`🎯 [BOT-HANDLER] Bot ${username} detected ping command, responding...`);
             this.respondToPing(io, data, messageType, botId, username);

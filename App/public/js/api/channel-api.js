@@ -1,517 +1,188 @@
-class ChannelAPI {
-    constructor() {
-        this.baseURL = '/api';
-        this.cache = new Map();
-        this.cacheTimeout = 30000;
-    }
-
-    async makeRequest(url, options = {}) {
-        try {
-            const defaultOptions = {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            };
-
-            const mergedOptions = {
-                ...defaultOptions,
-                ...options,
-                headers: {
-                    ...defaultOptions.headers,
-                    ...options.headers
-                }
-            };
-
-            if (options.body instanceof FormData) {
-                delete mergedOptions.headers['Content-Type'];
+const channelAPI = {
+    createChannel: function(formData) {
+        return fetch('/api/channels/create', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
-
-            const response = await fetch(url, mergedOptions);
-            
+        })
+        .then(response => {
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
-
-            const data = await response.json();
-            
-            if (!data.data) {
-                throw new Error(data.message || 'API request failed');
-            }
-
-            return data.data || data;
-        } catch (error) {
-            console.error('Channel API request failed:', error);
-            throw error;
-        }
-    }
-
-    getCacheKey(serverId, channelId, type) {
-        return `${serverId}-${channelId}-${type}`;
-    }
-
-    getCachedData(serverId, channelId, type) {
-        const key = this.getCacheKey(serverId, channelId, type);
-        const cached = this.cache.get(key);
-        
-        if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-            return cached.data;
-        }
-        
-        return null;
-    }
-
-    setCachedData(serverId, channelId, type, data) {
-        const key = this.getCacheKey(serverId, channelId, type);
-        this.cache.set(key, {
-            data: data,
-            timestamp: Date.now()
+            return response.json();
         });
-    }
+    },
 
-    clearCache() {
-        this.cache.clear();
-    }
-
-    async getChannelData(serverId, channelId, type = 'text', requestHTML = false) {
-        if (!serverId || !channelId) {
-            throw new Error('Server ID and Channel ID are required');
-        }
-        
-        const cacheKey = requestHTML ? `${serverId}-${channelId}-${type}-html` : `${serverId}-${channelId}-${type}`;
-        const cached = this.cache.get(cacheKey);
-        if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-            console.log('Using cached channel data');
-            return cached.data;
-        }
-        
-        try {
-            let channelUrl = `${this.baseURL}/channel-content?server_id=${encodeURIComponent(serverId)}&channel_id=${encodeURIComponent(channelId)}&type=${encodeURIComponent(type)}`;
-            
-            if (requestHTML) {
-                channelUrl += '&render_html=true';
-            }
-            
-            const channelData = await this.makeRequest(channelUrl, { method: 'GET' });
-            
-            this.cache.set(cacheKey, {
-                data: channelData,
-                timestamp: Date.now()
-            });
-            
-            return channelData;
-        } catch (error) {
-            console.error('Failed to load channel data:', error);
-            throw error;
-        }
-    }
-
-    async createChannel(channelData) {
-        return await this.makeRequest(`${this.baseURL}/channels`, {
-            method: 'POST',
-            body: JSON.stringify(channelData)
-        });
-    }
-
-    async updateChannel(channelId, channelData) {
-        return await this.makeRequest(`${this.baseURL}/channels/${channelId}`, {
+    updateChannel: function(channelId, data) {
+        return fetch(`/api/channels/${channelId}`, {
             method: 'PUT',
-            body: JSON.stringify(channelData)
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(data),
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
         });
-    }
+    },
 
-    async deleteChannel(channelId) {
-        return await this.makeRequest(`${this.baseURL}/channels/${channelId}`, {
-            method: 'DELETE'
+    deleteChannel: function(channelId) {
+        return fetch(`/api/channels/${channelId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
         });
-    }
+    },
 
-    async getChannelParticipants(channelId) {
-        return await this.makeRequest(`${this.baseURL}/channels/${channelId}/participants`, {
-            method: 'GET'
+    getChannelMessages: function(channelId, offset = 0, limit = 50) {
+        const params = new URLSearchParams({
+            offset: offset,
+            limit: limit
         });
-    }
+        
+        return fetch(`/api/chat/channel/${channelId}/messages?${params.toString()}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
 
-    async updateChannelPosition(positionData) {
-        return await this.makeRequest(`${this.baseURL}/channels/position`, {
+    switchToChannel: function(serverId, channelId, channelType = 'text') {
+        console.log(`📍 Channel API: switching to channel ${channelId} on server ${serverId}`);
+        
+        if (window.channelSwitchManager) {
+            const clickedElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+            return window.channelSwitchManager.switchToChannel(serverId, channelId, clickedElement);
+        } else {
+            console.error('Channel switch manager not available');
+            return Promise.reject(new Error('Channel switch manager not available'));
+        }
+    },
+
+    joinVoiceChannel: function(channelId) {
+        console.log(`🎤 Joining voice channel: ${channelId}`);
+        
+        return fetch(`/api/voice/join`, {
             method: 'POST',
-            body: JSON.stringify(positionData)
-        });
-    }
-
-    async createCategory(categoryData) {
-        return await this.makeRequest(`${this.baseURL}/categories`, {
-            method: 'POST',
-            body: JSON.stringify(categoryData)
-        });
-    }
-
-    async getChannelMessages(channelId, limit = 50, offset = 0) {
-        return await this.makeRequest(`${this.baseURL}/channels/${channelId}/messages?limit=${limit}&offset=${offset}`, {
-            method: 'GET'
-        });
-    }
-
-    async sendChannelMessage(channelId, content, messageType = 'text') {
-        return await this.makeRequest(`${this.baseURL}/channels/${channelId}/messages`, {
-            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
             body: JSON.stringify({
-                content: content,
-                message_type: messageType
-            })
+                channel_id: channelId
+            }),
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    leaveVoiceChannel: function(channelId) {
+        console.log(`🎤 Leaving voice channel: ${channelId}`);
+        
+        return fetch(`/api/voice/leave`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                channel_id: channelId
+            }),
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    createCategory: function(formData) {
+        return fetch('/api/categories/create', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    updateChannelOrder: function(channelId, newPosition) {
+        return fetch(`/api/channels/${channelId}/order`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                position: newPosition
+            }),
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    getChannelDetails: function(channelId) {
+        return fetch(`/api/channels/${channelId}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
         });
     }
+};
 
-    invalidateCache(serverId, channelId = null, type = null) {
-        if (channelId && type) {
-            const key = this.getCacheKey(serverId, channelId, type);
-            this.cache.delete(key);
-            this.cache.delete(`${key}-html`);
-        } else {
-            for (let key of this.cache.keys()) {
-                if (key.startsWith(`${serverId}-`)) {
-                    this.cache.delete(key);
-                }
-            }
-        }
-    }
-}
-
-class ChannelRenderer {
-    constructor(channelAPI) {
-        this.api = channelAPI;
-        this.currentChannelId = null;
-        this.currentServerId = null;
-        this.isLoading = false;
-    }
-
-    showSkeleton(type) {
-        const mainContent = document.querySelector('.main-content-area');
-        if (!mainContent) return;
-
-        const skeletonHTML = type === 'voice' ? this.getVoiceSkeletonHTML() : this.getChatSkeletonHTML();
-        mainContent.innerHTML = skeletonHTML;
-    }
-
-    getVoiceSkeletonHTML() {
-        return `
-            <div class="flex flex-col h-screen bg-[#313338] text-white">
-                <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 bg-[#313338]">
-                    <div class="flex items-center">
-                        <div class="w-4 h-4 bg-gray-700 rounded mr-2 animate-pulse"></div>
-                        <div class="h-4 bg-gray-700 rounded w-32 animate-pulse"></div>
-                    </div>
-                </div>
-                <div class="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#1e1f3a] via-[#2b2272] to-[#1e203a]">
-                    <div class="h-8 bg-gray-700 rounded w-48 mb-2 animate-pulse"></div>
-                    <div class="h-6 bg-gray-700 rounded w-64 mb-6 animate-pulse"></div>
-                    <div class="h-10 bg-gray-700 rounded w-32 animate-pulse"></div>
-                </div>
-            </div>
-        `;
-    }
-
-    getChatSkeletonHTML() {
-        return `
-            <div class="flex flex-col flex-1 h-screen bg-[#313338]">
-                <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 bg-[#313338]">
-                    <div class="flex items-center">
-                        <div class="w-4 h-4 bg-gray-700 rounded mr-2 animate-pulse"></div>
-                        <div class="h-5 bg-gray-700 rounded w-40 animate-pulse"></div>
-                    </div>
-                </div>
-                <div class="flex-1 overflow-y-auto bg-[#313338] p-4">
-                    ${Array(5).fill(0).map(() => `
-                        <div class="flex items-start mb-4">
-                            <div class="w-10 h-10 bg-gray-700 rounded-full mr-3 animate-pulse"></div>
-                            <div class="flex-1">
-                                <div class="h-4 bg-gray-700 rounded w-32 mb-2 animate-pulse"></div>
-                                <div class="h-4 bg-gray-700 rounded w-full animate-pulse"></div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="px-4 pb-6 bg-[#313338]">
-                    <div class="h-12 bg-gray-700 rounded animate-pulse"></div>
-                </div>
-            </div>
-        `;
-    }
-
-    async switchToChannel(serverId, channelId, channelType) {
-        if (this.isLoading) {
-            console.log('Channel switch already in progress');
-            return;
-        }
-
-        this.isLoading = true;
-        this.currentServerId = serverId;
-        this.currentChannelId = channelId;
-
-        try {
-            this.showSkeleton(channelType);
-            
-            this.updateMetaTags(channelId, channelType);
-            this.updateURL(serverId, channelId, channelType);
-            
-            const channelData = await this.api.getChannelData(serverId, channelId, channelType, true);
-            
-            this.updateGlobalState(channelData);
-            this.renderChannelContent(channelData, channelType);
-            this.dispatchChannelSwitchEvent(channelData);
-            
-        } catch (error) {
-            console.error('Failed to switch channel:', error);
-            this.showError(error.message);
-        } finally {
-            this.isLoading = false;
-        }
-    }
-
-    updateGlobalState(data) {
-        if (data.server) {
-            window.currentServer = data.server;
-        }
-        
-        if (data.channel) {
-            window.currentChannel = data.channel;
-        }
-        
-        if (data.channels) {
-            window.serverChannels = data.channels;
-        }
-        
-        if (data.categories) {
-            window.serverCategories = data.categories;
-        }
-        
-        if (data.activeChannelId) {
-            window.activeChannelId = data.activeChannelId;
-        }
-    }
-
-    renderChannelContent(data, type) {
-        const mainContent = document.querySelector('.main-content-area');
-        if (!mainContent) return;
-
-        if (data.html) {
-            mainContent.innerHTML = data.html;
-            this.executeScripts(mainContent);
-        } else {
-            this.renderFallbackContent(data, type, mainContent);
-        }
-    }
-
-    executeScripts(container) {
-        const scripts = container.querySelectorAll('script');
-        scripts.forEach(oldScript => {
-            const newScript = document.createElement('script');
-            if (oldScript.src) {
-                newScript.src = oldScript.src;
-            } else {
-                newScript.textContent = oldScript.textContent;
-            }
-            Array.from(oldScript.attributes).forEach(attr => {
-                newScript.setAttribute(attr.name, attr.value);
-            });
-            oldScript.parentNode.replaceChild(newScript, oldScript);
-        });
-    }
-
-    renderFallbackContent(data, type, container) {
-        if (type === 'voice') {
-            this.renderVoiceChannel(data, container);
-        } else {
-            this.renderChatChannel(data, container);
-        }
-    }
-
-    renderVoiceChannel(data, container) {
-        const { channel, meeting_id, username } = data;
-        
-        container.innerHTML = `
-            <div class="flex flex-col h-screen bg-[#313338] text-white" id="voice-container">
-                <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 bg-[#313338]">
-                    <div class="flex items-center">
-                        <i class="fas fa-volume-high text-gray-400 mr-2"></i>
-                        <span class="font-medium text-white">${channel.name}</span>
-                    </div>
-                </div>
-                <div class="flex-1 flex">
-                    <div class="flex-1 flex flex-col">
-                        <div id="joinView" class="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#1e1f3a] via-[#2b2272] to-[#1e203a]">
-                            <h2 class="text-2xl font-bold text-white mb-2">${channel.name}</h2>
-                            <p class="text-gray-300 text-base mb-6">No one is currently in voice</p>
-                            <button id="joinBtn" class="bg-[#5865F2] hover:bg-[#4752c4] text-white font-medium py-2 px-6 rounded transition-colors">
-                                Join Voice
-                            </button>
-                        </div>
-                        <div id="connectingView" class="flex-1 flex flex-col items-center justify-center bg-[#2b2d31] hidden">
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5865F2] mb-4"></div>
-                            <p class="text-white text-lg">Connecting to voice...</p>
-                        </div>
-                        <div id="connectedView" class="flex-1 flex flex-col bg-[#2b2d31] hidden">
-                            <div class="flex-1 flex flex-col justify-center items-center">
-                                <div id="participants" class="w-full max-w-xl"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        this.initializeVoiceControls(channel, meeting_id, username);
-    }
-
-    renderChatChannel(data, container) {
-        const { channel, messages = [] } = data;
-        
-        container.innerHTML = `
-            <div class="flex flex-col flex-1 h-screen bg-[#313338]">
-                <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 bg-[#313338]">
-                    <div class="flex items-center">
-                        <i class="fas fa-hashtag text-[#b5bac1] mr-2"></i>
-                        <h2 class="font-semibold text-white">${channel.name}</h2>
-                    </div>
-                </div>
-                <div class="flex-1 overflow-y-auto bg-[#313338]" id="chat-messages">
-                    ${this.renderMessages(messages)}
-                </div>
-                <div class="px-4 pb-6 bg-[#313338]">
-                    <div class="bg-[#383a40] rounded-lg overflow-hidden">
-                    </div>
-                </div>
-            </div>
-        `;
-
-        this.initializeChatControls(channel);
-    }
-
-    renderMessages(messages) {
-        if (!messages || messages.length === 0) {
-            return '<div class="flex items-center justify-center h-full text-gray-400">No messages yet</div>';
-        }
-
-        return messages.map(message => `
-            <div class="flex items-start p-4 hover:bg-[#36393f]">
-                <div class="w-10 h-10 bg-[#5865f2] rounded-full flex items-center justify-center mr-3">
-                    <span class="text-white text-sm font-bold">${(message.username || 'U').charAt(0).toUpperCase()}</span>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center mb-1">
-                        <span class="font-semibold text-white mr-2">${message.username || 'Unknown'}</span>
-                        <span class="text-xs text-gray-400">${this.formatTimestamp(message.created_at)}</span>
-                    </div>
-                    <div class="text-[#dcddde]">${message.content}</div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    formatTimestamp(timestamp) {
-        return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
-    initializeVoiceControls(channel, meetingId, username) {
-        const joinBtn = document.getElementById('joinBtn');
-        if (joinBtn) {
-            joinBtn.addEventListener('click', () => {
-                console.log('Joining voice channel:', channel.name);
-            });
-        }
-    }
-
-    initializeChatControls(channel) {
-        const sendButton = document.getElementById('send-button');
-        const messageInput = document.getElementById('message-input');
-        
-        const sendMessage = async () => {
-            const content = messageInput.value.trim();
-            if (content) {
-                try {
-                    sendButton.disabled = true;
-                    messageInput.disabled = true;
-                    
-                    if (window.chatAPI) {
-                        await window.chatAPI.sendMessage(channel.id, content, 'channel');
-                    } else {
-                        await this.api.sendChannelMessage(channel.id, content);
-                    }
-                    
-                    messageInput.value = '';
-                } catch (error) {
-                    console.error('Failed to send message:', error);
-                } finally {
-                    sendButton.disabled = false;
-                    messageInput.disabled = false;
-                    messageInput.focus();
-                }
-            }
-        };
-        
-        if (sendButton && messageInput) {
-            sendButton.addEventListener('click', sendMessage);
-            
-            messageInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-        }
-    }
-
-    updateMetaTags(channelId, channelType) {
-        const updateOrCreateMeta = (name, content) => {
-            let meta = document.querySelector(`meta[name="${name}"]`);
-            if (meta) {
-                meta.setAttribute('content', content);
-            } else {
-                meta = document.createElement('meta');
-                meta.setAttribute('name', name);
-                meta.setAttribute('content', content);
-                document.head.appendChild(meta);
-            }
-        };
-
-        updateOrCreateMeta('channel-id', channelId);
-        if (channelType === 'text') {
-            updateOrCreateMeta('chat-id', channelId);
-        }
-    }
-
-    updateURL(serverId, channelId, channelType) {
-        const newUrl = `/server/${serverId}?channel=${channelId}&type=${channelType}`;
-        history.pushState({ channelId, channelType, serverId }, '', newUrl);
-    }
-
-    dispatchChannelSwitchEvent(channelData) {
-        document.dispatchEvent(new CustomEvent('channelSwitched', {
-            detail: channelData
-        }));
-    }
-
-    showError(message) {
-        const mainContent = document.querySelector('.main-content-area');
-        if (mainContent) {
-            mainContent.innerHTML = `
-                <div class="flex items-center justify-center h-full text-red-400">
-                    <div class="text-center">
-                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
-                        <div class="text-lg font-semibold mb-2">Error</div>
-                        <div>${message}</div>
-                    </div>
-                </div>
-            `;
-        }
-    }
-}
-
-const channelAPI = new ChannelAPI();
-const channelRenderer = new ChannelRenderer(channelAPI);
+export default channelAPI;
 
 window.channelAPI = channelAPI;
-window.channelRenderer = channelRenderer;
-
-export { ChannelAPI, ChannelRenderer };
-export default channelAPI;

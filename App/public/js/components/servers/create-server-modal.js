@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initCategorySelection();
     initCreateServerButton();
     initStepNavigation();
+    initCreateServerModal();
 });
 
 function initStepNavigation() {
@@ -914,3 +915,191 @@ function initCreateServerButton() {
         });
     });
 }
+
+function initCreateServerModal() {
+    const createServerModal = document.getElementById('create-server-modal');
+    const createServerForm = document.getElementById('create-server-form');
+    const createServerBtn = document.getElementById('create-server-btn');
+    const joinServerBtn = document.getElementById('join-server-btn');
+    const joinServerModal = document.getElementById('join-server-modal');
+    
+    if (createServerBtn) {
+        createServerBtn.addEventListener('click', function() {
+            openModal(createServerModal);
+        });
+    }
+    
+    if (joinServerBtn) {
+        joinServerBtn.addEventListener('click', function() {
+            openModal(joinServerModal);
+        });
+    }
+    
+    if (createServerForm) {
+        createServerForm.addEventListener('submit', handleCreateServer);
+    }
+    
+    setupJoinServerForm();
+    setupModalNavigation();
+    setupInviteForm();
+}
+
+function setupJoinServerForm() {
+    const joinServerForm = document.getElementById('join-server-form');
+    const joinInviteInput = document.getElementById('join-invite-code');
+    const joinSubmitBtn = document.querySelector('#join-server-modal .bg-blue-600');
+    
+    if (joinServerForm) {
+        joinServerForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const inviteCode = joinInviteInput.value.trim();
+            if (!inviteCode) {
+                showToast('Please enter an invite code', 'error');
+                return;
+            }
+            
+            try {
+                joinSubmitBtn.disabled = true;
+                joinSubmitBtn.textContent = 'Joining...';
+                
+                const response = await fetch('/api/servers/join', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ invite_code: inviteCode }),
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Successfully joined server!', 'success');
+                    closeAllModals();
+                    window.location.href = `/server/${data.data.server_id}`;
+                } else {
+                    showToast(data.message || 'Failed to join server', 'error');
+                }
+            } catch (error) {
+                console.error('Error joining server:', error);
+                showToast('An error occurred while joining the server', 'error');
+            } finally {
+                joinSubmitBtn.disabled = false;
+                joinSubmitBtn.textContent = 'Join Server';
+            }
+        });
+    }
+}
+
+async function handleCreateServer(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    
+    try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating...';
+        
+        const response = await window.serverAPI.createServer(formData);
+        
+        if (response.success && response.data) {
+            showToast('Server created successfully!', 'success');
+            closeAllModals();
+            e.target.reset();
+            window.location.href = `/server/${response.data.server.id}`;
+        } else {
+            showToast(response.message || 'Failed to create server', 'error');
+        }
+    } catch (error) {
+        console.error('Error creating server:', error);
+        showToast('An error occurred while creating the server', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Server';
+    }
+}
+
+function setupModalNavigation() {
+    const createServerModal = document.getElementById('create-server-modal');
+    const joinServerModal = document.getElementById('join-server-modal');
+    
+    const showJoinModalBtn = document.getElementById('show-join-modal');
+    const showCreateModalBtn = document.getElementById('show-create-modal');
+    
+    if (showJoinModalBtn) {
+        showJoinModalBtn.addEventListener('click', function() {
+            closeModal(createServerModal);
+            openModal(joinServerModal);
+        });
+    }
+    
+    if (showCreateModalBtn) {
+        showCreateModalBtn.addEventListener('click', function() {
+            closeModal(joinServerModal);
+            openModal(createServerModal);
+        });
+    }
+}
+
+function setupInviteForm() {
+    const form = document.getElementById('join-invite-form');
+    if (!form) return;
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const inviteCode = formData.get('invite_code');
+        
+        if (!inviteCode) {
+            showToast('Please enter an invite code', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/invites/join', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ invite_code: inviteCode }),
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('Successfully joined server!', 'success');
+                window.location.href = `/server/${data.data.server_id}`;
+            } else {
+                showToast(data.message || 'Invalid invite code', 'error');
+            }
+        } catch (error) {
+            console.error('Error joining via invite:', error);
+            showToast('An error occurred', 'error');
+        }
+    });
+}
+
+function openModal(modal) {
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        const firstInput = modal.querySelector('input');
+        if (firstInput) {
+            firstInput.focus();
+        }
+    }
+}
+
+function closeAllModals() {
+    const modals = document.querySelectorAll('[id$="-modal"]');
+    modals.forEach(closeModal);
+}
+
+window.closeCreateServerModal = closeModal;

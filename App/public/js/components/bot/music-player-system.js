@@ -3,17 +3,29 @@ class MusicPlayerSystem {
         this.currentSong = null;
         this.queue = [];
         this.currentIndex = 0;
-        this.audio = null;
+        this.audio = new Audio();
+        this.audio.crossOrigin = "anonymous";
         this.isPlaying = false;
         this.volume = 0.5;
         this.channelId = null;
         this.searchResults = [];
         this.searchModal = null;
         this.debugMode = false;
+        this.currentTrack = null;
+        this.processedMessageIds = new Set();
         
         console.log('🎵 [MUSIC-PLAYER] Music player system initialized');
         this.setupEventListeners();
         this.setupDebugListeners();
+
+        this.audio.addEventListener('error', (e) => {
+            console.error('Audio playback error:', e);
+            this.handlePlaybackError();
+        });
+
+        this.audio.addEventListener('ended', () => {
+            this.playNext();
+        });
     }
 
     setupEventListeners() {
@@ -599,7 +611,7 @@ class MusicPlayerSystem {
 
             this.audio.addEventListener('error', (e) => {
                 console.error('Audio playback error:', e);
-                this.showError('Failed to play audio');
+                this.handlePlaybackError();
             });
 
             this.audio.addEventListener('loadstart', () => {
@@ -637,46 +649,61 @@ class MusicPlayerSystem {
         }
     }
 
-    async play(songName, channelId) {
-        this.channelId = channelId;
-        
-        const track = await this.searchMusic(songName);
-        if (!track) {
-            return `❌ Could not find "${songName}" on iTunes`;
+    async play(track) {
+        if (!track || !track.previewUrl) {
+            console.error('🎵 Invalid track or missing preview URL');
+            return false;
         }
 
-        if (!track.previewUrl) {
-            return `❌ No preview available for "${track.title}" by ${track.artist}`;
-        }
+        try {
+            // Stop current playback if any
+            await this.stop();
+            
+            // Set new track
+            this.currentTrack = track;
+            this.audio.src = track.previewUrl;
+            
+            // Wait for audio to be loaded
+            await new Promise((resolve, reject) => {
+                this.audio.addEventListener('canplaythrough', resolve, { once: true });
+                this.audio.addEventListener('error', reject, { once: true });
+                this.audio.load();
+            });
 
-        return await this.playTrack(track);
+            // Start playback
+            await this.audio.play();
+            this.isPlaying = true;
+            
+            console.log('🎵 Now playing:', track.title);
+            return true;
+        } catch (error) {
+            console.error('🎵 Music Player Error:', error.message || 'Failed to play audio');
+            this.handlePlaybackError();
+            return false;
+        }
     }
 
     async stop() {
-        if (this.audio) {
-            try {
-                await new Promise(resolve => {
-                    const cleanup = () => {
-                        this.audio.removeEventListener('pause', cleanup);
-                        resolve();
-                    };
-                    this.audio.addEventListener('pause', cleanup, { once: true });
-                    
-                    this.audio.pause();
-                    this.audio.currentTime = 0;
-                    this.audio.src = '';
-                    this.audio.load();
-                });
-                this.audio = null;
-            } catch (error) {
-                console.warn('Error stopping audio:', error);
-                this.audio = null;
+        try {
+            if (this.audio) {
+                this.audio.pause();
+                this.audio.currentTime = 0;
+                this.isPlaying = false;
             }
+        } catch (error) {
+            console.error('🎵 Error stopping playback:', error);
         }
+    }
+
+    handlePlaybackError() {
         this.isPlaying = false;
-        this.currentSong = null;
-        this.hideNowPlaying();
-        return `⏹️ Music stopped`;
+        if (this.currentTrack) {
+            console.log('🎵 Attempting to recover from playback error...');
+            // Remove failed track from queue if it's there
+            this.queue = this.queue.filter(t => t.id !== this.currentTrack.id);
+            // Try to play next track if available
+            this.playNext();
+        }
     }
 
     async playNext() {
@@ -706,7 +733,6 @@ class MusicPlayerSystem {
             await this.stop();
             
             this.currentSong = track;
-            this.audio = new Audio();
             this.audio.volume = this.volume;
             this.audio.crossOrigin = "anonymous";
             
