@@ -122,26 +122,71 @@ function joinVoiceChannel() {
     // Try to trigger voice join through various methods
     if (window.voiceManager) {
         console.log('[voice-not-join.php] Using voiceManager.joinVoice()');
-        window.voiceManager.joinVoice();
+        window.voiceManager.joinVoice()
+            .then(() => {
+                // Ensure UI switches to call section
+                const channelName = document.querySelector('meta[name="channel-id"]')?.content || 'Voice Channel';
+                const meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
+                const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+                
+                if (meetingId) {
+                    window.dispatchEvent(new CustomEvent('voiceConnect', {
+                        detail: {
+                            channelName: channelName,
+                            meetingId: meetingId,
+                            channelId: channelId
+                        }
+                    }));
+                }
+            })
+            .catch(error => {
+                console.error('[voice-not-join.php] Error joining voice:', error);
+                if (joinBtn) joinBtn.disabled = false;
+                if (joinView) joinView.classList.remove('hidden');
+                if (connectingView) connectingView.classList.add('hidden');
+            });
     } else if (window.channelSwitchManager && window.channelSwitchManager.loadVoiceScripts) {
         console.log('[voice-not-join.php] Using channelSwitchManager.loadVoiceScripts()');
         window.channelSwitchManager.loadVoiceScripts().then(() => {
             if (window.voiceManager) {
                 console.log('[voice-not-join.php] voiceManager loaded, joining voice');
-                window.voiceManager.joinVoice();
+                window.voiceManager.joinVoice()
+                    .then(() => {
+                        // Ensure UI switches to call section
+                        const channelName = document.querySelector('meta[name="channel-id"]')?.content || 'Voice Channel';
+                        const meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
+                        const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+                        
+                        if (meetingId) {
+                            window.dispatchEvent(new CustomEvent('voiceConnect', {
+                                detail: {
+                                    channelName: channelName,
+                                    meetingId: meetingId,
+                                    channelId: channelId
+                                }
+                            }));
+                        }
+                    });
             }
         });
     } else if (window.voiceSection && window.voiceSection.autoJoin) {
         console.log('[voice-not-join.php] Using voiceSection.autoJoin()');
         window.voiceSection.autoJoin();
+        // The voiceSection.autoJoin will trigger the voiceConnect event
     } else if (window.triggerVoiceAutoJoin) {
         console.log('[voice-not-join.php] Using triggerVoiceAutoJoin()');
         window.triggerVoiceAutoJoin();
+        // These functions should trigger the voiceConnect event
     } else if (window.handleAutoJoin) {
         console.log('[voice-not-join.php] Using handleAutoJoin()');
         window.handleAutoJoin();
+        // These functions should trigger the voiceConnect event
     } else {
         console.log('[voice-not-join.php] No voice join method found');
+        // Reset UI if no method is available
+        if (joinBtn) joinBtn.disabled = false;
+        if (joinView) joinView.classList.remove('hidden');
+        if (connectingView) connectingView.classList.add('hidden');
     }
 }
 

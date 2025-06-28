@@ -1,18 +1,22 @@
 class ServerDetailModal {
     constructor() {
         this.modal = document.getElementById('server-detail-modal');
-        this.modalContent = document.getElementById('server-modal-content');
-        this.closeButton = document.getElementById('close-server-modal');
-        this.joinButton = document.getElementById('server-modal-join');
+        this.modalContent = this.modal ? document.getElementById('server-modal-content') : null;
+        this.closeButton = this.modal ? document.getElementById('close-server-modal') : null;
+        this.joinButton = this.modal ? document.getElementById('server-modal-join') : null;
         this.currentServerId = null;
         this.currentInviteLink = null;
         
-        this.init();
+        if (this.modal) {
+            this.init();
+        } else {
+            console.warn('Server detail modal element not found, initialization skipped');
+        }
     }
     
     init() {
-        if (!this.modal) {
-            console.error('Server detail modal element not found');
+        if (!this.modal || !this.closeButton || !this.joinButton) {
+            console.error('Server detail modal elements not found');
             return;
         }
         

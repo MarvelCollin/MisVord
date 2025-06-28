@@ -30,11 +30,9 @@ class RoomManager {
     joinRoom(client, roomName) {
         console.log(`🚪 [ROOM-MANAGER] Client ${client.id} attempting to join room: ${roomName}`);
         
-        // Check if client is already in this room
         if (client.rooms.has(roomName)) {
             console.log(`ℹ️ [ROOM-MANAGER] Client ${client.id} is already in room: ${roomName}`);
             
-            // Force rejoin to ensure connection is active
             try {
                 console.log(`🔄 [ROOM-MANAGER] Force rejoining room: ${roomName}`);
                 client.leave(roomName);
@@ -42,22 +40,19 @@ class RoomManager {
                 console.log(`✅ [ROOM-MANAGER] Client ${client.id} successfully rejoined room: ${roomName}`);
             } catch (error) {
                 console.error(`❌ [ROOM-MANAGER] Error rejoining room: ${error.message}`);
-            }
+            }   
             return;
         }
         
-        // Join the room
         try {
             client.join(roomName);
             console.log(`✅ [ROOM-MANAGER] Client ${client.id} successfully joined room: ${roomName}`);
             
-            // Verify the client is actually in the room
             if (client.rooms.has(roomName)) {
                 console.log(`✅ [ROOM-MANAGER] Verified client ${client.id} is in room: ${roomName}`);
             } else {
                 console.warn(`⚠️ [ROOM-MANAGER] Client ${client.id} not in room after join: ${roomName}`);
                 
-                // Try joining again
                 console.log(`🔄 [ROOM-MANAGER] Attempting to join room again: ${roomName}`);
                 client.join(roomName);
             }
@@ -65,10 +60,8 @@ class RoomManager {
             console.error(`❌ [ROOM-MANAGER] Error joining room: ${error.message}`);
         }
         
-        // Log all rooms this client is in
         console.log(`🏠 [ROOM-MANAGER] Client ${client.id} rooms:`, Array.from(client.rooms));
         
-        // Track user sockets for presence management
         if (client.data?.user_id) {
             const userId = client.data.user_id;
             console.log(`👤 [ROOM-MANAGER] Tracking socket ${client.id} for user ${userId}`);
@@ -119,7 +112,7 @@ class RoomManager {
             if (userSocketSet.size === 0) {
                 this.userSockets.delete(userId);
                 console.log(`🔄 [ROOM-MANAGER] User ${userId} has no more active sockets - marked as offline`);
-                return true; // User is now offline
+                return true; 
             } else {
                 const socketCount = userSocketSet.size;
                 console.log(`📊 [ROOM-MANAGER] User ${userId} still has ${socketCount} active socket(s)`);
@@ -128,7 +121,7 @@ class RoomManager {
             console.warn(`⚠️ [ROOM-MANAGER] No socket set found for user ${userId}`);
         }
         
-        return false; // User still has other connections
+        return false; 
     }
 
     isUserOnline(userId) {

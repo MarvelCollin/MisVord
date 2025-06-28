@@ -226,6 +226,26 @@ class GlobalSocketManager {
             });
             window.dispatchEvent(event);
         });
+        
+        // Global listener for all channel messages, regardless of current channel
+        this.io.on('new-channel-message', (data) => {
+            this.log(`💬 GlobalSocketManager: Received channel message:`, data);
+            
+            const event = new CustomEvent('newChannelMessage', {
+                detail: data
+            });
+            window.dispatchEvent(event);
+            
+            // If the chat section exists and has an addMessage method, use it
+            if (window.chatSection && typeof window.chatSection.addMessage === 'function') {
+                window.chatSection.addMessage(data);
+            }
+            
+            // Optional: update unread badge if that function exists
+            if (typeof window.updateUnreadBadge === 'function') {
+                window.updateUnreadBadge(data.channel_id);
+            }
+        });
     }
     
     sendAuthentication() {
@@ -605,55 +625,30 @@ class GlobalSocketManager {
 const globalSocketManager = new GlobalSocketManager();
 
 document.addEventListener('DOMContentLoaded', function() {
-    if (document.querySelector('meta[name="user-authenticated"]')?.content === 'true') {
-        setTimeout(() => {
-            if (!globalSocketManager.connected) {
-                // Try multiple sources for user data
-                let userId = document.querySelector('meta[name="user-id"]')?.content;
-                let username = document.querySelector('meta[name="username"]')?.content;
-                
-                // Fallback to body/container attributes
-                if (!userId) {
-                    userId = document.body?.getAttribute('data-user-id') || 
-                             document.querySelector('[data-user-id]')?.getAttribute('data-user-id');
-                }
-                if (!username) {
-                    username = document.body?.getAttribute('data-username') || 
-                               document.querySelector('[data-username]')?.getAttribute('data-username');
-                }
-                
-                const userData = { user_id: userId, username: username };
-                
-                if (userData.user_id && userData.username) {
-                    console.log('🔌 Initializing socket with user data:', userData);
-                    globalSocketManager.init(userData);
-                } else {
-                    console.error('❌ No user data found for socket initialization:', {
-                        metaUserId: document.querySelector('meta[name="user-id"]')?.content,
-                        metaUsername: document.querySelector('meta[name="username"]')?.content,
-                        bodyUserId: document.body?.getAttribute('data-user-id'),
-                        bodyUsername: document.body?.getAttribute('data-username'),
-                        containerUserId: document.querySelector('[data-user-id]')?.getAttribute('data-user-id'),
-                        containerUsername: document.querySelector('[data-username]')?.getAttribute('data-username')
-                    });
-                    globalSocketManager.init();
-                }
-            }
-        }, 500);
-    } else if (localStorage.getItem('connect_socket_on_login') === 'true') {
-        localStorage.removeItem('connect_socket_on_login');
-        
-        const checkAuthenticated = setInterval(() => {
-            if (document.querySelector('meta[name="user-authenticated"]')?.content === 'true') {
-                clearInterval(checkAuthenticated);
-                globalSocketManager.init();
-            }
-        }, 500);
-        
-        setTimeout(() => {
-            clearInterval(checkAuthenticated);
-        }, 10000);
-    }
+    // Always attempt socket initialization, even for guests or unauthenticated pages.
+    setTimeout(() => {
+        if (globalSocketManager.connected) return;
+
+        // Gather any user data we may have (may be null for guests)
+        let userId = document.querySelector('meta[name="user-id"]')?.content ||
+                     document.body?.getAttribute('data-user-id') ||
+                     document.querySelector('[data-user-id]')?.getAttribute('data-user-id');
+
+        let username = document.querySelector('meta[name="username"]')?.content ||
+                       document.body?.getAttribute('data-username') ||
+                       document.querySelector('[data-username]')?.getAttribute('data-username');
+
+        const hasAuthData = userId && username;
+        const userData = hasAuthData ? { user_id: userId, username: username } : null;
+
+        if (hasAuthData) {
+            console.log('🔌 Initializing socket with user data:', userData);
+        } else {
+            console.log('🔌 Initializing socket in guest mode (no auth data found)');
+        }
+
+        globalSocketManager.init(userData);
+    }, 500);
 });
 
 window.GlobalSocketManager = GlobalSocketManager;
