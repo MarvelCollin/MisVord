@@ -343,6 +343,37 @@ class VoiceSection {
         }
         return false;
     }
+
+    resetState() {
+        // Clear existing state
+        this.elements = {
+            joinBtn: null,
+            joinView: null,
+            connectingView: null,
+            videoGrid: null,
+            voiceControls: null,
+            voiceIndicator: null
+        };
+        
+        // Reset connection state
+        if (window.voiceState) {
+            window.voiceState.isConnected = false;
+        }
+        
+        // Clear intervals and timeouts
+        if (this.durationInterval) {
+            clearInterval(this.durationInterval);
+        }
+        
+        this.connectionStartTime = null;
+        this.initializationAttempts = 0;
+        
+        // Find and setup elements again
+        setTimeout(() => {
+            this.findElements();
+            this.init();
+        }, 100);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {

@@ -1432,6 +1432,10 @@ function logoutUser() {
         </div>
     `;
 
+    if (document.getElementById('logout-confirmation-modal')) {
+        document.getElementById('logout-confirmation-modal').remove();
+    }
+
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
     const modal = document.getElementById('logout-confirmation-modal');
@@ -1439,10 +1443,9 @@ function logoutUser() {
     const confirmBtn = document.getElementById('confirm-logout-btn');
 
     function closeModal() {
-        modal.classList.add('opacity-0');
-        setTimeout(() => {
-            document.body.removeChild(modal);
-        }, 200);
+        if (modal && modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
     }
 
     function handleLogout() {
@@ -1471,20 +1474,22 @@ function logoutUser() {
         window.location.href = '/logout';
     }
 
-    modal.addEventListener('click', (e) => {
+    const handleModalClick = (e) => {
         if (e.target === modal) {
             closeModal();
         }
-    });
+    };
 
-    cancelBtn.addEventListener('click', closeModal);
-    confirmBtn.addEventListener('click', handleLogout);
-
-    document.addEventListener('keydown', (e) => {
+    const handleKeydown = (e) => {
         if (e.key === 'Escape') {
             closeModal();
         }
-    });
+    };
+
+    modal.addEventListener('click', handleModalClick);
+    cancelBtn.addEventListener('click', closeModal);
+    confirmBtn.addEventListener('click', handleLogout);
+    document.addEventListener('keydown', handleKeydown);
 
     requestAnimationFrame(() => {
         modal.classList.add('opacity-100');
@@ -1510,6 +1515,20 @@ function initVoiceVideoSection() {
             
             window.addEventListener('beforeunload', () => {
                 module.destroyVoiceVideoSettings();
+            });
+
+            document.querySelectorAll('.voice-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    document.querySelectorAll('.voice-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                    
+                    this.classList.add('active');
+                    const contentElement = document.getElementById(`${tabName}-content`);
+                    if (contentElement) {
+                        contentElement.classList.remove('hidden');
+                    }
+                });
             });
         })
         .catch(err => {

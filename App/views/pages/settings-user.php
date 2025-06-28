@@ -22,7 +22,7 @@ $page_css = 'settings-user';
 $page_js = 'components/auth/settings-user';
 $head_scripts = ['logger-init'];
 $data_page = 'settings-user';
-$additional_js = ['components/common/image-cutter'];
+$additional_js = ['components/common/image-cutter', 'components/settings/mic-video-check'];
 $user_id = $_SESSION['user_id'];
 
 $userRepository = new UserRepository();
@@ -405,23 +405,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <span>Detecting camera...</span>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="bg-discord-darker rounded-lg p-6">
-                            <h3 class="text-lg font-medium mb-4">Camera Test</h3>
-                            <div class="video-preview-container">
-                                <video id="video-preview" class="video-preview" autoplay muted playsinline>
-                                    <span class="video-placeholder">Camera preview will appear here</span>
-                                </video>
-                            </div>
-                            
-                            <div class="flex items-center gap-4 mt-4">
-                                <button id="video-test-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
-                                    Test Camera
+                            <div class="mt-4">
+                                <button id="video-test-btn" class="bg-discord-blurple hover:bg-discord-blurple-dark text-white font-medium py-2 px-4 rounded flex items-center">
+                                    <i class="fas fa-camera mr-2"></i>
+                                    Test Video
                                 </button>
-                                <div class="text-sm text-discord-lighter">
-                                    Click to test your camera and see the video feed
-                                </div>
+                            </div>
+                            <div id="video-preview" class="mt-4 w-full max-w-md mx-auto bg-discord-dark rounded-lg overflow-hidden hidden">
+                                <video id="video-preview-element" class="w-full" autoplay playsinline muted></video>
                             </div>
                         </div>
                     </div>

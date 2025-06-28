@@ -465,9 +465,9 @@ class BaseController
         if (strpos($contentType, 'application/json') !== false) {
             $jsonInput = file_get_contents('php://input');
             if (!empty($jsonInput)) {
-            $decoded = json_decode($jsonInput, true);
-            if ($decoded !== null) {
-                $input = $decoded;
+                $decoded = json_decode($jsonInput, true);
+                if ($decoded !== null) {
+                    $input = $decoded;
                 } else {
                     error_log("Failed to decode JSON input: " . json_last_error_msg());
                     error_log("Raw input: " . $jsonInput);
@@ -479,9 +479,20 @@ class BaseController
             $input = [];
         }
         
-        $input = array_merge($input, $_POST);
+        // Merge with POST data
+        foreach ($_POST as $key => $value) {
+            $input[$key] = $value;
+        }
 
-        error_log("Processed input: " . json_encode($input));
+        // Add debug log for input processing
+        if (function_exists('logger')) {
+            logger()->debug("Input received", [
+                'content_type' => $contentType,
+                'method' => $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN',
+                'input_data' => $input
+            ]);
+        }
+        
         return $input;
     }
 

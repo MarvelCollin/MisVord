@@ -253,24 +253,26 @@ class GlobalSocketManager {
     }
     
     joinChannel(channelId) {
-        console.log(`📺 [SOCKET] Joining channel ${channelId}`);
-        
-        if (!this.isReady()) {
-            console.warn('⚠️ [SOCKET] Cannot join channel - socket not ready');
-            return false;
-        }
-        
-        if (!channelId) {
-            console.warn('⚠️ [SOCKET] Cannot join channel - no channel ID provided');
-            return false;
+        if (!this.io || !this.connected || !this.authenticated) {
+            this.error('Cannot join channel - socket not ready');
+            return;
         }
         
         const roomName = `channel-${channelId}`;
-        this.io.emit('join-room', { room_type: 'channel', room_id: channelId });
-        this.joinedChannels.add(roomName);
+        this.log(`Joining channel room: ${roomName}`);
         
-        console.log(`✅ [SOCKET] Joined channel ${channelId}`);
-        return true;
+        this.io.emit('join-room', {
+            room_type: 'channel',
+            room_id: channelId
+        });
+        
+        this.joinedChannels.add(roomName);
+        this.joinedRooms.add(roomName);
+        
+        // Also join the channel via the channel-specific event
+        this.io.emit('join-channel', {
+            channel_id: channelId
+        });
     }
     
     leaveChannel(channelId) {
@@ -283,24 +285,26 @@ class GlobalSocketManager {
     }
     
     joinDMRoom(roomId) {
-        if (!this.connected || !this.io || !this.authenticated) {
-            this.error('Cannot join DM room: socket not connected or not authenticated', {
-                connected: this.connected,
-                authenticated: this.authenticated,
-                hasSocket: !!this.io
-            });
-            return false;
+        if (!this.io || !this.connected || !this.authenticated) {
+            this.error('Cannot join DM room - socket not ready');
+            return;
         }
         
-        if (this.joinedDMRooms.has(roomId)) {
-            this.log(`Already joined DM room: ${roomId}`);
-            return true;
-        }
+        const roomName = `dm-room-${roomId}`;
+        this.log(`Joining DM room: ${roomName}`);
         
-        this.log(`Joining DM room: ${roomId}`);
-        this.io.emit('join-dm-room', { room_id: roomId });
-        this.joinedDMRooms.add(roomId);
-        return true;
+        this.io.emit('join-room', {
+            room_type: 'dm',
+            room_id: roomId
+        });
+        
+        this.joinedDMRooms.add(roomName);
+        this.joinedRooms.add(roomName);
+        
+        // Also join via the DM-specific event
+        this.io.emit('join-dm-room', {
+            room_id: roomId
+        });
     }
     
     joinRoom(roomType, roomId) {
@@ -321,6 +325,31 @@ class GlobalSocketManager {
         
         // Join the room with the server
         this.io.emit('join-room', { room_type: roomType, room_id: roomId });
+        
+        // Setup a listener for messages in this specific room
+        const messageEventName = roomType === 'channel' ? 'new-channel-message' : 'user-message-dm';
+        
+        // Remove previous listeners to prevent duplicates
+        this.io.off(messageEventName);
+        
+        // Add new listener specific to this room
+        this.io.on(messageEventName, (messageData) => {
+            const targetRoomId = roomType === 'channel' ? messageData.channel_id : messageData.room_id;
+            
+            if (messageData && String(targetRoomId) === String(roomId)) {
+                this.log(`Received ${messageEventName} in ${roomType} ${roomId}`);
+                
+                // Dispatch event to any listeners
+                const eventName = roomType === 'channel' ? 'newChannelMessage' : 'newDMMessage';
+                const event = new CustomEvent(eventName, { detail: messageData });
+                window.dispatchEvent(event);
+                
+                // If chatSection is available, add the message directly
+                if (window.chatSection && typeof window.chatSection.messageHandler?.addMessage === 'function') {
+                    window.chatSection.messageHandler.addMessage(messageData);
+                }
+            }
+        });
         
         // Track joined rooms consistently
         this.joinedRooms.add(roomName);
@@ -396,8 +425,8 @@ class GlobalSocketManager {
         const roomData = {
             ...data,
             room_type: roomType,
-            room_id: roomId,
-            source: 'client-originated'
+                room_id: roomId,
+                source: 'client-originated'
         };
         
         console.log(`📤 [SOCKET] Emitting ${eventName} to ${roomType} room ${roomName}:`, roomData);

@@ -49,7 +49,19 @@ class SendReceiveHandler {
             // Send stop typing event
             this.sendStopTypingEvent();
 
+            // Log socket status before sending
+            if (window.globalSocketManager) {
+                console.log('🔌 [SEND-RECEIVE] Socket status before sending:', {
+                    isReady: window.globalSocketManager.isReady(),
+                    connected: window.globalSocketManager.connected,
+                    authenticated: window.globalSocketManager.authenticated,
+                    userId: window.globalSocketManager.userId,
+                    target: { type: this.chatSection.chatType, id: this.chatSection.targetId }
+                });
+            }
+
             // Send the message to the server
+            console.log('📤 [SEND-RECEIVE] Sending message to', this.chatSection.chatType, 'with ID', this.chatSection.targetId);
             const response = await window.ChatAPI.sendMessage(
                 this.chatSection.targetId,
                 content,
@@ -58,9 +70,10 @@ class SendReceiveHandler {
             );
 
             if (response.success) {
-                console.log(`✅ [SEND-RECEIVE] Message sent successfully, ID: ${response.data.message_id}`);
+                const messageId = response.data?.message_id || response.data?.data?.message?.id || response.data?.id;
+                console.log(`✅ [SEND-RECEIVE] Message sent successfully, ID: ${messageId}`);
                 
-                // Message is already added to UI by the socket event handler
+                // Message already added to UI by ChatAPI and socket handler
             } else {
                 console.error('❌ [SEND-RECEIVE] Failed to send message:', response.message);
                 this.chatSection.showNotification('Failed to send message. Please try again.', 'error');

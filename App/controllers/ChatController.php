@@ -1022,6 +1022,117 @@ class ChatController extends BaseController
         }
     }
 
+    /**
+     * Send a message to a specific target (channel or DM)
+     * This method handles the direct endpoint /api/chat/{type}/{id}/messages
+     */
+    public function sendMessageToTarget($targetType, $targetId)
+    {
+        try {
+            error_log("[ChatController] Starting sendMessageToTarget - Type: $targetType, ID: $targetId");
+            
+            // Check authentication
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+                error_log("[ChatController] Authentication failed - No user_id in session");
+                return $this->unauthorized('You must be logged in to send messages');
+            }
+            
+            $userId = $_SESSION['user_id'];
+            error_log("[ChatController] User authenticated - User ID: $userId");
+            
+            $input = $this->getInput();
+            if (empty($input)) {
+                error_log("[ChatController] No input data received");
+                return $this->validationError(['content' => 'No input data provided']);
+            }
+            
+            $input = $this->sanitize($input);
+            error_log("[ChatController] Received input for direct target message: " . json_encode($input));
+
+            // Get the content and other parameters
+            $content = trim($input['content'] ?? '');
+            $messageType = $input['message_type'] ?? 'text';
+            $attachments = $input['attachments'] ?? $input['attachment_url'] ?? null;
+            $mentions = $input['mentions'] ?? [];
+            $replyMessageId = $input['reply_message_id'] ?? null;
+
+            // Handle attachments
+            if (is_string($attachments) && !empty($attachments)) {
+                $attachments = [$attachments];
+            } elseif (!is_array($attachments)) {
+                $attachments = [];
+            }
+
+            // Only validate content if no attachments present
+            if (empty($content) && empty($attachments)) {
+                error_log("[ChatController] Validation failed - No content or attachments");
+                return $this->validationError(['content' => 'Message must have either content or an attachment']);
+            }
+
+            error_log("[ChatController] Sending message to $targetType:$targetId - Content: " . substr($content, 0, 50) . (strlen($content) > 50 ? '...' : ''));
+            
+            if ($targetType === 'channel') {
+                // Verify channel exists and user has access
+                $channel = $this->channelRepository->find($targetId);
+                if (!$channel) {
+                    error_log("[ChatController] Channel not found - ID: $targetId");
+                    return $this->notFound('Channel not found');
+                }
+                
+                if ($channel->server_id != 0) {
+                    $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
+                    if (!$membership) {
+                        error_log("[ChatController] User not a member of server - User: $userId, Server: {$channel->server_id}");
+                        return $this->forbidden('You are not a member of this server');
+                    }
+                }
+                
+                $result = $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+            } else {
+                // Verify chat room exists and user is a participant
+                $chatRoom = $this->chatRoomRepository->find($targetId);
+                if (!$chatRoom) {
+                    error_log("[ChatController] Chat room not found - ID: $targetId");
+                    return $this->notFound('Chat room not found');
+                }
+                
+                if (!$this->chatRoomRepository->isParticipant($targetId, $userId)) {
+                    error_log("[ChatController] User not a participant in chat - User: $userId, Room: $targetId");
+                    return $this->forbidden('You are not a participant in this chat');
+                }
+                
+                $result = $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+            }
+
+            error_log("[ChatController] Send message to target result: " . json_encode($result));
+
+            if ($result['success']) {
+                $message = $result['data']['message'];
+                return $this->success([
+                    'message_id' => $message['id'],
+                    'user_id' => $message['user_id'],
+                    'username' => $message['username'],
+                    'target_type' => $targetType,
+                    'target_id' => $targetId,
+                    'content' => $message['content'],
+                    'message_type' => $message['message_type'],
+                    'attachments' => $message['attachments'],
+                    'mentions' => $message['mentions'],
+                    'reply_message_id' => $message['reply_message_id'],
+                    'reply_data' => $message['reply_data'],
+                    'timestamp' => $message['timestamp']
+                ], 'Message sent successfully');
+            } else {
+                error_log("[ChatController] Failed to send message to target: " . json_encode($result));
+                return $result;
+            }
+        } catch (Exception $e) {
+            error_log("[ChatController] Error sending message to target: " . $e->getMessage());
+            error_log("[ChatController] Stack trace: " . $e->getTraceAsString());
+            return $this->serverError('Failed to send message: ' . $e->getMessage());
+        }
+    }
+
     public function searchMessages($channelId)
     {
         $this->requireAuth();

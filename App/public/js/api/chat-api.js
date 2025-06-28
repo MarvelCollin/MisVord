@@ -145,60 +145,128 @@ class ChatAPI {
         // Map 'direct' to 'dm' for API compatibility
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         
-        const url = '/api/chat/send';
-        const requestData = {
+        // Generate a temporary message ID for immediate display
+        const tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Prepare socket data with temporary ID
+        const socketData = {
+            id: tempMessageId,
+            content: content,
+            user_id: window.globalSocketManager?.userId,
+            username: window.globalSocketManager?.username,
+            avatar_url: null,
+            message_type: options.message_type || 'text',
+            attachments: options.attachments || [],
+            reply_message_id: options.reply_message_id || null,
+            reply_data: options.reply_data || null,
+            timestamp: Date.now(),
             target_type: apiChatType,
             target_id: targetId,
+            channel_id: apiChatType === 'channel' ? targetId : null,
+            room_id: apiChatType === 'dm' ? targetId : null,
+            is_temporary: true
+        };
+        
+        // Add temporary message directly to UI for instant feedback
+        if (window.chatSection && window.chatSection.messageHandler) {
+            console.log(`📝 [CHAT-API] Adding temporary message directly to UI: ${tempMessageId}`);
+            window.chatSection.messageHandler.addMessage(socketData);
+        }
+        
+        // Emit socket event immediately
+        if (apiChatType === 'channel') {
+            console.log(`📡 [CHAT-API] Emitting channel message: ${tempMessageId}`);
+            window.globalSocketManager?.io?.emit('new-channel-message', socketData);
+        } else {
+            console.log(`📡 [CHAT-API] Emitting DM message: ${tempMessageId}`);
+            window.globalSocketManager?.io?.emit('user-message-dm', socketData);
+        }
+        
+        // Prepare request data for API
+        const requestData = {
             content: content,
             message_type: options.message_type || 'text',
             attachments: options.attachments || [],
             reply_message_id: options.reply_message_id || null,
-            reply_data: options.reply_data || null
+            reply_data: options.reply_data || null,
+            temp_message_id: tempMessageId
         };
         
         try {
-            const response = await this.makeRequest(url, {
+            // Save to database using the correct endpoint
+            const endpoint = apiChatType === 'channel' 
+                ? `/api/chat/channel/${targetId}/messages` 
+                : `/api/chat/dm/${targetId}/messages`;
+                
+            const response = await this.makeRequest(endpoint, {
                 method: 'POST',
                 body: JSON.stringify(requestData)
             });
             
             // Extract message data from the nested response structure
-            const messageData = response?.data?.data?.message || {};
-            const messageId = messageData.id;
+            const messageData = response?.data?.data?.message || response?.data?.message || response?.data || {};
+            const messageId = messageData.id || messageData.message_id || response?.data?.message_id;
             
-            console.log(`✅ [CHAT-API] Message sent to database, ID:`, messageId);
+            console.log(`✅ [CHAT-API] Message saved to database, ID:`, messageId);
             
             if (response?.success && messageId) {
-                // Prepare socket data
-                const socketData = {
-                    id: messageId,
-                    content: content,
-                    user_id: messageData.user_id || window.globalSocketManager?.userId,
-                    username: messageData.username || window.globalSocketManager?.username,
-                    avatar_url: messageData.avatar_url || null,
-                    message_type: options.message_type || 'text',
-                    attachments: options.attachments || [],
-                    reply_message_id: options.reply_message_id || null,
-                    reply_data: options.reply_data || null,
-                    timestamp: Date.now(),
-                    target_type: apiChatType,
-                    target_id: targetId
+                // Prepare confirmation data
+                const confirmData = {
+                    temp_message_id: tempMessageId,
+                    permanent_message_id: messageId
                 };
                 
-                console.log(`📦 [CHAT-API] Complete socket message data:`, JSON.stringify(socketData, null, 2));
+                if (apiChatType === 'channel') {
+                    confirmData.channel_id = targetId;
+                } else {
+                    confirmData.room_id = targetId;
+                }
                 
-                // Emit socket event
-                this.emitSocketEventForMessage(apiChatType, targetId, 'new-message', socketData);
+                // Update UI directly
+                if (window.chatSection && window.chatSection.messageHandler) {
+                    console.log(`🔄 [CHAT-API] Updating temporary message in UI: ${tempMessageId} → ${messageId}`);
+                    window.chatSection.messageHandler.handleMessageConfirmed(confirmData);
+                }
+                
+                // Emit a message-confirmed event
+                console.log(`📡 [CHAT-API] Emitting message confirmation: ${tempMessageId} → ${messageId}`);
+                window.globalSocketManager?.io?.emit('message-confirmed', confirmData);
+                
+                return {
+                    success: true,
+                    data: {
+                        message_id: messageId,
+                        temp_message_id: tempMessageId
+                    }
+                };
             } else {
-                console.error(`❌ [CHAT-API] Failed to extract message ID from response`, {
-                    success: response?.success,
-                    messageData
-                });
+                throw new Error('Failed to get message ID from response');
             }
-            
-            return response;
         } catch (error) {
             console.error('❌ [CHAT-API] Error sending message:', error);
+            
+            // Prepare failure data
+            const failData = {
+                temp_message_id: tempMessageId,
+                error: error.message
+            };
+            
+            if (apiChatType === 'channel') {
+                failData.channel_id = targetId;
+            } else {
+                failData.room_id = targetId;
+            }
+            
+            // Update UI directly
+            if (window.chatSection && window.chatSection.messageHandler) {
+                console.log(`❌ [CHAT-API] Marking temporary message as failed in UI: ${tempMessageId}`);
+                window.chatSection.messageHandler.handleMessageFailed(failData);
+            }
+            
+            // Emit message failed event
+            console.log(`📡 [CHAT-API] Emitting message failed: ${tempMessageId}`);
+            window.globalSocketManager?.io?.emit('message-failed', failData);
+            
             throw error;
         }
     }
@@ -720,11 +788,12 @@ class ChatAPI {
 
         // Normalize targetId for DM rooms (strip prefix if present)
         let normalizedTargetId = targetId;
-        if (chatType === 'dm' && typeof targetId === 'string' && targetId.startsWith('dm-room-')) {
+        if (chatType === 'dm' && typeof targetId === 'string') {
+            // Always use plain ID without prefix for socket communication
             normalizedTargetId = targetId.replace('dm-room-', '');
             console.log(`🔄 [CHAT-API] Normalized DM room ID from ${targetId} to ${normalizedTargetId}`);
         }
-
+        
         // Prepare the socket data
         const socketData = {
             ...data,

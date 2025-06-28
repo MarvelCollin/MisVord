@@ -54,7 +54,7 @@ function setup(io) {
         
         client.on('new-channel-message', (data) => {
             console.log(`📨 [MESSAGE-CHANNEL] New channel message from ${client.id}:`, {
-                messageId: data.id,
+                messageId: data.id || data.message_id,
                 channelId: data.channel_id,
                 userId: data.user_id,
                 username: data.username,
@@ -66,7 +66,8 @@ function setup(io) {
             // Log the complete message data
             console.log(`📦 [MESSAGE-CHANNEL] Complete message data:`, JSON.stringify(data, null, 2));
             
-            const signature = messageService.generateSignature('new-channel-message', client.data?.user_id, data.id, data.content, data.timestamp);
+            const messageId = data.id || data.message_id;
+            const signature = messageService.generateSignature('new-channel-message', client.data?.user_id, messageId, data.content, data.timestamp);
             if (!messageService.isDuplicate(signature)) {
                 messageService.markAsProcessed(signature);
                 const channel_id = data.channel_id;
@@ -77,16 +78,22 @@ function setup(io) {
                 data.channel_id = channel_id;
                 data.user_id = data.user_id || client.data.user_id;
                 data.username = data.username || client.data.username;
+                
+                // Ensure the message has an ID
+                if (!data.id && data.message_id) {
+                    data.id = data.message_id;
+                }
+                
                 console.log(`✅ [MESSAGE-CHANNEL] Processing new channel message for channel ${channel_id}`);
                 MessageHandler.forwardMessage(io, client, 'new-channel-message', data);
             } else {
-                console.log(`🔄 [MESSAGE-CHANNEL] Duplicate message detected, skipping: ${data.id}`);
+                console.log(`🔄 [MESSAGE-CHANNEL] Duplicate message detected, skipping: ${messageId}`);
             }
         });
         
         client.on('user-message-dm', (data) => {
             console.log(`📨 [MESSAGE-DM] New DM message from ${client.id}:`, {
-                messageId: data.id,
+                messageId: data.id || data.message_id,
                 roomId: data.room_id,
                 userId: data.user_id,
                 username: data.username,
@@ -95,7 +102,8 @@ function setup(io) {
                 source: data.source
             });
             
-            const signature = messageService.generateSignature('user-message-dm', client.data?.user_id, data.id, data.content, data.timestamp);
+            const messageId = data.id || data.message_id;
+            const signature = messageService.generateSignature('user-message-dm', client.data?.user_id, messageId, data.content, data.timestamp);
             if (!messageService.isDuplicate(signature)) {
                 messageService.markAsProcessed(signature);
                 const room_id = data.room_id;
@@ -106,10 +114,16 @@ function setup(io) {
                 data.room_id = room_id;
                 data.user_id = data.user_id || client.data.user_id;
                 data.username = data.username || client.data.username;
+                
+                // Ensure the message has an ID
+                if (!data.id && data.message_id) {
+                    data.id = data.message_id;
+                }
+                
                 console.log(`✅ [MESSAGE-DM] Processing new DM message for room ${room_id}`);
                 MessageHandler.forwardMessage(io, client, 'user-message-dm', data);
             } else {
-                console.log(`🔄 [MESSAGE-DM] Duplicate message detected, skipping: ${data.id}`);
+                console.log(`🔄 [MESSAGE-DM] Duplicate message detected, skipping: ${messageId}`);
             }
         });
         

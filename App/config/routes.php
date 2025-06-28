@@ -380,6 +380,11 @@ Route::post('/api/chat/send', function() {
     $controller->sendMessage();
 });
 
+Route::post('/api/chat/(channel|dm)/([0-9]+)/messages', function($type, $id) {
+    $controller = new ChatController();
+    $controller->sendMessageToTarget($type, $id);
+});
+
 Route::get('/api/messages/([0-9]+)/reactions', function($messageId) {
     $controller = new MessageController();
     $controller->getReactions($messageId);

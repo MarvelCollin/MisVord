@@ -11,7 +11,8 @@ export function ajax(options = {}) {
         dataType = 'json',
         beforeSend,
         success,
-        error
+        error,
+        complete
     } = options;
 
     method = method.toUpperCase();
@@ -46,6 +47,28 @@ export function ajax(options = {}) {
         try { beforeSend(); } catch (_) {}
     }
 
+    const handleVoiceChannelContent = (content) => {
+        // Reset voice components if they exist
+        if (window.voiceSection) {
+            window.voiceSection.resetState();
+        }
+        if (window.voiceManager) {
+            window.voiceManager.resetState();
+        }
+        
+        // Re-initialize voice components after content update
+        setTimeout(() => {
+            if (window.voiceSection) {
+                window.voiceSection.init();
+            }
+            if (typeof window.initializeVoiceTools === 'function') {
+                window.initializeVoiceTools();
+            }
+        }, 100);
+        
+        return content;
+    };
+
     return fetch(url, { method, headers: fetchHeaders, body })
         .then(async (response) => {
             
@@ -62,16 +85,25 @@ export function ajax(options = {}) {
                     try {
                         parsed = await response.json();
                     } catch (jsonError) {
-                        
-                        parsed = await responseClone.text();
+                        const text = await response.text();
+                        // Check if response contains voice channel content
+                        if (text.includes('voice-container') || 
+                            text.includes('voice-section') || 
+                            text.includes('voice-indicator')) {
+                            parsed = handleVoiceChannelContent(text);
+                        }
+                        parsed = text;
                     }
                 }
             } catch (error) {
                 
-                try {
-                    parsed = await responseClone.text();
-                } catch (finalError) {
-                    throw new Error('Failed to parse response: ' + finalError.message);
+                const text = await responseClone.text();
+                if (text.includes('voice-container') || 
+                    text.includes('voice-section') || 
+                    text.includes('voice-indicator')) {
+                    parsed = handleVoiceChannelContent(text);
+                } else {
+                    throw new Error('Failed to parse response: ' + error.message);
                 }
             }
 
@@ -82,10 +114,12 @@ export function ajax(options = {}) {
             }
 
             if (typeof success === 'function') success(parsed, response);
+            if (typeof complete === 'function') complete(response);
             return parsed;
         })
         .catch((err) => {
             if (typeof error === 'function') error(err);
+            if (typeof complete === 'function') complete(null, err);
             throw err;
         });
 }

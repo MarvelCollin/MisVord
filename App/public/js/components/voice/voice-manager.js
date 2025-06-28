@@ -260,6 +260,37 @@ class VoiceManager {
     showToast(message, type = 'info') {
         window.showToast?.(message, type, 3000);
     }
+
+    resetState() {
+        this.isConnected = false;
+        this.isMuted = false;
+        this.isDeafened = false;
+        this.isVideoOn = false;
+        this.isScreenSharing = false;
+        this.participants.clear();
+        this.currentChannelId = null;
+        this.currentChannelName = null;
+        this.currentMeetingId = null;
+        
+        // Leave any existing meeting
+        if (this.videoSDKManager && this.videoSDKManager.meeting) {
+            this.videoSDKManager.leaveMeeting();
+        }
+        
+        // Reset VideoSDK state
+        if (this.videoSDKManager) {
+            this.videoSDKManager = null;
+            this.initialized = false;
+            this.initializationPromise = null;
+        }
+        
+        // Re-initialize after reset
+        setTimeout(() => {
+            this.init().catch(error => {
+                console.error('Failed to reinitialize voice manager:', error);
+            });
+        }, 100);
+    }
 }
 
 window.addEventListener('DOMContentLoaded', async function() {

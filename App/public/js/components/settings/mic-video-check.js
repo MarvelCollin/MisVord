@@ -536,57 +536,78 @@ class VoiceVideoSettings {
 
     async startVideoTest() {
         try {
-            const videoConstraints = this.getVideoConstraints();
-            const constraints = {
-                video: videoConstraints
-            };
-
-            this.addDebugInfo('Starting camera test...');
-            this.videoTest.videoStream = await navigator.mediaDevices.getUserMedia(constraints);
-            
-            const videoElement = document.getElementById('video-preview');
-            if (videoElement) {
-                this.videoTest.videoElement = videoElement;
-                videoElement.srcObject = this.videoTest.videoStream;
-                videoElement.play();
-                
-                const videoTrack = this.videoTest.videoStream.getVideoTracks()[0];
-                if (videoTrack) {
-                    this.addDebugInfo(`=== ACTIVE VIDEO DEVICE ===`);
-                    this.addDebugInfo(`Device: ${videoTrack.label}`);
-                    this.addDebugInfo(`Device ID: ${videoTrack.getSettings().deviceId || 'default'}`);
-                    this.addDebugInfo(`Width: ${videoTrack.getSettings().width}px`);
-                    this.addDebugInfo(`Height: ${videoTrack.getSettings().height}px`);
-                    this.addDebugInfo(`Frame Rate: ${videoTrack.getSettings().frameRate}fps`);
-                    this.addDebugInfo(`Facing Mode: ${videoTrack.getSettings().facingMode || 'user'}`);
-                }
+            if (this.videoTest.isActive) {
+                return;
             }
 
+            const videoPreview = document.getElementById('video-preview');
+            const videoElement = document.getElementById('video-preview-element');
+            const videoTestBtn = document.getElementById('video-test-btn');
+
+            if (!videoElement || !videoTestBtn) {
+                this.addDebugInfo('Video elements not found');
+                return;
+            }
+
+            this.addDebugInfo('Starting video test...');
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: this.getVideoConstraints()
+            });
+
+            videoElement.srcObject = stream;
+            videoPreview.classList.remove('hidden');
+            videoTestBtn.innerHTML = '<i class="fas fa-stop mr-2"></i>Stop Test';
+            videoTestBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+            videoTestBtn.classList.remove('bg-discord-blurple', 'hover:bg-discord-blurple-dark');
+
             this.videoTest.isActive = true;
-            this.addDebugInfo('Camera test active - video feed should be visible!');
-            
+            this.videoTest.videoStream = stream;
+            this.videoTest.videoElement = videoElement;
+
+            this.addDebugInfo('Video test started successfully');
         } catch (error) {
-            this.addDebugInfo(`Camera test failed: ${error.message}`);
-            this.addDebugInfo('Camera access denied or no camera available');
+            this.addDebugInfo(`Failed to start video test: ${error.message}`);
+            const videoTestBtn = document.getElementById('video-test-btn');
+            if (videoTestBtn) {
+                videoTestBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Test Video';
+                videoTestBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                videoTestBtn.classList.add('bg-discord-blurple', 'hover:bg-discord-blurple-dark');
+            }
         }
     }
 
     stopVideoTest() {
-        if (this.videoTest.isActive) {
-            this.videoTest.isActive = false;
-            
-            if (this.videoTest.videoStream) {
-                this.videoTest.videoStream.getTracks().forEach(track => track.stop());
-                this.videoTest.videoStream = null;
-            }
-            
-            if (this.videoTest.videoElement) {
-                this.videoTest.videoElement.srcObject = null;
-                this.videoTest.videoElement = null;
-            }
-            
-            this.addDebugInfo('Camera test stopped');
+        if (!this.videoTest.isActive) {
+            return;
         }
+
+        this.addDebugInfo('Stopping video test...');
+        
+        if (this.videoTest.videoStream) {
+            this.videoTest.videoStream.getTracks().forEach(track => track.stop());
+            this.videoTest.videoStream = null;
+        }
+
+        if (this.videoTest.videoElement) {
+            this.videoTest.videoElement.srcObject = null;
+            this.videoTest.videoElement = null;
+        }
+
+        const videoPreview = document.getElementById('video-preview');
+        const videoTestBtn = document.getElementById('video-test-btn');
+
+        if (videoPreview) {
+            videoPreview.classList.add('hidden');
+        }
+
+        if (videoTestBtn) {
+            videoTestBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Test Video';
+            videoTestBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+            videoTestBtn.classList.add('bg-discord-blurple', 'hover:bg-discord-blurple-dark');
+        }
+
+        this.videoTest.isActive = false;
+        this.addDebugInfo('Video test stopped');
     }
 
     async restartAudioContext() {

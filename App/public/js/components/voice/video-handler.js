@@ -81,13 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!meeting) return;
         
         meeting.on('stream-enabled', (participant, stream) => {
-            if (stream.kind === 'video') {
+            if (stream && stream.kind === 'video') {
                 attachStream(participant.id, stream);
             }
         });
 
         meeting.on('stream-disabled', (participant, stream) => {
-            if (stream.kind === 'video') {
+            if (stream && stream.kind === 'video') {
                 detachStream(participant.id);
             }
         });
@@ -97,20 +97,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         meeting.localParticipant.on('stream-enabled', (stream) => {
-            if (stream.kind === 'video') {
+            if (stream && stream.kind === 'video') {
                 attachStream('local', stream);
             }
         });
 
         meeting.localParticipant.on('stream-disabled', (stream) => {
-            if (stream.kind === 'video') {
+            if (stream && stream.kind === 'video') {
                 detachStream('local');
             }
         });
 
         if (meeting.localParticipant.streams) {
             meeting.localParticipant.streams.forEach((stream, kind) => {
-                if (kind === 'video') {
+                if (stream && kind === 'video') {
                     attachStream('local', stream);
                 }
             });

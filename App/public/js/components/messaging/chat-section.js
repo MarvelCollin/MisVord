@@ -91,7 +91,7 @@ class ChatSection {
             const lastDiv = this.messageForm.querySelector('.flex.items-center.pr-\\[2px\\].gap-1:last-child');
             if (lastDiv) {
                 lastDiv.appendChild(this.sendButton);
-            } else {
+         } else {
                 // If we can't find the expected div, append to the form
                 this.messageForm.appendChild(this.sendButton);
             }
@@ -155,7 +155,7 @@ class ChatSection {
         
         if (!this.chatMessages) {
             console.error('❌ [CHAT-SECTION] Required DOM element chat-messages not found');
-            return;
+                    return;
         }
         
         if (!this.targetId) {
@@ -168,7 +168,7 @@ class ChatSection {
         // Setup socket listeners
         if (this.socketHandler) {
             this.socketHandler.setupIoListeners();
-        } else {
+                } else {
             console.warn('⚠️ [CHAT-SECTION] Socket handler not initialized');
         }
         
@@ -184,6 +184,42 @@ class ChatSection {
         window.chatSection = this;
         
         console.log('✅ [CHAT-SECTION] Initialization complete');
+        
+        // Join the appropriate socket room immediately
+        if (window.globalSocketManager?.isReady()) {
+            this.joinSocketRoom();
+                } else {
+            window.addEventListener('globalSocketReady', () => this.joinSocketRoom());
+        }
+    }
+    
+    joinSocketRoom() {
+        if (!this.targetId) {
+            console.warn('⚠️ [CHAT-SECTION] Cannot join room: No target ID specified');
+            return;
+        }
+
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            console.warn('⚠️ [CHAT-SECTION] Cannot join room: Socket not ready');
+            setTimeout(() => this.joinSocketRoom(), 1000);
+            return;
+        }
+
+        console.log(`🔌 [CHAT-SECTION] Joining socket room for ${this.chatType} with ID ${this.targetId}`);
+        
+        if (this.chatType === 'channel') {
+            window.globalSocketManager.joinChannel(this.targetId);
+        } else if (this.chatType === 'direct' || this.chatType === 'dm') {
+            window.globalSocketManager.joinDMRoom(this.targetId);
+        }
+        
+        // Force register with the socket server for this specific target
+        window.globalSocketManager.io.emit('join-room', {
+            room_type: this.chatType === 'channel' ? 'channel' : 'dm',
+            room_id: this.targetId
+        });
+        
+        console.log(`✅ [CHAT-SECTION] Socket room join request sent for ${this.chatType} with ID ${this.targetId}`);
     }
     
     setupEventListeners() {
@@ -197,7 +233,7 @@ class ChatSection {
                     console.warn('⚠️ [CHAT-SECTION] Send/Receive handler not initialized');
                 }
             });
-        } else {
+            } else {
             console.warn('⚠️ [CHAT-SECTION] Message form not found');
         }
         
@@ -210,13 +246,13 @@ class ChatSection {
             
             this.messageInput.addEventListener('keydown', (e) => {
                 // Handle keyboard shortcuts
-                if (e.key === 'Escape') {
+            if (e.key === 'Escape') {
                     if (this.replyingTo) {
                         this.cancelReply();
-                        e.preventDefault();
+                e.preventDefault();
                     } else if (this.currentEditingMessage) {
                         this.cancelEditing();
-                        e.preventDefault();
+                e.preventDefault();
                     }
                 }
                 
@@ -228,7 +264,7 @@ class ChatSection {
                     }
                 }
             });
-        } else {
+                } else {
             console.warn('⚠️ [CHAT-SECTION] Message input not found');
         }
         
@@ -283,36 +319,34 @@ class ChatSection {
                 throw new Error('ChatAPI not initialized');
             }
             
-            const response = await window.ChatAPI.getMessages(this.targetId, this.chatType, {
-                limit,
-                before
-            });
+            const response = await window.ChatAPI.getMessages(this.chatType, this.targetId, limit, options.offset || 0);
             
             if (response.success) {
-                const messages = response.data;
+                const messages = response.data?.data?.messages || [];
                 
                 if (messages.length === 0) {
                     this.hasMoreMessages = false;
                     if (!before) {
                         this.showEmptyState();
-                    }
-                } else {
+            }
+        } else {
                     this.hideEmptyState();
                     
                     // Update last loaded message ID for pagination
                     this.lastLoadedMessageId = messages[0].id;
                     
                     // Render messages
-                    if (before) {
-                        this.messageHandler.prependMessages(messages);
-                    } else {
-                        this.messageHandler.renderMessages(messages);
+                    messages.forEach(message => {
+                        this.messageHandler.addMessage(message);
+                    });
+                    
+                    if (!before) {
                         this.scrollToBottom();
                     }
                 }
                 
                 this.updateLoadMoreButton();
-            } else {
+        } else {
                 console.error('❌ [CHAT-SECTION] Failed to load messages:', response.message);
                 this.showEmptyState('Failed to load messages. Please try again.');
             }
@@ -431,10 +465,10 @@ class ChatSection {
                     user_id: this.userId,
                     username: this.username
                 }, 'channel', this.targetId);
-            } else {
+                        } else {
                 window.globalSocketManager.emitToRoom('typing', {
                     room_id: this.targetId,
-                    user_id: this.userId,
+                user_id: this.userId,
                     username: this.username
                 }, 'dm', this.targetId);
             }
@@ -507,7 +541,7 @@ class ChatSection {
             if (this.messageForm) {
                 this.messageForm.parentNode.insertBefore(replyPreview, this.messageForm);
             }
-        } else {
+                } else {
             // Update existing reply preview
             const replyUsername = replyPreview.querySelector('.text-[#00a8fc]');
             const replyText = replyPreview.querySelector('.text-[#dcddde]');
@@ -632,8 +666,8 @@ class ChatSection {
                         let editedBadge = messageElement.querySelector('.edited-badge');
                         if (!editedBadge) {
                             editedBadge = document.createElement('span');
-                            editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
-                            editedBadge.textContent = '(edited)';
+            editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+            editedBadge.textContent = '(edited)';
                             messageTextElement.appendChild(editedBadge);
                         }
                     }
@@ -670,25 +704,25 @@ class ChatSection {
                 console.log(`✅ [CHAT-SECTION] Message ${messageId} deleted successfully`);
                 
                 // Update UI immediately
-                const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                if (messageElement) {
-                    const messageGroup = messageElement.closest('.message-group');
-                    
-                    if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
-                        messageGroup.remove();
-                    } else {
-                        messageElement.remove();
-                    }
-                    
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                const messageGroup = messageElement.closest('.message-group');
+                
+                if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
+                    messageGroup.remove();
+                } else {
+                    messageElement.remove();
+                }
+                
                     // Remove from processed messages
                     this.messageHandler.processedMessageIds.delete(messageId);
-                    
+                
                     // Show empty state if no messages left
-                    const remainingMessages = this.getMessagesContainer().querySelectorAll('.message-group');
-                    if (remainingMessages.length === 0) {
-                        this.showEmptyState();
-                    }
+                const remainingMessages = this.getMessagesContainer().querySelectorAll('.message-group');
+                if (remainingMessages.length === 0) {
+                    this.showEmptyState();
                 }
+            }
             } else {
                 console.error('❌ [CHAT-SECTION] Failed to delete message:', response.message);
                 this.showNotification('Failed to delete message. Please try again.', 'error');
@@ -835,10 +869,10 @@ class ChatSection {
         // Remove after 3 seconds
         setTimeout(() => {
             notification.classList.add('opacity-0');
-            setTimeout(() => {
+                setTimeout(() => {
                 notification.remove();
             }, 300);
-        }, 3000);
+                }, 3000);
     }
     
     debugSocketStatus() {

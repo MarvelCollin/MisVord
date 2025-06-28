@@ -1120,6 +1120,11 @@ class ServerController extends BaseController
             return $this->validationError(['name' => 'Server name is required']);
         }
 
+        // Add name validation (between 2 and 50 characters)
+        if (strlen($input['name']) < 2 || strlen($input['name']) > 50) {
+            return $this->validationError(['name' => 'Server name must be between 2 and 50 characters']);
+        }
+
         try {
             $oldName = $server->name;
             $server->name = $input['name'];
@@ -1145,6 +1150,8 @@ class ServerController extends BaseController
                 'server_id' => $serverId,
                 'error' => $e->getMessage()
             ]);
+            
+            // Better error reporting
             return $this->serverError('Failed to update server name: ' . $e->getMessage());
         }
     }

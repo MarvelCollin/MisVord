@@ -21,9 +21,9 @@ class SocketHandler {
             io.on('new-channel-message', function(data) {
                 try {
                     const isSender = data.user_id === window.globalSocketManager?.userId;
-                    const expectedRoom = `channel-${self.chatSection.targetId}`;
-                    const messageRoom = `channel-${data.channel_id}`;
-                    const isForThisChannel = self.chatSection.chatType === 'channel' && messageRoom === expectedRoom;
+                    const currentChannelId = self.chatSection.targetId;
+                    const messageChannelId = data.channel_id;
+                    const isForThisChannel = self.chatSection.chatType === 'channel' && messageChannelId == currentChannelId;
                     
                     console.log('📨 [CHAT-SECTION] Received new-channel-message:', {
                         id: data.id,
@@ -35,12 +35,10 @@ class SocketHandler {
                         isSender: isSender,
                         isProcessed: self.chatSection.messageHandler.processedMessageIds.has(data.id),
                         isForThisChannel: isForThisChannel,
-                        socketId: io.id,
-                        joinedRooms: Array.from(window.globalSocketManager?.joinedRooms || [])
+                        currentChannelId: currentChannelId,
+                        messageChannelId: messageChannelId,
+                        chatType: self.chatSection.chatType
                     });
-                    
-                    // Log the complete received message data
-                    console.log('📦 [CHAT-SECTION] Complete received message data:', JSON.stringify(data, null, 2));
                     
                     if (isForThisChannel) {
                         if (!self.chatSection.messageHandler.processedMessageIds.has(data.id)) {
@@ -50,7 +48,6 @@ class SocketHandler {
                                 timestamp: new Date().toISOString()
                             });
                             self.chatSection.messageHandler.addMessage({...data, source: 'server-originated'});
-                            self.chatSection.messageHandler.processedMessageIds.add(data.id);
                             
                             // Dispatch event for message received
                             window.dispatchEvent(new CustomEvent('messageReceived', {
@@ -67,11 +64,9 @@ class SocketHandler {
                         }
                     } else {
                         console.log(`❌ [CHAT-SECTION] Message not for this channel:`, {
-                            expected: expectedRoom,
-                            got: messageRoom,
-                            chatType: self.chatSection.chatType,
-                            targetId: self.chatSection.targetId,
-                            joinedRooms: Array.from(window.globalSocketManager?.joinedRooms || [])
+                            currentChannelId: currentChannelId,
+                            messageChannelId: messageChannelId,
+                            chatType: self.chatSection.chatType
                         });
                     }
                 } catch (error) {
@@ -91,20 +86,30 @@ class SocketHandler {
                         isProcessed: self.chatSection.messageHandler.processedMessageIds.has(data.id)
                     });
                     
-                    // Use strict comparison and check room format
-                    const expectedRoom = `dm-room-${self.chatSection.targetId}`;
-                    const messageRoom = `dm-room-${data.room_id}`;
+                    const currentRoomId = self.chatSection.targetId;
+                    const messageRoomId = data.room_id;
+                    const isForThisDM = (self.chatSection.chatType === 'direct' || self.chatSection.chatType === 'dm') && 
+                                       String(messageRoomId) === String(currentRoomId);
                     
-                    if ((self.chatSection.chatType === 'direct' || self.chatSection.chatType === 'dm') && messageRoom === expectedRoom) {
+                    if (isForThisDM) {
                         if (!self.chatSection.messageHandler.processedMessageIds.has(data.id)) {
                             console.log(`✅ [CHAT-SECTION] Adding message ${data.id} to DM room ${data.room_id}`);
                             self.chatSection.messageHandler.addMessage({...data, source: 'server-originated'});
-                            self.chatSection.messageHandler.processedMessageIds.add(data.id);
+                            
+                            // Dispatch event for message received
+                            window.dispatchEvent(new CustomEvent('messageReceived', {
+                                detail: {
+                                    messageId: data.id,
+                                    roomId: data.room_id,
+                                    userId: data.user_id,
+                                    timestamp: Date.now()
+                                }
+                            }));
                         } else {
                             console.log(`🔄 [CHAT-SECTION] Message ${data.id} already processed, skipping`);
                         }
                     } else {
-                        console.log(`❌ [CHAT-SECTION] Message not for this DM. Expected: ${expectedRoom}, Got: ${messageRoom}`);
+                        console.log(`❌ [CHAT-SECTION] Message not for this DM. Current: ${currentRoomId}, Message: ${messageRoomId}`);
                     }
                 } catch (error) {
                     console.error('❌ [CHAT-SECTION] Error handling user-message-dm:', error);
@@ -172,6 +177,26 @@ class SocketHandler {
                 }
             });
             
+            // Message confirmation handling
+            io.on('message-confirmed', function(data) {
+                try {
+                    console.log('✅ [CHAT-SECTION] Message confirmed:', data);
+                    self.chatSection.messageHandler.handleMessageConfirmed(data);
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling message-confirmed:', error);
+                }
+            });
+            
+            // Message failure handling
+            io.on('message-failed', function(data) {
+                try {
+                    console.log('❌ [CHAT-SECTION] Message failed:', data);
+                    self.chatSection.messageHandler.handleMessageFailed(data);
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error handling message-failed:', error);
+                }
+            });
+            
             // Typing indicators
             io.on('user-typing', function(data) {
                 try {
@@ -228,13 +253,13 @@ class SocketHandler {
             console.log('Socket not ready, waiting for socketAuthenticated event');
             
             // Listen for socket ready event
-            const socketReadyHandler = (event) => {
+            const socketReadyHandler = function(event) {
                 console.log('Socket authenticated event received in ChatSection');
-                if (event.detail && event.detail.manager && event.detail.manager.io) {
-                    setupSocketHandlers(event.detail.manager.io);
+                if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                    setupSocketHandlers(window.globalSocketManager.io);
                     
                     // Join appropriate room using unified method
-                    this.joinChannel();
+                    self.joinChannel();
                     
                     // Remove the event listener since we only need it once
                     window.removeEventListener('socketAuthenticated', socketReadyHandler);

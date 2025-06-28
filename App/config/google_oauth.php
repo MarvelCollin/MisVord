@@ -6,7 +6,12 @@ $domain = EnvLoader::get('DOMAIN', 'localhost');
 $subpath = EnvLoader::get('SUBPATH') ? '/' . trim(EnvLoader::get('SUBPATH'), '/') : '';
 $protocol = (EnvLoader::get('USE_HTTPS') === 'true') ? 'https' : 'http';
 
-$baseUrl = $protocol . '://' . $domain . $subpath;
+$port = '';
+if ($domain === 'localhost') {
+    $port = ':1001';
+}
+
+$baseUrl = $protocol . '://' . $domain . $port . $subpath;
 
 return [
 

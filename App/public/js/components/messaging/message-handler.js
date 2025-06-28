@@ -4,6 +4,7 @@ class MessageHandler {
         this.processedMessageIds = new Set();
         this.lastMessageGroup = null;
         this.messageGroupTimeThreshold = 5 * 60 * 1000; // 5 minutes in milliseconds
+        this.temporaryMessages = new Map(); // Track temporary messages
     }
 
     addMessage(messageData) {
@@ -12,7 +13,7 @@ class MessageHandler {
             return;
         }
         
-        if (this.processedMessageIds.has(messageData.id)) {
+        if (this.processedMessageIds.has(messageData.id) && !messageData.is_temporary) {
             console.log(`🔄 [MESSAGE-HANDLER] Message ${messageData.id} already processed, skipping`);
             return;
         }
@@ -34,15 +35,27 @@ class MessageHandler {
         // Check if we should append to existing message group or create a new one
         const shouldGroupWithPrevious = this.shouldGroupWithPreviousMessage(messageData);
         
+        let messageContent;
+        let messageGroup;
+        
         if (shouldGroupWithPrevious && this.lastMessageGroup) {
             // Append to existing message group
-            const messageContent = this.createMessageContent(formattedMessage);
+            messageContent = this.createMessageContent(formattedMessage);
             this.lastMessageGroup.querySelector('.message-contents').appendChild(messageContent);
+            messageGroup = this.lastMessageGroup;
         } else {
             // Create new message group
-            const messageGroup = this.createMessageGroup(formattedMessage);
+            messageGroup = this.createMessageGroup(formattedMessage);
             messagesContainer.appendChild(messageGroup);
             this.lastMessageGroup = messageGroup;
+            messageContent = messageGroup.querySelector('.message-content');
+        }
+        
+        // Add temporary message styling if needed
+        if (messageData.is_temporary) {
+            messageContent.classList.add('temporary-message');
+            messageContent.style.opacity = '0.7';
+            this.temporaryMessages.set(messageData.id, messageContent);
         }
         
         // Add to processed messages
@@ -542,6 +555,74 @@ class MessageHandler {
         
         return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
     }
+
+    handleMessageConfirmed(data) {
+        console.log('✅ [MESSAGE-HANDLER] Message confirmed:', data);
+        
+        const { temp_message_id, permanent_message_id } = data;
+        
+        if (!temp_message_id || !permanent_message_id) {
+            console.error('❌ [MESSAGE-HANDLER] Missing message IDs in confirmation:', data);
+            return;
+        }
+        
+        // Find the temporary message element
+        const tempMessageContent = document.querySelector(`[data-message-id="${temp_message_id}"]`);
+        if (!tempMessageContent) {
+            console.warn(`⚠️ [MESSAGE-HANDLER] Temporary message ${temp_message_id} not found`);
+            return;
+        }
+        
+        // Update the message ID
+        tempMessageContent.dataset.messageId = permanent_message_id;
+        
+        // Remove temporary styling
+        tempMessageContent.classList.remove('temporary-message');
+        tempMessageContent.style.opacity = '1';
+        
+        // Update processed IDs
+        this.processedMessageIds.delete(temp_message_id);
+        this.processedMessageIds.add(permanent_message_id);
+        
+        // Remove from temporary messages map
+        this.temporaryMessages.delete(temp_message_id);
+        
+        console.log(`✅ [MESSAGE-HANDLER] Message ${temp_message_id} confirmed as ${permanent_message_id}`);
+    }
+
+    handleMessageFailed(data) {
+        console.error('❌ [MESSAGE-HANDLER] Message failed:', data);
+        
+        const { temp_message_id, error } = data;
+        
+        if (!temp_message_id) {
+            console.error('❌ [MESSAGE-HANDLER] Missing temp_message_id in failure:', data);
+            return;
+        }
+        
+        // Find the temporary message element
+        const tempMessageContent = document.querySelector(`[data-message-id="${temp_message_id}"]`);
+        if (!tempMessageContent) {
+            console.warn(`⚠️ [MESSAGE-HANDLER] Failed message ${temp_message_id} not found`);
+            return;
+        }
+        
+        // Add error styling
+        tempMessageContent.classList.add('message-failed');
+        tempMessageContent.style.opacity = '0.5';
+        
+        // Add error message
+        const errorText = document.createElement('div');
+        errorText.className = 'text-red-500 text-xs mt-1';
+        errorText.textContent = error || 'Failed to send message';
+        tempMessageContent.appendChild(errorText);
+        
+        // Remove from temporary messages map
+        this.temporaryMessages.delete(temp_message_id);
+        
+        console.log(`❌ [MESSAGE-HANDLER] Message ${temp_message_id} marked as failed`);
+    }
 }
 
 export default MessageHandler;
+ 
