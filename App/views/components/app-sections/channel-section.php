@@ -58,23 +58,7 @@ function renderCategorySkeleton($count = 1) {
 ?>
 
 <div class="channel-wrapper h-full w-full overflow-y-auto">
-    <div class="channel-skeleton p-2 skeleton-loader">
-        <div class="h-6 bg-gray-700 rounded w-32 mb-6 mx-auto animate-pulse"></div>
-        
-        <div class="mb-4">
-            <div class="h-5 bg-gray-700 rounded w-32 mb-3 mx-2 animate-pulse"></div>
-            <?php renderChannelSkeleton(3); ?>
-        </div>
-        
-        <div class="mb-3">
-            <div class="h-5 bg-gray-700 rounded w-24 mb-3 mx-2 animate-pulse"></div>
-            <?php renderChannelSkeleton(2); ?>
-        </div>
-        
-        <?php renderCategorySkeleton(2); ?>
-    </div>
-
-    <div class="channel-list p-2 hidden" data-server-id="<?php echo $currentServerId; ?>">
+    <div class="channel-list p-2" data-server-id="<?php echo $currentServerId; ?>">
         <input type="hidden" id="current-server-id" value="<?php echo $currentServerId; ?>">
         
         <?php
@@ -166,16 +150,6 @@ function renderCategorySkeleton($count = 1) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-        const skeleton = document.querySelector('.channel-skeleton');
-        const channelList = document.querySelector('.channel-list');
-        
-        if (skeleton && channelList) {
-            skeleton.classList.add('hidden');
-            channelList.classList.remove('hidden');
-        }
-    }, 800);
-    
     initializeChannelHandlers();
 });
 

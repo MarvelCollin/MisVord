@@ -61,8 +61,9 @@ class MessageHandler {
                 source: broadcastData.source
             });
             
-            roomManager.broadcastToRoom(io, targetRoom, eventName, broadcastData);
-            console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to ${targetRoom}`);
+            // Broadcast to the room EXCLUDING the sender to avoid duplicate rendering on the sender UI
+            client.to(targetRoom).emit(eventName, broadcastData);
+            console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to ${targetRoom} (excluding sender)`);
         } else {
             console.warn(`⚠️ [MESSAGE-FORWARD] No target room found for ${eventName}:`, {
                 channelId: data.channel_id,
@@ -127,8 +128,9 @@ class MessageHandler {
                 action: reactionData.action
             });
             
-            roomManager.broadcastToRoom(io, targetRoom, eventName, reactionData);
-            console.log(`✅ [REACTION-HANDLER] Successfully broadcasted ${eventName} to ${targetRoom}`);
+            // Broadcast to the room EXCLUDING the sender to avoid duplicate rendering on the sender UI
+            client.to(targetRoom).emit(eventName, reactionData);
+            console.log(`✅ [REACTION-HANDLER] Successfully broadcasted ${eventName} to ${targetRoom} (excluding sender)`);
         } else {
             console.warn(`⚠️ [REACTION-HANDLER] No target room found for ${eventName}:`, {
                 targetType: data.target_type,
@@ -189,8 +191,9 @@ class MessageHandler {
                 action: pinData.action
             });
             
-            roomManager.broadcastToRoom(io, targetRoom, eventName, pinData);
-            console.log(`✅ [PIN-HANDLER] Successfully broadcasted ${eventName} to ${targetRoom}`);
+            // Broadcast to the room EXCLUDING the sender to avoid duplicate rendering on the sender UI
+            client.to(targetRoom).emit(eventName, pinData);
+            console.log(`✅ [PIN-HANDLER] Successfully broadcasted ${eventName} to ${targetRoom} (excluding sender)`);
         } else {
             console.warn(`⚠️ [PIN-HANDLER] No target room found for ${eventName}:`, {
                 targetType: data.target_type,

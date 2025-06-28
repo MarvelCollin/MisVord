@@ -17,19 +17,14 @@ function loadServerChannels() {
     const serverId = getServerId();
     if (!serverId) return;
 
-    const loadingEl = document.getElementById('channel-loading');
-    if (loadingEl) loadingEl.classList.remove('hidden');
-
     window.serverAPI.getServerChannels(serverId)
         .then(response => {
             if (response.data) {
                 renderChannelList(response.data);
             }
-            if (loadingEl) loadingEl.classList.add('hidden');
         })
         .catch(error => {
             console.error('Error loading channels:', error);
-            if (loadingEl) loadingEl.classList.add('hidden');
         });
 }
 

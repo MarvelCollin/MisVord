@@ -33,7 +33,6 @@ $additional_js = [
 ];
 $contentType = 'server';
 $data_page = 'server';
-$body_attributes = 'data-initial-load="true"';
         
 $extraHeadContent = '<meta name="server-id" content="' . htmlspecialchars($serverId) . '">';
 

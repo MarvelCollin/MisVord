@@ -1,6 +1,7 @@
 const AuthHandler = require('../handlers/authHandler');
 const RoomHandler = require('../handlers/roomHandler');
 const MessageHandler = require('../handlers/messageHandler');
+const BotHandler = require('../handlers/botHandler');
 const roomManager = require('../services/roomManager');
 const userService = require('../services/userService');
 const messageService = require('../services/messageService');
@@ -311,6 +312,16 @@ function setup(io) {
                 console.warn(`⚠️ [DEBUG-BROADCAST] Room not found: ${data.room}`);
             }
         });
+
+        client.on('bot-init', (data) => {
+            console.log(`🤖 [BOT-INIT] Bot initialization request from ${client.id}:`, data);
+            handleBotInit(io, client, data);
+        });
+
+        client.on('bot-join-channel', (data) => {
+            console.log(`🤖 [BOT-JOIN] Bot join channel request from ${client.id}:`, data);
+            handleBotJoinChannel(io, client, data);
+        });
         
         client.on('disconnect', () => {
             console.log(`❌ [DISCONNECT] Client disconnected: ${client.id}`);
@@ -542,6 +553,81 @@ function handleDisconnect(io, client) {
         console.log(`✅ [DISCONNECT-HANDLER] Cleanup completed for user ${user_id}`);
     } else {
         console.log(`❓ [DISCONNECT-HANDLER] Unauthenticated client disconnected: ${client.id}`);
+    }
+}
+
+function handleBotInit(io, client, data) {
+    console.log(`🤖 [BOT-INIT-HANDLER] Processing bot initialization:`, {
+        botId: data.bot_id,
+        username: data.username,
+        requestingUser: client.data?.user_id
+    });
+    
+    if (!client.data?.authenticated) {
+        console.warn('⚠️ [BOT-INIT-HANDLER] Rejecting bot init from unauthenticated client');
+        client.emit('bot-init-error', { message: 'Authentication required' });
+        return;
+    }
+    
+    const { bot_id, username } = data;
+    
+    if (!bot_id || !username) {
+        console.warn('⚠️ [BOT-INIT-HANDLER] Bot ID and username are required');
+        client.emit('bot-init-error', { message: 'Bot ID and username are required' });
+        return;
+    }
+    
+    try {
+        BotHandler.connectBot(io, bot_id, username);
+        console.log(`✅ [BOT-INIT-HANDLER] Bot ${username} initialized successfully`);
+        client.emit('bot-init-success', { 
+            bot_id, 
+            username,
+            message: `Bot ${username} is now active and listening for messages`
+        });
+    } catch (error) {
+        console.error(`❌ [BOT-INIT-HANDLER] Error initializing bot:`, error);
+        client.emit('bot-init-error', { message: 'Failed to initialize bot' });
+    }
+}
+
+function handleBotJoinChannel(io, client, data) {
+    console.log(`🤖 [BOT-JOIN-HANDLER] Processing bot join channel:`, {
+        botId: data.bot_id,
+        channelId: data.channel_id,
+        requestingUser: client.data?.user_id
+    });
+    
+    if (!client.data?.authenticated) {
+        console.warn('⚠️ [BOT-JOIN-HANDLER] Rejecting bot join from unauthenticated client');
+        client.emit('bot-join-error', { message: 'Authentication required' });
+        return;
+    }
+    
+    const { bot_id, channel_id } = data;
+    
+    if (!bot_id || !channel_id) {
+        console.warn('⚠️ [BOT-JOIN-HANDLER] Bot ID and channel ID are required');
+        client.emit('bot-join-error', { message: 'Bot ID and channel ID are required' });
+        return;
+    }
+    
+    try {
+        const success = BotHandler.joinBotToRoom(bot_id, 'channel', channel_id);
+        if (success) {
+            console.log(`✅ [BOT-JOIN-HANDLER] Bot ${bot_id} joined channel ${channel_id}`);
+            client.emit('bot-join-success', { 
+                bot_id, 
+                channel_id,
+                message: `Bot joined channel ${channel_id} successfully`
+            });
+        } else {
+            console.warn(`⚠️ [BOT-JOIN-HANDLER] Failed to join bot to channel`);
+            client.emit('bot-join-error', { message: 'Bot not found or failed to join channel' });
+        }
+    } catch (error) {
+        console.error(`❌ [BOT-JOIN-HANDLER] Error joining bot to channel:`, error);
+        client.emit('bot-join-error', { message: 'Failed to join bot to channel' });
     }
 }
 

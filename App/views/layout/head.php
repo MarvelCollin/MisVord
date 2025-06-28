@@ -202,6 +202,273 @@ $include_socket_io = true;
 <?php endif; ?>
 
 <script>
+async function showTitiBotModal() {
+    const modal = document.createElement('div');
+    modal.id = 'titibot-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    
+    let userServers = [];
+    try {
+        const response = await fetch('/api/user/servers');
+        if (response.ok) {
+            const data = await response.json();
+            userServers = data.servers || [];
+        }
+    } catch (error) {
+        console.error('Failed to fetch user servers:', error);
+    }
+    
+    let botExists = false;
+    let botData = null;
+    try {
+        const response = await fetch('/api/bots/check/titibot');
+        if (response.ok) {
+            const data = await response.json();
+            botExists = data.exists && data.is_bot;
+            botData = data.bot;
+        }
+    } catch (error) {
+        console.error('Failed to check bot status:', error);
+    }
+    
+    const serverOptions = userServers.map(server => 
+        `<option value="${server.id}">${server.name}</option>`
+    ).join('');
+    
+    modal.innerHTML = `
+        <div class="bg-discord-dark rounded-lg p-6 max-w-lg w-full mx-4 border border-gray-700">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white flex items-center">
+                    <i class="fas fa-robot mr-2 text-blue-400"></i>
+                    TitiBot Management
+                </h3>
+                <button class="text-gray-400 hover:text-white" onclick="document.getElementById('titibot-modal').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mb-6">
+                <div class="p-3 bg-blue-900/20 border border-blue-700/30 rounded mb-4">
+                    <p class="text-blue-300 text-sm">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        TitiBot responds to "/titibot ping" in channels where it's active.
+                    </p>
+                </div>
+                
+                <div class="mb-4">
+                    <p class="text-gray-300 mb-2">Status:</p>
+                    <div id="bot-status" class="text-sm">
+                        ${botExists ? 
+                            `<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot exists and is ready</span>` :
+                            `<span class="text-yellow-400"><i class="fas fa-exclamation-circle mr-1"></i>TitiBot needs to be created</span>`
+                        }
+                    </div>
+                </div>
+                
+                ${!botExists ? `
+                <div class="mb-4">
+                    <button 
+                        id="create-bot-btn"
+                        onclick="createTitiBot()" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors flex items-center justify-center"
+                    >
+                        <i class="fas fa-plus mr-2"></i>
+                        Create TitiBot
+                    </button>
+                </div>
+                ` : ''}
+                
+                <div class="mb-4" ${!botExists ? 'style="opacity: 0.5; pointer-events: none;"' : ''}>
+                    <label class="block text-gray-300 text-sm mb-2">Select Server to Add Bot:</label>
+                    <select id="server-select" class="w-full bg-discord-lighter text-white p-2 rounded border border-gray-600">
+                        <option value="">Choose a server...</option>
+                        ${serverOptions}
+                    </select>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button 
+                        onclick="document.getElementById('titibot-modal').remove()" 
+                        class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        id="init-bot-btn"
+                        onclick="initializeTitiBot()" 
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors flex items-center justify-center"
+                        ${!botExists ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
+                    >
+                        <i class="fas fa-play mr-2"></i>
+                        Initialize Bot
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    if (window.showToast) {
+        window.showToast('🤖 TitiBot management opened', 'info');
+    }
+}
+
+async function createTitiBot() {
+    const button = document.getElementById('create-bot-btn');
+    if (!button) return;
+    
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
+    button.disabled = true;
+    
+    try {
+        const response = await fetch('/api/bots/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                username: 'titibot',
+                email: 'titibot@misvord.local'
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Bot created successfully:', data);
+            
+            if (window.showToast) {
+                window.showToast('✅ TitiBot created successfully!', 'success');
+            }
+            
+            window.titiBotData = data.bot;
+            
+            document.getElementById('bot-status').innerHTML = 
+                '<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot created and ready</span>';
+            
+            const initButton = document.getElementById('init-bot-btn');
+            const serverSelect = document.getElementById('server-select');
+            
+            if (initButton) {
+                initButton.disabled = false;
+                initButton.style.opacity = '1';
+                initButton.style.cursor = 'pointer';
+            }
+            
+            if (serverSelect) {
+                serverSelect.parentElement.style.opacity = '1';
+                serverSelect.parentElement.style.pointerEvents = 'auto';
+            }
+            
+            button.remove();
+            
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to create bot');
+        }
+    } catch (error) {
+        console.error('Error creating TitiBot:', error);
+        if (window.showToast) {
+            window.showToast('❌ Failed to create TitiBot: ' + error.message, 'error');
+        }
+        
+        button.innerHTML = '<i class="fas fa-plus mr-2"></i>Create TitiBot';
+        button.disabled = false;
+    }
+}
+
+async function initializeTitiBot() {
+    const serverSelect = document.getElementById('server-select');
+    const initButton = document.getElementById('init-bot-btn');
+    
+    if (!serverSelect || !serverSelect.value) {
+        if (window.showToast) {
+            window.showToast('⚠️ Please select a server first', 'warning');
+        }
+        return;
+    }
+    
+    const serverId = serverSelect.value;
+    const serverName = serverSelect.options[serverSelect.selectedIndex].text;
+    
+    initButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Initializing...';
+    initButton.disabled = true;
+    
+    try {
+        let botId = window.titiBotData?.id;
+        
+        if (!botId) {
+            const checkResponse = await fetch('/api/bots/check/titibot');
+            if (checkResponse.ok) {
+                const checkData = await checkResponse.json();
+                if (checkData.exists && checkData.is_bot) {
+                    botId = checkData.bot.id;
+                    window.titiBotData = checkData.bot;
+                }
+            }
+        }
+        
+        if (!botId) {
+            throw new Error('TitiBot not found');
+        }
+        
+        const addResponse = await fetch('/api/bots/add-to-server', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                bot_id: botId,
+                server_id: serverId
+            })
+        });
+        
+        if (addResponse.ok) {
+            console.log('Bot added to server successfully');
+            
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                
+                window.globalSocketManager.io.emit('bot-init', {
+                    bot_id: botId,
+                    username: 'titibot'
+                });
+                
+                window.globalSocketManager.io.emit('bot-join-channel', {
+                    bot_id: botId,
+                    channel_id: serverId
+                });
+                
+                console.log('Bot initialization and channel join events sent');
+            }
+            
+            if (window.showToast) {
+                window.showToast(`✅ TitiBot initialized in ${serverName}!`, 'success');
+            }
+            
+            document.getElementById('titibot-modal').remove();
+            
+        } else {
+            const errorData = await addResponse.json();
+            throw new Error(errorData.message || 'Failed to add bot to server');
+        }
+        
+    } catch (error) {
+        console.error('Error initializing TitiBot:', error);
+        if (window.showToast) {
+            window.showToast('❌ Failed to initialize TitiBot: ' + error.message, 'error');
+        }
+        
+        initButton.innerHTML = '<i class="fas fa-play mr-2"></i>Initialize Bot';
+        initButton.disabled = false;
+    }
+}
+
 function resetAuthSession() {
     console.log('🔓 Starting authentication reset...');
     
@@ -465,71 +732,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey && e.key === '9') {
             e.preventDefault();
             
-            console.log('Auth reset modal triggered...');
+            console.log('TitiBot management modal triggered...');
             
-            const existingModal = document.getElementById('auth-reset-modal');
+            const existingModal = document.getElementById('titibot-modal');
             if (existingModal) {
                 existingModal.remove();
             }
             
-            const modal = document.createElement('div');
-            modal.id = 'auth-reset-modal';
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-            modal.innerHTML = `
-                <div class="bg-discord-dark rounded-lg p-6 max-w-md w-full mx-4 border border-gray-700">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-white flex items-center">
-                            <i class="fas fa-sign-out-alt mr-2 text-red-400"></i>
-                            Reset Authentication
-                        </h3>
-                        <button class="text-gray-400 hover:text-white" onclick="document.getElementById('auth-reset-modal').remove()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="mb-6">
-                        <p class="text-gray-300 mb-2">This will:</p>
-                        <ul class="text-gray-400 text-sm space-y-1 ml-4">
-                            <li>• Clear all authentication sessions</li>
-                            <li>• Remove stored user data</li>
-                            <li>• Disconnect from socket connections</li>
-                            <li>• Redirect to login page</li>
-                        </ul>
-                        <div class="mt-4 p-3 bg-red-900/20 border border-red-700/30 rounded">
-                            <p class="text-red-300 text-sm">
-                                <i class="fas fa-exclamation-triangle mr-1"></i>
-                                You will need to log in again after this action.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex space-x-3">
-                        <button 
-                            onclick="document.getElementById('auth-reset-modal').remove()" 
-                            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            onclick="resetAuthSession()" 
-                            class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition-colors flex items-center justify-center"
-                        >
-                            <i class="fas fa-sign-out-alt mr-2"></i>
-                            Reset & Logout
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    modal.remove();
-                }
-            });
-            
-            if (window.showToast) {
-                window.showToast('🔓 Auth reset modal opened', 'info');
-            }
+            showTitiBotModal();
         }
     });
     
@@ -603,7 +813,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return status;
     }
     
-    console.log('Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status), Ctrl+8 (socket debug panel), Ctrl+9 (auth reset)');
+    console.log('Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status), Ctrl+8 (socket debug panel), Ctrl+9 (TitiBot management)');
     
     if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
         console.log('MisVordMessaging exists but not initialized, attempting manual initialization...');

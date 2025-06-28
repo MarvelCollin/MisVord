@@ -78,6 +78,15 @@ class ChatController extends BaseController
             $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
+            // Debug: Check if any messages have reply data
+            $replyCount = 0;
+            foreach ($formattedMessages as $msg) {
+                if (isset($msg['reply_data'])) {
+                    $replyCount++;
+                }
+            }
+            error_log("DEBUG: getChannelMessages - Found $replyCount messages with reply_data out of " . count($formattedMessages) . " total messages");
+
             error_log("Returning " . count($formattedMessages) . " messages for channel $channelId");
             
             return $this->respondMessages('channel', $channelId, $formattedMessages, count($messages) >= $limit);
@@ -118,6 +127,15 @@ class ChatController extends BaseController
 
             $messages = $this->chatRoomMessageRepository->getMessagesByRoomId($chatRoomId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
+
+            // Debug: Check if any messages have reply data
+            $replyCount = 0;
+            foreach ($formattedMessages as $msg) {
+                if (isset($msg['reply_data'])) {
+                    $replyCount++;
+                }
+            }
+            error_log("DEBUG: getDirectMessages - Found $replyCount messages with reply_data out of " . count($formattedMessages) . " total messages");
 
             error_log("Returning " . count($formattedMessages) . " messages for DM room $chatRoomId");
 
@@ -623,8 +641,6 @@ class ChatController extends BaseController
         if ($replyMessageId) {
             $formatted['reply_message_id'] = $replyMessageId;
             
-            error_log("DEBUG: formatMessage - Processing reply for message " . $formatted['id'] . " replying to $replyMessageId");
-            
             $repliedMessage = $this->messageRepository->find($replyMessageId);
             if ($repliedMessage) {
                 $repliedUserId = $repliedMessage->user_id;
@@ -637,10 +653,6 @@ class ChatController extends BaseController
                     'username' => $repliedUser ? $repliedUser->username : 'Unknown User',
                     'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/default-profile-picture.png'
                 ];
-                
-                error_log("DEBUG: formatMessage - Built reply_data for message " . $formatted['id'] . ": " . json_encode($formatted['reply_data']));
-            } else {
-                error_log("DEBUG: formatMessage - Could not find replied message $replyMessageId for message " . $formatted['id']);
             }
         }
         

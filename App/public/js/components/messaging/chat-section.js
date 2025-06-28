@@ -1172,9 +1172,9 @@ class ChatSection {
             
             console.log('Message send response:', response);
             
-            if (response && response.success && response.data) {
-                if (response.data.message && response.data.message.id) {
-                    const serverMessage = response.data.message;
+            if (response && response.success) {
+                const serverMessage = (response.data && response.data.message) || (response.data && response.data.data && response.data.data.message);
+                if (serverMessage && serverMessage.id) {
                     const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
                     if (tempMessageElement) {
                         // Remove the temp ID from processed IDs and add the new server ID
