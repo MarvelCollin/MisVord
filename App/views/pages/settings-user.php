@@ -35,8 +35,6 @@ if (!$user) {
     exit;
 }
 
-
-
 $section = $_GET['section'] ?? 'my-account';
 
 ob_start();
@@ -47,6 +45,12 @@ ob_start();
 <meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/common/default-profile-picture.png'); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($user->username ?? ''); ?>">
 <meta name="display-name" content="<?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?>">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.body.classList.add('settings-page');
+});
+</script>
 
 <div class="flex min-h-screen">
     <aside class="w-60">

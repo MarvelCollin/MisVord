@@ -1,74 +1,66 @@
 const channelAPI = {
     createChannel: function(formData) {
-        return fetch('/api/channels/create', {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: '/api/channels/create',
             method: 'POST',
-            body: formData,
-            credentials: 'include',
+                data: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                },
+                success: resolve,
+                error: reject
+            });
         });
     },
 
     updateChannel: function(channelId, data) {
-        return fetch(`/api/channels/${channelId}`, {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: `/api/channels/${channelId}`,
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify(data),
-            credentials: 'include'
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                data: data,
+                success: resolve,
+                error: reject
+            });
         });
     },
 
     deleteChannel: function(channelId) {
-        return fetch(`/api/channels/${channelId}`, {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: `/api/channels/${channelId}`,
             method: 'DELETE',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            credentials: 'include'
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                success: resolve,
+                error: reject
+            });
         });
     },
 
     getChannelMessages: function(channelId, offset = 0, limit = 50) {
+        return new Promise((resolve, reject) => {
         const params = new URLSearchParams({
             offset: offset,
             limit: limit
         });
         
-        return fetch(`/api/chat/channel/${channelId}/messages?${params.toString()}`, {
+            ajax({
+                url: `/api/chat/channel/${channelId}/messages?${params.toString()}`,
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                },
+                success: resolve,
+                error: reject
+            });
         });
     },
 
@@ -85,100 +77,80 @@ const channelAPI = {
     },
 
     joinVoiceChannel: function(channelId) {
-        console.log(`🎤 Joining voice channel: ${channelId}`);
-        
-        return fetch(`/api/voice/join`, {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: '/api/voice/join',
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({
-                channel_id: channelId
-            }),
-            credentials: 'include'
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                data: { channel_id: channelId },
+                success: resolve,
+                error: reject
+            });
         });
     },
 
     leaveVoiceChannel: function(channelId) {
-        console.log(`🎤 Leaving voice channel: ${channelId}`);
-        
-        return fetch(`/api/voice/leave`, {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: '/api/voice/leave',
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({
-                channel_id: channelId
-            }),
-            credentials: 'include'
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                data: { channel_id: channelId },
+                success: resolve,
+                error: reject
+            });
         });
     },
 
     createCategory: function(formData) {
-        return fetch('/api/categories/create', {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: '/api/categories/create',
             method: 'POST',
-            body: formData,
-            credentials: 'include',
+                data: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                },
+                success: resolve,
+                error: reject
+            });
         });
     },
 
     updateChannelOrder: function(channelId, newPosition) {
-        return fetch(`/api/channels/${channelId}/order`, {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: `/api/channels/${channelId}/order`,
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({
-                position: newPosition
-            }),
-            credentials: 'include'
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                data: { position: newPosition },
+                success: resolve,
+                error: reject
+            });
         });
     },
 
     getChannelDetails: function(channelId) {
-        return fetch(`/api/channels/${channelId}`, {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: `/api/channels/${channelId}`,
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                },
+                success: resolve,
+                error: reject
+            });
         });
     }
 };

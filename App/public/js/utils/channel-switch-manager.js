@@ -172,38 +172,30 @@ class ChannelSwitchManager {
         } else {
             console.log(`🔄 Using fallback API for channel ${channelId}`);
             
-            try {
-                const response = await fetch(`/api/chat/channel/${channelId}/messages`);
-                console.log(`📡 API Response status: ${response.status}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                console.log(`📦 API Response data:`, data);
-                
-                if (data.success && data.data && data.data.messages) {
-                    console.log(`✅ Got ${data.data.messages.length} messages from API`);
-                    this.renderMessagesFallback(data.data.messages);
-                } else {
-                    console.warn(`⚠️ API returned no messages or invalid format:`, data);
-                    this.renderMessagesFallback([]);
-                }
-            } catch (error) {
-                console.error(`❌ Fallback API failed:`, error);
-                throw error;
-            }
+            return new Promise((resolve, reject) => {
+                ajax({
+                    url: `/api/chat/channel/${channelId}/messages`,
+                    method: 'GET',
+                    success: (data) => {
+                        console.log(`📦 API Response data:`, data);
+                        
+                        if (data.success && data.data && data.data.messages) {
+                            console.log(`✅ Got ${data.data.messages.length} messages from API`);
+                            this.renderMessagesFallback(data.data.messages);
+                            resolve();
+                        } else {
+                            console.warn(`⚠️ API returned no messages or invalid format:`, data);
+                            this.renderMessagesFallback([]);
+                            resolve();
+                        }
+                    },
+                    error: (error) => {
+                        console.error(`❌ Fallback API failed:`, error);
+                        reject(error);
+                    }
+                });
+            });
         }
-
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            console.log(`🔌 Joining socket room for channel ${channelId}`);
-            window.globalSocketManager.joinRoom('channel', channelId);
-        } else {
-            console.warn(`⚠️ Socket manager not ready`);
-        }
-        
-        console.log(`🎉 Channel ${channelId} content loading complete`);
     }
 
     renderMessagesFallback(messages) {

@@ -1,24 +1,56 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
-import { loadServerPage } from '../../utils/load-server-page.js';
+import { ajax } from '../../utils/ajax.js';
 
 let isRendering = false;
 let serverDataCache = null;
 let cacheExpiry = 0;
+let isHandlingClick = false;
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('[Server Sidebar] DOMContentLoaded: Initializing server sidebar');
     initServerSidebar();
+    
+    // Single global click handler for server links
+    document.addEventListener('click', function(e) {
+        // Check if the clicked element or its parent is a server link
+        const serverLink = e.target.closest('.server-icon a[href^="/server/"]');
+        if (serverLink && !isHandlingClick) {
+            console.log('[Server Sidebar] Server link clicked:', serverLink.getAttribute('href'));
+            const serverId = serverLink.getAttribute('data-server-id');
+            if (serverId) {
+                e.preventDefault();
+                isHandlingClick = true;
+                console.log('[Server Sidebar] Handling server click for ID:', serverId);
+                handleServerClick(serverId, e).finally(() => {
+                    isHandlingClick = false;
+                });
+            }
+        }
+    });
+    
+    // Handle browser back/forward
+    window.addEventListener('popstate', function(event) {
+        console.log('[Server Sidebar] Popstate event triggered:', event.state);
+        const serverId = event.state?.serverId;
+        if (serverId) {
+            handleServerClick(serverId);
+        }
+    });
 });
 
 function initServerSidebar() {
+    console.log('[Server Sidebar] Initializing server sidebar');
     performCompleteRender();
 }
 
 function performCompleteRender() {
+    console.log('[Server Sidebar] Performing complete render');
     clearAllPreviousState();
     renderFolders();
 }
 
 function clearAllPreviousState() {
+    console.log('[Server Sidebar] Clearing previous state');
     document.querySelectorAll('.server-icon[data-setup]').forEach(icon => {
         icon.removeAttribute('data-setup');
         icon.draggable = false;
@@ -47,6 +79,8 @@ function clearAllPreviousState() {
 }
 
 function setupServerIcons() {
+    // Only setup drag and drop functionality
+    console.log('[Server Sidebar] Setting up server icons drag and drop');
     document.querySelectorAll('.server-icon[data-server-id]:not([data-setup])').forEach(icon => {
         icon.setAttribute('data-setup', 'true');
         icon.draggable = true;
@@ -616,11 +650,260 @@ export function updateActiveServer() {
     }
 }
 
-export function handleServerClick(serverId) {
-    document.body.classList.add('content-loading');
-    history.pushState({ serverId }, '', `/server/${serverId}`);
-    loadServerPage(serverId);
-    updateActiveServer();
+export async function handleServerClick(serverId, event) {
+    console.log('[Server Sidebar] handleServerClick called with serverId:', serverId);
+    if (!serverId) {
+        console.log('[Server Sidebar] No server ID provided, returning');
+        return;
+    }
+    
+    // Prevent default link behavior if event is provided
+    if (event) {
+        console.log('[Server Sidebar] Preventing default click behavior');
+        event.preventDefault();
+    }
+
+    try {
+        // First, fetch the server's channels
+        console.log('[Server Sidebar] Fetching channels for server:', serverId);
+        const channelResponse = await new Promise((resolve, reject) => {
+            ajax({
+                url: `/api/servers/${serverId}/channels`,
+                method: 'GET',
+                dataType: 'json',
+                success: resolve,
+                error: reject
+            });
+        });
+
+        if (!channelResponse.success || !channelResponse.data) {
+            console.error('[Server Sidebar] Failed to fetch channels:', channelResponse);
+            return;
+        }
+
+        console.log('[Server Sidebar] Received channel data:', {
+            channelCount: channelResponse.data.channels.length,
+            channels: channelResponse.data.channels.map(ch => ({id: ch.id, name: ch.name, type: ch.type})),
+            categoryCount: channelResponse.data.categories.length,
+            uncategorizedCount: channelResponse.data.uncategorized.length
+        });
+
+        // Get the first channel if available
+        const firstChannel = channelResponse.data.channels && channelResponse.data.channels.length > 0 
+            ? channelResponse.data.channels[0] 
+            : null;
+
+        console.log('[Server Sidebar] First channel:', firstChannel ? {
+            id: firstChannel.id,
+            name: firstChannel.name,
+            type: firstChannel.type
+        } : 'No channels available');
+
+        // Update URL without reloading, preserving or setting channel parameter
+        const newUrl = firstChannel 
+            ? `/server/${serverId}?channel=${firstChannel.id}` 
+            : `/server/${serverId}`;
+        console.log('[Server Sidebar] Updating URL to:', newUrl);
+        window.history.pushState({ serverId }, '', newUrl);
+        
+        console.log('[Server Sidebar] Making Ajax request for server content');
+        const serverResponse = await new Promise((resolve, reject) => {
+            ajax({
+                url: `/server/${serverId}?render_html=1`,
+                method: 'GET',
+                dataType: 'text',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: resolve,
+                error: reject
+            });
+        });
+
+        console.log('[Server Sidebar] Server content received via Ajax');
+        const mainContent = document.querySelector('.flex-1') || 
+                          document.querySelector('[class*="server-content"]') || 
+                          document.querySelector('main');
+        
+        if (!mainContent) {
+            console.error('[Server Sidebar] No main content element found to update');
+            return;
+        }
+
+        // Clean up current channel socket if any
+        const currentChannelId = new URLSearchParams(window.location.search).get('channel');
+        if (currentChannelId && window.globalSocketManager) {
+            console.log('[Server Sidebar] Leaving channel:', currentChannelId);
+            window.globalSocketManager.leaveChannel(currentChannelId);
+        }
+
+        // Clean up voice manager if any
+        if (window.voiceManager) {
+            console.log('[Server Sidebar] Cleaning up voice manager');
+            window.voiceManager.leaveVoice();
+            window.voiceManager = null;
+        }
+
+        // Now fetch the channel section HTML with the channel data
+        console.log('[Server Sidebar] Fetching channel section HTML with data:', {
+            channelCount: channelResponse.data.channels.length,
+            firstChannelId: firstChannel?.id,
+            categories: channelResponse.data.categories
+        });
+
+        const channelSectionData = {
+            channels: channelResponse.data.channels,
+            categories: channelResponse.data.categories,
+            activeChannelId: firstChannel ? firstChannel.id : null
+        };
+
+        console.log('[Server Sidebar] Sending channel section data:', JSON.stringify(channelSectionData));
+
+        const channelHtml = await new Promise((resolve, reject) => {
+            ajax({
+                url: `/server/${serverId}/channel-section`,
+                method: 'POST',
+                dataType: 'text',
+                data: channelSectionData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                },
+                success: (response) => {
+                    console.log('[Server Sidebar] Channel section response length:', response.length);
+                    console.log('[Server Sidebar] Channel section response preview:', response.substring(0, 200));
+                    resolve(response);
+                },
+                error: (err) => {
+                    console.error('[Server Sidebar] Channel section error:', err);
+                    reject(err);
+                }
+            });
+        });
+
+        // Update the channel section
+        const channelWrapper = document.querySelector('.channel-wrapper');
+        if (channelWrapper) {
+            console.log('[Server Sidebar] Updating channel wrapper HTML');
+            console.log('[Server Sidebar] Channel wrapper before update:', {
+                childCount: channelWrapper.children.length,
+                html: channelWrapper.innerHTML.substring(0, 200)
+            });
+            channelWrapper.innerHTML = channelHtml;
+            console.log('[Server Sidebar] Channel wrapper after update:', {
+                childCount: channelWrapper.children.length,
+                html: channelWrapper.innerHTML.substring(0, 200)
+            });
+        } else {
+            console.error('[Server Sidebar] Channel wrapper element not found');
+        }
+
+        // Update page content
+        if (window.pageUtils) {
+            console.log('[Server Sidebar] Using pageUtils to update content');
+            window.pageUtils.updatePageContent(mainContent, serverResponse);
+        } else {
+            console.log('[Server Sidebar] Using manual DOM parsing to update content');
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(serverResponse, 'text/html');
+            
+            // Find the server content section
+            const serverContent = doc.querySelector('.server-content') || 
+                                doc.querySelector('.flex-1') || 
+                                doc.querySelector('main');
+            
+            if (serverContent) {
+                // Update the main content
+                mainContent.innerHTML = serverContent.innerHTML;
+                
+                // Update the server sidebar if it exists in the response
+                const newSidebar = doc.querySelector('.server-sidebar');
+                const currentSidebar = document.querySelector('.server-sidebar');
+                if (newSidebar && currentSidebar) {
+                    currentSidebar.innerHTML = newSidebar.innerHTML;
+                }
+                
+                // Execute any inline scripts
+                const scripts = doc.querySelectorAll('script:not([src])');
+                scripts.forEach(script => {
+                    if (script.textContent.trim()) {
+                        try {
+                            eval(script.textContent);
+                        } catch (error) {
+                            console.error('[Server Sidebar] Script execution error:', error);
+                        }
+                    }
+                });
+            }
+        }
+
+        // Update active server in sidebar
+        console.log('[Server Sidebar] Updating active server');
+        updateActiveServer();
+
+        // Initialize server page components
+        if (typeof window.initServerPage === 'function') {
+            console.log('[Server Sidebar] Initializing server page');
+            window.initServerPage();
+        }
+        
+        // Initialize channel handlers
+        if (typeof window.initializeChannelClickHandlers === 'function') {
+            console.log('[Server Sidebar] Initializing channel click handlers');
+            const channelItems = document.querySelectorAll('.channel-item');
+            console.log('[Server Sidebar] Found channel items:', {
+                count: channelItems.length,
+                items: Array.from(channelItems).map(item => ({
+                    id: item.getAttribute('data-channel-id'),
+                    type: item.getAttribute('data-channel-type')
+                }))
+            });
+            window.initializeChannelClickHandlers();
+        }
+
+        // Re-initialize server sidebar if needed
+        if (typeof window.initServerSidebar === 'function') {
+            console.log('[Server Sidebar] Re-initializing server sidebar');
+            window.initServerSidebar();
+        }
+
+        // Dispatch server change event
+        console.log('[Server Sidebar] Dispatching ServerChanged event');
+        const event = new CustomEvent('ServerChanged', { 
+            detail: { 
+                serverId,
+                previousChannelId: currentChannelId 
+            } 
+        });
+        document.dispatchEvent(event);
+
+        // Wait a bit for the DOM to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Switch to first channel if available
+        if (firstChannel && window.channelSwitchManager) {
+            console.log('[Server Sidebar] Switching to first channel:', firstChannel.id);
+            const channelElement = document.querySelector(`[data-channel-id="${firstChannel.id}"]`);
+            if (channelElement) {
+                console.log('[Server Sidebar] Found channel element:', {
+                    id: channelElement.getAttribute('data-channel-id'),
+                    type: channelElement.getAttribute('data-channel-type')
+                });
+                window.channelSwitchManager.switchToChannel(serverId, firstChannel.id, channelElement);
+            } else {
+                console.warn('[Server Sidebar] Channel element not found for ID:', firstChannel.id);
+                console.log('[Server Sidebar] Available channel elements:', 
+                    Array.from(document.querySelectorAll('[data-channel-id]')).map(el => ({
+                        id: el.getAttribute('data-channel-id'),
+                        type: el.getAttribute('data-channel-type')
+                    }))
+                );
+            }
+        }
+    } catch (error) {
+        console.error('[Server Sidebar] Error in handleServerClick:', error);
+        window.location.href = `/server/${serverId}`;
+    }
 }
 
 export function refreshServerGroups() {

@@ -14,7 +14,7 @@ if ($is_settings_page) {
 
 $is_auth_page = isset($data_page) && $data_page === 'auth';
 
-$core_scripts = ['core/ui/toast'];
+$core_scripts = ['core/ui/toast', 'utils/ajax'];
 if (!$is_auth_page) {
     $core_scripts[] = 'core/socket/global-socket-manager';
 }

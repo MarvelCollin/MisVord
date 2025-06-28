@@ -3,7 +3,6 @@ import { logger } from './logger.js';
 import { globalSocketManager } from './core/socket/global-socket-manager.js';
 import PageLoader from './core/page-loader.js';
 import * as Components from './components/index.js';
-import * as Utils from './utils/index.js';
 import { LazyLoader } from './utils/lazy-loader.js';
 
 document.addEventListener('DOMContentLoaded', function() {

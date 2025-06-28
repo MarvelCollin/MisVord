@@ -17,6 +17,7 @@ class ServerController extends BaseController
     private $messageRepository;
     private $userServerMembershipRepository;
     private $inviteRepository;
+    private $membershipRepository;
 
     public function __construct()
     {
@@ -27,6 +28,7 @@ class ServerController extends BaseController
         $this->messageRepository = new MessageRepository();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
         $this->inviteRepository = new ServerInviteRepository();
+        $this->membershipRepository = $this->userServerMembershipRepository;
     }
 
     public function show($id)
@@ -1933,6 +1935,92 @@ class ServerController extends BaseController
 
         } catch (Exception $e) {
             return $this->serverError('Failed to load server data: ' . $e->getMessage());
+        }
+    }
+
+    public function getChannelSection($serverId) {
+        $this->requireAuth();
+
+        try {
+            error_log("[Channel Section] Starting getChannelSection for server: " . $serverId);
+            
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                error_log("[Channel Section] Server not found: " . $serverId);
+                return $this->notFound('Server not found');
+            }
+
+            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
+                error_log("[Channel Section] User not a member of server: " . $serverId);
+                return $this->forbidden('You do not have access to this server');
+            }
+
+            // Get channel data from request if available
+            $input = $this->getInput();
+            error_log("[Channel Section] Input data: " . json_encode($input));
+            
+            $channels = $input['channels'] ?? null;
+            $categories = $input['categories'] ?? null;
+            $activeChannelId = $input['activeChannelId'] ?? null;
+
+            // If not provided in request, fetch from database
+            if (!$channels) {
+                error_log("[Channel Section] Fetching channels from database");
+                $channels = $this->channelRepository->getByServerId($serverId);
+                error_log("[Channel Section] Found " . count($channels) . " channels in database");
+            }
+            if (!$categories) {
+                error_log("[Channel Section] Fetching categories from database");
+                $categories = $this->categoryRepository->getForServer($serverId);
+                error_log("[Channel Section] Found " . count($categories) . " categories in database");
+            }
+
+            // Convert server array to object if needed
+            if (is_array($server)) {
+                $serverObj = (object) [
+                    'id' => $server['id'],
+                    'name' => $server['name'],
+                    'description' => $server['description'] ?? '',
+                    'owner_id' => $server['owner_id'],
+                    'created_at' => $server['created_at'],
+                    'updated_at' => $server['updated_at']
+                ];
+            } else {
+                $serverObj = $server;
+            }
+
+            // Set globals for the view
+            $currentServer = $serverObj;
+            $GLOBALS['serverChannels'] = $channels;
+            $GLOBALS['serverCategories'] = $categories;
+            $GLOBALS['activeChannelId'] = $activeChannelId;
+
+            error_log("[Channel Section] Set globals - Server: " . json_encode($serverObj) . 
+                     ", Channels: " . count($GLOBALS['serverChannels']) . 
+                     ", Categories: " . count($GLOBALS['serverCategories']) . 
+                     ", Active Channel: " . ($GLOBALS['activeChannelId'] ?? 'none'));
+
+            // Render the channel section
+            ob_start();
+            require __DIR__ . '/../views/components/app-sections/channel-section.php';
+            $html = ob_get_clean();
+
+            error_log("[Channel Section] Generated HTML length: " . strlen($html));
+            error_log("[Channel Section] HTML preview: " . substr($html, 0, 200));
+
+            if ($this->isAjaxRequest()) {
+                error_log("[Channel Section] Sending Ajax response");
+                echo $html;
+                exit;
+            }
+
+            return $html;
+        } catch (Exception $e) {
+            error_log("[Channel Section] Error: " . $e->getMessage());
+            if ($this->isAjaxRequest()) {
+                return $this->serverError('Failed to load channel section');
+            }
+            throw $e;
         }
     }
 }

@@ -1,104 +1,96 @@
 const serverAPI = {
     createServer: function(formData) {
-        return fetch('/api/servers/create', {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: '/api/servers/create',
             method: 'POST',
-            body: formData,
-            credentials: 'include',
+                data: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                },
+                success: resolve,
+                error: reject
+            });
         });
     },
 
     getServerPageHTML: function(serverId) {
-        return fetch(`/server/${serverId}?render_html=1`, {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: `/server/${serverId}?render_html=1`,
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.text();
+                },
+                success: resolve,
+                error: reject
+            });
         });
     },
     
     getStats: function() {
-        return fetch('/api/admin/servers/stats', {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: '/api/admin/servers/stats',
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                },
+                success: resolve,
+                error: reject
+            });
         });
     },
     
     listServers: function(page = 1, limit = 10, search = '') {
+        return new Promise((resolve, reject) => {
         const params = new URLSearchParams({
             page,
             limit,
             q: search
         });
         
-        return fetch(`/api/admin/servers?${params.toString()}`, {
+            ajax({
+                url: `/api/admin/servers?${params.toString()}`,
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                },
+                success: resolve,
+                error: reject
+            });
         });
     },
     
     getServerDetails: function(serverId) {
-        return fetch(`/api/admin/servers/${serverId}`, {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: `/api/admin/servers/${serverId}`,
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                },
+                success: resolve,
+                error: reject
+            });
         });
     },
 
     deleteServer: function(serverId) {
-        return fetch(`/api/admin/servers/${serverId}`, {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: `/api/admin/servers/${serverId}`,
             method: 'DELETE',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
+                },
+                success: resolve,
+                error: reject
+            });
         });
     },
     

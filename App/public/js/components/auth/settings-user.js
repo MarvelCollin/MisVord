@@ -6,13 +6,6 @@ import ImageCutter from '../common/image-cutter.js';
 document.addEventListener('DOMContentLoaded', function() {
     initUserSettingsPage();
     
-    if (window.location.pathname.startsWith('/settings')) {
-        const referrer = document.referrer;
-        if (referrer && !referrer.includes('/settings')) {
-            sessionStorage.setItem('settingsEntryPoint', referrer);
-        }
-    }
-
     if (!document.getElementById('chat-messages') && 
         document.body.classList.contains('settings-user')) {
         const hiddenElements = document.createElement('div');
@@ -30,8 +23,6 @@ document.addEventListener('DOMContentLoaded', function() {
         logoutBtn.setAttribute('onclick', 'window.location.href="/logout"');
     }
 });
-
-        
 
 function initUserSettingsPage() {
     if (!document.querySelector('.settings-page, .flex.min-h-screen')) {
@@ -487,6 +478,9 @@ function uploadAvatar(dataUrl) {
         showToast(error.message || 'Error uploading profile picture', 'error');
     });
 }
+
+/**
+ * Upload banner to server
  */
 function uploadBanner(dataUrl) {
     const blob = dataURLtoBlob(dataUrl);
@@ -620,21 +614,24 @@ function initCloseButton() {
     if (!closeButton) return;
     
     const goBack = () => {
-        const entryPoint = sessionStorage.getItem('settingsEntryPoint');
-        window.location.href = entryPoint || '/app';
+        if (document.referrer && document.referrer !== window.location.href) {
+            window.location.href = document.referrer;
+        } else if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.location.href = '/app';
+        }
     };
 
-    closeButton.addEventListener('click', function(e) {
+    closeButton.addEventListener('click', (e) => {
         e.preventDefault();
         goBack();
     });
     
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            if (document.body.classList.contains('settings-page')) {
-                e.preventDefault();
-                goBack();
-            }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.body.classList.contains('settings-page')) {
+            e.preventDefault();
+            goBack();
         }
     });
 }

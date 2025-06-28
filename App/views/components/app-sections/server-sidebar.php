@@ -213,4 +213,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<script src="/public/js/components/servers/server-sidebar.js" type="module"></script>
+<?php
+// Add server-sidebar.js to additional_js array for proper loading
+$additional_js = isset($additional_js) ? $additional_js : [];
+$additional_js[] = 'components/servers/server-sidebar';
+?>
