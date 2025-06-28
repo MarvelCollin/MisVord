@@ -3,10 +3,6 @@
         <div class="user-detail-header">
             <div class="user-banner"></div>
             <div id="user-detail-avatar-container" class="user-avatar-container">
-                <div class="user-avatar">
-                    <img src="/assets/common/default-profile-picture.png" alt="Avatar" id="user-detail-avatar">
-                    <div class="user-status-indicator"></div>
-                </div>
             </div>
             <button class="user-detail-close-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -34,14 +30,16 @@
             
             <div class="user-detail-section" id="user-detail-bio-section">
                 <h3 class="user-detail-section-title">ABOUT ME</h3>
-                <div class="user-detail-bio" id="user-detail-bio"></div>
+                <div class="user-detail-bio" id="user-detail-bio">
+                </div>
             </div>
             
             <div class="user-detail-divider"></div>
             
             <div class="user-detail-section" id="user-detail-server-section">
                 <h3 class="user-detail-section-title">MEMBER SINCE</h3>
-                <div class="user-detail-server-info" id="user-detail-server-info"></div>
+                <div class="user-detail-server-info" id="user-detail-server-info">
+                </div>
             </div>
             
             <div class="user-detail-divider"></div>
@@ -55,20 +53,7 @@
                     </button>
                 </div>
             </div>
-            
-            <div class="user-detail-divider"></div>
-            
-            <div class="user-detail-actions">
-                <button class="user-detail-action-btn message-btn" id="user-detail-message-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                    Message
-                </button>
-                <div class="user-detail-action-separator"></div>
-                <button class="user-detail-action-btn" id="user-detail-add-friend-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-                    Add Friend
-                </button>
-            </div>
         </div>
+        
     </div>
 </div>

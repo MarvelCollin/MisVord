@@ -15,55 +15,70 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.85);
-  display: none;
-  justify-content: center;
-  align-items: center;
+  right: 0;
+  bottom: 0;
   z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  animation: fadeIn 0.2s ease;
+}
+
+.user-detail-modal.active {
+  display: flex;
 }
 
 .user-detail-container {
-  background-color: #18191c;
+  width: var(--discord-modal-width);
+  max-width: 90vw;
+  background-color: var(--discord-darker);
   border-radius: 8px;
-  width: 440px;
-  max-height: 90vh;
-  overflow-y: auto;
-  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+  animation: scaleIn 0.2s ease;
 }
 
+/* Header section with banner and avatar */
 .user-detail-header {
   position: relative;
   height: 120px;
 }
 
 .user-banner {
-  width: 100%;
-  height: 120px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
   background-color: #5865f2;
-  border-radius: 8px 8px 0 0;
+  background-size: cover;
+  background-position: center;
 }
 
 .user-avatar-container {
   position: absolute;
   bottom: -30px;
   left: 16px;
+  z-index: 2;
 }
 
 .user-avatar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  border: 6px solid #18191c;
+  border: 6px solid var(--discord-darker);
+  background-color: var(--discord-light);
+  overflow: hidden;
   position: relative;
-  background-color: #18191c;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .user-avatar img {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
   object-fit: cover;
 }
 
@@ -71,204 +86,221 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  border: 3px solid #18191c;
+  background-color: var(--discord-green);
+  border: 4px solid var(--discord-darker);
+}
+
+.user-status-indicator.appear {
+  background-color: var(--discord-green);
+}
+
+.user-status-indicator.invisible {
+  background-color: var(--discord-lighter);
+}
+
+.user-status-indicator.do_not_disturb {
+  background-color: var(--discord-red);
+}
+
+.user-status-indicator.offline {
   background-color: #747f8d;
 }
 
-.user-status-indicator.online { background-color: #3ba55d; }
-.user-status-indicator.idle { background-color: #faa81a; }
-.user-status-indicator.dnd { background-color: #ed4245; }
-.user-status-indicator.offline { background-color: #747f8d; }
+.user-status-indicator.banned {
+  background-color: #000000;
+}
 
 .user-detail-close-btn {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  background: none;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: var(--discord-white);
   border: none;
-  color: #dcddde;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
 .user-detail-close-btn:hover {
-  color: #fff;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.7);
 }
 
 .user-detail-info {
   padding: 16px;
-  padding-top: 32px;
+  padding-top: 40px;
 }
 
 .user-detail-name-container {
   display: flex;
   align-items: baseline;
-  gap: 4px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .user-detail-name {
-  color: #fff;
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--discord-white);
   margin: 0;
 }
 
 .user-detail-discriminator {
-  color: #b9bbbe;
   font-size: 14px;
+  color: var(--discord-lighter);
+  margin-left: 4px;
+}
+
+.user-detail-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 12px 0;
+}
+
+/* Section styles */
+.user-detail-section {
+  margin: 12px 0;
+}
+
+.user-detail-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--discord-lighter);
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+}
+
+.user-detail-about {
+  font-size: 14px;
+  color: var(--discord-white);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.user-detail-member-since {
+  font-size: 14px;
+  color: var(--discord-white);
+}
+
+.user-detail-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.user-detail-role {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--discord-white);
+  display: inline-block;
+}
+
+.user-detail-role.owner {
+  background-color: #f1c40f;
+  color: #000;
+}
+
+.user-detail-role.admin {
+  background-color: #e74c3c;
+  color: #fff;
+}
+
+.user-detail-role.moderator {
+  background-color: #3498db;
+  color: #fff;
+}
+
+.user-detail-note {
+  width: 100%;
+  height: 40px;
+  background-color: var(--discord-light);
+  border: none;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 14px;
+  color: var(--discord-white);
+  resize: none;
+}
+
+.user-detail-note::placeholder {
+  color: var(--discord-lighter);
+}
+
+.user-detail-note:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+}
+
+/* Action buttons */
+.user-detail-actions {
+  display: flex;
+  padding: 12px 16px;
+  background-color: var(--discord-light);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.user-detail-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.user-detail-action-btn svg {
+  margin-right: 8px;
+}
+
+.user-detail-action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.message-btn {
+  background-color: var(--discord-primary);
+  color: var(--discord-white);
+}
+
+.message-btn:hover {
+  background-color: #4752c4;
+}
+
+.user-detail-action-separator {
+  width: 1px;
+  margin: 0 8px;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .user-detail-mutual {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 8px;
   margin-bottom: 16px;
 }
 
 .user-detail-mutual-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #b9bbbe;
   font-size: 14px;
+  color: var(--discord-lighter);
 }
 
-.user-detail-divider {
-  height: 1px;
-  background-color: #2f3136;
-  margin: 12px 0;
-}
-
-.user-detail-section {
-  margin-bottom: 16px;
-}
-
-.user-detail-section-title {
-  color: #b9bbbe;
-  font-size: 12px;
-  font-weight: 700;
-  margin: 0 0 8px;
-  text-transform: uppercase;
-}
-
-.user-detail-bio {
-  color: #dcddde;
-  font-size: 14px;
-  line-height: 1.4;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.user-detail-server-info {
-  color: #dcddde;
-  font-size: 14px;
-}
-
-.user-detail-message-section {
-  margin-bottom: 0;
-}
-
-.user-detail-send-message-container {
-  display: flex;
-  gap: 8px;
-}
-
-.user-detail-message-input {
-  flex: 1;
-  background-color: #2f3136;
-  border: none;
-  border-radius: 4px;
-  color: #dcddde;
-  font-size: 14px;
-  padding: 8px 12px;
-}
-
-.user-detail-message-input:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
-}
-
-.user-detail-send-btn {
-  background-color: #5865f2;
-  border: none;
-  border-radius: 4px;
-  color: #fff;
-  cursor: pointer;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.user-detail-send-btn:hover {
-  background-color: #4752c4;
-}
-
-.user-detail-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.user-detail-action-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background-color: #2f3136;
-  border: none;
-  border-radius: 4px;
-  color: #fff;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 8px 16px;
-  transition: background-color 0.2s;
-}
-
-.user-detail-action-btn:hover {
-  background-color: #36393f;
-}
-
-.user-detail-action-btn.message-btn {
-  background-color: #5865f2;
-}
-
-.user-detail-action-btn.message-btn:hover {
-  background-color: #4752c4;
-}
-
-.user-detail-action-separator {
-  width: 1px;
-  height: 24px;
-  background-color: #2f3136;
-}
-
-/* Nitro badge styles */
-.user-detail-badges {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.user-badge {
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #5865f2;
-}
-
-.user-badge img {
-  width: 16px;
-  height: 16px;
+.user-detail-mutual-item svg {
+  margin-right: 8px;
+  min-width: 16px;
 }
 
 @keyframes fadeIn {

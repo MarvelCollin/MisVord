@@ -73,7 +73,7 @@ class ChatAPI {
 
         const requestOptions = {
             method: options.method || 'GET',
-            headers: {
+                headers: {
                 ...defaultHeaders,
                 ...(options.headers || {})
             },
@@ -91,14 +91,14 @@ class ChatAPI {
                 status: response.status,
                 statusText: response.statusText
             });
-
+            
             if (!response.ok) {
                 console.error('API Request failed with status:', {
                     url,
                     status: response.status,
                     statusText: response.statusText
                 });
-                throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
+                    throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
@@ -129,15 +129,13 @@ class ChatAPI {
     }
     
     async checkAuthentication() {
-        return true; // Always return true, authentication handled server-side
+        return true; 
     }    async sendMessage(targetId, content, chatType = 'channel', options = {}) {
         console.log(`📤 [CHAT-API] Starting sendMessage:`, {
             targetId,
             content: content?.substring(0, 50) + (content?.length > 50 ? '...' : ''),
             chatType,
-            apiChatType: chatType,
-            options,
-            timestamp: Date.now()
+            options
         });
         
         if (!targetId || !content) {
@@ -151,18 +149,9 @@ class ChatAPI {
             content: content,
             message_type: options.message_type || 'text',
             attachments: options.attachments || [],
-            mentions: options.mentions || [],
             reply_message_id: options.reply_message_id || null,
             reply_data: options.reply_data || null
         };
-        
-        console.log(`📡 [CHAT-API] Sending to database:`, {
-            url,
-            requestData: {
-                ...requestData,
-                content: requestData.content?.substring(0, 50) + (requestData.content?.length > 50 ? '...' : '')
-            }
-        });
         
         try {
             const response = await this.makeRequest(url, {
@@ -170,154 +159,41 @@ class ChatAPI {
                 body: JSON.stringify(requestData)
             });
             
-            console.log(`✅ [CHAT-API] Database response received:`, {
-                success: response?.success,
-                hasData: !!response?.data,
-                hasNestedData: !!response?.data?.data,
-                hasMessage: !!response?.message,
-                messageId: response?.data?.message_id || response?.data?.id || response?.data?.message?.id,
-                responseStructure: JSON.stringify(response).substring(0, 100) + '...',
-                timestamp: Date.now()
-            });
-
-            if (!response?.success || !response?.data) {
-                console.error('❌ [CHAT-API] Invalid response structure:', response);
-                throw new Error('Invalid response structure from server');
-            }
+            // Extract message data from the nested response structure
+            const messageData = response?.data?.data?.message || {};
+            const messageId = messageData.id;
             
-            let messageId = null;
+            console.log(`✅ [CHAT-API] Message sent to database, ID:`, messageId);
             
-            if (response.data.message_id) {
-                messageId = response.data.message_id;
-            } else if (response.data.id) {
-                messageId = response.data.id;
-            } else if (response.data.message && response.data.message.id) {
-                messageId = response.data.message.id;
-            } else if (response.data.data && response.data.data.message && response.data.data.message.id) {
-                messageId = response.data.data.message.id;
-            }
-            
-            if (!messageId) {
-                console.error('❌ [CHAT-API] No message ID in response:', response.data);
-                
-                const responseData = {
-                    responseStructure: Object.keys(response),
-                    dataStructure: response.data ? Object.keys(response.data) : 'No data',
-                    dataDataStructure: response.data && response.data.data ? Object.keys(response.data.data) : 'No data.data',
-                    messageStructure: response.data && response.data.message ? Object.keys(response.data.message) : 'No data.message',
-                    nestedMessageStructure: response.data && response.data.data && response.data.data.message ? 
-                        Object.keys(response.data.data.message) : 'No data.data.message',
-                    messageIdPaths: {
-                        'data.message_id': response.data?.message_id,
-                        'data.id': response.data?.id,
-                        'data.message.id': response.data?.message?.id,
-                        'data.data.message.id': response.data?.data?.message?.id
-                    }
+            if (response?.success && messageId) {
+                // Prepare socket data
+                const socketData = {
+                    id: messageId,
+                    content: content,
+                    user_id: messageData.user_id || window.globalSocketManager?.userId,
+                    username: messageData.username || window.globalSocketManager?.username,
+                    avatar_url: messageData.avatar_url || null,
+                    message_type: options.message_type || 'text',
+                    attachments: options.attachments || [],
+                    reply_message_id: options.reply_message_id || null,
+                    reply_data: options.reply_data || null,
+                    timestamp: Date.now(),
+                    target_type: chatType,
+                    target_id: targetId
                 };
                 
-                console.error('❌ [CHAT-API] Response structure details:', responseData);
-                
-                if (response.data && typeof response.data === 'object') {
-                    messageId = Date.now().toString();
-                    console.warn('⚠️ [CHAT-API] Using fallback message ID:', messageId);
-                } else {
-                    throw new Error('Server response missing message ID');
-                }
-            }
-            
-            let messageData = null;
-            
-            if (response.data.data && response.data.data.message) {
-                messageData = response.data.data.message;
-            } else if (response.data.message) {
-                messageData = response.data.message;
+                // Emit socket event
+                this.emitSocketEventForMessage(chatType, targetId, 'new-message', socketData);
             } else {
-                messageData = response.data;
+                console.error(`❌ [CHAT-API] Failed to extract message ID from response`, {
+                    success: response?.success,
+                    messageData
+                });
             }
-            
-            const userId = messageData.user_id || 
-                       response.data.user_id || 
-                       response.data?.data?.user_id || 
-                       window.globalSocketManager?.userId;
-                       
-            const username = messageData.username || 
-                          response.data.username || 
-                          response.data?.data?.username || 
-                          window.globalSocketManager?.username;
-            
-            console.log(`🔍 [CHAT-API] Extracted message data:`, {
-                id: messageId,
-                userId: userId,
-                username: username,
-                hasContent: !!messageData.content || !!response.data.content,
-                hasAttachments: !!(messageData.attachments && messageData.attachments.length) || 
-                               !!(response.data.attachments && response.data.attachments.length),
-                timestamp: Date.now()
-            });
-            
-            // Prepare socket data
-            const socketData = {
-                id: messageId,
-                message_id: messageId, // Add both id and message_id for compatibility
-                content: content,
-                user_id: userId,
-                username: username,
-                avatar_url: messageData.avatar_url || 
-                           response.data.avatar_url || 
-                           response.data?.data?.avatar_url || 
-                           null,
-                message_type: options.message_type || messageData.message_type || 'text',
-                attachments: messageData.attachments || 
-                            response.data.attachments || 
-                            response.data?.data?.attachments || 
-                            options.attachments || 
-                            [],
-                reply_message_id: messageData.reply_message_id || 
-                                 response.data.reply_message_id || 
-                                 response.data?.data?.reply_message_id || 
-                                 options.reply_message_id || 
-                                 null,
-                reply_data: messageData.reply_data || 
-                           response.data.reply_data || 
-                           response.data?.data?.reply_data || 
-                           options.reply_data || 
-                           null,
-                timestamp: messageData.timestamp || 
-                          messageData.sent_at || 
-                          response.data.timestamp || 
-                          response.data?.data?.timestamp || 
-                          Date.now(),
-                source: 'client-originated'
-            };
-            
-            console.log(`📡 [CHAT-API] Socket data prepared:`, {
-                id: socketData.id,
-                userId: socketData.user_id,
-                username: socketData.username,
-                contentLength: socketData.content?.length,
-                messageType: socketData.message_type,
-                hasAttachments: socketData.attachments?.length > 0,
-                hasReply: !!socketData.reply_message_id,
-                timestamp: socketData.timestamp
-            });
-            
-            // Emit socket event
-            this.emitSocketEventForMessage(
-                chatType,
-                targetId,
-                'new-message',
-                socketData
-            );
             
             return response;
         } catch (error) {
-            console.error('❌ [CHAT-API] Error sending message:', {
-                error: error.message,
-                stack: error.stack,
-                targetId,
-                chatType,
-                timestamp: Date.now()
-            });
+            console.error('❌ [CHAT-API] Error sending message:', error);
             throw error;
         }
     }
@@ -761,14 +637,14 @@ class ChatAPI {
         };
 
         const finalEventName = eventNameMap[eventName]?.[chatType] || eventNameMap[eventName] || eventName;
-
+        
         console.log(`🔄 [CHAT-API] Event name determined:`, {
             originalEventName: eventName,
             finalEventName,
             socketEventName: finalEventName,
             chatType
         });
-
+        
         // Prepare the socket data
         const socketData = {
             ...data,
@@ -781,7 +657,7 @@ class ChatAPI {
         } else if (chatType === 'dm') {
             socketData.room_id = targetId;
         }
-
+        
         console.log(`📡 [CHAT-API] Final socket data prepared:`, {
             event: socketData.event,
             id: socketData.id,
@@ -790,10 +666,10 @@ class ChatAPI {
             channelId: socketData.channel_id,
             roomId: socketData.room_id
         });
-
+        
         // Emit the event
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            console.log(`🚀 [CHAT-API] Emitting socket event...`);
+        console.log(`🚀 [CHAT-API] Emitting socket event...`);
             window.globalSocketManager.emitToRoom(finalEventName, socketData, chatType, targetId);
             console.log(`✅ [CHAT-API] Socket event emitted successfully:`, {
                 event: finalEventName,
@@ -849,7 +725,7 @@ class ChatAPI {
         } else if (chatType === 'dm') {
             socketData.room_id = targetId;
         }
-
+        
         console.log(`📡 [CHAT-API] Final socket data prepared:`, {
             event: socketData.event,
             id: socketData.id,

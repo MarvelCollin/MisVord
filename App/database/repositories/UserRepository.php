@@ -398,105 +398,54 @@ class UserRepository extends Repository {
      * @return bool Success status
      */
     public function update($id, $data) {
-        $allowedFields = ['username', 'discriminator', 'avatar_url', 'banner_url', 'bio', 'status'];
-        $updates = [];
-        $values = [];
-        
-        foreach ($data as $field => $value) {
-            if (in_array($field, $allowedFields)) {
-                $updates[] = "$field = ?";
-                $values[] = $value;
-            }
-        }
-        
-        if (empty($updates)) {
+        try {
+            $query = new Query();
+            $result = $query->table(User::getTable())
+                ->where('id', $id)
+                ->update($data);
+            
+            return $result > 0;
+        } catch (Exception $e) {
+            error_log("UserRepository update error: " . $e->getMessage());
             return false;
         }
-        
-        $values[] = $id;
-        $query = "UPDATE users SET " . implode(', ', $updates) . " WHERE id = ?";
-        $stmt = $this->db->prepare($query);
-        
-        return $stmt->execute($values);
     }
 
     public function getMutualServers($userId1, $userId2)
     {
-        $query = new Query();
+        // Get servers for user 1
+        $query1 = new Query();
+        $servers1 = $query1->table('user_server_memberships')
+            ->where('user_id', $userId1)
+            ->get();
         
-        return $query->raw("
-            SELECT DISTINCT s.* 
-            FROM servers s
-            INNER JOIN user_server_memberships usm1 ON s.id = usm1.server_id
-            INNER JOIN user_server_memberships usm2 ON s.id = usm2.server_id
-            WHERE usm1.user_id = ? AND usm2.user_id = ?
-        ", [$userId1, $userId2]);
-    }
-
-    public function findById($id) {
-        $query = "SELECT * FROM users WHERE id = ?";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute([$id]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$result) {
-            return null;
+        $serverIds1 = [];
+        foreach ($servers1 as $server) {
+            $serverIds1[] = $server['server_id'];
         }
         
-        return $this->mapToModel($result);
-    }
-
-    public function updateStatus($id, $status) {
-        $query = "UPDATE users SET status = ? WHERE id = ?";
-        $stmt = $this->db->prepare($query);
-        return $stmt->execute([$status, $id]);
-    }
-
-    public function searchUsers($searchTerm, $limit = 10) {
-        $query = "SELECT * FROM users WHERE username LIKE ? LIMIT ?";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute(["%$searchTerm%", $limit]);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Get servers for user 2
+        $query2 = new Query();
+        $servers2 = $query2->table('user_server_memberships')
+            ->where('user_id', $userId2)
+            ->get();
         
-        return array_map([$this, 'mapToModel'], $results);
-    }
-
-    public function getUsersInServer($serverId) {
-        $query = "SELECT u.* FROM users u 
-                  INNER JOIN user_server_memberships usm ON u.id = usm.user_id 
-                  WHERE usm.server_id = ?";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute([$serverId]);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $serverIds2 = [];
+        foreach ($servers2 as $server) {
+            $serverIds2[] = $server['server_id'];
+        }
         
-        return array_map([$this, 'mapToModel'], $results);
-    }
-
-    public function getUsersWithRole($serverId, $role) {
-        $query = "SELECT u.* FROM users u 
-                  INNER JOIN user_server_memberships usm ON u.id = usm.user_id 
-                  WHERE usm.server_id = ? AND usm.roles LIKE ?";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute([$serverId, "%$role%"]);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Find the intersection of server IDs
+        $mutualServerIds = array_intersect($serverIds1, $serverIds2);
         
-        return array_map([$this, 'mapToModel'], $results);
-    }
-
-    private function mapToModel($data) {
-        $user = new User();
-        $user->id = $data['id'];
-        $user->username = $data['username'];
-        $user->discriminator = $data['discriminator'];
-        $user->email = $data['email'];
-        $user->password = $data['password'];
-        $user->avatar_url = $data['avatar_url'];
-        $user->banner_url = $data['banner_url'];
-        $user->bio = $data['bio'];
-        $user->status = $data['status'];
-        $user->created_at = $data['created_at'];
-        $user->updated_at = $data['updated_at'];
+        if (empty($mutualServerIds)) {
+            return [];
+        }
         
-        return $user;
+        // Get the actual server records
+        $query3 = new Query();
+        return $query3->table('servers')
+            ->whereIn('id', $mutualServerIds)
+            ->get();
     }
 }

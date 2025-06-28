@@ -5,11 +5,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const videoGrid = document.getElementById('videoGrid');
     const localAvatarWrapper = document.getElementById('localAvatarWrapper');
     
+    if (!videoGrid) {
+        console.error('Video grid element not found');
+        return;
+    }
+    
     window.addEventListener('voiceConnect', () => {
         initializeView();
     });
 
     function attachStream(participantId, stream) {
+        if (!videoGrid) return;
+        
         let videoEl = document.querySelector(`video[data-participant-id="${participantId}"]`);
         if (!videoEl) {
             videoEl = document.createElement('video');
@@ -43,12 +50,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        if (participantId === 'local') {
+        if (participantId === 'local' && localAvatarWrapper) {
             localAvatarWrapper.style.display = 'none';
         }
     }
 
     function detachStream(participantId) {
+        if (!videoGrid) return;
+        
         const videoEl = document.querySelector(`video[data-participant-id="${participantId}"]`);
         if (videoEl) {
             if (videoEl.srcObject) {
@@ -62,12 +71,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 videoGrid.classList.add('hidden');
             }
         }
-        if (participantId === 'local') {
+        
+        if (participantId === 'local' && localAvatarWrapper) {
             localAvatarWrapper.style.display = 'block';
         }
     }
 
     function setupMeetingEventHandlers(meeting) {
+        if (!meeting) return;
+        
         meeting.on('stream-enabled', (participant, stream) => {
             if (stream.kind === 'video') {
                 attachStream(participant.id, stream);

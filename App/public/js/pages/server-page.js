@@ -467,39 +467,96 @@ function fetchVoiceSection(channelId) {
                 `;
                 document.head.appendChild(scriptElement);
                 
-                setTimeout(() => {
-                  console.log("Manually checking auto-join after AJAX voice section load");
+                // Enhanced auto-join logic with retry mechanism
+                const triggerAutoJoin = () => {
+                  console.log("Attempting to trigger auto-join");
                   
                   const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
                   const currentChannelId = channelId;
                   const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
                   
+                  console.log('Auto-join conditions:', {
+                    autoJoinChannelId,
+                    currentChannelId,
+                    forceAutoJoin,
+                    voiceUIInitialized: window.voiceUIInitialized,
+                    voiceSection: !!window.voiceSection,
+                    joinBtn: !!document.getElementById('joinBtn')
+                  });
+                  
                   if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
-                    console.log('Auto-join conditions met after AJAX load');
+                    console.log('Auto-join conditions met');
                     
-                    sessionStorage.setItem('triggerAutoJoin', 'true');
-                    
-                    if (typeof window.handleAutoJoin === 'function') {
-                      console.log("Calling window.handleAutoJoin");
-                      window.handleAutoJoin();
+                    // Try multiple methods to trigger auto-join
+                    if (window.triggerVoiceAutoJoin) {
+                      console.log("Using global triggerVoiceAutoJoin function");
+                      const result = window.triggerVoiceAutoJoin();
+                      if (result) return true;
                     }
                     
-                    if (window.voiceUIInitialized && typeof window.triggerVoiceAutoJoin === 'function') {
-                      console.log("Voice UI ready, triggering auto-join directly");
-                      setTimeout(() => {
-                        window.triggerVoiceAutoJoin();
-                      }, 300);
+                    if (window.handleAutoJoin) {
+                      console.log("Using global handleAutoJoin function");
+                      const result = window.handleAutoJoin();
+                      if (result) return true;
                     }
-                  } else {
-                    console.log('Auto-join conditions not met:', {autoJoinChannelId, currentChannelId, forceAutoJoin});
+                    
+                    if (window.voiceSection && window.voiceSection.autoJoin) {
+                      console.log("Using voiceSection.autoJoin method");
+                      const result = window.voiceSection.autoJoin();
+                      if (result) return true;
+                    }
+                    
+                    // Direct button click as fallback
+                    const joinBtn = document.getElementById('joinBtn');
+                    if (joinBtn) {
+                      console.log("Directly clicking join button");
+                      joinBtn.click();
+                      return true;
+                    }
+                    
+                    return false;
                   }
-                }, 400);
+                  
+                  return false;
+                };
+                
+                // Try auto-join with retries
+                let attempts = 0;
+                const maxAttempts = 5;
+                const attemptAutoJoin = () => {
+                  if (attempts >= maxAttempts) {
+                    console.log(`Auto-join failed after ${maxAttempts} attempts`);
+                    return;
+                  }
+                  
+                  attempts++;
+                  console.log(`Auto-join attempt ${attempts}/${maxAttempts}`);
+                  
+                  if (triggerAutoJoin()) {
+                    console.log("Auto-join triggered successfully");
+                  } else {
+                    console.log(`Auto-join attempt ${attempts} failed, retrying in 500ms`);
+                    setTimeout(attemptAutoJoin, 500);
+                  }
+                };
+                
+                // Start auto-join process after a short delay
+                setTimeout(attemptAutoJoin, 500);
                 
               } catch (error) {
                 console.error("Error executing voice section scripts:", error);
               }
             } else {
               console.log("No script content found in voice section");
+              
+              // Try auto-join even without script content
+              setTimeout(() => {
+                if (window.triggerVoiceAutoJoin) {
+                  window.triggerVoiceAutoJoin();
+                } else if (document.getElementById('joinBtn')) {
+                  document.getElementById('joinBtn').click();
+                }
+              }, 1000);
             }
           }).catch(err => {
             console.error("Error in voice script loading chain:", err);
@@ -523,61 +580,22 @@ function fetchVoiceSection(channelId) {
           loadVoiceScripts().then(() => {
             console.log("All voice scripts loaded successfully (fallback)");
             
+            // Simplified auto-join for fallback case
             setTimeout(() => {
-              console.log("Checking auto-join in fallback mode");
-              const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
-              const currentChannelId = channelId;
-              const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
-              
-              if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
-                console.log('Auto-join conditions met in fallback mode');
-                
-                sessionStorage.setItem('triggerAutoJoin', 'true');
-                
-                if (typeof window.handleAutoJoin === 'function') {
-                  console.log("Calling window.handleAutoJoin (fallback)");
-                  window.handleAutoJoin();
-                }
-                
-                const waitForVoiceUI = (attempts = 0) => {
-                  if (window.voiceUIInitialized && typeof window.triggerVoiceAutoJoin === 'function') {
-                    console.log("Voice UI ready, triggering auto-join (fallback)");
-                    window.triggerVoiceAutoJoin();
-                  } else if (attempts < 25) {
-                    setTimeout(() => waitForVoiceUI(attempts + 1), 200);
-                  } else {
-                    console.log('Voice UI not ready after 5 seconds, trying join button fallback');
-                    setTimeout(() => {
-                      const joinBtn = document.getElementById('joinBtn');
-                      if (joinBtn && !joinBtn.disabled) {
-                        console.log('Clicking join button as last resort');
-                        joinBtn.click();
-                      }
-                    }, 500);
-                  }
-                };
-                waitForVoiceUI();
-              } else {
-                console.log('Auto-join conditions not met in fallback mode:', {autoJoinChannelId, currentChannelId, forceAutoJoin});
+              const joinBtn = document.getElementById('joinBtn');
+              if (joinBtn) {
+                console.log("Auto-joining in fallback mode");
+                joinBtn.click();
               }
-            }, 500);
-          }).catch(err => {
-            console.error("Error in voice script loading chain (fallback):", err);
+            }, 1000);
           });
         }
-        
-        handleSkeletonLoading(false);
-        
-        console.log(`Voice section loaded successfully for channel ${channelId}`);
-        document.dispatchEvent(new CustomEvent('contentLoaded', {
-          detail: { type: 'voice', channelId: channelId, skipChannelReload: true }
-        }));
       } else {
-        console.error("Could not find central content area to update");
+        console.error("Could not find central content area");
       }
     })
     .catch(error => {
-      console.error('Error loading voice section:', error);
+      console.error("Error fetching voice section:", error);
       handleSkeletonLoading(false);
     });
 }

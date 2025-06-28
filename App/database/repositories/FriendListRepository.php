@@ -25,24 +25,7 @@ class FriendListRepository extends Repository {
     }
     
     public function getPendingRequests($userId) {
-        $query = "SELECT u.* FROM users u
-                  INNER JOIN friend_list f ON f.user_id = u.id
-                  WHERE f.friend_id = ? AND f.status = 'pending'
-                  ORDER BY u.username";
-                  
-        $stmt = $this->db->prepare($query);
-        $stmt->execute([$userId]);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        return array_map(function($data) {
-            $user = new User();
-            $user->id = $data['id'];
-            $user->username = $data['username'];
-            $user->discriminator = $data['discriminator'];
-            $user->avatar_url = $data['avatar_url'];
-            $user->status = $data['status'];
-            return $user;
-        }, $results);
+        return FriendList::getPendingRequests($userId);
     }
     
     public function getSentRequests($userId) {
@@ -169,100 +152,99 @@ class FriendListRepository extends Repository {
     {
         $query = new Query();
         
-        $result = $query->raw("
-            SELECT 1 
-            FROM friend_list 
-            WHERE ((user_id = ? AND user_id2 = ?) OR (user_id = ? AND user_id2 = ?))
-            AND status = 'accepted'
-            LIMIT 1
-        ", [$userId1, $userId2, $userId2, $userId1]);
+        // First check if user1 is friends with user2
+        $result1 = $query->table('friend_list')
+            ->where('user_id', $userId1)
+            ->where('user_id2', $userId2)
+            ->where('status', 'accepted')
+            ->first();
         
-        return !empty($result);
+        if (!empty($result1)) {
+            return true;
+        }
+        
+        // If not found, check if user2 is friends with user1
+        $query2 = new Query();
+        $result2 = $query2->table('friend_list')
+            ->where('user_id', $userId2)
+            ->where('user_id2', $userId1)
+            ->where('status', 'accepted')
+            ->first();
+        
+        return !empty($result2);
     }
 
     public function hasPendingRequest($fromUserId, $toUserId)
     {
         $query = new Query();
         
-        $result = $query->raw("
-            SELECT 1 
-            FROM friend_list 
-            WHERE user_id = ? AND user_id2 = ? AND status = 'pending'
-            LIMIT 1
-        ", [$fromUserId, $toUserId]);
+        $result = $query->table('friend_list')
+            ->where('user_id', $fromUserId)
+            ->where('user_id2', $toUserId)
+            ->where('status', 'pending')
+            ->first();
         
         return !empty($result);
     }
 
-    public function getMutualFriends($userId1, $userId2) {
-        $query = "SELECT DISTINCT u.* FROM users u
-                  INNER JOIN friend_list f1 ON (f1.user_id = ? AND f1.friend_id = u.id)
-                  INNER JOIN friend_list f2 ON (f2.user_id = ? AND f2.friend_id = u.id)
-                  WHERE f1.status = 'accepted' AND f2.status = 'accepted'
-                  AND u.id NOT IN (?, ?)
-                  ORDER BY u.username";
-                  
-        $stmt = $this->db->prepare($query);
-        $stmt->execute([$userId1, $userId2, $userId1, $userId2]);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    public function getMutualFriends($userId1, $userId2)
+    {
+        // Get friends of user 1
+        $query1 = new Query();
+        $friends1 = $query1->table('friend_list')
+            ->where('user_id', $userId1)
+            ->where('status', 'accepted')
+            ->get();
         
-        return array_map(function($data) {
-            $user = new User();
-            $user->id = $data['id'];
-            $user->username = $data['username'];
-            $user->discriminator = $data['discriminator'];
-            $user->avatar_url = $data['avatar_url'];
-            $user->status = $data['status'];
-            return $user;
-        }, $results);
-    }
-
-    public function getFriendship($userId1, $userId2) {
-        $query = "SELECT * FROM friend_list 
-                  WHERE (user_id = ? AND friend_id = ?) 
-                  OR (user_id = ? AND friend_id = ?)
-                  LIMIT 1";
-                  
-        $stmt = $this->db->prepare($query);
-        $stmt->execute([$userId1, $userId2, $userId2, $userId1]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $query2 = new Query();
+        $friends2 = $query2->table('friend_list')
+            ->where('user_id2', $userId1)
+            ->where('status', 'accepted')
+            ->get();
         
-        if (!$result) {
-            return null;
+        // Combine both sets of friends for user 1
+        $friendIds1 = [];
+        foreach ($friends1 as $friend) {
+            $friendIds1[] = $friend['user_id2'];
+        }
+        foreach ($friends2 as $friend) {
+            $friendIds1[] = $friend['user_id'];
         }
         
-        return $this->mapToModel($result);
-    }
-
-    public function getFriendsByStatus($userId, $status) {
-        $query = "SELECT u.* FROM users u
-                  INNER JOIN friend_list f ON f.friend_id = u.id
-                  WHERE f.user_id = ? AND f.status = ?
-                  ORDER BY u.username";
-                  
-        $stmt = $this->db->prepare($query);
-        $stmt->execute([$userId, $status]);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Get friends of user 2
+        $query3 = new Query();
+        $friends3 = $query3->table('friend_list')
+            ->where('user_id', $userId2)
+            ->where('status', 'accepted')
+            ->get();
         
-        return array_map(function($data) {
-            $user = new User();
-            $user->id = $data['id'];
-            $user->username = $data['username'];
-            $user->discriminator = $data['discriminator'];
-            $user->avatar_url = $data['avatar_url'];
-            $user->status = $data['status'];
-            return $user;
-        }, $results);
-    }
-
-    private function mapToModel($data) {
-        $friendship = new FriendList();
-        $friendship->id = $data['id'];
-        $friendship->user_id = $data['user_id'];
-        $friendship->friend_id = $data['friend_id'];
-        $friendship->status = $data['status'];
-        $friendship->created_at = $data['created_at'];
-        $friendship->updated_at = $data['updated_at'];
-        return $friendship;
+        $query4 = new Query();
+        $friends4 = $query4->table('friend_list')
+            ->where('user_id2', $userId2)
+            ->where('status', 'accepted')
+            ->get();
+        
+        // Combine both sets of friends for user 2
+        $friendIds2 = [];
+        foreach ($friends3 as $friend) {
+            $friendIds2[] = $friend['user_id2'];
+        }
+        foreach ($friends4 as $friend) {
+            $friendIds2[] = $friend['user_id'];
+        }
+        
+        // Find the intersection of friend IDs
+        $mutualFriendIds = array_intersect($friendIds1, $friendIds2);
+        
+        if (empty($mutualFriendIds)) {
+            return [];
+        }
+        
+        // Get the actual user records
+        $query5 = new Query();
+        return $query5->table('users')
+            ->whereIn('id', $mutualFriendIds)
+            ->where('status', '!=', 'bot')
+            ->get();
     }
 }

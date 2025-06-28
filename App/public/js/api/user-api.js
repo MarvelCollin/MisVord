@@ -1,73 +1,3 @@
-import { ajax } from '../utils/ajax.js';
-
-export async function getUserProfile(userId) {
-    const response = await ajax.get(`/api/users/${userId}/profile`);
-    if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch user profile');
-    }
-    return response.data;
-}
-
-export async function getMutualInfo(userId) {
-    const response = await ajax.get(`/api/users/${userId}/mutual`);
-    if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch mutual info');
-    }
-    return response.data;
-}
-
-export async function updateUserStatus(status) {
-    const response = await ajax.post('/api/users/status', { status });
-    if (!response.success) {
-        throw new Error(response.message || 'Failed to update status');
-    }
-    return response.data;
-}
-
-export async function updateUserProfile(data) {
-    const response = await ajax.put('/api/users/profile', data);
-    if (!response.success) {
-        throw new Error(response.message || 'Failed to update profile');
-    }
-    return response.data;
-}
-
-export async function uploadAvatar(file) {
-    const formData = new FormData();
-    formData.append('avatar', file);
-
-    const response = await ajax.post('/api/users/avatar', formData, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        processData: false,
-        contentType: false
-    });
-
-    if (!response.success) {
-        throw new Error(response.message || 'Failed to upload avatar');
-    }
-    return response.data;
-}
-
-export async function uploadBanner(file) {
-    const formData = new FormData();
-    formData.append('banner', file);
-
-    const response = await ajax.post('/api/users/banner', formData, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        processData: false,
-        contentType: false
-    });
-
-    if (!response.success) {
-        throw new Error(response.message || 'Failed to upload banner');
-    }
-    return response.data;
-}
-
 class UserAPI {
     constructor() {
         this.baseURL = '/api/users';
@@ -172,17 +102,54 @@ class UserAPI {
     }
 
     async getUserProfile(userId, serverId = null) {
+        if (!userId) {
+            console.error('UserAPI: getUserProfile called without userId');
+            return {
+                success: false,
+                error: 'User ID is required'
+            };
+        }
+
         let url = `/api/users/${userId}/profile`;
 
         if (serverId) {
             url += `?server_id=${serverId}`;
         }
 
-        return await this.makeRequest(url);
+        console.log(`🔗 UserAPI: Fetching profile for user ${userId}`);
+        const result = await this.makeRequest(url);
+        
+        if (!result.success) {
+            console.error(`UserAPI: Failed to fetch user profile for ${userId}:`, result.error);
+        } else {
+            console.log(`🔗 UserAPI: Successfully fetched profile for user ${userId}`);
+        }
+        
+        return result;
     }
 
     async getMutualRelations(userId) {
-        return await this.makeRequest(`/api/users/${userId}/mutual`);
+        if (!userId) {
+            console.error('UserAPI: getMutualRelations called without userId');
+            return {
+                success: false,
+                error: 'User ID is required'
+            };
+        }
+
+        console.log(`🔗 UserAPI: Fetching mutual relations for user ${userId}`);
+        const result = await this.makeRequest(`/api/users/${userId}/mutual`);
+        
+        if (!result.success) {
+            console.error(`UserAPI: Failed to fetch mutual relations for ${userId}:`, result.error);
+        } else {
+            console.log(`🔗 UserAPI: Successfully fetched mutual relations for user ${userId}`, {
+                friends: result.data.mutual_friend_count,
+                servers: result.data.mutual_server_count
+            });
+        }
+        
+        return result;
     }
 
     async getUserSecurityQuestion() {

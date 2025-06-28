@@ -1,7 +1,6 @@
 export * from './messaging/emoji.js';
 export * from './messaging/rich-text.js';
 export * from './messaging/chat-socket-handler.js';
-export * from './messaging/send-receive-message.js';
 export * from './messaging/chat-section.js';
 export * from './messaging/chat-skeleton-loading.js';
 export * from './servers/server-dropdown.js';
@@ -40,9 +39,6 @@ if (!document.body.classList.contains('settings-page') &&
     !document.location.pathname.includes('/settings') && 
     !document.location.pathname.includes('/app/friends') && 
     !document.location.pathname.includes('/home')) {
-    import('./messaging/send-receive-message.js').catch(err => {
-        console.debug('Send-receive-message not loaded: ', err.message);
-    });
     import('./messaging/chat-section.js').catch(err => {
         console.debug('Chat section not loaded: ', err.message);
     });

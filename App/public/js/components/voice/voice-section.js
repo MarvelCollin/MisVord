@@ -4,7 +4,7 @@ class VoiceSection {
             joinBtn: document.getElementById('joinBtn'),
             joinView: document.getElementById('joinView'),
             connectingView: document.getElementById('connectingView'),
-            connectedView: document.getElementById('connectedView'),
+            videoGrid: document.getElementById('videoGrid'),
             voiceControls: document.getElementById('voiceControls'),
             voiceIndicator: document.getElementById('voice-indicator')
         };
@@ -30,12 +30,11 @@ class VoiceSection {
             window.voiceState = { isConnected: false };
         }
         
-        // Ensure VideoSDK is loaded
         this.loadDependencies().then(() => {
-            // Wait for voice manager to be available
             this.waitForVoiceManager().then(() => {
                 this.setupEventListeners();
                 this.checkExistingConnection();
+                this.checkForAutoJoin();
             }).catch(error => {
                 console.error('Failed to initialize voice manager:', error);
             });
@@ -45,7 +44,6 @@ class VoiceSection {
     }
 
     async loadDependencies() {
-        // Load VideoSDK if not already loaded
         if (typeof VideoSDK === 'undefined') {
             await this.loadScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
             console.log('✅ VideoSDK script loaded');
@@ -103,7 +101,6 @@ class VoiceSection {
             this.elements.connectingView.classList.remove('hidden');
             
             try {
-                // Make sure voice manager is available before trying to connect
                 await this.waitForVoiceManager();
                 await this.connectToVoice();
             } catch (error) {
@@ -118,8 +115,15 @@ class VoiceSection {
             
             this.elements.connectingView.classList.add('hidden');
             this.elements.joinView.classList.add('hidden');
-            this.elements.connectedView.classList.remove('hidden');
-            this.elements.voiceControls.classList.remove('hidden');
+            
+            if (this.elements.videoGrid) {
+                this.elements.videoGrid.classList.remove('hidden');
+            }
+            
+            if (this.elements.voiceControls) {
+                this.elements.voiceControls.classList.remove('hidden');
+            }
+            
             window.voiceState.isConnected = true;
             this.elements.joinBtn.disabled = false;
             this.elements.joinBtn.textContent = 'Connected';
@@ -140,10 +144,17 @@ class VoiceSection {
         });
         
         window.addEventListener('voiceDisconnect', () => {
-            this.elements.connectedView.classList.add('hidden');
+            if (this.elements.videoGrid) {
+                this.elements.videoGrid.classList.add('hidden');
+            }
+            
             this.elements.connectingView.classList.add('hidden');
             this.elements.joinView.classList.remove('hidden');
-            this.elements.voiceControls.classList.add('hidden');
+            
+            if (this.elements.voiceControls) {
+                this.elements.voiceControls.classList.add('hidden');
+            }
+            
             this.elements.joinBtn.disabled = false;
             this.elements.joinBtn.textContent = 'Join Voice';
             window.voiceState.isConnected = false;
@@ -159,7 +170,6 @@ class VoiceSection {
         }
 
         try {
-            // Set UI to connecting state
             if (this.elements.connectingView) {
                 this.elements.connectingView.classList.remove('hidden');
             }
@@ -167,7 +177,6 @@ class VoiceSection {
                 this.elements.joinView.classList.add('hidden');
             }
             
-            // Try to join voice with retry logic
             let attempts = 0;
             const maxAttempts = 3;
             
@@ -176,15 +185,14 @@ class VoiceSection {
                     attempts++;
                     console.log(`Attempting to connect to voice (attempt ${attempts}/${maxAttempts})`);
                     await voiceManager.joinVoice();
-                    return; // Success, exit the function
+                    return; 
                 } catch (error) {
                     console.error(`❌ Connection attempt ${attempts} failed:`, error);
                     
                     if (attempts >= maxAttempts) {
-                        throw error; // Rethrow the error after all attempts failed
+                        throw error; 
                     }
                     
-                    // Wait before retrying
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
@@ -200,7 +208,11 @@ class VoiceSection {
         this.elements.joinBtn.textContent = 'Join Voice';
         this.elements.joinView.classList.remove('hidden');
         this.elements.connectingView.classList.add('hidden');
-        this.elements.voiceControls.classList.add('hidden');
+        
+        if (this.elements.voiceControls) {
+            this.elements.voiceControls.classList.add('hidden');
+        }
+        
         window.showToast?.('Failed to connect to voice', 'error', 3000);
         localStorage.removeItem("voiceConnectionState");
     }
@@ -232,7 +244,6 @@ class VoiceSection {
                         }
                     }
                     
-                    // Wait for voice manager to be available before attempting reconnection
                     this.waitForVoiceManager().then(() => {
                         this.connectToVoice().catch(error => {
                             console.error('❌ Error auto-connecting to voice:', error);
@@ -250,6 +261,29 @@ class VoiceSection {
         }
     }
     
+    checkForAutoJoin() {
+        console.log('Checking for auto-join conditions');
+        
+        const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
+        const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
+        const currentChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+        
+        console.log('Auto-join check:', { forceAutoJoin, autoJoinChannelId, currentChannelId });
+        
+        if (forceAutoJoin && autoJoinChannelId && autoJoinChannelId === currentChannelId) {
+            console.log('Auto-join conditions met, triggering join');
+            
+            sessionStorage.removeItem('forceAutoJoin');
+            
+            setTimeout(() => {
+                if (this.elements.joinBtn && !window.voiceState.isConnected) {
+                    console.log('Triggering auto-join click');
+                    this.elements.joinBtn.click();
+                }
+            }, 500);
+        }
+    }
+    
     updateChannelNames(channelName) {
         const channelNameElements = document.querySelectorAll('.channel-name, .voice-ind-title');
         channelNameElements.forEach(el => {
@@ -262,11 +296,18 @@ class VoiceSection {
             }
         });
     }
+    
+    autoJoin() {
+        if (this.elements.joinBtn && !window.voiceState.isConnected) {
+            console.log('Triggering auto-join via method call');
+            this.elements.joinBtn.click();
+            return true;
+        }
+        return false;
+    }
 }
 
-// Initialize voice section after DOM is loaded and make sure voice manager is loaded first
 document.addEventListener('DOMContentLoaded', async function() {
-    // Load VideoSDK first
     if (typeof VideoSDK === 'undefined') {
         const script = document.createElement('script');
         script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
@@ -275,11 +316,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         script.onload = () => {
             console.log('✅ VideoSDK loaded from voice section');
-            // Now initialize voice section
             window.voiceSection = new VoiceSection();
         };
     } else {
-        // VideoSDK already loaded, just initialize voice section
         window.voiceSection = new VoiceSection();
     }
 });
@@ -290,4 +329,23 @@ window.initializeVoiceUI = async function() {
     } else {
         await window.voiceSection.init();
     }
+};
+
+window.triggerVoiceAutoJoin = function() {
+    console.log('Global auto-join function called');
+    if (window.voiceSection) {
+        return window.voiceSection.autoJoin();
+    }
+    return false;
+};
+
+window.handleAutoJoin = function() {
+    console.log('Handle auto-join called');
+    const joinBtn = document.getElementById('joinBtn');
+    if (joinBtn && !window.voiceState?.isConnected) {
+        console.log('Auto-joining voice channel via global handler');
+        joinBtn.click();
+        return true;
+    }
+    return false;
 }; 

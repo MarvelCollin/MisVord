@@ -465,9 +465,9 @@ class BaseController
         if (strpos($contentType, 'application/json') !== false) {
             $jsonInput = file_get_contents('php://input');
             if (!empty($jsonInput)) {
-                $decoded = json_decode($jsonInput, true);
-                if ($decoded !== null) {
-                    $input = $decoded;
+            $decoded = json_decode($jsonInput, true);
+            if ($decoded !== null) {
+                $input = $decoded;
                 } else {
                     error_log("Failed to decode JSON input: " . json_last_error_msg());
                     error_log("Raw input: " . $jsonInput);

@@ -195,7 +195,7 @@ class ChatController extends BaseController
         try {
             if ($input['target_type'] === 'channel') {
                 $result = $this->sendChannelMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
-            } else {
+        } else {
                 $result = $this->sendDirectMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
             }
 
