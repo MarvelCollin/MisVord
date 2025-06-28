@@ -919,6 +919,11 @@ Route::delete('/api/bots/([0-9]+)', function($botId) {
     $controller->delete($botId);
 });
 
+Route::post('/api/bots/send-channel-message', function() {
+    $controller = new BotController();
+    $controller->sendChannelMessage();
+});
+
 Route::post('/api/media/upload', function() {
     $controller = new MediaController();
     $controller->uploadMedia();

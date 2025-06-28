@@ -319,4 +319,118 @@ class BotController extends BaseController
             return $this->serverError('An error occurred while deleting bot: ' . $e->getMessage());
         }
     }
+
+    public function sendChannelMessage()
+    {
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        if (!isset($input['user_id']) || !isset($input['channel_id']) || !isset($input['content'])) {
+            return $this->error('Bot user_id, channel_id, and content are required', 400);
+        }
+
+        try {
+            $bot = $this->userRepository->find($input['user_id']);
+            if (!$bot || $bot->status !== 'bot') {
+                return $this->error('Invalid bot user', 400);
+            }
+
+            require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
+            require_once __DIR__ . '/../database/repositories/MessageRepository.php';
+            require_once __DIR__ . '/../database/repositories/ChannelMessageRepository.php';
+            require_once __DIR__ . '/../database/query.php';
+
+            $channelRepository = new ChannelRepository();
+            $messageRepository = new MessageRepository();
+            $channelMessageRepository = new ChannelMessageRepository();
+
+            $channel = $channelRepository->find($input['channel_id']);
+            if (!$channel) {
+                return $this->error('Channel not found', 404);
+            }
+
+            if ($channel->server_id != 0) {
+                $membership = $this->userServerMembershipRepository->findByUserAndServer($input['user_id'], $channel->server_id);
+                if (!$membership) {
+                    return $this->error('Bot is not a member of this server', 403);
+                }
+            }
+
+            $query = new Query();
+            $query->beginTransaction();
+            
+            $messageData = [
+                'content' => $input['content'],
+                'user_id' => $input['user_id'],
+                'message_type' => $input['message_type'] ?? 'text',
+                'attachment_url' => $input['attachment_url'] ?? null,
+                'sent_at' => date('Y-m-d H:i:s'),
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            if (isset($input['reply_message_id'])) {
+                $repliedMessage = $messageRepository->find($input['reply_message_id']);
+                if ($repliedMessage) {
+                    $messageData['reply_message_id'] = $input['reply_message_id'];
+                }
+            }
+
+            $message = $messageRepository->create($messageData);
+
+            if ($message && isset($message->id)) {
+                $channelMessageRepository->addMessageToChannel($input['channel_id'], $message->id);
+                
+                $formattedMessage = [
+                    'id' => $message->id,
+                    'content' => $message->content,
+                    'user_id' => $message->user_id,
+                    'username' => $bot->username,
+                    'avatar_url' => $bot->avatar_url ?: '/assets/common/default-profile-picture.png',
+                    'sent_at' => $message->sent_at,
+                    'edited_at' => $message->edited_at,
+                    'type' => $message->message_type ?? 'text',
+                    'message_type' => $message->message_type ?? 'text',
+                    'attachment_url' => $message->attachment_url,
+                    'has_reactions' => false,
+                    'reaction_count' => 0,
+                    'reactions' => []
+                ];
+                
+                if ($message->reply_message_id) {
+                    $repliedMessage = $messageRepository->find($message->reply_message_id);
+                    if ($repliedMessage) {
+                        $repliedUser = $this->userRepository->find($repliedMessage->user_id);
+                        $formattedMessage['reply_message_id'] = $message->reply_message_id;
+                        $formattedMessage['reply_data'] = [
+                            'message_id' => $message->reply_message_id,
+                            'content' => $repliedMessage->content,
+                            'user_id' => $repliedMessage->user_id,
+                            'username' => $repliedUser ? $repliedUser->username : 'Unknown',
+                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/assets/common/default-profile-picture.png'
+                        ];
+                    }
+                }
+
+                $query->commit();
+                
+                return $this->success([
+                    'success' => true,
+                    'data' => [
+                        'message' => $formattedMessage,
+                        'channel_id' => $input['channel_id']
+                    ]
+                ], 'Bot message sent successfully');
+            } else {
+                $query->rollback();
+                throw new Exception('Failed to save bot message');
+            }
+        } catch (Exception $e) {
+            if (isset($query)) {
+                $query->rollback();
+            }
+            error_log('Bot message send error: ' . $e->getMessage());
+            return $this->serverError('Failed to send bot message: ' . $e->getMessage());
+        }
+    }
 }

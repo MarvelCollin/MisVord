@@ -394,7 +394,8 @@ class BotHandler {
 
             let endpoint;
             if (messageType === 'channel') {
-                endpoint = `http://localhost:8080/api/channels/${messageData.channel_id}/messages`;
+                endpoint = `http://localhost:8080/api/bots/send-channel-message`;
+                payload.channel_id = messageData.channel_id;
             } else {
                 endpoint = `http://localhost:8080/api/chat/send`;
                 payload.chat_type = 'direct';

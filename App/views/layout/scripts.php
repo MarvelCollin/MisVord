@@ -70,9 +70,4 @@ if ($is_auth_page) {
     <script src="<?php echo js(rtrim($script, '.js')); ?>?v=<?php echo time(); ?>" type="module"></script>
 <?php endforeach; ?>
 
-<?php if (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true'): ?>
-    <script src="<?php echo js('debug/socket-debug-panel'); ?>?v=<?php echo time(); ?>"></script>
-    <script src="<?php echo js('debug/comprehensive-chat-test'); ?>?v=<?php echo time(); ?>"></script>
-<?php endif; ?>
-
 <script type="module" src="/public/js/utils/channel-switch-manager.js"></script>
