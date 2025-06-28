@@ -267,13 +267,27 @@ function initChannelEventListeners() {
     document.querySelectorAll('.channel-item').forEach(item => {
         item.addEventListener('click', function(e) {
             if (e.target.closest('.channel-actions')) {
-
-                return;
+                return; // Ignore clicks on edit/delete buttons
             }
 
             const channelId = this.dataset.channelId;
             const serverId = getServerId();
-            if (channelId && serverId) {
+
+            if (!channelId || !serverId) return;
+
+            // Prefer AJAX navigation via ChatSection when available
+            if (window.chatSection && typeof window.chatSection.joinNewChannel === 'function') {
+                window.chatSection.joinNewChannel(channelId);
+
+                // Push state so URL reflects current channel without reload
+                const newUrl = `/server/${serverId}?channel=${channelId}`;
+                window.history.pushState({ channelId }, '', newUrl);
+
+                // Update active styling
+                document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('bg-gray-700', 'text-white'));
+                this.classList.add('bg-gray-700', 'text-white');
+            } else {
+                // Fallback: full navigation
                 window.location.href = `/server/${serverId}?channel=${channelId}`;
             }
         });

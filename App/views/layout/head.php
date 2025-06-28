@@ -212,7 +212,7 @@ async function showTitiBotModal() {
         const response = await fetch('/api/user/servers');
         if (response.ok) {
             const data = await response.json();
-            userServers = data.servers || [];
+            userServers = (data.data && data.data.servers) ? data.data.servers : (data.servers || []);
         }
     } catch (error) {
         console.error('Failed to fetch user servers:', error);
@@ -223,9 +223,11 @@ async function showTitiBotModal() {
     try {
         const response = await fetch('/api/bots/check/titibot');
         if (response.ok) {
-            const data = await response.json();
-            botExists = data.exists && data.is_bot;
-            botData = data.bot;
+            const respJson = await response.json();
+            const botInfo = respJson.data ? respJson.data.bot : respJson.bot;
+            window.titiBotData = botInfo;
+            botExists = respJson.data ? (respJson.data.exists && respJson.data.is_bot) : (respJson.exists && respJson.is_bot);
+            botData = respJson.data ? respJson.data.bot : respJson.bot;
         }
     } catch (error) {
         console.error('Failed to check bot status:', error);

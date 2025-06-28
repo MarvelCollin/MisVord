@@ -345,8 +345,30 @@ export class ChannelLoader {
 
         if (channelType === "text") {
           const serverId = document.querySelector("#current-server-id")?.value;
-          if (serverId) {
-            window.location.href = `/server/${serverId}?channel=${channelId}`;
+
+          // Prefer AJAX switch if ChatSection is ready
+          if (window.chatSection && typeof window.chatSection.joinNewChannel === 'function') {
+            window.chatSection.joinNewChannel(channelId);
+
+            // Update URL without reloading the page
+            if (serverId) {
+              const newUrl = `/server/${serverId}?channel=${channelId}`;
+              window.history.pushState({ channelId }, '', newUrl);
+            }
+
+            // Highlight the active channel in the sidebar
+            container.querySelectorAll('.channel-item').forEach(el => {
+              el.classList.remove('bg-discord-lighten', 'text-white');
+            });
+            item.classList.add('bg-discord-lighten', 'text-white');
+
+            // Notify other components if needed
+            document.dispatchEvent(new CustomEvent('ChannelSwitched', { detail: { channelId } }));
+          } else {
+            // Fallback to full page navigation when AJAX path not ready
+            if (serverId) {
+              window.location.href = `/server/${serverId}?channel=${channelId}`;
+            }
           }
         }
 
