@@ -99,10 +99,26 @@ function initializeVoiceUI() {
     window.addEventListener('voiceConnect', (event) => {
         const details = event.detail || {};
         
-        if (!window.videosdkMeeting || window.videosdkMeeting.localParticipant?.connectionStatus !== 'connected') {
+        if (!window.videosdkMeeting) {
+            console.log('No VideoSDK meeting found, skipping UI update');
             return;
         }
         
+        const localParticipant = window.videosdkMeeting.localParticipant;
+        if (!localParticipant) {
+            console.log('No local participant found, skipping UI update');
+            return;
+        }
+        
+        const status = localParticipant.connectionStatus;
+        console.log('Connection status:', status);
+        
+        if (status !== 'connected') {
+            console.log('Participant not fully connected, waiting...');
+            return;
+        }
+        
+        console.log('Participant fully connected, updating UI');
         elements.connectingView.classList.add('hidden');
         elements.joinView.classList.add('hidden');
         elements.connectedView.classList.remove('hidden');

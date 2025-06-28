@@ -4,3 +4,9 @@
 [2025-06-28 01:32:22] INFO [6c9f6a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-28 01:32:22"}
 [2025-06-28 01:32:22] WARNING [6c9f6a] PHP Warning: Undefined array key "REQUEST_URI" - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":9,"severity":2}
 [2025-06-28 01:32:22] WARNING [6c9f6a] PHP Warning: Undefined array key "REQUEST_URI" - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":38,"severity":2}
+[2025-06-28 05:48:29] DEBUG [d2c5f8] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 05:48:29] INFO [d2c5f8] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 05:48:29] DEBUG [d2c5f8] DB Query: SELECT * FROM channels WHERE  server_id = ? ORDER BY position ASC, id ASC - Duration: 46.18ms - Context: {"bindings":[17],"result_count":1,"db_query":"SELECT * FROM channels WHERE  server_id = ? ORDER BY position ASC, id ASC","db_duration":0.04617905616760254}
+[2025-06-28 05:48:43] DEBUG [b7795a] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 05:48:43] INFO [b7795a] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 05:48:43] DEBUG [b7795a] DB Query: SELECT * FROM categories WHERE  server_id = ? - Duration: 42.80ms - Context: {"bindings":[17],"result_count":0,"db_query":"SELECT * FROM categories WHERE  server_id = ?","db_duration":0.04279804229736328}

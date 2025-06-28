@@ -14,11 +14,6 @@ function initChannelManager() {
 }
 
 function loadServerChannels() {
-    if (document.body.hasAttribute('data-initial-load')) {
-        console.log("Using server-rendered channels, skipping AJAX reload");
-        return;
-    }
-    
     const serverId = getServerId();
     if (!serverId) return;
 
@@ -127,7 +122,7 @@ function refreshChannelList() {
 }
 
 function renderChannelList(data) {
-    const channelContainer = document.querySelector('.channel-list-container');
+    const channelContainer = document.querySelector('.channel-wrapper .channel-list');
     if (!channelContainer) return;
 
     const headerDiv = channelContainer.querySelector('.flex.justify-between.items-center');
@@ -136,11 +131,13 @@ function renderChannelList(data) {
         channelContainer.appendChild(headerDiv);
     }
 
-    if (data.uncategorizedChannels && data.uncategorizedChannels.length > 0) {
+    // Handle uncategorized channels
+    const uncategorizedChannels = data.channels ? data.channels.filter(ch => !ch.category_id) : [];
+    if (uncategorizedChannels.length > 0) {
         const uncategorizedSection = document.createElement('div');
         uncategorizedSection.className = 'uncategorized-channels mb-4';
 
-        data.uncategorizedChannels.forEach(channel => {
+        uncategorizedChannels.forEach(channel => {
             const channelEl = createChannelElement(channel);
             uncategorizedSection.appendChild(channelEl);
         });
@@ -148,9 +145,14 @@ function renderChannelList(data) {
         channelContainer.appendChild(uncategorizedSection);
     }
 
+    // Handle categorized channels
     if (data.categories && data.categories.length > 0) {
         data.categories.forEach(category => {
-            const categoryEl = createCategoryElement(category);
+            const categoryChannels = data.channels ? data.channels.filter(ch => ch.category_id === category.id) : [];
+            const categoryEl = createCategoryElement({
+                ...category,
+                channels: categoryChannels
+            });
             channelContainer.appendChild(categoryEl);
         });
     }

@@ -1879,4 +1879,43 @@ class ServerController extends BaseController
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
+
+    public function getServerBundle($serverId) {
+        try {
+            $this->requireAuth();
+            
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $serverId);
+            if (!$membership) {
+                return $this->forbidden('You are not a member of this server');
+            }
+
+            $channels = $this->channelRepository->getByServerId($serverId);
+            $categories = $this->categoryRepository->getForServer($serverId);
+            $serverMembers = $this->userServerMembershipRepository->getServerMembers($serverId);
+
+            $defaultChannelId = null;
+            foreach ($channels as $channel) {
+                if ($channel['type'] === 'text' || $channel['type'] === 0 || $channel['type_name'] === 'text') {
+                    $defaultChannelId = $channel['id'];
+                    break;
+                }
+            }
+
+            return $this->success([
+                'server' => $this->formatServer($server),
+                'channels' => array_map([$this, 'formatChannel'], $channels),
+                'categories' => $categories,
+                'members' => $serverMembers,
+                'default_channel_id' => $defaultChannelId
+            ]);
+
+        } catch (Exception $e) {
+            return $this->serverError('Failed to load server data: ' . $e->getMessage());
+        }
+    }
 }

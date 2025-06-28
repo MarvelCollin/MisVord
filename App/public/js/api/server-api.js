@@ -301,6 +301,40 @@ const serverAPI = {
             }
             return response.json();
         });
+    },
+
+    getServerChannels: function(serverId) {
+        return fetch(`/api/servers/${serverId}/channels`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    getServerBundle: function(serverId) {
+        return fetch(`/api/servers/${serverId}/details`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
     }
 };
 

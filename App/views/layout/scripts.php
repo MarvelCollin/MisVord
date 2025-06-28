@@ -45,6 +45,7 @@ if ($is_auth_page) {
 <script src="<?php echo js('api/friend-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/channel-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/server-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
+<script src="<?php echo js('utils/server-load-ajax'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <?php endif; ?>
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo time(); ?>" type="module"></script>

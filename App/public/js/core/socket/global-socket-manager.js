@@ -312,10 +312,12 @@ class GlobalSocketManager {
             return false;
         }
         
+        const roomIdStr = typeof roomId === 'string' ? roomId : String(roomId);
+        
         this.log(`Joining room: ${roomType} - ${roomId}`);
         this.io.emit('join-room', { 
             room_type: roomType, 
-            room_id: roomId,
+            room_id: roomIdStr,
             source: 'client-originated'
         });
         

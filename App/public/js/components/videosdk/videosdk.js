@@ -390,6 +390,9 @@ class VideoSDKManager {
             
             await Promise.race([joinPromise, timeoutPromise]);
             
+            let joinedEventReceived = false;
+            let connectionEstablished = false;
+            
             await new Promise((resolve, reject) => {
                 const maxAttempts = 150;
                 let attempts = 0;
@@ -398,7 +401,8 @@ class VideoSDKManager {
                     attempts++;
                     const status = this.meeting.localParticipant?.connectionStatus;
                     
-                    if (status === 'connected') {
+                    if (status === 'connected' && joinedEventReceived) {
+                        connectionEstablished = true;
                         resolve();
                     } else if (status === 'failed' || status === 'closed') {
                         reject(new Error(`Connection ${status}`));
@@ -411,7 +415,11 @@ class VideoSDKManager {
                 
                 this.meeting.on("meeting-joined", () => {
                     console.log("[VIDEOSDK] Meeting joined event received");
-                    checkConnection();
+                    joinedEventReceived = true;
+                    if (this.meeting.localParticipant?.connectionStatus === 'connected') {
+                        connectionEstablished = true;
+                        resolve();
+                    }
                 });
                 
                 this.meeting.on("error", (error) => {
@@ -419,10 +427,40 @@ class VideoSDKManager {
                     reject(error);
                 });
                 
+                this.meeting.on("meeting-left", () => {
+                    console.log("[VIDEOSDK] Meeting left event received");
+                    reject(new Error('Meeting left'));
+                });
+                
                 checkConnection();
             });
             
+            if (!connectionEstablished) {
+                throw new Error('Failed to establish connection');
+            }
+            
             console.log(`[VIDEOSDK] Successfully joined meeting with ID: ${this.meeting.id || 'unknown'}`);
+            
+            // Re-emit the voiceConnect event to ensure UI is updated
+            if (window.voiceState) {
+                window.voiceState.isConnected = true;
+            }
+            
+            if (window.voiceManager) {
+                window.voiceManager.isConnected = true;
+            }
+            
+            const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+            const channelName = document.querySelector('.channel-name')?.textContent || 'Voice Channel';
+            
+            window.dispatchEvent(new CustomEvent('voiceConnect', {
+                detail: { 
+                    meetingId: this.meeting.id,
+                    channelName: channelName,
+                    channelId: channelId 
+                }
+            }));
+            
             return true;
         } catch (error) {
             this.logError("Failed to join meeting", error);

@@ -74,8 +74,8 @@ if (file_exists($tooltipPath)) {
                     $serverId = $server['id'] ?? $server->id;
                     ?>
                     
-                    <div class="server-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>" data-server-id="<?php echo $serverId; ?>">
-                        <a href="/server/<?php echo $serverId; ?>" class="block">
+                    <div class="server-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>">
+                        <a href="/server/<?php echo $serverId; ?>" class="block" data-server-id="<?php echo $serverId; ?>">
                             <div class="server-button <?php echo $isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark'; ?> flex items-center justify-center transition-all duration-200">
                                 <?php if (!empty($serverImage)): ?>
                                     <img src="<?php echo htmlspecialchars($serverImage); ?>" alt="<?php echo htmlspecialchars($serverName); ?>" class="w-full h-full object-cover">

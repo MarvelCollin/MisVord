@@ -2715,4 +2715,32 @@ class ChatSection {
             console.warn('emojiReactions not available for reaction update');
         }
     }
+
+    async joinNewChannel(channelId) {
+        console.log('Switching to new channel:', channelId);
+        
+        if (this.targetId === channelId) {
+            console.log('Already on this channel');
+            return;
+        }
+
+        try {
+            this.targetId = channelId;
+            this.chatType = 'channel';
+            this.messagesLoaded = false;
+            this.processedMessageIds.clear();
+
+            if (this.chatMessages) {
+                this.chatMessages.innerHTML = '';
+            }
+
+            this.ensureChatContainerStructure();
+            this.joinChannel();
+            await this.loadMessages();
+
+        } catch (error) {
+            console.error('Failed to switch channel:', error);
+            this.showErrorMessage('Failed to load channel: ' + error.message);
+        }
+    }
 }

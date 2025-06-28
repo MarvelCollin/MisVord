@@ -623,6 +623,7 @@ class ChatController extends BaseController
         if ($replyMessageId) {
             $formatted['reply_message_id'] = $replyMessageId;
             
+            error_log("DEBUG: formatMessage - Processing reply for message " . $formatted['id'] . " replying to $replyMessageId");
             
             $repliedMessage = $this->messageRepository->find($replyMessageId);
             if ($repliedMessage) {
@@ -636,6 +637,10 @@ class ChatController extends BaseController
                     'username' => $repliedUser ? $repliedUser->username : 'Unknown User',
                     'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/default-profile-picture.png'
                 ];
+                
+                error_log("DEBUG: formatMessage - Built reply_data for message " . $formatted['id'] . ": " . json_encode($formatted['reply_data']));
+            } else {
+                error_log("DEBUG: formatMessage - Could not find replied message $replyMessageId for message " . $formatted['id']);
             }
         }
         

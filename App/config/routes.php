@@ -228,6 +228,11 @@ Route::get('/api/servers/([0-9]+)', function($serverId) {
     $controller->getServerDetails($serverId);
 });
 
+Route::get('/api/servers/([0-9]+)/details', function($serverId) {
+    $controller = new ServerController();
+    $controller->getServerBundle($serverId);
+});
+
 Route::get('/api/user/servers', function() {
     $controller = new ServerController();
     $controller->getUserServersData();

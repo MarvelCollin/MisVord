@@ -239,7 +239,7 @@ async function handleChannelSwitch(serverId, channelId, channelType, clickedElem
         if (channelType === 'voice') {
             setTimeout(async () => {
                 try {
-            await autoJoinVoiceChannel(channelId);
+                    await autoJoinVoiceChannel(channelId);
                 } catch (error) {
                     console.error('Failed to auto-join voice channel:', error);
                 }
@@ -403,30 +403,7 @@ async function autoJoinVoiceChannel(channelId) {
             }
         }));
         
-        if (window.videosdkMeeting.localParticipant?.connectionStatus === 'connected') {
-            showConnectedView();
-        } else {
-            await new Promise((resolve, reject) => {
-                const maxAttempts = 150;
-                let attempts = 0;
-                
-                const checkConnection = () => {
-                    attempts++;
-                    const status = window.videosdkMeeting.localParticipant?.connectionStatus;
-                    
-                    if (status === 'connected') {
-                        showConnectedView();
-                        resolve();
-                    } else if (status === 'failed' || status === 'closed' || attempts >= maxAttempts) {
-                        showJoinView();
-                        reject(new Error('Failed to establish connection'));
-                    } else {
-                        setTimeout(checkConnection, 100);
-                    }
-                };
-                checkConnection();
-            });
-        }
+        showConnectedView();
         
     } catch (error) {
         console.error('Auto join voice failed:', error);
