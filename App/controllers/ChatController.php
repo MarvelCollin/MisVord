@@ -148,8 +148,29 @@ class ChatController extends BaseController
 
     public function sendMessage()
     {
-        $this->requireAuth();
-        $userId = $this->getCurrentUserId();
+        // Handle bot authentication via cookie or regular session auth
+        $botUserId = $_SERVER['HTTP_X_BOT_USER_ID'] ?? null;
+        
+        error_log('[CHAT DEBUG] Headers: ' . json_encode(array_filter($_SERVER, function($key) {
+            return strpos($key, 'HTTP_') === 0;
+        }, ARRAY_FILTER_USE_KEY)));
+        error_log('[CHAT DEBUG] Bot User ID from header: ' . ($botUserId ?: 'null'));
+        
+        if ($botUserId) {
+            // Bot request - verify bot user exists
+            $bot = $this->userRepository->find($botUserId);
+            error_log('[CHAT DEBUG] Bot found: ' . ($bot ? 'yes, status=' . $bot->status : 'no'));
+            if (!$bot || $bot->status !== 'bot') {
+                return $this->error('Invalid bot user', 401);
+            }
+            $userId = $botUserId;
+            error_log('[CHAT DEBUG] Using bot user ID: ' . $userId);
+        } else {
+            // Regular user request
+            error_log('[CHAT DEBUG] No bot header, requiring regular auth');
+            $this->requireAuth();
+            $userId = $this->getCurrentUserId();
+        }
 
         $input = $this->getInput();
         $input = $this->sanitize($input);

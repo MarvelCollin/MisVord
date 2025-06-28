@@ -1,4 +1,5 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
+import { loadServerPage } from '../../utils/load-server-page.js';
 
 let isRendering = false;
 let serverDataCache = null;
@@ -617,7 +618,9 @@ export function updateActiveServer() {
 
 export function handleServerClick(serverId) {
     document.body.classList.add('content-loading');
-    window.location.href = `/server/${serverId}`;
+    history.pushState({ serverId }, '', `/server/${serverId}`);
+    loadServerPage(serverId);
+    updateActiveServer();
 }
 
 export function refreshServerGroups() {

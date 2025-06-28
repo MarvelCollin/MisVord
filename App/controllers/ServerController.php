@@ -130,6 +130,16 @@ class ServerController extends BaseController
 
                 $this->logActivity('server_view', ['server_id' => $id]);
 
+                if ($this->isAjaxRequest() && isset($_GET['render_html']) && $_GET['render_html'] === '1') {
+                    ob_start();
+                    require_once __DIR__ . '/../views/pages/server-page.php';
+                    $html = ob_get_clean();
+                    
+                    header('Content-Type: text/html; charset=utf-8');
+                    echo $html;
+                    exit;
+                }
+
                 require_once __DIR__ . '/../views/pages/server-page.php';
             } catch (Exception $e) {
                 $this->logActivity('server_view_error', [

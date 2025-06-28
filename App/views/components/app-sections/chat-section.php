@@ -577,6 +577,10 @@ function renderMessageContent($message) {
     </div>
 
     <div class="px-4 pb-6 bg-[#313338]">
+        <div id="file-preview" class="hidden min-w-full mb-2">
+            <div id="file-previews-container" class="flex gap-3 p-4 bg-[#2b2d31] rounded-lg overflow-x-auto min-h-[180px]">
+            </div>
+        </div>
         <div class="relative">
             <form id="message-form" class="relative" onsubmit="return false;">
                 <div class="bg-[#383a40] rounded-lg focus-within:ring-1 focus-within:ring-[#5865f2] transition-colors flex items-center px-4 py-2">
@@ -595,9 +599,6 @@ function renderMessageContent($message) {
                         </div>
                     </div>
                     <div class="flex-1 relative flex flex-col">
-                        <div id="file-preview" class="hidden w-full mb-2 p-2 bg-[#2b2d31] rounded-md">
-                            <div id="file-previews-container" class="flex flex-wrap gap-2"></div>
-                        </div>
                         <textarea 
                             id="message-input" 
                             name="content"

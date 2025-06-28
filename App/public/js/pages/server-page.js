@@ -50,6 +50,7 @@ function initServerPage() {
     console.log('[Server Page] Initializing server page');
     
     initializeChannelManager();
+    setupPopStateListener();
     
     if (window.globalSocketManager) {
         console.log('[Server Page] Global socket manager available');
@@ -682,70 +683,42 @@ window.toggleChannelLoading = function(loading) {
 };
 
 function setupPopStateListener() {
-  window.addEventListener('popstate', function(event) {
-    console.log("popstate event triggered", event.state);
-    if (event.state) {
-      const { channelId, channelType } = event.state;
-      
-      const currentActiveChannel = document.querySelector('.channel-item.active-channel');
-      const currentChannelType = currentActiveChannel ? currentActiveChannel.getAttribute('data-channel-type') : null;
-      
-      console.log(`Switching from channel type: ${currentChannelType} to: ${channelType}`);
-      
-      if (currentChannelType !== channelType) {
-        console.log("Channel type is changing, cleaning up previous channel type");
-        
-        if (currentChannelType === 'voice') {
-          console.log("Switching from voice to text channel, cleaning up voice components");
-          if (window.voiceManager) {
-            console.log("Cleaning up voice manager");
-            window.voiceManager = null;
-          }
-        }
-        
-        if (currentChannelType === 'text') {
-          console.log("Switching from text to voice channel, cleaning up chat components");
-          if (window.chatSection) {
-            console.log("Destroying chat section");
-            window.chatSection = null;
-          }
-        }
-      }
-      
-      if (channelType === 'text') {
-        updateChatMetaTags(channelId);
-      }
-      
-      document.querySelectorAll('.channel-item').forEach(ch => {
-        ch.classList.remove('active-channel');
-        if (ch.getAttribute('data-channel-id') === channelId) {
-          ch.classList.add('active-channel');
-        }
-      });
-      
-      handleSkeletonLoading(true);
-      
-      if (channelType === 'text') {
-        fetchChatSection(channelId);
-      } else if (channelType === 'voice') {
-        fetchVoiceSection(channelId);
-      }
-    }
-  });
+    window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('popstate', handlePopState);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  setupPopStateListener();
-  
-  const currentChannelItem = document.querySelector('.channel-item.active-channel');
-  if (currentChannelItem) {
-    const channelId = currentChannelItem.getAttribute('data-channel-id');
-    const channelType = currentChannelItem.getAttribute('data-channel-type');
-    const serverId = getServerIdFromUrl();
+function handlePopState(event) {
+    const state = event.state;
     
-    history.replaceState({ channelId, channelType, serverId }, '', window.location.href);
-  }
-});
+    if (!state) return;
+    
+    if (state.serverId) {
+        if (window.loadServerPage) {
+            window.loadServerPage(state.serverId);
+        } else {
+            import('/public/js/utils/load-server-page.js')
+                .then(module => {
+                    module.loadServerPage(state.serverId);
+                })
+                .catch(error => {
+                    console.error('Error loading server page module:', error);
+                    window.location.href = `/server/${state.serverId}`;
+                });
+        }
+    } else if (state.channelId && state.channelType) {
+        const channelItem = document.querySelector(`.channel-item[data-channel-id="${state.channelId}"]`);
+        
+        if (channelItem) {
+            channelItem.click();
+        } else {
+            if (state.channelType === 'text') {
+                fetchChatSection(state.channelId);
+            } else if (state.channelType === 'voice') {
+                fetchVoiceSection(state.channelId);
+            }
+        }
+    }
+}
 
 function setupChannelListObserver() {
   console.log("Setting up channel list observer");

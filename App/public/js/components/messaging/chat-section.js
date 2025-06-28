@@ -1029,47 +1029,118 @@ class ChatSection {
     }
     
     handleFileSelection(file) {
-        if (file.size > this.maxFileSize) {
-            this.showNotification(`File is too large. Maximum size is ${this.formatFileSize(this.maxFileSize)}`, 'error');
-            return;
+        if (!this.fileUploadInput) return;
+
+        const files = this.fileUploadInput.files;
+        if (!files || files.length === 0) return;
+
+        const previewsContainer = document.getElementById('file-previews-container');
+        const filePreview = document.getElementById('file-preview');
+        
+        if (!previewsContainer || !filePreview) return;
+
+        previewsContainer.innerHTML = '';
+        this.currentFileUploads = [];
+
+        Array.from(files).forEach((file) => {
+            if (file.size > this.maxFileSize) {
+                this.showNotification(`File ${file.name} is too large. Maximum size is ${this.formatFileSize(this.maxFileSize)}`, 'error');
+                return;
+            }
+
+            const previewCard = document.createElement('div');
+            previewCard.className = 'relative bg-[#383a40] rounded-lg overflow-hidden flex-shrink-0';
+            previewCard.style.width = '200px';
+            previewCard.style.height = '160px';
+
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewCard.style.backgroundImage = `url(${e.target.result})`;
+                    previewCard.style.backgroundSize = 'cover';
+                    previewCard.style.backgroundPosition = 'center';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                const iconContainer = document.createElement('div');
+                iconContainer.className = 'absolute inset-0 flex items-center justify-center';
+                
+                const fileIcon = document.createElement('i');
+                fileIcon.className = this.getFileTypeIcon(file.type) + ' text-6xl text-[#b5bac1]';
+                
+                iconContainer.appendChild(fileIcon);
+                previewCard.appendChild(iconContainer);
+            }
+
+            const overlay = document.createElement('div');
+            overlay.className = 'absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all duration-200';
+            previewCard.appendChild(overlay);
+
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'absolute top-2 right-2 flex gap-1 opacity-0 hover:opacity-100 transition-opacity duration-200';
+
+            const viewButton = document.createElement('button');
+            viewButton.className = 'w-8 h-8 bg-[#2b2d31] bg-opacity-80 rounded-full flex items-center justify-center text-white hover:bg-opacity-100';
+            viewButton.innerHTML = '<i class="fas fa-eye"></i>';
+            viewButton.onclick = (e) => {
+                e.preventDefault();
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => window.open(e.target.result, '_blank');
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const editButton = document.createElement('button');
+            editButton.className = 'w-8 h-8 bg-[#2b2d31] bg-opacity-80 rounded-full flex items-center justify-center text-white hover:bg-opacity-100';
+            editButton.innerHTML = '<i class="fas fa-edit"></i>';
+
+            const removeButton = document.createElement('button');
+            removeButton.className = 'w-8 h-8 bg-[#ed4245] bg-opacity-80 rounded-full flex items-center justify-center text-white hover:bg-opacity-100';
+            removeButton.innerHTML = '<i class="fas fa-trash"></i>';
+            removeButton.onclick = (e) => {
+                e.preventDefault();
+                previewCard.remove();
+                this.currentFileUploads = this.currentFileUploads.filter(f => f !== file);
+                if (this.currentFileUploads.length === 0) {
+                    filePreview.classList.add('hidden');
+                }
+                this.updateSendButton();
+            };
+
+            actionButtons.appendChild(viewButton);
+            actionButtons.appendChild(editButton);
+            actionButtons.appendChild(removeButton);
+            previewCard.appendChild(actionButtons);
+
+            const fileNameOverlay = document.createElement('div');
+            fileNameOverlay.className = 'absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2';
+            
+            const fileName = document.createElement('div');
+            fileName.className = 'text-white font-medium text-sm truncate';
+            fileName.textContent = file.name;
+
+            fileNameOverlay.appendChild(fileName);
+            previewCard.appendChild(fileNameOverlay);
+
+            previewCard.addEventListener('mouseenter', () => {
+                overlay.classList.add('bg-opacity-20');
+                actionButtons.classList.add('opacity-100');
+            });
+
+            previewCard.addEventListener('mouseleave', () => {
+                overlay.classList.remove('bg-opacity-20');
+                actionButtons.classList.remove('opacity-100');
+            });
+
+            previewsContainer.appendChild(previewCard);
+            this.currentFileUploads.push(file);
+        });
+
+        if (this.currentFileUploads.length > 0) {
+            filePreview.classList.remove('hidden');
         }
 
-        this.currentFileUpload = file;
-        
-        const filePreview = document.getElementById('file-preview');
-        const filePreviewName = document.getElementById('file-preview-name');
-        const filePreviewSize = document.getElementById('file-preview-size');
-        const filePreviewImage = document.getElementById('file-preview-image');
-        const filePreviewIcon = document.getElementById('file-preview-icon');
-        
-        if (filePreviewName) filePreviewName.textContent = file.name;
-        if (filePreviewSize) filePreviewSize.textContent = this.formatFileSize(file.size);
-        
-        if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                if (filePreviewImage) {
-                    filePreviewImage.style.display = 'block';
-                    filePreviewImage.style.backgroundImage = `url(${e.target.result})`;
-                    filePreviewImage.style.backgroundSize = 'contain';
-                    filePreviewImage.style.backgroundPosition = 'center';
-                    filePreviewImage.style.backgroundRepeat = 'no-repeat';
-                    filePreviewImage.style.height = '150px';
-                }
-                if (filePreviewIcon) filePreviewIcon.style.display = 'none';
-            };
-            reader.readAsDataURL(file);
-        } else {
-            if (filePreviewImage) filePreviewImage.style.display = 'none';
-            if (filePreviewIcon) {
-                filePreviewIcon.style.display = 'block';
-                
-                const fileTypeIcon = this.getFileTypeIcon(file.type);
-                filePreviewIcon.innerHTML = `<i class="${fileTypeIcon}"></i>`;
-            }
-        }
-        
-        if (filePreview) filePreview.classList.remove('hidden');
         this.updateSendButton();
     }
     

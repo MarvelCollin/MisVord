@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test AJAX Server Loading</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 10px; }
+        #result { border: 1px solid #ccc; padding: 10px; margin-top: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Test AJAX Server Loading</h1>
+    
+    <div>
+        <label>Server ID: <input type="number" id="serverId" value="1" /></label>
+        <button onclick="testAjaxLoad()">Test AJAX Load</button>
+        <button onclick="testNormalLoad()">Test Normal Load</button>
+    </div>
+    
+    <div id="result"></div>
+    
+    <script>
+        function testAjaxLoad() {
+            const serverId = document.getElementById('serverId').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = '<p>Loading AJAX server page...</p>';
+            
+            fetch(`http://localhost:1001/server/${serverId}?render_html=1`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.text();
+            })
+            .then(html => {
+                resultDiv.innerHTML = `
+                    <h3 class="success">✅ AJAX Load Successful</h3>
+                    <p>Received ${html.length} characters of HTML</p>
+                    <details>
+                        <summary>HTML Preview (first 500 chars)</summary>
+                        <pre>${html.substring(0, 500)}...</pre>
+                    </details>
+                `;
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `
+                    <h3 class="error">❌ AJAX Load Failed</h3>
+                    <p>Error: ${error.message}</p>
+                `;
+            });
+        }
+        
+        function testNormalLoad() {
+            const serverId = document.getElementById('serverId').value;
+            window.open(`http://localhost:1001/server/${serverId}`, '_blank');
+        }
+    </script>
+</body>
+</html> 

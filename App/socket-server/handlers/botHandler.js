@@ -214,9 +214,10 @@ class BotHandler {
             console.log(`🚀 [BOT-RESPONSE] Bot ${username} sending reply to message ${originalMessage.id} in ${targetRoom}`);
             
             try {
-                await this.saveBotMessage(responseData, messageType);
-                
-                io.to(targetRoom).emit(eventName, responseData);
+                const savedMessage = await this.saveBotMessage(responseData, messageType);
+                const emitMessage = savedMessage && savedMessage.id ? savedMessage : responseData;
+
+                io.to(targetRoom).emit(eventName, emitMessage);
                 
                 console.log(`✅ [BOT-RESPONSE] Bot ${username} reply sent successfully`);
             } catch (error) {
@@ -330,9 +331,11 @@ class BotHandler {
             console.log(`🎵 [BOT-MUSIC] Bot ${username} sending music response for ${command} in ${targetRoom}`);
             
             try {
-                await this.saveBotMessage(responseData, messageType);
-                
-                io.to(targetRoom).emit(eventName, responseData);
+                const savedMessage = await this.saveBotMessage(responseData, messageType);
+                let emitMessage = savedMessage && savedMessage.id ? savedMessage : responseData;
+                if (musicData) emitMessage.music_data = musicData;
+
+                io.to(targetRoom).emit(eventName, emitMessage);
                 
                 if (musicData) {
                     io.to(targetRoom).emit('bot-music-command', {
@@ -387,26 +390,23 @@ class BotHandler {
              const payload = {
                  content: messageData.content,
                  message_type: 'text',
-                 user_id: messageData.user_id,
-                 sent_at: messageData.timestamp || Date.now(),
-                 created_at: Date.now(),
-                 updated_at: Date.now()
              };
+
+             // Use the same format as regular chat messages
+             if (messageType === 'channel') {
+                 payload.target_type = 'channel';
+                 payload.target_id = messageData.channel_id;
+             } else {
+                 payload.target_type = 'dm';
+                 payload.target_id = messageData.room_id;
+             }
 
              if (messageData.reply_message_id) {
                  payload.reply_message_id = messageData.reply_message_id;
-                 payload.reply_data = messageData.reply_data;
              }
 
-             let endpoint;
-             if (messageType === 'channel') {
-                 endpoint = `http://localhost:1001/api/bots/send-channel-message`;
-                 payload.channel_id = messageData.channel_id;
-             } else {
-                 endpoint = `http://localhost:1001/api/chat/send`;
-                 payload.chat_type = 'direct';
-                 payload.target_id = messageData.room_id;
-             }
+             // Use the same endpoint as regular users
+             const endpoint = `http://localhost:1001/api/chat/send`;
 
              console.log(`📡 [BOT-HANDLER] Sending bot message to database:`, {
                  endpoint,
@@ -420,7 +420,8 @@ class BotHandler {
                      'Content-Type': 'application/json',
                      'Accept': 'application/json',
                      'X-Requested-With': 'XMLHttpRequest',
-                     'Origin': 'http://localhost:1001'
+                     'Origin': 'http://localhost:1001',
+                     'X-Bot-User-Id': messageData.user_id // Pass bot user ID via header
                  },
                  body: JSON.stringify(payload)
              });
@@ -428,6 +429,7 @@ class BotHandler {
              let responseData;
              try {
                  const responseText = await response.text();
+                 console.log(`💾 [BOT-HANDLER] Raw response from database:`, responseText.substring(0, 200));
                  responseData = JSON.parse(responseText);
              } catch (parseError) {
                  console.error(`❌ [BOT-HANDLER] Failed to parse response:`, parseError);
@@ -437,7 +439,7 @@ class BotHandler {
              if (response.ok && responseData.success) {
                  console.log(`💾 [BOT-HANDLER] Bot message saved to database successfully:`, {
                      messageId: responseData.data?.message?.id,
-                     channelId: payload.channel_id
+                     channelId: payload.target_id
                  });
                  return responseData.data?.message || true;
              } else {
