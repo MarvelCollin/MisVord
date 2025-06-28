@@ -21,7 +21,8 @@ class VoiceManager {
         try {
             await this.loadVideoSDKScript();
             await this.initVideoSDK();
-            this.attachEventListeners();
+        this.attachEventListeners();
+            this.setupErrorHandling();
             this.initialized = true;
             console.log('✅ Voice manager initialized');
         } catch (error) {
@@ -93,6 +94,32 @@ class VoiceManager {
         if (leaveBtn) {
             leaveBtn.addEventListener('click', () => this.leaveVoice());
         }
+    }
+    
+    setupErrorHandling() {
+        // Add global error handler for stream events
+        window.addEventListener('error', (event) => {
+            // Check if the error is related to VideoSDK streams
+            if (event.error && event.error.message && (
+                event.error.message.includes('Cannot read properties of undefined') ||
+                event.error.message.includes('kind') ||
+                event.error.message.includes('stream')
+            )) {
+                console.warn('Voice manager caught stream error:', event.error.message);
+                event.preventDefault();
+                event.stopPropagation();
+                return true;
+            }
+        }, true);
+        
+        // Listen for custom stream events
+        window.addEventListener('videosdkStreamEnabled', (event) => {
+            console.log('Voice manager received stream enabled event:', event.detail);
+        });
+        
+        window.addEventListener('videosdkStreamDisabled', (event) => {
+            console.log('Voice manager received stream disabled event:', event.detail);
+        });
     }
     
     setupVoice(channelId) {
@@ -176,24 +203,24 @@ class VoiceManager {
             await this.videoSDKManager.joinMeeting();
             
             this.currentMeetingId = meeting;
-            this.isConnected = true;
+                this.isConnected = true;
             
             // Dispatch event
-            this.dispatchEvent('voiceConnect', {
-                channelId: this.currentChannelId,
-                channelName: this.currentChannelName,
+                this.dispatchEvent('voiceConnect', {
+                    channelId: this.currentChannelId,
+                    channelName: this.currentChannelName,
                 meetingId: meeting
-            });
+                });
 
             console.log('✅ Successfully joined voice channel');
-            return Promise.resolve();
-        } catch (error) {
+                return Promise.resolve();
+            } catch (error) {
             console.error('❌ Failed to join voice:', error);
             
             window.videoSDKJoiningInProgress = false;
             this.isConnected = false;
-            this.showToast('Failed to connect to voice', 'error');
-            return Promise.reject(error);
+                this.showToast('Failed to connect to voice', 'error');
+                return Promise.reject(error);
         }
     }
     
@@ -234,7 +261,7 @@ class VoiceManager {
         window.showToast?.(message, type, 3000);
     }
 }
-    
+
 window.addEventListener('DOMContentLoaded', async function() {
     window.voiceManager = new VoiceManager();
     setTimeout(async () => {

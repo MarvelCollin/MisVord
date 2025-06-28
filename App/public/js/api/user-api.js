@@ -1,3 +1,73 @@
+import { ajax } from '../utils/ajax.js';
+
+export async function getUserProfile(userId) {
+    const response = await ajax.get(`/api/users/${userId}/profile`);
+    if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch user profile');
+    }
+    return response.data;
+}
+
+export async function getMutualInfo(userId) {
+    const response = await ajax.get(`/api/users/${userId}/mutual`);
+    if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch mutual info');
+    }
+    return response.data;
+}
+
+export async function updateUserStatus(status) {
+    const response = await ajax.post('/api/users/status', { status });
+    if (!response.success) {
+        throw new Error(response.message || 'Failed to update status');
+    }
+    return response.data;
+}
+
+export async function updateUserProfile(data) {
+    const response = await ajax.put('/api/users/profile', data);
+    if (!response.success) {
+        throw new Error(response.message || 'Failed to update profile');
+    }
+    return response.data;
+}
+
+export async function uploadAvatar(file) {
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const response = await ajax.post('/api/users/avatar', formData, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        processData: false,
+        contentType: false
+    });
+
+    if (!response.success) {
+        throw new Error(response.message || 'Failed to upload avatar');
+    }
+    return response.data;
+}
+
+export async function uploadBanner(file) {
+    const formData = new FormData();
+    formData.append('banner', file);
+
+    const response = await ajax.post('/api/users/banner', formData, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        processData: false,
+        contentType: false
+    });
+
+    if (!response.success) {
+        throw new Error(response.message || 'Failed to upload banner');
+    }
+    return response.data;
+}
+
 class UserAPI {
     constructor() {
         this.baseURL = '/api/users';

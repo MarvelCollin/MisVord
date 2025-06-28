@@ -48,6 +48,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initServerPage() {
     console.log('[Server Page] Initializing server page');
+  
+  // Add global error handler for VideoSDK
+  window.addEventListener('error', (event) => {
+    if (event.error && event.error.message && (
+      event.error.message.includes('VideoSDK') ||
+      event.error.message.includes('Cannot read properties of undefined') ||
+      event.error.message.includes('kind') ||
+      event.error.message.includes('stream')
+    )) {
+      console.warn('Server page caught VideoSDK error:', event.error.message);
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    }
+  }, true);
     
     initializeChannelManager();
     setupPopStateListener();

@@ -22,28 +22,41 @@ $serverChannels = $GLOBALS['serverChannels'] ?? [];
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
 <meta name="server-id" content="<?php echo htmlspecialchars($currentServer->id ?? ''); ?>">
 
-<div class="flex flex-col h-screen bg-[#313338] text-white" id="voice-container">
-    <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 bg-[#313338] z-20">
-        <div class="flex items-center">
-            <i class="fas fa-volume-high text-gray-400 mr-2"></i>
-            <span class="font-medium text-white"><?php echo htmlspecialchars($activeChannel->name ?? 'Voice Channel'); ?></span>
+<div class="flex flex-col h-screen bg-[#313338] text-white voice-ui-element" id="voice-container">
+    <!-- Header -->
+    <div class="h-12 border-b border-[#1f2024] flex items-center px-4 bg-[#313338]">
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-volume-high text-[#b5bac1]"></i>
+            <span class="text-[#f2f3f5] font-medium">Voice Channel</span>
         </div>
-        <div class="ml-auto">
-            <button class="text-gray-400 hover:text-white">
+        <div class="ml-auto flex items-center space-x-4">
+            <button class="text-[#b5bac1] hover:text-[#dbdee1]">
+                <i class="fas fa-user-friends"></i>
+            </button>
+            <button class="text-[#b5bac1] hover:text-[#dbdee1]">
                 <i class="fas fa-comment-alt"></i>
             </button>
         </div>
     </div>
     
-    <div class="flex-1 flex">
-        <div class="flex-1 flex flex-col">
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col relative">
+        <div id="mainContent" class="flex-1 flex flex-col">
             <?php include __DIR__ . '/../voice/voice-not-join.php'; ?>
-            <?php include __DIR__ . '/../voice/voice-connected.php'; ?>
+            <!-- Video Grid (Hidden by default) -->
+            <div id="videoGrid" class="hidden grid grid-cols-2 gap-4 mb-4"></div>
+        </div>
+        
+        <!-- Voice Controls -->
+        <div id="voiceControls" class="hidden">
+            <?php include __DIR__ . '/../voice/voice-tool.php'; ?>
         </div>
     </div>
 </div>
 
 <script src="/public/js/components/voice/voice-section.js"></script>
+<script src="/public/js/components/videosdk/videosdk.js"></script>
+<script src="/public/js/components/voice/video-handler.js"></script>
 
 
 </script>

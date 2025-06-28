@@ -32,7 +32,6 @@ class GlobalVoiceIndicator {
   checkIfOnVoiceChannelPage() {
     this.onVoiceChannelPage = false;
     
-    // Check for voice-specific elements that indicate we're on a voice channel page
     const voiceContainer = document.getElementById('voice-container');
     const joinView = document.getElementById('joinView');
     const connectingView = document.getElementById('connectingView');
@@ -44,14 +43,12 @@ class GlobalVoiceIndicator {
       return true;
     }
     
-    // Check for meeting-id meta tag which indicates voice channel page
     const meetingIdMeta = document.querySelector('meta[name="meeting-id"]');
     if (meetingIdMeta) {
       this.onVoiceChannelPage = true;
       return true;
     }
     
-    // Check URL patterns for voice channels
     const currentPath = window.location.pathname;
     if (currentPath.includes('/voice/') || 
         (currentPath.includes('/channels/') && currentPath.includes('/voice'))) {
@@ -59,7 +56,6 @@ class GlobalVoiceIndicator {
       return true;
     }
     
-    // Check for voice-tools class which indicates voice channel page
     const voiceTools = document.querySelector('.voice-tools');
     if (voiceTools) {
       this.onVoiceChannelPage = true;
@@ -345,7 +341,6 @@ class GlobalVoiceIndicator {
   }
 
   handleDisconnect() {
-    // Don't disconnect if joining is in progress
     if (window.videoSDKJoiningInProgress) {
       console.log("Ignoring disconnect request - joining in progress");
       return;
@@ -355,14 +350,11 @@ class GlobalVoiceIndicator {
     this.hideIndicator();
     this.stopTimer();
     
-    // Clear stored connection state
     localStorage.removeItem("voiceConnectionState");
     
-    // Dispatch global voice disconnect event
     const event = new CustomEvent("globalVoiceDisconnect");
     window.dispatchEvent(event);
 
-    // Properly cleanup VideoSDK meeting
     if (window.videosdkMeeting) {
       try {
         window.videosdkMeeting.leave();
@@ -372,7 +364,6 @@ class GlobalVoiceIndicator {
       }
     }
     
-    // Additional cleanup - check for Manager instance
     if (window.videoSDKManager && typeof window.videoSDKManager.leaveMeeting === 'function') {
       try {
         window.videoSDKManager.leaveMeeting();
@@ -381,7 +372,6 @@ class GlobalVoiceIndicator {
       }
     }
     
-    // Reset state and trigger full cleanup
     this.resetState();
     
     setTimeout(() => {
@@ -438,21 +428,17 @@ class GlobalVoiceIndicator {
     }
     
     this.verificationInterval = setInterval(() => {
-      // Skip verification if joining is in progress
       if (window.videoSDKJoiningInProgress) {
         console.log("Voice connection verification skipped - joining in progress");
         return;
       }
       
-      // Only check if we've been connected for at least 10 seconds
-      // This prevents premature disconnection during initialization
       const connectionAge = this.connectionTime ? (Date.now() - this.connectionTime) : 0;
       if (connectionAge < 10000) {
         console.log("Voice connection verification skipped - connection too new");
         return;
       }
-      
-      // Check if UI state and actual connection state are in sync
+
       if (this.isConnected && !window.videosdkMeeting) {
         console.log("Voice connection state mismatch - no VideoSDK meeting exists. Disconnecting.");
         this.handleDisconnect();
@@ -463,7 +449,7 @@ class GlobalVoiceIndicator {
         this.cleanup();
       }
       
-      // Check for orphaned voice state - only after 10 seconds
+      
       if (window.voiceState?.isConnected && !window.videosdkMeeting && connectionAge >= 10000) {
         console.log("Voice state says connected but no active meeting. Resetting state.");
         window.voiceState.isConnected = false;
@@ -472,7 +458,7 @@ class GlobalVoiceIndicator {
         }
       }
       
-      // Check for mismatched state in voiceStateManager - only after 10 seconds
+      
       if (window.voiceStateManager && 
           window.voiceStateManager.getState && 
           window.voiceStateManager.getState().isConnected && 
@@ -483,7 +469,7 @@ class GlobalVoiceIndicator {
           window.voiceStateManager.reset();
         }
       }
-    }, 5000); // Increased interval to 5 seconds
+    }, 5000); 
   }
 
   stopConnectionVerification() {

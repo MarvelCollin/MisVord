@@ -322,6 +322,68 @@ class VideoSDKManager {
                 this.log(`Event ${eventName} not supported in this SDK version, skipping`);
             }
         });
+        
+        // Add special handling for stream events
+        this.setupStreamEventHandlers();
+    }
+    
+    setupStreamEventHandlers() {
+        if (!this.meeting || !this.meeting.localParticipant) return;
+        
+        try {
+            // Handle stream-enabled events with error checking
+            this.meeting.localParticipant.on("stream-enabled", (data) => {
+                console.log("Stream enabled event:", data);
+                
+                // Safety check for undefined stream
+                if (!data || !data.stream) {
+                    console.warn("Received stream-enabled event with undefined stream, ignoring");
+                    return;
+                }
+                
+                try {
+                    // Process the stream event safely
+                    const kind = data.kind || (data.stream && data.stream.getVideoTracks().length > 0 ? "video" : "audio");
+                    console.log(`Stream of kind ${kind} enabled`);
+                    
+                    // Dispatch a custom event for other components
+                    window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', { 
+                        detail: { kind, stream: data.stream } 
+                    }));
+                } catch (error) {
+                    console.error("Error processing stream-enabled event:", error);
+                }
+            });
+            
+            // Handle other stream events
+            this.meeting.localParticipant.on("stream-disabled", (data) => {
+                if (!data) return;
+                
+                const kind = data.kind || "unknown";
+                console.log(`Stream of kind ${kind} disabled`);
+                
+                window.dispatchEvent(new CustomEvent('videosdkStreamDisabled', { 
+                    detail: { kind } 
+                }));
+            });
+        } catch (error) {
+            console.error("Error setting up stream event handlers:", error);
+        }
+        
+        // Add global error handler for VideoSDK
+        if (typeof window !== 'undefined') {
+            window.addEventListener('error', (event) => {
+                if (event.error && event.error.message && 
+                    (event.error.message.includes('Cannot read properties of undefined') ||
+                     event.error.message.includes('kind'))) {
+                    
+                    console.warn('Caught VideoSDK stream error:', event.error.message);
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return true;
+                }
+            }, true);
+        }
     }
     
     registerEventHandler(eventName) {

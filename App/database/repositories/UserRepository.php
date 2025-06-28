@@ -398,16 +398,105 @@ class UserRepository extends Repository {
      * @return bool Success status
      */
     public function update($id, $data) {
-        try {
-            $query = new Query();
-            $result = $query->table(User::getTable())
-                ->where('id', $id)
-                ->update($data);
-            
-            return $result > 0;
-        } catch (Exception $e) {
-            error_log("UserRepository update error: " . $e->getMessage());
+        $allowedFields = ['username', 'discriminator', 'avatar_url', 'banner_url', 'bio', 'status'];
+        $updates = [];
+        $values = [];
+        
+        foreach ($data as $field => $value) {
+            if (in_array($field, $allowedFields)) {
+                $updates[] = "$field = ?";
+                $values[] = $value;
+            }
+        }
+        
+        if (empty($updates)) {
             return false;
         }
+        
+        $values[] = $id;
+        $query = "UPDATE users SET " . implode(', ', $updates) . " WHERE id = ?";
+        $stmt = $this->db->prepare($query);
+        
+        return $stmt->execute($values);
+    }
+
+    public function getMutualServers($userId1, $userId2)
+    {
+        $query = new Query();
+        
+        return $query->raw("
+            SELECT DISTINCT s.* 
+            FROM servers s
+            INNER JOIN user_server_memberships usm1 ON s.id = usm1.server_id
+            INNER JOIN user_server_memberships usm2 ON s.id = usm2.server_id
+            WHERE usm1.user_id = ? AND usm2.user_id = ?
+        ", [$userId1, $userId2]);
+    }
+
+    public function findById($id) {
+        $query = "SELECT * FROM users WHERE id = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$result) {
+            return null;
+        }
+        
+        return $this->mapToModel($result);
+    }
+
+    public function updateStatus($id, $status) {
+        $query = "UPDATE users SET status = ? WHERE id = ?";
+        $stmt = $this->db->prepare($query);
+        return $stmt->execute([$status, $id]);
+    }
+
+    public function searchUsers($searchTerm, $limit = 10) {
+        $query = "SELECT * FROM users WHERE username LIKE ? LIMIT ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute(["%$searchTerm%", $limit]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return array_map([$this, 'mapToModel'], $results);
+    }
+
+    public function getUsersInServer($serverId) {
+        $query = "SELECT u.* FROM users u 
+                  INNER JOIN user_server_memberships usm ON u.id = usm.user_id 
+                  WHERE usm.server_id = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$serverId]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return array_map([$this, 'mapToModel'], $results);
+    }
+
+    public function getUsersWithRole($serverId, $role) {
+        $query = "SELECT u.* FROM users u 
+                  INNER JOIN user_server_memberships usm ON u.id = usm.user_id 
+                  WHERE usm.server_id = ? AND usm.roles LIKE ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$serverId, "%$role%"]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return array_map([$this, 'mapToModel'], $results);
+    }
+
+    private function mapToModel($data) {
+        $user = new User();
+        $user->id = $data['id'];
+        $user->username = $data['username'];
+        $user->discriminator = $data['discriminator'];
+        $user->email = $data['email'];
+        $user->password = $data['password'];
+        $user->avatar_url = $data['avatar_url'];
+        $user->banner_url = $data['banner_url'];
+        $user->bio = $data['bio'];
+        $user->status = $data['status'];
+        $user->created_at = $data['created_at'];
+        $user->updated_at = $data['updated_at'];
+        
+        return $user;
     }
 }

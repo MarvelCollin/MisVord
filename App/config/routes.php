@@ -343,8 +343,6 @@ Route::delete('/api/friends', function() {
     $controller->removeFriend();
 });
 
-
-
 Route::get('/api/users/([0-9]+)/mutual', function($userId) {
     $controller = new UserController();
     $controller->getMutualRelations($userId);
@@ -429,8 +427,6 @@ Route::get('/api/auth/check', function() {
     ]);
     exit;
 });
-
-
 
 Route::get('/api/debug-simple', function() {
     header('Content-Type: application/json');
@@ -536,8 +532,6 @@ Route::get('/api/debug/user-profile/([0-9]+)', function($userId) {
         
         $profile = $controller->getUserProfile($userId);
         
-        
-        
         if ($profile !== null) {
             echo json_encode([
                 'success' => true,
@@ -556,7 +550,6 @@ Route::get('/api/debug/user-profile/([0-9]+)', function($userId) {
     exit;
 });
 
-
 Route::post('/user/avatar/update', function() {
     $controller = new UserController();
     $controller->updateAvatar();
@@ -567,7 +560,6 @@ Route::post('/user/avatar/remove', function() {
     $controller->removeAvatar();
 });
 
-
 Route::post('/user/banner/update', function() {
     $controller = new UserController();
     $controller->updateBanner();
@@ -577,7 +569,6 @@ Route::post('/user/banner/remove', function() {
     $controller = new UserController();
     $controller->removeBanner();
 });
-
 
 Route::post('/user/status', function() {
     $controller = new UserController();
