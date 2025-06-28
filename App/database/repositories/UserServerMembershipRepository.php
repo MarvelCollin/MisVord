@@ -81,7 +81,7 @@ class UserServerMembershipRepository extends Repository {
             }
             
             $results = $queryBuilder
-                ->select('u.id, u.username, u.discriminator, u.avatar_url, u.status, usm.role, usm.created_at as joined_at')
+                ->select('u.id, u.username, u.discriminator, u.avatar_url, u.display_name, u.status, usm.role, usm.created_at as joined_at')
                 ->orderBy('usm.created_at', 'ASC')
                 ->get();
             
@@ -105,7 +105,7 @@ class UserServerMembershipRepository extends Repository {
                 ->join('user_server_memberships usm', 'u.id', '=', 'usm.user_id')
                 ->where('usm.server_id', $serverId)
                 ->where('u.status', 'bot')
-                ->select('u.id, u.username, u.discriminator, u.avatar_url, u.status, usm.role, usm.created_at as joined_at')
+                ->select('u.id, u.username, u.discriminator, u.avatar_url, u.display_name, u.status, usm.role, usm.created_at as joined_at')
                 ->orderBy('usm.created_at', 'ASC')
                 ->get();
             

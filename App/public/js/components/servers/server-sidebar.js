@@ -1,22 +1,27 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
 import { ajax } from '../../utils/ajax.js';
+import { playDiscordoSound, playCallSound } from '../../utils/music-loader-static.js';
 
 let isRendering = false;
 let serverDataCache = null;
 let cacheExpiry = 0;
 let isHandlingClick = false;
 
+let homeIconClickCount = 0;
+let lastClickTime = 0;
+const CLICK_TIMEOUT = 3000;
+const CLICKS_NEEDED = 16; 
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[Server Sidebar] DOMContentLoaded: Initializing server sidebar');
     initServerSidebar();
+    initializeHomeIconEasterEgg();
     
-    // Single global click handler for server links
     document.addEventListener('click', async function(e) {
-        // Check if the clicked element or its parent is a server link
         const serverLink = e.target.closest('.server-icon a[href^="/server/"]');
         if (serverLink && !isHandlingClick) {
             console.log('[Server Sidebar] Server link clicked:', serverLink.getAttribute('href'));
-            e.preventDefault(); // Prevent default BEFORE getting serverId
+            e.preventDefault(); 
             const serverId = serverLink.getAttribute('data-server-id');
             if (serverId) {
                 isHandlingClick = true;
@@ -25,7 +30,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     await handleServerClick(serverId, e);
                 } catch (error) {
                     console.error('Error handling server click:', error);
-                    // Only reload on critical errors
                     if (error.critical) {
                         window.location.href = serverLink.href;
                     }
@@ -36,7 +40,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Handle browser back/forward
     window.addEventListener('popstate', function(event) {
         console.log('[Server Sidebar] Popstate event triggered:', event.state);
         const serverId = event.state?.serverId;
@@ -45,6 +48,50 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function initializeHomeIconEasterEgg() {
+    // Try various selectors that might contain the home icon
+    const selectors = [
+        '.home-icon', 
+        'a[href="/"]', 
+        'a[href="/home"]',
+        '.server-icon[data-home="true"]',
+        '#home-button',
+        '.server-icon:first-child'
+    ];
+    
+    // Try to find the home icon
+    let homeIcon = null;
+    for (const selector of selectors) {
+        homeIcon = document.querySelector(selector);
+        if (homeIcon) break;
+    }
+    
+    if (!homeIcon) {
+        // If home icon not found, try again after a short delay
+        setTimeout(initializeHomeIconEasterEgg, 500);
+        return;
+    }
+    
+    // Set up click handler
+    homeIcon.addEventListener('click', function(e) {
+        const currentTime = Date.now();
+        
+        if (currentTime - lastClickTime > CLICK_TIMEOUT) {
+            // Reset if too much time has passed
+            homeIconClickCount = 1;
+        } else {
+            homeIconClickCount++;
+        }
+        
+        lastClickTime = currentTime;
+        
+        if (homeIconClickCount >= CLICKS_NEEDED) {
+            homeIconClickCount = 0;
+            playDiscordoSound();
+        }
+    });
+}
 
 function initServerSidebar() {
     console.log('[Server Sidebar] Initializing server sidebar');
@@ -86,8 +133,7 @@ function clearAllPreviousState() {
     if (existingMenu) existingMenu.remove();
 }
 
-function setupServerIcons() {
-    // Only setup drag and drop functionality
+function setupServerIcons() {           
     console.log('[Server Sidebar] Setting up server icons drag and drop');
     document.querySelectorAll('.server-icon[data-server-id]:not([data-setup])').forEach(icon => {
         icon.setAttribute('data-setup', 'true');
@@ -908,6 +954,9 @@ export async function handleServerClick(serverId, event) {
                 if (voiceSection) {
                     voiceSection.classList.remove('hidden');
                     try {
+                        // Play the call sound when switching to a voice channel
+                        playCallSound();
+                        
                         // Initialize voice manager if needed
                         if (!window.voiceManager) {
                             window.voiceManager = new VoiceManager();

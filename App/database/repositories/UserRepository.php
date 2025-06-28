@@ -442,10 +442,31 @@ class UserRepository extends Repository {
             return [];
         }
         
-        // Get the actual server records
+        // Get the actual server records with complete information
         $query3 = new Query();
-        return $query3->table('servers')
+        $servers = $query3->table('servers')
             ->whereIn('id', $mutualServerIds)
             ->get();
+            
+        // Convert to objects with proper field names
+        $result = [];
+        foreach ($servers as $server) {
+            $serverObj = new \stdClass();
+            $serverObj->id = $server['id'];
+            $serverObj->name = $server['name'];
+            $serverObj->icon_url = $server['icon_url'];
+            
+            // Get member count for each server
+            $query4 = new Query();
+            $memberCount = $query4->table('user_server_memberships')
+                ->where('server_id', $server['id'])
+                ->count();
+                
+            $serverObj->member_count = $memberCount;
+            
+            $result[] = $serverObj;
+        }
+        
+        return $result;
     }
 }

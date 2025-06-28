@@ -346,49 +346,47 @@ function fetchChatSection(channelId) {
 }
 
 function fetchVoiceSection(channelId) {
-  console.log(`fetchVoiceSection called with channelId: ${channelId}`);
+  console.log(`🔊 fetchVoiceSection called with channelId: ${channelId}`);
   
-  console.log('Setting auto-join flags for voice channel:', channelId);
+  console.log('🔄 Setting auto-join flags for voice channel:', channelId);
   localStorage.setItem('autoJoinVoiceChannel', channelId);
   sessionStorage.setItem('forceAutoJoin', 'true');
-  console.log('Auto-join flags set:', {
-    autoJoinChannelId: localStorage.getItem('autoJoinVoiceChannel'),
-    forceAutoJoin: sessionStorage.getItem('forceAutoJoin')
-  });
   
   const apiUrl = `/server/${getServerIdFromUrl()}?channel=${channelId}&type=voice&ajax=true`;
-  console.log(`Fetching from URL: ${apiUrl}`);
+  console.log(`🌐 Fetching voice section from URL: ${apiUrl}`);
   
   fetch(apiUrl)
     .then(response => {
-      console.log(`Response received, status: ${response.status}`);
+      console.log(`📥 Response received, status: ${response.status}`);
       if (!response.ok) {
         throw new Error(`Failed to load voice section: ${response.status} ${response.statusText}`);
       }
       return response.text();
     })
     .then(html => {
-      console.log(`Received HTML content (length: ${html.length})`);
+      console.log(`📄 Received HTML content (length: ${html.length})`);
       
       const centralContentArea = document.querySelector('#main-content > .flex.flex-col.flex-1, #main-content > .flex.flex-col.h-screen');
       
       if (centralContentArea) {
-        console.log("Found central content area, replacing only this section");
+        console.log("🎯 Found central content area, replacing content");
         
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = html;
         
+        // Log the join button in the HTML response
+        const joinBtnInResponse = tempDiv.querySelector('#joinBtn');
+        console.log('🔘 Join button in response HTML:', joinBtnInResponse ? joinBtnInResponse.outerHTML : 'Not found');
+        
+        // Update meta tags first
         const chatIdMeta = tempDiv.querySelector('meta[name="chat-id"]');
         const channelIdMeta = tempDiv.querySelector('meta[name="channel-id"]');
         
         if (chatIdMeta) {
-          console.log(`Found chat-id meta tag with value: ${chatIdMeta.getAttribute('content')}`);
           let docChatIdMeta = document.querySelector('meta[name="chat-id"]');
           if (docChatIdMeta) {
-            console.log(`Updating existing chat-id meta tag to: ${channelId}`);
             docChatIdMeta.setAttribute('content', channelId);
           } else {
-            console.log(`Creating new chat-id meta tag with value: ${channelId}`);
             docChatIdMeta = document.createElement('meta');
             docChatIdMeta.setAttribute('name', 'chat-id');
             docChatIdMeta.setAttribute('content', channelId);
@@ -397,13 +395,10 @@ function fetchVoiceSection(channelId) {
         }
         
         if (channelIdMeta) {
-          console.log(`Found channel-id meta tag with value: ${channelIdMeta.getAttribute('content')}`);
           let docChannelIdMeta = document.querySelector('meta[name="channel-id"]');
           if (docChannelIdMeta) {
-            console.log(`Updating existing channel-id meta tag to: ${channelId}`);
             docChannelIdMeta.setAttribute('content', channelId);
           } else {
-            console.log(`Creating new channel-id meta tag with value: ${channelId}`);
             docChannelIdMeta = document.createElement('meta');
             docChannelIdMeta.setAttribute('name', 'channel-id');
             docChannelIdMeta.setAttribute('content', channelId);
@@ -411,191 +406,84 @@ function fetchVoiceSection(channelId) {
           }
         }
         
-        let voiceSection = tempDiv.querySelector('.flex.flex-col.h-screen.bg-\\[\\#313338\\].text-white');
-        
-        if (!voiceSection) {
-          console.log("Voice section not found with primary selector, trying alternatives");
-          voiceSection = tempDiv.querySelector('.flex.flex-col.h-screen.bg-\\[\\#313338\\]');
-        }
-        
-        if (!voiceSection) {
-          console.log("Voice section still not found, trying more general selector");
-          voiceSection = tempDiv.querySelector('.flex.flex-col.h-screen');
-        }
-        
-        if (!voiceSection) {
-          console.log("Voice section not found with class selectors, trying to find main voice container");
-          voiceSection = tempDiv.querySelector('div[class*="flex"][class*="flex-col"][class*="h-screen"]');
-        }
+        let voiceSection = tempDiv.querySelector('.flex.flex-col.h-screen.bg-\\[\\#313338\\].text-white') ||
+                          tempDiv.querySelector('.flex.flex-col.h-screen.bg-\\[\\#313338\\]') ||
+                          tempDiv.querySelector('.flex.flex-col.h-screen') ||
+                          tempDiv.querySelector('div[class*="flex"][class*="flex-col"][class*="h-screen"]');
         
         if (voiceSection) {
-          console.log("Found voice section in response, updating center content only");
+          console.log("🎯 Found voice section in response");
           
-          const scripts = voiceSection.querySelectorAll('script');
-          let scriptContent = '';
-          scripts.forEach(script => {
-            if (script.innerHTML) {
-              scriptContent += script.innerHTML + '\n';
-            }
-          });
+          // Clean up existing voice components
+          if (window.voiceSection) {
+            console.log("🧹 Cleaning up existing voice section");
+            window.voiceSection = null;
+          }
           
+          if (window.voiceManager) {
+            console.log("🧹 Cleaning up existing voice manager");
+            window.voiceManager = null;
+          }
+          
+          // Replace content
+          console.log("🔄 Replacing central content area with voice section");
           centralContentArea.replaceWith(voiceSection);
           
-          if (window.chatSection) {
-            console.log("Destroying existing chat section before creating voice section");
-            window.chatSection = null;
+          // Check if join button exists after replacing content
+          const joinBtnAfterReplace = document.getElementById('joinBtn');
+          console.log('🔘 Join button after replacing content:', joinBtnAfterReplace ? joinBtnAfterReplace.outerHTML : 'Not found');
+          
+          if (joinBtnAfterReplace) {
+            console.log('🔘 Join button properties:', {
+              disabled: joinBtnAfterReplace.disabled,
+              clickable: !joinBtnAfterReplace.disabled && 
+                        window.getComputedStyle(joinBtnAfterReplace).pointerEvents !== 'none',
+              display: window.getComputedStyle(joinBtnAfterReplace).display,
+              visibility: window.getComputedStyle(joinBtnAfterReplace).visibility,
+              pointerEvents: window.getComputedStyle(joinBtnAfterReplace).pointerEvents
+            });
+            
+            // Add temporary direct click handler to test
+            joinBtnAfterReplace.onclick = function() {
+              console.log('🎯 Temporary direct click handler triggered');
+            };
           }
           
-          window.voiceUIInitialized = false;
-          window.voiceAutoJoinInProgress = false;
-          
+          // Load dependencies in sequence
+          console.log("📚 Loading voice scripts");
           loadVoiceScripts().then(() => {
-            console.log("All voice scripts loaded successfully");
+            console.log("✅ Voice scripts loaded, initializing voice section");
             
-            if (scriptContent) {
-              console.log("Executing voice section scripts");
-              try {
-                const scriptElement = document.createElement('script');
-                scriptElement.textContent = `
-                  if (!window.voiceScriptExecuting) {
-                    window.voiceScriptExecuting = true;
-                    ${scriptContent}
-                    setTimeout(() => { window.voiceScriptExecuting = false; }, 1000);
-                  } else {
-                    console.log('Voice script already executing, skipping duplicate');
-                  }
-                `;
-                document.head.appendChild(scriptElement);
-                
-                // Enhanced auto-join logic with retry mechanism
-                const triggerAutoJoin = () => {
-                  console.log("Attempting to trigger auto-join");
-                  
-                  const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
-                  const currentChannelId = channelId;
-                  const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
-                  
-                  console.log('Auto-join conditions:', {
-                    autoJoinChannelId,
-                    currentChannelId,
-                    forceAutoJoin,
-                    voiceUIInitialized: window.voiceUIInitialized,
-                    voiceSection: !!window.voiceSection,
-                    joinBtn: !!document.getElementById('joinBtn')
-                  });
-                  
-                  if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
-                    console.log('Auto-join conditions met');
-                    
-                    // Try multiple methods to trigger auto-join
-                    if (window.triggerVoiceAutoJoin) {
-                      console.log("Using global triggerVoiceAutoJoin function");
-                      const result = window.triggerVoiceAutoJoin();
-                      if (result) return true;
-                    }
-                    
-                    if (window.handleAutoJoin) {
-                      console.log("Using global handleAutoJoin function");
-                      const result = window.handleAutoJoin();
-                      if (result) return true;
-                    }
-                    
-                    if (window.voiceSection && window.voiceSection.autoJoin) {
-                      console.log("Using voiceSection.autoJoin method");
-                      const result = window.voiceSection.autoJoin();
-                      if (result) return true;
-                    }
-                    
-                    // Direct button click as fallback
-                    const joinBtn = document.getElementById('joinBtn');
-                    if (joinBtn) {
-                      console.log("Directly clicking join button");
-                      joinBtn.click();
-                      return true;
-                    }
-                    
-                    return false;
-                  }
-                  
-                  return false;
-                };
-                
-                // Try auto-join with retries
-                let attempts = 0;
-                const maxAttempts = 5;
-                const attemptAutoJoin = () => {
-                  if (attempts >= maxAttempts) {
-                    console.log(`Auto-join failed after ${maxAttempts} attempts`);
-                    return;
-                  }
-                  
-                  attempts++;
-                  console.log(`Auto-join attempt ${attempts}/${maxAttempts}`);
-                  
-                  if (triggerAutoJoin()) {
-                    console.log("Auto-join triggered successfully");
-                  } else {
-                    console.log(`Auto-join attempt ${attempts} failed, retrying in 500ms`);
-                    setTimeout(attemptAutoJoin, 500);
-                  }
-                };
-                
-                // Start auto-join process after a short delay
-                setTimeout(attemptAutoJoin, 500);
-                
-              } catch (error) {
-                console.error("Error executing voice section scripts:", error);
-              }
-            } else {
-              console.log("No script content found in voice section");
-              
-              // Try auto-join even without script content
-              setTimeout(() => {
-                if (window.triggerVoiceAutoJoin) {
-                  window.triggerVoiceAutoJoin();
-                } else if (document.getElementById('joinBtn')) {
-                  document.getElementById('joinBtn').click();
-                }
-              }, 1000);
-            }
-          }).catch(err => {
-            console.error("Error in voice script loading chain:", err);
-          });
-          
-          if (!document.querySelector('link[href*="voice-section.css"]')) {
-            console.log("Loading voice section CSS");
-            const voiceCSS = document.createElement('link');
-            voiceCSS.rel = 'stylesheet';
-            voiceCSS.href = '/public/css/voice-section.css?v=' + Date.now();
-            document.head.appendChild(voiceCSS);
-          }
-        } else {
-          console.warn("Could not find voice section in response HTML, using full HTML");
-          console.log("HTML content:", html.substring(0, 500) + "...");
-          centralContentArea.innerHTML = html;
-          
-          window.voiceUIInitialized = false;
-          window.voiceAutoJoinInProgress = false;
-          
-          loadVoiceScripts().then(() => {
-            console.log("All voice scripts loaded successfully (fallback)");
-            
-            // Simplified auto-join for fallback case
+            // Initialize voice section with a delay to ensure DOM is ready
             setTimeout(() => {
-              const joinBtn = document.getElementById('joinBtn');
-              if (joinBtn) {
-                console.log("Auto-joining in fallback mode");
-                joinBtn.click();
+              console.log("⏱️ Delayed initialization of voice section");
+              if (typeof VoiceSection !== 'undefined') {
+                console.log("🏗️ Creating new VoiceSection instance");
+                window.voiceSection = new VoiceSection();
+              } else {
+                console.log("⚠️ VoiceSection class not found, loading voice-section.js");
+                const voiceSectionScript = document.createElement('script');
+                voiceSectionScript.src = '/public/js/components/voice/voice-section.js?v=' + Date.now();
+                voiceSectionScript.onload = () => {
+                  console.log("✅ Voice section script loaded, creating instance");
+                  window.voiceSection = new VoiceSection();
+                };
+                document.head.appendChild(voiceSectionScript);
               }
-            }, 1000);
+            }, 100);
           });
+          
+        } else {
+          console.error("❌ Voice section not found in response");
         }
       } else {
-        console.error("Could not find central content area");
+        console.error("❌ Central content area not found");
       }
+      
+      handleSkeletonLoading(false);
     })
     .catch(error => {
-      console.error("Error fetching voice section:", error);
+      console.error("❌ Error fetching voice section:", error);
       handleSkeletonLoading(false);
     });
 }

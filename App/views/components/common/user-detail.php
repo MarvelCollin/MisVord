@@ -5,7 +5,7 @@
             <div id="user-detail-avatar-container" class="user-avatar-container">
             </div>
             <button class="user-detail-close-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <i class="fas fa-times"></i>
             </button>
         </div>
         
@@ -16,12 +16,12 @@
             </div>
             
             <div class="user-detail-mutual">
-                <div class="user-detail-mutual-item">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                <div class="user-detail-mutual-item cursor-pointer" id="mutual-servers-item">
+                    <i class="fas fa-project-diagram"></i>
                     <span id="user-detail-mutual-servers">0 Mutual Servers</span>
                 </div>
-                <div class="user-detail-mutual-item">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <div class="user-detail-mutual-item cursor-pointer" id="mutual-friends-item">
+                    <i class="fas fa-user-friends"></i>
                     <span id="user-detail-mutual-friends">0 Mutual Friends</span>
                 </div>
             </div>
@@ -49,11 +49,25 @@
                 <div class="user-detail-send-message-container">
                     <input type="text" class="user-detail-message-input" id="user-detail-message-input" placeholder="Message @username">
                     <button class="user-detail-send-btn" id="user-detail-send-btn" aria-label="Send Message">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+                        <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
             </div>
         </div>
         
+    </div>
+    
+    <div class="mutual-detail-modal" id="mutual-detail-modal">
+        <div class="mutual-detail-container">
+            <div class="mutual-detail-header">
+                <h3 id="mutual-detail-title">Mutual Servers</h3>
+                <button class="mutual-detail-close-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mutual-detail-content" id="mutual-detail-content">
+                <div class="mutual-detail-loading">Loading...</div>
+            </div>
+        </div>
     </div>
 </div>

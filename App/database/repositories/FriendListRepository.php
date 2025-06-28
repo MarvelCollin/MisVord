@@ -240,11 +240,27 @@ class FriendListRepository extends Repository {
             return [];
         }
         
-        // Get the actual user records
+        // Get the actual user records with complete information
         $query5 = new Query();
-        return $query5->table('users')
+        $users = $query5->table('users')
             ->whereIn('id', $mutualFriendIds)
             ->where('status', '!=', 'bot')
             ->get();
+            
+        // Convert to objects with proper field names
+        $result = [];
+        foreach ($users as $user) {
+            $userObj = new \stdClass();
+            $userObj->id = $user['id'];
+            $userObj->username = $user['username'];
+            $userObj->display_name = $user['display_name'] ?? $user['username'];
+            $userObj->avatar_url = $user['avatar_url'];
+            $userObj->status = $user['status'];
+            $userObj->discriminator = $user['discriminator'] ?? '0000';
+            
+            $result[] = $userObj;
+        }
+        
+        return $result;
     }
 }

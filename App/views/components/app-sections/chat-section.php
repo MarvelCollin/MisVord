@@ -548,14 +548,14 @@ function renderMessageContent($message) {
         <div id="reply-container" class="hidden"></div>
 
         <form id="message-form" class="flex items-center bg-[#383a40] rounded-lg h-11 relative">
-            <div class="flex items-center justify-center w-12">
+            <div class="flex items-center pr-[2px] gap-1">
                 <button
                     type="button"
-                    id="upload-button"
-                    class="hover:text-[#dcddde] text-[#b9bbbe] w-8 h-8 flex items-center justify-center rounded hover:bg-[#404249] transition-all"
+                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-1"
                 >
-                    <i class="fas fa-plus text-[20px]"></i>
-                </button>
+                +
+            </button>
+                
             </div>
 
             <div class="flex-1 flex items-center">

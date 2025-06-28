@@ -361,23 +361,48 @@ class GlobalSocketManager {
             return false;
         }
         
+        // Normalize roomId for DM rooms (strip prefix if present)
+        let normalizedRoomId = roomId;
+        if (roomType === 'dm' && typeof roomId === 'string' && roomId.startsWith('dm-room-')) {
+            normalizedRoomId = roomId.replace('dm-room-', '');
+            console.log(`🔄 [SOCKET] Normalized DM room ID from ${roomId} to ${normalizedRoomId}`);
+        }
+        
+        // Use consistent room name format
+        const roomName = roomType === 'channel' ? `channel-${normalizedRoomId}` : `dm-room-${normalizedRoomId}`;
+        
+        // First join the room if not already joined
+        if (!this.joinedRooms.has(roomName)) {
+            console.log(`🔄 [SOCKET] Not in room ${roomName}, joining now...`);
+            this.joinRoom(roomType, normalizedRoomId);
+            
+            // Wait a moment to ensure room join completes
+            setTimeout(() => {
+                console.log(`🔄 [SOCKET] Delayed emit to ${roomName} after joining`);
+                this.emitToRoomDirect(eventName, data, roomType, normalizedRoomId);
+            }, 500);
+            
+            return true;
+        }
+        
+        return this.emitToRoomDirect(eventName, data, roomType, normalizedRoomId);
+    }
+    
+    emitToRoomDirect(eventName, data, roomType, roomId) {
         // Use consistent room name format
         const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
-        
-        // Check if we're in the room
-        if (!this.joinedRooms.has(roomName)) {
-            console.warn(`⚠️ [SOCKET] Cannot emit to room ${roomName} - not joined`);
-            return false;
-        }
         
         // Add room information to data
         const roomData = {
             ...data,
             room_type: roomType,
-            room_id: roomId
+            room_id: roomId,
+            source: 'client-originated'
         };
         
         console.log(`📤 [SOCKET] Emitting ${eventName} to ${roomType} room ${roomName}:`, roomData);
+        
+        // Emit the event to the room
         this.io.emit(eventName, roomData);
         return true;
     }

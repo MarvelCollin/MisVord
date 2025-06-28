@@ -138,12 +138,20 @@ foreach ($members as $member) {
                                  data-status="<?php echo $member['status'] ?? 'offline'; ?>">
                                 <div class="relative mr-2">
                                     <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                        <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
-                                             alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
+                                        <?php
+                                        $avatarUrl = $member['avatar_url'] ?? '';
+                                        $username = $member['display_name'] ?? $member['username'] ?? 'User';
+                                        
+                                        if (!empty($avatarUrl)) {
+                                            echo '<img src="' . htmlspecialchars($avatarUrl) . '" alt="Avatar" class="w-full h-full object-cover ' . $imgOpacityClass . '">';
+                                        } else {
+                                            echo '<div class="w-full h-full flex items-center justify-center bg-discord-dark text-white font-bold">' . strtoupper(substr($username, 0, 1)) . '</div>';
+                                        }
+                                        ?>
                                     </div>
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
-                                <span class="<?php echo $textColorClass; ?> text-sm truncate font-bold"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
+                                <span class="<?php echo $textColorClass; ?> text-sm truncate font-bold"><?php echo htmlspecialchars($member['display_name'] ?? $member['username'] ?? 'Unknown'); ?></span>
                                 <?php if ($member['status'] === 'bot'): ?>
                                     <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>
                                 <?php endif; ?>

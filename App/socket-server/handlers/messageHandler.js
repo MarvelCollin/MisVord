@@ -23,7 +23,8 @@ class MessageHandler {
             content: data.content ? data.content.substring(0, 50) + (data.content.length > 50 ? '...' : '') : 'N/A'
         });
         
-        // Determine the target room based on message type
+        console.log(`📦 [MESSAGE-FORWARD] Complete incoming message data:`, JSON.stringify(data, null, 2));
+        
         let targetRoom;
         if (eventName === 'new-channel-message' && data.channel_id) {
             targetRoom = roomManager.getChannelRoom(data.channel_id);
@@ -32,7 +33,6 @@ class MessageHandler {
             targetRoom = roomManager.getDMRoom(data.room_id);
             console.log(`🏠 [MESSAGE-FORWARD] Using DM room: ${targetRoom} for room ${data.room_id}`);
         } else if (data.target_type && data.target_id) {
-            // For update/delete events that have target_type/target_id
             if (data.target_type === 'channel') {
                 targetRoom = roomManager.getChannelRoom(data.target_id);
                 console.log(`🏠 [MESSAGE-FORWARD] Using channel room: ${targetRoom} for update/delete in channel ${data.target_id}`);
@@ -45,7 +45,6 @@ class MessageHandler {
         if (targetRoom) {
             console.log(`📡 [MESSAGE-FORWARD] Broadcasting ${eventName} to room: ${targetRoom}`);
             
-            // Ensure consistent data structure
             const broadcastData = {
                 id: data.id || data.message_id,
                 content: data.content,
@@ -61,7 +60,7 @@ class MessageHandler {
                 reply_message_id: data.reply_message_id,
                 reply_data: data.reply_data,
                 timestamp: data.timestamp || Date.now(),
-                source: 'server-originated'
+                source: data.source || 'server-originated'
             };
             
             console.log(`📤 [MESSAGE-FORWARD] Broadcast data prepared:`, {
@@ -73,7 +72,15 @@ class MessageHandler {
                 source: broadcastData.source
             });
             
-            // Broadcast to ALL clients in the room INCLUDING the sender
+            console.log(`📦 [MESSAGE-FORWARD] Complete broadcast data:`, JSON.stringify(broadcastData, null, 2));
+            
+            // Make sure the client is in the room before broadcasting
+            if (!client.rooms.has(targetRoom)) {
+                console.log(`🔄 [MESSAGE-FORWARD] Client not in room, joining: ${targetRoom}`);
+                client.join(targetRoom);
+            }
+            
+            // Broadcast to the room including the sender
             io.to(targetRoom).emit(eventName, broadcastData);
             console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to ${targetRoom} (including sender)`);
         } else {
@@ -105,7 +112,6 @@ class MessageHandler {
             action: data.action
         });
         
-        // Determine target room
         let targetRoom;
         if (data.target_type === 'channel' && data.target_id) {
             targetRoom = roomManager.getChannelRoom(data.target_id);
@@ -118,7 +124,6 @@ class MessageHandler {
         if (targetRoom) {
             console.log(`📡 [REACTION-HANDLER] Broadcasting ${eventName} to room: ${targetRoom}`);
             
-            // Ensure consistent data structure for reactions
             const reactionData = {
                 message_id: data.message_id,
                 emoji: data.emoji,
@@ -140,7 +145,6 @@ class MessageHandler {
                 action: reactionData.action
             });
             
-            // Broadcast to the room EXCLUDING the sender to avoid duplicate rendering on the sender UI
             client.to(targetRoom).emit(eventName, reactionData);
             console.log(`✅ [REACTION-HANDLER] Successfully broadcasted ${eventName} to ${targetRoom} (excluding sender)`);
         } else {
@@ -169,7 +173,6 @@ class MessageHandler {
             action: data.action
         });
         
-        // Determine target room
         let targetRoom;
         if (data.target_type === 'channel' && data.target_id) {
             targetRoom = roomManager.getChannelRoom(data.target_id);
@@ -182,7 +185,6 @@ class MessageHandler {
         if (targetRoom) {
             console.log(`📡 [PIN-HANDLER] Broadcasting ${eventName} to room: ${targetRoom}`);
             
-            // Ensure consistent data structure for pin events
             const pinData = {
                 message_id: data.message_id,
                 user_id: data.user_id,
@@ -203,7 +205,6 @@ class MessageHandler {
                 action: pinData.action
             });
             
-            // Broadcast to the room EXCLUDING the sender to avoid duplicate rendering on the sender UI
             client.to(targetRoom).emit(eventName, pinData);
             console.log(`✅ [PIN-HANDLER] Successfully broadcasted ${eventName} to ${targetRoom} (excluding sender)`);
         } else {

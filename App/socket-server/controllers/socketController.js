@@ -63,6 +63,9 @@ function setup(io) {
                 source: data.source
             });
             
+            // Log the complete message data
+            console.log(`📦 [MESSAGE-CHANNEL] Complete message data:`, JSON.stringify(data, null, 2));
+            
             const signature = messageService.generateSignature('new-channel-message', client.data?.user_id, data.id, data.content, data.timestamp);
             if (!messageService.isDuplicate(signature)) {
                 messageService.markAsProcessed(signature);

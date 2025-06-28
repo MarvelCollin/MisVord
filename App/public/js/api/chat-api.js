@@ -142,9 +142,12 @@ class ChatAPI {
             throw new Error('Target ID and content are required');
         }
         
+        // Map 'direct' to 'dm' for API compatibility
+        const apiChatType = chatType === 'direct' ? 'dm' : chatType;
+        
         const url = '/api/chat/send';
         const requestData = {
-            target_type: chatType,
+            target_type: apiChatType,
             target_id: targetId,
             content: content,
             message_type: options.message_type || 'text',
@@ -178,12 +181,14 @@ class ChatAPI {
                     reply_message_id: options.reply_message_id || null,
                     reply_data: options.reply_data || null,
                     timestamp: Date.now(),
-                    target_type: chatType,
+                    target_type: apiChatType,
                     target_id: targetId
                 };
                 
+                console.log(`📦 [CHAT-API] Complete socket message data:`, JSON.stringify(socketData, null, 2));
+                
                 // Emit socket event
-                this.emitSocketEventForMessage(chatType, targetId, 'new-message', socketData);
+                this.emitSocketEventForMessage(apiChatType, targetId, 'new-message', socketData);
             } else {
                 console.error(`❌ [CHAT-API] Failed to extract message ID from response`, {
                     success: response?.success,
@@ -713,6 +718,13 @@ class ChatAPI {
             chatType
         });
 
+        // Normalize targetId for DM rooms (strip prefix if present)
+        let normalizedTargetId = targetId;
+        if (chatType === 'dm' && typeof targetId === 'string' && targetId.startsWith('dm-room-')) {
+            normalizedTargetId = targetId.replace('dm-room-', '');
+            console.log(`🔄 [CHAT-API] Normalized DM room ID from ${targetId} to ${normalizedTargetId}`);
+        }
+
         // Prepare the socket data
         const socketData = {
             ...data,
@@ -721,9 +733,9 @@ class ChatAPI {
 
         // Add chat type specific fields
         if (chatType === 'channel') {
-            socketData.channel_id = targetId;
+            socketData.channel_id = normalizedTargetId;
         } else if (chatType === 'dm') {
-            socketData.room_id = targetId;
+            socketData.room_id = normalizedTargetId;
         }
         
         console.log(`📡 [CHAT-API] Final socket data prepared:`, {
@@ -738,11 +750,11 @@ class ChatAPI {
         // Emit the event
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
             console.log(`🚀 [CHAT-API] Emitting socket event...`);
-            window.globalSocketManager.emitToRoom(finalEventName, socketData, chatType, targetId);
+            window.globalSocketManager.emitToRoom(finalEventName, socketData, chatType, normalizedTargetId);
             console.log(`✅ [CHAT-API] Socket event emitted successfully:`, {
                 event: finalEventName,
                 messageId: socketData.id || socketData.message_id,
-                targetRoom: chatType === 'channel' ? `channel-${targetId}` : `dm-room-${targetId}`
+                targetRoom: chatType === 'channel' ? `channel-${normalizedTargetId}` : `dm-room-${normalizedTargetId}`
             });
         } else {
             console.warn(`⚠️ [CHAT-API] Socket manager not ready, skipping event emission`);

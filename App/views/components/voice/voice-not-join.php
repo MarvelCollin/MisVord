@@ -50,7 +50,7 @@ $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name
         <p class="text-blue-100/90 text-lg drop-shadow-lg font-light tracking-wide">No one is currently exploring this space</p>
         
         <div class="">
-            <button id="joinBtn" class="relative transition-all duration-300 bg-gradient-to-r from-[#8b5cf6]/20 to-[#06b6d4]/20 border border-white/30 text-white font-semibold py-4 px-12 rounded-xl  hover:scale-110">
+            <button id="joinBtn" class="relative transition-all duration-300 bg-gradient-to-r from-[#8b5cf6]/20 to-[#06b6d4]/20 border border-white/30 text-white font-semibold py-4 px-12 rounded-xl hover:scale-110 cursor-pointer z-50" style="pointer-events: auto;" onclick="joinVoiceChannel()">
                 <span class="relative z-10 flex items-center gap-3">
                     <i class="fas fa-microphone text-xl transition-transform group-hover:scale-110"></i>
                     Enter the voice channel
@@ -76,6 +76,11 @@ $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name
 </div>
 
 <script>
+console.log('[voice-not-join.php] File loaded');
+
+// Remove the ES6 import that might not work in inline script
+// import { playCallSound } from '/public/js/utils/music-loader-static.js';
+
 function handleMouseMove(event) {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -97,21 +102,89 @@ function handleMouseMove(event) {
     });
 }
 
+function joinVoiceChannel() {
+    console.log('[voice-not-join.php] Join voice channel function called');
+    
+    const joinBtn = document.getElementById('joinBtn');
+    const joinView = document.getElementById('joinView');
+    const connectingView = document.getElementById('connectingView');
+    
+    console.log('[voice-not-join.php] Elements found:', {
+        joinBtn: !!joinBtn,
+        joinView: !!joinView,
+        connectingView: !!connectingView
+    });
+    
+    if (joinBtn) joinBtn.disabled = true;
+    if (joinView) joinView.classList.add('hidden');
+    if (connectingView) connectingView.classList.remove('hidden');
+    
+    // Try to trigger voice join through various methods
+    if (window.voiceManager) {
+        console.log('[voice-not-join.php] Using voiceManager.joinVoice()');
+        window.voiceManager.joinVoice();
+    } else if (window.channelSwitchManager && window.channelSwitchManager.loadVoiceScripts) {
+        console.log('[voice-not-join.php] Using channelSwitchManager.loadVoiceScripts()');
+        window.channelSwitchManager.loadVoiceScripts().then(() => {
+            if (window.voiceManager) {
+                console.log('[voice-not-join.php] voiceManager loaded, joining voice');
+                window.voiceManager.joinVoice();
+            }
+        });
+    } else if (window.voiceSection && window.voiceSection.autoJoin) {
+        console.log('[voice-not-join.php] Using voiceSection.autoJoin()');
+        window.voiceSection.autoJoin();
+    } else if (window.triggerVoiceAutoJoin) {
+        console.log('[voice-not-join.php] Using triggerVoiceAutoJoin()');
+        window.triggerVoiceAutoJoin();
+    } else if (window.handleAutoJoin) {
+        console.log('[voice-not-join.php] Using handleAutoJoin()');
+        window.handleAutoJoin();
+    } else {
+        console.log('[voice-not-join.php] No voice join method found');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('[voice-not-join.php] DOM content loaded');
     const joinView = document.getElementById('joinView');
     if (joinView) {
         joinView.addEventListener('mouseleave', function() {
-    const interactiveGlow = document.getElementById('interactive-glow');
-    if (interactiveGlow) {
-        interactiveGlow.style.opacity = '0';
-    }
-    
-    const driftElements = document.querySelectorAll('[class*="animate-cosmic-drift"]');
-    driftElements.forEach(element => {
-        element.style.transform = '';
-    });
+            const interactiveGlow = document.getElementById('interactive-glow');
+            if (interactiveGlow) {
+                interactiveGlow.style.opacity = '0';
+            }
+            
+            const driftElements = document.querySelectorAll('[class*="animate-cosmic-drift"]');
+            driftElements.forEach(element => {
+                element.style.transform = '';
+            });
         });
     }
+    
+    // Ensure join button is clickable
+    const joinBtn = document.getElementById('joinBtn');
+    console.log('[voice-not-join.php] Join button found:', !!joinBtn);
+    if (joinBtn) {
+        console.log('[voice-not-join.php] Join button HTML:', joinBtn.outerHTML);
+        joinBtn.addEventListener('click', function(e) {
+            console.log('[voice-not-join.php] Join button clicked via addEventListener');
+            joinVoiceChannel();
+        });
+    }
+    
+    // Add global click handler
+    document.body.addEventListener('click', function(e) {
+        console.log('[voice-not-join.php] Document body click detected on:', e.target.tagName, e.target.id, e.target.className);
+        
+        // Check if click was on or inside join button
+        const clickedJoinBtn = e.target.id === 'joinBtn' || e.target.closest('#joinBtn');
+        if (clickedJoinBtn) {
+            console.log('[voice-not-join.php] Join button clicked via document body handler');
+            e.stopPropagation();
+            joinVoiceChannel();
+        }
+    }, true);
 });
 </script>
 

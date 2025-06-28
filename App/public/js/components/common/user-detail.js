@@ -1,8 +1,10 @@
 class UserDetailModal {
     constructor() {
         this.modal = document.getElementById('user-detail-modal');
+        this.mutualDetailModal = document.getElementById('mutual-detail-modal');
         this.currentUserId = null;
         this.currentServerId = null;
+        this.userData = null;
 
         if (this.modal) {
             this.initElements();
@@ -28,9 +30,16 @@ class UserDetailModal {
         this.mutualSection = this.modal.querySelector('.user-detail-mutual');
         this.mutualServersElement = this.modal.querySelector('#user-detail-mutual-servers');
         this.mutualFriendsElement = this.modal.querySelector('#user-detail-mutual-friends');
+        this.mutualServersItem = this.modal.querySelector('#mutual-servers-item');
+        this.mutualFriendsItem = this.modal.querySelector('#mutual-friends-item');
 
         this.messageBtn = this.modal.querySelector('#user-detail-message-btn');
         this.addFriendBtn = this.modal.querySelector('#user-detail-add-friend-btn');
+        
+        // Mutual detail modal elements
+        this.mutualDetailTitle = this.modal.querySelector('#mutual-detail-title');
+        this.mutualDetailContent = this.modal.querySelector('#mutual-detail-content');
+        this.mutualDetailCloseBtn = this.modal.querySelector('.mutual-detail-close-btn');
     }
 
     initEvents() {
@@ -46,7 +55,11 @@ class UserDetailModal {
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isVisible()) {
-                this.hide();
+                if (this.mutualDetailModal.classList.contains('active')) {
+                    this.hideMutualDetail();
+                } else {
+                    this.hide();
+                }
             }
         });
 
@@ -67,6 +80,26 @@ class UserDetailModal {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     this.handleSendMessage();
+                }
+            });
+        }
+        
+        if (this.mutualServersItem) {
+            this.mutualServersItem.addEventListener('click', () => this.showMutualServersDetail());
+        }
+        
+        if (this.mutualFriendsItem) {
+            this.mutualFriendsItem.addEventListener('click', () => this.showMutualFriendsDetail());
+        }
+        
+        if (this.mutualDetailCloseBtn) {
+            this.mutualDetailCloseBtn.addEventListener('click', () => this.hideMutualDetail());
+        }
+        
+        if (this.mutualDetailModal) {
+            this.mutualDetailModal.addEventListener('click', (e) => {
+                if (e.target === this.mutualDetailModal) {
+                    this.hideMutualDetail();
                 }
             });
         }
@@ -342,24 +375,40 @@ class UserDetailModal {
                     const mutualData = await window.userAPI.getMutualRelations(this.currentUserId);
                     console.log('Mutual relations API response:', mutualData);
                     
-                    if (mutualData && mutualData.data) {
+                    if (mutualData && mutualData.success && mutualData.data) {
+                        console.log('Mutual servers count:', mutualData.data.mutual_server_count);
+                        console.log('Mutual friends count:', mutualData.data.mutual_friend_count);
+                        
+                        if (mutualData.data.mutual_servers && mutualData.data.mutual_servers.length > 0) {
+                            console.log('Sample mutual server:', mutualData.data.mutual_servers[0]);
+                        }
+                        
+                        if (mutualData.data.mutual_friends && mutualData.data.mutual_friends.length > 0) {
+                            console.log('Sample mutual friend:', mutualData.data.mutual_friends[0]);
+                        }
+                        
                         userData.data.mutualData = mutualData.data;
                     } else {
                         console.warn('Mutual data API returned unsuccessful response:', mutualData);
                         userData.data.mutualData = {
                             mutual_friend_count: 0,
-                            mutual_server_count: 0
+                            mutual_server_count: 0,
+                            mutual_friends: [],
+                            mutual_servers: []
                         };
                     }
                 } catch (error) {
                     console.error('Error fetching mutual data:', error);
                     userData.data.mutualData = {
                         mutual_friend_count: 0,
-                        mutual_server_count: 0
+                        mutual_server_count: 0,
+                        mutual_friends: [],
+                        mutual_servers: []
                     };
                 }
             }
             
+            this.userData = userData.data;
             return userData.data;
         } catch (error) {
             console.error('Error in fetchUserData:', error);
@@ -434,7 +483,7 @@ class UserDetailModal {
                     avatarWrapper.appendChild(img);
                 } else {
                     const img = document.createElement('img');
-                    img.src = '/assets/default-profile-picture.png';
+                    img.src = '/public/assets/common/default-profile-picture.png';
                     img.alt = 'Default Avatar';
                     img.id = 'user-detail-avatar';
                     avatarWrapper.appendChild(img);
@@ -453,7 +502,7 @@ class UserDetailModal {
                 if (user.banner_url) {
                     this.banner.style.backgroundImage = `url(${user.banner_url})`;
                 } else {
-                    this.banner.style.backgroundImage = `url(/assets/default-profile-picture.png)`;
+                    this.banner.style.backgroundImage = `url(/public/assets/common/default-profile-picture.png)`;
                     this.banner.style.backgroundSize = 'contain';
                     this.banner.style.backgroundRepeat = 'no-repeat';
                     this.banner.style.backgroundPosition = 'center';
@@ -525,9 +574,15 @@ class UserDetailModal {
                 this.mutualServersElement.textContent = `${serverCount} Mutual Server${serverCount !== 1 ? 's' : ''}`;
                 this.mutualServersElement.classList.add('fade-in');
                 
-                if (userData.mutualData.mutual_servers && userData.mutualData.mutual_servers.length > 0) {
-                    const serverNames = userData.mutualData.mutual_servers.map(server => server.name || 'Unknown Server').join(', ');
-                    this.mutualServersElement.title = serverNames;
+                if (serverCount > 0) {
+                    this.mutualServersItem.classList.add('has-data');
+                    if (userData.mutualData.mutual_servers && userData.mutualData.mutual_servers.length > 0) {
+                        const serverNames = userData.mutualData.mutual_servers.map(server => server.name || 'Unknown Server').join(', ');
+                        this.mutualServersElement.title = serverNames;
+                    }
+                } else {
+                    this.mutualServersItem.classList.remove('has-data');
+                    this.mutualServersItem.classList.add('no-data');
                 }
             }
             
@@ -537,9 +592,15 @@ class UserDetailModal {
                 this.mutualFriendsElement.textContent = `${friendCount} Mutual Friend${friendCount !== 1 ? 's' : ''}`;
                 this.mutualFriendsElement.classList.add('fade-in');
                 
-                if (userData.mutualData.mutual_friends && userData.mutualData.mutual_friends.length > 0) {
-                    const friendNames = userData.mutualData.mutual_friends.map(friend => friend.username || 'Unknown User').join(', ');
-                    this.mutualFriendsElement.title = friendNames;
+                if (friendCount > 0) {
+                    this.mutualFriendsItem.classList.add('has-data');
+                    if (userData.mutualData.mutual_friends && userData.mutualData.mutual_friends.length > 0) {
+                        const friendNames = userData.mutualData.mutual_friends.map(friend => friend.username || 'Unknown User').join(', ');
+                        this.mutualFriendsElement.title = friendNames;
+                    }
+                } else {
+                    this.mutualFriendsItem.classList.remove('has-data');
+                    this.mutualFriendsItem.classList.add('no-data');
                 }
             }
         } else if (!isSelf) {
@@ -547,11 +608,16 @@ class UserDetailModal {
                 this.mutualServersElement.innerHTML = '';
                 this.mutualServersElement.textContent = '0 Mutual Servers';
                 this.mutualServersElement.classList.add('fade-in');
+                this.mutualServersItem.classList.remove('has-data');
+                this.mutualServersItem.classList.add('no-data');
             }
+            
             if (this.mutualFriendsElement) {
                 this.mutualFriendsElement.innerHTML = '';
                 this.mutualFriendsElement.textContent = '0 Mutual Friends';
                 this.mutualFriendsElement.classList.add('fade-in');
+                this.mutualFriendsItem.classList.remove('has-data');
+                this.mutualFriendsItem.classList.add('no-data');
             }
         }
     }
@@ -729,6 +795,160 @@ class UserDetailModal {
             if (this.messageInput) this.messageInput.disabled = false;
             if (this.sendBtn) this.sendBtn.disabled = false;
         }
+    }
+
+    showMutualServersDetail() {
+        if (!this.userData || !this.userData.mutualData || !this.userData.mutualData.mutual_servers || this.userData.mutualData.mutual_servers.length === 0) {
+            return;
+        }
+        
+        this.mutualDetailTitle.textContent = 'Mutual Servers';
+        this.mutualDetailContent.innerHTML = '';
+        
+        const servers = this.userData.mutualData.mutual_servers;
+        
+        servers.forEach(server => {
+            const serverItem = document.createElement('div');
+            serverItem.className = 'mutual-detail-item';
+            
+            const serverIcon = document.createElement('div');
+            serverIcon.className = 'mutual-detail-icon';
+            
+            if (server.icon_url) {
+                const img = document.createElement('img');
+                img.src = server.icon_url;
+                img.alt = server.name || 'Server';
+                serverIcon.appendChild(img);
+            } else {
+                const initials = document.createElement('div');
+                initials.className = 'mutual-detail-initials';
+                initials.textContent = (server.name || 'S').charAt(0).toUpperCase();
+                serverIcon.appendChild(initials);
+            }
+            
+            const serverInfo = document.createElement('div');
+            serverInfo.className = 'mutual-detail-info';
+            
+            const serverName = document.createElement('div');
+            serverName.className = 'mutual-detail-name';
+            serverName.textContent = server.name || 'Unknown Server';
+            
+            serverInfo.appendChild(serverName);
+            
+            if (server.member_count) {
+                const memberCount = document.createElement('div');
+                memberCount.className = 'mutual-detail-subtext';
+                const userIcon = document.createElement('i');
+                userIcon.className = 'fas fa-users fa-sm';
+                memberCount.appendChild(userIcon);
+                const countText = document.createTextNode(` ${server.member_count} members`);
+                memberCount.appendChild(countText);
+                serverInfo.appendChild(memberCount);
+            }
+            
+            serverItem.appendChild(serverIcon);
+            serverItem.appendChild(serverInfo);
+            
+            if (server.id) {
+                serverItem.addEventListener('click', () => {
+                    window.location.href = `/server/${server.id}`;
+                });
+            }
+            
+            this.mutualDetailContent.appendChild(serverItem);
+        });
+        
+        this.mutualDetailModal.classList.add('active');
+    }
+    
+    showMutualFriendsDetail() {
+        if (!this.userData || !this.userData.mutualData || !this.userData.mutualData.mutual_friends || this.userData.mutualData.mutual_friends.length === 0) {
+            return;
+        }
+        
+        this.mutualDetailTitle.textContent = 'Mutual Friends';
+        this.mutualDetailContent.innerHTML = '';
+        
+        const friends = this.userData.mutualData.mutual_friends;
+        
+        friends.forEach(friend => {
+            const friendItem = document.createElement('div');
+            friendItem.className = 'mutual-detail-item';
+            
+            const friendIcon = document.createElement('div');
+            friendIcon.className = 'mutual-detail-icon';
+            
+            if (friend.avatar_url) {
+                const img = document.createElement('img');
+                img.src = friend.avatar_url;
+                img.alt = friend.username || 'User';
+                friendIcon.appendChild(img);
+            } else {
+                const initials = document.createElement('div');
+                initials.className = 'mutual-detail-initials';
+                initials.textContent = (friend.username || 'U').charAt(0).toUpperCase();
+                friendIcon.appendChild(initials);
+            }
+            
+            const statusIndicator = document.createElement('div');
+            statusIndicator.className = 'mutual-detail-status';
+            if (friend.status) {
+                statusIndicator.classList.add(friend.status);
+            } else {
+                statusIndicator.classList.add('offline');
+            }
+            friendIcon.appendChild(statusIndicator);
+            
+            const friendInfo = document.createElement('div');
+            friendInfo.className = 'mutual-detail-info';
+            
+            const friendName = document.createElement('div');
+            friendName.className = 'mutual-detail-name';
+            friendName.textContent = friend.display_name || friend.username || 'Unknown User';
+            
+            friendInfo.appendChild(friendName);
+            
+            if (friend.username && friend.discriminator) {
+                const friendTag = document.createElement('div');
+                friendTag.className = 'mutual-detail-subtext';
+                
+                const userIcon = document.createElement('i');
+                userIcon.className = 'fas fa-user fa-sm';
+                friendTag.appendChild(userIcon);
+                
+                const tagText = document.createTextNode(` ${friend.username}#${friend.discriminator}`);
+                friendTag.appendChild(tagText);
+                
+                friendInfo.appendChild(friendTag);
+            }
+            
+            friendItem.appendChild(friendIcon);
+            friendItem.appendChild(friendInfo);
+            
+            if (friend.id) {
+                friendItem.addEventListener('click', () => {
+                    // Show user detail for this friend
+                    this.hideMutualDetail();
+                    
+                    // Small delay to avoid UI glitches
+                    setTimeout(() => {
+                        const userDetailModal = new UserDetailModal();
+                        userDetailModal.show({
+                            userId: friend.id,
+                            serverId: this.currentServerId
+                        });
+                    }, 100);
+                });
+            }
+            
+            this.mutualDetailContent.appendChild(friendItem);
+        });
+        
+        this.mutualDetailModal.classList.add('active');
+    }
+    
+    hideMutualDetail() {
+        this.mutualDetailModal.classList.remove('active');
     }
 }
 
