@@ -62,15 +62,17 @@ class ChatSection {
         this.typingDebounceTime = 2000;
         this.messagesLoaded = false;
         this.processedMessageIds = new Set();
-        this.socketListenersSetup = false; // Track if socket listeners are setup
-        this.typingUsers = new Map(); // Track typing users
-        this.joinedRooms = new Set(); // Track joined rooms
+        this.socketListenersSetup = false;
+        this.typingUsers = new Map();
+        this.joinedRooms = new Set();
         
         this.chatType = null;
         this.targetId = null;
         this.userId = null;
         this.username = null;
         this.avatar_url = null;
+        
+        this.chatBot = null;
         
         this.loadChatParams();
     }
@@ -144,6 +146,14 @@ class ChatSection {
         
         this.setupEventListeners();
         this.setupIoListeners();
+        
+        if (window.ChatBot) {
+            this.chatBot = new window.ChatBot(this);
+            this.chatBot.init();
+        } else {
+            console.warn('⚠️ ChatBot component not available');
+        }
+        
         console.log('ChatSection initialization complete');
     }
     
@@ -232,6 +242,8 @@ class ChatSection {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     this.sendMessage();
+                } else if (e.key === 'Escape') {
+                    this.hideTitiBotSuggestions();
                 } else {
                     this.handleTyping();
                 }
@@ -1059,6 +1071,13 @@ class ChatSection {
             console.warn('⚠️ No message content or file to send');
             return;
         }
+
+        if (this.chatBot && this.chatBot.handleTitiBotCommand(content)) {
+            this.messageInput.value = '';
+            this.resizeTextarea();
+            this.updateSendButton();
+            return;
+        }
         
         this.prepareChatContainer();
         
@@ -1839,11 +1858,37 @@ class ChatSection {
                 });
             } else {
                 const unavailableSpan = document.createElement('span');
-                unavailableSpan.textContent = 'Replying to an unavailable message';
+                unavailableSpan.textContent = 'Loading reply...';
                 unavailableSpan.style.color = '#72767d';
                 unavailableSpan.style.fontSize = '12px';
                 unavailableSpan.style.fontStyle = 'italic';
                 replyContent.appendChild(unavailableSpan);
+
+                // Fetch reply details on demand and update preview
+                if (window.ChatAPI && typeof window.ChatAPI.getMessage === 'function') {
+                    window.ChatAPI.getMessage(message.reply_message_id)
+                        .then((msg) => {
+                            if (msg && msg.content) {
+                                unavailableSpan.remove();
+
+                                const replyUsername = document.createElement('span');
+                                replyUsername.className = 'text-[#5865f2] font-medium truncate';
+                                replyUsername.textContent = msg.username || 'Unknown';
+
+                                const replyMessage = document.createElement('div');
+                                replyMessage.className = 'text-[#b5bac1] truncate';
+                                replyMessage.textContent = msg.content.substring(0, 100) + (msg.content.length > 100 ? '...' : '');
+
+                                replyContent.appendChild(replyUsername);
+                                replyContent.appendChild(replyMessage);
+                            } else {
+                                unavailableSpan.textContent = 'Original message not found';
+                            }
+                        })
+                        .catch(() => {
+                            unavailableSpan.textContent = 'Original message not found';
+                        });
+                }
             }
             
             replyContainer.appendChild(replyLine);
@@ -2186,6 +2231,20 @@ class ChatSection {
             io.on('user-stop-typing-dm', function(data) {
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && data.room_id == self.targetId && data.user_id != self.userId) {
                     self.removeTypingIndicator(data.user_id);
+                }
+            });
+
+            io.on('titibot-command-error', function(data) {
+                console.error('🤖 [TITIBOT] Command error:', data);
+                if (window.showToast) {
+                    window.showToast(`🤖 TitiBot error: ${data.message}`, 'error');
+                }
+            });
+
+            io.on('titibot-command-success', function(data) {
+                console.log('🤖 [TITIBOT] Command success:', data);
+                if (window.showToast) {
+                    window.showToast('🤖 TitiBot command processed', 'success');
                 }
             });
             
@@ -2727,6 +2786,20 @@ class ChatSection {
         try {
             this.targetId = channelId;
             this.chatType = 'channel';
+
+            // Update meta tags to stay in sync
+            const chatIdMeta = document.querySelector('meta[name="chat-id"]');
+            if (chatIdMeta) {
+                chatIdMeta.content = channelId;
+                console.log('Updated chat-id meta tag:', channelId);
+            }
+
+            const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
+            if (chatTypeMeta) {
+                chatTypeMeta.content = 'channel';
+                console.log('Updated chat-type meta tag to: channel');
+            }
+
             this.messagesLoaded = false;
             this.processedMessageIds.clear();
 
@@ -2741,6 +2814,226 @@ class ChatSection {
         } catch (error) {
             console.error('Failed to switch channel:', error);
             this.showErrorMessage('Failed to load channel: ' + error.message);
+        }
+    }
+
+    handleTitiBotCommand(content) {
+        if (!content.startsWith('/titibot ')) {
+            return false;
+        }
+
+        if (this.chatType !== 'channel') {
+            console.log('🤖 TitiBot commands only work in channels, not DMs');
+            if (window.showToast) {
+                window.showToast('🤖 TitiBot commands only work in server channels', 'warning');
+            }
+            return true;
+        }
+
+        if (!window.titiBotData || !window.titiBotData.id) {
+            console.log('🤖 TitiBot not initialized in this session');
+            if (window.showToast) {
+                window.showToast('🤖 TitiBot is not active. Use Ctrl+9 to manage TitiBot', 'warning');
+            }
+            return true;
+        }
+
+        const serverMembers = window.GLOBALS?.serverMembers || window.serverMembers || [];
+        const isTitiBotInServer = serverMembers.some(member => member.id == window.titiBotData.id);
+        
+        if (!isTitiBotInServer) {
+            console.log('🤖 TitiBot is not a member of this server');
+            if (window.showToast) {
+                window.showToast('🤖 TitiBot is not active in this server', 'warning');
+            }
+            return true;
+        }
+
+        const args = content.trim().split(/\s+/);
+        const command = args[1]?.toLowerCase();
+        
+        if (!command) {
+            if (window.showToast) {
+                window.showToast('🤖 Available commands: ping', 'info');
+            }
+            return true;
+        }
+
+        console.log(`🤖 [TITIBOT] Processing command: ${command} in channel ${this.targetId}`);
+        
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            console.error('🤖 Socket not ready for TitiBot command');
+            if (window.showToast) {
+                window.showToast('🤖 Connection not ready. Please try again.', 'error');
+            }
+            return true;
+        }
+
+        const serverId = this.getServerId();
+        
+        window.globalSocketManager.io.emit('titibot-command', {
+            command: command,
+            channel_id: this.targetId,
+            server_id: serverId,
+            user_id: this.userId,
+            username: this.username
+        });
+
+        console.log(`🤖 [TITIBOT] Command sent to socket server: ${command}`);
+        
+        if (window.showToast) {
+            window.showToast(`🤖 TitiBot command sent: ${command}`, 'success');
+        }
+        
+        return true;
+    }
+
+    getServerId() {
+        if (this.serverId) return this.serverId;
+        
+        const urlMatch = window.location.pathname.match(/\/server\/(\d+)/);
+        if (urlMatch) {
+            this.serverId = urlMatch[1];
+            return this.serverId;
+        }
+        
+        if (window.GLOBALS && window.GLOBALS.server && window.GLOBALS.server.id) {
+            this.serverId = window.GLOBALS.server.id;
+            return this.serverId;
+        }
+        
+        return null;
+    }
+
+    handleTitiBotAutocomplete() {
+        if (!this.messageInput || this.chatType !== 'channel') {
+            this.hideTitiBotSuggestions();
+            return;
+        }
+
+        const content = this.messageInput.value;
+        
+        if (content.startsWith('/titibot') && content.length > 8) {
+            const afterSlash = content.substring(8).trim();
+            
+            if (afterSlash === '' || 'ping'.startsWith(afterSlash.toLowerCase())) {
+                this.showTitiBotSuggestions(['ping']);
+            } else {
+                this.hideTitiBotSuggestions();
+            }
+        } else {
+            this.hideTitiBotSuggestions();
+        }
+    }
+
+    showTitiBotSuggestions(commands) {
+        let suggestionContainer = document.getElementById('titibot-suggestions');
+        
+        if (!suggestionContainer) {
+            suggestionContainer = document.createElement('div');
+            suggestionContainer.id = 'titibot-suggestions';
+            suggestionContainer.className = 'absolute bottom-full left-0 right-0 bg-[#2b2d31] border border-[#3c3f45] rounded-t-lg shadow-lg p-2 mb-1 z-50';
+            
+            if (this.messageInput && this.messageInput.parentNode) {
+                this.messageInput.parentNode.style.position = 'relative';
+                this.messageInput.parentNode.appendChild(suggestionContainer);
+            }
+        }
+
+        suggestionContainer.innerHTML = '';
+
+        const header = document.createElement('div');
+        header.className = 'text-xs text-[#b5bac1] font-semibold mb-2';
+        header.innerHTML = '<i class="fas fa-robot mr-1"></i>TitiBot Commands';
+        suggestionContainer.appendChild(header);
+
+        commands.forEach(command => {
+            const commandItem = document.createElement('div');
+            commandItem.className = 'flex items-center p-2 hover:bg-[#36393f] rounded cursor-pointer text-[#dcddde]';
+            commandItem.innerHTML = `
+                <i class="fas fa-terminal mr-3 text-[#5865f2]"></i>
+                <div>
+                    <div class="font-medium">/titibot ${command}</div>
+                    <div class="text-xs text-[#b5bac1]">${this.getTitiBotCommandDescription(command)}</div>
+                </div>
+            `;
+            
+            commandItem.addEventListener('click', () => {
+                this.messageInput.value = `/titibot ${command}`;
+                this.messageInput.focus();
+                this.hideTitiBotSuggestions();
+                this.resizeTextarea();
+                this.updateSendButton();
+            });
+            
+            suggestionContainer.appendChild(commandItem);
+        });
+    }
+
+    hideTitiBotSuggestions() {
+        const suggestionContainer = document.getElementById('titibot-suggestions');
+        if (suggestionContainer) {
+            suggestionContainer.remove();
+        }
+    }
+
+    getTitiBotCommandDescription(command) {
+        const descriptions = {
+            'ping': 'Test if TitiBot is online and responsive'
+        };
+        return descriptions[command] || 'TitiBot command';
+    }
+    
+    prepareChatContainer() {
+        if (!this.chatMessages) {
+            console.error('❌ prepareChatContainer: chatMessages element not found');
+            return;
+        }
+        
+        console.log('🔧 Preparing chat container for message...');
+        
+        this.hideEmptyState();
+        
+        if (this.skeletonLoader) {
+            this.skeletonLoader.clear();
+        }
+        
+        const containerResult = this.ensureMessagesContainer();
+        if (!containerResult) {
+            console.error('❌ Failed to ensure messages container in prepareChatContainer');
+            return;
+        }
+        
+        const nonMessageElements = this.chatMessages.querySelectorAll(':not(.messages-container)');
+        nonMessageElements.forEach(element => {
+            if (element.id !== 'chat-empty-state' && 
+                !element.classList.contains('message-group') && 
+                !element.classList.contains('message-group-item') &&
+                !element.classList.contains('messages-container')) {
+                if (element.textContent.includes('No messages yet') || 
+                    element.textContent.includes('Start the conversation') ||
+                    element.querySelector('i.fa-comments')) {
+                    console.log('🗑️ Removing interfering element:', element);
+                    element.remove();
+                }
+            }
+        });
+        
+        this.chatMessages.style.position = 'relative';
+        
+        const finalState = {
+            chatMessagesExists: !!this.chatMessages,
+            messagesContainerExists: !!this.messagesContainer,
+            containerInDOM: this.messagesContainer ? document.contains(this.messagesContainer) : false,
+            containerChildren: this.messagesContainer?.children.length || 0,
+            chatMessagesChildren: this.chatMessages.children.length
+        };
+        
+        console.log('📊 Chat container preparation complete:', finalState);
+        console.log('✅ Messages-container ready for first message');
+        
+        if (!finalState.messagesContainerExists || !finalState.containerInDOM) {
+            console.error('❌ Chat container preparation failed - container not ready');
         }
     }
 }

@@ -102,6 +102,52 @@ class BotHandler {
         }
     }
 
+    static handleCommand(io, commandData) {
+        console.log(`🎯 [BOT-HANDLER] Processing direct command:`, {
+            command: commandData.command,
+            channelId: commandData.channel_id,
+            userId: commandData.user_id,
+            username: commandData.username
+        });
+
+        const { command, channel_id, user_id, username } = commandData;
+
+        const titiBotId = this.getTitiBotId();
+        if (!titiBotId) {
+            console.warn('⚠️ [BOT-HANDLER] TitiBot not found in active bots');
+            return;
+        }
+
+        const bot = this.bots.get(titiBotId);
+        if (!bot) {
+            console.warn('⚠️ [BOT-HANDLER] TitiBot not registered in handler');
+            return;
+        }
+
+        if (command === 'ping') {
+            console.log(`🏓 [BOT-HANDLER] Processing ping command from ${username}`);
+            
+            const simulatedMessage = {
+                channel_id: channel_id,
+                user_id: user_id,
+                username: username
+            };
+            
+            this.respondToPing(io, simulatedMessage, 'channel', titiBotId, 'titibot');
+        } else {
+            console.log(`❓ [BOT-HANDLER] Unknown command: ${command}`);
+        }
+    }
+
+    static getTitiBotId() {
+        for (const [botId, botData] of this.bots.entries()) {
+            if (botData.username === 'titibot') {
+                return botId;
+            }
+        }
+        return null;
+    }
+
     static async respondToPing(io, originalMessage, messageType, botId, username) {
         const responseContent = `🏓 Pong! Hi ${originalMessage.username}, I'm TitiBot and I'm online!`;
         
@@ -146,7 +192,7 @@ class BotHandler {
 
     static async saveBotMessage(messageData, messageType) {
         try {
-            const fetch = require('node-fetch');
+            const fetch = (await import('node-fetch')).default;
             
             const payload = {
                 content: messageData.content,

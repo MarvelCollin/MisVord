@@ -182,6 +182,17 @@ async function handleChannelSwitch(serverId, channelId, channelType, clickedElem
         updateActiveChannelUI(clickedElement);
         addSwitchingIndicator(clickedElement);
         
+        // Prefer AJAX navigation via ChatSection when available
+        if (window.chatSection && typeof window.chatSection.joinNewChannel === 'function') {
+            await window.chatSection.joinNewChannel(channelId);
+            
+            // Update URL without reloading the page
+            const newUrl = `/server/${serverId}?channel=${channelId}`;
+            window.history.pushState({ channelId }, '', newUrl);
+            
+            return; // Exit early, no need for legacy channel renderer
+        }
+        
         if (channelType !== 'voice' && (window.voiceState?.isConnected || window.voiceManager?.isConnected)) {
             if (window.videosdkMeeting && window.videoSDKManager) {
                 window.videoSDKManager.leaveMeeting();

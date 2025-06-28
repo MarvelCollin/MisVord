@@ -223,11 +223,11 @@ async function showTitiBotModal() {
     try {
         const response = await fetch('/api/bots/check/titibot');
         if (response.ok) {
-            const respJson = await response.json();
-            const botInfo = respJson.data ? respJson.data.bot : respJson.bot;
+            const data = await response.json();
+            const botInfo = data.data ? data.data.bot : data.bot;
             window.titiBotData = botInfo;
-            botExists = respJson.data ? (respJson.data.exists && respJson.data.is_bot) : (respJson.exists && respJson.is_bot);
-            botData = respJson.data ? respJson.data.bot : respJson.bot;
+            botExists = data.data ? (data.data.exists && data.data.is_bot) : (data.exists && data.is_bot);
+            botData = data.data ? data.data.bot : data.bot;
         }
     } catch (error) {
         console.error('Failed to check bot status:', error);
@@ -349,7 +349,7 @@ async function createTitiBot() {
                 window.showToast('✅ TitiBot created successfully!', 'success');
             }
             
-            window.titiBotData = data.bot;
+            window.titiBotData = (data.data && data.data.bot) ? data.data.bot : (data.bot || null);
             
             document.getElementById('bot-status').innerHTML = 
                 '<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot created and ready</span>';

@@ -130,7 +130,7 @@ class ServerAjaxLoader {
                 server_id: serverId,
                 current_channel: channelId,
                 channels: {
-                    uncategorized: channelData.uncategorizedChannels || [],
+                    uncategorized: channelData.uncategorized || [],
                     categories: channelData.categories || []
                 },
                 current_messages: messages

@@ -322,6 +322,11 @@ function setup(io) {
             console.log(`🤖 [BOT-JOIN] Bot join channel request from ${client.id}:`, data);
             handleBotJoinChannel(io, client, data);
         });
+
+        client.on('titibot-command', (data) => {
+            console.log(`🤖 [TITIBOT-CMD] TitiBot command from ${client.id}:`, data);
+            handleTitiBotCommand(io, client, data);
+        });
         
         client.on('disconnect', () => {
             console.log(`❌ [DISCONNECT] Client disconnected: ${client.id}`);
@@ -628,6 +633,39 @@ function handleBotJoinChannel(io, client, data) {
     } catch (error) {
         console.error(`❌ [BOT-JOIN-HANDLER] Error joining bot to channel:`, error);
         client.emit('bot-join-error', { message: 'Failed to join bot to channel' });
+    }
+}
+
+function handleTitiBotCommand(io, client, data) {
+    console.log(`🤖 [TITIBOT-CMD-HANDLER] Processing TitiBot command:`, {
+        command: data.command,
+        channelId: data.channel_id,
+        serverId: data.server_id,
+        userId: data.user_id,
+        username: data.username,
+        requestingUser: client.data?.user_id
+    });
+    
+    if (!client.data?.authenticated) {
+        console.warn('⚠️ [TITIBOT-CMD-HANDLER] Rejecting command from unauthenticated client');
+        client.emit('titibot-command-error', { message: 'Authentication required' });
+        return;
+    }
+    
+    const { command, channel_id, server_id, user_id, username } = data;
+    
+    if (!command || !channel_id || !user_id || !username) {
+        console.warn('⚠️ [TITIBOT-CMD-HANDLER] Missing required fields');
+        client.emit('titibot-command-error', { message: 'Missing required command data' });
+        return;
+    }
+    
+    try {
+        BotHandler.handleCommand(io, data);
+        console.log(`✅ [TITIBOT-CMD-HANDLER] Command forwarded to BotHandler: ${command}`);
+    } catch (error) {
+        console.error(`❌ [TITIBOT-CMD-HANDLER] Error processing command:`, error);
+        client.emit('titibot-command-error', { message: 'Failed to process command' });
     }
 }
 

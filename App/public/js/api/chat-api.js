@@ -773,6 +773,20 @@ class ChatAPI {
             authenticated: window.globalSocketManager?.authenticated
         };
     }
+
+    async getMessage(messageId) {
+        if (!messageId) {
+            throw new Error('Message ID is required');
+        }
+        const url = `/api/messages/${messageId}`;
+        try {
+            const response = await this.makeRequest(url);
+            return response.data?.message || response.message || null;
+        } catch (error) {
+            console.error('Error fetching message:', error);
+            return null;
+        }
+    }
 }
 
 console.log('🔄 Creating ChatAPI instance...');
