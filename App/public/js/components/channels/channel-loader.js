@@ -341,6 +341,7 @@ export class ChannelLoader {
 export const channelLoader = new ChannelLoader();
 
 if (typeof window !== "undefined") {
-  // Legacy channel-loader disabled in favor of channel-manager to prevent duplicate channel rendering
-  console.warn('Legacy channel-loader is disabled. Use channel-manager for channel operations.');
-}
+   window.ChannelLoader = ChannelLoader;
+   window.channelLoader = channelLoader; // provided for backward compatibility
+   console.warn('⚠️ channel-loader is deprecated. Use channel-manager instead.');
+ }

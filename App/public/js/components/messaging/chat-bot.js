@@ -66,6 +66,11 @@ class ChatBot {
                 console.error('🤖 [TITIBOT] Bot join error:', data);
             });
 
+            io.on('bot-music-command', (data) => {
+                console.log('🎵 [TITIBOT] Received music command:', data);
+                this.handleMusicCommand(data);
+            });
+
             this.socketListenersSetup = true;
             console.log('🔌 [CHAT-BOT] Socket listeners setup complete');
         };
@@ -125,11 +130,25 @@ class ChatBot {
         
         if (content.startsWith('/titibot') && content.length > 8) {
             const afterSlash = content.substring(8).trim();
+            const allCommands = ['ping', 'play', 'stop', 'next', 'prev', 'queue'];
             
-            if (afterSlash === '' || 'ping'.startsWith(afterSlash.toLowerCase())) {
-                this.showTitiBotSuggestions(['ping']);
+            if (afterSlash === '') {
+                this.showTitiBotSuggestions(allCommands);
             } else {
-                this.hideTitiBotSuggestions();
+                const words = afterSlash.split(' ');
+                const firstWord = words[0].toLowerCase();
+                
+                const matchingCommands = allCommands.filter(cmd => 
+                    cmd.toLowerCase().startsWith(firstWord)
+                );
+                
+                if (matchingCommands.length > 0) {
+                    this.showTitiBotSuggestions(matchingCommands);
+                } else if (firstWord === 'play' || firstWord === 'queue') {
+                    this.hideTitiBotSuggestions();
+                } else {
+                    this.hideTitiBotSuggestions();
+                }
             }
         } else {
             this.hideTitiBotSuggestions();
@@ -169,7 +188,11 @@ class ChatBot {
             `;
             
             commandItem.addEventListener('click', () => {
-                this.chatSection.messageInput.value = `/titibot ${command}`;
+                if (command === 'play' || command === 'queue') {
+                    this.chatSection.messageInput.value = `/titibot ${command} `;
+                } else {
+                    this.chatSection.messageInput.value = `/titibot ${command}`;
+                }
                 this.chatSection.messageInput.focus();
                 this.hideTitiBotSuggestions();
                 this.chatSection.resizeTextarea();
@@ -189,7 +212,12 @@ class ChatBot {
 
     getTitiBotCommandDescription(command) {
         const descriptions = {
-            'ping': 'Test if TitiBot is online and responsive'
+            'ping': 'Test if TitiBot is online and responsive',
+            'play': 'Play music from iTunes (e.g., /titibot play never gonna give you up)',
+            'stop': 'Stop the currently playing music',
+            'next': 'Play the next song in the queue',
+            'prev': 'Play the previous song in the queue',
+            'queue': 'Add a song to the music queue (e.g., /titibot queue bohemian rhapsody)'
         };
         return descriptions[command] || 'TitiBot command';
     }
@@ -246,6 +274,51 @@ class ChatBot {
                 channel_id: this.chatSection.targetId
             });
             console.log('🤖 [CHAT-BOT] TitiBot initialization and channel join events sent');
+        }
+    }
+
+    handleMusicCommand(data) {
+        if (!window.musicPlayer) {
+            console.error('❌ [CHAT-BOT] Music player not available');
+            return;
+        }
+
+        const { music_data, channel_id } = data;
+        if (!music_data) {
+            console.warn('⚠️ [CHAT-BOT] No music data in command');
+            return;
+        }
+
+        const { action, track } = music_data;
+
+        switch (action) {
+            case 'play':
+                if (track) {
+                    window.musicPlayer.playTrack(track);
+                }
+                break;
+
+            case 'stop':
+                window.musicPlayer.stop();
+                break;
+
+            case 'next':
+                window.musicPlayer.playNext();
+                break;
+
+            case 'prev':
+                window.musicPlayer.playPrevious();
+                break;
+
+            case 'queue':
+                if (track) {
+                    window.musicPlayer.queue.push(track);
+                    console.log('🎵 [CHAT-BOT] Track added to queue:', track.title);
+                }
+                break;
+
+            default:
+                console.warn('⚠️ [CHAT-BOT] Unknown music action:', action);
         }
     }
 

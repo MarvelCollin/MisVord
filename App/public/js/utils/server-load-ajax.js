@@ -110,72 +110,214 @@ class ServerAjaxLoader {
         const channelId = new URLSearchParams(window.location.search).get('channel');
 
         try {
-            content.innerHTML = '<div style="color: #5865f2;">Loading data...</div>';
+            content.innerHTML = '<div style="color: #5865f2;">🔄 Loading comprehensive debug data...</div>';
 
-            const channelsResponse = await window.serverAPI.getServerChannels(serverId);
-            const channelData = channelsResponse.data || {};
+            // 1. Basic Info
+            const basicInfo = {
+                server_id: serverId,
+                current_channel: channelId,
+                url: window.location.href,
+                timestamp: new Date().toISOString()
+            };
 
+            // 2. Channel Data
+            let channelData = {};
+            let channelsResponse = null;
+            try {
+                channelsResponse = await window.serverAPI.getServerChannels(serverId);
+                channelData = channelsResponse.data || {};
+            } catch (error) {
+                channelData = { error: error.message };
+            }
+
+            // 3. Messages API Test
             let messages = [];
             let apiResponse = null;
+            let apiError = null;
             
             if (channelId) {
                 try {
                     const messagesResponse = await fetch(`/api/chat/channel/${channelId}/messages`);
-                    apiResponse = await messagesResponse.json();
+                    const responseText = await messagesResponse.text();
                     
-                    if (apiResponse.success && apiResponse.data && apiResponse.data.messages) {
-                        messages = apiResponse.data.messages;
+                    try {
+                        apiResponse = JSON.parse(responseText);
+                        if (apiResponse.success && apiResponse.data && apiResponse.data.messages) {
+                            messages = apiResponse.data.messages;
+                        }
+                    } catch (parseError) {
+                        apiError = {
+                            status: messagesResponse.status,
+                            statusText: messagesResponse.statusText,
+                            responseText: responseText.substring(0, 500),
+                            parseError: parseError.message
+                        };
                     }
                 } catch (error) {
-                    console.error('Debug: Error fetching messages:', error);
-                    apiResponse = { error: error.message };
+                    apiError = { fetchError: error.message };
                 }
             }
 
-            const debugInfo = {
-                server_id: serverId,
-                current_channel: channelId,
-                channels: {
-                    uncategorized: channelData.uncategorized || [],
-                    categories: channelData.categories || []
-                },
-                current_messages: messages,
-                api_response: apiResponse,
-                chat_section_status: {
+            // 4. DOM Analysis
+            const domAnalysis = {
+                channel_items: document.querySelectorAll('.channel-item').length,
+                active_channels: document.querySelectorAll('.channel-item.active-channel').length,
+                chat_messages_element: !!document.getElementById('chat-messages'),
+                channel_wrapper: !!document.querySelector('.channel-wrapper'),
+                channel_list: !!document.querySelector('.channel-list'),
+                duplicate_channel_ids: this.findDuplicateChannelIds()
+            };
+
+            // 5. JavaScript State
+            const jsState = {
+                chat_section: {
                     exists: !!window.chatSection,
                     target_id: window.chatSection?.targetId,
                     chat_type: window.chatSection?.chatType,
-                    messages_loaded: window.chatSection?.messagesLoaded
+                    messages_loaded: window.chatSection?.messagesLoaded,
+                    processed_message_ids: window.chatSection?.processedMessageIds?.size || 0
+                },
+                channel_switch_manager: {
+                    exists: !!window.channelSwitchManager,
+                    is_loading: window.channelSwitchManager?.isLoading,
+                    current_channel_id: window.channelSwitchManager?.currentChannelId,
+                    current_server_id: window.channelSwitchManager?.currentServerId
+                },
+                channel_switching: window.channelSwitching || false,
+                global_socket: {
+                    exists: !!window.globalSocketManager,
+                    ready: window.globalSocketManager?.isReady?.() || false,
+                    connected: window.globalSocketManager?.socket?.connected || false
                 }
             };
 
+            // 6. Event Listeners Check
+            const eventListeners = this.checkEventListeners();
+
+            // 7. Network Requests Log
+            const networkLog = this.getRecentNetworkActivity();
+
             content.innerHTML = `
-                <div style="color: #5865f2; margin-bottom: 8px;">Server ID: ${serverId}</div>
-                <div style="color: #5865f2; margin-bottom: 8px;">Current Channel: ${channelId}</div>
                 <div style="margin-bottom: 12px;">
-                    <div style="color: #5865f2; margin-bottom: 4px;">Channels:</div>
-                    <pre style="color: #dcddde; font-size: 10px;">${JSON.stringify(debugInfo.channels, null, 2)}</pre>
+                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">📊 BASIC INFO</div>
+                    <pre style="color: #dcddde; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(basicInfo, null, 2)}</pre>
                 </div>
+
                 <div style="margin-bottom: 12px;">
-                    <div style="color: #5865f2; margin-bottom: 4px;">ChatSection Status:</div>
-                    <pre style="color: #dcddde; font-size: 10px;">${JSON.stringify(debugInfo.chat_section_status, null, 2)}</pre>
+                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">🏗️ DOM ANALYSIS</div>
+                    <pre style="color: #dcddde; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(domAnalysis, null, 2)}</pre>
                 </div>
+
                 <div style="margin-bottom: 12px;">
-                    <div style="color: #5865f2; margin-bottom: 4px;">API Response:</div>
-                    <pre style="color: #dcddde; font-size: 10px;">${JSON.stringify(apiResponse, null, 2)}</pre>
+                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">⚡ JAVASCRIPT STATE</div>
+                    <pre style="color: #dcddde; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(jsState, null, 2)}</pre>
                 </div>
-                <div>
-                    <div style="color: #5865f2; margin-bottom: 4px;">Current Messages (${messages.length}):</div>
-                    <pre style="color: #dcddde; font-size: 10px;">${JSON.stringify(messages.slice(0, 3), null, 2)}</pre>
+
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">📡 API RESPONSE</div>
+                    ${apiError ? 
+                        `<div style="color: #ed4245; margin-bottom: 4px;">❌ API ERROR:</div>
+                         <pre style="color: #ed4245; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(apiError, null, 2)}</pre>` :
+                        `<div style="color: #57f287; margin-bottom: 4px;">✅ API SUCCESS (${messages.length} messages)</div>
+                         <pre style="color: #dcddde; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(apiResponse, null, 2)}</pre>`
+                    }
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">📋 CHANNELS DATA</div>
+                    <pre style="color: #dcddde; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(channelData, null, 2)}</pre>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">🎯 EVENT LISTENERS</div>
+                    <pre style="color: #dcddde; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(eventListeners, null, 2)}</pre>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">🌐 NETWORK LOG</div>
+                    <pre style="color: #dcddde; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(networkLog, null, 2)}</pre>
+                </div>
+
+                <div style="margin-top: 12px; padding: 8px; background: #5865f2; border-radius: 4px;">
+                    <div style="color: white; font-weight: bold; margin-bottom: 4px;">🔧 QUICK ACTIONS</div>
+                    <button onclick="window.location.reload()" style="margin-right: 8px; padding: 4px 8px; background: #ed4245; border: none; border-radius: 4px; color: white; cursor: pointer;">
+                        Force Reload
+                    </button>
+                    <button onclick="window.channelSwitchManager?.switchToChannel('${serverId}', '${channelId}')" style="margin-right: 8px; padding: 4px 8px; background: #57f287; border: none; border-radius: 4px; color: black; cursor: pointer;">
+                        Retry Switch
+                    </button>
+                    <button onclick="console.clear()" style="padding: 4px 8px; background: #faa61a; border: none; border-radius: 4px; color: black; cursor: pointer;">
+                        Clear Console
+                    </button>
                 </div>
             `;
 
         } catch (error) {
             content.innerHTML = `
-                <div style="color: #ed4245;">Error loading debug info:</div>
+                <div style="color: #ed4245;">❌ Error loading debug info:</div>
                 <pre style="color: #ed4245;">${error.message}</pre>
+                <pre style="color: #ed4245; font-size: 10px;">${error.stack}</pre>
             `;
         }
+    }
+
+    findDuplicateChannelIds() {
+        const channelElements = document.querySelectorAll('[data-channel-id]');
+        const channelIds = Array.from(channelElements).map(el => el.dataset.channelId);
+        const duplicates = channelIds.filter((id, index) => channelIds.indexOf(id) !== index);
+        return [...new Set(duplicates)];
+    }
+
+    checkEventListeners() {
+        const channelItems = document.querySelectorAll('.channel-item');
+        let hasClickListeners = 0;
+        
+        channelItems.forEach(item => {
+            // Check if element has click listeners (approximate)
+            if (item.onclick || item.addEventListener) {
+                hasClickListeners++;
+            }
+        });
+
+        return {
+            channel_items_total: channelItems.length,
+            estimated_with_listeners: hasClickListeners,
+            channel_switch_manager_setup: !!window.channelSwitchManager?.setupChannelClickHandlers
+        };
+    }
+
+    getRecentNetworkActivity() {
+        // Simple network activity tracking
+        if (!window.debugNetworkLog) {
+            window.debugNetworkLog = [];
+        }
+
+        // Intercept fetch if not already done
+        if (!window.fetchIntercepted) {
+            const originalFetch = window.fetch;
+            window.fetch = function(...args) {
+                const url = args[0];
+                const timestamp = new Date().toISOString();
+                
+                if (window.debugNetworkLog) {
+                    window.debugNetworkLog.push({
+                        url: url,
+                        timestamp: timestamp,
+                        type: 'fetch'
+                    });
+                    
+                    // Keep only last 10 requests
+                    if (window.debugNetworkLog.length > 10) {
+                        window.debugNetworkLog = window.debugNetworkLog.slice(-10);
+                    }
+                }
+                
+                return originalFetch.apply(this, args);
+            };
+            window.fetchIntercepted = true;
+        }
+
+        return window.debugNetworkLog || [];
     }
 
     getCurrentServerIdFromURL() {

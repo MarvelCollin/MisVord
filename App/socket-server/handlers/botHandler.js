@@ -106,6 +106,23 @@ class BotHandler {
         if (content === '/titibot ping') {
             console.log(`🎯 [BOT-HANDLER] Bot ${username} detected ping command, responding...`);
             this.respondToPing(io, data, messageType, botId, username);
+        } else if (content.startsWith('/titibot play ')) {
+            const songName = content.replace('/titibot play ', '').trim();
+            console.log(`🎵 [BOT-HANDLER] Bot ${username} detected play command for: ${songName}`);
+            this.respondToMusicCommand(io, data, messageType, botId, username, 'play', songName);
+        } else if (content === '/titibot stop') {
+            console.log(`⏹️ [BOT-HANDLER] Bot ${username} detected stop command`);
+            this.respondToMusicCommand(io, data, messageType, botId, username, 'stop');
+        } else if (content === '/titibot next') {
+            console.log(`⏭️ [BOT-HANDLER] Bot ${username} detected next command`);
+            this.respondToMusicCommand(io, data, messageType, botId, username, 'next');
+        } else if (content === '/titibot prev') {
+            console.log(`⏮️ [BOT-HANDLER] Bot ${username} detected prev command`);
+            this.respondToMusicCommand(io, data, messageType, botId, username, 'prev');
+        } else if (content.startsWith('/titibot queue ')) {
+            const songName = content.replace('/titibot queue ', '').trim();
+            console.log(`📝 [BOT-HANDLER] Bot ${username} detected queue command for: ${songName}`);
+            this.respondToMusicCommand(io, data, messageType, botId, username, 'queue', songName);
         }
     }
 
@@ -203,6 +220,163 @@ class BotHandler {
         }
     }
 
+    static async respondToMusicCommand(io, originalMessage, messageType, botId, username, command, songName = null) {
+        let responseContent;
+        let musicData = null;
+
+        try {
+            switch (command) {
+                case 'play':
+                    if (!songName) {
+                        responseContent = '❌ Please specify a song name. Usage: `/titibot play {song name}`';
+                        break;
+                    }
+                    
+                    const trackData = await this.searchItunes(songName);
+                    if (!trackData) {
+                        responseContent = `❌ Could not find "${songName}" on iTunes`;
+                        break;
+                    }
+                    
+                    responseContent = `🎵 Now playing: **${trackData.title}** by ${trackData.artist}`;
+                    musicData = {
+                        action: 'play',
+                        track: trackData
+                    };
+                    break;
+
+                case 'stop':
+                    responseContent = '⏹️ Music stopped';
+                    musicData = { action: 'stop' };
+                    break;
+
+                case 'next':
+                    responseContent = '⏭️ Playing next song';
+                    musicData = { action: 'next' };
+                    break;
+
+                case 'prev':
+                    responseContent = '⏮️ Playing previous song';
+                    musicData = { action: 'prev' };
+                    break;
+
+                case 'queue':
+                    if (!songName) {
+                        responseContent = '❌ Please specify a song name. Usage: `/titibot queue {song name}`';
+                        break;
+                    }
+                    
+                    const queueTrackData = await this.searchItunes(songName);
+                    if (!queueTrackData) {
+                        responseContent = `❌ Could not find "${songName}" on iTunes`;
+                        break;
+                    }
+                    
+                    responseContent = `➕ Added to queue: **${queueTrackData.title}** by ${queueTrackData.artist}`;
+                    musicData = {
+                        action: 'queue',
+                        track: queueTrackData
+                    };
+                    break;
+
+                default:
+                    responseContent = '❌ Unknown music command';
+            }
+        } catch (error) {
+            console.error(`❌ [BOT-MUSIC] Error processing music command:`, error);
+            responseContent = '❌ Error processing music command';
+        }
+
+        const responseData = {
+            id: `bot-msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            content: responseContent,
+            user_id: botId,
+            username: username,
+            message_type: 'text',
+            timestamp: Date.now(),
+            source: 'bot-response',
+            avatar_url: '/assets/common/default-profile-picture.png',
+            reply_message_id: originalMessage.id,
+            reply_data: {
+                messageId: originalMessage.id,
+                username: originalMessage.username,
+                content: originalMessage.content
+            }
+        };
+
+        if (musicData) {
+            responseData.music_data = musicData;
+        }
+
+        let targetRoom;
+        let eventName;
+
+        if (messageType === 'channel' && originalMessage.channel_id) {
+            targetRoom = roomManager.getChannelRoom(originalMessage.channel_id);
+            eventName = 'new-channel-message';
+            responseData.channel_id = originalMessage.channel_id;
+        } else if (messageType === 'dm' && originalMessage.room_id) {
+            targetRoom = roomManager.getDMRoom(originalMessage.room_id);
+            eventName = 'user-message-dm';
+            responseData.room_id = originalMessage.room_id;
+        }
+
+        if (targetRoom && eventName) {
+            console.log(`🎵 [BOT-MUSIC] Bot ${username} sending music response for ${command} in ${targetRoom}`);
+            
+            try {
+                await this.saveBotMessage(responseData, messageType);
+                
+                io.to(targetRoom).emit(eventName, responseData);
+                
+                if (musicData) {
+                    io.to(targetRoom).emit('bot-music-command', {
+                        channel_id: originalMessage.channel_id,
+                        music_data: musicData
+                    });
+                }
+                
+                console.log(`✅ [BOT-MUSIC] Bot ${username} music response sent successfully`);
+            } catch (error) {
+                console.error(`❌ [BOT-MUSIC] Error sending bot music response:`, error);
+            }
+        }
+    }
+
+    static async searchItunes(query) {
+        try {
+            const fetch = (await import('node-fetch')).default;
+            const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=1`;
+            
+            console.log(`🔍 [BOT-MUSIC] Searching iTunes for: ${query}`);
+            
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            
+            if (data.results && data.results.length > 0) {
+                const track = data.results[0];
+                const trackData = {
+                    title: track.trackName,
+                    artist: track.artistName,
+                    album: track.collectionName,
+                    previewUrl: track.previewUrl,
+                    artworkUrl: track.artworkUrl100,
+                    duration: track.trackTimeMillis,
+                    id: track.trackId
+                };
+                
+                console.log(`✅ [BOT-MUSIC] Found track: ${trackData.title} by ${trackData.artist}`);
+                return trackData;
+            }
+            
+            console.log(`❌ [BOT-MUSIC] No results found for: ${query}`);
+            return null;
+        } catch (error) {
+            console.error(`❌ [BOT-MUSIC] iTunes search error:`, error);
+            return null;
+        }
+    }
+
     static async saveBotMessage(messageData, messageType) {
         try {
             const fetch = (await import('node-fetch')).default;
@@ -227,6 +401,11 @@ class BotHandler {
                 payload.target_id = messageData.room_id;
             }
 
+            console.log(`📡 [BOT-HANDLER] Sending bot message to database:`, {
+                endpoint,
+                payload: { ...payload, content: payload.content.substring(0, 50) + '...' }
+            });
+
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
@@ -235,13 +414,31 @@ class BotHandler {
                 body: JSON.stringify(payload)
             });
 
+            const responseText = await response.text();
+            
             if (response.ok) {
-                console.log(`💾 [BOT-HANDLER] Bot message saved to database`);
+                console.log(`💾 [BOT-HANDLER] Bot message saved to database successfully`);
+                try {
+                    const responseData = JSON.parse(responseText);
+                    if (responseData.data && responseData.data.message) {
+                        console.log(`✅ [BOT-HANDLER] Message saved with ID: ${responseData.data.message.id}`);
+                        return responseData.data.message;
+                    }
+                } catch (parseError) {
+                    console.log(`📝 [BOT-HANDLER] Response text:`, responseText);
+                }
+                return true;
             } else {
-                console.error(`❌ [BOT-HANDLER] Failed to save bot message:`, response.status);
+                console.error(`❌ [BOT-HANDLER] Failed to save bot message:`, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    response: responseText
+                });
+                return false;
             }
         } catch (error) {
             console.error(`❌ [BOT-HANDLER] Error saving bot message:`, error);
+            return false;
         }
     }
 
