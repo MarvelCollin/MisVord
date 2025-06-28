@@ -246,6 +246,9 @@ class ServerAjaxLoader {
                     <button onclick="window.channelSwitchManager?.switchToChannel('${serverId}', '${channelId}')" style="margin-right: 8px; padding: 4px 8px; background: #57f287; border: none; border-radius: 4px; color: black; cursor: pointer;">
                         Retry Switch
                     </button>
+                    <button onclick="if(window.refreshChannelList) { console.log('🔄 Force refreshing channels...'); window.refreshChannelList(); } else { console.error('❌ refreshChannelList not available'); }" style="margin-right: 8px; padding: 4px 8px; background: #faa61a; border: none; border-radius: 4px; color: black; cursor: pointer;">
+                        Refresh Channels
+                    </button>
                     <button onclick="console.clear()" style="padding: 4px 8px; background: #faa61a; border: none; border-radius: 4px; color: black; cursor: pointer;">
                         Clear Console
                     </button>

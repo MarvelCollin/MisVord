@@ -471,6 +471,156 @@ async function initializeTitiBot() {
     }
 }
 
+function showTitiBotModal() {
+    const existingModal = document.getElementById('titibot-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modal = document.createElement('div');
+    modal.id = 'titibot-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: linear-gradient(135deg, #2c2f36 0%, #1e2124 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid #5865f2;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; color: #5865f2;">
+                    <i class="fas fa-robot" style="margin-right: 8px;"></i>TitiBot Management
+                </h2>
+                <button onclick="document.getElementById('titibot-modal').remove()" style="
+                    background: #ed4245; border: none; color: white; width: 30px; height: 30px;
+                    border-radius: 50%; cursor: pointer; font-size: 16px;
+                ">×</button>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; color: #b9bbbe; margin-bottom: 8px;">Select Server:</label>
+                <select id="server-select" style="
+                    width: 100%; background: #36393f; border: 1px solid #5865f2; color: white;
+                    padding: 10px; border-radius: 6px; font-size: 14px;
+                ">
+                    <option value="">Loading servers...</option>
+                </select>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <button id="create-bot-btn" onclick="createTitiBot()" style="
+                    background: #00d166; border: none; color: white; padding: 12px;
+                    border-radius: 6px; cursor: pointer; font-weight: bold;
+                ">
+                    <i class="fas fa-plus mr-2"></i>Create TitiBot
+                </button>
+                <button id="init-bot-btn" onclick="initializeTitiBot()" style="
+                    background: #5865f2; border: none; color: white; padding: 12px;
+                    border-radius: 6px; cursor: pointer; font-weight: bold;
+                ">
+                    <i class="fas fa-play mr-2"></i>Initialize Bot
+                </button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <button onclick="
+                    if (window.musicPlayer) {
+                        window.musicPlayer.showMusicDebugPanel();
+                    } else if (typeof MusicPlayerSystem !== 'undefined') {
+                        window.musicPlayer = new MusicPlayerSystem();
+                        setTimeout(() => window.musicPlayer.showMusicDebugPanel(), 100);
+                    } else {
+                        if (window.showToast) window.showToast('🎵 Music player loading...', 'info');
+                        console.log('Music player not available');
+                    }
+                " style="
+                    background: #eb459e; border: none; color: white; padding: 12px;
+                    border-radius: 6px; cursor: pointer; font-weight: bold;
+                ">
+                    <i class="fas fa-music mr-2"></i>Music Debug
+                </button>
+                <button onclick="
+                    if (window.musicPlayer) {
+                        window.musicPlayer.showSearchModal();
+                    } else if (typeof MusicPlayerSystem !== 'undefined') {
+                        window.musicPlayer = new MusicPlayerSystem();
+                        setTimeout(() => window.musicPlayer.showSearchModal(), 100);
+                    } else {
+                        if (window.showToast) window.showToast('🎵 Music player loading...', 'info');
+                        console.log('Music player not available');
+                    }
+                " style="
+                    background: #fee75c; border: none; color: #2c2f36; padding: 12px;
+                    border-radius: 6px; cursor: pointer; font-weight: bold;
+                ">
+                    <i class="fas fa-search mr-2"></i>Search Music
+                </button>
+            </div>
+            
+            <div id="titibot-status" style="
+                background: #36393f; padding: 15px; border-radius: 8px;
+                min-height: 40px; color: #b9bbbe; font-size: 14px;
+            ">
+                Ready to manage TitiBot. Select a server and create or initialize the bot.
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    loadUserServers();
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+async function loadUserServers() {
+    try {
+        const response = await fetch('/api/user/servers', {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        const data = await response.json();
+        const serverSelect = document.getElementById('server-select');
+        
+        if (data.success && data.servers) {
+            serverSelect.innerHTML = '<option value="">Select a server...</option>';
+            data.servers.forEach(server => {
+                const option = document.createElement('option');
+                option.value = server.id;
+                option.textContent = server.name;
+                serverSelect.appendChild(option);
+            });
+        } else {
+            serverSelect.innerHTML = '<option value="">No servers available</option>';
+        }
+    } catch (error) {
+        console.error('Failed to load servers:', error);
+        document.getElementById('server-select').innerHTML = '<option value="">Error loading servers</option>';
+    }
+}
+
 function resetAuthSession() {
     console.log('🔓 Starting authentication reset...');
     
@@ -734,14 +884,33 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey && e.key === '9') {
             e.preventDefault();
             
-            console.log('TitiBot management modal triggered...');
+            console.log('Music Player Debug Panel triggered...');
             
-            const existingModal = document.getElementById('titibot-modal');
-            if (existingModal) {
-                existingModal.remove();
+            if (window.musicPlayer && typeof window.musicPlayer.showMusicDebugPanel === 'function') {
+                window.musicPlayer.showMusicDebugPanel();
+            } else {
+                console.log('Music player not available, attempting to initialize...');
+                
+                if (typeof MusicPlayerSystem !== 'undefined' && !window.musicPlayer) {
+                    console.log('Initializing music player system...');
+                    window.musicPlayer = new MusicPlayerSystem();
+                    
+                    setTimeout(() => {
+                        if (window.musicPlayer && typeof window.musicPlayer.showMusicDebugPanel === 'function') {
+                            window.musicPlayer.showMusicDebugPanel();
+                        } else {
+                            showTitiBotModal();
+                        }
+                    }, 100);
+                } else {
+                    console.log('Music player class not available, showing TitiBot modal instead...');
+                    const existingModal = document.getElementById('titibot-modal');
+                    if (existingModal) {
+                        existingModal.remove();
+                    }
+                    showTitiBotModal();
+                }
             }
-            
-            showTitiBotModal();
         }
     });
     
@@ -815,7 +984,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return status;
     }
     
-    console.log('Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status), Ctrl+8 (socket debug panel), Ctrl+9 (TitiBot management)');
+    console.log('Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status), Ctrl+8 (socket debug panel), Ctrl+9 (Music Player Debug)');
     
     if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
         console.log('MisVordMessaging exists but not initialized, attempting manual initialization...');
@@ -839,6 +1008,13 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('❌ Forced connection failed:', error);
         }
     }
+    
+    setTimeout(() => {
+        if (typeof MusicPlayerSystem !== 'undefined' && !window.musicPlayer) {
+            console.log('🎵 Initializing music player system...');
+            window.musicPlayer = new MusicPlayerSystem();
+        }
+    }, 500);
 });
 </script>
 

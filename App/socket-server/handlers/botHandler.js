@@ -345,7 +345,6 @@ class BotHandler {
 
     static async searchItunes(query) {
         try {
-            const fetch = (await import('node-fetch')).default;
             const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=1`;
             
             console.log(`🔍 [BOT-MUSIC] Searching iTunes for: ${query}`);
@@ -372,75 +371,73 @@ class BotHandler {
             console.log(`❌ [BOT-MUSIC] No results found for: ${query}`);
             return null;
         } catch (error) {
-            console.error(`❌ [BOT-MUSIC] iTunes search error:`, error);
+            console.error(`❌ [BOT-MUSIC] iTunes search error:`, error?.message || error);
             return null;
         }
     }
 
     static async saveBotMessage(messageData, messageType) {
         try {
-            const fetch = (await import('node-fetch')).default;
-            
-            const payload = {
-                content: messageData.content,
-                message_type: 'text',
-                user_id: messageData.user_id
-            };
+             const payload = {
+                 content: messageData.content,
+                 message_type: 'text',
+                 user_id: messageData.user_id
+             };
 
-            if (messageData.reply_message_id) {
-                payload.reply_message_id = messageData.reply_message_id;
-                payload.reply_data = messageData.reply_data;
-            }
+             if (messageData.reply_message_id) {
+                 payload.reply_message_id = messageData.reply_message_id;
+                 payload.reply_data = messageData.reply_data;
+             }
 
-            let endpoint;
-            if (messageType === 'channel') {
-                endpoint = `http://localhost:8080/api/bots/send-channel-message`;
-                payload.channel_id = messageData.channel_id;
-            } else {
-                endpoint = `http://localhost:8080/api/chat/send`;
-                payload.chat_type = 'direct';
-                payload.target_id = messageData.room_id;
-            }
+             let endpoint;
+             if (messageType === 'channel') {
+                 endpoint = `http://localhost:8080/api/bots/send-channel-message`;
+                 payload.channel_id = messageData.channel_id;
+             } else {
+                 endpoint = `http://localhost:8080/api/chat/send`;
+                 payload.chat_type = 'direct';
+                 payload.target_id = messageData.room_id;
+             }
 
-            console.log(`📡 [BOT-HANDLER] Sending bot message to database:`, {
-                endpoint,
-                payload: { ...payload, content: payload.content.substring(0, 50) + '...' }
-            });
+             console.log(`📡 [BOT-HANDLER] Sending bot message to database:`, {
+                 endpoint,
+                 payload: { ...payload, content: payload.content.substring(0, 50) + '...' }
+             });
 
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload)
-            });
+             const response = await fetch(endpoint, {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/json',
+                 },
+                 body: JSON.stringify(payload)
+             });
 
-            const responseText = await response.text();
-            
-            if (response.ok) {
-                console.log(`💾 [BOT-HANDLER] Bot message saved to database successfully`);
-                try {
-                    const responseData = JSON.parse(responseText);
-                    if (responseData.data && responseData.data.message) {
-                        console.log(`✅ [BOT-HANDLER] Message saved with ID: ${responseData.data.message.id}`);
-                        return responseData.data.message;
-                    }
-                } catch (parseError) {
-                    console.log(`📝 [BOT-HANDLER] Response text:`, responseText);
-                }
-                return true;
-            } else {
-                console.error(`❌ [BOT-HANDLER] Failed to save bot message:`, {
-                    status: response.status,
-                    statusText: response.statusText,
-                    response: responseText
-                });
-                return false;
-            }
-        } catch (error) {
-            console.error(`❌ [BOT-HANDLER] Error saving bot message:`, error);
-            return false;
-        }
+             const responseText = await response.text();
+             
+             if (response.ok) {
+                 console.log(`💾 [BOT-HANDLER] Bot message saved to database successfully`);
+                 try {
+                     const responseData = JSON.parse(responseText);
+                     if (responseData.data && responseData.data.message) {
+                         console.log(`✅ [BOT-HANDLER] Message saved with ID: ${responseData.data.message.id}`);
+                         return responseData.data.message;
+                     }
+                 } catch (parseError) {
+                     console.log(`📝 [BOT-HANDLER] Response text:`, responseText);
+                 }
+                 return true;
+             } else {
+                 console.error(`❌ [BOT-HANDLER] Failed to save bot message:`, {
+                     status: response.status,
+                     statusText: response.statusText,
+                     response: responseText
+                 });
+                 return false;
+             }
+         } catch (error) {
+             console.error(`❌ [BOT-HANDLER] Error saving bot message:`, error);
+             return false;
+         }
     }
 
     static joinBotToRoom(botId, roomType, roomId) {

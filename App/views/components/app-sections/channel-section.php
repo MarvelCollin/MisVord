@@ -182,50 +182,17 @@ async function handleChannelSwitch(serverId, channelId, channelType, clickedElem
         updateActiveChannelUI(clickedElement);
         addSwitchingIndicator(clickedElement);
         
-        // DISABLED: Legacy channel switching replaced by pure AJAX system
-        // The new channel-manager.js and channel-loader.js handle all switching
-        console.log('⚠️ Legacy channel switch handler disabled - using pure AJAX system');
-        return;
-        
-        if (channelType !== 'voice' && (window.voiceState?.isConnected || window.voiceManager?.isConnected)) {
-            if (window.videosdkMeeting && window.videoSDKManager) {
-                window.videoSDKManager.leaveMeeting();
-                window.videosdkMeeting = null;
-            }
-            
-            if (window.voiceState) {
-                window.voiceState.isConnected = false;
-            }
-            
-            if (window.voiceManager) {
-                window.voiceManager.isConnected = false;
-            }
-            
-            window.dispatchEvent(new CustomEvent('voiceDisconnect'));
-        }
-        
-        if (window.channelRenderer) {
-            await window.channelRenderer.switchToChannel(serverId, channelId, channelType);
+        // Use the unified channel switch manager
+        if (window.channelSwitchManager) {
+            console.log(`🎯 Delegating to channelSwitchManager: ${serverId} → ${channelId}`);
+            await window.channelSwitchManager.switchToChannel(serverId, channelId, clickedElement);
         } else {
-            await loadChannelRenderer();
-            if (window.channelRenderer) {
-                await window.channelRenderer.switchToChannel(serverId, channelId, channelType);
-            } else {
-                throw new Error('Failed to load channel renderer');
-            }
-        }
-        
-        if (channelType === 'voice') {
-            setTimeout(async () => {
-                try {
-                    await autoJoinVoiceChannel(channelId);
-                } catch (error) {
-                    console.error('Failed to auto-join voice channel:', error);
-                }
-            }, 500);
+            console.error('❌ channelSwitchManager not available');
+            throw new Error('Channel switch manager not loaded');
         }
         
     } catch (error) {
+        console.error('❌ Channel switch failed:', error);
         showChannelSwitchError(error.message);
         resetChannelUI();
     } finally {

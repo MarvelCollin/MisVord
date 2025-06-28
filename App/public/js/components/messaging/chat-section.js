@@ -350,20 +350,13 @@ class ChatSection {
                 const messageId = messageContent.dataset.messageId;
                 this.editMessage(messageId);
             } else if (moreBtn) {
-                console.log('⋯ Three-dot (More) button clicked!', {
-                    messageId: moreBtn.closest('.message-content')?.dataset.messageId,
-                    buttonRect: moreBtn.getBoundingClientRect(),
-                    clickEvent: e
-                });
                 e.stopPropagation();
                 const messageContent = moreBtn.closest('.message-content');
                 const rect = moreBtn.getBoundingClientRect();
-                console.log('📍 Positioning context menu at:', {
-                    x: rect.left,
-                    y: rect.bottom + 5,
-                    messageContent: messageContent
-                });
-                this.showContextMenu(rect.left, rect.bottom + 5, messageContent);
+                // Position menu to right of button
+                const menuX = rect.right - 10;  // 10px offset from right edge
+                const menuY = rect.top + (rect.height / 2);  // Vertically center
+                this.showContextMenu(menuX, menuY, messageContent);
             }
         });
     }
@@ -390,79 +383,70 @@ class ChatSection {
             return;
         }
         
-        console.log('👤 Message ownership check:', {
-            messageUserId: messageContent.dataset.userId,
-            currentUserId: this.userId,
-            isOwnMessage: isOwnMessage
-        });
-        
         this.hideContextMenu();
 
-        // Show modal in center of screen instead of at cursor position
+        // Initial positioning
         this.contextMenu.style.position = 'fixed';
-        this.contextMenu.style.top = '50%';
         this.contextMenu.style.left = `${x}px`;
         this.contextMenu.style.top = `${y}px`;
         this.contextMenu.style.transform = 'none';
-        this.contextMenu.style.zIndex = '2000';
+        this.contextMenu.style.zIndex = '10000';
         this.contextMenu.style.minWidth = '200px';
+        this.contextMenu.style.display = 'block';
+        this.contextMenu.style.visibility = 'visible';
+        this.contextMenu.style.opacity = '1';
+        this.contextMenu.classList.remove('hidden');
         
-        console.log('📏 Context menu positioning:', {
-            position: this.contextMenu.style.position,
-            left: this.contextMenu.style.left,
-            top: this.contextMenu.style.top,
-            zIndex: this.contextMenu.style.zIndex
-        });
-        
-        // Ensure menu stays within viewport
-        const rect = this.contextMenu.getBoundingClientRect();
+        // Get dimensions after making visible
+        const menuRect = this.contextMenu.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
         
-        console.log('📐 Viewport boundary check:', {
-            menuRect: rect,
-            viewportWidth,
-            viewportHeight,
-            wouldGoOffRight: x + rect.width > viewportWidth,
-            wouldGoOffBottom: y + rect.height > viewportHeight
+        // Calculate available space
+        const spaceRight = viewportWidth - x;
+        const spaceBottom = viewportHeight - y;
+        
+        // Adjust position if needed
+        let adjustedX = x;
+        let adjustedY = y;
+        
+        // Handle horizontal overflow - prefer showing menu to the left of click if not enough space on right
+        if (spaceRight < menuRect.width + 10) {
+            adjustedX = x - menuRect.width;
+            if (adjustedX < 10) adjustedX = 10; // Minimum 10px from left edge
+        }
+        
+        // Handle vertical overflow - prefer showing menu above click if not enough space below
+        if (spaceBottom < menuRect.height + 10) {
+            adjustedY = y - menuRect.height;
+            if (adjustedY < 10) adjustedY = 10; // Minimum 10px from top edge
+        }
+        
+        // Apply adjusted position
+        this.contextMenu.style.left = `${adjustedX}px`;
+        this.contextMenu.style.top = `${adjustedY}px`;
+        
+        console.log('📏 Menu positioning:', {
+            original: { x, y },
+            adjusted: { x: adjustedX, y: adjustedY },
+            menuSize: { width: menuRect.width, height: menuRect.height },
+            viewport: { width: viewportWidth, height: viewportHeight }
         });
         
-        // Adjust horizontal position if menu goes off right edge
-        if (x + rect.width > viewportWidth) {
-            this.contextMenu.style.left = `${viewportWidth - rect.width - 10}px`;
-            console.log('🔧 Adjusted horizontal position to:', this.contextMenu.style.left);
-        }
-        
-        // Adjust vertical position if menu goes off bottom edge
-        if (y + rect.height > viewportHeight) {
-            this.contextMenu.style.top = `${y - rect.height}px`;
-            console.log('🔧 Adjusted vertical position to:', this.contextMenu.style.top);
-        }
-        
-        this.contextMenu.classList.remove('hidden');
         this.contextMenu.dataset.messageId = messageId;
         this.contextMenuVisible = true;
-        
-        console.log('✅ Context menu should now be visible:', {
-            hasHiddenClass: this.contextMenu.classList.contains('hidden'),
-            messageId: this.contextMenu.dataset.messageId,
-            contextMenuVisible: this.contextMenuVisible
-        });
         
         const editBtn = this.contextMenu.querySelector('[data-action="edit"]');
         if (editBtn) {
             editBtn.style.display = isOwnMessage ? 'flex' : 'none';
-            console.log('✏️ Edit button visibility:', editBtn.style.display);
         }
         
         const deleteBtn = this.contextMenu.querySelector('[data-action="delete"]');
         if (deleteBtn) {
             deleteBtn.style.display = isOwnMessage ? 'flex' : 'none';
-            console.log('🗑️ Delete button visibility:', deleteBtn.style.display);
         }
         
         this.setupContextMenuListeners();
-        console.log('🎉 Context menu setup complete!');
     }
     
     setupContextMenuListeners() {

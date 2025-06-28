@@ -114,154 +114,230 @@ function refreshChannelList() {
 }
 
 function renderChannelList(data) {
-    const channelContainer = document.querySelector('.channel-wrapper .channel-list');
-    if (!channelContainer) return;
+    // Extract incoming server id (supports various API formats)
+    const incomingServerId = data?.server_id || data?.serverId || data?.server?.id || null;
 
-    const headerDiv = channelContainer.querySelector('.flex.justify-between.items-center');
+    console.log('🔄 renderChannelList called with data:', data, 'incomingServerId:', incomingServerId);
+    
+    const channelContainer = document.querySelector('.channel-wrapper .channel-list') || 
+                           document.querySelector('.channel-list');
+    
+    if (!channelContainer) {
+        console.error('❌ Channel container not found');
+        return;
+    }
+
+    // Get the server id currently rendered in the DOM (if any)
+    const currentRenderedServerId = channelContainer.getAttribute('data-server-id');
+
+    // Determine if we need a full re-render
+    const existingChannels = channelContainer.querySelectorAll('.channel-item');
+    const needsFullRender = !existingChannels.length || (incomingServerId && currentRenderedServerId && incomingServerId !== currentRenderedServerId);
+
+    // If channels already rendered for SAME server, just refresh event listeners & highlighting
+    if (!needsFullRender) {
+        console.log(`📋 ${existingChannels.length} channels already rendered for server ${currentRenderedServerId}. Skipping full re-render.`);
+        initChannelEventListeners();
+
+        // Update active highlight
+        const currentChannelId = new URLSearchParams(window.location.search).get('channel');
+        if (currentChannelId) {
+            document.querySelectorAll('.channel-item').forEach(ch => ch.classList.remove('bg-discord-lighten', 'bg-gray-700', 'text-white', 'active-channel'));
+            const activeChannel = channelContainer.querySelector(`[data-channel-id="${currentChannelId}"]`);
+            if (activeChannel) {
+                activeChannel.classList.add('bg-discord-lighten', 'text-white', 'active-channel');
+                console.log(`✅ Marked channel ${currentChannelId} as active (refresh only)`);
+            }
+        }
+        return;
+    }
+
+    // --- FULL RENDER FOLLOWS ---
+
+    console.log('🧹 Clearing old channels and rendering fresh list');
+
+    // Preserve server ID input value before clearing
+    const serverIdInput = channelContainer.querySelector('#current-server-id');
+    const serverIdValue = serverIdInput?.value;
+    
     channelContainer.innerHTML = '';
-    if (headerDiv) {
-        channelContainer.appendChild(headerDiv);
+    
+    if (serverIdValue) {
+        const newInput = document.createElement('input');
+        newInput.type = 'hidden';
+        newInput.id = 'current-server-id';
+        newInput.value = serverIdValue;
+        channelContainer.appendChild(newInput);
     }
 
-    const uncategorizedChannels = data.channels ? data.channels.filter(ch => !ch.category_id) : [];
-    if (uncategorizedChannels.length > 0) {
-        const uncategorizedSection = document.createElement('div');
-        uncategorizedSection.className = 'uncategorized-channels mb-4';
+    // Render all channels from data
+    const allChannels = data.channels || data.uncategorized || [];
+    console.log(`📋 Rendering ${allChannels.length} channels:`, allChannels);
 
-        uncategorizedChannels.forEach(channel => {
-            const channelEl = createChannelElement(channel);
-            uncategorizedSection.appendChild(channelEl);
+    if (allChannels.length === 0) {
+        channelContainer.innerHTML += '<div class="p-4 text-gray-400 text-center text-sm">No channels available</div>';
+        // Update dataset server id even if none rendered
+        if (incomingServerId) channelContainer.setAttribute('data-server-id', incomingServerId);
+        return;
+    }
+
+    // Separate text and voice channels
+    const textChannels = allChannels.filter(ch => 
+        ch.type === 'text' || ch.type === 1 || ch.type_name === 'text'
+    );
+    
+    const voiceChannels = allChannels.filter(ch => 
+        ch.type === 'voice' || ch.type === 2 || ch.type_name === 'voice'
+    );
+
+    console.log(`📝 Text channels: ${textChannels.length}, 🎤 Voice channels: ${voiceChannels.length}`);
+
+    // Render text channels
+    if (textChannels.length > 0) {
+        const textSection = document.createElement('div');
+        textSection.className = 'channels-section group mb-4';
+        
+        textChannels.forEach(channel => {
+            const channelEl = createChannelElementPHP(channel);
+            textSection.appendChild(channelEl);
         });
-
-        channelContainer.appendChild(uncategorizedSection);
+        
+        channelContainer.appendChild(textSection);
     }
 
-    if (data.categories && data.categories.length > 0) {
-        data.categories.forEach(category => {
-            const categoryChannels = data.channels ? data.channels.filter(ch => ch.category_id === category.id) : [];
-            const categoryEl = createCategoryElement({
-                ...category,
-                channels: categoryChannels
-            });
-            channelContainer.appendChild(categoryEl);
+    // Render voice channels
+    if (voiceChannels.length > 0) {
+        const voiceSection = document.createElement('div');
+        voiceSection.className = 'voice-channels-section group mb-4';
+        
+        voiceChannels.forEach(channel => {
+            const channelEl = createChannelElementPHP(channel);
+            voiceSection.appendChild(channelEl);
         });
+        
+        channelContainer.appendChild(voiceSection);
     }
 
+    // Update the server id rendered in DOM for future comparisons
+    if (incomingServerId) {
+        channelContainer.setAttribute('data-server-id', incomingServerId);
+    }
+
+    // Set up event listeners
     initChannelEventListeners();
-}
-
-function createCategoryElement(category) {
-    const categoryContainer = document.createElement('div');
-    categoryContainer.className = 'category-container mb-4';
-    categoryContainer.dataset.categoryId = category.id;
-
-    const categoryHeader = document.createElement('div');
-    categoryHeader.className = 'category-header flex items-center justify-between py-2 px-3 text-gray-300 cursor-pointer hover:text-white';
-    categoryHeader.innerHTML = `
-        <div class="flex items-center">
-            <span class="mr-1"><i class="fas fa-chevron-down text-xs"></i></span>
-            <span class="font-semibold uppercase text-xs tracking-wide">${category.name}</span>
-        </div>
-        <div class="category-actions opacity-0 group-hover:opacity-100">
-            <button class="add-channel-btn text-gray-400 hover:text-white" 
-                    data-category-id="${category.id}" title="Add Channel">
-                <i class="fas fa-plus text-xs"></i>
-            </button>
-        </div>
-    `;
-
-    const channelsContainer = document.createElement('div');
-    channelsContainer.className = 'channels-container';
-
-    if (category.channels && category.channels.length > 0) {
-        category.channels.forEach(channel => {
-            const channelEl = createChannelElement(channel);
-            channelsContainer.appendChild(channelEl);
-        });
-    } else {
-        const emptyMessage = document.createElement('div');
-        emptyMessage.className = 'text-gray-400 text-xs italic px-6 py-2';
-        emptyMessage.textContent = 'No channels in this category';
-        channelsContainer.appendChild(emptyMessage);
+    
+    // Mark current channel as active
+    const currentChannelId = new URLSearchParams(window.location.search).get('channel');
+    if (currentChannelId) {
+        const activeChannel = channelContainer.querySelector(`[data-channel-id="${currentChannelId}"]`);
+        if (activeChannel) {
+            activeChannel.classList.add('bg-discord-lighten', 'text-white', 'active-channel');
+            console.log(`✅ Marked channel ${currentChannelId} as active`);
+        }
     }
 
-    categoryContainer.appendChild(categoryHeader);
-    categoryContainer.appendChild(channelsContainer);
-
-    return categoryContainer;
+    console.log('✅ Channel rendering complete');
 }
 
-function createChannelElement(channel) {
+function createChannelElementPHP(channel) {
+    console.log('🎯 Creating channel element for:', channel);
+    
     const channelEl = document.createElement('div');
-    channelEl.className = 'channel-item flex items-center py-1 px-2 mx-2 rounded hover:bg-gray-700 cursor-pointer';
-    channelEl.id = `channel-${channel.id}`;
-    channelEl.dataset.channelId = channel.id;
-
+    
+    // Use the same structure as PHP renderChannel function
+    const isActive = new URLSearchParams(window.location.search).get('channel') == channel.id;
+    const activeClass = isActive ? 'bg-discord-lighten text-white active-channel' : '';
+    
+    const type = channel.type_name || channel.type || 'text';
+    const icon = getChannelIconJS(type);
+    
+    channelEl.className = `channel-item flex items-center py-2 px-3 rounded cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-discord-lighten ${activeClass}`;
+    channelEl.setAttribute('data-channel-id', channel.id);
+    channelEl.setAttribute('data-channel-type', type);
+    
     channelEl.innerHTML = `
-        <div class="channel-icon mr-2 text-gray-400">
-        </div>
-        <div class="channel-name text-gray-300 hover:text-white flex-grow">
-            ${channel.name}
-        </div>
-        <div class="channel-actions hidden group-hover:flex">
-            <button class="edit-channel-btn text-gray-400 hover:text-white mr-1" 
-                    data-channel-id="${channel.id}" title="Edit Channel">
-                <i class="fas fa-cog text-xs"></i>
-            </button>
-            <button class="delete-channel-btn text-gray-400 hover:text-red-500" 
-                    data-channel-id="${channel.id}" 
-                    data-channel-name="${channel.name}" title="Delete Channel">
-                <i class="fas fa-trash text-xs"></i>
-            </button>
-        </div>
+        <i class="fas fa-${icon} text-xs mr-3 text-gray-500"></i>
+        <span class="text-sm">${channel.name}</span>
+        ${type === 'voice' ? '<span class="ml-auto text-xs text-gray-500">0</span>' : ''}
     `;
-
-    if (channel.is_private) {
-        channelEl.classList.add('private-channel');
-        const lockIcon = document.createElement('span');
-        lockIcon.className = 'ml-1 text-gray-400';
-        lockIcon.innerHTML = '<i class="fas fa-lock text-xs"></i>';
-        channelEl.querySelector('.channel-name').appendChild(lockIcon);
-    }
-
+    
+    console.log(`✅ Created channel element: ${channel.name} (${type})`);
     return channelEl;
 }
 
+function getChannelIconJS(type) {
+    switch(String(type).toLowerCase()) {
+        case 'voice':
+        case '2':
+            return 'volume-high';
+        case 'announcement':
+            return 'bullhorn';
+        case 'forum':
+            return 'users';
+        default:
+            return 'hashtag';
+    }
+}
+
 function initChannelEventListeners() {
-    document.querySelectorAll('.category-header').forEach(header => {
-        header.addEventListener('click', function(e) {
-            if (e.target.closest('.add-channel-btn')) {
-                return;
-            }
+    console.log('🎯 Setting up channel event listeners');
 
-            const category = this.closest('.category-container');
-            const channelsContainer = category.querySelector('.channels-container');
-            const chevron = this.querySelector('i.fa-chevron-down, i.fa-chevron-right');
-
-            if (channelsContainer.classList.contains('hidden')) {
-                channelsContainer.classList.remove('hidden');
-                if (chevron) chevron.classList.replace('fa-chevron-right', 'fa-chevron-down');
-            } else {
-                channelsContainer.classList.add('hidden');
-                if (chevron) chevron.classList.replace('fa-chevron-down', 'fa-chevron-right');
-            }
-        });
-    });
-
-    document.querySelectorAll('.add-channel-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation(); 
-            const categoryId = this.getAttribute('data-category-id');
-            openCreateChannelModal(categoryId);
-        });
-    });
-
+    // Set up channel click handlers via the switch manager
     if (window.channelSwitchManager) {
-        window.channelSwitchManager.setupChannelClickHandlers(document.querySelector('.channel-wrapper'));
+        const channelContainer = document.querySelector('.channel-wrapper') || 
+                               document.querySelector('.channel-list');
+        if (channelContainer) {
+            window.channelSwitchManager.setupChannelClickHandlers(channelContainer);
+            console.log('✅ Channel click handlers set up via switchManager');
+        }
+    } else {
+        console.warn('⚠️ channelSwitchManager not available, waiting and retrying...');
+        
+        // Wait for channelSwitchManager to load
+        let retries = 0;
+        const maxRetries = 10;
+        
+        const checkForManager = () => {
+            retries++;
+            if (window.channelSwitchManager) {
+                const channelContainer = document.querySelector('.channel-wrapper') || 
+                                       document.querySelector('.channel-list');
+                if (channelContainer) {
+                    window.channelSwitchManager.setupChannelClickHandlers(channelContainer);
+                    console.log('✅ Channel click handlers set up via switchManager (delayed)');
+                }
+            } else if (retries < maxRetries) {
+                setTimeout(checkForManager, 200);
+            } else {
+                console.warn('⚠️ channelSwitchManager still not available, setting up basic handlers');
+                setupBasicChannelHandlers();
+            }
+        };
+        
+        setTimeout(checkForManager, 200);
     }
 
+    // Clean up any old event listeners on forms/buttons
     initUpdateChannelForms();
     initDeleteChannelButtons();
+    
+    console.log('✅ Event listeners setup complete');
+}
+
+function setupBasicChannelHandlers() {
+    // Fallback: basic click handlers
+    document.querySelectorAll('.channel-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            const channelId = item.dataset.channelId;
+            const serverId = document.getElementById('current-server-id')?.value;
+            
+            if (channelId && serverId) {
+                const newUrl = `/server/${serverId}?channel=${channelId}`;
+                window.location.href = newUrl;
+            }
+        });
+    });
+    console.log('✅ Basic channel handlers set up');
 }
 
 function getServerId() {
