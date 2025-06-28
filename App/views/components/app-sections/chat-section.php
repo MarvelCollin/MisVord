@@ -190,10 +190,13 @@ function renderMessageContent($message) {
     }
     
     echo '<div class="message-main-text text-[#dcddde]">';
-    
-    if ($content && trim($content) !== '') {
+    if (!empty($content)) {
         echo formatMessageContent($content);
+        if ($editedAt) {
+            echo '<span class="edited-badge text-xs text-[#a3a6aa] ml-1">(edited)</span>';
+        }
     }
+    echo '</div>';
     
     if ($attachmentUrl) {
         echo '<div class="message-attachment mt-2">';
@@ -235,12 +238,6 @@ function renderMessageContent($message) {
         
         echo '</div>';
     }
-    
-    if ($editedAt) {
-        echo '<span class="edited-badge text-xs text-[#a3a6aa] ml-1">(edited)</span>';
-    }
-    
-    echo '</div>';
     
     echo '<div class="message-actions absolute -top-4 right-4 bg-[#2b2d31] rounded-md shadow-lg flex items-center p-1 space-x-1 z-10 hidden" style="opacity: 0; visibility: hidden; position: absolute;">';
     
@@ -755,4 +752,5 @@ function initializeChatUI() {
         }
     }));
 }
+</script>
 </script>

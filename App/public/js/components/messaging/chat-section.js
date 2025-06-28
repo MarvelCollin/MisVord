@@ -1862,12 +1862,9 @@ class ChatSection {
         messageElement.dataset.userId = message.user_id;
         messageElement.dataset.username = message.username;
 
-        const contentWrapper = document.createElement('div');
-        contentWrapper.className = 'message-content-wrapper';
-
         if (message.reply_message_id && message.reply_data) {
             const replyContainer = document.createElement('div');
-            replyContainer.className = 'reply-container flex items-center text-sm text-[#b5bac1] mb-2';
+            replyContainer.className = 'reply-container flex items-center text-sm text-[#b5bac1] mb-1';
             
             const replyLine = document.createElement('div');
             replyLine.className = 'reply-line w-[2px] h-[1.5em] bg-[#4f545c] rounded-sm mr-2';
@@ -1887,7 +1884,6 @@ class ChatSection {
             } else {
                 const unavailableSpan = document.createElement('span');
                 unavailableSpan.className = 'italic';
-                replyMessage.appendChild(unavailableSpan);
                 
                 if (message.reply_data.id) {
                     window.ChatAPI.getMessage(message.reply_data.id)
@@ -1906,29 +1902,24 @@ class ChatSection {
             
             replyContent.appendChild(replyUsername);
             replyContent.appendChild(replyMessage);
+            
             replyContainer.appendChild(replyLine);
             replyContainer.appendChild(replyContent);
-            contentWrapper.appendChild(replyContainer);
+            messageElement.appendChild(replyContainer);
         }
 
-        const textContent = document.createElement('div');
-        textContent.className = 'message-main-text';
+        const contentElement = document.createElement('div');
+        contentElement.className = 'message-main-text text-[#dcddde]';
         
         if (message.content && message.content.trim() !== '') {
-            textContent.innerHTML = this.formatMessageContent(message.content);
-            if (message.edited_at) {
-                const editedBadge = document.createElement('span');
-                editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
-                editedBadge.textContent = '(edited)';
-                textContent.appendChild(editedBadge);
-            }
+            contentElement.innerHTML = this.formatMessageContent(message.content);
         }
         
-        contentWrapper.appendChild(textContent);
+        messageElement.appendChild(contentElement);
 
         if (message.attachment_url) {
             const attachmentContainer = document.createElement('div');
-            attachmentContainer.className = 'message-attachment';
+            attachmentContainer.className = 'message-attachment mt-2';
             
             if (message.message_type === 'image' || 
                 (message.attachment_url && 
@@ -2037,10 +2028,16 @@ class ChatSection {
                 attachmentContainer.appendChild(fileLink);
             }
             
-            contentWrapper.appendChild(attachmentContainer);
+            messageElement.appendChild(attachmentContainer);
+        }
+        
+        if (message.edited_at) {
+            const editedBadge = document.createElement('span');
+            editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+            editedBadge.textContent = '(edited)';
+            contentElement.appendChild(editedBadge);
         }
 
-        messageElement.appendChild(contentWrapper);
         return messageElement;
     }
     
