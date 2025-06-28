@@ -20,6 +20,8 @@ class VoiceManager {
         if (this.initialized) return;
         
         try {
+            // First ensure VideoSDK is loaded
+            await this.loadVideoSDKScript();
             await this.initVideoSDK();
             this.attachEventListeners();
             this.initialized = true;
@@ -30,6 +32,33 @@ class VoiceManager {
         }
     }
 
+    async loadVideoSDKScript() {
+        return new Promise((resolve, reject) => {
+            if (typeof VideoSDK !== 'undefined') {
+                console.log('VideoSDK already loaded');
+                resolve();
+                return;
+            }
+
+            console.log('Loading VideoSDK script...');
+            const script = document.createElement('script');
+            script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
+            script.async = true;
+            
+            script.onload = () => {
+                console.log('✅ VideoSDK script loaded successfully');
+                resolve();
+            };
+            
+            script.onerror = (error) => {
+                console.error('❌ Failed to load VideoSDK script:', error);
+                reject(new Error('Failed to load VideoSDK script'));
+            };
+            
+            document.head.appendChild(script);
+        });
+    }
+
     async initVideoSDK() {
         // Wait for VideoSDK to be available
         await new Promise((resolve) => {
@@ -37,7 +66,7 @@ class VoiceManager {
                 if (window.videoSDKManager) {
                     resolve();
                 } else {
-                    console.warn('VideoSDK not available, waiting...');
+                    console.warn('VideoSDK manager not available, waiting...');
                     setTimeout(checkSDK, 500);
                 }
             };
@@ -48,7 +77,7 @@ class VoiceManager {
             // Use the global instance instead of creating a new one
             this.videoSDKManager = window.videoSDKManager;
             const config = this.videoSDKManager.getMetaConfig();
-            await this.videoSDKManager.init(config.authToken);
+            await this.videoSDKManager.init(config.authToken || this.videoSDKManager.defaultToken);
             console.log('✅ VideoSDK initialized');
             return true;
         } catch (error) {

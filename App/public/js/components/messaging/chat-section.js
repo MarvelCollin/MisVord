@@ -1748,7 +1748,6 @@ class ChatSection {
                 );
                 console.log('✅ API call successful:', apiResponse);
 
-                // Extract the permanent message ID from the response
                 const permanentMessageId = apiResponse.data?.message?.id || apiResponse.data?.id;
                 if (permanentMessageId) {
                     console.log('🔄 Updating message ID:', {
@@ -1756,14 +1755,12 @@ class ChatSection {
                         to: permanentMessageId
                     });
 
-                    // Update any UI elements using the temporary ID
                     const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
                     if (messageElement) {
                         messageElement.setAttribute('data-message-id', permanentMessageId);
                         console.log('✅ Updated message element ID in DOM');
                     }
 
-                    // Re-emit the socket event with the permanent ID
                     if (window.globalSocketManager && window.globalSocketManager.isReady()) {
                         const updatedMessageData = {
                             ...messageData,
@@ -1782,7 +1779,6 @@ class ChatSection {
                 throw apiError;
             }
 
-            console.log('🧹 Cleaning up after successful send...');
             this.messageInput.value = '';
             this.updateSendButton();
             this.resizeTextarea();

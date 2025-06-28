@@ -23,13 +23,20 @@ function renderMemberSkeleton($count = 1) {
 $roleGroups = [
     'owner' => [],
     'admin' => [],
+    'bot' => [],
     'member' => [],
     'offline' => []
 ];
 
 foreach ($members as $member) {
     $role = $member['role'] ?? 'member';
+    $isBot = isset($member['status']) && $member['status'] === 'bot';
     $isOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
+    
+    if ($isBot) {
+        $roleGroups['bot'][] = $member;
+        continue;
+    }
     
     if ($isOffline) {
         $roleGroups['offline'][] = $member;
@@ -60,20 +67,22 @@ foreach ($members as $member) {
     
     <div class="participant-content flex-1 overflow-y-auto p-2 hidden" data-lazyload="participant-list">
         <div class="px-2">
-            <h3 class="text-xs font-semibold text-gray-400 uppercase py-1">
-                Members — <?php echo $totalMemberCount; ?>
-            </h3>
-            
             <?php 
-            $roleDisplayOrder = ['owner', 'admin', 'member', 'offline'];
+            $roleDisplayOrder = ['owner', 'admin', 'bot', 'member', 'offline'];
             foreach ($roleDisplayOrder as $role):
                 $roleMembers = $roleGroups[$role];
                 if (empty($roleMembers)) continue;
                 
-                $roleDisplay = $role === 'offline' ? 'Offline' : ucfirst($role);
+                $roleDisplay = match($role) {
+                    'offline' => 'Offline',
+                    'bot' => 'Bots',
+                    default => ucfirst($role)
+                };
+                
                 $roleColor = match($role) {
                     'owner' => 'text-yellow-500',
                     'admin' => 'text-red-500',
+                    'bot' => 'text-blue-500',
                     'offline' => 'text-gray-500',
                     default => 'text-gray-400'
                 };
@@ -100,6 +109,9 @@ foreach ($members as $member) {
                                 case 'offline':
                                     $statusColor = 'bg-[#747f8d]';
                                     break;
+                                case 'bot':
+                                    $statusColor = 'bg-blue-500';
+                                    break;
                                 case 'banned':
                                     $statusColor = 'bg-black';
                                     break;
@@ -110,6 +122,10 @@ foreach ($members as $member) {
                             $isOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
                             $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
                             $imgOpacityClass = $isOffline ? 'opacity-70' : '';
+                            
+                            if ($member['status'] === 'bot') {
+                                $textColorClass = 'text-blue-400';
+                            }
                         ?>
                             <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" 
                                  data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" 
@@ -124,6 +140,9 @@ foreach ($members as $member) {
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
                                 <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
+                                <?php if ($member['status'] === 'bot'): ?>
+                                    <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     </div>

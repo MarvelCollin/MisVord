@@ -185,20 +185,47 @@ class ChatAPI {
                 throw new Error('Invalid response structure from server');
             }
             
-            const messageData = response.data.message || response.data;
-            const messageId = messageData.id || messageData.message_id;
+            let messageId = null;
+            
+            if (response.data.message_id) {
+                messageId = response.data.message_id;
+            } else if (response.data.id) {
+                messageId = response.data.id;
+            } else if (response.data.message && response.data.message.id) {
+                messageId = response.data.message.id;
+            }
             
             if (!messageId) {
-                console.error('❌ [CHAT-API] No message ID in response:', messageData);
-                throw new Error('Server response missing message ID');
+                console.error('❌ [CHAT-API] No message ID in response:', response.data);
+                
+                const responseData = {
+                    responseStructure: Object.keys(response),
+                    dataStructure: response.data ? Object.keys(response.data) : 'No data',
+                    messageStructure: response.data && response.data.message ? Object.keys(response.data.message) : 'No message object'
+                };
+                
+                console.error('❌ [CHAT-API] Response structure details:', responseData);
+                
+                if (response.data && typeof response.data === 'object') {
+                    messageId = Date.now().toString();
+                    console.warn('⚠️ [CHAT-API] Using fallback message ID:', messageId);
+                } else {
+                    throw new Error('Server response missing message ID');
+                }
             }
+            
+            const messageData = response.data.message || response.data;
+            
+            const userId = messageData.user_id || response.data.user_id || window.globalSocketManager?.userId;
+            const username = messageData.username || response.data.username || window.globalSocketManager?.username;
             
             console.log(`🔍 [CHAT-API] Extracted message data:`, {
                 id: messageId,
-                userId: messageData.user_id,
-                username: messageData.username,
-                hasContent: !!messageData.content,
-                hasAttachments: !!(messageData.attachments && messageData.attachments.length),
+                userId: userId,
+                username: username,
+                hasContent: !!messageData.content || !!response.data.content,
+                hasAttachments: !!(messageData.attachments && messageData.attachments.length) || 
+                               !!(response.data.attachments && response.data.attachments.length),
                 timestamp: Date.now()
             });
             
@@ -207,14 +234,14 @@ class ChatAPI {
                 id: messageId,
                 message_id: messageId, // Add both id and message_id for compatibility
                 content: content,
-                user_id: messageData.user_id || window.globalSocketManager?.userId,
-                username: messageData.username || window.globalSocketManager?.username,
-                avatar_url: messageData.avatar_url || null,
+                user_id: userId,
+                username: username,
+                avatar_url: messageData.avatar_url || response.data.avatar_url || null,
                 message_type: options.message_type || 'text',
-                attachments: options.attachments || [],
-                reply_message_id: options.reply_message_id || null,
-                reply_data: options.reply_data || null,
-                timestamp: Date.now(),
+                attachments: messageData.attachments || response.data.attachments || options.attachments || [],
+                reply_message_id: messageData.reply_message_id || response.data.reply_message_id || options.reply_message_id || null,
+                reply_data: messageData.reply_data || response.data.reply_data || options.reply_data || null,
+                timestamp: messageData.timestamp || response.data.timestamp || Date.now(),
                 source: 'client-originated'
             };
             

@@ -30,12 +30,46 @@ class VoiceSection {
             window.voiceState = { isConnected: false };
         }
         
-        // Wait for voice manager to be available
-        this.waitForVoiceManager().then(() => {
-            this.setupEventListeners();
-            this.checkExistingConnection();
+        // Ensure VideoSDK is loaded
+        this.loadDependencies().then(() => {
+            // Wait for voice manager to be available
+            this.waitForVoiceManager().then(() => {
+                this.setupEventListeners();
+                this.checkExistingConnection();
+            }).catch(error => {
+                console.error('Failed to initialize voice manager:', error);
+            });
         }).catch(error => {
-            console.error('Failed to initialize voice manager:', error);
+            console.error('Failed to load dependencies:', error);
+        });
+    }
+
+    async loadDependencies() {
+        // Load VideoSDK if not already loaded
+        if (typeof VideoSDK === 'undefined') {
+            await this.loadScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
+            console.log('✅ VideoSDK script loaded');
+        }
+    }
+
+    loadScript(src) {
+        return new Promise((resolve, reject) => {
+            console.log(`Loading script: ${src}`);
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            
+            script.onload = () => {
+                console.log(`✅ Script loaded: ${src}`);
+                resolve();
+            };
+            
+            script.onerror = (error) => {
+                console.error(`❌ Failed to load script: ${src}`, error);
+                reject(new Error(`Failed to load script: ${src}`));
+            };
+            
+            document.head.appendChild(script);
         });
     }
 
@@ -204,10 +238,22 @@ class VoiceSection {
 
 // Initialize voice section after DOM is loaded and make sure voice manager is loaded first
 document.addEventListener('DOMContentLoaded', async function() {
-    // Wait a bit for other scripts to load
-    setTimeout(() => {
+    // Load VideoSDK first
+    if (typeof VideoSDK === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
+        script.async = true;
+        document.head.appendChild(script);
+        
+        script.onload = () => {
+            console.log('✅ VideoSDK loaded from voice section');
+            // Now initialize voice section
+            window.voiceSection = new VoiceSection();
+        };
+    } else {
+        // VideoSDK already loaded, just initialize voice section
         window.voiceSection = new VoiceSection();
-    }, 500);
+    }
 });
 
 window.initializeVoiceUI = async function() {

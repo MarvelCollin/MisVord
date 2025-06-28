@@ -16,8 +16,8 @@ class VideoSDKManager {
 
     init(authToken) {
         if (!authToken) {
-            this.logError("VideoSDK: Missing auth token");
-            throw new Error("VideoSDK initialization error: Missing auth token");
+            this.log("VideoSDK: Using default token");
+            authToken = this.defaultToken;
         }
         
         if (typeof VideoSDK === 'undefined') {
