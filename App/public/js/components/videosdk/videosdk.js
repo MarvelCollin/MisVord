@@ -383,65 +383,17 @@ class VideoSDKManager {
             console.log(`[VIDEOSDK] Joining meeting with ID: ${this.meeting.id || 'unknown'}`);
             this.log(`Joining meeting with ID: ${this.meeting.id || 'unknown'}`);
             
-            const joinPromise = this.meeting.join();
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Connection timeout')), 15000);
-            });
+            // Set a flag to prevent disconnection during joining
+            window.videoSDKJoiningInProgress = true;
             
-            await Promise.race([joinPromise, timeoutPromise]);
+            // Store meeting reference globally for verification
+            window.videosdkMeeting = this.meeting;
             
-            let joinedEventReceived = false;
-            let connectionEstablished = false;
+            // Simple join without waiting for events
+            await this.meeting.join();
             
-            await new Promise((resolve, reject) => {
-                const maxAttempts = 150;
-                let attempts = 0;
-                
-                const checkConnection = () => {
-                    attempts++;
-                    const status = this.meeting.localParticipant?.connectionStatus;
-                    
-                    if (status === 'connected' && joinedEventReceived) {
-                        connectionEstablished = true;
-                        resolve();
-                    } else if (status === 'failed' || status === 'closed') {
-                        reject(new Error(`Connection ${status}`));
-                    } else if (attempts >= maxAttempts) {
-                        reject(new Error('Connection timeout'));
-                    } else {
-                        setTimeout(checkConnection, 100);
-                    }
-                };
-                
-                this.meeting.on("meeting-joined", () => {
-                    console.log("[VIDEOSDK] Meeting joined event received");
-                    joinedEventReceived = true;
-                    if (this.meeting.localParticipant?.connectionStatus === 'connected') {
-                        connectionEstablished = true;
-                        resolve();
-                    }
-                });
-                
-                this.meeting.on("error", (error) => {
-                    console.error("[VIDEOSDK] Meeting error:", error);
-                    reject(error);
-                });
-                
-                this.meeting.on("meeting-left", () => {
-                    console.log("[VIDEOSDK] Meeting left event received");
-                    reject(new Error('Meeting left'));
-                });
-                
-                checkConnection();
-            });
-            
-            if (!connectionEstablished) {
-                throw new Error('Failed to establish connection');
-            }
-            
-            console.log(`[VIDEOSDK] Successfully joined meeting with ID: ${this.meeting.id || 'unknown'}`);
-            
-            // Re-emit the voiceConnect event to ensure UI is updated
+            // Set connected state immediately
+            this.isConnected = true;
             if (window.voiceState) {
                 window.voiceState.isConnected = true;
             }
@@ -449,6 +401,8 @@ class VideoSDKManager {
             if (window.voiceManager) {
                 window.voiceManager.isConnected = true;
             }
+            
+            console.log(`[VIDEOSDK] Successfully joined meeting with ID: ${this.meeting.id || 'unknown'}`);
             
             const channelId = document.querySelector('meta[name="channel-id"]')?.content;
             const channelName = document.querySelector('.channel-name')?.textContent || 'Voice Channel';
@@ -460,6 +414,9 @@ class VideoSDKManager {
                     channelId: channelId 
                 }
             }));
+            
+            // Clear joining flag after successful connection
+            window.videoSDKJoiningInProgress = false;
             
             return true;
         } catch (error) {
@@ -473,6 +430,9 @@ class VideoSDKManager {
             if (window.voiceManager) {
                 window.voiceManager.isConnected = false;
             }
+            
+            // Clear joining flag after failed connection
+            window.videoSDKJoiningInProgress = false;
             
             window.dispatchEvent(new CustomEvent('voiceDisconnect'));
             throw error;

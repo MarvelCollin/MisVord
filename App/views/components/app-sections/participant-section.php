@@ -120,12 +120,16 @@ foreach ($members as $member) {
                             }
                             
                             $isOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
-                            $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
-                            $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                             
-                            if ($member['status'] === 'bot') {
-                                $textColorClass = 'text-blue-400';
-                            }
+                            $textColorClass = match($role) {
+                                'owner' => $isOffline ? 'text-yellow-700' : 'text-yellow-400',
+                                'admin' => $isOffline ? 'text-red-700' : 'text-red-400',
+                                'bot' => 'text-blue-400',
+                                'offline' => 'text-gray-500',
+                                default => $isOffline ? 'text-gray-500' : 'text-gray-300'
+                            };
+                            
+                            $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                         ?>
                             <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" 
                                  data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" 
@@ -139,7 +143,7 @@ foreach ($members as $member) {
                                     </div>
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
-                                <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
+                                <span class="<?php echo $textColorClass; ?> text-sm truncate font-bold"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
                                 <?php if ($member['status'] === 'bot'): ?>
                                     <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>
                                 <?php endif; ?>

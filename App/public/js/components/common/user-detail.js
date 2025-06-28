@@ -3,6 +3,7 @@ class UserDetailModal {
         this.modal = document.getElementById('user-detail-modal');
         this.currentUserId = null;
         this.currentServerId = null;
+        this.currentUserRole = null;
 
         if (this.modal) {
             this.initElements();
@@ -18,9 +19,9 @@ class UserDetailModal {
         this.discriminatorElement = this.modal.querySelector('#user-detail-discriminator');
         this.statusIndicator = this.modal.querySelector('.user-status-indicator');
 
-        this.aboutSection = this.modal.querySelector('#user-detail-about');
-        this.memberSinceSection = this.modal.querySelector('#user-detail-member-since');
-        this.rolesSection = this.modal.querySelector('#user-detail-roles');
+        this.aboutSection = this.modal.querySelector('#user-detail-bio');
+        this.memberSinceSection = this.modal.querySelector('#user-detail-server-info');
+        this.bioSection = this.modal.querySelector('#user-detail-bio-section');
         
         this.messageInput = this.modal.querySelector('#user-detail-message-input');
         this.sendBtn = this.modal.querySelector('#user-detail-send-btn');
@@ -82,6 +83,8 @@ class UserDetailModal {
         
         this.currentUserId = options.userId;
         this.currentServerId = options.serverId || null;
+        this.currentUserRole = options.role || null;
+        this.currentUserStatus = options.status || null;
         
         this.modal.classList.add('active');
         
@@ -191,14 +194,6 @@ class UserDetailModal {
             this.memberSinceSection.innerHTML = '<div class="skeleton-loading skeleton-text short"></div>';
         }
         
-        if (this.rolesSection) {
-            this.rolesSection.innerHTML = `
-                <div class="skeleton-loading skeleton-role"></div>
-                <div class="skeleton-loading skeleton-role"></div>
-                <div class="skeleton-loading skeleton-role"></div>
-            `;
-        }
-        
         if (this.mutualServersElement) {
             this.mutualServersElement.innerHTML = '<div class="skeleton-loading skeleton-mutual"></div>';
         }
@@ -256,11 +251,6 @@ class UserDetailModal {
         if (this.memberSinceSection) {
             this.memberSinceSection.textContent = 'Unknown';
             this.memberSinceSection.classList.add('text-discord-lighter');
-        }
-        
-        if (this.rolesSection) {
-            this.rolesSection.textContent = 'No roles available';
-            this.rolesSection.classList.add('text-discord-lighter');
         }
         
         if (this.mutualServersElement) {
@@ -332,6 +322,16 @@ class UserDetailModal {
                 throw new Error('Unexpected data format from server');
             }
             
+            // Add role information from the participant section if available
+            if (this.currentUserRole) {
+                userData.data.user.role = this.currentUserRole;
+            }
+            
+            // Override status if we have it from the participant section
+            if (this.currentUserStatus) {
+                userData.data.user.status = this.currentUserStatus;
+            }
+            
             const currentUserId = document.getElementById('app-container')?.dataset.userId;
             if (currentUserId && this.currentUserId !== currentUserId) {
                 try {
@@ -387,7 +387,6 @@ class UserDetailModal {
             this.banner,
             this.aboutSection,
             this.memberSinceSection,
-            this.rolesSection,
             this.mutualServersElement,
             this.mutualFriendsElement
         ];
@@ -410,6 +409,31 @@ class UserDetailModal {
                 this.nameElement.innerHTML = '';
                 this.nameElement.textContent = user.username || 'Unknown User';
                 this.nameElement.classList.add('fade-in');
+                
+                // Add role badge if available
+                if (user.role) {
+                    const roleBadge = document.createElement('span');
+                    roleBadge.className = 'ml-2 px-1 py-0.5 text-xs rounded';
+                    
+                    switch(user.role) {
+                        case 'owner':
+                            roleBadge.classList.add('bg-yellow-500', 'text-black');
+                            roleBadge.textContent = 'OWNER';
+                            break;
+                        case 'admin':
+                            roleBadge.classList.add('bg-red-500', 'text-white');
+                            roleBadge.textContent = 'ADMIN';
+                            break;
+                        case 'bot':
+                            roleBadge.classList.add('bg-blue-500', 'text-white');
+                            roleBadge.textContent = 'BOT';
+                            break;
+                    }
+                    
+                    if (user.role === 'owner' || user.role === 'admin' || user.role === 'bot') {
+                        this.nameElement.appendChild(roleBadge);
+                    }
+                }
             }
 
             if (this.discriminatorElement) {
@@ -431,7 +455,7 @@ class UserDetailModal {
                     avatarWrapper.appendChild(img);
                 } else {
                     const img = document.createElement('img');
-                    img.src = '/assets/default-profile-picture.png';
+                    img.src = '/assets/common/default-profile-picture.png';
                     img.alt = 'Default Avatar';
                     img.id = 'user-detail-avatar';
                     avatarWrapper.appendChild(img);
@@ -450,7 +474,7 @@ class UserDetailModal {
                 if (user.banner_url) {
                     this.banner.style.backgroundImage = `url(${user.banner_url})`;
                 } else {
-                    this.banner.style.backgroundImage = `url(/assets/default-profile-picture.png)`;
+                    this.banner.style.backgroundImage = `url(/assets/common/default-profile-picture.png)`;
                     this.banner.style.backgroundSize = 'contain';
                     this.banner.style.backgroundRepeat = 'no-repeat';
                     this.banner.style.backgroundPosition = 'center';
@@ -464,9 +488,11 @@ class UserDetailModal {
                 if (user.bio && user.bio.trim() !== '') {
                     this.aboutSection.textContent = user.bio;
                     this.aboutSection.classList.remove('text-discord-lighter');
+                    this.bioSection.style.display = 'block';
                 } else {
                     this.aboutSection.textContent = 'This user has not added a bio yet.';
                     this.aboutSection.classList.add('text-discord-lighter');
+                    this.bioSection.style.display = 'block';
                 }
                 this.aboutSection.classList.add('fade-in');
             }
@@ -481,27 +507,6 @@ class UserDetailModal {
                 });
                 this.memberSinceSection.textContent = formattedDate;
                 this.memberSinceSection.classList.add('fade-in');
-            }
-
-            if (this.rolesSection && userData.roles) {
-                this.rolesSection.innerHTML = '';
-                if (userData.roles.length > 0) {
-                    userData.roles.forEach(role => {
-                        const roleElement = document.createElement('div');
-                        roleElement.className = 'user-detail-role fade-in';
-                        roleElement.textContent = role.name || 'Unknown Role';
-                        
-                        if (role.color) {
-                            roleElement.style.backgroundColor = role.color;
-                        }
-                        
-                        this.rolesSection.appendChild(roleElement);
-                    });
-                    this.rolesSection.classList.remove('text-discord-lighter');
-                } else {
-                    this.rolesSection.textContent = 'No roles';
-                    this.rolesSection.classList.add('text-discord-lighter', 'fade-in');
-                }
             }
 
             this.updateMutualInfo(userData, isSelf);
@@ -737,12 +742,16 @@ document.addEventListener('click', (e) => {
     if (trigger) {
         const userId = trigger.dataset.userId;
         const serverId = trigger.dataset.serverId;
+        const role = trigger.dataset.role;
+        const status = trigger.dataset.status;
 
         if (userId) {
             e.preventDefault();
             userDetailModal.show({
                 userId,
                 serverId,
+                role,
+                status,
                 triggerElement: trigger
             });
         }

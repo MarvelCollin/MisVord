@@ -159,7 +159,35 @@ class VoiceSection {
         }
 
         try {
-            await voiceManager.joinVoice();
+            // Set UI to connecting state
+            if (this.elements.connectingView) {
+                this.elements.connectingView.classList.remove('hidden');
+            }
+            if (this.elements.joinView) {
+                this.elements.joinView.classList.add('hidden');
+            }
+            
+            // Try to join voice with retry logic
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            while (attempts < maxAttempts) {
+                try {
+                    attempts++;
+                    console.log(`Attempting to connect to voice (attempt ${attempts}/${maxAttempts})`);
+                    await voiceManager.joinVoice();
+                    return; // Success, exit the function
+                } catch (error) {
+                    console.error(`❌ Connection attempt ${attempts} failed:`, error);
+                    
+                    if (attempts >= maxAttempts) {
+                        throw error; // Rethrow the error after all attempts failed
+                    }
+                    
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
         } catch (error) {
             console.error('❌ Connection error:', error);
             throw error;

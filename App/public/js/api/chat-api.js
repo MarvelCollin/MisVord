@@ -175,8 +175,8 @@ class ChatAPI {
                 hasData: !!response?.data,
                 hasNestedData: !!response?.data?.data,
                 hasMessage: !!response?.message,
-                messageId: response?.data?.message?.id || response?.data?.message_id,
-                responseData: response?.data,
+                messageId: response?.data?.message_id || response?.data?.id || response?.data?.message?.id,
+                responseStructure: JSON.stringify(response).substring(0, 100) + '...',
                 timestamp: Date.now()
             });
 
@@ -193,6 +193,8 @@ class ChatAPI {
                 messageId = response.data.id;
             } else if (response.data.message && response.data.message.id) {
                 messageId = response.data.message.id;
+            } else if (response.data.data && response.data.data.message && response.data.data.message.id) {
+                messageId = response.data.data.message.id;
             }
             
             if (!messageId) {
@@ -201,7 +203,16 @@ class ChatAPI {
                 const responseData = {
                     responseStructure: Object.keys(response),
                     dataStructure: response.data ? Object.keys(response.data) : 'No data',
-                    messageStructure: response.data && response.data.message ? Object.keys(response.data.message) : 'No message object'
+                    dataDataStructure: response.data && response.data.data ? Object.keys(response.data.data) : 'No data.data',
+                    messageStructure: response.data && response.data.message ? Object.keys(response.data.message) : 'No data.message',
+                    nestedMessageStructure: response.data && response.data.data && response.data.data.message ? 
+                        Object.keys(response.data.data.message) : 'No data.data.message',
+                    messageIdPaths: {
+                        'data.message_id': response.data?.message_id,
+                        'data.id': response.data?.id,
+                        'data.message.id': response.data?.message?.id,
+                        'data.data.message.id': response.data?.data?.message?.id
+                    }
                 };
                 
                 console.error('❌ [CHAT-API] Response structure details:', responseData);
@@ -214,10 +225,25 @@ class ChatAPI {
                 }
             }
             
-            const messageData = response.data.message || response.data;
+            let messageData = null;
             
-            const userId = messageData.user_id || response.data.user_id || window.globalSocketManager?.userId;
-            const username = messageData.username || response.data.username || window.globalSocketManager?.username;
+            if (response.data.data && response.data.data.message) {
+                messageData = response.data.data.message;
+            } else if (response.data.message) {
+                messageData = response.data.message;
+            } else {
+                messageData = response.data;
+            }
+            
+            const userId = messageData.user_id || 
+                       response.data.user_id || 
+                       response.data?.data?.user_id || 
+                       window.globalSocketManager?.userId;
+                       
+            const username = messageData.username || 
+                          response.data.username || 
+                          response.data?.data?.username || 
+                          window.globalSocketManager?.username;
             
             console.log(`🔍 [CHAT-API] Extracted message data:`, {
                 id: messageId,
@@ -236,12 +262,31 @@ class ChatAPI {
                 content: content,
                 user_id: userId,
                 username: username,
-                avatar_url: messageData.avatar_url || response.data.avatar_url || null,
-                message_type: options.message_type || 'text',
-                attachments: messageData.attachments || response.data.attachments || options.attachments || [],
-                reply_message_id: messageData.reply_message_id || response.data.reply_message_id || options.reply_message_id || null,
-                reply_data: messageData.reply_data || response.data.reply_data || options.reply_data || null,
-                timestamp: messageData.timestamp || response.data.timestamp || Date.now(),
+                avatar_url: messageData.avatar_url || 
+                           response.data.avatar_url || 
+                           response.data?.data?.avatar_url || 
+                           null,
+                message_type: options.message_type || messageData.message_type || 'text',
+                attachments: messageData.attachments || 
+                            response.data.attachments || 
+                            response.data?.data?.attachments || 
+                            options.attachments || 
+                            [],
+                reply_message_id: messageData.reply_message_id || 
+                                 response.data.reply_message_id || 
+                                 response.data?.data?.reply_message_id || 
+                                 options.reply_message_id || 
+                                 null,
+                reply_data: messageData.reply_data || 
+                           response.data.reply_data || 
+                           response.data?.data?.reply_data || 
+                           options.reply_data || 
+                           null,
+                timestamp: messageData.timestamp || 
+                          messageData.sent_at || 
+                          response.data.timestamp || 
+                          response.data?.data?.timestamp || 
+                          Date.now(),
                 source: 'client-originated'
             };
             

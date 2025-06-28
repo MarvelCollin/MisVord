@@ -59,14 +59,8 @@ class ChatSection {
         this.currentEditingMessage = null;
         this.activeReplyingTo = null;
         this.activeMessageActions = null;
-        this.typingTimeout = null;
-        this.lastTypingUpdate = 0;
-        this.typingDebounceTime = 2000;
         this.messagesLoaded = false;
         this.processedMessageIds = new Set();
-        this.socketListenersSetup = false;
-        this.typingUsers = new Map();
-        this.joinedRooms = new Set();
         
         this.chatType = null;
         this.targetId = null;
@@ -75,6 +69,7 @@ class ChatSection {
         this.avatar_url = null;
         
         this.chatBot = null;
+        this.sendReceiveMessage = null;
         
         this.loadChatParams();
     }
@@ -102,49 +97,57 @@ class ChatSection {
             console.log(`Checking if target ID ${this.targetId} is valid room ID for direct messages`);
         }
         
-                 const existingMessages = this.chatMessages.querySelectorAll('.message-group');
-         if (existingMessages.length > 0) {
-             console.log('Messages already rendered by PHP, marking processed and setting up listeners');
-             existingMessages.forEach(group => {
-                 const messageElements = group.querySelectorAll('.message-content');
-                 messageElements.forEach(msgEl => {
-                     const messageId = msgEl.dataset.messageId;
-                     if (messageId) {
-                         this.processedMessageIds.add(messageId);
-                         
-                         // Ensure hover actions work on PHP-rendered messages
-                         msgEl.addEventListener('mouseover', () => this.showMessageActions(msgEl));
-                         msgEl.addEventListener('mouseout', (e) => {
-                             const relatedTarget = e.relatedTarget;
-                             if (!msgEl.contains(relatedTarget) && !relatedTarget?.closest('.message-actions')) {
-                                 this.hideMessageActions(msgEl);
-                             }
-                         });
-                         
-                         // Setup action buttons
-                         const actionsContainer = msgEl.querySelector('.message-actions');
-                         if (actionsContainer) {
-                             const reactionBtn = actionsContainer.querySelector('.message-action-reaction');
-                             const replyBtn = actionsContainer.querySelector('.message-action-reply');
-                             const editBtn = actionsContainer.querySelector('.message-action-edit');
-                             const moreBtn = actionsContainer.querySelector('.message-action-more');
-                             
-                             if (reactionBtn) reactionBtn.addEventListener('click', () => this.showEmojiPicker(messageId, reactionBtn));
-                             if (replyBtn) replyBtn.addEventListener('click', () => this.replyToMessage(messageId));
-                             if (editBtn) editBtn.addEventListener('click', () => this.editMessage(messageId));
-                             // Do NOT attach a direct listener to moreBtn here – the global delegation handles it to avoid duplicate events.
-                         }
-                     }
-                 });
-             });
-             this.messagesLoaded = true;
-             this.scrollToBottom();
-         } else {
-             this.showLoadingSkeletons();
-             setTimeout(() => {
-                 this.loadMessages();
-             }, 100);
-         }
+        // Initialize SendReceiveMessage system
+        if (window.SendReceiveMessage) {
+            this.sendReceiveMessage = new window.SendReceiveMessage(this);
+            this.sendReceiveMessage.init();
+            console.log('✅ SendReceiveMessage system initialized');
+        } else {
+            console.error('❌ SendReceiveMessage not available');
+        }
+        
+        const existingMessages = this.chatMessages.querySelectorAll('.message-group');
+        if (existingMessages.length > 0) {
+            console.log('Messages already rendered by PHP, marking processed and setting up listeners');
+            existingMessages.forEach(group => {
+                const messageElements = group.querySelectorAll('.message-content');
+                messageElements.forEach(msgEl => {
+                    const messageId = msgEl.dataset.messageId;
+                    if (messageId) {
+                        this.processedMessageIds.add(messageId);
+                        
+                        // Ensure hover actions work on PHP-rendered messages
+                        msgEl.addEventListener('mouseover', () => this.showMessageActions(msgEl));
+                        msgEl.addEventListener('mouseout', (e) => {
+                            const relatedTarget = e.relatedTarget;
+                            if (!msgEl.contains(relatedTarget) && !relatedTarget?.closest('.message-actions')) {
+                                this.hideMessageActions(msgEl);
+                            }
+                        });
+                        
+                        // Setup action buttons
+                        const actionsContainer = msgEl.querySelector('.message-actions');
+                        if (actionsContainer) {
+                            const reactionBtn = actionsContainer.querySelector('.message-action-reaction');
+                            const replyBtn = actionsContainer.querySelector('.message-action-reply');
+                            const editBtn = actionsContainer.querySelector('.message-action-edit');
+                            const moreBtn = actionsContainer.querySelector('.message-action-more');
+                            
+                            if (reactionBtn) reactionBtn.addEventListener('click', () => this.showEmojiPicker(messageId, reactionBtn));
+                            if (replyBtn) replyBtn.addEventListener('click', () => this.replyToMessage(messageId));
+                            if (editBtn) editBtn.addEventListener('click', () => this.editMessage(messageId));
+                        }
+                    }
+                });
+            });
+            this.messagesLoaded = true;
+            this.scrollToBottom();
+        } else {
+            this.showLoadingSkeletons();
+            setTimeout(() => {
+                this.loadMessages();
+            }, 100);
+        }
         
         this.setupEventListeners();
         this.setupFilePreviewEventListeners();
@@ -251,30 +254,7 @@ class ChatSection {
     }
     
     setupEventListeners() {
-        if (this.messageInput) {
-            this.messageInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    this.sendMessage();
-                } else if (e.key === 'Escape' && this.chatBot) {
-                    this.chatBot.hideTitiBotSuggestions();
-                } else {
-                    this.handleTyping();
-                }
-            });
-            
-            this.messageInput.addEventListener('input', () => {
-                this.resizeTextarea();
-                this.updateSendButton();
-            });
-        }
-        
-        if (this.sendButton) {
-            this.sendButton.addEventListener('click', () => {
-                this.sendMessage();
-            });
-        }
-
+        // File upload and attachment handling
         const attachmentButton = document.getElementById('attachment-button');
         const attachmentDropdown = document.getElementById('attachment-dropdown');
         
@@ -310,6 +290,7 @@ class ChatSection {
             });
         }
 
+        // Context menu and message actions
         document.addEventListener('click', (e) => {
             if (this.contextMenu && !this.contextMenu.contains(e.target) && this.contextMenuVisible) {
                 this.hideContextMenu();
@@ -1633,174 +1614,15 @@ class ChatSection {
     }
     
     updateSendButton() {
-        if (!this.sendButton) return;
-        
-        const hasContent = (this.messageInput && this.messageInput.value.trim().length > 0) || 
-                          this.currentFileUpload || 
-                          (this.currentFileUploads && this.currentFileUploads.length > 0);
-        
-        if (hasContent) {
-            this.sendButton.disabled = false;
-            this.sendButton.classList.add('text-white');
-            this.sendButton.classList.add('bg-[#5865f2]');
-            this.sendButton.classList.add('rounded-full');
-        } else {
-            this.sendButton.disabled = true;
-            this.sendButton.classList.remove('text-white');
-            this.sendButton.classList.remove('bg-[#5865f2]');
-            this.sendButton.classList.remove('rounded-full');
+        if (this.sendReceiveMessage) {
+            this.sendReceiveMessage.updateSendButton();
         }
     }
     
+    // Delegate to SendReceiveMessage
     async sendMessage() {
-        console.log('🚀 Starting sendMessage process...');
-        
-        if (!this.messageInput || !this.messageInput.value.trim()) {
-            console.log('❌ Message input is empty or invalid');
-            return;
-        }
-        
-        const content = this.messageInput.value.trim();
-        const messageId = `temp-${Date.now()}`;
-        const timestamp = Date.now();
-
-        console.log('📝 Message details:', {
-            messageId,
-            content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-            timestamp,
-            chatType: this.chatType,
-            targetId: this.targetId
-        });
-
-        try {
-            console.log('🔄 Creating message data object...');
-            // Create message data
-            const messageData = {
-                id: messageId,
-                content: content,
-                user_id: this.userId,
-                username: this.username,
-                avatar_url: this.avatar_url,
-                timestamp: timestamp,
-                source: 'client-originated'
-            };
-            
-            // Add target info based on chat type
-            if (this.chatType === 'channel') {
-                messageData.channel_id = this.targetId;
-            } else {
-                messageData.room_id = this.targetId;
-            }
-
-            // Add reply info if replying
-            if (this.replyingTo) {
-                messageData.reply_message_id = this.replyingTo.messageId;
-                messageData.reply_data = {
-                    username: this.replyingTo.username,
-                    content: this.replyingTo.content
-                };
-            }
-
-            // First emit via socket
-            console.log('🔌 Checking socket manager state...');
-            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-                const eventName = this.chatType === 'channel' ? 'new-channel-message' : 'user-message-dm';
-                console.log(`📤 Emitting socket event: ${eventName}`, {
-                    chatType: this.chatType,
-                    targetId: this.targetId,
-                    messageId: messageData.id
-                });
-                const emitResult = window.globalSocketManager.emitToRoom(eventName, messageData, this.chatType, this.targetId);
-                console.log(`📨 Socket emit result: ${emitResult ? 'success' : 'failed'}`);
-            } else {
-                console.warn('⚠️ Socket not ready:', {
-                    socketExists: !!window.globalSocketManager,
-                    isReady: window.globalSocketManager?.isReady()
-                });
-            }
-
-            console.log('🔄 Preparing API call...');
-            if (!window.ChatAPI) {
-                console.error('❌ ChatAPI not initialized');
-                throw new Error('ChatAPI not initialized');
-            }
-
-            const options = {
-                message_type: 'text'
-            };
-
-            if (this.replyingTo) {
-                options.reply_message_id = this.replyingTo.messageId;
-            }
-
-            console.log('📡 Sending message via API...', {
-                targetId: this.targetId,
-                chatType: this.chatType,
-                options
-            });
-
-            try {
-                const apiResponse = await window.ChatAPI.sendMessage(
-                    this.targetId,
-                    content,
-                    this.chatType,
-                    options
-                );
-                console.log('✅ API call successful:', apiResponse);
-
-                const permanentMessageId = apiResponse.data?.message?.id || apiResponse.data?.id;
-                if (permanentMessageId) {
-                    console.log('🔄 Updating message ID:', {
-                        from: messageId,
-                        to: permanentMessageId
-                    });
-
-                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                    if (messageElement) {
-                        messageElement.setAttribute('data-message-id', permanentMessageId);
-                        console.log('✅ Updated message element ID in DOM');
-                    }
-
-                    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-                        const updatedMessageData = {
-                            ...messageData,
-                            id: permanentMessageId,
-                            message_id: permanentMessageId
-                        };
-                        const eventName = this.chatType === 'channel' ? 'new-channel-message' : 'user-message-dm';
-                        window.globalSocketManager.emitToRoom(eventName, updatedMessageData, this.chatType, this.targetId);
-                        console.log('✅ Re-emitted socket event with permanent ID');
-                    }
-                } else {
-                    console.warn('⚠️ No permanent message ID in API response');
-                }
-            } catch (apiError) {
-                console.error('❌ API call failed:', apiError);
-                throw apiError;
-            }
-
-            this.messageInput.value = '';
-            this.updateSendButton();
-            this.resizeTextarea();
-            
-            if (this.replyingTo) {
-                console.log('↩️ Clearing reply context');
-                this.cancelReply();
-            }
-
-            this.sendStopTyping();
-            console.log('✨ Message send process completed successfully');
-
-        } catch (error) {
-            console.error('❌ Failed to send message:', error);
-            console.error('Error details:', {
-                name: error.name,
-                message: error.message,
-                stack: error.stack,
-                chatType: this.chatType,
-                targetId: this.targetId
-            });
-            this.showErrorMessage('Failed to send message. Please try again.');
+        if (this.sendReceiveMessage) {
+            return this.sendReceiveMessage.sendMessage();
         }
     }
     
@@ -1855,125 +1677,41 @@ class ChatSection {
         }
     }
     
+    // Typing methods delegated to SendReceiveMessage
     handleTyping() {
-        const now = Date.now();
-        
-        if (now - this.lastTypingUpdate > this.typingDebounceTime) {
-            this.lastTypingUpdate = now;
-            
-            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-                if (this.chatType === 'channel') {
-                    window.globalSocketManager.sendTyping(this.targetId);
-                } else if (this.chatType === 'direct' || this.chatType === 'dm') {
-                    window.globalSocketManager.sendTyping(null, this.targetId);
-                }
-            }
+        if (this.sendReceiveMessage) {
+            return this.sendReceiveMessage.handleTyping();
         }
-        
-        this.resetTypingTimeout();
     }
     
     resetTypingTimeout() {
-        if (this.typingTimeout) {
-            clearTimeout(this.typingTimeout);
+        if (this.sendReceiveMessage) {
+            return this.sendReceiveMessage.resetTypingTimeout();
         }
-        
-        this.typingTimeout = setTimeout(() => {
-            this.sendStopTyping();
-        }, 3000);
     }
     
     sendStopTyping() {
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            if (this.chatType === 'channel') {
-                window.globalSocketManager.sendStopTyping(this.targetId);
-            } else if (this.chatType === 'direct' || this.chatType === 'dm') {
-                window.globalSocketManager.sendStopTyping(null, this.targetId);
-            }
+        if (this.sendReceiveMessage) {
+            return this.sendReceiveMessage.sendStopTyping();
         }
     }
     
     showTypingIndicator(userId, username) {
-        if (userId === this.userId) return;
-        
-        this.typingUsers.set(userId, {
-            username,
-            timestamp: Date.now()
-        });
-        
-        this.updateTypingIndicatorDisplay();
+        if (this.sendReceiveMessage) {
+            return this.sendReceiveMessage.showTypingIndicator(userId, username);
+        }
     }
     
     removeTypingIndicator(userId) {
-        this.typingUsers.delete(userId);
-        this.updateTypingIndicatorDisplay();
+        if (this.sendReceiveMessage) {
+            return this.sendReceiveMessage.removeTypingIndicator(userId);
+        }
     }
     
     updateTypingIndicatorDisplay() {
-        let typingIndicator = document.getElementById('typing-indicator');
-        
-        if (this.typingUsers.size === 0) {
-            if (typingIndicator) {
-                typingIndicator.classList.add('hidden');
-            }
-            return;
+        if (this.sendReceiveMessage) {
+            return this.sendReceiveMessage.updateTypingIndicatorDisplay();
         }
-        
-        if (!typingIndicator) {
-            typingIndicator = document.createElement('div');
-            typingIndicator.id = 'typing-indicator';
-            typingIndicator.className = 'text-xs text-[#b5bac1] pb-1 pl-5 flex items-center';
-            
-            const dotsContainer = document.createElement('div');
-            dotsContainer.className = 'flex items-center mr-2';
-            
-            const dot1 = document.createElement('span');
-            dot1.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce mr-0.5';
-            dot1.style.animationDelay = '0ms';
-            
-            const dot2 = document.createElement('span');
-            dot2.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce mx-0.5';
-            dot2.style.animationDelay = '200ms';
-            
-            const dot3 = document.createElement('span');
-            dot3.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce ml-0.5';
-            dot3.style.animationDelay = '400ms';
-            
-            const textElement = document.createElement('span');
-            
-            dotsContainer.appendChild(dot1);
-            dotsContainer.appendChild(dot2);
-            dotsContainer.appendChild(dot3);
-            
-            typingIndicator.appendChild(dotsContainer);
-            typingIndicator.appendChild(textElement);
-            
-            if (this.chatMessages) {
-                const messageForm = document.getElementById('message-form');
-                if (messageForm) {
-                    messageForm.parentNode.insertBefore(typingIndicator, messageForm);
-                } else {
-                    this.chatMessages.appendChild(typingIndicator);
-                }
-            }
-        }
-        
-        typingIndicator.classList.remove('hidden');
-        
-        const textElement = typingIndicator.querySelector('span:not(.h-1)');
-        if (textElement) {
-            if (this.typingUsers.size === 1) {
-                const [user] = this.typingUsers.values();
-                textElement.textContent = `${user.username} is typing...`;
-            } else if (this.typingUsers.size === 2) {
-                const usernames = [...this.typingUsers.values()].map(user => user.username);
-                textElement.textContent = `${usernames.join(' and ')} are typing...`;
-            } else {
-                textElement.textContent = `Several people are typing...`;
-            }
-        }
-        
-        this.scrollToBottom();
     }
     
     renderMessages(messages) {
