@@ -352,7 +352,10 @@ class BotController extends BaseController
             if ($channel->server_id != 0) {
                 $membership = $this->userServerMembershipRepository->findByUserAndServer($input['user_id'], $channel->server_id);
                 if (!$membership) {
-                    return $this->error('Bot is not a member of this server', 403);
+                    $added = $this->userServerMembershipRepository->addMembership($input['user_id'], $channel->server_id, 'member');
+                    if (!$added) {
+                        return $this->error('Bot is not a member of this server and automatic join failed', 403);
+                    }
                 }
             }
 

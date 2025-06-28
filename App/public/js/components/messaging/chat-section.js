@@ -352,11 +352,7 @@ class ChatSection {
             } else if (moreBtn) {
                 e.stopPropagation();
                 const messageContent = moreBtn.closest('.message-content');
-                const rect = moreBtn.getBoundingClientRect();
-                // Position menu to right of button
-                const menuX = rect.right - 10;  // 10px offset from right edge
-                const menuY = rect.top + (rect.height / 2);  // Vertically center
-                this.showContextMenu(menuX, menuY, messageContent);
+                this.showContextMenu(e.clientX, e.clientY, messageContent);
             }
         });
     }
