@@ -45,7 +45,6 @@ if (!function_exists('asset')) {
                                 <i class="fas fa-palette"></i>
                             </div>
                             <h3 class="feature-title">Custom Themes</h3>
-                            <p class="feature-description">Premium themes & colors</p>
                         </div>
                         <div class="hexagon-border"></div>
                     </div>
@@ -56,7 +55,6 @@ if (!function_exists('asset')) {
                                 <i class="fas fa-file-upload"></i>
                             </div>
                             <h3 class="feature-title">Larger Uploads</h3>
-                            <p class="feature-description">Share files up to 100MB</p>
                         </div>
                         <div class="hexagon-border"></div>
                     </div>
@@ -67,7 +65,6 @@ if (!function_exists('asset')) {
                                 <i class="fas fa-crown"></i>
                             </div>
                             <h3 class="feature-title">Premium Badge</h3>
-                            <p class="feature-description">Exclusive status</p>
                         </div>
                         <div class="hexagon-border"></div>
                     </div>
@@ -78,7 +75,6 @@ if (!function_exists('asset')) {
                                 <i class="fas fa-magic"></i>
                             </div>
                             <h3 class="feature-title">Exclusive Features</h3>
-                            <p class="feature-description">Early access to beta</p>
                         </div>
                         <div class="hexagon-border"></div>
                     </div>
@@ -89,7 +85,6 @@ if (!function_exists('asset')) {
                                 <i class="fas fa-headset"></i>
                             </div>
                             <h3 class="feature-title">Enhanced Audio</h3>
-                            <p class="feature-description">Crystal clear quality</p>
                         </div>
                         <div class="hexagon-border"></div>
                     </div>
@@ -100,7 +95,6 @@ if (!function_exists('asset')) {
                                 <i class="fas fa-bolt"></i>
                             </div>
                             <h3 class="feature-title">Priority Support</h3>
-                            <p class="feature-description">Fast response time</p>
                         </div>
                         <div class="hexagon-border"></div>
                     </div>

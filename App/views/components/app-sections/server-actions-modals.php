@@ -699,12 +699,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                 console.log("Channel list refreshed via channel loader");
                             }
                         } else {
-                            console.error("No channel refresh method available");
-                            showToast('Error refreshing channel list', 'error');
+                            console.log("No AJAX refresh method available, falling back to page reload");
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 500);
                         }
                     } catch (navError) {
                         console.error("Navigation error:", navError);
-                        showToast('Error refreshing channel list', 'error');
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1000);
                     }
                 } else {
                     

@@ -129,20 +129,30 @@
   overflow: hidden;
   transition: all 0.3s ease;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  z-index: 9999 !important;
+  z-index: 1;
+}
+
+.server-card .p-6 {
+  position: relative;
+  z-index: 2;
+}
+
+.server-card .server-icon .w-18 {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.server-card .server-icon .w-18 img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
 }
 
 .server-card:hover .server-icon {
   transform: scale(1.1) rotate(2deg);
   border-radius: 16px;
-  z-index: 9999 !important;
-}
-
-.server-card .server-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: inherit;
 }
 
 .server-card .server-icon > div {

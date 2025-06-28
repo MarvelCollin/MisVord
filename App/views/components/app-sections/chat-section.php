@@ -522,43 +522,19 @@ function renderMessageContent($message) {
 <meta name="chat-title" content="<?php echo htmlspecialchars($chatTitle ?? ''); ?>">
 <meta name="chat-placeholder" content="<?php echo htmlspecialchars($placeholder ?? ''); ?>">
 
-<div class="chat-section flex-1 flex flex-col bg-[#313338] relative">
-    <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm bg-[#313338]">
-        <div class="flex items-center">
-            <i class="<?php echo $chatIcon; ?> text-[#b5bac1] mr-2"></i>
-            <h2 class="font-semibold text-white"><?php echo htmlspecialchars($chatTitle); ?></h2>
-        </div>
-        <?php if ($chatType === 'channel' && !empty($activeChannel['topic'])): ?>
-        <div class="border-l border-[#3f4147] h-6 mx-4"></div>
-        <div class="text-sm text-[#b5bac1] truncate"><?php echo htmlspecialchars($activeChannel['topic']); ?></div>
-        <?php endif; ?>
-        <div class="flex-1"></div>
-        <div class="flex space-x-4">
-            <?php if ($chatType === 'channel'): ?>
-            <button class="text-[#b5bac1] hover:text-white">
-                <i class="fas fa-bell-slash"></i>
-            </button>
-            <button class="text-[#b5bac1] hover:text-white">
-                <i class="fas fa-thumbtack"></i>
-            </button>
-            <button class="text-[#b5bac1] hover:text-white">
-                <i class="fas fa-user-plus"></i>
-            </button>
-            <?php endif; ?>
-            <button class="text-[#b5bac1] hover:text-white">
-                <i class="fas fa-magnifying-glass"></i>
-            </button>
-            <button class="text-[#b5bac1] hover:text-white">
-                <i class="fas fa-inbox"></i>
-            </button>
-            <button class="text-[#b5bac1] hover:text-white">
-                <i class="fas fa-circle-question"></i>
-            </button>
-        </div>
+<!-- Chat Section Container -->
+<div class="flex-1 flex flex-col bg-[#313338] h-screen overflow-hidden">
+    <!-- Chat Header -->
+    <?php if ($chatType): ?>
+    <div class="h-12 min-h-[48px] px-4 border-b border-[#2d2f32] flex items-center shadow-sm z-10 bg-[#313338]">
+        <i class="<?php echo $chatIcon; ?> text-[#949ba4] mr-2"></i>
+        <span class="font-semibold text-white"><?php echo htmlspecialchars($chatTitle); ?></span>
     </div>
+    <?php endif; ?>
 
-    <div id="chat-messages" class="flex-1 overflow-y-auto relative">
-        <div class="messages-container flex-1 relative">
+    <!-- Messages Container -->
+    <div id="chat-messages" class="flex-1 overflow-y-auto overflow-x-hidden">
+        <div class="messages-container flex flex-col min-h-full">
             <?php if (!empty($messages)): ?>
                 <?php
                 $i = 0;
@@ -577,29 +553,41 @@ function renderMessageContent($message) {
         </div>
     </div>
 
-    <div class="message-input-container bg-[#383a40] p-4">
-        <div class="flex items-start gap-2">
-            <div class="relative">
-                <input type="file" id="file-upload" class="hidden" multiple>
-                <button class="text-[#b5bac1] hover:text-[#dcddde] p-2 rounded transition-colors" onclick="document.getElementById('file-upload').click()">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
+    <!-- Message Input -->
+    <?php if ($chatType): ?>
+    <div class="px-0 pb-6 pt-2">
+        <div id="reply-container" class="hidden"></div>
+        
+        <div class="px-4">
+            <form id="message-form" class="relative bg-[#383a40] rounded-lg flex items-center h-11">
+                <div class="flex items-center pl-4">
+                    <button type="button" id="upload-button" class="text-[#b9bbbe] hover:text-[#dcddde] transition-colors w-6 h-6 flex items-center justify-center">
+                        <i class="fas fa-plus text-[16px]"></i>
+                    </button>
+                </div>
+                
+                <div class="flex-1 flex items-center min-h-[44px]">
+                    <textarea 
+                        id="message-input"
+                        class="w-full bg-transparent text-[#dcddde] placeholder-[#72767d] border-none resize-none py-2.5 pr-2 focus:outline-none scrollbar-thin min-h-[22px] max-h-[50vh] leading-[1.375rem] text-[1rem]"
+                        rows="1"
+                        placeholder="<?php echo htmlspecialchars($placeholder); ?>"
+                        maxlength="2000"
+                    ></textarea>
+                </div>
 
-            <div id="file-preview" class="hidden flex-wrap gap-2 mb-2"></div>
-
-            <div class="flex-1 bg-[#40444b] rounded relative">
-                <textarea id="message-input" 
-                    class="w-full bg-transparent text-[#dcddde] p-3 resize-none outline-none"
-                    placeholder="<?php echo htmlspecialchars($placeholder ?? 'Send a message...'); ?>"
-                    rows="1"></textarea>
-            </div>
-
-            <button id="send-button" class="text-[#b5bac1] hover:text-[#dcddde] p-2 rounded transition-colors">
-                <i class="fas fa-paper-plane"></i>
-            </button>
+                <div class="flex items-center pr-[10px] gap-[10px]">
+                    <button type="button" class="text-[#b9bbbe] hover:text-[#dcddde] transition-colors w-6 h-6 flex items-center justify-center">
+                        <i class="fas fa-gift text-[16px]"></i>
+                    </button>
+                    <button type="button" class="text-[#b9bbbe] hover:text-[#dcddde] transition-colors w-6 h-6 flex items-center justify-center">
+                        <i class="fas fa-face-smile text-[16px]"></i>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 <div id="file-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
@@ -611,10 +599,8 @@ function renderMessageContent($message) {
             </button>
         </div>
         <div class="flex-1 overflow-auto p-4">
-            <!-- Modal content will be inserted here -->
         </div>
         <div class="p-4 border-t border-[#2f3136] flex justify-end gap-2">
-            <!-- Modal footer buttons will be inserted here -->
         </div>
     </div>
 </div>

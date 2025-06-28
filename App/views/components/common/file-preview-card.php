@@ -18,8 +18,7 @@ function renderFilePreviewCard($file, $index = 0) {
     $previewId = 'file-preview-' . $index;
     
     echo '<div class="file-upload-card bg-[#2b2d31] rounded-lg p-3 flex items-start gap-3 mb-2 transition-all duration-200 hover:bg-[#36393f]" data-file-index="' . $index . '" id="' . $cardId . '">';
-    
-    // File Icon/Preview
+            
     echo '<div class="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-[#36393f] flex items-center justify-center">';
     
     if ($isImage) {
@@ -58,7 +57,6 @@ function renderFilePreviewCard($file, $index = 0) {
     
     echo '</div>';
     
-    // File Info
     echo '<div class="flex-1 min-w-0">';
     echo '<div class="flex items-center justify-between">';
     echo '<div class="min-w-0 flex-1">';
@@ -66,7 +64,6 @@ function renderFilePreviewCard($file, $index = 0) {
     echo '<div class="text-[#b5bac1] text-xs">' . formatFileSize($fileSize) . '</div>';
     echo '</div>';
     
-    // Action Buttons
     echo '<div class="flex items-center gap-1 ml-2">';
     echo '<button class="file-preview-btn w-8 h-8 bg-[#36393f] hover:bg-[#5865f2] rounded-full flex items-center justify-center text-[#b5bac1] hover:text-white transition-all duration-200" data-action="preview" data-file-index="' . $index . '" title="Preview">';
     echo '<i class="fas fa-eye text-sm"></i>';
@@ -80,7 +77,6 @@ function renderFilePreviewCard($file, $index = 0) {
     echo '</div>';
     echo '</div>';
     
-    // Text Preview (if applicable)
     if ($isText) {
         echo '<div class="mt-2 bg-[#1e1f22] rounded-md p-2 text-xs font-mono text-[#dcddde] max-h-20 overflow-hidden" id="' . $previewId . '">';
         echo '<div class="animate-pulse text-[#72767d]">Loading preview...</div>';
@@ -107,7 +103,6 @@ function createFilePreviewModal() {
     echo '<div id="file-preview-modal" class="fixed inset-0 bg-black/75 flex items-center justify-center z-[9999] opacity-0 invisible transition-all duration-200" style="display: none;">';
     echo '<div class="bg-[#36393f] rounded-lg max-w-4xl max-h-[90vh] w-full mx-4 flex flex-col shadow-2xl transform scale-95 transition-transform duration-200" id="modal-container">';
     
-    // Modal Header
     echo '<div class="flex items-center justify-between p-4 border-b border-[#3f4147]">';
     echo '<div class="flex items-center gap-2">';
     echo '<div id="modal-file-icon" class="w-6 h-6 flex items-center justify-center text-[#b5bac1]">';
@@ -125,7 +120,6 @@ function createFilePreviewModal() {
     echo '</div>';
     echo '</div>';
     
-    // Modal Content
     echo '<div class="flex-1 overflow-auto p-4" id="modal-content">';
     echo '<div class="flex items-center justify-center h-64 text-[#b5bac1]">';
     echo '<div class="text-center">';
@@ -135,7 +129,6 @@ function createFilePreviewModal() {
     echo '</div>';
     echo '</div>';
     
-    // Modal Footer (for some file types)
     echo '<div class="border-t border-[#3f4147] p-4 hidden" id="modal-footer">';
     echo '<div class="flex items-center justify-between text-sm text-[#b5bac1]">';
     echo '<div id="modal-file-info"></div>';

@@ -11,19 +11,27 @@ document.addEventListener('DOMContentLoaded', function() {
     initServerSidebar();
     
     // Single global click handler for server links
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', async function(e) {
         // Check if the clicked element or its parent is a server link
         const serverLink = e.target.closest('.server-icon a[href^="/server/"]');
         if (serverLink && !isHandlingClick) {
             console.log('[Server Sidebar] Server link clicked:', serverLink.getAttribute('href'));
+            e.preventDefault(); // Prevent default BEFORE getting serverId
             const serverId = serverLink.getAttribute('data-server-id');
             if (serverId) {
-                e.preventDefault();
                 isHandlingClick = true;
                 console.log('[Server Sidebar] Handling server click for ID:', serverId);
-                handleServerClick(serverId, e).finally(() => {
+                try {
+                    await handleServerClick(serverId, e);
+                } catch (error) {
+                    console.error('Error handling server click:', error);
+                    // Only reload on critical errors
+                    if (error.critical) {
+                        window.location.href = serverLink.href;
+                    }
+                } finally {
                     isHandlingClick = false;
-                });
+                }
             }
         }
     });
@@ -655,14 +663,9 @@ export async function handleServerClick(serverId, event) {
     console.log('Starting handleServerClick with:', { serverId, eventType: event?.type });
     
     if (!serverId) {
-        console.error('No server ID provided, returning');
+        console.error('No server ID provided');
         console.groupEnd();
-        return;
-    }
-    
-    if (event) {
-        event.preventDefault();
-        console.log('Prevented default event behavior');
+        throw new Error('No server ID provided');
     }
 
     try {
@@ -674,14 +677,20 @@ export async function handleServerClick(serverId, event) {
                 method: 'GET',
                 dataType: 'json',
                 success: resolve,
-                error: reject
+                error: (xhr, status, error) => {
+                    const err = new Error('Failed to fetch channels');
+                    err.critical = xhr.status >= 500;
+                    reject(err);
+                }
             });
         });
 
         if (!channelResponse.success || !channelResponse.data) {
             console.error('Failed to fetch channels:', channelResponse);
             console.groupEnd();
-            return;
+            const err = new Error('Failed to fetch channels');
+            err.critical = false; // Not a critical error, don't reload
+            throw err;
         }
 
         console.group('Channel Data');
@@ -755,8 +764,10 @@ export async function handleServerClick(serverId, event) {
                     console.log('Preview of HTML:', response.substring(0, 200));
                     resolve(response);
                 },
-                error: (err) => {
-                    console.error('Channel section error:', err);
+                error: (xhr, status, error) => {
+                    console.error('Channel section error:', error);
+                    const err = new Error('Failed to fetch channel section');
+                    err.critical = xhr.status >= 500;
                     reject(err);
                 }
             });
@@ -766,23 +777,12 @@ export async function handleServerClick(serverId, event) {
         const channelWrapper = document.querySelector('.channel-wrapper');
         if (channelWrapper) {
             console.log('Found channel wrapper, updating HTML');
-            console.log('Channel wrapper before update:', {
-                childCount: channelWrapper.children.length,
-                firstChild: channelWrapper.firstElementChild?.outerHTML.substring(0, 200)
-            });
             channelWrapper.innerHTML = channelHtml;
-            console.log('Channel wrapper after update:', {
-                childCount: channelWrapper.children.length,
-                firstChild: channelWrapper.firstElementChild?.outerHTML.substring(0, 200)
-            });
         } else {
             console.error('Channel wrapper element not found!');
-            console.log('Available elements with similar classes:', 
-                Array.from(document.querySelectorAll('[class*="channel"]')).map(el => ({
-                    className: el.className,
-                    id: el.id
-                }))
-            );
+            const err = new Error('Channel wrapper element not found');
+            err.critical = false; // Not a critical error, don't reload
+            throw err;
         }
         console.groupEnd();
 
@@ -800,7 +800,6 @@ export async function handleServerClick(serverId, event) {
                 console.log('Updating chat section for channel:', firstChannel.id);
                 if (chatSection) {
                     chatSection.classList.remove('hidden');
-                    console.log('Found chat section element');
                     try {
                         const response = await new Promise((resolve, reject) => {
                             ajax({
@@ -811,16 +810,20 @@ export async function handleServerClick(serverId, event) {
                                     'X-Requested-With': 'XMLHttpRequest'
                                 },
                                 success: resolve,
-                                error: reject
+                                error: (xhr, status, error) => {
+                                    const err = new Error('Failed to fetch chat data');
+                                    err.critical = xhr.status >= 500;
+                                    reject(err);
+                                }
                             });
                         });
-                        console.log('Received chat data:', response);
                         
                         // Get the messages container
                         const messagesContainer = chatSection.querySelector('.messages-container');
                         if (!messagesContainer) {
-                            console.error('Messages container not found');
-                            return;
+                            const err = new Error('Messages container not found');
+                            err.critical = false;
+                            throw err;
                         }
                         
                         // Clear existing messages
@@ -836,18 +839,6 @@ export async function handleServerClick(serverId, event) {
                                 messageGroup.className = 'message-group';
                                 messageGroup.dataset.userId = group.userId;
                                 
-                                let messageContent = '';
-                                group.messages.forEach(message => {
-                                    messageContent += `
-                                        <div class="message-content" data-message-id="${message.id}" data-user-id="${message.user_id}">
-                                            <div class="message-main-text text-[#dcddde]">
-                                                ${formatMessageContent(message.content)}
-                                                ${message.edited_at ? '<span class="edited-badge text-xs text-[#a3a6aa] ml-1">(edited)</span>' : ''}
-                                            </div>
-                                        </div>
-                                    `;
-                                });
-                                
                                 messageGroup.innerHTML = `
                                     <div class="message-avatar">
                                         <img src="${group.avatarUrl || '/public/assets/common/default-profile-picture.png'}" 
@@ -859,7 +850,39 @@ export async function handleServerClick(serverId, event) {
                                             <span class="message-username">${group.username}</span>
                                             <span class="message-timestamp">${formatTimestamp(group.messages[0].sent_at)}</span>
                                         </div>
-                                        ${messageContent}
+                                        <div class="message-contents">
+                                            ${group.messages.map(message => `
+                                                <div class="message-content relative" data-message-id="${message.id}" data-user-id="${message.user_id}">
+                                                    ${message.reply_message_id && message.reply_data ? `
+                                                        <div class="reply-container">
+                                                            <div class="reply-line"></div>
+                                                            <div class="reply-content">
+                                                                <span class="reply-username">${message.reply_data.username}</span>
+                                                                <span class="reply-message-text">${message.reply_data.content ? 
+                                                                    message.reply_data.content.substring(0, 60) + (message.reply_data.content.length > 60 ? '...' : '') : 
+                                                                    '<span class="italic">Original message not found</span>'
+                                                                }</span>
+                                                            </div>
+                                                        </div>
+                                                    ` : ''}
+                                                    <div class="message-main-text text-[#dcddde]">
+                                                        ${formatMessageContent(message.content)}
+                                                        ${message.edited_at ? '<span class="edited-badge text-xs text-[#a3a6aa] ml-1">(edited)</span>' : ''}
+                                                    </div>
+                                                    ${message.attachments?.length > 0 ? `
+                                                        <div class="message-attachments">
+                                                            ${message.attachments.map(attachment => `
+                                                                <div class="message-attachment">
+                                                                    <a href="${attachment}" target="_blank" class="attachment-link">
+                                                                        <i class="fas fa-paperclip"></i> ${attachment.split('/').pop()}
+                                                                    </a>
+                                                                </div>
+                                                            `).join('')}
+                                                        </div>
+                                                    ` : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
                                     </div>
                                 `;
                                 
@@ -877,15 +900,13 @@ export async function handleServerClick(serverId, event) {
                         }
                     } catch (error) {
                         console.error('Error updating chat section:', error);
+                        // Don't throw here, just log the error and continue
                     }
-                } else {
-                    console.error('Chat section element not found');
                 }
             } else if (firstChannel.type === 'voice') {
                 console.log('Updating voice section for channel:', firstChannel.id);
                 if (voiceSection) {
                     voiceSection.classList.remove('hidden');
-                    console.log('Found voice section element');
                     try {
                         // Initialize voice manager if needed
                         if (!window.voiceManager) {
@@ -916,129 +937,8 @@ export async function handleServerClick(serverId, event) {
                         }
                     } catch (error) {
                         console.error('Error updating voice section:', error);
+                        // Don't throw here, just log the error and continue
                     }
-                } else {
-                    console.error('Voice section element not found');
-                }
-            }
-            console.groupEnd();
-                        
-                        function formatTimestamp(timestamp) {
-                            if (!timestamp) return '';
-                            
-                            try {
-                                const date = new Date(timestamp);
-                                const now = new Date();
-                                
-                                if (date.toDateString() === now.toDateString()) {
-                                    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                                } else {
-                                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                                }
-                            } catch (e) {
-                                console.error('Error formatting timestamp:', e);
-                                return '';
-                            }
-                        }
-                        
-                        function formatMessageContent(content) {
-                            if (!content) return '';
-                            
-                            let formattedContent = content
-                                .replace(/&/g, '&amp;')
-                                .replace(/</g, '&lt;')
-                                .replace(/>/g, '&gt;')
-                                .replace(/"/g, '&quot;')
-                                .replace(/'/g, '&#039;')
-                                .replace(/\n/g, '<br>');
-                            
-                            // Format markdown
-                            formattedContent = formattedContent
-                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                                .replace(/```([\s\S]*?)```/g, '<div class="bg-[#2b2d31] p-2 my-1 rounded text-sm font-mono"><code>$1</code></div>')
-                                .replace(/`(.*?)`/g, '<code class="bg-[#2b2d31] px-1 py-0.5 rounded text-sm font-mono">$1</code>');
-                            
-                            return formattedContent;
-                        }
-                        
-                        function groupMessagesByUser(messages) {
-                            const groups = [];
-                            let currentGroup = null;
-                            
-                            messages.forEach(message => {
-                                if (!currentGroup || currentGroup.userId !== message.user_id) {
-                                    currentGroup = {
-                                        userId: message.user_id,
-                                        username: message.username,
-                                        avatarUrl: message.avatar_url,
-                                        messages: []
-                                    };
-                                    groups.push(currentGroup);
-                                }
-                                currentGroup.messages.push(message);
-                            });
-                            
-                            return groups;
-                        }
-                        
-                        if (window.chatSection) {
-                            console.log('Initializing chat section');
-                            window.chatSection.init();
-                        } else {
-                            console.warn('Chat section object not found in window');
-                        }
-                    } catch (err) {
-                        console.error('Error updating chat section:', err);
-                    }
-                } else {
-                    console.error('Chat section element not found!');
-                    console.log('Available sections:', 
-                        Array.from(document.querySelectorAll('section')).map(el => ({
-                            className: el.className,
-                            id: el.id
-                        }))
-                    );
-                }
-            } else if (firstChannel.type === 'voice') {
-                console.log('Updating voice section for channel:', firstChannel.id);
-                const voiceSection = document.querySelector('.voice-section');
-                if (voiceSection) {
-                    console.log('Found voice section element');
-                    try {
-                        const voiceHtml = await new Promise((resolve, reject) => {
-                            ajax({
-                                url: `/api/voice/channel/${firstChannel.id}`,
-                                method: 'GET',
-                                dataType: 'text',
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                },
-                                success: resolve,
-                                error: reject
-                            });
-                        });
-                        console.log('Received voice HTML, length:', voiceHtml.length);
-                        console.log('Preview of voice HTML:', voiceHtml.substring(0, 200));
-                        voiceSection.innerHTML = voiceHtml;
-                        
-                        if (window.voiceManager) {
-                            console.log('Initializing voice manager');
-                            window.voiceManager.init();
-                        } else {
-                            console.warn('Voice manager not found in window');
-                        }
-                    } catch (err) {
-                        console.error('Error updating voice section:', err);
-                    }
-                } else {
-                    console.error('Voice section element not found!');
-                    console.log('Available sections:', 
-                        Array.from(document.querySelectorAll('section')).map(el => ({
-                            className: el.className,
-                            id: el.id
-                        }))
-                    );
                 }
             }
             console.groupEnd();
@@ -1046,7 +946,7 @@ export async function handleServerClick(serverId, event) {
 
         // Update active server in sidebar
         console.log('Updating active server state');
-        updateActiveServer();
+    updateActiveServer();
 
         // Initialize channel handlers
         console.group('Channel Handlers');
@@ -1072,13 +972,6 @@ export async function handleServerClick(serverId, event) {
                 });
             } else {
                 console.error('Channel element not found for ID:', firstChannel.id);
-                console.log('Available channel elements:', 
-                    Array.from(channelItems).map(el => ({
-                        id: el.dataset.channelId,
-                        type: el.dataset.channelType,
-                        name: el.textContent.trim()
-                    }))
-                );
             }
         }
         console.groupEnd();
@@ -1090,8 +983,10 @@ export async function handleServerClick(serverId, event) {
     } catch (error) {
         console.error('Error in handleServerClick:', error);
         console.trace();
+        throw error; // Re-throw to be handled by the click handler
+    } finally {
+        console.groupEnd();
     }
-    console.groupEnd();
 }
 
 export function refreshServerGroups() {
@@ -1142,4 +1037,24 @@ function formatMessageContent(content) {
         .replace(/`(.*?)`/g, '<code class="bg-[#2b2d31] px-1 py-0.5 rounded text-sm font-mono">$1</code>');
     
     return formattedContent;
+}
+
+function groupMessagesByUser(messages) {
+    const groups = [];
+    let currentGroup = null;
+    
+    messages.forEach(message => {
+        if (!currentGroup || currentGroup.userId !== message.user_id) {
+            currentGroup = {
+                userId: message.user_id,
+                username: message.username,
+                avatarUrl: message.avatar_url,
+                messages: []
+            };
+            groups.push(currentGroup);
+        }
+        currentGroup.messages.push(message);
+    });
+    
+    return groups;
 }
