@@ -86,6 +86,13 @@ class BotHandler {
     }
 
     static handleMessage(io, data, messageType, botId, username) {
+        if (data.channelId && !data.channel_id) {
+            data.channel_id = data.channelId;
+        }
+        if (data.roomId && !data.room_id) {
+            data.room_id = data.roomId;
+        }
+
         const bot = this.bots.get(botId);
         if (!bot || data.user_id == botId) {
             return;
@@ -159,7 +166,13 @@ class BotHandler {
             message_type: 'text',
             timestamp: Date.now(),
             source: 'bot-response',
-            avatar_url: '/assets/common/default-profile-picture.png'
+            avatar_url: '/assets/common/default-profile-picture.png',
+            reply_message_id: originalMessage.id,
+            reply_data: {
+                messageId: originalMessage.id,
+                username: originalMessage.username,
+                content: originalMessage.content
+            }
         };
 
         let targetRoom;
@@ -176,14 +189,14 @@ class BotHandler {
         }
 
         if (targetRoom && eventName) {
-            console.log(`🚀 [BOT-RESPONSE] Bot ${username} sending response to ${targetRoom}`);
+            console.log(`🚀 [BOT-RESPONSE] Bot ${username} sending reply to message ${originalMessage.id} in ${targetRoom}`);
             
             try {
                 await this.saveBotMessage(responseData, messageType);
                 
                 io.to(targetRoom).emit(eventName, responseData);
                 
-                console.log(`✅ [BOT-RESPONSE] Bot ${username} response sent successfully`);
+                console.log(`✅ [BOT-RESPONSE] Bot ${username} reply sent successfully`);
             } catch (error) {
                 console.error(`❌ [BOT-RESPONSE] Error sending bot response:`, error);
             }
@@ -199,6 +212,11 @@ class BotHandler {
                 message_type: 'text',
                 user_id: messageData.user_id
             };
+
+            if (messageData.reply_message_id) {
+                payload.reply_message_id = messageData.reply_message_id;
+                payload.reply_data = messageData.reply_data;
+            }
 
             let endpoint;
             if (messageType === 'channel') {

@@ -116,14 +116,20 @@ class ServerAjaxLoader {
             const channelData = channelsResponse.data || {};
 
             let messages = [];
-            if (channelId && window.chatSection) {
-                const messageElements = document.querySelectorAll('.message-content');
-                messages = Array.from(messageElements).map(el => ({
-                    id: el.dataset.messageId,
-                    content: el.querySelector('.message-main-text')?.textContent || '',
-                    username: el.closest('.message-group')?.querySelector('.message-username')?.textContent || '',
-                    timestamp: el.querySelector('.message-timestamp')?.textContent || ''
-                }));
+            let apiResponse = null;
+            
+            if (channelId) {
+                try {
+                    const messagesResponse = await fetch(`/api/chat/channel/${channelId}/messages`);
+                    apiResponse = await messagesResponse.json();
+                    
+                    if (apiResponse.success && apiResponse.data && apiResponse.data.messages) {
+                        messages = apiResponse.data.messages;
+                    }
+                } catch (error) {
+                    console.error('Debug: Error fetching messages:', error);
+                    apiResponse = { error: error.message };
+                }
             }
 
             const debugInfo = {
@@ -133,7 +139,14 @@ class ServerAjaxLoader {
                     uncategorized: channelData.uncategorized || [],
                     categories: channelData.categories || []
                 },
-                current_messages: messages
+                current_messages: messages,
+                api_response: apiResponse,
+                chat_section_status: {
+                    exists: !!window.chatSection,
+                    target_id: window.chatSection?.targetId,
+                    chat_type: window.chatSection?.chatType,
+                    messages_loaded: window.chatSection?.messagesLoaded
+                }
             };
 
             content.innerHTML = `
@@ -141,11 +154,19 @@ class ServerAjaxLoader {
                 <div style="color: #5865f2; margin-bottom: 8px;">Current Channel: ${channelId}</div>
                 <div style="margin-bottom: 12px;">
                     <div style="color: #5865f2; margin-bottom: 4px;">Channels:</div>
-                    <pre style="color: #dcddde;">${JSON.stringify(debugInfo.channels, null, 2)}</pre>
+                    <pre style="color: #dcddde; font-size: 10px;">${JSON.stringify(debugInfo.channels, null, 2)}</pre>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #5865f2; margin-bottom: 4px;">ChatSection Status:</div>
+                    <pre style="color: #dcddde; font-size: 10px;">${JSON.stringify(debugInfo.chat_section_status, null, 2)}</pre>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #5865f2; margin-bottom: 4px;">API Response:</div>
+                    <pre style="color: #dcddde; font-size: 10px;">${JSON.stringify(apiResponse, null, 2)}</pre>
                 </div>
                 <div>
-                    <div style="color: #5865f2; margin-bottom: 4px;">Current Messages:</div>
-                    <pre style="color: #dcddde;">${JSON.stringify(debugInfo.current_messages, null, 2)}</pre>
+                    <div style="color: #5865f2; margin-bottom: 4px;">Current Messages (${messages.length}):</div>
+                    <pre style="color: #dcddde; font-size: 10px;">${JSON.stringify(messages.slice(0, 3), null, 2)}</pre>
                 </div>
             `;
 
@@ -299,12 +320,8 @@ class ServerAjaxLoader {
             document.body.removeAttribute('data-initial-load');
             await window.refreshChannelList();
 
-            if (data.default_channel_id) {
-                if (window.chatSection && typeof window.chatSection.joinNewChannel === 'function') {
-                    await window.chatSection.joinNewChannel(data.default_channel_id);
-                } else if (window.chatSection && typeof window.chatSection.loadMessages === 'function') {
-                    await window.chatSection.loadMessages();
-                }
+            if (data.default_channel_id && window.channelSwitchManager) {
+                await window.channelSwitchManager.switchToChannel(data.server.id, data.default_channel_id);
             }
 
             if (channelWrapper) {

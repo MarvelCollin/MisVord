@@ -341,6 +341,6 @@ export class ChannelLoader {
 export const channelLoader = new ChannelLoader();
 
 if (typeof window !== "undefined") {
-  window.ChannelLoader = ChannelLoader;
-  window.channelLoader = channelLoader;
+  // Legacy channel-loader disabled in favor of channel-manager to prevent duplicate channel rendering
+  console.warn('Legacy channel-loader is disabled. Use channel-manager for channel operations.');
 }

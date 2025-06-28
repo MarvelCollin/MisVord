@@ -3,6 +3,7 @@ class ChatBot {
         this.chatSection = chatSection;
         this.initialized = false;
         this.socketListenersSetup = false;
+        this.botReady = false;
         
         console.log('🤖 [CHAT-BOT] ChatBot component initialized');
     }
@@ -12,6 +13,7 @@ class ChatBot {
         
         this.setupEventListeners();
         this.setupSocketListeners();
+        this.ensureBotActive();
         this.initialized = true;
         
         console.log('✅ [CHAT-BOT] ChatBot component ready');
@@ -46,18 +48,22 @@ class ChatBot {
 
             const io = window.globalSocketManager.io;
 
-            io.on('titibot-command-error', (data) => {
-                console.error('🤖 [TITIBOT] Command error:', data);
-                if (window.showToast) {
-                    window.showToast(`🤖 TitiBot error: ${data.message}`, 'error');
-                }
+            io.on('bot-init-success', (data) => {
+                console.log('🤖 [TITIBOT] Bot initialization success:', data);
+                this.botReady = true;
             });
 
-            io.on('titibot-command-success', (data) => {
-                console.log('🤖 [TITIBOT] Command success:', data);
-                if (window.showToast) {
-                    window.showToast('🤖 TitiBot command processed', 'success');
-                }
+            io.on('bot-init-error', (data) => {
+                console.error('🤖 [TITIBOT] Bot initialization error:', data);
+            });
+
+            io.on('bot-join-success', (data) => {
+                console.log('🤖 [TITIBOT] Bot join success:', data);
+                this.botReady = true;
+            });
+
+            io.on('bot-join-error', (data) => {
+                console.error('🤖 [TITIBOT] Bot join error:', data);
             });
 
             this.socketListenersSetup = true;
@@ -65,6 +71,12 @@ class ChatBot {
         };
 
         setupBotSocketHandlers();
+
+        // Trigger ensureBotActive once socket is authenticated
+        window.addEventListener('socketAuthenticated', () => {
+            console.log('🔑 [CHAT-BOT] Socket authenticated event received');
+            this.ensureBotActive();
+        });
     }
 
     async handleTitiBotCommand(content) {
@@ -80,115 +92,10 @@ class ChatBot {
             return true;
         }
 
-        if (!window.titiBotData || !window.titiBotData.id) {
-            console.log('🤖 TitiBot data not available, attempting to fetch...');
-            if (window.showToast) {
-                window.showToast('🤖 Loading TitiBot data...', 'info');
-            }
-            
-            this.fetchTitiBotData().then(() => {
-                if (window.titiBotData && window.titiBotData.id) {
-                    console.log('🤖 TitiBot data loaded, retrying command...');
-                    this.handleTitiBotCommand(content);
-                } else {
-                    console.log('🤖 TitiBot not available after fetch attempt');
-                    if (window.showToast) {
-                        window.showToast('🤖 TitiBot is not available. Use Ctrl+9 to manage TitiBot', 'warning');
-                    }
-                }
-            });
-            return true;
-        }
+        console.log('🤖 [CHAT-BOT] TitiBot command detected, ensuring bot is active...');
+        this.ensureBotActive();
 
-        const serverMembers = window.GLOBALS?.serverMembers || window.serverMembers || [];
-        console.log('🔍 [CHAT-BOT] Server membership check:', {
-            titiBotId: window.titiBotData.id,
-            serverMembers: serverMembers,
-            serverMembersCount: serverMembers.length,
-            serverId: this.getServerId()
-        });
-        
-        const isTitiBotInServer = serverMembers.some(member => member.id == window.titiBotData.id);
-        
-        if (!isTitiBotInServer) {
-            console.log('🤖 TitiBot is not found in current server members, fetching fresh data...');
-            
-            const serverId = this.getServerId();
-            if (serverId) {
-                try {
-                    const response = await fetch(`/api/servers/${serverId}/members`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        const freshMembers = data.data?.members || data.members || [];
-                        console.log('🔄 [CHAT-BOT] Fresh server members:', freshMembers);
-                        
-                        const isTitiBotInFreshData = freshMembers.some(member => member.id == window.titiBotData.id);
-                        
-                        if (!isTitiBotInFreshData) {
-                            console.log('🤖 TitiBot confirmed not in server after fresh check');
-                            if (window.showToast) {
-                                window.showToast('🤖 TitiBot is not active in this server. Use Ctrl+9 to add TitiBot to this server.', 'warning');
-                            }
-                            return true;
-                        } else {
-                            console.log('✅ TitiBot found in fresh server data, updating cache');
-                            window.GLOBALS = window.GLOBALS || {};
-                            window.GLOBALS.serverMembers = freshMembers;
-                            window.serverMembers = freshMembers;
-                        }
-                    } else {
-                        console.warn('Failed to fetch fresh server members:', response.status);
-                    }
-                } catch (error) {
-                    console.error('Error fetching server members:', error);
-                }
-            }
-            
-            if (!isTitiBotInServer) {
-                if (window.showToast) {
-                    window.showToast('🤖 TitiBot is not active in this server', 'warning');
-                }
-                return true;
-            }
-        }
-
-        const args = content.trim().split(/\s+/);
-        const command = args[1]?.toLowerCase();
-        
-        if (!command) {
-            if (window.showToast) {
-                window.showToast('🤖 Available commands: ping', 'info');
-            }
-            return true;
-        }
-
-        console.log(`🤖 [TITIBOT] Processing command: ${command} in channel ${this.chatSection.targetId}`);
-        
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.error('🤖 Socket not ready for TitiBot command');
-            if (window.showToast) {
-                window.showToast('🤖 Connection not ready. Please try again.', 'error');
-            }
-            return true;
-        }
-
-        const serverId = this.getServerId();
-        
-        window.globalSocketManager.io.emit('titibot-command', {
-            command: command,
-            channel_id: this.chatSection.targetId,
-            server_id: serverId,
-            user_id: this.chatSection.userId,
-            username: this.chatSection.username
-        });
-
-        console.log(`🤖 [TITIBOT] Command sent to socket server: ${command}`);
-        
-        if (window.showToast) {
-            window.showToast(`🤖 TitiBot command sent: ${command}`, 'success');
-        }
-        
-        return true;
+        return false;
     }
 
     getServerId() {
@@ -306,6 +213,8 @@ class ChatBot {
             if (botExists && botInfo) {
                 window.titiBotData = botInfo;
                 console.log('✅ [CHAT-BOT] TitiBot data loaded automatically:', botInfo);
+                
+                this.initializeTitiBotInSocket(botInfo);
             } else {
                 console.log('⚠️ [CHAT-BOT] TitiBot not found on server or not a bot');
             }
@@ -314,11 +223,55 @@ class ChatBot {
         }
     }
 
+    initializeTitiBotInSocket(botInfo) {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            console.log('⚠️ [CHAT-BOT] Socket not ready for TitiBot initialization, will retry...');
+            setTimeout(() => {
+                this.initializeTitiBotInSocket(botInfo);
+            }, 1000);
+            return;
+        }
+
+        console.log('🚀 [CHAT-BOT] Initializing TitiBot in socket server...');
+        
+        window.globalSocketManager.io.emit('bot-init', {
+            bot_id: botInfo.id,
+            username: botInfo.username
+        });
+
+        const serverId = this.getServerId();
+        if (serverId) {
+            window.globalSocketManager.io.emit('bot-join-channel', {
+                bot_id: botInfo.id,
+                channel_id: this.chatSection.targetId
+            });
+            console.log('🤖 [CHAT-BOT] TitiBot initialization and channel join events sent');
+        }
+    }
+
     cleanup() {
         this.hideTitiBotSuggestions();
         this.initialized = false;
         this.socketListenersSetup = false;
         console.log('🧹 [CHAT-BOT] ChatBot component cleaned up');
+    }
+
+    ensureBotActive() {
+        if (this.botReady) return;
+
+        // Wait until socket is ready and authenticated
+        if (!window.globalSocketManager ||
+            !window.globalSocketManager.isReady() ||
+            !window.globalSocketManager.authenticated) {
+            setTimeout(() => this.ensureBotActive(), 500);
+            return;
+        }
+
+        if (window.titiBotData && window.titiBotData.id) {
+            this.initializeTitiBotInSocket(window.titiBotData);
+        } else {
+            this.fetchTitiBotData();
+        }
     }
 }
 

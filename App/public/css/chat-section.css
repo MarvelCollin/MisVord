@@ -48,6 +48,11 @@
   background-color: transparent !important;
   padding: 0 !important;
   margin-bottom: 2px !important;
+  border-radius: 4px;
+}
+
+#chat-messages .message-content:hover {
+  background-color: rgba(79, 84, 92, 0.16) !important;
 }
 
 /* Updated message design */
@@ -111,11 +116,10 @@
   margin: 0 !important;
   display: block !important;
   min-height: 20px !important;
+  position: relative !important;
 }
 
-#chat-messages .message-main-text:hover {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-}
+/* Remove hover effect from text since we're handling it at message-content level */
 
 #chat-messages .message-contents {
   margin-top: 0 !important;
@@ -125,14 +129,52 @@
 .message-actions {
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.1s ease, visibility 0.1s ease;
-  top: -16px;
-  right: 16px;
+  display: none;
+  transition: all 0.15s ease;
+  position: absolute;
+  top: -8px;
+  right: 4px;
+  background-color: #2b2d31;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  align-items: center;
+  padding: 4px;
+  gap: 4px;
 }
 
-.message-actions.visible {
+/* Show actions on message content hover */
+.message-content:hover .message-actions {
   opacity: 1;
   visibility: visible;
+  display: flex;
+}
+
+/* Keep actions visible when hovering them */
+.message-actions:hover {
+  opacity: 1;
+  visibility: visible;
+  display: flex;
+}
+
+/* Action buttons styling */
+.message-actions button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #b9bbbe;
+  transition: all 0.15s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.message-actions button:hover {
+  color: #ffffff;
+  background-color: #3c3f45;
 }
 
 /* Input area */
@@ -209,10 +251,7 @@ button {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.message-group:hover .message-actions {
-  opacity: 1;
-  visibility: visible;
-}
+/* Remove group hover since we want individual message hover */
 
 /* Enhanced Reply System */
 .reply-container {

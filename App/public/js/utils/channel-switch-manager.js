@@ -23,30 +23,54 @@ class ChannelSwitchManager {
     }
 
     async switchToChannel(serverId, channelId, clickedElement = null) {
-        if (this.isLoading || !serverId || !channelId) return;
-        if (this.currentChannelId === channelId) return;
+        console.log(`🎯 CHANNEL SWITCH: Server ${serverId} → Channel ${channelId}`);
+        
+        if (this.isLoading || !serverId || !channelId) {
+            console.log(`⏹️ Switch cancelled: loading=${this.isLoading}, serverId=${serverId}, channelId=${channelId}`);
+            return;
+        }
+        
+        if (this.currentChannelId === channelId) {
+            console.log(`⏹️ Already on channel ${channelId}`);
+            return;
+        }
 
         this.isLoading = true;
         window.channelSwitching = true;
 
+        console.log(`🔄 Starting channel switch process...`);
+
         try {
+            console.log(`1️⃣ Updating UI...`);
             this.updateChannelUI(clickedElement);
+            
+            console.log(`2️⃣ Updating URL...`);
             this.updateURL(serverId, channelId);
+            
+            console.log(`3️⃣ Updating meta tags...`);
             this.updateMetaTags(channelId, 'channel');
             
+            console.log(`4️⃣ Loading channel content...`);
             await this.loadChannelContent(channelId);
             
+            console.log(`5️⃣ Updating state...`);
             this.currentChannelId = channelId;
             this.currentServerId = serverId;
 
+            console.log(`6️⃣ Dispatching event...`);
             this.dispatchChannelSwitchEvent(channelId, serverId);
             
+            console.log(`✅ CHANNEL SWITCH COMPLETE: ${serverId} → ${channelId}`);
+            
         } catch (error) {
-            console.error('Channel switch failed:', error);
+            console.error(`❌ CHANNEL SWITCH FAILED:`, error);
+            console.error(`   Server: ${serverId}, Channel: ${channelId}`);
+            console.error(`   Error details:`, error.stack);
             window.location.reload();
         } finally {
             this.isLoading = false;
             window.channelSwitching = false;
+            console.log(`🔓 Channel switch locks released`);
         }
     }
 
@@ -88,6 +112,8 @@ class ChannelSwitchManager {
     }
 
     async loadChannelContent(channelId) {
+        console.log(`🔄 Loading content for channel ${channelId}`);
+        
         const chatMessages = document.getElementById('chat-messages');
         if (chatMessages) {
             chatMessages.innerHTML = `
@@ -101,22 +127,59 @@ class ChannelSwitchManager {
         }
 
         if (window.chatSection) {
+            console.log(`📱 Using ChatSection for channel ${channelId}`);
+            console.log(`   Current targetId: ${window.chatSection.targetId}`);
+            console.log(`   Current chatType: ${window.chatSection.chatType}`);
+            
             window.chatSection.targetId = channelId;
             window.chatSection.chatType = 'channel';
             window.chatSection.processedMessageIds.clear();
-            await window.chatSection.loadMessages();
-        } else {
-            const response = await fetch(`/api/chat/channel/${channelId}/messages`);
-            const data = await response.json();
             
-            if (data.success && data.data && data.data.messages) {
-                this.renderMessagesFallback(data.data.messages);
+            console.log(`   Updated targetId: ${window.chatSection.targetId}`);
+            console.log(`   Updated chatType: ${window.chatSection.chatType}`);
+            
+            try {
+                await window.chatSection.loadMessages();
+                console.log(`✅ ChatSection loaded messages for channel ${channelId}`);
+            } catch (error) {
+                console.error(`❌ ChatSection failed to load messages:`, error);
+                throw error;
+            }
+        } else {
+            console.log(`🔄 Using fallback API for channel ${channelId}`);
+            
+            try {
+                const response = await fetch(`/api/chat/channel/${channelId}/messages`);
+                console.log(`📡 API Response status: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log(`📦 API Response data:`, data);
+                
+                if (data.success && data.data && data.data.messages) {
+                    console.log(`✅ Got ${data.data.messages.length} messages from API`);
+                    this.renderMessagesFallback(data.data.messages);
+                } else {
+                    console.warn(`⚠️ API returned no messages or invalid format:`, data);
+                    this.renderMessagesFallback([]);
+                }
+            } catch (error) {
+                console.error(`❌ Fallback API failed:`, error);
+                throw error;
             }
         }
 
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            console.log(`🔌 Joining socket room for channel ${channelId}`);
             window.globalSocketManager.joinRoom('channel', channelId);
+        } else {
+            console.warn(`⚠️ Socket manager not ready`);
         }
+        
+        console.log(`🎉 Channel ${channelId} content loading complete`);
     }
 
     renderMessagesFallback(messages) {

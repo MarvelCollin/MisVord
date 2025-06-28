@@ -277,7 +277,7 @@ class ChatSection {
         }
 
         document.addEventListener('click', (e) => {
-            if (this.contextMenu && this.contextMenu.contains(e.target)) {
+            if (this.contextMenu && !this.contextMenu.contains(e.target) && this.contextMenuVisible) {
                 this.hideContextMenu();
             }
             
@@ -289,10 +289,10 @@ class ChatSection {
         if (!this.chatMessages) return;
 
         this.chatMessages.addEventListener('contextmenu', (e) => {
-            const messageGroup = e.target.closest('.message-group');
-            if (messageGroup) {
+            const messageContent = e.target.closest('.message-content');
+            if (messageContent) {
                 e.preventDefault();
-                this.showContextMenu(e.clientX, e.clientY, messageGroup);
+                this.showContextMenu(0, 0, messageContent);
             }
         });
         
@@ -342,11 +342,7 @@ class ChatSection {
             } else if (moreBtn) {
                 e.stopPropagation();
                 const messageContent = moreBtn.closest('.message-content');
-                this.showContextMenu(
-                    e.clientX, 
-                    e.clientY, 
-                    messageContent
-                );
+                this.showContextMenu(0, 0, messageContent);
             }
         });
     }
@@ -364,30 +360,14 @@ class ChatSection {
         
         this.hideContextMenu();
 
-        this.contextMenu.style.visibility = 'hidden';
+        // Show modal in center of screen instead of at cursor position
+        this.contextMenu.style.position = 'fixed';
+        this.contextMenu.style.top = '50%';
+        this.contextMenu.style.left = '50%';
+        this.contextMenu.style.transform = 'translate(-50%, -50%)';
+        this.contextMenu.style.zIndex = '2000';
+        this.contextMenu.style.minWidth = '200px';
         this.contextMenu.classList.remove('hidden');
-
-        const menuWidth = this.contextMenu.offsetWidth;
-        const menuHeight = this.contextMenu.offsetHeight;
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-
-        let newX = x;
-        if (x + menuWidth > windowWidth) {
-            newX = x - menuWidth;
-        }
-
-        let newY = y;
-        if (y + menuHeight > windowHeight) {
-            newY = y - menuHeight;
-        }
-        
-        if (newX < 0) newX = 5;
-        if (newY < 0) newY = 5;
-
-        this.contextMenu.style.left = `${newX}px`;
-        this.contextMenu.style.top = `${newY}px`;
-        this.contextMenu.style.visibility = 'visible';
         
         this.contextMenu.dataset.messageId = messageId;
         this.contextMenuVisible = true;
@@ -768,8 +748,12 @@ class ChatSection {
         if (!this.contextMenu) return;
         
         this.contextMenu.classList.add('hidden');
-        this.contextMenu.style.visibility = 'hidden';
         this.contextMenuVisible = false;
+        // Reset modal positioning styles
+        this.contextMenu.style.position = '';
+        this.contextMenu.style.top = '';
+        this.contextMenu.style.left = '';
+        this.contextMenu.style.transform = '';
     }
 
     showMessageActions(messageContent) {
@@ -1073,13 +1057,7 @@ class ChatSection {
         }
 
         if (this.chatBot && this.chatBot.handleTitiBotCommand) {
-            const isHandled = await this.chatBot.handleTitiBotCommand(content);
-            if (isHandled) {
-                this.messageInput.value = '';
-                this.resizeTextarea();
-                this.updateSendButton();
-                return;
-            }
+            await this.chatBot.handleTitiBotCommand(content);
         }
         
         this.prepareChatContainer();
@@ -2764,52 +2742,6 @@ class ChatSection {
         }
     }
 
-    async joinNewChannel(channelId) {
-        console.log('Switching to new channel:', channelId);
-        
-        if (this.targetId === channelId) {
-            console.log('Already on this channel');
-            return;
-        }
-
-        try {
-            this.targetId = channelId;
-            this.chatType = 'channel';
-
-            // Update meta tags to stay in sync
-            const chatIdMeta = document.querySelector('meta[name="chat-id"]');
-            if (chatIdMeta) {
-                chatIdMeta.content = channelId;
-                console.log('Updated chat-id meta tag:', channelId);
-            }
-
-            const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
-            if (chatTypeMeta) {
-                chatTypeMeta.content = 'channel';
-                console.log('Updated chat-type meta tag to: channel');
-            }
-
-            this.messagesLoaded = false;
-            this.processedMessageIds.clear();
-
-            if (this.chatMessages) {
-                this.chatMessages.innerHTML = '';
-            }
-
-            this.ensureChatContainerStructure();
-            this.joinChannel();
-            await this.loadMessages();
-
-        } catch (error) {
-            console.error('Failed to switch channel:', error);
-            this.showErrorMessage('Failed to load channel: ' + error.message);
-        }
-    }
-
-
-
-
-    
     prepareChatContainer() {
         if (!this.chatMessages) {
             console.error('❌ prepareChatContainer: chatMessages element not found');

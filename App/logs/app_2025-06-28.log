@@ -166,3 +166,37 @@
 [2025-06-28 06:37:51] ERROR [fa3ef2] DB Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'username' in 'where clause' - Query: SELECT * FROM user_server_memberships WHERE  username = ? AND user_id = ? LIMIT 1 - Context: {"bindings":["titibot",4],"db_error":"SQLSTATE[42S22]: Column not found: 1054 Unknown column 'username' in 'where clause'","db_query":"SELECT * FROM user_server_memberships WHERE  username = ? AND user_id = ? LIMIT 1","db_duration":0.0491180419921875}
 [2025-06-28 06:38:15] DEBUG [765480] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
 [2025-06-28 06:38:15] INFO [765480] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:08] DEBUG [ca8ba7] Controller instantiated - Context: {"controller":"ChatController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-28 07:03:08] DEBUG [ca8ba7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:08] INFO [ca8ba7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:08] DEBUG [ca8ba7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:08] INFO [ca8ba7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:08] DEBUG [ca8ba7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:08] INFO [ca8ba7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:08] DEBUG [ca8ba7] DB Query: SELECT * FROM channels WHERE  id = ? LIMIT 1 - Duration: 51.12ms - Context: {"bindings":[13],"found":true,"db_query":"SELECT * FROM channels WHERE  id = ? LIMIT 1","db_duration":0.051119089126586914}
+[2025-06-28 07:03:08] DEBUG [ca8ba7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:08] INFO [ca8ba7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:08] DEBUG [ca8ba7] DB Query: SELECT * FROM user_server_memberships WHERE  user_id = ? AND server_id = ? LIMIT 1 - Duration: 45.03ms - Context: {"bindings":[3,13],"found":true,"db_query":"SELECT * FROM user_server_memberships WHERE  user_id = ? AND server_id = ? LIMIT 1","db_duration":0.045027971267700195}
+[2025-06-28 07:03:08] DEBUG [ca8ba7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:08] INFO [ca8ba7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:08] DEBUG [ca8ba7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:08] INFO [ca8ba7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:09] DEBUG [ca8ba7] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 44.24ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.044243812561035156}
+[2025-06-28 07:03:56] DEBUG [c4b1bc] Controller instantiated - Context: {"controller":"ChatController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-28 07:03:56] DEBUG [c4b1bc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:56] INFO [c4b1bc] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:56] DEBUG [c4b1bc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:56] INFO [c4b1bc] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:56] DEBUG [c4b1bc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:56] INFO [c4b1bc] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:56] DEBUG [c4b1bc] DB Query: SELECT * FROM channels WHERE  id = ? LIMIT 1 - Duration: 49.54ms - Context: {"bindings":[13],"found":true,"db_query":"SELECT * FROM channels WHERE  id = ? LIMIT 1","db_duration":0.04953598976135254}
+[2025-06-28 07:03:56] DEBUG [c4b1bc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:56] INFO [c4b1bc] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:56] DEBUG [c4b1bc] DB Query: SELECT * FROM user_server_memberships WHERE  user_id = ? AND server_id = ? LIMIT 1 - Duration: 45.99ms - Context: {"bindings":[3,13],"found":true,"db_query":"SELECT * FROM user_server_memberships WHERE  user_id = ? AND server_id = ? LIMIT 1","db_duration":0.04599308967590332}
+[2025-06-28 07:03:56] DEBUG [c4b1bc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:56] INFO [c4b1bc] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:56] DEBUG [c4b1bc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:56] INFO [c4b1bc] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-28 07:03:56] DEBUG [c4b1bc] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 52.98ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.05298495292663574}
+[2025-06-28 07:03:56] DEBUG [c4b1bc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-28 07:03:56] INFO [c4b1bc] Database connected successfully - Context: {"database":"misvord"}
