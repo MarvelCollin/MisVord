@@ -203,7 +203,7 @@ function renderMessageContent($message) {
         
         if ($messageType === 'image' || preg_match('/\.(jpeg|jpg|gif|png|webp)$/i', $attachmentUrl)) {
             echo '<div class="image-attachment cursor-pointer relative">';
-            echo '<img class="max-w-md max-h-96 rounded-lg" src="' . htmlspecialchars($attachmentUrl) . '" alt="Image attachment" loading="lazy" onclick="window.open(\'' . htmlspecialchars($attachmentUrl) . '\', \'_blank\')" onerror="this.onerror=null; this.src=\'/public/assets/common/default-profile-picture.png\'; this.classList.add(\'w-16\', \'h-16\'); this.parentNode.classList.add(\'bg-[#2b2d31]\', \'p-3\', \'rounded-lg\'); this.parentNode.innerHTML += \'<div class=\\\"text-sm text-[#b5bac1] mt-2\\\">Image failed to load</div>\';">';
+            echo '<img class="max-w-md max-h-96 rounded-lg" src="' . htmlspecialchars($attachmentUrl) . '" alt="Image attachment" loading="lazy" onclick="window.open(\'' . htmlspecialchars($attachmentUrl) . '\', \'_blank\')" onerror="this.onerror=null; this.src=\'/public/assets/common/default-profile-picture.png\'; this.classList.add(\'w-16\', \'h-16\'); this.parentNode.classList.add(\'bg-[#2b2d31]\', \'p-3\', \'rounded-lg\'); const err=document.createElement(\'div\'); err.className=\'text-sm text-[#b5bac1] mt-2\'; err.textContent=\'Image failed to load\'; this.parentNode.appendChild(err);">';
             echo '</div>';
         } elseif ($messageType === 'video' || preg_match('/\.(mp4|webm|mov|avi|wmv)$/i', $attachmentUrl)) {
             echo '<div class="video-attachment cursor-pointer relative">';

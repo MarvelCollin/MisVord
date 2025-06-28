@@ -72,8 +72,8 @@ class BotHandler {
     }
 
     static handleMessage(io, data, messageType, botId, username) {
-        // Generate a unique message ID based on content and timestamp
-        const messageId = `${data.content}-${data.timestamp || Date.now()}`;
+        // Use message id if available, otherwise create a composite key
+        const messageId = data.id || `${data.user_id}-${data.channel_id || data.room_id}-${data.content}`;
         
         // Skip if we've already processed this message
         if (this.processedMessages.has(messageId)) {
