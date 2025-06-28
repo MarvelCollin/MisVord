@@ -443,9 +443,52 @@ function createCategoryAtPosition(name, serverId, position = null) {
         });
 }
 
+function forceHighlightCurrentChannel() {
+    const currentChannelId = new URLSearchParams(window.location.search).get('channel');
+    if (!currentChannelId) return;
+
+    console.log(`🎯 Force highlighting channel ${currentChannelId}`);
+    
+    // Clear all active states
+    document.querySelectorAll('.channel-item').forEach(ch => {
+        ch.classList.remove('bg-discord-lighten', 'bg-gray-700', 'text-white', 'active-channel');
+    });
+    
+    // Find and highlight the current channel
+    const activeChannel = document.querySelector(`[data-channel-id="${currentChannelId}"]`);
+    if (activeChannel) {
+        activeChannel.classList.add('bg-discord-lighten', 'text-white', 'active-channel');
+        console.log(`✅ Successfully highlighted channel ${currentChannelId}`);
+        return true;
+    } else {
+        console.warn(`⚠️ Channel ${currentChannelId} not found in DOM`);
+        return false;
+    }
+}
+
+function debugChannelState() {
+    const currentChannelId = new URLSearchParams(window.location.search).get('channel');
+    const channelItems = document.querySelectorAll('.channel-item');
+    const activeChannels = document.querySelectorAll('.channel-item.active-channel');
+    
+    console.log(`🔍 CHANNEL DEBUG:`);
+    console.log(`   Current URL channel: ${currentChannelId}`);
+    console.log(`   Total channel items: ${channelItems.length}`);
+    console.log(`   Active channels: ${activeChannels.length}`);
+    
+    channelItems.forEach((item, index) => {
+        const channelId = item.dataset.channelId;
+        const isActive = item.classList.contains('active-channel');
+        const classes = Array.from(item.classList).join(' ');
+        console.log(`   Channel ${index + 1}: ID=${channelId}, Active=${isActive}, Classes=${classes}`);
+    });
+}
+
 if (typeof window !== 'undefined') {
     window.refreshChannelList = refreshChannelList;
     window.renderChannelList = renderChannelList;
     window.createChannelAtPosition = createChannelAtPosition;
     window.openCreateChannelModal = openCreateChannelModal;
+    window.forceHighlightCurrentChannel = forceHighlightCurrentChannel;
+    window.debugChannelState = debugChannelState;
 }

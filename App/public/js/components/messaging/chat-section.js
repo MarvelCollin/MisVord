@@ -130,7 +130,7 @@ class ChatSection {
                              if (reactionBtn) reactionBtn.addEventListener('click', () => this.showEmojiPicker(messageId, reactionBtn));
                              if (replyBtn) replyBtn.addEventListener('click', () => this.replyToMessage(messageId));
                              if (editBtn) editBtn.addEventListener('click', () => this.editMessage(messageId));
-                             if (moreBtn) moreBtn.addEventListener('click', (e) => this.showContextMenu(e.clientX, e.clientY, msgEl));
+                             // Do NOT attach a direct listener to moreBtn here – the global delegation handles it to avoid duplicate events.
                          }
                      }
                  });
@@ -809,11 +809,20 @@ class ChatSection {
         
         this.contextMenu.classList.add('hidden');
         this.contextMenuVisible = false;
-        // Reset modal positioning styles
+        
+        // Reset all positioning styles to default
         this.contextMenu.style.position = '';
         this.contextMenu.style.top = '';
         this.contextMenu.style.left = '';
         this.contextMenu.style.transform = '';
+        this.contextMenu.style.zIndex = '';
+        this.contextMenu.style.minWidth = '';
+        this.contextMenu.style.display = '';
+        this.contextMenu.style.visibility = '';
+        this.contextMenu.style.opacity = '';
+        
+        // Clear message ID
+        this.contextMenu.dataset.messageId = '';
     }
 
     showMessageActions(messageContent) {
@@ -1569,6 +1578,18 @@ class ChatSection {
         if (this.processedMessageIds.has(msg.id)) {
             console.log('Message already processed, skipping:', msg.id);
             return;
+        }
+        
+        this.processedMessageIds.add(msg.id);
+        
+        if (message.source === 'bot-response' && message.user_id && message.user_id.toString().includes('bot')) {
+            console.log('🤖 Bot message detected, checking for duplicates with different sources');
+            const botMessageKey = `${message.user_id}-${message.content?.substring(0, 50)}-${Math.floor(Date.now() / 1000)}`;
+            if (this.processedMessageIds.has(botMessageKey)) {
+                console.log('🚫 Duplicate bot message prevented:', botMessageKey);
+                return;
+            }
+            this.processedMessageIds.add(botMessageKey);
         }
         
         const isOwnMessage = msg.user_id == this.userId;

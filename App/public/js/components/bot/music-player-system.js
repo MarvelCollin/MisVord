@@ -649,32 +649,21 @@ class MusicPlayerSystem {
             return `❌ No preview available for "${track.title}" by ${track.artist}`;
         }
 
-        try {
-            this.stop();
-            
-            this.currentSong = track;
-            this.audio = new Audio(track.previewUrl);
-            this.audio.volume = this.volume;
-            
-            this.initializeAudioEvents();
-            
-            await this.audio.play();
-            this.isPlaying = true;
-            
-            this.showNowPlaying(track);
-            
-            return `🎵 Now playing: **${track.title}** by ${track.artist}`;
-        } catch (error) {
-            console.error('Playback error:', error);
-            return `❌ Failed to play "${track.title}"`;
-        }
+        return await this.playTrack(track);
     }
 
-    stop() {
+    async stop() {
         if (this.audio) {
-            this.audio.pause();
-            this.audio.currentTime = 0;
-            this.audio = null;
+            try {
+                this.audio.pause();
+                this.audio.currentTime = 0;
+                this.audio.src = '';
+                this.audio.load();
+                this.audio = null;
+            } catch (error) {
+                console.warn('Error stopping audio:', error);
+                this.audio = null;
+            }
         }
         this.isPlaying = false;
         this.currentSong = null;
@@ -706,7 +695,7 @@ class MusicPlayerSystem {
 
     async playTrack(track) {
         try {
-            this.stop();
+            await this.stop();
             
             this.currentSong = track;
             this.audio = new Audio(track.previewUrl);
@@ -714,15 +703,31 @@ class MusicPlayerSystem {
             
             this.initializeAudioEvents();
             
-            await this.audio.play();
-            this.isPlaying = true;
+            this.audio.load();
+            
+            await new Promise((resolve, reject) => {
+                const playPromise = this.audio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            this.isPlaying = true;
+                            resolve();
+                        })
+                        .catch(reject);
+                } else {
+                    this.isPlaying = true;
+                    resolve();
+                }
+            });
             
             this.showNowPlaying(track);
             
             return `🎵 Now playing: **${track.title}** by ${track.artist}`;
         } catch (error) {
             console.error('Playback error:', error);
-            return `❌ Failed to play "${track.title}"`;
+            this.isPlaying = false;
+            return `❌ Failed to play "${track.title}": ${error.name}`;
         }
     }
 

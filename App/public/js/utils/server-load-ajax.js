@@ -117,7 +117,9 @@ class ServerAjaxLoader {
                 server_id: serverId,
                 current_channel: channelId,
                 url: window.location.href,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                user_agent: navigator.userAgent,
+                page_title: document.title
             };
 
             // 2. Channel Data
@@ -127,7 +129,7 @@ class ServerAjaxLoader {
                 channelsResponse = await window.serverAPI.getServerChannels(serverId);
                 channelData = channelsResponse.data || {};
             } catch (error) {
-                channelData = { error: error.message };
+                channelData = { error: error.message, stack: error.stack };
             }
 
             // 3. Messages API Test
@@ -154,21 +156,40 @@ class ServerAjaxLoader {
                         };
                     }
                 } catch (error) {
-                    apiError = { fetchError: error.message };
+                    apiError = { fetchError: error.message, stack: error.stack };
                 }
             }
 
-            // 4. DOM Analysis
+            // 4. Enhanced DOM Analysis
+            const channelItems = document.querySelectorAll('.channel-item');
+            const activeChannels = document.querySelectorAll('.channel-item.active-channel');
+            const channelDetails = Array.from(channelItems).map((item, index) => ({
+                index: index,
+                channel_id: item.dataset.channelId,
+                channel_type: item.dataset.channelType,
+                is_active: item.classList.contains('active-channel'),
+                classes: Array.from(item.classList).join(' '),
+                text_content: item.textContent?.trim(),
+                parent_element: item.parentElement?.className
+            }));
+
             const domAnalysis = {
-                channel_items: document.querySelectorAll('.channel-item').length,
-                active_channels: document.querySelectorAll('.channel-item.active-channel').length,
+                channel_items: channelItems.length,
+                active_channels: activeChannels.length,
                 chat_messages_element: !!document.getElementById('chat-messages'),
                 channel_wrapper: !!document.querySelector('.channel-wrapper'),
                 channel_list: !!document.querySelector('.channel-list'),
-                duplicate_channel_ids: this.findDuplicateChannelIds()
+                duplicate_channel_ids: this.findDuplicateChannelIds(),
+                channel_details: channelDetails,
+                channel_container_server_id: document.querySelector('.channel-list')?.getAttribute('data-server-id'),
+                meta_tags: {
+                    chat_id: document.querySelector('meta[name="chat-id"]')?.content,
+                    chat_type: document.querySelector('meta[name="chat-type"]')?.content,
+                    server_id: document.querySelector('meta[name="server-id"]')?.content
+                }
             };
 
-            // 5. JavaScript State
+            // 5. Enhanced JavaScript State
             const jsState = {
                 chat_section: {
                     exists: !!window.chatSection,
@@ -188,7 +209,14 @@ class ServerAjaxLoader {
                     exists: !!window.globalSocketManager,
                     ready: window.globalSocketManager?.isReady?.() || false,
                     connected: window.globalSocketManager?.socket?.connected || false
-                }
+                },
+                available_functions: {
+                    refreshChannelList: typeof window.refreshChannelList,
+                    renderChannelList: typeof window.renderChannelList,
+                    forceHighlightCurrentChannel: typeof window.forceHighlightCurrentChannel,
+                    debugChannelState: typeof window.debugChannelState
+                },
+                errors: this.collectJavaScriptErrors()
             };
 
             // 6. Event Listeners Check
@@ -197,6 +225,23 @@ class ServerAjaxLoader {
             // 7. Network Requests Log
             const networkLog = this.getRecentNetworkActivity();
 
+            // 8. Console Errors
+            const consoleErrors = this.getConsoleErrors();
+
+            // Store debug data globally for copying
+            window.debugData = {
+                basicInfo,
+                domAnalysis,
+                jsState,
+                apiResponse,
+                apiError,
+                channelData,
+                eventListeners,
+                networkLog,
+                consoleErrors,
+                timestamp: new Date().toISOString()
+            };
+
             content.innerHTML = `
                 <div style="margin-bottom: 12px;">
                     <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">📊 BASIC INFO</div>
@@ -204,12 +249,12 @@ class ServerAjaxLoader {
                 </div>
 
                 <div style="margin-bottom: 12px;">
-                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">🏗️ DOM ANALYSIS</div>
+                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">🏗️ DOM ANALYSIS (DETAILED)</div>
                     <pre style="color: #dcddde; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(domAnalysis, null, 2)}</pre>
                 </div>
 
                 <div style="margin-bottom: 12px;">
-                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">⚡ JAVASCRIPT STATE</div>
+                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">⚡ JAVASCRIPT STATE (ENHANCED)</div>
                     <pre style="color: #dcddde; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(jsState, null, 2)}</pre>
                 </div>
 
@@ -238,20 +283,17 @@ class ServerAjaxLoader {
                     <pre style="color: #dcddde; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(networkLog, null, 2)}</pre>
                 </div>
 
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #5865f2; font-weight: bold; margin-bottom: 4px;">🚨 CONSOLE ERRORS</div>
+                    <pre style="color: #ed4245; font-size: 10px; background: #2f3136; padding: 8px; border-radius: 4px;">${JSON.stringify(consoleErrors, null, 2)}</pre>
+                </div>
+
                 <div style="margin-top: 12px; padding: 8px; background: #5865f2; border-radius: 4px;">
-                    <div style="color: white; font-weight: bold; margin-bottom: 4px;">🔧 QUICK ACTIONS</div>
-                    <button onclick="window.location.reload()" style="margin-right: 8px; padding: 4px 8px; background: #ed4245; border: none; border-radius: 4px; color: white; cursor: pointer;">
-                        Force Reload
+                    <div style="color: white; font-weight: bold; margin-bottom: 8px;">📋 COPY DEBUG DATA</div>
+                    <button onclick="copyDebugData()" style="padding: 8px 16px; background: #57f287; border: none; border-radius: 4px; color: black; cursor: pointer; font-weight: bold;">
+                        📋 Copy All Debug Info
                     </button>
-                    <button onclick="window.channelSwitchManager?.switchToChannel('${serverId}', '${channelId}')" style="margin-right: 8px; padding: 4px 8px; background: #57f287; border: none; border-radius: 4px; color: black; cursor: pointer;">
-                        Retry Switch
-                    </button>
-                    <button onclick="if(window.refreshChannelList) { console.log('🔄 Force refreshing channels...'); window.refreshChannelList(); } else { console.error('❌ refreshChannelList not available'); }" style="margin-right: 8px; padding: 4px 8px; background: #faa61a; border: none; border-radius: 4px; color: black; cursor: pointer;">
-                        Refresh Channels
-                    </button>
-                    <button onclick="console.clear()" style="padding: 4px 8px; background: #faa61a; border: none; border-radius: 4px; color: black; cursor: pointer;">
-                        Clear Console
-                    </button>
+                    <div id="copy-status" style="margin-top: 8px; color: white; font-size: 12px;"></div>
                 </div>
             `;
 
@@ -321,6 +363,62 @@ class ServerAjaxLoader {
         }
 
         return window.debugNetworkLog || [];
+    }
+
+    collectJavaScriptErrors() {
+        if (!window.debugErrors) {
+            window.debugErrors = [];
+            
+            // Capture console errors
+            const originalError = console.error;
+            console.error = function(...args) {
+                window.debugErrors.push({
+                    type: 'console.error',
+                    message: args.join(' '),
+                    timestamp: new Date().toISOString(),
+                    stack: new Error().stack
+                });
+                if (window.debugErrors.length > 20) {
+                    window.debugErrors = window.debugErrors.slice(-20);
+                }
+                return originalError.apply(console, args);
+            };
+
+            // Capture unhandled errors
+            window.addEventListener('error', (event) => {
+                window.debugErrors.push({
+                    type: 'unhandled_error',
+                    message: event.message,
+                    filename: event.filename,
+                    lineno: event.lineno,
+                    colno: event.colno,
+                    timestamp: new Date().toISOString(),
+                    stack: event.error?.stack
+                });
+                if (window.debugErrors.length > 20) {
+                    window.debugErrors = window.debugErrors.slice(-20);
+                }
+            });
+
+            // Capture unhandled promise rejections
+            window.addEventListener('unhandledrejection', (event) => {
+                window.debugErrors.push({
+                    type: 'unhandled_promise_rejection',
+                    message: event.reason?.message || event.reason,
+                    timestamp: new Date().toISOString(),
+                    stack: event.reason?.stack
+                });
+                if (window.debugErrors.length > 20) {
+                    window.debugErrors = window.debugErrors.slice(-20);
+                }
+            });
+        }
+
+        return window.debugErrors || [];
+    }
+
+    getConsoleErrors() {
+        return this.collectJavaScriptErrors();
     }
 
     getCurrentServerIdFromURL() {
@@ -530,6 +628,82 @@ class ServerAjaxLoader {
             console.error(message);
         }
     }
+}
+
+// Global copy function
+window.copyDebugData = function() {
+    if (!window.debugData) {
+        const status = document.getElementById('copy-status');
+        if (status) status.textContent = '❌ No debug data available';
+        return;
+    }
+
+    const debugText = `
+=== MISVORD DEBUG REPORT ===
+Generated: ${new Date().toISOString()}
+URL: ${window.location.href}
+
+${JSON.stringify(window.debugData, null, 2)}
+
+=== END DEBUG REPORT ===
+    `.trim();
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(debugText).then(() => {
+            const status = document.getElementById('copy-status');
+            if (status) {
+                status.textContent = '✅ Debug data copied to clipboard!';
+                status.style.color = '#57f287';
+                setTimeout(() => {
+                    status.textContent = '';
+                }, 3000);
+            }
+        }).catch(err => {
+            console.error('Failed to copy to clipboard:', err);
+            fallbackCopy(debugText);
+        });
+    } else {
+        fallbackCopy(debugText);
+    }
+};
+
+function fallbackCopy(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        const status = document.getElementById('copy-status');
+        if (status) {
+            if (successful) {
+                status.textContent = '✅ Debug data copied to clipboard!';
+                status.style.color = '#57f287';
+            } else {
+                status.textContent = '❌ Failed to copy. Please copy manually from console.';
+                status.style.color = '#ed4245';
+                console.log('DEBUG DATA:', text);
+            }
+            setTimeout(() => {
+                status.textContent = '';
+            }, 3000);
+        }
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        console.log('DEBUG DATA:', text);
+        const status = document.getElementById('copy-status');
+        if (status) {
+            status.textContent = '❌ Copy failed. Check console for debug data.';
+            status.style.color = '#ed4245';
+        }
+    }
+    
+    document.body.removeChild(textArea);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

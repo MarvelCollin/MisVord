@@ -349,7 +349,8 @@ class BotHandler {
             
             console.log(`🔍 [BOT-MUSIC] Searching iTunes for: ${query}`);
             
-            const response = await fetch(apiUrl);
+            const fetchFn = this.getFetch();
+            const response = await fetchFn(apiUrl);
             const data = await response.json();
             
             if (data.results && data.results.length > 0) {
@@ -404,7 +405,8 @@ class BotHandler {
                  payload: { ...payload, content: payload.content.substring(0, 50) + '...' }
              });
 
-             const response = await fetch(endpoint, {
+             const fetchFn = this.getFetch();
+             const response = await fetchFn(endpoint, {
                  method: 'POST',
                  headers: {
                      'Content-Type': 'application/json',
@@ -454,6 +456,41 @@ class BotHandler {
     static getBotStatus(botId) {
         const bot = this.bots.get(botId);
         return bot || null;
+    }
+
+    static getFetch() {
+        if (typeof fetch !== 'undefined') return fetch;
+        // fallback minimal fetch using https for Node < 18
+        const https = require('https');
+        return (url, opts = {}) => {
+            return new Promise((resolve, reject) => {
+                try {
+                    const parsed = new URL(url);
+                    const options = {
+                        method: opts.method || 'GET',
+                        headers: opts.headers || { 'Content-Type': 'application/json' }
+                    };
+                    const req = https.request(parsed, options, res => {
+                        let data = '';
+                        res.on('data', chunk => data += chunk);
+                        res.on('end', () => {
+                            resolve({
+                                ok: res.statusCode >= 200 && res.statusCode < 300,
+                                status: res.statusCode,
+                                statusText: res.statusMessage,
+                                text: () => Promise.resolve(data),
+                                json: () => Promise.resolve(JSON.parse(data))
+                            });
+                        });
+                    });
+                    req.on('error', reject);
+                    if (opts.body) req.write(opts.body);
+                    req.end();
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        };
     }
 }
 
