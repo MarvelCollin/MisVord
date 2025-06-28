@@ -3,16 +3,13 @@ import { showToast } from "../../core/ui/toast.js";
 export class ChannelLoader {
   constructor() {
     this.channelData = null;
-    this.init();
+    this.hasInitialized = false;
   }
 
   init() {
-    this.hasInitialized = false;
+    this.setupDynamicChannelLoading();
 
     document.addEventListener("DOMContentLoaded", () => {
-      console.log("Channel loader initialized for dynamic updates");
-      this.setupDynamicChannelLoading();
-
       if (window.location.pathname.includes("/server/")) {
         if (document.body.hasAttribute("data-initial-load")) {
           console.log(
@@ -335,53 +332,9 @@ export class ChannelLoader {
       });
     });
 
-    const channelItems = container.querySelectorAll(".channel-item");
-    channelItems.forEach((item) => {
-      item.addEventListener("click", () => {
-        const channelId = item.getAttribute("data-channel-id");
-        const channelType = item.getAttribute("data-channel-type");
-
-        console.log(`Channel clicked: ${channelId} (${channelType})`);
-
-        if (channelType === "text") {
-          const serverId = document.querySelector("#current-server-id")?.value;
-
-          // Prefer AJAX switch if ChatSection is ready
-          if (window.chatSection && typeof window.chatSection.joinNewChannel === 'function') {
-            window.chatSection.joinNewChannel(channelId);
-
-            // Update URL without reloading the page
-            if (serverId) {
-              const newUrl = `/server/${serverId}?channel=${channelId}`;
-              window.history.pushState({ channelId }, '', newUrl);
-            }
-
-            // Highlight the active channel in the sidebar
-            container.querySelectorAll('.channel-item').forEach(el => {
-              el.classList.remove('bg-discord-lighten', 'text-white');
-            });
-            item.classList.add('bg-discord-lighten', 'text-white');
-
-            // Notify other components if needed
-            document.dispatchEvent(new CustomEvent('ChannelSwitched', { detail: { channelId } }));
-          } else {
-            // Fallback to full page navigation when AJAX path not ready
-            if (serverId) {
-              window.location.href = `/server/${serverId}?channel=${channelId}`;
-            }
-          }
-        }
-
-        document.dispatchEvent(
-          new CustomEvent("ChannelSelected", {
-            detail: {
-              channelId,
-              channelType,
-            },
-          })
-        );
-      });
-    });
+    if (window.channelSwitchManager) {
+      window.channelSwitchManager.setupChannelClickHandlers(container);
+    }
   }
 }
 

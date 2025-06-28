@@ -1,10 +1,17 @@
 const PageLoader = {
     init: function() {
+        // DISABLED: SPA functionality conflicts with pure AJAX channel switching
+        console.log('⚠️ PageLoader SPA functionality disabled - using pure AJAX system');
+        return;
+        
         document.body.addEventListener('click', this.handleLinkClick.bind(this));
         window.addEventListener('popstate', this.handlePopState.bind(this));
     },
 
     handleLinkClick: function(event) {
+        // DISABLED
+        return;
+        
         const link = event.target.closest('a');
 
         if (link && this.isNavigationalLink(link)) {
@@ -15,6 +22,9 @@ const PageLoader = {
     },
 
     isNavigationalLink: function(link) {
+        // DISABLED
+        return false;
+        
         if (link.hasAttribute('data-no-navigation') || link.closest('[data-no-navigation]')) {
             return false;
         }
@@ -41,6 +51,10 @@ const PageLoader = {
     },
 
     async loadPage(url, isPopState = false) {
+        // DISABLED: Force full page navigation instead of SPA
+        window.location.href = url;
+        return;
+        
         const mainContent = document.getElementById('main-content');
         if (!mainContent) {
             console.error('Main content container #main-content not found.');
@@ -86,12 +100,18 @@ const PageLoader = {
     },
 
     handlePopState: function(event) {
+        // DISABLED
+        return;
+        
         if (event.state && event.state.path) {
             this.loadPage(event.state.path, true);
         }
     },
 
     reinitializeScripts: function() {
+        // DISABLED
+        return;
+        
         const mainContent = document.getElementById('main-content');
         mainContent.querySelectorAll('script').forEach(oldScript => {
             const newScript = document.createElement('script');

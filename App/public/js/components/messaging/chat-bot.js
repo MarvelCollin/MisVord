@@ -67,7 +67,7 @@ class ChatBot {
         setupBotSocketHandlers();
     }
 
-    handleTitiBotCommand(content) {
+    async handleTitiBotCommand(content) {
         if (!content.startsWith('/titibot ')) {
             return false;
         }
@@ -81,22 +81,75 @@ class ChatBot {
         }
 
         if (!window.titiBotData || !window.titiBotData.id) {
-            console.log('🤖 TitiBot not initialized in this session');
+            console.log('🤖 TitiBot data not available, attempting to fetch...');
             if (window.showToast) {
-                window.showToast('🤖 TitiBot is not active. Use Ctrl+9 to manage TitiBot', 'warning');
+                window.showToast('🤖 Loading TitiBot data...', 'info');
             }
+            
+            this.fetchTitiBotData().then(() => {
+                if (window.titiBotData && window.titiBotData.id) {
+                    console.log('🤖 TitiBot data loaded, retrying command...');
+                    this.handleTitiBotCommand(content);
+                } else {
+                    console.log('🤖 TitiBot not available after fetch attempt');
+                    if (window.showToast) {
+                        window.showToast('🤖 TitiBot is not available. Use Ctrl+9 to manage TitiBot', 'warning');
+                    }
+                }
+            });
             return true;
         }
 
         const serverMembers = window.GLOBALS?.serverMembers || window.serverMembers || [];
+        console.log('🔍 [CHAT-BOT] Server membership check:', {
+            titiBotId: window.titiBotData.id,
+            serverMembers: serverMembers,
+            serverMembersCount: serverMembers.length,
+            serverId: this.getServerId()
+        });
+        
         const isTitiBotInServer = serverMembers.some(member => member.id == window.titiBotData.id);
         
         if (!isTitiBotInServer) {
-            console.log('🤖 TitiBot is not a member of this server');
-            if (window.showToast) {
-                window.showToast('🤖 TitiBot is not active in this server', 'warning');
+            console.log('🤖 TitiBot is not found in current server members, fetching fresh data...');
+            
+            const serverId = this.getServerId();
+            if (serverId) {
+                try {
+                    const response = await fetch(`/api/servers/${serverId}/members`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const freshMembers = data.data?.members || data.members || [];
+                        console.log('🔄 [CHAT-BOT] Fresh server members:', freshMembers);
+                        
+                        const isTitiBotInFreshData = freshMembers.some(member => member.id == window.titiBotData.id);
+                        
+                        if (!isTitiBotInFreshData) {
+                            console.log('🤖 TitiBot confirmed not in server after fresh check');
+                            if (window.showToast) {
+                                window.showToast('🤖 TitiBot is not active in this server. Use Ctrl+9 to add TitiBot to this server.', 'warning');
+                            }
+                            return true;
+                        } else {
+                            console.log('✅ TitiBot found in fresh server data, updating cache');
+                            window.GLOBALS = window.GLOBALS || {};
+                            window.GLOBALS.serverMembers = freshMembers;
+                            window.serverMembers = freshMembers;
+                        }
+                    } else {
+                        console.warn('Failed to fetch fresh server members:', response.status);
+                    }
+                } catch (error) {
+                    console.error('Error fetching server members:', error);
+                }
             }
-            return true;
+            
+            if (!isTitiBotInServer) {
+                if (window.showToast) {
+                    window.showToast('🤖 TitiBot is not active in this server', 'warning');
+                }
+                return true;
+            }
         }
 
         const args = content.trim().split(/\s+/);
@@ -232,6 +285,33 @@ class ChatBot {
             'ping': 'Test if TitiBot is online and responsive'
         };
         return descriptions[command] || 'TitiBot command';
+    }
+
+    async fetchTitiBotData() {
+        try {
+            console.log('🤖 [CHAT-BOT] Fetching TitiBot data from server...');
+            const response = await fetch('/api/bots/check/titibot');
+            
+            if (!response.ok) {
+                console.warn('⚠️ [CHAT-BOT] Failed to check TitiBot status:', response.status, response.statusText);
+                return;
+            }
+            
+            const data = await response.json();
+            console.log('🤖 [CHAT-BOT] Server response:', data);
+            
+            const botExists = data.data ? (data.data.exists && data.data.is_bot) : (data.exists && data.is_bot);
+            const botInfo = data.data ? data.data.bot : data.bot;
+            
+            if (botExists && botInfo) {
+                window.titiBotData = botInfo;
+                console.log('✅ [CHAT-BOT] TitiBot data loaded automatically:', botInfo);
+            } else {
+                console.log('⚠️ [CHAT-BOT] TitiBot not found on server or not a bot');
+            }
+        } catch (error) {
+            console.error('❌ [CHAT-BOT] Error fetching TitiBot data:', error);
+        }
     }
 
     cleanup() {

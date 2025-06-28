@@ -5,11 +5,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initChannelManager() {
-
     loadServerChannels();
-
     initUpdateChannelForms();
-
     initDeleteChannelButtons();
 }
 
@@ -126,7 +123,6 @@ function renderChannelList(data) {
         channelContainer.appendChild(headerDiv);
     }
 
-    // Handle uncategorized channels
     const uncategorizedChannels = data.channels ? data.channels.filter(ch => !ch.category_id) : [];
     if (uncategorizedChannels.length > 0) {
         const uncategorizedSection = document.createElement('div');
@@ -140,7 +136,6 @@ function renderChannelList(data) {
         channelContainer.appendChild(uncategorizedSection);
     }
 
-    // Handle categorized channels
     if (data.categories && data.categories.length > 0) {
         data.categories.forEach(category => {
             const categoryChannels = data.channels ? data.channels.filter(ch => ch.category_id === category.id) : [];
@@ -184,7 +179,6 @@ function createCategoryElement(category) {
             channelsContainer.appendChild(channelEl);
         });
     } else {
-
         const emptyMessage = document.createElement('div');
         emptyMessage.className = 'text-gray-400 text-xs italic px-6 py-2';
         emptyMessage.textContent = 'No channels in this category';
@@ -234,10 +228,8 @@ function createChannelElement(channel) {
 }
 
 function initChannelEventListeners() {
-
     document.querySelectorAll('.category-header').forEach(header => {
         header.addEventListener('click', function(e) {
-
             if (e.target.closest('.add-channel-btn')) {
                 return;
             }
@@ -264,34 +256,9 @@ function initChannelEventListeners() {
         });
     });
 
-    document.querySelectorAll('.channel-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            if (e.target.closest('.channel-actions')) {
-                return; // Ignore clicks on edit/delete buttons
-            }
-
-            const channelId = this.dataset.channelId;
-            const serverId = getServerId();
-
-            if (!channelId || !serverId) return;
-
-            // Prefer AJAX navigation via ChatSection when available
-            if (window.chatSection && typeof window.chatSection.joinNewChannel === 'function') {
-                window.chatSection.joinNewChannel(channelId);
-
-                // Push state so URL reflects current channel without reload
-                const newUrl = `/server/${serverId}?channel=${channelId}`;
-                window.history.pushState({ channelId }, '', newUrl);
-
-                // Update active styling
-                document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('bg-gray-700', 'text-white'));
-                this.classList.add('bg-gray-700', 'text-white');
-            } else {
-                // Fallback: full navigation
-                window.location.href = `/server/${serverId}?channel=${channelId}`;
-            }
-        });
-    });
+    if (window.channelSwitchManager) {
+        window.channelSwitchManager.setupChannelClickHandlers(document.querySelector('.channel-wrapper'));
+    }
 
     initUpdateChannelForms();
     initDeleteChannelButtons();

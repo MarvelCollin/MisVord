@@ -242,8 +242,8 @@ class ChatSection {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     this.sendMessage();
-                } else if (e.key === 'Escape') {
-                    this.hideTitiBotSuggestions();
+                } else if (e.key === 'Escape' && this.chatBot) {
+                    this.chatBot.hideTitiBotSuggestions();
                 } else {
                     this.handleTyping();
                 }
@@ -1072,11 +1072,14 @@ class ChatSection {
             return;
         }
 
-        if (this.chatBot && this.chatBot.handleTitiBotCommand(content)) {
-            this.messageInput.value = '';
-            this.resizeTextarea();
-            this.updateSendButton();
-            return;
+        if (this.chatBot && this.chatBot.handleTitiBotCommand) {
+            const isHandled = await this.chatBot.handleTitiBotCommand(content);
+            if (isHandled) {
+                this.messageInput.value = '';
+                this.resizeTextarea();
+                this.updateSendButton();
+                return;
+            }
         }
         
         this.prepareChatContainer();
@@ -2234,20 +2237,6 @@ class ChatSection {
                 }
             });
 
-            io.on('titibot-command-error', function(data) {
-                console.error('🤖 [TITIBOT] Command error:', data);
-                if (window.showToast) {
-                    window.showToast(`🤖 TitiBot error: ${data.message}`, 'error');
-                }
-            });
-
-            io.on('titibot-command-success', function(data) {
-                console.log('🤖 [TITIBOT] Command success:', data);
-                if (window.showToast) {
-                    window.showToast('🤖 TitiBot command processed', 'success');
-                }
-            });
-            
             self.socketListenersSetup = true;
             console.log('Socket listeners setup complete');
         };
@@ -2817,172 +2806,9 @@ class ChatSection {
         }
     }
 
-    handleTitiBotCommand(content) {
-        if (!content.startsWith('/titibot ')) {
-            return false;
-        }
 
-        if (this.chatType !== 'channel') {
-            console.log('🤖 TitiBot commands only work in channels, not DMs');
-            if (window.showToast) {
-                window.showToast('🤖 TitiBot commands only work in server channels', 'warning');
-            }
-            return true;
-        }
 
-        if (!window.titiBotData || !window.titiBotData.id) {
-            console.log('🤖 TitiBot not initialized in this session');
-            if (window.showToast) {
-                window.showToast('🤖 TitiBot is not active. Use Ctrl+9 to manage TitiBot', 'warning');
-            }
-            return true;
-        }
 
-        const serverMembers = window.GLOBALS?.serverMembers || window.serverMembers || [];
-        const isTitiBotInServer = serverMembers.some(member => member.id == window.titiBotData.id);
-        
-        if (!isTitiBotInServer) {
-            console.log('🤖 TitiBot is not a member of this server');
-            if (window.showToast) {
-                window.showToast('🤖 TitiBot is not active in this server', 'warning');
-            }
-            return true;
-        }
-
-        const args = content.trim().split(/\s+/);
-        const command = args[1]?.toLowerCase();
-        
-        if (!command) {
-            if (window.showToast) {
-                window.showToast('🤖 Available commands: ping', 'info');
-            }
-            return true;
-        }
-
-        console.log(`🤖 [TITIBOT] Processing command: ${command} in channel ${this.targetId}`);
-        
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.error('🤖 Socket not ready for TitiBot command');
-            if (window.showToast) {
-                window.showToast('🤖 Connection not ready. Please try again.', 'error');
-            }
-            return true;
-        }
-
-        const serverId = this.getServerId();
-        
-        window.globalSocketManager.io.emit('titibot-command', {
-            command: command,
-            channel_id: this.targetId,
-            server_id: serverId,
-            user_id: this.userId,
-            username: this.username
-        });
-
-        console.log(`🤖 [TITIBOT] Command sent to socket server: ${command}`);
-        
-        if (window.showToast) {
-            window.showToast(`🤖 TitiBot command sent: ${command}`, 'success');
-        }
-        
-        return true;
-    }
-
-    getServerId() {
-        if (this.serverId) return this.serverId;
-        
-        const urlMatch = window.location.pathname.match(/\/server\/(\d+)/);
-        if (urlMatch) {
-            this.serverId = urlMatch[1];
-            return this.serverId;
-        }
-        
-        if (window.GLOBALS && window.GLOBALS.server && window.GLOBALS.server.id) {
-            this.serverId = window.GLOBALS.server.id;
-            return this.serverId;
-        }
-        
-        return null;
-    }
-
-    handleTitiBotAutocomplete() {
-        if (!this.messageInput || this.chatType !== 'channel') {
-            this.hideTitiBotSuggestions();
-            return;
-        }
-
-        const content = this.messageInput.value;
-        
-        if (content.startsWith('/titibot') && content.length > 8) {
-            const afterSlash = content.substring(8).trim();
-            
-            if (afterSlash === '' || 'ping'.startsWith(afterSlash.toLowerCase())) {
-                this.showTitiBotSuggestions(['ping']);
-            } else {
-                this.hideTitiBotSuggestions();
-            }
-        } else {
-            this.hideTitiBotSuggestions();
-        }
-    }
-
-    showTitiBotSuggestions(commands) {
-        let suggestionContainer = document.getElementById('titibot-suggestions');
-        
-        if (!suggestionContainer) {
-            suggestionContainer = document.createElement('div');
-            suggestionContainer.id = 'titibot-suggestions';
-            suggestionContainer.className = 'absolute bottom-full left-0 right-0 bg-[#2b2d31] border border-[#3c3f45] rounded-t-lg shadow-lg p-2 mb-1 z-50';
-            
-            if (this.messageInput && this.messageInput.parentNode) {
-                this.messageInput.parentNode.style.position = 'relative';
-                this.messageInput.parentNode.appendChild(suggestionContainer);
-            }
-        }
-
-        suggestionContainer.innerHTML = '';
-
-        const header = document.createElement('div');
-        header.className = 'text-xs text-[#b5bac1] font-semibold mb-2';
-        header.innerHTML = '<i class="fas fa-robot mr-1"></i>TitiBot Commands';
-        suggestionContainer.appendChild(header);
-
-        commands.forEach(command => {
-            const commandItem = document.createElement('div');
-            commandItem.className = 'flex items-center p-2 hover:bg-[#36393f] rounded cursor-pointer text-[#dcddde]';
-            commandItem.innerHTML = `
-                <i class="fas fa-terminal mr-3 text-[#5865f2]"></i>
-                <div>
-                    <div class="font-medium">/titibot ${command}</div>
-                    <div class="text-xs text-[#b5bac1]">${this.getTitiBotCommandDescription(command)}</div>
-                </div>
-            `;
-            
-            commandItem.addEventListener('click', () => {
-                this.messageInput.value = `/titibot ${command}`;
-                this.messageInput.focus();
-                this.hideTitiBotSuggestions();
-                this.resizeTextarea();
-                this.updateSendButton();
-            });
-            
-            suggestionContainer.appendChild(commandItem);
-        });
-    }
-
-    hideTitiBotSuggestions() {
-        const suggestionContainer = document.getElementById('titibot-suggestions');
-        if (suggestionContainer) {
-            suggestionContainer.remove();
-        }
-    }
-
-    getTitiBotCommandDescription(command) {
-        const descriptions = {
-            'ping': 'Test if TitiBot is online and responsive'
-        };
-        return descriptions[command] || 'TitiBot command';
-    }
     
     prepareChatContainer() {
         if (!this.chatMessages) {

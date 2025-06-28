@@ -6,6 +6,8 @@ $targetId = $GLOBALS['targetId'] ?? null;
 $chatData = $GLOBALS['chatData'] ?? null;
 $messages = $GLOBALS['messages'] ?? [];
 
+
+
 if (!$chatType) {
     $currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
     $activeChannelId = $GLOBALS['activeChannelId'] ?? null;

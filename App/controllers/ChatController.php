@@ -733,7 +733,7 @@ class ChatController extends BaseController
                 try {
                     $limit = 20;
                     $offset = 0;
-                    $rawMessages = $this->messageRepository->getForChatRoom($chatId, $limit, $offset);
+                    $rawMessages = $this->chatRoomMessageRepository->getMessagesByRoomId($chatId, $limit, $offset);
                     $messages = array_map([$this, 'formatMessage'], $rawMessages);
                 } catch (Exception $e) {
                     $messages = [];
@@ -770,7 +770,7 @@ class ChatController extends BaseController
                 try {
                     $limit = 20;
                     $offset = 0;
-                    $rawMessages = $this->messageRepository->getForChannel($chatId, $limit, $offset);
+                    $rawMessages = $this->channelMessageRepository->getMessagesByChannelId($chatId, $limit, $offset);
                     $messages = array_map([$this, 'formatMessage'], $rawMessages);
                 } catch (Exception $e) {
                     $messages = [];
