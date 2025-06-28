@@ -99,6 +99,10 @@ function initializeVoiceUI() {
     window.addEventListener('voiceConnect', (event) => {
         const details = event.detail || {};
         
+        if (!window.videosdkMeeting || window.videosdkMeeting.localParticipant?.connectionStatus !== 'connected') {
+            return;
+        }
+        
         elements.connectingView.classList.add('hidden');
         elements.joinView.classList.add('hidden');
         elements.connectedView.classList.remove('hidden');
@@ -139,8 +143,6 @@ function initializeVoiceUI() {
                 window.voiceStateManager.updateAllControls();
             }
         }, 100);
-        
-        console.log('Voice connected successfully:', details);
     });
     
     window.addEventListener('voiceDisconnect', () => {
@@ -148,8 +150,8 @@ function initializeVoiceUI() {
         
         if (window.videosdkMeeting) {
             try {
-            window.videoSDKManager?.leaveMeeting();
-            window.videosdkMeeting = null;
+                window.videoSDKManager?.leaveMeeting();
+                window.videosdkMeeting = null;
             } catch (e) {
                 console.error("Error when leaving VideoSDK meeting:", e);
             }
@@ -170,7 +172,7 @@ function initializeVoiceUI() {
         }
     });
 
-    if (window.voiceState?.isConnected || window.voiceManager?.isConnected) {
+    if (window.voiceState?.isConnected && window.videosdkMeeting?.localParticipant?.connectionStatus === 'connected') {
         elements.joinView.classList.add('hidden');
         elements.connectingView.classList.add('hidden');
         elements.connectedView.classList.remove('hidden');

@@ -149,6 +149,11 @@ class VoiceStateManager {
         if (videoButton) videoButton.disabled = true;
 
         try {
+            const localParticipant = window.videosdkMeeting.localParticipant;
+            if (!localParticipant || localParticipant.connectionStatus !== 'connected') {
+                throw new Error('Please wait for connection to establish');
+            }
+
             const isVideoOn = await window.videoSDKManager.toggleWebcam();
             this.state.isVideoOn = isVideoOn;
             
@@ -159,7 +164,7 @@ class VoiceStateManager {
             this.showToast(isVideoOn ? 'Camera enabled' : 'Camera disabled');
         } catch (error) {
             console.error('Error toggling VideoSDK webcam:', error);
-            this.showToast('Failed to toggle camera', 'error');
+            this.showToast(error.message || 'Failed to toggle camera', 'error');
             this.state.isVideoOn = window.videoSDKManager.getWebcamState();
             this.updateVideoControls();
         } finally {
@@ -177,6 +182,11 @@ class VoiceStateManager {
         if (screenButton) screenButton.disabled = true;
 
         try {
+            const localParticipant = window.videosdkMeeting.localParticipant;
+            if (!localParticipant || localParticipant.connectionStatus !== 'connected') {
+                throw new Error('Please wait for connection to establish');
+            }
+
             const isScreenSharing = await window.videoSDKManager.toggleScreenShare();
             this.state.isScreenSharing = isScreenSharing;
 
@@ -187,7 +197,7 @@ class VoiceStateManager {
             this.showToast(isScreenSharing ? 'Screen sharing started' : 'Screen sharing stopped');
         } catch (error) {
             console.error('Error toggling screen share:', error);
-            this.showToast('Failed to start screen share', 'error');
+            this.showToast(error.message || 'Failed to start screen share', 'error');
             this.state.isScreenSharing = window.videoSDKManager.getScreenShareState();
             this.updateScreenControls();
         } finally {

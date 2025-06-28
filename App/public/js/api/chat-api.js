@@ -188,6 +188,7 @@ class ChatAPI {
                     avatar_url: message.avatar_url,
                     attachment_url: message.attachment_url || options.attachment_url,
                     reply_message_id: message.reply_message_id || options.reply_message_id,
+                    reply_data: message.reply_data,
                     message: message
                 };
                 
@@ -690,6 +691,7 @@ class ChatAPI {
         
         if (data.reply_message_id) {
             socketData.reply_message_id = data.reply_message_id;
+            socketData.reply_data = data.reply_data;
         }
         
         if (data.message) {

@@ -857,11 +857,15 @@ class ChatSection {
         
         const messageTextElement = messageElement.querySelector('.message-main-text');
         const messageText = messageTextElement ? messageTextElement.innerText : 'a message';
-        const messageGroup = messageElement.closest('.message-group');
         const userId = messageElement.dataset.userId;
+        const username = messageElement.dataset.username;
         
-        const usernameElement = messageGroup.querySelector('.font-medium');
-        const username = usernameElement ? usernameElement.textContent.trim() : 'Unknown User';
+        console.log(`📝 [CHAT] Replying to message:`, {
+            messageId,
+            userId,
+            username,
+            messageText: messageText.substring(0, 50) + (messageText.length > 50 ? '...' : '')
+        });
         
         this.activeReplyingTo = {
             messageId,
@@ -882,6 +886,7 @@ class ChatSection {
         if (!replyContainer) {
             replyContainer = document.createElement('div');
             replyContainer.id = 'reply-container';
+            replyContainer.className = 'bg-[#2b2d31] p-2 rounded-lg mb-2 flex items-center gap-2';
             
             if (this.messageInput && this.messageInput.parentNode) {
                 this.messageInput.parentNode.insertBefore(replyContainer, this.messageInput);
@@ -891,23 +896,34 @@ class ChatSection {
         }
         
         const replyInfo = document.createElement('div');
-        replyInfo.className = 'reply-info';
+        replyInfo.className = 'flex items-center gap-2 flex-1 min-w-0';
         
         const replyIcon = document.createElement('i');
-        replyIcon.className = 'fas fa-reply';
+        replyIcon.className = 'fas fa-reply text-[#b5bac1]';
         
         const replyingTo = document.createElement('div');
-        replyingTo.className = 'replying-to';
-        replyingTo.textContent = `Replying to ${username}`;
+        replyingTo.className = 'text-[#b5bac1] text-sm flex items-center gap-1 min-w-0';
+        
+        const replyLabel = document.createElement('span');
+        replyLabel.className = 'text-[#dcddde] whitespace-nowrap';
+        replyLabel.textContent = 'Replying to';
+        
+        const replyUsername = document.createElement('span');
+        replyUsername.className = 'text-[#5865f2] font-medium truncate';
+        replyUsername.textContent = username;
         
         const replyPreview = document.createElement('div');
-        replyPreview.className = 'reply-preview';
+        replyPreview.className = 'text-[#b5bac1] text-sm truncate';
         replyPreview.textContent = messageText;
         
         const cancelButton = document.createElement('button');
+        cancelButton.className = 'text-[#b5bac1] hover:text-white transition-colors p-1';
         cancelButton.innerHTML = '<i class="fas fa-times"></i>';
         cancelButton.title = 'Cancel Reply';
         cancelButton.addEventListener('click', () => this.cancelReply());
+        
+        replyingTo.appendChild(replyLabel);
+        replyingTo.appendChild(replyUsername);
         
         replyInfo.appendChild(replyIcon);
         replyInfo.appendChild(replyingTo);
@@ -915,6 +931,8 @@ class ChatSection {
         replyContainer.appendChild(replyInfo);
         replyContainer.appendChild(replyPreview);
         replyContainer.appendChild(cancelButton);
+        
+        replyContainer.style.animation = 'replyInputSlideIn 0.2s ease-out forwards';
     }
     
     cancelReply() {
@@ -1159,6 +1177,10 @@ class ChatSection {
                     const serverMessage = response.data.message;
                     const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
                     if (tempMessageElement) {
+                        // Remove the temp ID from processed IDs and add the new server ID
+                        this.processedMessageIds.delete(messageId);
+                        this.processedMessageIds.add(serverMessage.id);
+                        
                         tempMessageElement.setAttribute('data-message-id', serverMessage.id);
                         const reactionButton = tempMessageElement.querySelector('.message-action-reaction');
                         if (reactionButton) {
@@ -1742,6 +1764,7 @@ class ChatSection {
         messageElement.className = 'message-content';
         messageElement.setAttribute('data-message-id', message.id);
         messageElement.setAttribute('data-user-id', message.user_id || message.userId);
+        messageElement.setAttribute('data-username', message.username);
         
         if (isOwnMessage) {
             messageElement.classList.add('own-message');
@@ -1749,39 +1772,42 @@ class ChatSection {
         
         if (message.reply_message_id || message.reply_data) {
             const replyContainer = document.createElement('div');
-            replyContainer.className = 'reply-container';
+            replyContainer.className = 'reply-container flex items-start gap-2 mb-1 text-sm';
 
             const replyLine = document.createElement('div');
-            replyLine.className = 'reply-line';
+            replyLine.className = 'reply-line w-[2px] h-full bg-[#4e5058] rounded-full self-stretch';
 
             const replyContent = document.createElement('div');
-            replyContent.className = 'reply-content';
+            replyContent.className = 'reply-content flex-1 min-w-0 text-[#b5bac1] hover:text-[#dcddde] cursor-pointer transition-colors';
             
             if (message.reply_data) {
                 replyContent.setAttribute('tabindex', '0');
                 replyContent.setAttribute('role', 'button');
                 replyContent.setAttribute('aria-label', `Jump to reply from ${message.reply_data.username}`);
                 
-                const replyAvatar = document.createElement('img');
-                replyAvatar.src = message.reply_data.avatar_url || '/public/assets/common/default-profile-picture.png';
-                replyAvatar.className = 'reply-avatar';
-                replyAvatar.onerror = function() { this.src = '/public/assets/common/default-profile-picture.png'; };
-
-                const replyUsername = document.createElement('span');
-                replyUsername.className = 'reply-username';
-                replyUsername.textContent = message.reply_data.username;
-
-                const replyMessage = document.createElement('span');
-                replyMessage.className = 'reply-message-text';
-                replyMessage.textContent = this.truncateText(message.reply_data.content || '', 60);
+                const replyHeader = document.createElement('div');
+                replyHeader.className = 'flex items-center gap-2 mb-0.5';
                 
-                replyContent.appendChild(replyAvatar);
-                replyContent.appendChild(replyUsername);
+                const replyIcon = document.createElement('i');
+                replyIcon.className = 'fas fa-reply text-xs';
+                
+                const replyUsername = document.createElement('span');
+                replyUsername.className = 'text-[#5865f2] font-medium truncate';
+                replyUsername.textContent = message.reply_data.username;
+                
+                const replyMessage = document.createElement('div');
+                replyMessage.className = 'text-[#b5bac1] truncate';
+                replyMessage.textContent = this.truncateText(message.reply_data.content || '', 100);
+                
+                replyHeader.appendChild(replyIcon);
+                replyHeader.appendChild(replyUsername);
+                
+                replyContent.appendChild(replyHeader);
                 replyContent.appendChild(replyMessage);
 
-                                    const jumpToMessage = () => {
-                        const targetMessageId = message.reply_data.message_id || message.reply_message_id;
-                        const repliedMessage = document.querySelector(`[data-message-id="${targetMessageId}"]`);
+                const jumpToMessage = () => {
+                    const targetMessageId = message.reply_data.message_id || message.reply_message_id;
+                    const repliedMessage = document.querySelector(`[data-message-id="${targetMessageId}"]`);
                     
                     if (repliedMessage) {
                         const messageElement = repliedMessage.closest('.message-group') || repliedMessage;

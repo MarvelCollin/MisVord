@@ -328,37 +328,37 @@ async function autoJoinVoiceChannel(channelId) {
     
     showConnectingView();
     
-    if (typeof VideoSDK === 'undefined') {
-        const script = document.createElement('script');
-        script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
-        document.head.appendChild(script);
-        await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = reject;
-        });
-    }
-    
-    if (!window.videoSDKManager) {
-        const managerScript = document.createElement('script');
-        managerScript.src = '/public/js/components/videosdk/videosdk.js?v=' + Date.now();
-        document.head.appendChild(managerScript);
-        await new Promise((resolve, reject) => {
-            managerScript.onload = resolve;
-            managerScript.onerror = reject;
-        });
-        
-        let attempts = 0;
-        while (!window.videoSDKManager && attempts < 50) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
+    try {
+        if (typeof VideoSDK === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
+            document.head.appendChild(script);
+            await new Promise((resolve, reject) => {
+                script.onload = resolve;
+                script.onerror = reject;
+            });
         }
         
         if (!window.videoSDKManager) {
-            throw new Error('Failed to load VideoSDK Manager');
+            const managerScript = document.createElement('script');
+            managerScript.src = '/public/js/components/videosdk/videosdk.js?v=' + Date.now();
+            document.head.appendChild(managerScript);
+            await new Promise((resolve, reject) => {
+                managerScript.onload = resolve;
+                managerScript.onerror = reject;
+            });
+            
+            let attempts = 0;
+            while (!window.videoSDKManager && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (!window.videoSDKManager) {
+                throw new Error('Failed to load VideoSDK Manager');
+            }
         }
-    }
-    
-    try {
+        
         let meetingId = await getVoiceMeetingId(channelId);
         
         if (!window.videoSDKManager.getAuthToken) {
@@ -403,14 +403,41 @@ async function autoJoinVoiceChannel(channelId) {
             }
         }));
         
-        setTimeout(() => {
-        showConnectedView();
-            ensureConnectedViewVisible();
-        }, 200);
+        if (window.videosdkMeeting.localParticipant?.connectionStatus === 'connected') {
+            showConnectedView();
+        } else {
+            await new Promise((resolve, reject) => {
+                const maxAttempts = 150;
+                let attempts = 0;
+                
+                const checkConnection = () => {
+                    attempts++;
+                    const status = window.videosdkMeeting.localParticipant?.connectionStatus;
+                    
+                    if (status === 'connected') {
+                        showConnectedView();
+                        resolve();
+                    } else if (status === 'failed' || status === 'closed' || attempts >= maxAttempts) {
+                        showJoinView();
+                        reject(new Error('Failed to establish connection'));
+                    } else {
+                        setTimeout(checkConnection, 100);
+                    }
+                };
+                checkConnection();
+            });
+        }
         
     } catch (error) {
         console.error('Auto join voice failed:', error);
         showJoinView();
+        if (window.voiceState) {
+            window.voiceState.isConnected = false;
+        }
+        if (window.voiceManager) {
+            window.voiceManager.isConnected = false;
+        }
+        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
         throw error;
     }
 }
@@ -499,14 +526,14 @@ async function getVoiceMeetingId(channelId) {
 
         const socket = window.globalSocketManager.socket;
         const timeout = setTimeout(() => {
-            socket.off('voice-meeting-info');
+            socket.off('voice-meeting-status');
             createNewMeeting().then(resolve);
         }, 2000);
 
-        socket.once('voice-meeting-info', (data) => {
+        socket.once('voice-meeting-status', (data) => {
             clearTimeout(timeout);
-            if (data.channelId == channelId && data.meetingId && data.participantCount > 0) {
-                resolve(data.meetingId);
+            if (data.has_meeting && data.meeting_id) {
+                resolve(data.meeting_id);
             } else {
                 createNewMeeting().then(resolve);
             }

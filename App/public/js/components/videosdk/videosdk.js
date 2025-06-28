@@ -120,6 +120,11 @@ class VideoSDKManager {
             }
         }
         
+        if (this.meetingCreated) {
+            this.log("Meeting already created, reusing existing meeting");
+            return this.meeting?.id;
+        }
+        
         try {
             this.log("Creating new meeting room...");
             console.log("[VIDEOSDK] Creating new meeting room", customId ? `with custom ID: ${customId}` : "with auto-generated ID");
@@ -150,15 +155,14 @@ class VideoSDKManager {
             }
         } catch (error) {
             this.logError("Error creating meeting room:", error);
+            console.error(`[VIDEOSDK] Error creating meeting room:`, error);
             
             this.meetingCreationAttempts++;
-            if (this.meetingCreationAttempts < this.MAX_MEETING_CREATION_ATTEMPTS) {
-                this.log(`Retrying meeting creation (Attempt ${this.meetingCreationAttempts + 1}/${this.MAX_MEETING_CREATION_ATTEMPTS})...`);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                return this.createMeetingRoom(customId);
+            if (this.meetingCreationAttempts >= this.MAX_MEETING_CREATION_ATTEMPTS) {
+                this.logError("Max meeting creation attempts reached");
+                throw new Error("Failed to create meeting after multiple attempts");
             }
             
-            this.logError("Failed to create meeting room after multiple attempts");
             return null;
         }
     }
@@ -378,12 +382,61 @@ class VideoSDKManager {
         try {
             console.log(`[VIDEOSDK] Joining meeting with ID: ${this.meeting.id || 'unknown'}`);
             this.log(`Joining meeting with ID: ${this.meeting.id || 'unknown'}`);
-            await this.meeting.join();
+            
+            const joinPromise = this.meeting.join();
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Connection timeout')), 15000);
+            });
+            
+            await Promise.race([joinPromise, timeoutPromise]);
+            
+            await new Promise((resolve, reject) => {
+                const maxAttempts = 150;
+                let attempts = 0;
+                
+                const checkConnection = () => {
+                    attempts++;
+                    const status = this.meeting.localParticipant?.connectionStatus;
+                    
+                    if (status === 'connected') {
+                        resolve();
+                    } else if (status === 'failed' || status === 'closed') {
+                        reject(new Error(`Connection ${status}`));
+                    } else if (attempts >= maxAttempts) {
+                        reject(new Error('Connection timeout'));
+                    } else {
+                        setTimeout(checkConnection, 100);
+                    }
+                };
+                
+                this.meeting.on("meeting-joined", () => {
+                    console.log("[VIDEOSDK] Meeting joined event received");
+                    checkConnection();
+                });
+                
+                this.meeting.on("error", (error) => {
+                    console.error("[VIDEOSDK] Meeting error:", error);
+                    reject(error);
+                });
+                
+                checkConnection();
+            });
+            
             console.log(`[VIDEOSDK] Successfully joined meeting with ID: ${this.meeting.id || 'unknown'}`);
             return true;
         } catch (error) {
             this.logError("Failed to join meeting", error);
             console.error(`[VIDEOSDK] Failed to join meeting: ${error.message || error}`);
+            
+            if (window.voiceState) {
+                window.voiceState.isConnected = false;
+            }
+            
+            if (window.voiceManager) {
+                window.voiceManager.isConnected = false;
+            }
+            
+            window.dispatchEvent(new CustomEvent('voiceDisconnect'));
             throw error;
         }
     }
@@ -453,6 +506,15 @@ class VideoSDKManager {
                 this.logError("No local participant found");
                 return false;
             }
+
+            // Check connection status
+            if (localParticipant.connectionStatus !== 'connected') {
+                this.logError("Cannot toggle webcam - participant not fully connected");
+                if (window.showToast) {
+                    window.showToast('Please wait for connection to establish', 'error');
+                }
+                return false;
+            }
             
             const currentWebcamState = this.getWebcamState();
             this.log(`Current webcam state: ${currentWebcamState}`);
@@ -481,6 +543,20 @@ class VideoSDKManager {
                 }
                 
                 try {
+                    // Wait for transport to be ready
+                    await new Promise((resolve, reject) => {
+                        const checkTransport = () => {
+                            if (localParticipant.producer || localParticipant.transport) {
+                                resolve();
+                            } else if (localParticipant.connectionStatus !== 'connected') {
+                                reject(new Error('Connection lost while enabling camera'));
+                            } else {
+                                setTimeout(checkTransport, 100);
+                            }
+                        };
+                        checkTransport();
+                    });
+
                     let stream;
                     if (this.meeting.enableWebcam) {
                         stream = await this.meeting.enableWebcam();
