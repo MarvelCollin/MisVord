@@ -19,11 +19,9 @@ class MediaController extends BaseController
     {
         parent::__construct();
         
-        if (getenv('IS_DOCKER') === 'true') {
-            $this->uploadPath = '/tmp/storage/';
-        } else {
-            $this->uploadPath = __DIR__ . '/../public/storage/';
-        }
+        // Always store uploads inside the project public/storage directory so
+        // files are accessible during local development and testing.
+        $this->uploadPath = dirname(__DIR__) . '/public/storage/';
         
         $this->ensureUploadDirectories();
     }

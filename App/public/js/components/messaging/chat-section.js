@@ -260,6 +260,21 @@ class ChatSection {
                 this.sendMessage();
             });
         }
+
+        const attachmentButton = document.getElementById('attachment-button');
+        const attachmentDropdown = document.getElementById('attachment-dropdown');
+        
+        if (attachmentButton && attachmentDropdown) {
+            attachmentButton.addEventListener('click', () => {
+                attachmentDropdown.classList.toggle('hidden');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!attachmentButton.contains(e.target) && !attachmentDropdown.contains(e.target)) {
+                    attachmentDropdown.classList.add('hidden');
+                }
+            });
+        }
         
         if (this.fileUploadInput) {
             this.fileUploadInput.addEventListener('change', (e) => {

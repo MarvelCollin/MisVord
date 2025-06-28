@@ -382,7 +382,10 @@ class BotHandler {
              const payload = {
                  content: messageData.content,
                  message_type: 'text',
-                 user_id: messageData.user_id
+                 user_id: messageData.user_id,
+                 sent_at: messageData.timestamp || Date.now(),
+                 created_at: Date.now(),
+                 updated_at: Date.now()
              };
 
              if (messageData.reply_message_id) {
@@ -392,10 +395,10 @@ class BotHandler {
 
              let endpoint;
              if (messageType === 'channel') {
-                 endpoint = `http://localhost:8080/api/bots/send-channel-message`;
+                 endpoint = `http://localhost:1001/api/bots/send-channel-message`;
                  payload.channel_id = messageData.channel_id;
              } else {
-                 endpoint = `http://localhost:8080/api/chat/send`;
+                 endpoint = `http://localhost:1001/api/chat/send`;
                  payload.chat_type = 'direct';
                  payload.target_id = messageData.room_id;
              }
@@ -410,29 +413,33 @@ class BotHandler {
                  method: 'POST',
                  headers: {
                      'Content-Type': 'application/json',
+                     'Accept': 'application/json',
+                     'X-Requested-With': 'XMLHttpRequest',
+                     'Origin': 'http://localhost:1001'
                  },
                  body: JSON.stringify(payload)
              });
 
-             const responseText = await response.text();
+             let responseData;
+             try {
+                 const responseText = await response.text();
+                 responseData = JSON.parse(responseText);
+             } catch (parseError) {
+                 console.error(`❌ [BOT-HANDLER] Failed to parse response:`, parseError);
+                 return false;
+             }
              
-             if (response.ok) {
-                 console.log(`💾 [BOT-HANDLER] Bot message saved to database successfully`);
-                 try {
-                     const responseData = JSON.parse(responseText);
-                     if (responseData.data && responseData.data.message) {
-                         console.log(`✅ [BOT-HANDLER] Message saved with ID: ${responseData.data.message.id}`);
-                         return responseData.data.message;
-                     }
-                 } catch (parseError) {
-                     console.log(`📝 [BOT-HANDLER] Response text:`, responseText);
-                 }
-                 return true;
+             if (response.ok && responseData.success) {
+                 console.log(`💾 [BOT-HANDLER] Bot message saved to database successfully:`, {
+                     messageId: responseData.data?.message?.id,
+                     channelId: payload.channel_id
+                 });
+                 return responseData.data?.message || true;
              } else {
                  console.error(`❌ [BOT-HANDLER] Failed to save bot message:`, {
                      status: response.status,
                      statusText: response.statusText,
-                     response: responseText
+                     error: responseData.error || responseData.message
                  });
                  return false;
              }

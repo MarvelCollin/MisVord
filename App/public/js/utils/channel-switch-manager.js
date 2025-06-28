@@ -24,14 +24,15 @@ class ChannelSwitchManager {
 
     async switchToChannel(serverId, channelId, clickedElement = null) {
         console.log(`🎯 CHANNEL SWITCH: Server ${serverId} → Channel ${channelId}`);
+        console.log(`   Current state: Server ${this.currentServerId} → Channel ${this.currentChannelId}`);
         
         if (this.isLoading || !serverId || !channelId) {
             console.log(`⏹️ Switch cancelled: loading=${this.isLoading}, serverId=${serverId}, channelId=${channelId}`);
             return;
         }
         
-        if (this.currentChannelId === channelId) {
-            console.log(`⏹️ Already on channel ${channelId}`);
+        if (this.currentChannelId === channelId && this.currentServerId === serverId) {
+            console.log(`⏹️ Already on server ${serverId}, channel ${channelId}`);
             return;
         }
 

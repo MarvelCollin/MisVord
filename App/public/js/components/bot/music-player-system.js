@@ -655,10 +655,18 @@ class MusicPlayerSystem {
     async stop() {
         if (this.audio) {
             try {
-                this.audio.pause();
-                this.audio.currentTime = 0;
-                this.audio.src = '';
-                this.audio.load();
+                await new Promise(resolve => {
+                    const cleanup = () => {
+                        this.audio.removeEventListener('pause', cleanup);
+                        resolve();
+                    };
+                    this.audio.addEventListener('pause', cleanup, { once: true });
+                    
+                    this.audio.pause();
+                    this.audio.currentTime = 0;
+                    this.audio.src = '';
+                    this.audio.load();
+                });
                 this.audio = null;
             } catch (error) {
                 console.warn('Error stopping audio:', error);
@@ -698,35 +706,39 @@ class MusicPlayerSystem {
             await this.stop();
             
             this.currentSong = track;
-            this.audio = new Audio(track.previewUrl);
+            this.audio = new Audio();
             this.audio.volume = this.volume;
+            this.audio.crossOrigin = "anonymous";
             
             this.initializeAudioEvents();
             
-            this.audio.load();
-            
-            await new Promise((resolve, reject) => {
-                const playPromise = this.audio.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise
-                        .then(() => {
-                            this.isPlaying = true;
-                            resolve();
-                        })
-                        .catch(reject);
-                } else {
-                    this.isPlaying = true;
-                    resolve();
-                }
+            return new Promise((resolve, reject) => {
+                this.audio.addEventListener('canplaythrough', async () => {
+                    try {
+                        await this.audio.play();
+                        this.isPlaying = true;
+                        this.showNowPlaying(track);
+                        resolve(`🎵 Now playing: **${track.title}** by ${track.artist}`);
+                    } catch (error) {
+                        console.error('Play error:', error);
+                        reject(error);
+                    }
+                }, { once: true });
+
+                this.audio.addEventListener('error', (e) => {
+                    console.error('Audio load error:', e);
+                    reject(new Error('Failed to load audio'));
+                }, { once: true });
+
+                this.audio.src = track.previewUrl;
+                this.audio.load();
             });
-            
-            this.showNowPlaying(track);
-            
-            return `🎵 Now playing: **${track.title}** by ${track.artist}`;
         } catch (error) {
             console.error('Playback error:', error);
             this.isPlaying = false;
+            if (error.name === 'AbortError') {
+                return `⚠️ Playback interrupted, retrying "${track.title}"...`;
+            }
             return `❌ Failed to play "${track.title}": ${error.name}`;
         }
     }

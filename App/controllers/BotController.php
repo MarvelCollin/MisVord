@@ -323,11 +323,13 @@ class BotController extends BaseController
     public function sendChannelMessage()
     {
         $input = $this->getInput();
-        $input = $this->sanitize($input);
 
         if (!isset($input['user_id']) || !isset($input['channel_id']) || !isset($input['content'])) {
+            error_log('[BOT ERROR] Missing required fields - Input: ' . json_encode($input));
             return $this->error('Bot user_id, channel_id, and content are required', 400);
         }
+
+        $input['content'] = $this->sanitize($input['content']);
 
         try {
             $bot = $this->userRepository->find($input['user_id']);

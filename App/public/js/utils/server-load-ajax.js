@@ -614,6 +614,19 @@ class ServerAjaxLoader {
         });
 
         document.title = `${server.name} - Discord Clone`;
+        
+        // Update server meta tag
+        let serverIdMeta = document.querySelector('meta[name="server-id"]');
+        if (serverIdMeta) {
+            serverIdMeta.content = server.id;
+        } else {
+            serverIdMeta = document.createElement('meta');
+            serverIdMeta.name = 'server-id';
+            serverIdMeta.content = server.id;
+            document.head.appendChild(serverIdMeta);
+        }
+        
+        console.log(`✅ Updated server meta tag to: ${server.id}`);
     }
 
     updateURL(serverId, channelId) {

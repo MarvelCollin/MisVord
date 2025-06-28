@@ -942,14 +942,18 @@ Route::get('/api/media/gifs', function() {
 Route::get('/storage/(.+)', function($filename) {
     if (getenv('IS_DOCKER') === 'true') {
         $filePath = "/tmp/storage/{$filename}";
-        if (file_exists($filePath)) {
-            $mimeType = mime_content_type($filePath);
-            header("Content-Type: {$mimeType}");
-            header("Content-Length: " . filesize($filePath));
-            readfile($filePath);
-            exit;
-        }
+    } else {
+        $filePath = __DIR__ . "/../public/storage/{$filename}";
     }
+    
+    if (file_exists($filePath)) {
+        $mimeType = mime_content_type($filePath);
+        header("Content-Type: {$mimeType}");
+        header("Content-Length: " . filesize($filePath));
+        readfile($filePath);
+        exit;
+    }
+    
     http_response_code(404);
     echo "File not found";
     exit;
