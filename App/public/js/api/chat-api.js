@@ -136,7 +136,9 @@ class ChatAPI {
                 requestData.message_type = options.message_type;
             }
             
-            if (options.attachment_url) {
+            if (options.attachments && options.attachments.length > 0) {
+                requestData.attachments = options.attachments;
+            } else if (options.attachment_url) {
                 requestData.attachment_url = options.attachment_url;
             }
             
@@ -186,7 +188,7 @@ class ChatAPI {
                     user_id: message.user_id,
                     username: message.username,
                     avatar_url: message.avatar_url,
-                    attachment_url: message.attachment_url || options.attachment_url,
+                    attachments: message.attachments || (options.attachments && options.attachments.length > 0 ? options.attachments : []),
                     reply_message_id: message.reply_message_id || options.reply_message_id,
                     reply_data: message.reply_data,
                     message: message

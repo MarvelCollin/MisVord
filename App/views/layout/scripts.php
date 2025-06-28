@@ -46,7 +46,6 @@ if ($is_auth_page) {
 <script src="<?php echo js('api/channel-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/server-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/bot-api'); ?>?v=<?php echo time(); ?>"></script>
-<script src="<?php echo js('utils/server-load-ajax'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('components/messaging/chat-bot'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('components/bot/music-player-system'); ?>?v=<?php echo time(); ?>"></script>
 <?php endif; ?>

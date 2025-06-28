@@ -335,6 +335,25 @@ const serverAPI = {
             }
             return response.json();
         });
+    },
+
+    generateInvite: function(serverId, options = {}) {
+        return fetch(`/api/servers/${serverId}/invite`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(options)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
     }
 };
 

@@ -61,6 +61,22 @@ class Message extends Model {
         return $this->save();
     }
     
+    public function getAttachmentsAttribute() {
+        $raw = $this->attributes['attachment_url'] ?? null;
+        if (!$raw) return [];
+        
+        $decoded = json_decode($raw, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $decoded;
+        }
+        
+        return [$raw];
+    }
+    
+    public function setAttachmentsAttribute(array $urls) {
+        $this->attributes['attachment_url'] = json_encode(array_values($urls));
+    }
+    
     public function formattedTime() {
         if (empty($this->sent_at)) {
             return 'Just now';

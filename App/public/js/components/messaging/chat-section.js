@@ -1704,36 +1704,44 @@ class ChatSection {
             
             console.log('ChatAPI available, proceeding with message send...');
             
-            let attachmentUrl = null;
+            let attachments = [];
             let messageType = 'text';
             
-            const fileToUpload = this.currentFileUpload || (this.currentFileUploads && this.currentFileUploads.length > 0 ? this.currentFileUploads[0].file : null);
+            const filesToUpload = this.currentFileUploads && this.currentFileUploads.length > 0 
+                ? this.currentFileUploads.map(upload => upload.file)
+                : (this.currentFileUpload ? [this.currentFileUpload] : []);
             
-            if (fileToUpload) {
+            if (filesToUpload.length > 0) {
                 try {
-                    const fileType = fileToUpload.type;
-                    const formData = new FormData();
-                    formData.append('file', fileToUpload);
+                    this.showNotification(`Uploading ${filesToUpload.length} file${filesToUpload.length > 1 ? 's' : ''}...`, 'info');
                     
-                    this.showNotification('Uploading file...', 'info');
+                    for (const file of filesToUpload) {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        
+                        const uploadResponse = await window.ChatAPI.uploadFile(formData);
+                        
+                        if (uploadResponse && uploadResponse.url) {
+                            attachments.push(uploadResponse.url);
+                        } else {
+                            throw new Error(`Failed to upload file: ${file.name}`);
+                        }
+                    }
                     
-                    const uploadResponse = await window.ChatAPI.uploadFile(formData);
-                    
-                    if (uploadResponse && uploadResponse.url) {
-                        attachmentUrl = uploadResponse.url;
-                        if (fileType && fileType.startsWith('image/')) {
+                    // Determine message type based on first file
+                    if (filesToUpload.length > 0) {
+                        const firstFileType = filesToUpload[0].type;
+                        if (firstFileType && firstFileType.startsWith('image/')) {
                             messageType = 'image';
-                        } else if (fileType && fileType.startsWith('video/')) {
+                        } else if (firstFileType && firstFileType.startsWith('video/')) {
                             messageType = 'video';
                         } else {
                             messageType = 'file';
                         }
-                    } else {
-                        throw new Error('Failed to upload file');
                     }
                 } catch (error) {
                     console.error('❌ File upload failed:', error);
-                    this.showNotification('Failed to upload file. ' + error.message, 'error');
+                    this.showNotification('Failed to upload files. ' + error.message, 'error');
                     return;
                 }
             }
@@ -1749,7 +1757,7 @@ class ChatSection {
                 timestamp: timestamp,
                 isLocalOnly: true,
                 message_type: messageType,
-                attachment_url: attachmentUrl,
+                attachments: attachments,
                 _localMessage: true
             };
             
@@ -1761,7 +1769,7 @@ class ChatSection {
             
             const options = {
                 message_type: messageType,
-                attachment_url: attachmentUrl
+                attachments: attachments
             };
             
             if (this.activeReplyingTo) {
@@ -2102,7 +2110,7 @@ class ChatSection {
             reply_data: message.reply_data || null,
             edited_at: message.edited_at || null,
             message_type: message.message_type || 'text',
-            attachment_url: message.attachment_url || null,
+            attachments: message.attachments || (message.attachment_url ? [message.attachment_url] : []),
             reactions: message.reactions || []
         };
         
@@ -2445,116 +2453,119 @@ class ChatSection {
         
         messageElement.appendChild(contentElement);
 
-        if (message.attachment_url) {
+        // Handle attachments (both legacy single attachment and new multiple attachments)
+        const attachments = message.attachments || (message.attachment_url ? [message.attachment_url] : []);
+        
+        if (attachments.length > 0) {
             const attachmentContainer = document.createElement('div');
-            attachmentContainer.className = 'message-attachment mt-2';
+            attachmentContainer.className = 'message-attachment mt-2 flex flex-wrap gap-2';
             
-            if (message.message_type === 'image' || 
-                (message.attachment_url && 
-                 (/\.(jpeg|jpg|gif|png|webp)$/i.test(message.attachment_url) || 
-                  message.attachment_url.includes('image/')))) {
+            attachments.forEach((attachmentUrl, index) => {
+                if (message.message_type === 'image' || 
+                    (/\.(jpeg|jpg|gif|png|webp)$/i.test(attachmentUrl) || 
+                     attachmentUrl.includes('image/'))) {
                 
-                const imageWrapper = document.createElement('div');
-                imageWrapper.className = 'image-attachment cursor-pointer relative';
-                
-                const image = document.createElement('img');
-                image.className = 'max-w-md max-h-96 rounded-lg';
-                image.src = message.attachment_url;
-                image.alt = 'Image attachment';
-                image.loading = 'lazy';
-                image.onerror = function() {
-                    this.onerror = null;
-                    this.src = '/public/assets/common/default-profile-picture.png';
-                    this.classList.add('w-16', 'h-16');
-                    imageWrapper.classList.add('bg-[#2b2d31]', 'p-3', 'rounded-lg');
+                    const imageWrapper = document.createElement('div');
+                    imageWrapper.className = 'image-attachment cursor-pointer relative';
                     
-                    const errorText = document.createElement('div');
-                    errorText.className = 'text-sm text-[#b5bac1] mt-2';
-                    errorText.textContent = 'Image failed to load';
-                    imageWrapper.appendChild(errorText);
-                };
-                
-                image.addEventListener('click', () => {
-                    window.open(message.attachment_url, '_blank');
-                });
-                
-                imageWrapper.appendChild(image);
-                attachmentContainer.appendChild(imageWrapper);
-                
-            } else if (message.message_type === 'video' || 
-                       (message.attachment_url && 
-                        (/\.(mp4|webm|mov|avi|wmv)$/i.test(message.attachment_url) || 
-                         message.attachment_url.includes('video/')))) {
-                
-                const videoWrapper = document.createElement('div');
-                videoWrapper.className = 'video-attachment cursor-pointer relative';
-                
-                const video = document.createElement('video');
-                video.className = 'max-w-md max-h-96 rounded-lg';
-                video.src = message.attachment_url;
-                video.controls = true;
-                video.preload = 'metadata';
-                video.onerror = function() {
-                    this.onerror = null;
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'bg-[#2b2d31] p-3 rounded-lg flex items-center';
-                    errorDiv.innerHTML = '<i class="fas fa-file-video text-2xl mr-2"></i><span>Video failed to load</span>';
-                    videoWrapper.replaceWith(errorDiv);
-                };
-                
-                videoWrapper.appendChild(video);
-                attachmentContainer.appendChild(videoWrapper);
-                
-            } else {
-                const fileLink = document.createElement('a');
-                fileLink.href = message.attachment_url;
-                fileLink.target = '_blank';
-                fileLink.className = 'block no-underline';
-                
-                const fileContainer = document.createElement('div');
-                fileContainer.className = 'bg-[#2b2d31] p-3 rounded-lg inline-flex items-center max-w-md hover:bg-[#36373d] transition-colors';
-                
-                const fileIconWrapper = document.createElement('div');
-                fileIconWrapper.className = 'text-3xl text-[#b5bac1] mr-3';
-                
-                let fileIcon = 'fas fa-file';
-                
-                if (message.attachment_url) {
-                    const extension = message.attachment_url.split('.').pop().toLowerCase();
+                    const image = document.createElement('img');
+                    image.className = 'max-w-md max-h-96 rounded-lg';
+                    image.src = attachmentUrl;
+                    image.alt = 'Image attachment';
+                    image.loading = 'lazy';
+                    image.onerror = function() {
+                        this.onerror = null;
+                        this.src = '/public/assets/common/default-profile-picture.png';
+                        this.classList.add('w-16', 'h-16');
+                        imageWrapper.classList.add('bg-[#2b2d31]', 'p-3', 'rounded-lg');
+                        
+                        const errorText = document.createElement('div');
+                        errorText.className = 'text-sm text-[#b5bac1] mt-2';
+                        errorText.textContent = 'Image failed to load';
+                        imageWrapper.appendChild(errorText);
+                    };
                     
-                    if (['doc', 'docx'].includes(extension)) fileIcon = 'fas fa-file-word';
-                    else if (['xls', 'xlsx', 'csv'].includes(extension)) fileIcon = 'fas fa-file-excel';
-                    else if (['ppt', 'pptx'].includes(extension)) fileIcon = 'fas fa-file-powerpoint';
-                    else if (['pdf'].includes(extension)) fileIcon = 'fas fa-file-pdf';
-                    else if (['zip', 'rar', 'tar', 'gz'].includes(extension)) fileIcon = 'fas fa-file-archive';
-                    else if (['txt', 'log', 'md'].includes(extension)) fileIcon = 'fas fa-file-alt';
-                    else if (['js', 'php', 'html', 'css', 'py', 'java', 'cpp', 'cs', 'rb'].includes(extension)) fileIcon = 'fas fa-file-code';
-                    else if (['mp3', 'wav', 'ogg'].includes(extension)) fileIcon = 'fas fa-file-audio';
-                    else if (['mp4', 'avi', 'mov', 'wmv'].includes(extension)) fileIcon = 'fas fa-file-video';
+                    image.addEventListener('click', () => {
+                        window.open(attachmentUrl, '_blank');
+                    });
+                    
+                    imageWrapper.appendChild(image);
+                    attachmentContainer.appendChild(imageWrapper);
+                    
+                } else if (message.message_type === 'video' || 
+                           (/\.(mp4|webm|mov|avi|wmv)$/i.test(attachmentUrl) || 
+                            attachmentUrl.includes('video/'))) {
+                
+                    const videoWrapper = document.createElement('div');
+                    videoWrapper.className = 'video-attachment cursor-pointer relative';
+                    
+                    const video = document.createElement('video');
+                    video.className = 'max-w-md max-h-96 rounded-lg';
+                    video.src = attachmentUrl;
+                    video.controls = true;
+                    video.preload = 'metadata';
+                    video.onerror = function() {
+                        this.onerror = null;
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'bg-[#2b2d31] p-3 rounded-lg flex items-center';
+                        errorDiv.innerHTML = '<i class="fas fa-file-video text-2xl mr-2"></i><span>Video failed to load</span>';
+                        videoWrapper.replaceWith(errorDiv);
+                    };
+                    
+                    videoWrapper.appendChild(video);
+                    attachmentContainer.appendChild(videoWrapper);
+                    
+                } else {
+                    const fileLink = document.createElement('a');
+                    fileLink.href = attachmentUrl;
+                    fileLink.target = '_blank';
+                    fileLink.className = 'block no-underline';
+                    
+                    const fileContainer = document.createElement('div');
+                    fileContainer.className = 'bg-[#2b2d31] p-3 rounded-lg inline-flex items-center max-w-md hover:bg-[#36373d] transition-colors';
+                    
+                    const fileIconWrapper = document.createElement('div');
+                    fileIconWrapper.className = 'text-3xl text-[#b5bac1] mr-3';
+                    
+                    let fileIcon = 'fas fa-file';
+                    
+                    if (attachmentUrl) {
+                        const extension = attachmentUrl.split('.').pop().toLowerCase();
+                        
+                        if (['doc', 'docx'].includes(extension)) fileIcon = 'fas fa-file-word';
+                        else if (['xls', 'xlsx', 'csv'].includes(extension)) fileIcon = 'fas fa-file-excel';
+                        else if (['ppt', 'pptx'].includes(extension)) fileIcon = 'fas fa-file-powerpoint';
+                        else if (['pdf'].includes(extension)) fileIcon = 'fas fa-file-pdf';
+                        else if (['zip', 'rar', 'tar', 'gz'].includes(extension)) fileIcon = 'fas fa-file-archive';
+                        else if (['txt', 'log', 'md'].includes(extension)) fileIcon = 'fas fa-file-alt';
+                        else if (['js', 'php', 'html', 'css', 'py', 'java', 'cpp', 'cs', 'rb'].includes(extension)) fileIcon = 'fas fa-file-code';
+                        else if (['mp3', 'wav', 'ogg'].includes(extension)) fileIcon = 'fas fa-file-audio';
+                        else if (['mp4', 'avi', 'mov', 'wmv'].includes(extension)) fileIcon = 'fas fa-file-video';
+                    }
+                    
+                    fileIconWrapper.innerHTML = `<i class="${fileIcon}"></i>`;
+                    
+                    const fileInfoWrapper = document.createElement('div');
+                    fileInfoWrapper.className = 'overflow-hidden';
+                    
+                    const fileName = document.createElement('div');
+                    fileName.className = 'text-[#dcddde] font-medium text-sm truncate';
+                    fileName.textContent = attachmentUrl.split('/').pop() || 'File';
+                    
+                    const fileAction = document.createElement('div');
+                    fileAction.className = 'text-[#b5bac1] text-xs';
+                    fileAction.textContent = 'Click to download';
+                    
+                    fileInfoWrapper.appendChild(fileName);
+                    fileInfoWrapper.appendChild(fileAction);
+                    
+                    fileContainer.appendChild(fileIconWrapper);
+                    fileContainer.appendChild(fileInfoWrapper);
+                    
+                    fileLink.appendChild(fileContainer);
+                    attachmentContainer.appendChild(fileLink);
                 }
-                
-                fileIconWrapper.innerHTML = `<i class="${fileIcon}"></i>`;
-                
-                const fileInfoWrapper = document.createElement('div');
-                fileInfoWrapper.className = 'overflow-hidden';
-                
-                const fileName = document.createElement('div');
-                fileName.className = 'text-[#dcddde] font-medium text-sm truncate';
-                fileName.textContent = message.attachment_url.split('/').pop() || 'File';
-                
-                const fileAction = document.createElement('div');
-                fileAction.className = 'text-[#b5bac1] text-xs';
-                fileAction.textContent = 'Click to download';
-                
-                fileInfoWrapper.appendChild(fileName);
-                fileInfoWrapper.appendChild(fileAction);
-                
-                fileContainer.appendChild(fileIconWrapper);
-                fileContainer.appendChild(fileInfoWrapper);
-                
-                fileLink.appendChild(fileContainer);
-                attachmentContainer.appendChild(fileLink);
-            }
+            });
             
             messageElement.appendChild(attachmentContainer);
         }

@@ -4,6 +4,7 @@ $page_title = 'MisVord - Accept Invite';
 $page_css = ['app', 'accept-invite'];
 $page_js = 'pages/accept-invite';
 $additional_js = [];
+$head_scripts = ['logger-init'];
 
 
 if (session_status() === PHP_SESSION_NONE) {

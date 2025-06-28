@@ -35,10 +35,21 @@ class AdminManager {
     this.initUserBanActions();
     this.initHashChange();
     
-    window.nitroManager = new NitroManager();
-    window.serverManager = new ServerManager();
-    window.userManager = new UserManager();
-    window.overviewManager = new OverviewManager();
+    if (!window.nitroManager) {
+      window.nitroManager = new NitroManager();
+    }
+
+    if (!window.serverManager) {
+      window.serverManager = new ServerManager();
+    }
+
+    if (!window.userManager) {
+      window.userManager = new UserManager();
+    }
+
+    if (!window.overviewManager) {
+      window.overviewManager = new OverviewManager();
+    }
     
     if (window.location.hash) {
       const section = window.location.hash.substring(1);

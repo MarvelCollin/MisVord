@@ -48,11 +48,40 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (joinServerBtn) {
         joinServerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Joining...';
             this.classList.add('loading');
             this.disabled = true;
             
             this.dataset.originalText = 'Accept Invitation';
+
+            const href = this.getAttribute('href');
+            fetch(href, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data && data.data.redirect) {
+                    window.location.href = data.data.redirect;
+                } else if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    window.location.href = '/home';
+                }
+            })
+            .catch(error => {
+                console.error('Error joining server:', error);
+                showToast('Failed to join server. Please try again.', 'error');
+                this.innerHTML = this.dataset.originalText;
+                this.classList.remove('loading');
+                this.disabled = false;
+            });
         });
     }
     

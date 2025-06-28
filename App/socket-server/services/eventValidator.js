@@ -3,11 +3,11 @@ class EventValidator {
         this.schemas = {
             'new-channel-message': {
                 required: ['id', 'channel_id', 'content', 'user_id', 'username', 'source'],
-                optional: ['message_type', 'attachment_url', 'timestamp', 'message', 'reply_message_id']
+                optional: ['message_type', 'attachments', 'attachment_url', 'timestamp', 'message', 'reply_message_id']
             },
             'user-message-dm': {
                 required: ['id', 'room_id', 'content', 'user_id', 'username', 'source'],
-                optional: ['message_type', 'attachment_url', 'timestamp', 'message', 'reply_message_id']
+                optional: ['message_type', 'attachments', 'attachment_url', 'timestamp', 'message', 'reply_message_id']
             },
             'message-updated': {
                 required: ['message_id', 'user_id', 'username', 'source'],

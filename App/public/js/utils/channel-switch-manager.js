@@ -3,6 +3,7 @@ class ChannelSwitchManager {
         this.isLoading = false;
         this.currentChannelId = null;
         this.currentServerId = null;
+        this.switchQueue = [];
         this.init();
     }
 
@@ -18,16 +19,23 @@ class ChannelSwitchManager {
     }
 
     getChannelIdFromURL() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('channel');
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('channel');
     }
 
     async switchToChannel(serverId, channelId, clickedElement = null) {
         console.log(`🎯 CHANNEL SWITCH: Server ${serverId} → Channel ${channelId}`);
         console.log(`   Current state: Server ${this.currentServerId} → Channel ${this.currentChannelId}`);
         
-        if (this.isLoading || !serverId || !channelId) {
-            console.log(`⏹️ Switch cancelled: loading=${this.isLoading}, serverId=${serverId}, channelId=${channelId}`);
+        if (!serverId || !channelId) {
+            console.log(`⏹️ Switch cancelled: Invalid serverId or channelId`);
+            return;
+        }
+
+        // Add to queue if already loading
+        if (this.isLoading) {
+            console.log(`⏳ Channel switch queued: ${serverId} → ${channelId}`);
+            this.switchQueue.push({ serverId, channelId, clickedElement });
             return;
         }
         
@@ -37,10 +45,17 @@ class ChannelSwitchManager {
         }
 
         this.isLoading = true;
+        const previousChannelId = this.currentChannelId;
 
         console.log(`🔄 Starting channel switch process...`);
 
         try {
+            // Clean up previous channel
+            if (previousChannelId && window.globalSocketManager) {
+                console.log(`🧹 Cleaning up previous channel: ${previousChannelId}`);
+                window.globalSocketManager.leaveChannel(previousChannelId);
+            }
+
             console.log(`1️⃣ Updating UI...`);
             this.updateChannelUI(clickedElement);
             
@@ -57,15 +72,34 @@ class ChannelSwitchManager {
             console.log(`5️⃣ Dispatching event...`);
             this.dispatchChannelSwitchEvent(channelId, serverId);
             
+            // Join new channel socket room
+            if (window.globalSocketManager) {
+                console.log(`6️⃣ Joining new channel socket room: ${channelId}`);
+                window.globalSocketManager.joinRoom('channel', channelId);
+            }
+            
             console.log(`✅ CHANNEL SWITCH COMPLETE: ${serverId} → ${channelId}`);
             
         } catch (error) {
             console.error(`❌ CHANNEL SWITCH FAILED:`, error);
             console.error(`   Server: ${serverId}, Channel: ${channelId}`);
             console.error(`   Error details:`, error.stack);
+            
+            // Attempt to rejoin previous channel on failure
+            if (previousChannelId && window.globalSocketManager) {
+                console.log(`🔄 Attempting to rejoin previous channel: ${previousChannelId}`);
+                window.globalSocketManager.joinRoom('channel', previousChannelId);
+            }
         } finally {
             this.isLoading = false;
             console.log(`🔓 Channel switch locks released`);
+            
+            // Process next queued switch if any
+            if (this.switchQueue.length > 0) {
+                console.log(`⏭️ Processing next queued channel switch`);
+                const nextSwitch = this.switchQueue.shift();
+                this.switchToChannel(nextSwitch.serverId, nextSwitch.channelId, nextSwitch.clickedElement);
+            }
         }
     }
 

@@ -38,7 +38,24 @@ class ChannelMessageRepository extends Repository {
         ";
         
         $results = $query->query($sql, [$channelId, $limit, $offset]);
+        
+        foreach ($results as &$row) {
+            $row['attachments'] = $this->parseAttachments($row['attachment_url']);
+            unset($row['attachment_url']);
+        }
+        
         return array_reverse($results);
+    }
+    
+    private function parseAttachments($attachmentUrl) {
+        if (!$attachmentUrl) return [];
+        
+        $decoded = json_decode($attachmentUrl, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $decoded;
+        }
+        
+        return [$attachmentUrl];
     }
     
     public function findByMessageId($messageId) {

@@ -199,10 +199,17 @@ function renderMessageContent($message) {
     }
     echo '</div>';
     
-    if ($attachmentUrl) {
-        echo '<div class="message-attachment mt-2">';
+    // Handle attachments (both new array format and legacy single URL)
+    $attachments = $message['attachments'] ?? [];
+    if (empty($attachments) && !empty($message['attachment_url'])) {
+        $attachments = [$message['attachment_url']];
+    }
+    
+    if (!empty($attachments)) {
+        echo '<div class="message-attachment mt-2 flex flex-wrap gap-2">';
         
-        if ($messageType === 'image' || preg_match('/\.(jpeg|jpg|gif|png|webp)$/i', $attachmentUrl)) {
+        foreach ($attachments as $attachmentUrl) {
+            if ($messageType === 'image' || preg_match('/\.(jpeg|jpg|gif|png|webp)$/i', $attachmentUrl)) {
             echo '<div class="image-attachment cursor-pointer relative">';
             echo '<img class="max-w-md max-h-96 rounded-lg" src="' . htmlspecialchars($attachmentUrl) . '" alt="Image attachment" loading="lazy" onclick="window.open(\'' . htmlspecialchars($attachmentUrl) . '\', \'_blank\')" onerror="this.onerror=null; this.src=\'/public/assets/common/default-profile-picture.png\'; this.classList.add(\'w-16\', \'h-16\'); this.parentNode.classList.add(\'bg-[#2b2d31]\', \'p-3\', \'rounded-lg\'); const err=document.createElement(\'div\'); err.className=\'text-sm text-[#b5bac1] mt-2\'; err.textContent=\'Image failed to load\'; this.parentNode.appendChild(err);">';
             echo '</div>';
@@ -235,6 +242,7 @@ function renderMessageContent($message) {
             echo '</div>';
             echo '</div>';
             echo '</a>';
+        }
         }
         
         echo '</div>';
