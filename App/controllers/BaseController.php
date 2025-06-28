@@ -33,7 +33,7 @@ class BaseController
             }
         }
 
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+        if ($this->isApiRoute() || ($this->isAjaxRequest() && !isset($_GET['render_html']))) {
             header('Content-Type: application/json');
             
             if ($this->ajaxConfig['cors']['enabled'] ?? false) {

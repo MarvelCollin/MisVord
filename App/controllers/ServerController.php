@@ -131,11 +131,18 @@ class ServerController extends BaseController
                 $this->logActivity('server_view', ['server_id' => $id]);
 
                 if ($this->isAjaxRequest() && isset($_GET['render_html']) && $_GET['render_html'] === '1') {
+                    if (!headers_sent()) {
+                        header('Access-Control-Allow-Origin: *');
+                        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+                        header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
+                        header('Access-Control-Allow-Credentials: true');
+                        header('Content-Type: text/html; charset=utf-8');
+                    }
+                    
                     ob_start();
                     require_once __DIR__ . '/../views/pages/server-page.php';
                     $html = ob_get_clean();
                     
-                    header('Content-Type: text/html; charset=utf-8');
                     echo $html;
                     exit;
                 }

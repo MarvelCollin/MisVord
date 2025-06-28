@@ -69,6 +69,27 @@ class BotHandler {
                 this.handleMessage(io, data, 'dm', botId, username);
             });
         });
+
+        // Increase max listeners to prevent warnings
+        io.setMaxListeners(20);
+        
+        // Only set up listeners if they don't already exist
+        if (io.listenerCount('new-channel-message') === 0) {
+            io.on('connection', (client) => {
+                // Remove all existing listeners to prevent memory leaks
+                client.removeAllListeners('new-channel-message');
+                client.removeAllListeners('user-message-dm');
+
+                // Add new listeners
+                client.on('new-channel-message', (data) => {
+                    this.handleMessage(io, data, 'channel', botId, username);
+                });
+
+                client.on('user-message-dm', (data) => {
+                    this.handleMessage(io, data, 'dm', botId, username);
+                });
+            });
+        }
     }
 
     static handleMessage(io, data, messageType, botId, username) {
@@ -215,7 +236,21 @@ class BotHandler {
             
             try {
                 const savedMessage = await this.saveBotMessage(responseData, messageType);
-                const emitMessage = savedMessage && savedMessage.id ? savedMessage : responseData;
+                let emitMessage = (savedMessage && savedMessage.id) ? savedMessage : responseData;
+                // Ensure channel_id or room_id is included for client-side filter
+                if (messageType === 'channel' && !emitMessage.channel_id) {
+                    emitMessage.channel_id = responseData.channel_id || originalMessage.channel_id;
+                }
+                if (messageType === 'dm' && !emitMessage.room_id) {
+                    emitMessage.room_id = responseData.room_id || originalMessage.room_id;
+                }
+                if (savedMessage) {
+                    console.log(`💾 [BOT-RESPONSE] Bot message saved to database successfully:`, {
+                        messageId: savedMessage?.id,
+                        channelId: emitMessage.channel_id || emitMessage.room_id,
+                        fullResponse: savedMessage
+                    });
+                }
 
                 io.to(targetRoom).emit(eventName, emitMessage);
                 
@@ -321,18 +356,44 @@ class BotHandler {
             targetRoom = roomManager.getChannelRoom(originalMessage.channel_id);
             eventName = 'new-channel-message';
             responseData.channel_id = originalMessage.channel_id;
+            console.log(`🚪 [BOT-MUSIC] Channel room debug:`, {
+                channel_id: originalMessage.channel_id,
+                targetRoom: targetRoom,
+                eventName: eventName
+            });
         } else if (messageType === 'dm' && originalMessage.room_id) {
             targetRoom = roomManager.getDMRoom(originalMessage.room_id);
             eventName = 'user-message-dm';
             responseData.room_id = originalMessage.room_id;
+            console.log(`🚪 [BOT-MUSIC] DM room debug:`, {
+                room_id: originalMessage.room_id,
+                targetRoom: targetRoom,
+                eventName: eventName
+            });
         }
 
         if (targetRoom && eventName) {
             console.log(`🎵 [BOT-MUSIC] Bot ${username} sending music response for ${command} in ${targetRoom}`);
             
             try {
-                const savedMessage = await this.saveBotMessage(responseData, messageType);
-                let emitMessage = savedMessage && savedMessage.id ? savedMessage : responseData;
+                // Try to save to database, but don't let failure block real-time display
+                let savedMessage = null;
+                try {
+                    savedMessage = await this.saveBotMessage(responseData, messageType);
+                    console.log(`💾 [BOT-MUSIC] Database save result:`, savedMessage ? 'SUCCESS' : 'FAILED');
+                } catch (dbError) {
+                    console.warn(`⚠️ [BOT-MUSIC] Database save failed, proceeding with real-time only:`, dbError.message);
+                }
+                
+                // Use saved message if available, otherwise use temporary data
+                let emitMessage = (savedMessage && savedMessage.id) ? savedMessage : responseData;
+                // Ensure channel_id or room_id is included for client-side filter
+                if (messageType === 'channel' && !emitMessage.channel_id) {
+                    emitMessage.channel_id = responseData.channel_id || originalMessage.channel_id;
+                }
+                if (messageType === 'dm' && !emitMessage.room_id) {
+                    emitMessage.room_id = responseData.room_id || originalMessage.room_id;
+                }
                 if (musicData) emitMessage.music_data = musicData;
 
                 io.to(targetRoom).emit(eventName, emitMessage);
@@ -348,6 +409,18 @@ class BotHandler {
             } catch (error) {
                 console.error(`❌ [BOT-MUSIC] Error sending bot music response:`, error);
             }
+        } else {
+            console.error(`❌ [BOT-MUSIC] Room targeting failed:`, {
+                targetRoom: targetRoom,
+                eventName: eventName,
+                messageType: messageType,
+                originalMessage: {
+                    channel_id: originalMessage.channel_id,
+                    room_id: originalMessage.room_id,
+                    user_id: originalMessage.user_id
+                }
+            });
+            return;
         }
     }
 
@@ -390,14 +463,13 @@ class BotHandler {
              const payload = {
                  content: messageData.content,
                  message_type: 'text',
+                 user_id: messageData.user_id
              };
 
              // Use the same format as regular chat messages
              if (messageType === 'channel') {
-                 payload.target_type = 'channel';
-                 payload.target_id = messageData.channel_id;
+                 payload.channel_id = messageData.channel_id;
              } else {
-                 payload.target_type = 'dm';
                  payload.target_id = messageData.room_id;
              }
 
@@ -405,25 +477,42 @@ class BotHandler {
                  payload.reply_message_id = messageData.reply_message_id;
              }
 
-             // Use the same endpoint as regular users
-             const endpoint = `http://localhost:1001/api/chat/send`;
+             // Use bot-specific endpoint
+             let endpoint;
+             if (messageType === 'channel') {
+                 endpoint = `http://misvord_php:1001/api/bots/send-channel-message`;
+             } else {
+                 endpoint = `http://misvord_php:1001/api/chat/send`;
+                 payload.chat_type = 'direct';
+             }
 
              console.log(`📡 [BOT-HANDLER] Sending bot message to database:`, {
                  endpoint,
                  payload: { ...payload, content: payload.content.substring(0, 50) + '...' }
              });
 
+             // Convert payload to form data for PHP compatibility
+             const formData = new URLSearchParams();
+             Object.entries(payload).forEach(([key, value]) => {
+                 if (value !== undefined && value !== null) {
+                     if (typeof value === 'object') {
+                         formData.append(key, JSON.stringify(value));
+                     } else {
+                         formData.append(key, value);
+                     }
+                 }
+             });
+
              const fetchFn = this.getFetch();
              const response = await fetchFn(endpoint, {
                  method: 'POST',
                  headers: {
-                     'Content-Type': 'application/json',
+                     'Content-Type': 'application/x-www-form-urlencoded',
                      'Accept': 'application/json',
                      'X-Requested-With': 'XMLHttpRequest',
-                     'Origin': 'http://localhost:1001',
-                     'X-Bot-User-Id': messageData.user_id // Pass bot user ID via header
+                     'Origin': 'http://misvord_php:1001',
                  },
-                 body: JSON.stringify(payload)
+                 body: formData.toString()
              });
 
              let responseData;
@@ -437,11 +526,15 @@ class BotHandler {
              }
              
              if (response.ok && responseData.success) {
+                 // Handle nested data structure: responseData.data.data.message
+                 const savedMessage = responseData?.data?.data?.message || responseData?.data?.message || null;
+                 
                  console.log(`💾 [BOT-HANDLER] Bot message saved to database successfully:`, {
-                     messageId: responseData.data?.message?.id,
-                     channelId: payload.target_id
+                     messageId: savedMessage?.id,
+                     channelId: payload.channel_id || payload.target_id,
+                     fullResponse: responseData
                  });
-                 return responseData.data?.message || true;
+                 return savedMessage || true;
              } else {
                  console.error(`❌ [BOT-HANDLER] Failed to save bot message:`, {
                      status: response.status,

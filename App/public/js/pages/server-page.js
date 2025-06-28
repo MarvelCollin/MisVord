@@ -1,4 +1,4 @@
-import { pageUtils } from '../utils/index.js';
+import { pageUtils } from '../utils/page-utils.js';
 import ChannelSwitchManager from '../utils/channel-switch-manager.js';
 
 function loadScript(src, type = '', async = false) {

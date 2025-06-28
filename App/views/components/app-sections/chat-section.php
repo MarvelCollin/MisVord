@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../common/file-preview-card.php';
 $currentUserId = $_SESSION['user_id'] ?? 0;
 
 $chatType = $GLOBALS['chatType'] ?? null;
@@ -577,10 +578,7 @@ function renderMessageContent($message) {
     </div>
 
     <div class="px-4 pb-6 bg-[#313338]">
-        <div id="file-preview" class="hidden min-w-full mb-2">
-            <div id="file-previews-container" class="flex gap-3 p-4 bg-[#2b2d31] rounded-lg overflow-x-auto min-h-[180px]">
-            </div>
-        </div>
+        <?php createFileUploadArea(); ?>
         <div class="relative">
             <form id="message-form" class="relative" onsubmit="return false;">
                 <div class="bg-[#383a40] rounded-lg focus-within:ring-1 focus-within:ring-[#5865f2] transition-colors flex items-center px-4 py-2">
@@ -672,6 +670,8 @@ function renderMessageContent($message) {
         </div>
     </div>
 </div>
+
+<?php createFilePreviewModal(); ?>
 
 <script src="<?php echo js('components/messaging/chat-skeleton-loading'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('components/messaging/chat-section'); ?>?v=<?php echo time(); ?>" type="module"></script>

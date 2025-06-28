@@ -420,7 +420,6 @@ class BotController extends BaseController
                 $query->commit();
                 
                 return $this->success([
-                    'success' => true,
                     'data' => [
                         'message' => $formattedMessage,
                         'channel_id' => $input['channel_id']

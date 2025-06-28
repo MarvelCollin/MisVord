@@ -25,6 +25,13 @@ const io = new Server(server, socketConfig.options);
 eventController.setIO(io);
 socketController.setup(io);
 
+// Auto-initialize TitiBot
+const BotHandler = require('./handlers/botHandler');
+console.log('🤖 Initializing TitiBot...');
+BotHandler.registerBot('4', 'titibot');
+BotHandler.connectBot(io, '4', 'titibot');
+console.log('✅ TitiBot initialized and ready');
+
 const HOST = '0.0.0.0';
 const PORT = process.env.SOCKET_PORT || 1002;
 

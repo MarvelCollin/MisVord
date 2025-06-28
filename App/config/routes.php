@@ -100,6 +100,9 @@ Route::get('/nitro', function() {
     $controller = new NitroController();
     $controller->index();
 });
+Route::get('/test-ajax-server', function() {
+    require_once __DIR__ . '/../public/test-ajax-server.php';
+});
 Route::get('/404', 'pages/404.php');
 
 Route::post('/login', function() {
