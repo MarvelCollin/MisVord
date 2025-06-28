@@ -13,6 +13,7 @@ class VoiceSection {
         this.connectionStartTime = null;
         this.initializationAttempts = 0;
         this.maxInitAttempts = 10;
+        this.initialized = false;
         
         setTimeout(() => {
             this.findElements();
@@ -29,16 +30,28 @@ class VoiceSection {
             voiceControls: document.getElementById('voiceControls'),
             voiceIndicator: document.getElementById('voice-indicator')
         };
+        
+        // Log which elements were found/not found for debugging
+        console.log("Voice elements found:", Object.entries(this.elements).reduce((acc, [key, val]) => {
+            acc[key] = !!val;
+            return acc;
+        }, {}));
     }
     
     init() {
-        if (!this.elements.joinBtn) {
+        console.log("Voice section init called");
+        this.findElements();
+        
+        if (!this.elements.joinBtn && !this.elements.voiceControls) {
             if (this.initializationAttempts < this.maxInitAttempts) {
                 this.initializationAttempts++;
+                console.log(`Voice elements not found, retrying (${this.initializationAttempts}/${this.maxInitAttempts})`);
                 setTimeout(() => {
                     this.findElements();
                     this.init();
-                }, 200);
+                }, 300);
+            } else {
+                console.warn("Max voice init attempts reached, giving up");
             }
             return;
         }
@@ -47,11 +60,21 @@ class VoiceSection {
             window.voiceState = { isConnected: false };
         }
         
+        if (this.initialized) {
+            console.log("Voice section already initialized, re-initializing");
+        }
+        
         this.loadDependencies().then(() => {
             this.waitForVoiceManager().then(() => {
+                this.initialized = true;
                 this.setupEventListeners();
                 this.checkExistingConnection();
                 this.checkForAutoJoin();
+                
+                // Ensure voice tools are initialized
+                if (typeof window.initializeVoiceTools === 'function') {
+                    window.initializeVoiceTools();
+                }
             }).catch(error => {
                 console.error('Failed to initialize voice manager:', error);
             });
@@ -109,8 +132,15 @@ class VoiceSection {
     
     setupEventListeners() {
         if (!this.elements.joinBtn) {
+            console.warn("Join button not found, can't set up event listeners");
             return;
         }
+        
+        // Clone and replace to avoid duplicate event listeners
+        const oldJoinBtn = this.elements.joinBtn;
+        const newJoinBtn = oldJoinBtn.cloneNode(true);
+        oldJoinBtn.parentNode.replaceChild(newJoinBtn, oldJoinBtn);
+        this.elements.joinBtn = newJoinBtn;
         
         this.elements.joinBtn.addEventListener('click', async (e) => {
             if (this.elements.joinBtn.getAttribute('data-processing') === 'true') {
@@ -150,8 +180,13 @@ class VoiceSection {
         window.addEventListener('voiceConnect', (event) => {
             const details = event.detail || {};
             
-            this.elements.connectingView.classList.add('hidden');
-            this.elements.joinView.classList.add('hidden');
+            if (this.elements.connectingView) {
+                this.elements.connectingView.classList.add('hidden');
+            }
+            
+            if (this.elements.joinView) {
+                this.elements.joinView.classList.add('hidden');
+            }
             
             if (this.elements.videoGrid) {
                 this.elements.videoGrid.classList.remove('hidden');
@@ -162,10 +197,13 @@ class VoiceSection {
             }
             
             window.voiceState.isConnected = true;
-            this.elements.joinBtn.removeAttribute('data-processing');
-            this.elements.joinBtn.style.pointerEvents = 'auto';
-            this.elements.joinBtn.style.cursor = 'pointer';
-            this.elements.joinBtn.textContent = 'Connected';
+            
+            if (this.elements.joinBtn) {
+                this.elements.joinBtn.removeAttribute('data-processing');
+                this.elements.joinBtn.style.pointerEvents = 'auto';
+                this.elements.joinBtn.style.cursor = 'pointer';
+                this.elements.joinBtn.textContent = 'Connected';
+            }
             
             if (details.channelName) {
                 this.updateChannelNames(details.channelName);
@@ -187,17 +225,25 @@ class VoiceSection {
                 this.elements.videoGrid.classList.add('hidden');
             }
             
-            this.elements.connectingView.classList.add('hidden');
-            this.elements.joinView.classList.remove('hidden');
+            if (this.elements.connectingView) {
+                this.elements.connectingView.classList.add('hidden');
+            }
+            
+            if (this.elements.joinView) {
+                this.elements.joinView.classList.remove('hidden');
+            }
             
             if (this.elements.voiceControls) {
                 this.elements.voiceControls.classList.add('hidden');
             }
             
-            this.elements.joinBtn.removeAttribute('data-processing');
-            this.elements.joinBtn.style.pointerEvents = 'auto';
-            this.elements.joinBtn.style.cursor = 'pointer';
-            this.elements.joinBtn.textContent = 'Join Voice';
+            if (this.elements.joinBtn) {
+                this.elements.joinBtn.removeAttribute('data-processing');
+                this.elements.joinBtn.style.pointerEvents = 'auto';
+                this.elements.joinBtn.style.cursor = 'pointer';
+                this.elements.joinBtn.textContent = 'Join Voice';
+            }
+            
             window.voiceState.isConnected = false;
             localStorage.removeItem("voiceConnectionState");
         });
@@ -243,18 +289,30 @@ class VoiceSection {
     
     handleConnectionError() {
         console.error('Connection error occurred');
-        this.elements.joinBtn.removeAttribute('data-processing');
-        this.elements.joinBtn.style.pointerEvents = 'auto';
-        this.elements.joinBtn.style.cursor = 'pointer';
-        this.elements.joinBtn.textContent = 'Join Voice';
-        this.elements.joinView.classList.remove('hidden');
-        this.elements.connectingView.classList.add('hidden');
+        
+        if (this.elements.joinBtn) {
+            this.elements.joinBtn.removeAttribute('data-processing');
+            this.elements.joinBtn.style.pointerEvents = 'auto';
+            this.elements.joinBtn.style.cursor = 'pointer';
+            this.elements.joinBtn.textContent = 'Join Voice';
+        }
+        
+        if (this.elements.joinView) {
+            this.elements.joinView.classList.remove('hidden');
+        }
+        
+        if (this.elements.connectingView) {
+            this.elements.connectingView.classList.add('hidden');
+        }
         
         if (this.elements.voiceControls) {
             this.elements.voiceControls.classList.add('hidden');
         }
         
-        window.showToast?.('Failed to connect to voice', 'error', 3000);
+        if (typeof window.showToast === 'function') {
+            window.showToast('Failed to connect to voice', 'error', 3000);
+        }
+        
         localStorage.removeItem("voiceConnectionState");
     }
     
@@ -266,10 +324,18 @@ class VoiceSection {
                 const currentChannelId = document.querySelector('meta[name="channel-id"]')?.content;
                 
                 if (state.isConnected && state.currentChannelId === currentChannelId) {
-                    this.elements.joinView.classList.add('hidden');
-                    this.elements.connectingView.classList.remove('hidden');
-                    this.elements.joinBtn.disabled = true;
-                    this.elements.joinBtn.textContent = 'Connecting...';
+                    if (this.elements.joinView) {
+                        this.elements.joinView.classList.add('hidden');
+                    }
+                    
+                    if (this.elements.connectingView) {
+                        this.elements.connectingView.classList.remove('hidden');
+                    }
+                    
+                    if (this.elements.joinBtn) {
+                        this.elements.joinBtn.disabled = true;
+                        this.elements.joinBtn.textContent = 'Connecting...';
+                    }
                     
                     if (state.channelName) {
                         this.updateChannelNames(state.channelName);
@@ -345,7 +411,20 @@ class VoiceSection {
     }
 
     resetState() {
-        // Clear existing state
+        console.log("⚠️ Voice section reset triggered");
+        
+        // Clear any running intervals
+        if (this.durationInterval) {
+            clearInterval(this.durationInterval);
+            this.durationInterval = null;
+        }
+        
+        // Set initialization state back to initial
+        this.connectionStartTime = null;
+        this.initializationAttempts = 0;
+        this.initialized = false;
+        
+        // Clear references to DOM elements
         this.elements = {
             joinBtn: null,
             joinView: null,
@@ -355,24 +434,12 @@ class VoiceSection {
             voiceIndicator: null
         };
         
-        // Reset connection state
-        if (window.voiceState) {
-            window.voiceState.isConnected = false;
-        }
-        
-        // Clear intervals and timeouts
-        if (this.durationInterval) {
-            clearInterval(this.durationInterval);
-        }
-        
-        this.connectionStartTime = null;
-        this.initializationAttempts = 0;
-        
-        // Find and setup elements again
+        // Re-initialize after a short delay to let the DOM update
+        console.log("🔄 Re-initializing voice section after reset");
         setTimeout(() => {
             this.findElements();
             this.init();
-        }, 100);
+        }, 300);
     }
 }
 

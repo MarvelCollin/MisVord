@@ -207,19 +207,43 @@ class ChatSection {
 
         console.log(`🔌 [CHAT-SECTION] Joining socket room for ${this.chatType} with ID ${this.targetId}`);
         
-        if (this.chatType === 'channel') {
-            window.globalSocketManager.joinChannel(this.targetId);
-        } else if (this.chatType === 'direct' || this.chatType === 'dm') {
-            window.globalSocketManager.joinDMRoom(this.targetId);
+        // Make sure we have a consistent chat type
+        const chatType = this.chatType === 'direct' ? 'dm' : this.chatType;
+        
+        // Join the room using the global socket manager
+        window.globalSocketManager.joinRoom(chatType, this.targetId);
+        
+        // Also emit a direct join-room event for more reliable room registration
+        if (window.globalSocketManager.io) {
+            // Try multiple times to ensure the join request is received
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    console.log(`📡 [CHAT-SECTION] Emitting join-room event (attempt ${i+1}) for ${chatType}-${this.targetId}`);
+                    window.globalSocketManager.io.emit('join-room', {
+                        room_type: chatType,
+                        room_id: this.targetId
+                    });
+                }, i * 1000); // Stagger attempts by 1 second
+            }
         }
         
-        // Force register with the socket server for this specific target
-        window.globalSocketManager.io.emit('join-room', {
-            room_type: this.chatType === 'channel' ? 'channel' : 'dm',
-            room_id: this.targetId
-        });
+        // Setup socket listeners if not already done
+        if (this.socketHandler) {
+            this.socketHandler.setupIoListeners();
+        }
         
-        console.log(`✅ [CHAT-SECTION] Socket room join request sent for ${this.chatType} with ID ${this.targetId}`);
+        // Set up a periodic check to ensure we're still in the room
+        if (!this._roomCheckInterval) {
+            this._roomCheckInterval = setInterval(() => {
+                if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                    console.log(`🔍 [CHAT-SECTION] Periodic room check for ${chatType}-${this.targetId}`);
+                    window.globalSocketManager.io.emit('join-room', {
+                        room_type: chatType,
+                        room_id: this.targetId
+                    });
+                }
+            }, 30000); // Check every 30 seconds
+        }
     }
     
     setupEventListeners() {
@@ -827,12 +851,32 @@ class ChatSection {
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (messageElement) {
             messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // Highlight the message briefly
-            messageElement.classList.add('bg-[#4f545c]');
+            messageElement.classList.add('highlight-message');
             setTimeout(() => {
-                messageElement.classList.remove('bg-[#4f545c]');
+                messageElement.classList.remove('highlight-message');
             }, 2000);
+        }
+    }
+    
+    playMessageSound() {
+        try {
+            // Check if we should play sounds (respect user settings)
+            const soundsEnabled = localStorage.getItem('message_sounds_enabled') !== 'false';
+            
+            if (!soundsEnabled) {
+                console.log('🔇 [CHAT-SECTION] Message sounds are disabled');
+                return;
+            }
+            
+            // Create and play the sound
+            const audio = new Audio('/assets/sound/message_sound.mp3');
+            audio.volume = 0.5; // Set to 50% volume
+            audio.play().catch(error => {
+                // This often fails due to browser autoplay restrictions
+                console.log('🔇 [CHAT-SECTION] Could not play message sound:', error.message);
+            });
+        } catch (error) {
+            console.error('❌ [CHAT-SECTION] Error playing message sound:', error);
         }
     }
     

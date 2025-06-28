@@ -22,16 +22,59 @@ function setup(io) {
         
         client.on('join-room', (data) => {
             console.log(`🚪 [ROOM] Client ${client.id} joining room:`, data);
+            if (!data || !data.room_type || !data.room_id) {
+                console.warn(`⚠️ [ROOM] Invalid join room data:`, data);
+                return;
+            }
+            
             if (data.room_type === 'channel' && data.room_id) {
                 const roomName = `channel-${data.room_id}`;
                 roomManager.joinRoom(client, roomName);
-                client.emit('room-joined', { room_id: roomName, room_type: 'channel' });
+                client.emit('room-joined', { room_id: data.room_id, room_type: 'channel', room_name: roomName });
                 console.log(`✅ [ROOM] Client ${client.id} joined channel room: ${roomName}`);
+                
+                // Log all clients in this room
+                const roomClients = io.sockets.adapter.rooms.get(roomName);
+                if (roomClients) {
+                    console.log(`👥 [ROOM] Clients in room ${roomName}: ${roomClients.size}`);
+                    roomClients.forEach(clientId => {
+                        console.log(`  - Client: ${clientId}`);
+                    });
+                }
+                
+                // Debug: Send a test message to the room to verify connectivity
+                setTimeout(() => {
+                    console.log(`🔍 [ROOM] Sending test message to room ${roomName}`);
+                    io.to(roomName).emit('room-debug', { 
+                        message: 'Room join test message',
+                        room: roomName,
+                        timestamp: Date.now()
+                    });
+                }, 1000);
             } else if (data.room_type === 'dm' && data.room_id) {
                 const roomName = data.room_id.startsWith('dm-room-') ? data.room_id : `dm-room-${data.room_id}`;
                 roomManager.joinRoom(client, roomName);
-                client.emit('room-joined', { room_id: roomName, room_type: 'dm' });
+                client.emit('room-joined', { room_id: data.room_id, room_type: 'dm', room_name: roomName });
                 console.log(`✅ [ROOM] Client ${client.id} joined DM room: ${roomName}`);
+                
+                // Log all clients in this room
+                const roomClients = io.sockets.adapter.rooms.get(roomName);
+                if (roomClients) {
+                    console.log(`👥 [ROOM] Clients in room ${roomName}: ${roomClients.size}`);
+                    roomClients.forEach(clientId => {
+                        console.log(`  - Client: ${clientId}`);
+                    });
+                }
+                
+                // Debug: Send a test message to the room to verify connectivity
+                setTimeout(() => {
+                    console.log(`🔍 [ROOM] Sending test message to room ${roomName}`);
+                    io.to(roomName).emit('room-debug', { 
+                        message: 'Room join test message',
+                        room: roomName,
+                        timestamp: Date.now()
+                    });
+                }, 1000);
             } else {
                 console.warn('⚠️ [ROOM] Invalid room join request:', data);
             }

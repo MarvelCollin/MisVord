@@ -31,37 +31,75 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("Voice tools DOM loaded, initializing...");
     initializeVoiceTools();
 });
 
-function initializeVoiceTools() {
-    if (!window.voiceStateManager) return;
-
-    const controls = {
-        micBtn: { id: 'micBtn', handler: () => window.voiceStateManager.toggleMic() },
-        joinVideoBtn: { id: 'joinVideoBtn', handler: () => window.voiceStateManager.toggleVideo() },
-        screenBtn: { id: 'screenBtn', handler: () => window.voiceStateManager.toggleScreenShare() },
-        deafenBtn: { id: 'deafenBtn', handler: () => window.voiceStateManager.toggleDeafen() },
-        leaveBtn: { id: 'leaveBtn', handler: () => window.voiceStateManager.disconnectVoice() }
-    };
-
-    Object.values(controls).forEach(control => {
-        const btn = document.getElementById(control.id);
-        if (btn) {
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                control.handler();
-            });
+function initializeVoiceTools(retryCount = 0) {
+    console.log(`Initializing voice tools (attempt ${retryCount + 1})`);
+    
+    // Check if voice state manager exists
+    if (!window.voiceStateManager) {
+        console.log("Voice state manager not found, waiting...");
+        
+        // Retry up to 5 times
+        if (retryCount < 5) {
+            setTimeout(() => initializeVoiceTools(retryCount + 1), 500);
+            return;
+        } else {
+            console.warn("Failed to initialize voice tools - voiceStateManager not available");
+            return;
         }
-    });
+    }
 
-    if (window.voiceStateManager) {
-        window.voiceStateManager.updateAllControls();
+    try {
+        console.log("Setting up voice tool controls");
+        
+        const controls = {
+            micBtn: { id: 'micBtn', handler: () => window.voiceStateManager.toggleMic() },
+            joinVideoBtn: { id: 'joinVideoBtn', handler: () => window.voiceStateManager.toggleVideo() },
+            screenBtn: { id: 'screenBtn', handler: () => window.voiceStateManager.toggleScreenShare() },
+            deafenBtn: { id: 'deafenBtn', handler: () => window.voiceStateManager.toggleDeafen() },
+            leaveBtn: { id: 'leaveBtn', handler: () => window.voiceStateManager.disconnectVoice() }
+        };
+
+        // Remove any existing event listeners by cloning and replacing
+        Object.values(controls).forEach(control => {
+            const btn = document.getElementById(control.id);
+            
+            if (btn) {
+                console.log(`Setting up ${control.id} button`);
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                newBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try {
+                        control.handler();
+                    } catch (error) {
+                        console.error(`Error handling ${control.id} click:`, error);
+                    }
+                });
+            } else {
+                console.warn(`Button ${control.id} not found`);
+            }
+        });
+
+        // Update control states after setup
+        if (window.voiceStateManager) {
+            try {
+                window.voiceStateManager.updateAllControls();
+                console.log("Voice tools initialized successfully");
+            } catch (e) {
+                console.error("Error updating voice controls:", e);
+            }
+        }
+    } catch (error) {
+        console.error("Error setting up voice tools:", error);
     }
 }
 
+// Expose the function to the global scope
 window.initializeVoiceTools = initializeVoiceTools;
 </script>

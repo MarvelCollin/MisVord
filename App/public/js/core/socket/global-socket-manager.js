@@ -324,37 +324,38 @@ class GlobalSocketManager {
         const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
         
         // Join the room with the server
-        this.io.emit('join-room', { room_type: roomType, room_id: roomId });
-        
-        // Setup a listener for messages in this specific room
-        const messageEventName = roomType === 'channel' ? 'new-channel-message' : 'user-message-dm';
-        
-        // Remove previous listeners to prevent duplicates
-        this.io.off(messageEventName);
-        
-        // Add new listener specific to this room
-        this.io.on(messageEventName, (messageData) => {
-            const targetRoomId = roomType === 'channel' ? messageData.channel_id : messageData.room_id;
-            
-            if (messageData && String(targetRoomId) === String(roomId)) {
-                this.log(`Received ${messageEventName} in ${roomType} ${roomId}`);
-                
-                // Dispatch event to any listeners
-                const eventName = roomType === 'channel' ? 'newChannelMessage' : 'newDMMessage';
-                const event = new CustomEvent(eventName, { detail: messageData });
-                window.dispatchEvent(event);
-                
-                // If chatSection is available, add the message directly
-                if (window.chatSection && typeof window.chatSection.messageHandler?.addMessage === 'function') {
-                    window.chatSection.messageHandler.addMessage(messageData);
-                }
-            }
+        this.io.emit('join-room', { 
+            room_type: roomType, 
+            room_id: roomId 
         });
         
-        // Track joined rooms consistently
-        this.joinedRooms.add(roomName);
+        // Add to our local tracking sets
+        if (roomType === 'channel') {
+            this.joinedChannels.add(roomId);
+            this.joinedRooms.add(roomName);
+        } else if (roomType === 'dm') {
+            this.joinedDMRooms.add(roomId);
+            this.joinedRooms.add(roomName);
+        }
         
-        console.log(`✅ [SOCKET] Joined ${roomType} room: ${roomName}`);
+        console.log(`✅ [SOCKET] Joined ${roomType} room ${roomId} (${roomName})`);
+        
+        // For debugging purposes, log all rooms we're in
+        console.log(`🏠 [SOCKET] Currently joined rooms:`, {
+            channels: Array.from(this.joinedChannels),
+            dms: Array.from(this.joinedDMRooms),
+            all: Array.from(this.joinedRooms)
+        });
+        
+        // Dispatch an event that we've joined the room
+        window.dispatchEvent(new CustomEvent('socketRoomJoined', {
+            detail: {
+                roomType: roomType,
+                roomId: roomId,
+                roomName: roomName
+            }
+        }));
+        
         return true;
     }
     

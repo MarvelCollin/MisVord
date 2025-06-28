@@ -30,8 +30,43 @@ class RoomManager {
     joinRoom(client, roomName) {
         console.log(`🚪 [ROOM-MANAGER] Client ${client.id} attempting to join room: ${roomName}`);
         
-        client.join(roomName);
-        console.log(`✅ [ROOM-MANAGER] Client ${client.id} successfully joined room: ${roomName}`);
+        // Check if client is already in this room
+        if (client.rooms.has(roomName)) {
+            console.log(`ℹ️ [ROOM-MANAGER] Client ${client.id} is already in room: ${roomName}`);
+            
+            // Force rejoin to ensure connection is active
+            try {
+                console.log(`🔄 [ROOM-MANAGER] Force rejoining room: ${roomName}`);
+                client.leave(roomName);
+                client.join(roomName);
+                console.log(`✅ [ROOM-MANAGER] Client ${client.id} successfully rejoined room: ${roomName}`);
+            } catch (error) {
+                console.error(`❌ [ROOM-MANAGER] Error rejoining room: ${error.message}`);
+            }
+            return;
+        }
+        
+        // Join the room
+        try {
+            client.join(roomName);
+            console.log(`✅ [ROOM-MANAGER] Client ${client.id} successfully joined room: ${roomName}`);
+            
+            // Verify the client is actually in the room
+            if (client.rooms.has(roomName)) {
+                console.log(`✅ [ROOM-MANAGER] Verified client ${client.id} is in room: ${roomName}`);
+            } else {
+                console.warn(`⚠️ [ROOM-MANAGER] Client ${client.id} not in room after join: ${roomName}`);
+                
+                // Try joining again
+                console.log(`🔄 [ROOM-MANAGER] Attempting to join room again: ${roomName}`);
+                client.join(roomName);
+            }
+        } catch (error) {
+            console.error(`❌ [ROOM-MANAGER] Error joining room: ${error.message}`);
+        }
+        
+        // Log all rooms this client is in
+        console.log(`🏠 [ROOM-MANAGER] Client ${client.id} rooms:`, Array.from(client.rooms));
         
         // Track user sockets for presence management
         if (client.data?.user_id) {

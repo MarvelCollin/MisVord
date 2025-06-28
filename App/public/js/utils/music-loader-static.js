@@ -1,4 +1,3 @@
-// Define functions
 export function playDiscordoSound() {
     const sound = new Audio('/public/assets/sound/discordo_sound.mp3');
     sound.volume = 0.5;

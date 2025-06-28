@@ -48,6 +48,8 @@ export function ajax(options = {}) {
     }
 
     const handleVoiceChannelContent = (content) => {
+        console.log("Voice channel content detected, initializing components");
+        
         // Reset voice components if they exist
         if (window.voiceSection) {
             window.voiceSection.resetState();
@@ -56,15 +58,56 @@ export function ajax(options = {}) {
             window.voiceManager.resetState();
         }
         
-        // Re-initialize voice components after content update
+        // Re-initialize voice components after content update with increased timeout
         setTimeout(() => {
+            console.log("Initializing voice components");
+            
             if (window.voiceSection) {
-                window.voiceSection.init();
+                try {
+                    window.voiceSection.init();
+                } catch (e) {
+                    console.error("Error initializing voice section:", e);
+                }
             }
-            if (typeof window.initializeVoiceTools === 'function') {
-                window.initializeVoiceTools();
+            
+            // Initialize voice tools with retry mechanism
+            const initializeTools = (attempts = 0) => {
+                console.log(`Attempting to initialize voice tools (attempt ${attempts + 1})`);
+                
+                if (typeof window.initializeVoiceTools === 'function') {
+                    try {
+                        window.initializeVoiceTools();
+                        
+                        // Check if voice state manager exists, if not retry
+                        if (!window.voiceStateManager && attempts < 3) {
+                            console.log("Voice state manager not found, retrying...");
+                            setTimeout(() => initializeTools(attempts + 1), 500);
+                        }
+                    } catch (e) {
+                        console.error("Error initializing voice tools:", e);
+                        if (attempts < 3) {
+                            setTimeout(() => initializeTools(attempts + 1), 500);
+                        }
+                    }
+                } else if (attempts < 3) {
+                    console.log("initializeVoiceTools function not available yet, retrying...");
+                    setTimeout(() => initializeTools(attempts + 1), 500);
+                }
+            };
+            
+            initializeTools();
+            
+            // Make sure voice controls are visible if we're already connected
+            if (window.voiceState && window.voiceState.isConnected) {
+                const voiceControls = document.getElementById('voiceControls');
+                const videoGrid = document.getElementById('videoGrid');
+                const joinView = document.getElementById('joinView');
+                
+                if (voiceControls) voiceControls.classList.remove('hidden');
+                if (videoGrid) videoGrid.classList.remove('hidden');
+                if (joinView) joinView.classList.add('hidden');
             }
-        }, 100);
+        }, 300);
         
         return content;
     };
@@ -89,7 +132,8 @@ export function ajax(options = {}) {
                         // Check if response contains voice channel content
                         if (text.includes('voice-container') || 
                             text.includes('voice-section') || 
-                            text.includes('voice-indicator')) {
+                            text.includes('voice-indicator') ||
+                            text.includes('voice-tool')) {
                             parsed = handleVoiceChannelContent(text);
                         }
                         parsed = text;
@@ -100,7 +144,8 @@ export function ajax(options = {}) {
                 const text = await responseClone.text();
                 if (text.includes('voice-container') || 
                     text.includes('voice-section') || 
-                    text.includes('voice-indicator')) {
+                    text.includes('voice-indicator') ||
+                    text.includes('voice-tool')) {
                     parsed = handleVoiceChannelContent(text);
                 } else {
                     throw new Error('Failed to parse response: ' + error.message);

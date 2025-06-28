@@ -80,9 +80,43 @@ class MessageHandler {
                 client.join(targetRoom);
             }
             
-            // Broadcast to the room including the sender
+            // FIRST METHOD: Broadcast to all clients in the room including the sender
             io.to(targetRoom).emit(eventName, broadcastData);
-            console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to ${targetRoom} (including sender)`);
+            console.log(`✅ [MESSAGE-FORWARD] Method 1: Broadcasted ${eventName} to ${targetRoom} (including sender)`);
+            
+            // SECOND METHOD: Broadcast to all connected clients
+            io.emit(eventName, broadcastData);
+            console.log(`✅ [MESSAGE-FORWARD] Method 2: Broadcasted ${eventName} to all clients`);
+            
+            // THIRD METHOD: Send directly to each client
+            const roomClients = io.sockets.adapter.rooms.get(targetRoom);
+            if (roomClients) {
+                console.log(`👥 [MESSAGE-FORWARD] Clients in room ${targetRoom}: ${roomClients.size}`);
+                roomClients.forEach(clientId => {
+                    console.log(`  - Client: ${clientId}`);
+                });
+                
+                // Ensure message is received by all clients by sending directly to each client in the room
+                console.log(`🔄 [MESSAGE-FORWARD] Method 3: Sending direct messages to all ${roomClients.size} clients in room`);
+                roomClients.forEach(clientId => {
+                    const targetClient = io.sockets.sockets.get(clientId);
+                    if (targetClient) {
+                        console.log(`  - Sending direct message to client: ${clientId}`);
+                        targetClient.emit(eventName, broadcastData);
+                    }
+                });
+            } else {
+                console.warn(`⚠️ [MESSAGE-FORWARD] No clients found in room ${targetRoom}`);
+                
+                // FOURTH METHOD: Broadcast to all clients as fallback
+                console.log(`🔄 [MESSAGE-FORWARD] Method 4: Broadcasting to all clients as fallback`);
+                Object.keys(io.sockets.sockets).forEach(socketId => {
+                    const socket = io.sockets.sockets.get(socketId);
+                    if (socket) {
+                        socket.emit(eventName, broadcastData);
+                    }
+                });
+            }
         } else {
             console.warn(`⚠️ [MESSAGE-FORWARD] No target room found for ${eventName}:`, {
                 channelId: data.channel_id,
@@ -90,6 +124,10 @@ class MessageHandler {
                 targetType: data.target_type,
                 targetId: data.target_id
             });
+            
+            // FALLBACK METHOD: Broadcast to all clients if no room is found
+            console.log(`🔄 [MESSAGE-FORWARD] Fallback: Broadcasting to all clients`);
+            io.emit(eventName, broadcastData);
         }
     }
 

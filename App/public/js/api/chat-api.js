@@ -173,13 +173,21 @@ class ChatAPI {
             window.chatSection.messageHandler.addMessage(socketData);
         }
         
-        // Emit socket event immediately
-        if (apiChatType === 'channel') {
-            console.log(`📡 [CHAT-API] Emitting channel message: ${tempMessageId}`);
-            window.globalSocketManager?.io?.emit('new-channel-message', socketData);
+        // Emit socket event immediately using emitToRoom for better broadcasting
+        if (window.globalSocketManager) {
+            console.log(`📡 [CHAT-API] Broadcasting message using emitToRoom: ${tempMessageId}`);
+            const eventName = apiChatType === 'channel' ? 'new-channel-message' : 'user-message-dm';
+            window.globalSocketManager.emitToRoom(eventName, socketData, apiChatType, targetId);
         } else {
-            console.log(`📡 [CHAT-API] Emitting DM message: ${tempMessageId}`);
-            window.globalSocketManager?.io?.emit('user-message-dm', socketData);
+            console.warn(`⚠️ [CHAT-API] globalSocketManager not available, using direct emit`);
+            // Fallback to direct emit
+            if (apiChatType === 'channel') {
+                console.log(`📡 [CHAT-API] Emitting channel message: ${tempMessageId}`);
+                window.globalSocketManager?.io?.emit('new-channel-message', socketData);
+            } else {
+                console.log(`📡 [CHAT-API] Emitting DM message: ${tempMessageId}`);
+                window.globalSocketManager?.io?.emit('user-message-dm', socketData);
+            }
         }
         
         // Prepare request data for API
@@ -189,7 +197,12 @@ class ChatAPI {
             attachments: options.attachments || [],
             reply_message_id: options.reply_message_id || null,
             reply_data: options.reply_data || null,
-            temp_message_id: tempMessageId
+            temp_message_id: tempMessageId,
+            // Add missing fields required for proper routing
+            target_type: apiChatType,
+            target_id: targetId,
+            user_id: window.globalSocketManager?.userId,
+            username: window.globalSocketManager?.username
         };
         
         try {
@@ -228,9 +241,14 @@ class ChatAPI {
                     window.chatSection.messageHandler.handleMessageConfirmed(confirmData);
                 }
                 
-                // Emit a message-confirmed event
-                console.log(`📡 [CHAT-API] Emitting message confirmation: ${tempMessageId} → ${messageId}`);
-                window.globalSocketManager?.io?.emit('message-confirmed', confirmData);
+                // Emit a message-confirmed event using emitToRoom for better broadcasting
+                console.log(`📡 [CHAT-API] Broadcasting message confirmation: ${tempMessageId} → ${messageId}`);
+                if (window.globalSocketManager) {
+                    window.globalSocketManager.emitToRoom('message-confirmed', confirmData, apiChatType, targetId);
+                } else {
+                    console.warn(`⚠️ [CHAT-API] globalSocketManager not available, using direct emit`);
+                    window.globalSocketManager?.io?.emit('message-confirmed', confirmData);
+                }
                 
                 return {
                     success: true,
@@ -263,9 +281,14 @@ class ChatAPI {
                 window.chatSection.messageHandler.handleMessageFailed(failData);
             }
             
-            // Emit message failed event
-            console.log(`📡 [CHAT-API] Emitting message failed: ${tempMessageId}`);
-            window.globalSocketManager?.io?.emit('message-failed', failData);
+            // Emit message failed event using emitToRoom for better broadcasting
+            console.log(`📡 [CHAT-API] Broadcasting message failed: ${tempMessageId}`);
+            if (window.globalSocketManager) {
+                window.globalSocketManager.emitToRoom('message-failed', failData, apiChatType, targetId);
+            } else {
+                console.warn(`⚠️ [CHAT-API] globalSocketManager not available, using direct emit`);
+                window.globalSocketManager?.io?.emit('message-failed', failData);
+            }
             
             throw error;
         }
