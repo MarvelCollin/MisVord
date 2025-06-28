@@ -14,6 +14,23 @@ class FriendController extends BaseController
         $this->friendListRepository = new FriendListRepository();
     }
 
+    private function notifyViaSocket($event, $data)
+    {
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => 'http://socket-server:3000/api/notify',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode([
+                'event' => $event,
+                'data' => $data
+            ])
+        ]);
+        curl_exec($curl);
+        curl_close($curl);
+    }
+
     public function index()
     {
         $this->requireAuth();

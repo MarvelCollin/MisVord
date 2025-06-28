@@ -1,9 +1,5 @@
 <?php
 
-if (!isset($currentServer) || empty($currentServer)) {
-    echo '<div class="flex-1 bg-[#313338] flex items-center justify-center text-white text-lg">Select a server to view channels</div>';
-    return;
-}
 
 $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
 $activeChannel = $GLOBALS['activeChannel'] ?? null;

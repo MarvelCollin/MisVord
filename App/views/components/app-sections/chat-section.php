@@ -385,9 +385,6 @@ function renderMessageContent($message) {
     font-style: italic;
 }
 
-/* Reply styles are now handled in chat-section.css */
-
-/* Message animations */
 .message-fade-in {
     opacity: 0;
     transform: translateY(8px);
@@ -399,7 +396,6 @@ function renderMessageContent($message) {
     transform: translateY(0);
 }
 
-/* Reaction animations */
 .reaction-fade-in {
     opacity: 0;
     transform: scale(0.8);
@@ -411,7 +407,6 @@ function renderMessageContent($message) {
     transform: scale(1);
 }
 
-/* Reaction popup animation */
 @keyframes reaction-pop {
     0% { transform: scale(1); }
     50% { transform: scale(1.3); }
@@ -422,7 +417,6 @@ function renderMessageContent($message) {
     animation: reaction-pop 0.5s ease-in-out;
 }
 
-/* Reaction loading skeleton styles */
 .reaction-skeleton {
     min-height: 28px;
     padding: 4px 0;
@@ -443,7 +437,6 @@ function renderMessageContent($message) {
     100% { background-position: 200% 0; }
 }
 
-/* Proper message group and content styling */
 #chat-messages .message-group:hover {
     background-color: rgba(79, 84, 92, 0.16) !important;
 }
@@ -522,9 +515,7 @@ function renderMessageContent($message) {
 <meta name="chat-title" content="<?php echo htmlspecialchars($chatTitle ?? ''); ?>">
 <meta name="chat-placeholder" content="<?php echo htmlspecialchars($placeholder ?? ''); ?>">
 
-<!-- Chat Section Container -->
 <div class="flex-1 flex flex-col bg-[#313338] h-screen overflow-hidden">
-    <!-- Chat Header -->
     <?php if ($chatType): ?>
     <div class="h-12 min-h-[48px] px-4 border-b border-[#2d2f32] flex items-center shadow-sm z-10 bg-[#313338]">
         <i class="<?php echo $chatIcon; ?> text-[#949ba4] mr-2"></i>
@@ -532,7 +523,6 @@ function renderMessageContent($message) {
     </div>
     <?php endif; ?>
 
-    <!-- Messages Container -->
     <div id="chat-messages" class="flex-1 overflow-y-auto overflow-x-hidden">
         <div class="messages-container flex flex-col min-h-full">
             <?php if (!empty($messages)): ?>
@@ -553,39 +543,46 @@ function renderMessageContent($message) {
         </div>
     </div>
 
-    <!-- Message Input -->
     <?php if ($chatType): ?>
-    <div class="px-0 pb-6 pt-2">
+    <div class="px-4 py-[10px] bg-[#313338] border-t border-[#3f4147]">
         <div id="reply-container" class="hidden"></div>
-        
-        <div class="px-4">
-            <form id="message-form" class="relative bg-[#383a40] rounded-lg flex items-center h-11">
-                <div class="flex items-center pl-4">
-                    <button type="button" id="upload-button" class="text-[#b9bbbe] hover:text-[#dcddde] transition-colors w-6 h-6 flex items-center justify-center">
-                        <i class="fas fa-plus text-[16px]"></i>
-                    </button>
-                </div>
-                
-                <div class="flex-1 flex items-center min-h-[44px]">
-                    <textarea 
-                        id="message-input"
-                        class="w-full bg-transparent text-[#dcddde] placeholder-[#72767d] border-none resize-none py-2.5 pr-2 focus:outline-none scrollbar-thin min-h-[22px] max-h-[50vh] leading-[1.375rem] text-[1rem]"
-                        rows="1"
-                        placeholder="<?php echo htmlspecialchars($placeholder); ?>"
-                        maxlength="2000"
-                    ></textarea>
-                </div>
 
-                <div class="flex items-center pr-[10px] gap-[10px]">
-                    <button type="button" class="text-[#b9bbbe] hover:text-[#dcddde] transition-colors w-6 h-6 flex items-center justify-center">
-                        <i class="fas fa-gift text-[16px]"></i>
-                    </button>
-                    <button type="button" class="text-[#b9bbbe] hover:text-[#dcddde] transition-colors w-6 h-6 flex items-center justify-center">
-                        <i class="fas fa-face-smile text-[16px]"></i>
-                    </button>
-                </div>
-            </form>
-        </div>
+        <form id="message-form" class="flex items-center bg-[#383a40] rounded-lg h-11 relative">
+            <div class="flex items-center justify-center w-12">
+                <button
+                    type="button"
+                    id="upload-button"
+                    class="hover:text-[#dcddde] text-[#b9bbbe] w-8 h-8 flex items-center justify-center rounded hover:bg-[#404249] transition-all"
+                >
+                    <i class="fas fa-plus text-[20px]"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 flex items-center">
+                <textarea
+                    id="message-input"
+                    class="block w-full bg-transparent text-[#dcddde] placeholder-[#6d6f78] border-none resize-none py-[11px] px-0 focus:outline-none min-h-[22px] max-h-[50vh] text-[16px] leading-[22px]"
+                    rows="1"
+                    placeholder="<?php echo htmlspecialchars($placeholder); ?>"
+                    maxlength="2000"
+                ></textarea>
+            </div>
+
+            <div class="flex items-center pr-[2px] gap-1">
+                <button
+                    type="button"
+                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-1"
+                >
+                    <i class="fas fa-gift text-[20px]"></i>
+                </button>
+                <button
+                    type="button"
+                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1"
+                >
+                    <i class="fas fa-face-smile text-[20px]"></i>
+                </button>
+            </div>
+        </form>
     </div>
     <?php endif; ?>
 </div>
@@ -638,16 +635,13 @@ function renderMessageContent($message) {
 <script src="<?php echo js('components/messaging/emoji'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Chat section template loaded');
     initializeChatUI();
 });
 
 function initializeChatUI() {
-    console.log('Initializing chat UI');
     
     const chatMessages = document.getElementById('chat-messages');
     if (chatMessages && !chatMessages.hasChildNodes()) {
-        console.log('Chat messages empty, skeleton loading should be visible');
     }
     
     const messageInput = document.getElementById('message-input');
@@ -655,7 +649,6 @@ function initializeChatUI() {
     const messageForm = document.getElementById('message-form');
     
     if (!messageInput || !sendButton) {
-        console.log('Chat UI elements not found, retrying...');
         setTimeout(initializeChatUI, 200);
         return;
     }

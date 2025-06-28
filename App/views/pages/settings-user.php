@@ -88,8 +88,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="sidebar-category">
                 <span>USER ACTIONS</span>
             </div>
-            <a href="#" id="logout-btn" onclick="if(window.logoutUser) window.logoutUser(); else window.location.href='/logout'; return false;" class="sidebar-item text-red-500 hover:text-red-400">
-                <i class="fas fa-sign-out-alt"></i>
+            <a href="#" id="logout-btn" class="sidebar-item text-red-500 hover:text-red-400">
+                <i class="fas fa-sign-out-alt mr-2"></i>
                 Log Out
             </a>
         </nav>

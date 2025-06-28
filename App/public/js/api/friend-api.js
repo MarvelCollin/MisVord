@@ -5,7 +5,26 @@ class FriendAPI {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         };
-    }    async parseResponse(response) {
+        this.setupSocketListeners();
+    }
+
+    setupSocketListeners() {
+        if (typeof socket !== 'undefined') {
+            socket.on('friend-request-received', (data) => {
+                showToast(`Friend request received from ${data.sender_username}`, 'info');
+            });
+
+            socket.on('friend-request-accepted', (data) => {
+                showToast(`${data.recipient_username} accepted your friend request`, 'success');
+            });
+
+            socket.on('friend-request-declined', (data) => {
+                showToast(`Your friend request was declined`, 'info');
+            });
+        }
+    }
+
+    async parseResponse(response) {
         const text = await response.text();
         
         if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
@@ -31,7 +50,9 @@ class FriendAPI {
             console.error('Failed to parse JSON response:', text);
             throw new Error('Invalid response from server');
         }
-    }    async makeRequest(url, options = {}) {
+    }
+
+    async makeRequest(url, options = {}) {
         try {
             const response = await fetch(url, {
                 headers: this.headers,
@@ -73,7 +94,9 @@ class FriendAPI {
     async getOnlineFriends() {
         const data = await this.makeRequest(`${this.baseURL}/online`);
         return data.data || [];
-    }    async getPendingRequests() {
+    }
+
+    async getPendingRequests() {
         const data = await this.makeRequest(`${this.baseURL}/pending`);
         return data.data || { incoming: [], outgoing: [] };
     }
@@ -81,7 +104,9 @@ class FriendAPI {
     async getPendingCount() {
         const data = await this.makeRequest(`${this.baseURL}/pending/count`);
         return data.count || 0;
-    }    async acceptFriendRequest(friendshipId) {
+    }
+
+    async acceptFriendRequest(friendshipId) {
         const data = await this.makeRequest(`${this.baseURL}/accept?id=${friendshipId}`, {
             method: 'POST'
         });
@@ -117,8 +142,6 @@ class FriendAPI {
         
         return data;
     }
-
-
 
     validateUsername(username) {
         if (!username || username.length < 2) {

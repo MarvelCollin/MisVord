@@ -158,33 +158,26 @@ $additional_js[] = 'components/app-layout';
                     $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
                     $channels = $GLOBALS['serverChannels'] ?? [];
                     $activeChannel = null;
-                    $channelType = 'text'; 
+                    $channelType = isset($_GET['type']) ? $_GET['type'] : 'text';
 
                     foreach ($channels as $channel) {
                         if ($channel['id'] == $activeChannelId) {
                             $activeChannel = $channel;
-
                             if (isset($channel['type_name']) && $channel['type_name'] === 'voice') {
                                 $channelType = 'voice';
                             } elseif (isset($channel['type']) && ($channel['type'] === 'voice' || $channel['type'] === 2)) {
                                 $channelType = 'voice';
                             }
-
                             $GLOBALS['activeChannel'] = $activeChannel;
                             break;
                         }
                     }
-
-                    if (isset($_GET['type']) && $_GET['type'] === 'voice') {
-                        $channelType = 'voice';
-                    }
                     ?>
                     
-                    <!-- Always include both sections, but hide one based on channel type -->
-                    <div class="chat-section <?php echo $channelType === 'text' ? '' : 'hidden'; ?>">
+                    <div class="chat-section <?php echo $channelType === 'text' ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
                         <?php include dirname(__DIR__) . '/app-sections/chat-section.php'; ?>
                     </div>
-                    <div class="voice-section <?php echo $channelType === 'voice' ? '' : 'hidden'; ?>">
+                    <div class="voice-section <?php echo $channelType === 'voice' ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
                         <?php include dirname(__DIR__) . '/app-sections/voice-section.php'; ?>
                     </div>
                 </div>

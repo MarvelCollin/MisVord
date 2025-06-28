@@ -26,11 +26,12 @@ function renderChannel($channel, $activeChannelId) {
     
     echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-discord-lighten ' . $activeClass . '" 
               data-channel-id="' . $channel['id'] . '" 
-              data-channel-type="' . htmlspecialchars($type) . '">';
+              data-channel-type="' . htmlspecialchars($type) . '"
+              data-server-id="' . htmlspecialchars($GLOBALS['currentServer']->id ?? '') . '">';
     echo '  <i class="fas fa-' . $icon . ' text-xs mr-3 text-gray-500"></i>';
     echo '  <span class="text-sm">' . htmlspecialchars($channel['name']) . '</span>';
     if ($type === 'voice') {
-        echo '  <span class="ml-auto text-xs text-gray-500">0</span>';
+        echo '  <span class="ml-auto text-xs text-gray-500 voice-user-count">0</span>';
     }
     echo '</div>';
 }
@@ -60,6 +61,7 @@ function renderCategorySkeleton($count = 1) {
 <div class="channel-wrapper h-full w-full overflow-y-auto">
     <div class="channel-list p-2" data-server-id="<?php echo $currentServerId; ?>">
         <input type="hidden" id="current-server-id" value="<?php echo $currentServerId; ?>">
+        <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">
         
         <?php
         $uncategorizedChannels = array_filter($channels, function($ch) {
@@ -93,6 +95,29 @@ function renderCategorySkeleton($count = 1) {
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if (!empty($categories)): ?>
+            <?php foreach ($categories as $category): ?>
+                <?php
+                $categoryChannels = array_filter($channels, function($ch) use ($category) {
+                    return isset($ch['category_id']) && $ch['category_id'] == $category['id'];
+                });
+                
+                if (empty($categoryChannels)) continue;
+                ?>
+                <div class="category-section mb-4">
+                    <div class="category-header flex items-center px-3 py-1 mb-1 cursor-pointer">
+                        <i class="fas fa-chevron-down text-xs mr-1 text-gray-500"></i>
+                        <span class="text-xs font-semibold uppercase text-gray-400"><?php echo htmlspecialchars($category['name']); ?></span>
+                    </div>
+                    <div class="category-channels ml-2">
+                        <?php foreach ($categoryChannels as $channel): ?>
+                            <?php renderChannel($channel, $activeChannelId); ?>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         <?php endif; ?>
 
         <?php if (empty($channels)): ?>
@@ -145,5 +170,22 @@ function renderCategorySkeleton($count = 1) {
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+.category-header {
+    transition: color 0.15s ease;
+}
+
+.category-header:hover {
+    color: #ffffff;
+}
+
+.category-channels {
+    transition: max-height 0.3s ease;
+}
+
+.category-channels.hidden {
+    max-height: 0;
+    overflow: hidden;
 }
 </style>

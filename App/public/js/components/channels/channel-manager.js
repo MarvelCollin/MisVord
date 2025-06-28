@@ -342,30 +342,16 @@ function getChannelIconJS(type) {
 function initChannelEventListeners() {
     console.log('🎯 Setting up channel event listeners');
 
-    // Set up channel click handlers via the switch manager
-    if (window.channelSwitchManager) {
-        const channelContainer = document.querySelector('.channel-wrapper') || 
-                               document.querySelector('.channel-list');
-        if (channelContainer) {
-            window.channelSwitchManager.setupChannelClickHandlers(channelContainer);
-            console.log('✅ Channel click handlers set up via switchManager');
-        }
-    } else {
+    if (!window.channelSwitchManager) {
         console.warn('⚠️ channelSwitchManager not available, waiting and retrying...');
         
-        // Wait for channelSwitchManager to load
         let retries = 0;
         const maxRetries = 10;
         
         const checkForManager = () => {
             retries++;
             if (window.channelSwitchManager) {
-                const channelContainer = document.querySelector('.channel-wrapper') || 
-                                       document.querySelector('.channel-list');
-                if (channelContainer) {
-                    window.channelSwitchManager.setupChannelClickHandlers(channelContainer);
-                    console.log('✅ Channel click handlers set up via switchManager (delayed)');
-                }
+                console.log('✅ Channel switch manager found (delayed)');
             } else if (retries < maxRetries) {
                 setTimeout(checkForManager, 200);
             } else {
@@ -375,9 +361,10 @@ function initChannelEventListeners() {
         };
         
         setTimeout(checkForManager, 200);
+    } else {
+        console.log('✅ Channel switch manager ready');
     }
 
-    // Clean up any old event listeners on forms/buttons
     initUpdateChannelForms();
     initDeleteChannelButtons();
     
@@ -385,9 +372,10 @@ function initChannelEventListeners() {
 }
 
 function setupBasicChannelHandlers() {
-    // Fallback: basic click handlers
     document.querySelectorAll('.channel-item').forEach(item => {
         item.addEventListener('click', (e) => {
+            if (e.target.closest('.channel-actions')) return;
+            
             const channelId = item.dataset.channelId;
             const serverId = document.getElementById('current-server-id')?.value;
             

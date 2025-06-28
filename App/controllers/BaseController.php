@@ -464,9 +464,14 @@ class BaseController
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         if (strpos($contentType, 'application/json') !== false) {
             $jsonInput = file_get_contents('php://input');
-            $decoded = json_decode($jsonInput, true);
-            if ($decoded !== null) {
-                $input = $decoded;
+            if (!empty($jsonInput)) {
+                $decoded = json_decode($jsonInput, true);
+                if ($decoded !== null) {
+                    $input = $decoded;
+                } else {
+                    error_log("Failed to decode JSON input: " . json_last_error_msg());
+                    error_log("Raw input: " . $jsonInput);
+                }
             }
         }
 
@@ -476,6 +481,7 @@ class BaseController
         
         $input = array_merge($input, $_POST);
 
+        error_log("Processed input: " . json_encode($input));
         return $input;
     }
 

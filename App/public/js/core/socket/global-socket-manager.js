@@ -14,6 +14,7 @@ class GlobalSocketManager {
         this.reconnectDelay = 3000;
         this.joinedChannels = new Set();
         this.joinedDMRooms = new Set();
+        this.joinedRooms = new Set();
     }
     
     init(userData = null) {
@@ -252,23 +253,23 @@ class GlobalSocketManager {
     }
     
     joinChannel(channelId) {
-        if (!this.connected || !this.io || !this.authenticated) {
-            this.error('Cannot join channel: socket not connected or not authenticated', {
-                connected: this.connected,
-                authenticated: this.authenticated,
-                hasSocket: !!this.io
-            });
+        console.log(`📺 [SOCKET] Joining channel ${channelId}`);
+        
+        if (!this.isReady()) {
+            console.warn('⚠️ [SOCKET] Cannot join channel - socket not ready');
             return false;
         }
         
-        if (this.joinedChannels.has(channelId)) {
-            this.log(`Already joined channel: ${channelId}`);
-            return true;
+        if (!channelId) {
+            console.warn('⚠️ [SOCKET] Cannot join channel - no channel ID provided');
+            return false;
         }
         
-        this.log(`Joining channel: ${channelId}`);
-        this.io.emit('join-channel', { channel_id: channelId });
-        this.joinedChannels.add(channelId);
+        const roomName = `channel-${channelId}`;
+        this.io.emit('join-room', { room_type: 'channel', room_id: channelId });
+        this.joinedChannels.add(roomName);
+        
+        console.log(`✅ [SOCKET] Joined channel ${channelId}`);
         return true;
     }
     
@@ -303,67 +304,124 @@ class GlobalSocketManager {
     }
     
     joinRoom(roomType, roomId) {
-        if (!this.connected || !this.io || !this.authenticated) {
-            this.error('Cannot join room: socket not connected or not authenticated', {
-                connected: this.connected,
-                authenticated: this.authenticated,
-                hasSocket: !!this.io
-            });
+        console.log(`📺 [SOCKET] Joining ${roomType} room ${roomId}`);
+        
+        if (!this.isReady()) {
+            console.warn('⚠️ [SOCKET] Cannot join room - socket not ready');
             return false;
         }
         
-        const roomIdStr = typeof roomId === 'string' ? roomId : String(roomId);
-        
-        this.log(`Joining room: ${roomType} - ${roomId}`);
-        this.io.emit('join-room', { 
-            room_type: roomType, 
-            room_id: roomIdStr,
-            source: 'client-originated'
-        });
-        
-        if (roomType === 'channel') {
-            this.joinedChannels.add(roomId);
-        } else if (roomType === 'dm') {
-            this.joinedDMRooms.add(roomId);
+        if (!roomId) {
+            console.warn('⚠️ [SOCKET] Cannot join room - no room ID provided');
+            return false;
         }
         
+        // Use consistent room name format
+        const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
+        
+        // Join the room with the server
+        this.io.emit('join-room', { room_type: roomType, room_id: roomId });
+        
+        // Track joined rooms consistently
+        this.joinedRooms.add(roomName);
+        
+        console.log(`✅ [SOCKET] Joined ${roomType} room: ${roomName}`);
         return true;
+    }
+    
+    leaveRoom(roomType, roomId) {
+        console.log(`🚪 [SOCKET] Leaving ${roomType} room ${roomId}`);
+        
+        if (!this.isReady()) {
+            console.warn('⚠️ [SOCKET] Cannot leave room - socket not ready');
+            return false;
+        }
+        
+        if (!roomId) {
+            console.warn('⚠️ [SOCKET] Cannot leave room - no room ID provided');
+            return false;
+        }
+        
+        // Use consistent room name format
+        const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
+        
+        // Leave the room with the server
+        this.io.emit('leave-room', { room_type: roomType, room_id: roomId });
+        
+        // Remove from tracked rooms
+        this.joinedRooms.delete(roomName);
+        
+        console.log(`✅ [SOCKET] Left ${roomType} room: ${roomName}`);
+        return true;
+    }
+    
+    emitToRoom(eventName, data, roomType, roomId) {
+        if (!this.isReady()) {
+            console.warn('⚠️ [SOCKET] Cannot emit to room - socket not ready');
+            return false;
+        }
+        
+        // Use consistent room name format
+        const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
+        
+        // Check if we're in the room
+        if (!this.joinedRooms.has(roomName)) {
+            console.warn(`⚠️ [SOCKET] Cannot emit to room ${roomName} - not joined`);
+            return false;
+        }
+        
+        // Add room information to data
+        const roomData = {
+            ...data,
+            room_type: roomType,
+            room_id: roomId
+        };
+        
+        console.log(`📤 [SOCKET] Emitting ${eventName} to ${roomType} room ${roomName}:`, roomData);
+        this.io.emit(eventName, roomData);
+        return true;
+    }
+    
+    sendMessage(messageData, roomType, roomId) {
+        if (!this.isReady()) {
+            console.warn('⚠️ [SOCKET] Cannot send message - socket not ready');
+            return false;
+        }
+
+        const eventName = roomType === 'channel' ? 'new-channel-message' : 'user-message-dm';
+        return this.emitToRoom(eventName, messageData, roomType, roomId);
     }
     
     sendTyping(channelId = null, roomId = null) {
-        if (!this.connected || !this.io) return false;
-        
-        if (channelId) {
-            this.io.emit('typing', { 
-                channel_id: channelId,
-                source: 'client-originated'
-            });
-        } else if (roomId) {
-            this.io.emit('typing', { 
-                room_id: roomId,
-                source: 'client-originated'
-            });
+        if (!this.isReady()) {
+            console.warn('⚠️ [SOCKET] Cannot send typing - socket not ready');
+            return false;
         }
-        
-        return true;
+
+        const data = channelId 
+            ? { channel_id: channelId, source: 'client-originated' }
+            : { room_id: roomId, source: 'client-originated' };
+
+        const roomType = channelId ? 'channel' : 'dm';
+        const targetId = channelId || roomId;
+
+        return this.emitToRoom('typing', data, roomType, targetId);
     }
     
     sendStopTyping(channelId = null, roomId = null) {
-        if (!this.connected || !this.io) return false;
-        
-        if (channelId) {
-            this.io.emit('stop-typing', { 
-                channel_id: channelId,
-                source: 'client-originated'
-            });
-        } else if (roomId) {
-            this.io.emit('stop-typing', { 
-                room_id: roomId,
-                source: 'client-originated'
-            });
+        if (!this.isReady()) {
+            console.warn('⚠️ [SOCKET] Cannot send stop typing - socket not ready');
+            return false;
         }
-        
-        return true;
+
+        const data = channelId 
+            ? { channel_id: channelId, source: 'client-originated' }
+            : { room_id: roomId, source: 'client-originated' };
+
+        const roomType = channelId ? 'channel' : 'dm';
+        const targetId = channelId || roomId;
+
+        return this.emitToRoom('stop-typing', data, roomType, targetId);
     }
     
     updatePresence(status, activityDetails = null) {
@@ -387,6 +445,7 @@ class GlobalSocketManager {
         this.authenticated = false;
         this.joinedChannels.clear();
         this.joinedDMRooms.clear();
+        this.joinedRooms.clear();
         this.log('Socket manually disconnected');
     }
     
@@ -466,7 +525,8 @@ class GlobalSocketManager {
             username: this.username,
             lastError: this.lastError,
             joinedChannels: Array.from(this.joinedChannels),
-            joinedDMRooms: Array.from(this.joinedDMRooms)
+            joinedDMRooms: Array.from(this.joinedDMRooms),
+            joinedRooms: Array.from(this.joinedRooms)
         };
     }
     

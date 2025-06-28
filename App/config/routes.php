@@ -217,7 +217,7 @@ Route::get('/api/channels/([0-9]+)', function($channelId) {
     $controller->show($channelId);
 });
 
-Route::get('/api/channel-content', function() {
+Route::get('/api/channels/content', function() {
     $controller = new ChannelController();
     $controller->getChannelContent();
 });

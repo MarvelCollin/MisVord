@@ -154,35 +154,77 @@ class ChatController extends BaseController
         $input = $this->getInput();
         $input = $this->sanitize($input);
 
-        $this->validate($input, [
-            'target_type' => 'required',
-            'target_id' => 'required'
-        ]);
+        error_log("Received input for message: " . json_encode($input));
 
-        $targetType = $input['target_type'];
-        $targetId = $input['target_id'];
+        // Validate required fields with detailed error messages
+        $validationErrors = [];
+        if (empty($input['target_type'])) {
+            $validationErrors['target_type'] = 'Target type is required (channel or dm)';
+        } elseif (!in_array($input['target_type'], ['channel', 'dm'])) {
+            $validationErrors['target_type'] = 'Invalid target type. Must be "channel" or "dm"';
+        }
+
+        if (empty($input['target_id'])) {
+            $validationErrors['target_id'] = 'Target ID is required';
+        }
+
         $content = trim($input['content'] ?? '');
         $messageType = $input['message_type'] ?? 'text';
         $attachments = $input['attachments'] ?? $input['attachment_url'] ?? null;
         $mentions = $input['mentions'] ?? [];
         $replyMessageId = $input['reply_message_id'] ?? null;
 
+        // Handle attachments
         if (is_string($attachments) && !empty($attachments)) {
             $attachments = [$attachments];
         } elseif (!is_array($attachments)) {
             $attachments = [];
         }
 
+        // Only validate content if no attachments present
         if (empty($content) && empty($attachments)) {
-            return $this->validationError(['content' => 'Message must have content or an attachment']);
+            $validationErrors['content'] = 'Message must have either content or an attachment';
         }
 
-        if ($targetType === 'channel') {
-            return $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
-        } elseif ($targetType === 'dm') {
-            return $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
-        } else {
-            return $this->validationError(['target_type' => 'Invalid target type. Must be "channel" or "dm"']);
+        // Return all validation errors if any
+        if (!empty($validationErrors)) {
+            error_log("Message validation failed: " . json_encode($validationErrors));
+            return $this->validationError($validationErrors);
+        }
+
+        try {
+            if ($input['target_type'] === 'channel') {
+                $result = $this->sendChannelMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+            } else {
+                $result = $this->sendDirectMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+            }
+
+            error_log("Send message result: " . json_encode($result));
+
+            if ($result['success']) {
+                $message = $result['data']['message'];
+                return $this->success([
+                    'message_id' => $message['id'],
+                    'user_id' => $message['user_id'],
+                    'username' => $message['username'],
+                    'target_type' => $input['target_type'],
+                    'target_id' => $input['target_id'],
+                    'content' => $message['content'],
+                    'message_type' => $message['message_type'],
+                    'attachments' => $message['attachments'],
+                    'mentions' => $message['mentions'],
+                    'reply_message_id' => $message['reply_message_id'],
+                    'reply_data' => $message['reply_data'],
+                    'timestamp' => $message['timestamp']
+                ], 'Message sent successfully');
+            } else {
+                error_log("Failed to send message: " . json_encode($result));
+                return $result;
+            }
+        } catch (Exception $e) {
+            error_log("Error sending message: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return $this->serverError('Failed to send message: ' . $e->getMessage());
         }
     }
 

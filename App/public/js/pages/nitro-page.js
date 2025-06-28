@@ -438,11 +438,18 @@ function initRedeemButton() {
                 showToast('Nitro code redeemed successfully!', 'success');
                 createSuccessAnimation(redeemBtn);
                 
-                if (window.globalSocketManager) {
-                    window.globalSocketManager.emit('nitro_activated', {
-                        userId: window.currentUserId
-                    });
-                }
+                const emitNitroActivation = () => {
+                    if (window.globalSocketManager?.isReady()) {
+                        window.globalSocketManager.io.emit('nitro_activated', {
+                            userId: window.currentUserId
+                        });
+                    } else {
+                        console.warn('Socket not ready, waiting for connection...');
+                        setTimeout(emitNitroActivation, 500);
+                    }
+                };
+                    
+                emitNitroActivation();
             } else {
                 const errorMessage = data.error?.message || data.message || 'Invalid or already used code';
                 console.error('Redeem failed:', errorMessage);

@@ -1653,184 +1653,83 @@ class ChatSection {
     }
     
     async sendMessage() {
-        if (!this.messageInput) {
-            console.error('❌ Message input not found');
-            return;
-        }
-        
-        const content = this.messageInput.value.trim();
-        const hasFiles = this.currentFileUpload || (this.currentFileUploads && this.currentFileUploads.length > 0);
-        if (!content && !hasFiles) {
-            console.warn('⚠️ No message content or file to send');
+        if (!this.messageInput || !this.messageInput.value.trim()) {
             return;
         }
 
-        if (this.chatBot && this.chatBot.handleTitiBotCommand) {
-            await this.chatBot.handleTitiBotCommand(content);
-        }
-        
-        this.prepareChatContainer();
-        
-        const containerCheck = this.validateAndGetContainer();
-        if (!containerCheck) {
-            console.error('❌ Container validation failed before sending message - aborting');
-            this.messageInput.value = content;
-            return;
-        }
-        
-        console.log('✅ Container validated before message send - proceeding...');
-        
-        console.log('📤 Attempting to send message:', { 
-            content, 
-            chatType: this.chatType, 
-            targetId: this.targetId,
-            hasFile: !!this.currentFileUpload,
-            hasMultipleFiles: this.currentFileUploads ? this.currentFileUploads.length : 0
-        });
-        
+        const content = this.messageInput.value.trim();
+        const messageId = `temp-${Date.now()}`;
         const timestamp = Date.now();
-        const messageId = `temp_${timestamp}_${Math.random().toString(36).substring(2, 15)}`;
-        
+
         try {
-            this.messageInput.value = '';
-            this.resizeTextarea();
-            this.sendStopTyping();
-            
-            if (!window.ChatAPI) {
-                console.error('❌ ChatAPI not available');
-                this.showNotification('ChatAPI not available', 'error');
-                return;
-            }
-            
-            console.log('ChatAPI available, proceeding with message send...');
-            
-            let attachments = [];
-            let messageType = 'text';
-            
-            const filesToUpload = this.currentFileUploads && this.currentFileUploads.length > 0 
-                ? this.currentFileUploads.map(upload => upload.file)
-                : (this.currentFileUpload ? [this.currentFileUpload] : []);
-            
-            if (filesToUpload.length > 0) {
-                try {
-                    this.showNotification(`Uploading ${filesToUpload.length} file${filesToUpload.length > 1 ? 's' : ''}...`, 'info');
-                    
-                    for (const file of filesToUpload) {
-                        const formData = new FormData();
-                        formData.append('file', file);
-                        
-                        const uploadResponse = await window.ChatAPI.uploadFile(formData);
-                        
-                        if (uploadResponse && uploadResponse.url) {
-                            attachments.push(uploadResponse.url);
-                        } else {
-                            throw new Error(`Failed to upload file: ${file.name}`);
-                        }
-                    }
-                    
-                    // Determine message type based on first file
-                    if (filesToUpload.length > 0) {
-                        const firstFileType = filesToUpload[0].type;
-                        if (firstFileType && firstFileType.startsWith('image/')) {
-                            messageType = 'image';
-                        } else if (firstFileType && firstFileType.startsWith('video/')) {
-                            messageType = 'video';
-                        } else {
-                            messageType = 'file';
-                        }
-                    }
-                } catch (error) {
-                    console.error('❌ File upload failed:', error);
-                    this.showNotification('Failed to upload files. ' + error.message, 'error');
-                    return;
-                }
-            }
-            
-            const tempMessage = {
+            // Create message data
+            const messageData = {
                 id: messageId,
                 content: content,
                 user_id: this.userId,
-                userId: this.userId,
                 username: this.username,
-                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/common/default-profile-picture.png',
-                sent_at: timestamp,
+                avatar_url: this.avatar_url,
                 timestamp: timestamp,
-                isLocalOnly: true,
-                message_type: messageType,
-                attachments: attachments,
-                _localMessage: true
+                source: 'client-originated'
             };
-            
+
+            // Add target info based on chat type
             if (this.chatType === 'channel') {
-                tempMessage.channelId = this.targetId;
-            } else if (this.chatType === 'direct' || this.chatType === 'dm') {
-                tempMessage.roomId = this.targetId;
+                messageData.channel_id = this.targetId;
+            } else {
+                messageData.room_id = this.targetId;
             }
-            
+
+            // Add reply info if replying
+            if (this.replyingTo) {
+                messageData.reply_message_id = this.replyingTo.messageId;
+                messageData.reply_data = {
+                    username: this.replyingTo.username,
+                    content: this.replyingTo.content
+                };
+            }
+
+            // First emit via socket
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                const eventName = this.chatType === 'channel' ? 'new-channel-message' : 'user-message-dm';
+                window.globalSocketManager.emitToRoom(eventName, messageData, this.chatType, this.targetId);
+            }
+
+            // Then save to database using ChatAPI
+            if (!window.ChatAPI) {
+                throw new Error('ChatAPI not initialized');
+            }
+
             const options = {
-                message_type: messageType,
-                attachments: attachments
+                message_type: 'text'
             };
+
+            if (this.replyingTo) {
+                options.reply_message_id = this.replyingTo.messageId;
+            }
+
+            await window.ChatAPI.sendMessage(
+                this.targetId,
+                content,
+                this.chatType,
+                options
+            );
+
+            // Clear input and reply state
+            this.messageInput.value = '';
+            this.updateSendButton();
+            this.resizeTextarea();
             
-            if (this.activeReplyingTo) {
-                tempMessage.reply_message_id = this.activeReplyingTo.messageId;
-                tempMessage.reply_data = this.activeReplyingTo;
-                
-                options.reply_message_id = this.activeReplyingTo.messageId;
-                options.reply_data = this.activeReplyingTo;
-                
+            if (this.replyingTo) {
                 this.cancelReply();
             }
-            
-            this.addMessage(tempMessage);
-            this.processedMessageIds.add(messageId);
-            this.removeFileUpload();
-            this.updateSendButton();
-            
-            console.log('Calling ChatAPI.sendMessage...');
-            const response = await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, options);
-            
-            console.log('Message send response:', response);
-            
-            if (response && response.success) {
-                const serverMessage = (response.data && response.data.message) || (response.data && response.data.data && response.data.data.message);
-                if (serverMessage && serverMessage.id) {
-                    const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                    if (tempMessageElement) {
-                        // Remove the temp ID from processed IDs and add the new server ID
-                        this.processedMessageIds.delete(messageId);
-                        this.processedMessageIds.add(serverMessage.id);
-                        
-                        tempMessageElement.setAttribute('data-message-id', serverMessage.id);
-                        const reactionButton = tempMessageElement.querySelector('.message-action-reaction');
-                        if (reactionButton) {
-                            reactionButton.style.pointerEvents = '';
-                            reactionButton.style.opacity = '';
-                        }
-                    }
-                }
-            } else {
-                console.warn('⚠️ Unexpected response format:', response);
-            }
-            
+
+            // Stop typing indicator
+            this.sendStopTyping();
+
         } catch (error) {
             console.error('Failed to send message:', error);
-            this.messageInput.value = content;
-            this.updateSendButton();
-            
-            const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-            if (tempMessageElement) {
-                const messageGroup = tempMessageElement.closest('.message-group');
-                if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
-                    messageGroup.remove();
-                } else {
-                    tempMessageElement.remove();
-                }
-            }
-            
-            this.processedMessageIds.delete(messageId);
-            
-            this.showNotification('Failed to send message: ' + (error.message || 'Unknown error'), 'error');
+            this.showErrorMessage('Failed to send message. Please try again.');
         }
     }
     
@@ -2060,154 +1959,113 @@ class ChatSection {
         });
     }
     
-    addMessage(message) {
-        console.log('🚨 ADDMESSAGE CALLED - IMMEDIATE CHECK:', {
-            timestamp: Date.now(),
-            messageExists: !!message,
-            chatMessagesExists: !!this.chatMessages,
-            messageContent: message?.content || 'NO CONTENT'
+    async addMessage(message) {
+        if (!message || !message.id) {
+            console.error('❌ [CHAT-SECTION] Invalid message data:', message);
+            return;
+        }
+
+        console.log('📨 [CHAT-SECTION] Processing message:', {
+            id: message.id,
+            userId: message.user_id,
+            username: message.username,
+            content: message.content?.substring(0, 50) + (message.content?.length > 50 ? '...' : ''),
+            source: message.source,
+            isProcessed: this.processedMessageIds.has(message.id)
         });
         
-        if (!this.chatMessages || !message) {
-            console.error('❌ addMessage failed: missing chatMessages or message');
-            return;
-        }
-        
-        console.log('🚀 Starting addMessage process...');
-        
-        this.hideEmptyState();
-        
-        if (this.skeletonLoader) {
-            this.skeletonLoader.clear();
-        }
-        
-        const existingEmptyStates = this.chatMessages.querySelectorAll('#chat-empty-state');
-        existingEmptyStates.forEach(state => state.remove());
-        
-        this.ensureChatContainerStructure();
-        
-        const targetContainer = this.validateAndGetContainer();
-        if (!targetContainer) {
-            console.error('❌ Failed to get valid messages container');
-            return;
-        }
-        
-        console.log('🎯 Target container confirmed:', {
-            className: targetContainer.className,
-            children: targetContainer.children.length,
-            parent: targetContainer.parentNode?.id
-        });
-        
-        const msg = {
-            id: message.id || message.messageId || Date.now().toString(),
-            content: message.content || message.message?.content || '',
-            user_id: message.user_id || message.userId || '',
-            username: message.username || message.message?.username || 'Unknown User',
-            avatar_url: message.avatar_url || message.message?.avatar_url || '/public/assets/common/default-profile-picture.png',
-            sent_at: message.timestamp || message.sent_at || Date.now(),
-            isLocalOnly: message.isLocalOnly || false,
-            reply_message_id: message.reply_message_id || null,
-            reply_data: message.reply_data || null,
-            edited_at: message.edited_at || null,
-            message_type: message.message_type || 'text',
-            attachments: message.attachments || (message.attachment_url ? [message.attachment_url] : []),
-            reactions: message.reactions || []
-        };
-        
-        const existingMessageElements = document.querySelectorAll(`[data-message-id="${msg.id}"]`);
-        if (existingMessageElements.length > 0) {
-            console.log('Message already exists, cleaning up duplicates:', msg.id, 'Found:', existingMessageElements.length);
-            existingMessageElements.forEach((el, index) => {
-                if (index > 0) {
-                    console.log('Removing duplicate message element:', index);
-                    el.remove();
-                }
-            });
-            return;
-        }
-        
-        if (this.processedMessageIds.has(msg.id)) {
-            console.log('Message already processed, skipping:', msg.id);
-            return;
-        }
-        
-        this.processedMessageIds.add(msg.id);
-        
-        if (message.source === 'bot-response' && message.user_id && message.user_id.toString().includes('bot')) {
-            console.log('🤖 Bot message detected, checking for duplicates with different sources');
-            const botMessageKey = `${message.user_id}-${message.content?.substring(0, 50)}-${Math.floor(Date.now() / 1000)}`;
-            if (this.processedMessageIds.has(botMessageKey)) {
-                console.log('🚫 Duplicate bot message prevented:', botMessageKey);
-                return;
+        // If this is a temporary message being replaced by its permanent version
+        if (message.id && message.id.startsWith('temp-')) {
+            const tempElement = document.querySelector(`[data-message-id="${message.id}"]`);
+            if (tempElement) {
+                console.log(`🔄 [CHAT-SECTION] Replacing temporary message ${message.id}`);
+                tempElement.remove();
+                this.processedMessageIds.delete(message.id);
             }
-            this.processedMessageIds.add(botMessageKey);
         }
         
-        const isOwnMessage = msg.user_id == this.userId;
-        
-        const messageGroups = targetContainer.querySelectorAll('.message-group');
-        const lastMessageGroup = messageGroups.length > 0 ? messageGroups[messageGroups.length - 1] : null;
-        const lastSenderId = lastMessageGroup?.getAttribute('data-user-id');
-        
-        const isNewGroup = !lastMessageGroup || lastSenderId !== msg.user_id;
-        
-        console.log('📋 Message details:', {
-            id: msg.id,
-            content: msg.content.substring(0, 50),
-            isNewGroup,
-            existingGroups: messageGroups.length,
-            targetContainer: targetContainer.className
-        });
-        
-        if (isNewGroup) {
-            const messageGroup = this.createMessageGroup(msg, isOwnMessage);
-            messageGroup.classList.add('message-fade-in');
-            
-            console.log('📦 Created message group:', messageGroup);
-            console.log('📍 Target container before append:', targetContainer);
-            console.log('🔍 Container children before append:', targetContainer.children.length);
-            
-            const appendResult = this.safeAppendToContainer(targetContainer, messageGroup);
-            if (!appendResult) {
-                console.error('❌ Failed to append message group');
-                return;
-            }
-            
-            console.log('✅ Message group appended successfully');
-            console.log('🔍 Container children after append:', targetContainer.children.length);
-            console.log('🎯 Last child in container:', targetContainer.lastElementChild);
-            
-            setTimeout(() => {
-                const finalCheck = this.verifyMessageInDOM(msg.id, targetContainer);
-                if (finalCheck) {
-                    console.log('🎉 Message bubble confirmed visible in DOM');
-                } else {
-                    console.error('❌ Message bubble NOT found in DOM after append');
-                }
-                messageGroup.classList.add('message-appear');
-            }, 10);
-        } else {
-            const messageContent = this.createMessageContent(msg, isOwnMessage);
-            messageContent.classList.add('message-fade-in');
-            const contents = lastMessageGroup.querySelector('.message-contents');
-            if (contents) {
-                contents.appendChild(messageContent);
+        // Always process server-originated messages
+        // For client-originated messages, only process if we haven't seen them before
+        if (message.source === 'server-originated' || !this.processedMessageIds.has(message.id)) {
+            try {
+                const isOwnMessage = message.user_id === this.userId;
+                const container = this.validateAndGetContainer();
                 
-                setTimeout(() => {
-                    messageContent.classList.add('message-appear');
-                }, 10);
-            }
-        }
-        
-        if (msg.reactions && msg.reactions.length > 0) {
-            setTimeout(() => {
-                if (window.emojiReactions) {
-                    window.emojiReactions.updateReactionsDisplay(msg.id, msg.reactions);
+                if (!container) {
+                    console.error('❌ [CHAT-SECTION] No valid container found for message:', message);
+                    return;
                 }
-            }, 10);
+                
+                let messageGroup = this.findOrCreateMessageGroup(message, isOwnMessage);
+                const messageContent = this.createMessageContent(message, isOwnMessage);
+                
+                if (!messageContent) {
+                    console.error('❌ [CHAT-SECTION] Failed to create message content:', message);
+                    return;
+                }
+                
+                // Add hover event listeners for message actions
+                messageContent.addEventListener('mouseover', () => this.showMessageActions(messageContent));
+                messageContent.addEventListener('mouseout', (e) => {
+                    const relatedTarget = e.relatedTarget;
+                    if (!messageContent.contains(relatedTarget) && !relatedTarget?.closest('.message-actions')) {
+                        this.hideMessageActions(messageContent);
+                    }
+                });
+                
+            // Setup action buttons
+            const actionsContainer = messageContent.querySelector('.message-actions');
+            if (actionsContainer) {
+                const reactionBtn = actionsContainer.querySelector('.message-action-reaction');
+                const replyBtn = actionsContainer.querySelector('.message-action-reply');
+                const editBtn = actionsContainer.querySelector('.message-action-edit');
+                
+                if (reactionBtn) reactionBtn.addEventListener('click', () => this.showEmojiPicker(message.id, reactionBtn));
+                if (replyBtn) replyBtn.addEventListener('click', () => this.replyToMessage(message.id));
+                if (editBtn) editBtn.addEventListener('click', () => this.editMessage(message.id));
+            }
+            
+            // Add the message to the group
+            messageGroup.querySelector('.message-group-content').appendChild(messageContent);
+            
+            // Mark as processed to avoid duplicates
+                this.processedMessageIds.add(message.id);
+                
+            // Scroll to bottom if we're close to it
+            const shouldScroll = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+            if (shouldScroll) {
+                this.scrollToBottom();
+            }
+            
+            console.log(`✅ [CHAT-SECTION] Message added successfully:`, {
+                id: message.id,
+                isOwnMessage,
+                shouldScroll
+            });
+        } else {
+            console.log(`⏭️ [CHAT-SECTION] Skipping duplicate message:`, {
+                id: message.id,
+                source: message.source
+            });
+        }
+    }
+    
+    findOrCreateMessageGroup(message, isOwnMessage) {
+        const container = this.validateAndGetContainer();
+        const groups = container.querySelectorAll('.message-group');
+        let lastGroup = groups[groups.length - 1];
+        
+        // Check if we can add to the last group
+        if (lastGroup && 
+            lastGroup.dataset.userId === message.user_id.toString() &&
+            Date.now() - parseInt(lastGroup.dataset.timestamp) < 300000) { // 5 minutes
+            return lastGroup;
         }
         
-        this.scrollToBottom();
+        // Create new group
+        const newGroup = this.createMessageGroup(message, isOwnMessage);
+        this.safeAppendToContainer(container, newGroup);
+        return newGroup;
     }
     
     validateAndGetContainer() {
@@ -2275,7 +2133,7 @@ class ChatSection {
             }
             
             return success;
-        } catch (error) {
+            } catch (error) {
             console.error('❌ Exception during append:', error);
             return false;
         }
@@ -2309,7 +2167,7 @@ class ChatSection {
                 
                 console.log('🔍 Chat messages children after append:', this.chatMessages.children.length);
                 console.log('✅ Container appended to chat messages');
-            } else {
+        } else {
                 console.log('✅ Found existing messages-container in DOM');
             }
             
@@ -2689,11 +2547,9 @@ class ChatSection {
     setupIoListeners() {
         const self = this;
         
-        // Ensure socket is ready before setting up listeners
         const setupSocketHandlers = function(io) {
             console.log('Setting up socket handlers for ChatSection');
             
-            // Check if we're already listening to avoid duplicates
             if (self.socketListenersSetup) {
                 console.log('Socket listeners already setup, skipping');
                 return;
@@ -2703,11 +2559,20 @@ class ChatSection {
             io.on('new-channel-message', function(data) {
                 console.log('Received new-channel-message:', data);
                 
-                if (self.chatType === 'channel' && data.channel_id == self.targetId) {
+                // Use strict comparison and check room format
+                const expectedRoom = `channel-${self.targetId}`;
+                const messageRoom = `channel-${data.channel_id}`;
+                
+                if (self.chatType === 'channel' && messageRoom === expectedRoom) {
                     if (!self.processedMessageIds.has(data.id)) {
+                        console.log(`✅ Adding message ${data.id} to channel ${data.channel_id}`);
                         self.addMessage(data);
                         self.processedMessageIds.add(data.id);
+                    } else {
+                        console.log(`🔄 Message ${data.id} already processed, skipping`);
                     }
+                } else {
+                    console.log(`❌ Message not for this channel. Expected: ${expectedRoom}, Got: ${messageRoom}`);
                 }
             });
             
@@ -2715,20 +2580,29 @@ class ChatSection {
             io.on('user-message-dm', function(data) {
                 console.log('Received user-message-dm:', data);
                 
-                if ((self.chatType === 'direct' || self.chatType === 'dm') && data.room_id == self.targetId) {
+                // Use strict comparison and check room format
+                const expectedRoom = `dm-room-${self.targetId}`;
+                const messageRoom = `dm-room-${data.room_id}`;
+                
+                if ((self.chatType === 'direct' || self.chatType === 'dm') && messageRoom === expectedRoom) {
                     if (!self.processedMessageIds.has(data.id)) {
+                        console.log(`✅ Adding message ${data.id} to DM room ${data.room_id}`);
                         self.addMessage(data);
                         self.processedMessageIds.add(data.id);
+                    } else {
+                        console.log(`🔄 Message ${data.id} already processed, skipping`);
                     }
+                } else {
+                    console.log(`❌ Message not for this DM. Expected: ${expectedRoom}, Got: ${messageRoom}`);
                 }
             });
             
             // Reaction handling
             io.on('reaction-added', function(data) {
-                if (data.message_id) {
-                    const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
-                    if (messageElement) {
-                        self.handleReactionAdded(data);
+                    if (data.message_id) {
+                        const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+                        if (messageElement) {
+                            self.handleReactionAdded(data);
                     }
                 }
             });
@@ -2784,7 +2658,7 @@ class ChatSection {
                     self.removeTypingIndicator(data.user_id);
                 }
             });
-
+            
             self.socketListenersSetup = true;
             console.log('Socket listeners setup complete');
         };
@@ -2919,22 +2793,25 @@ class ChatSection {
         }
 
         const roomType = this.chatType === 'channel' ? 'channel' : 'dm';
-        const roomKey = `${roomType}-${this.targetId}`;
+        const roomId = this.targetId;
         
-        if (!this.joinedRooms.has(roomKey)) {
-            console.log(`🚪 Joining room: ${roomType} - ${this.targetId}`);
+        // Use the correct room format for tracking
+        const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
+        
+        if (!this.joinedRooms.has(roomName)) {
+            console.log(`🚪 Joining room: ${roomType} - ${roomId} (${roomName})`);
             
-            // Use the new unified joinRoom method with source field
-            const success = window.globalSocketManager.joinRoom(roomType, this.targetId);
+            // Use the new unified joinRoom method
+            const success = window.globalSocketManager.joinRoom(roomType, roomId);
             
             if (success) {
-                this.joinedRooms.add(roomKey);
-                console.log(`✅ Successfully joined ${roomType} room: ${this.targetId}`);
+                this.joinedRooms.add(roomName);
+                console.log(`✅ Successfully joined ${roomType} room: ${roomName}`);
             } else {
-                console.error(`❌ Failed to join ${roomType} room: ${this.targetId}`);
+                console.error(`❌ Failed to join ${roomType} room: ${roomName}`);
             }
         } else {
-            console.log(`Already joined ${roomType} room: ${this.targetId}`);
+            console.log(`Already joined ${roomType} room: ${roomName}`);
         }
     }
     
@@ -3364,4 +3241,4 @@ class ChatSection {
             console.error('❌ Chat container preparation failed - container not ready');
         }
     }
-}
+                }

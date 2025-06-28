@@ -86,8 +86,10 @@ $additional_js = ['components/servers/server-dropdown'];
                                 <div class="featured-badge">
                                     <i class="fas fa-crown mr-1"></i>Featured
                                 </div>
+                            </div>
 
-                                <div class="server-icon">
+                            <div class="relative px-6 pt-4 pb-6">
+                                <div class="server-icon absolute -top-10 left-6">
                                     <div class="w-18 h-18 rounded-2xl bg-discord-dark p-1 shadow-xl">
                                         <?php if (!empty($server['image_url'])): ?>
                                             <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-xl">
@@ -98,40 +100,40 @@ $additional_js = ['components/servers/server-dropdown'];
                                         <?php endif; ?>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="p-6 pt-12">
-                                <h3 class="server-name font-bold text-xl mb-2 text-white transition-colors"><?php echo htmlspecialchars($server['name']); ?></h3>
-                                <?php if (!empty($server['description'])): ?>
-                                    <p class="server-description text-discord-lighter text-sm mb-4 line-clamp-2 leading-relaxed"><?php echo htmlspecialchars($server['description']); ?></p>
-                                <?php else: ?>
-                                    <p class="server-description text-discord-lighter text-sm mb-4">No description available</p>
-                                <?php endif; ?>
+                                <div class="mt-8">
+                                    <h3 class="server-name font-bold text-xl mb-2 text-white transition-colors"><?php echo htmlspecialchars($server['name']); ?></h3>
+                                    <?php if (!empty($server['description'])): ?>
+                                        <p class="server-description text-discord-lighter text-sm mb-4 line-clamp-2 leading-relaxed"><?php echo htmlspecialchars($server['description']); ?></p>
+                                    <?php else: ?>
+                                        <p class="server-description text-discord-lighter text-sm mb-4">No description available</p>
+                                    <?php endif; ?>
 
-                                <div class="server-stats flex items-center text-xs text-discord-lighter mb-5">
-                                    <div class="flex items-center mr-6">
-                                        <i class="fas fa-users mr-2 text-discord-primary"></i>
-                                        <span class="font-medium"><?php echo number_format($server['member_count']); ?> members</span>
+                                    <div class="server-stats flex items-center text-xs text-discord-lighter mb-5">
+                                        <div class="flex items-center mr-6">
+                                            <i class="fas fa-users mr-2 text-discord-primary"></i>
+                                            <span class="font-medium"><?php echo number_format($server['member_count']); ?> members</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <div class="online-dot"></div>
+                                            <span class="font-medium"><?php echo rand(5, 50); ?> online</span>
+                                        </div>
                                     </div>
-                                    <div class="flex items-center">
-                                        <div class="online-dot"></div>
-                                        <span class="font-medium"><?php echo rand(5, 50); ?> online</span>
-                                    </div>
+
+                                    <?php if ($isMember): ?>
+                                        <button onclick="event.preventDefault(); event.stopPropagation();" 
+                                               class="join-server-btn w-full bg-discord-green/20 text-discord-green text-center py-3 rounded-lg hover:bg-discord-green/30 transition-all font-semibold text-sm border border-discord-green/30" 
+                                               data-server-id="<?php echo $server['id']; ?>" disabled>
+                                            <i class="fas fa-check mr-2"></i>Joined
+                                        </button>
+                                    <?php else: ?>
+                                        <button onclick="event.preventDefault(); event.stopPropagation();" 
+                                               class="join-server-btn w-full bg-discord-primary text-white text-center py-3 rounded-lg hover:bg-discord-primary/90 transition-all font-semibold text-sm" 
+                                               data-server-id="<?php echo $server['id']; ?>">
+                                            <i class="fas fa-plus mr-2"></i>Join Server
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
-
-                                <?php if ($isMember): ?>
-                                    <button onclick="event.preventDefault(); event.stopPropagation();" 
-                                           class="join-server-btn w-full bg-discord-green/20 text-discord-green text-center py-3 rounded-lg hover:bg-discord-green/30 transition-all font-semibold text-sm border border-discord-green/30" 
-                                           data-server-id="<?php echo $server['id']; ?>" disabled>
-                                        <i class="fas fa-check mr-2"></i>Joined
-                                    </button>
-                                <?php else: ?>
-                                    <button onclick="event.preventDefault(); event.stopPropagation();" 
-                                           class="join-server-btn w-full bg-discord-primary text-white text-center py-3 rounded-lg hover:bg-discord-primary/90 transition-all font-semibold text-sm" 
-                                           data-server-id="<?php echo $server['id']; ?>">
-                                        <i class="fas fa-plus mr-2"></i>Join Server
-                                    </button>
-                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endforeach; ?>

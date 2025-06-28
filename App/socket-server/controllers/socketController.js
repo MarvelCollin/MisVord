@@ -23,7 +23,7 @@ function setup(io) {
         client.on('join-room', (data) => {
             console.log(`🚪 [ROOM] Client ${client.id} joining room:`, data);
             if (data.room_type === 'channel' && data.room_id) {
-                const roomName = data.room_id.startsWith('channel_') ? data.room_id.replace('channel_', 'channel-') : `channel-${data.room_id}`;
+                const roomName = `channel-${data.room_id}`;
                 roomManager.joinRoom(client, roomName);
                 client.emit('room-joined', { room_id: roomName, room_type: 'channel' });
                 console.log(`✅ [ROOM] Client ${client.id} joined channel room: ${roomName}`);

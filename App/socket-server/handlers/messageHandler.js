@@ -47,23 +47,35 @@ class MessageHandler {
             
             // Ensure consistent data structure
             const broadcastData = {
-                ...data,
+                id: data.id || data.message_id,
+                content: data.content,
+                user_id: data.user_id,
+                username: data.username,
+                avatar_url: data.avatar_url,
+                channel_id: data.channel_id,
+                room_id: data.room_id,
+                target_type: data.target_type,
+                target_id: data.target_id,
+                message_type: data.message_type || 'text',
+                attachments: data.attachments || [],
+                reply_message_id: data.reply_message_id,
+                reply_data: data.reply_data,
                 timestamp: data.timestamp || Date.now(),
-                source: data.source || 'client-originated'
+                source: 'server-originated'
             };
             
             console.log(`📤 [MESSAGE-FORWARD] Broadcast data prepared:`, {
                 event: eventName,
                 room: targetRoom,
-                messageId: broadcastData.id || broadcastData.message_id,
+                messageId: broadcastData.id,
                 userId: broadcastData.user_id,
                 timestamp: broadcastData.timestamp,
                 source: broadcastData.source
             });
             
-            // Broadcast to the room EXCLUDING the sender to avoid duplicate rendering on the sender UI
-            client.to(targetRoom).emit(eventName, broadcastData);
-            console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to ${targetRoom} (excluding sender)`);
+            // Broadcast to ALL clients in the room INCLUDING the sender
+            io.to(targetRoom).emit(eventName, broadcastData);
+            console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to ${targetRoom} (including sender)`);
         } else {
             console.warn(`⚠️ [MESSAGE-FORWARD] No target room found for ${eventName}:`, {
                 channelId: data.channel_id,
