@@ -235,9 +235,41 @@ function updateServerListUI(servers) {
     const serverList = document.querySelector('.server-list');
 
     if (serverList) {
-        console.log('Server list would be updated with:', servers);
-        window.location.reload();
+        console.log('Updating server list with:', servers);
+        
+        // Clear existing servers
+        while (serverList.firstChild) {
+            serverList.removeChild(serverList.firstChild);
+        }
+        
+        // Add each server
+        servers.forEach(server => {
+            const serverItem = createServerListItem(server);
+            serverList.appendChild(serverItem);
+        });
+        
+        // Re-initialize server click handlers
+        if (typeof initializeServerClickHandlers === 'function') {
+            initializeServerClickHandlers();
+        }
+    } else {
+        console.error('Server list container not found');
+        showToast('Error updating server list', 'error');
     }
+}
+
+function createServerListItem(server) {
+    const item = document.createElement('div');
+    item.className = 'server-item';
+    item.setAttribute('data-server-id', server.id);
+    
+    // Add server icon/name/etc based on your server item structure
+    item.innerHTML = `
+        <img src="${server.icon || '/public/assets/common/default-server-icon.png'}" alt="${server.name}" class="server-icon">
+        <span class="server-name">${server.name}</span>
+    `;
+    
+    return item;
 }
 
 function updateServerUI(server) {

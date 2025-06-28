@@ -1215,13 +1215,22 @@ function refreshChannelList(serverId) {
         .then(data => {
             if (data.data) {
                 console.log('Channels loaded successfully');
-                window.location.reload();
+                if (typeof window.channelLoader !== 'undefined' && window.channelLoader.renderChannels) {
+                    window.channelLoader.renderChannels(channelContainer, data.data);
+                } else if (typeof window.renderChannelList === 'function') {
+                    window.renderChannelList(data.data);
+                } else {
+                    console.error('No channel rendering function available');
+                    showToast('Error refreshing channel list', 'error');
+                }
             } else {
                 console.error('Error loading channels:', data.message);
+                showToast('Error loading channels', 'error');
             }
         })
         .catch(error => {
             console.error('Error fetching channels:', error);
+            showToast('Error fetching channels', 'error');
         });
 }
 

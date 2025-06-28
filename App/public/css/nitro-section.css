@@ -365,3 +365,280 @@
         font-size: 1rem;
     }
 }
+
+.nitro-content {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4rem;
+}
+
+.title-section {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+}
+
+.rotated-title {
+    transform: rotate(90deg) translateX(50%);
+    transform-origin: right center;
+    text-align: left;
+    width: max-content;
+}
+
+.crown-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    backdrop-filter: blur(10px);
+    animation: crownPulse 2s ease-in-out infinite;
+}
+
+.crown-icon {
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, #ffd700, #ffed4a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 4px 8px rgba(255, 215, 0, 0.3));
+}
+
+.rotating-hexagons {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    animation: rotateCircle 30s linear infinite;
+}
+
+.hexagon-container {
+    position: relative;
+    width: 600px;
+    height: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hexagon-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    justify-items: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.hexagon-feature {
+    position: absolute;
+    width: 150px;
+    height: 170px;
+    top: 50%;
+    left: 50%;
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-180px) rotate(calc(-1 * var(--rotation)));
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    animation: hexagonFloat 4s ease-in-out infinite;
+}
+
+.hexagon-feature.visible {
+    opacity: 1;
+}
+
+.hexagon-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    transition: all 0.3s ease;
+    z-index: 2;
+    transform: rotate(var(--rotation));
+}
+
+.hexagon-border {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #ffd700, #ff69b4, #9370db, #00ffff);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    opacity: 0.3;
+    z-index: 1;
+    animation: borderGlow 2s linear infinite;
+    transform: rotate(var(--rotation));
+}
+
+.feature-icon {
+    font-size: 1.75rem;
+    color: #ffd700;
+    margin-bottom: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.feature-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.25rem;
+    text-align: center;
+}
+
+.feature-description {
+    color: #e0e0e0;
+    font-size: 0.8rem;
+    text-align: center;
+    line-height: 1.4;
+}
+
+@keyframes rotateCircle {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes hexagonFloat {
+    0%, 100% {
+        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-180px) rotate(calc(-1 * var(--rotation)));
+    }
+    50% {
+        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-190px) rotate(calc(-1 * var(--rotation)));
+    }
+}
+
+@keyframes borderGlow {
+    0%, 100% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes crownPulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+}
+
+@keyframes gradientShift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@media screen and (max-width: 1024px) {
+    .nitro-content {
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .title-section {
+        position: relative;
+        right: auto;
+        top: auto;
+        transform: none;
+        margin-bottom: 2rem;
+    }
+
+    .rotated-title {
+        transform: none;
+        text-align: center;
+        width: 100%;
+    }
+
+    .hexagon-container {
+        width: 500px;
+        height: 500px;
+    }
+
+    .hexagon-feature {
+        width: 130px;
+        height: 150px;
+        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-150px) rotate(calc(-1 * var(--rotation)));
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .hexagon-container {
+        width: 400px;
+        height: 400px;
+    }
+
+    .hexagon-feature {
+        width: 110px;
+        height: 130px;
+        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-120px) rotate(calc(-1 * var(--rotation)));
+    }
+
+    .feature-icon {
+        font-size: 1.5rem;
+    }
+
+    .feature-title {
+        font-size: 0.9rem;
+    }
+
+    .feature-description {
+        font-size: 0.7rem;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .hexagon-container {
+        width: 300px;
+        height: 300px;
+    }
+
+    .hexagon-feature {
+        width: 90px;
+        height: 110px;
+        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-90px) rotate(calc(-1 * var(--rotation)));
+    }
+
+    .feature-icon {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .feature-title {
+        font-size: 0.8rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .feature-description {
+        font-size: 0.6rem;
+    }
+}

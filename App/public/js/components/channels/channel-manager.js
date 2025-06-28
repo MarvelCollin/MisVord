@@ -103,13 +103,18 @@ function refreshChannelList() {
             .then(response => {
                 if (response.data) {
                     renderChannelList(response.data);
+                } else {
+                    console.error('Error refreshing channels:', response.message);
+                    showToast('Error refreshing channels', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error refreshing channels:', error);
+                showToast('Error refreshing channels', 'error');
             });
     } else {
-        window.location.reload();
+        console.error('No server ID found in URL');
+        showToast('Error: Could not determine server', 'error');
     }
 }
 

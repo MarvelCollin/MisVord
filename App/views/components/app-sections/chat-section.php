@@ -522,7 +522,7 @@ function renderMessageContent($message) {
 <meta name="chat-title" content="<?php echo htmlspecialchars($chatTitle ?? ''); ?>">
 <meta name="chat-placeholder" content="<?php echo htmlspecialchars($placeholder ?? ''); ?>">
 
-<div class="flex flex-col flex-1 h-screen bg-[#313338]">
+<div class="chat-section flex-1 flex flex-col bg-[#313338] relative">
     <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm bg-[#313338]">
         <div class="flex items-center">
             <i class="<?php echo $chatIcon; ?> text-[#b5bac1] mr-2"></i>
@@ -557,129 +557,95 @@ function renderMessageContent($message) {
         </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto discord-scrollbar bg-[#313338]" id="chat-messages">
-        <div class="messages-container flex-1" style="position: relative; z-index: 10;">
+    <div id="chat-messages" class="flex-1 overflow-y-auto relative">
+        <div class="messages-container flex-1 relative">
             <?php if (!empty($messages)): ?>
                 <?php
                 $i = 0;
                 while ($i < count($messages)) {
-                    $i = renderMessageGroup($messages, $i) + 1;
+                    $i = renderMessageGroup($messages, $i);
+                    $i++;
                 }
                 ?>
             <?php else: ?>
-                <div id="chat-empty-state" class="flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full absolute inset-0 z-0">
-                    <i class="fas fa-comments text-6xl mb-4 opacity-50"></i>
-                    <p class="text-lg font-medium">No messages yet</p>
-                    <p class="text-sm mt-2">Start the conversation by sending a message!</p>
+                <div class="flex flex-col items-center justify-center h-full text-[#dcddde]">
+                    <i class="fas fa-comments text-6xl mb-4 text-[#4f545c]"></i>
+                    <p class="text-lg">No messages yet</p>
+                    <p class="text-sm text-[#a3a6aa]">Be the first to send a message!</p>
                 </div>
             <?php endif; ?>
         </div>
     </div>
 
-    <div id="typing-indicator" class="text-xs text-[#b5bac1] pb-1 pl-5 flex items-center hidden">
-        <div class="flex items-center mr-2">
-            <span class="h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce mr-0.5" style="animation-delay: 0ms"></span>
-            <span class="h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce mx-0.5" style="animation-delay: 200ms"></span>
-            <span class="h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce ml-0.5" style="animation-delay: 400ms"></span>
-        </div>
-        <span>Someone is typing...</span>
-    </div>
+    <div class="message-input-container bg-[#383a40] p-4">
+        <div class="flex items-start gap-2">
+            <div class="relative">
+                <input type="file" id="file-upload" class="hidden" multiple>
+                <button class="text-[#b5bac1] hover:text-[#dcddde] p-2 rounded transition-colors" onclick="document.getElementById('file-upload').click()">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
 
-    <div class="px-4 pb-6 bg-[#313338]">
-        <?php createFileUploadArea(); ?>
-        <div class="relative">
-            <form id="message-form" class="relative" onsubmit="return false;">
-                <div class="bg-[#383a40] rounded-lg focus-within:ring-1 focus-within:ring-[#5865f2] transition-colors flex items-center px-4 py-2">
-                    <div class="relative group">
-                        <button type="button" id="attachment-button" class="text-[#b5bac1] hover:text-[#dcddde] text-xl mr-3" title="Add File">
-                            <i class="fas fa-plus-circle"></i>
-                        </button>
-                        <div id="attachment-dropdown" class="hidden absolute bottom-full left-0 mb-2 bg-[#18191c] rounded-md shadow-lg z-10 w-48 py-2">
-                            <div class="px-1">
-                                <label for="file-upload" class="flex items-center cursor-pointer px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
-                                    <span class="mr-2"><i class="fas fa-upload"></i></span>
-                                    <span>Upload Files</span>
-                                </label>
-                                <input type="file" id="file-upload" class="hidden" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex-1 relative flex flex-col">
-                        <textarea 
-                            id="message-input" 
-                            name="content"
-                            class="w-full bg-transparent text-[#dcddde] placeholder-[#95999e] resize-none border-none outline-none text-base leading-6 max-h-40 overflow-y-auto discord-scrollbar"
-                            placeholder="<?php echo htmlspecialchars($placeholder); ?>"
-                            rows="1"
-                            maxlength="2000"
-                            autocomplete="off"
-                            spellcheck="true"
-                            style="min-height: 24px; padding: 0; margin: 0; vertical-align: middle;"></textarea>
-                    </div>
+            <div id="file-preview" class="hidden flex-wrap gap-2 mb-2"></div>
 
-                    <div class="flex items-center space-x-3 ml-3">
-                        <button type="button" class="text-[#b5bac1] hover:text-[#dcddde]" title="Gift">
-                            <i class="fas fa-gift"></i>
-                        </button>
-                        
-                        <button type="button" class="text-[#b5bac1] hover:text-[#dcddde] font-bold text-sm" title="GIF">
-                            GIF
-                        </button>
-                        
-                        <button type="button" class="text-[#b5bac1] hover:text-[#dcddde]" title="Sticker">
-                            <i class="far fa-note-sticky"></i>
-                        </button>
-                        
-                        <button type="button" class="text-[#b5bac1] hover:text-[#dcddde]" title="Emoji">
-                            <i class="far fa-face-smile"></i>
-                        </button>
-                        
-                        <button 
-                            type="submit" 
-                            id="send-button" 
-                            class="text-[#b5bac1] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Send Message"
-                            disabled>
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <div id="message-context-menu" class="hidden fixed bg-[#18191c] rounded-md shadow-lg z-50 py-2 min-w-[180px] text-sm font-medium">
-        <div class="px-1">
-            <button data-action="reaction" class="flex items-center justify-between w-full px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
-                <span>Add Reaction</span>
-                <i class="far fa-face-smile w-4"></i>
-            </button>
-            <button data-action="edit" class="flex items-center justify-between w-full px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
-                <span>Edit Message</span>
-                <i class="fas fa-pen-to-square w-4"></i>
-            </button>
-            <button data-action="reply" class="flex items-center justify-between w-full px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
-                <span>Reply</span>
-                <i class="fas fa-reply w-4"></i>
-            </button>
-            <button data-action="copy" class="flex items-center justify-between w-full px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
-                <span>Copy Text</span>
-                <i class="fas fa-copy w-4"></i>
-            </button>
-            <button data-action="pin" class="flex items-center justify-between w-full px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
-                <span>Pin Message</span>
-                <i class="fas fa-thumbtack w-4"></i>
-            </button>
-            <div class="border-t border-[#3f4147] my-1"></div>
-            <button data-action="delete" class="flex items-center justify-between w-full px-2 py-1.5 text-[#ed4245] hover:bg-[#ed4245] hover:text-white rounded">
-                <span>Delete Message</span>
-                <i class="fas fa-trash w-4"></i>
+            <div class="flex-1 bg-[#40444b] rounded relative">
+                <textarea id="message-input" 
+                    class="w-full bg-transparent text-[#dcddde] p-3 resize-none outline-none"
+                    placeholder="<?php echo htmlspecialchars($placeholder ?? 'Send a message...'); ?>"
+                    rows="1"></textarea>
+            </div>
+
+            <button id="send-button" class="text-[#b5bac1] hover:text-[#dcddde] p-2 rounded transition-colors">
+                <i class="fas fa-paper-plane"></i>
             </button>
         </div>
     </div>
 </div>
 
-<?php createFilePreviewModal(); ?>
+<div id="file-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-[#36393f] rounded-lg shadow-lg max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center p-4 border-b border-[#2f3136]">
+            <h3 class="text-[#dcddde] text-lg font-medium">File Preview</h3>
+            <button onclick="window.chatSection?.closeFileModal()" class="text-[#b5bac1] hover:text-[#dcddde]">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="flex-1 overflow-auto p-4">
+            <!-- Modal content will be inserted here -->
+        </div>
+        <div class="p-4 border-t border-[#2f3136] flex justify-end gap-2">
+            <!-- Modal footer buttons will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<div id="message-context-menu" class="fixed hidden bg-[#18191c] rounded shadow-lg z-50 min-w-[180px] py-2 text-[#b5bac1]">
+    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="add-reaction">
+        <i class="far fa-smile mr-2"></i> Add Reaction
+    </button>
+    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="reply">
+        <i class="fas fa-reply mr-2"></i> Reply
+    </button>
+    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="edit">
+        <i class="fas fa-edit mr-2"></i> Edit Message
+    </button>
+    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="copy-text">
+        <i class="fas fa-copy mr-2"></i> Copy Text
+    </button>
+    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="copy-link">
+        <i class="fas fa-link mr-2"></i> Copy Message Link
+    </button>
+    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="mark-unread">
+        <i class="fas fa-circle mr-2"></i> Mark as Unread
+    </button>
+    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="pin">
+        <i class="fas fa-thumbtack mr-2"></i> Pin Message
+    </button>
+    <div class="border-t border-[#2f3136] my-1"></div>
+    <button class="w-full px-3 py-2 text-left hover:bg-[#ed4245] hover:text-white transition-colors" data-action="delete">
+        <i class="fas fa-trash-alt mr-2"></i> Delete Message
+    </button>
+</div>
 
 <script src="<?php echo js('components/messaging/chat-skeleton-loading'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('components/messaging/chat-section'); ?>?v=<?php echo time(); ?>" type="module"></script>
@@ -761,5 +727,4 @@ function initializeChatUI() {
         }
     }));
 }
-</script>
 </script>

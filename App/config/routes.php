@@ -110,6 +110,17 @@ Route::post('/login', function() {
     $controller->login();
 });
 
+// Google OAuth routes
+Route::get('/google', function() {
+    $controller = new GoogleAuthController();
+    $controller->callback();
+});
+
+Route::get('/auth/google', function() {
+    $controller = new GoogleAuthController();
+    $controller->redirectToGoogle();
+});
+
 Route::post('/register', function() {
     $controller = new AuthenticationController();
     $controller->register();
@@ -1218,6 +1229,32 @@ Route::post('/server/([0-9]+)/channel-section', function($serverId) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
     $controller->getChannelSection($serverId);
+});
+
+// Add chat and voice channel section routes
+Route::get('/api/chat/channel/([0-9]+)', function($channelId) {
+    $controller = new ChatController();
+    $controller->renderChatSection('channel', $channelId);
+});
+
+Route::get('/api/voice/channel/([0-9]+)', function($channelId) {
+    $controller = new ChatController();
+    $controller->renderVoiceSection($channelId);
+});
+
+Route::post('/api/chat/dm/create', function() {
+    $controller = new ChatController();
+    $controller->createDirectMessage();
+});
+
+Route::get('/api/chat/dm/([0-9]+)', function($dmId) {
+    $controller = new ChatController();
+    $controller->renderChatSection('direct', $dmId);
+});
+
+Route::get('/api/chat/channel/([0-9]+)', function($channelId) {
+    $controller = new ChatController();
+    $controller->renderChatSection('channel', $channelId);
 });
 
 return array_merge(Route::getRoutes(), [

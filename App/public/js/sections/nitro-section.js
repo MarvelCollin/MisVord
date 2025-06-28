@@ -8,11 +8,12 @@ class NitroSection {
     
     init() {
         this.section = document.querySelector('.nitro-section');
-        this.timelineFeatures = document.querySelectorAll('.timeline-feature');
+        this.hexagons = document.querySelectorAll('.hexagon-feature');
         
         if (!this.section) return;
         
         this.setupEventListeners();
+        this.setupConnectingLines();
     }
     
     setupEventListeners() {
@@ -20,12 +21,73 @@ class NitroSection {
             this.onSectionVisible();
         });
         
-        this.timelineFeatures.forEach(feature => {
-            feature.addEventListener('mouseenter', () => this.animateFeatureHover(feature));
-            feature.addEventListener('mouseleave', () => this.resetFeatureHover(feature));
+        this.hexagons.forEach(hexagon => {
+            hexagon.addEventListener('mouseenter', () => this.animateHexagonHover(hexagon));
+            hexagon.addEventListener('mouseleave', () => this.resetHexagonHover(hexagon));
         });
         
         this.setupParticleEffects();
+    }
+    
+    setupConnectingLines() {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        `;
+        
+        this.hexagons.forEach((hexagon, i) => {
+            if (i < this.hexagons.length - 1) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('class', 'connecting-line');
+                line.style.cssText = `
+                    stroke: url(#gradient);
+                    stroke-width: 2;
+                    opacity: 0.3;
+                `;
+                svg.appendChild(line);
+            }
+        });
+        
+        const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+        gradient.setAttribute('id', 'gradient');
+        gradient.innerHTML = `
+            <stop offset="0%" stop-color="#ffd700"/>
+            <stop offset="50%" stop-color="#ff69b4"/>
+            <stop offset="100%" stop-color="#9370db"/>
+        `;
+        svg.appendChild(gradient);
+        
+        this.section.querySelector('.hexagon-grid').appendChild(svg);
+        this.updateConnectingLines();
+        
+        window.addEventListener('resize', () => this.updateConnectingLines());
+    }
+    
+    updateConnectingLines() {
+        const lines = document.querySelectorAll('.connecting-line');
+        this.hexagons.forEach((hexagon, i) => {
+            if (i < this.hexagons.length - 1) {
+                const rect1 = hexagon.getBoundingClientRect();
+                const rect2 = this.hexagons[i + 1].getBoundingClientRect();
+                const gridRect = this.section.querySelector('.hexagon-grid').getBoundingClientRect();
+                
+                const x1 = rect1.left + rect1.width / 2 - gridRect.left;
+                const y1 = rect1.top + rect1.height / 2 - gridRect.top;
+                const x2 = rect2.left + rect2.width / 2 - gridRect.left;
+                const y2 = rect2.top + rect2.height / 2 - gridRect.top;
+                
+                lines[i].setAttribute('x1', x1);
+                lines[i].setAttribute('y1', y1);
+                lines[i].setAttribute('x2', x2);
+                lines[i].setAttribute('y2', y2);
+            }
+        });
     }
     
     onSectionVisible() {
@@ -35,7 +97,7 @@ class NitroSection {
         this.animationTriggered = true;
         
         this.animateTitle();
-        this.animateTimeline();
+        this.animateHexagons();
         this.startPremiumEffects();
     }
     
@@ -56,22 +118,22 @@ class NitroSection {
         }
     }
     
-    animateTimeline() {
-        this.timelineFeatures.forEach((feature, index) => {
-            const delay = parseInt(feature.dataset.delay) || index * 100;
+    animateHexagons() {
+        this.hexagons.forEach((hexagon, index) => {
+            const delay = parseInt(hexagon.dataset.delay) || index * 100;
             
             setTimeout(() => {
-                feature.classList.add('visible');
-                this.addFeatureSparkles(feature);
+                hexagon.classList.add('visible');
+                this.addHexagonSparkles(hexagon);
             }, 1000 + delay);
         });
     }
     
-    addFeatureSparkles(feature) {
+    addHexagonSparkles(hexagon) {
         for (let i = 0; i < 3; i++) {
             setTimeout(() => {
                 const sparkle = document.createElement('div');
-                sparkle.className = 'feature-sparkle';
+                sparkle.className = 'hexagon-sparkle';
                 sparkle.style.cssText = `
                     position: absolute;
                     width: 4px;
@@ -88,8 +150,7 @@ class NitroSection {
                     z-index: 10;
                 `;
                 
-                feature.style.position = 'relative';
-                feature.appendChild(sparkle);
+                hexagon.appendChild(sparkle);
                 
                 setTimeout(() => {
                     sparkle.style.opacity = '1';
@@ -110,35 +171,47 @@ class NitroSection {
         }
     }
     
-    animateFeatureHover(feature) {
-        const point = feature.querySelector('.timeline-point');
-        const icon = feature.querySelector('.point-icon');
-        
-        if (point) {
-            point.style.transform = 'scale(1.1)';
-        }
-        
+    animateHexagonHover(hexagon) {
+        const icon = hexagon.querySelector('.feature-icon');
         if (icon) {
             icon.style.transform = 'scale(1.1) rotate(5deg)';
         }
         
-        this.createHoverSparkles(feature);
+        this.createHoverSparkles(hexagon);
+        this.pulseConnectedHexagons(hexagon);
     }
     
-    resetFeatureHover(feature) {
-        const point = feature.querySelector('.timeline-point');
-        const icon = feature.querySelector('.point-icon');
-        
-        if (point) {
-            point.style.transform = 'scale(1)';
-        }
-        
+    resetHexagonHover(hexagon) {
+        const icon = hexagon.querySelector('.feature-icon');
         if (icon) {
             icon.style.transform = 'scale(1) rotate(0deg)';
         }
     }
     
-    createHoverSparkles(feature) {
+    pulseConnectedHexagons(hexagon) {
+        const index = Array.from(this.hexagons).indexOf(hexagon);
+        const connectedIndexes = [];
+        
+        if (index % 2 === 0) {
+            if (index > 0) connectedIndexes.push(index - 1);
+            if (index < this.hexagons.length - 1) connectedIndexes.push(index + 1);
+        }
+        
+        connectedIndexes.forEach(i => {
+            const connectedHexagon = this.hexagons[i];
+            const border = connectedHexagon.querySelector('.hexagon-border');
+            if (border) {
+                border.style.opacity = '0.6';
+                border.style.filter = 'blur(8px)';
+                setTimeout(() => {
+                    border.style.opacity = '0.3';
+                    border.style.filter = 'blur(4px)';
+                }, 300);
+            }
+        });
+    }
+    
+    createHoverSparkles(hexagon) {
         for (let i = 0; i < 5; i++) {
             setTimeout(() => {
                 const sparkle = document.createElement('div');
@@ -159,7 +232,7 @@ class NitroSection {
                     z-index: 10;
                 `;
                 
-                feature.appendChild(sparkle);
+                hexagon.appendChild(sparkle);
                 
                 setTimeout(() => {
                     sparkle.style.opacity = '0';

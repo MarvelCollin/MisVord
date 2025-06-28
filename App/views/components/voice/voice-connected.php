@@ -71,6 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const videoGrid = document.getElementById('videoGrid');
     const localAvatarWrapper = document.getElementById('localAvatarWrapper');
+    
+    window.addEventListener('voiceConnect', () => {
+        initializeView();
+    });
 
     function attachStream(participantId, stream) {
         console.log('Attaching stream for', participantId, stream);
@@ -186,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function initializeView() {
         if (!window.videosdkMeeting) {
             console.log("Waiting for meeting to initialize...");
+            setTimeout(initializeView, 100);
             return;
         }
 

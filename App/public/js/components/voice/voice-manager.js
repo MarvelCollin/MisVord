@@ -6,6 +6,8 @@ class VoiceManager {
         this.isVideoOn = false;
         this.isScreenSharing = false;
         this.participants = new Map();
+        this.currentChannelId = null;
+        this.currentChannelName = null;
         
         this.init();
     }
@@ -27,14 +29,45 @@ class VoiceManager {
         }
     }
     
+    setupVoice(channelId) {
+        if (this.currentChannelId === channelId) return;
+        
+        if (this.isConnected) {
+            this.leaveVoice();
+        }
+        
+        this.currentChannelId = channelId;
+        
+        // Update channel metadata
+        const channelNameElements = document.querySelectorAll('.channel-name, .voice-ind-title');
+        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        const channelName = channelElement?.textContent?.trim() || 'Voice Channel';
+        this.currentChannelName = channelName;
+        
+        channelNameElements.forEach(el => {
+            if (el.classList.contains('channel-name')) {
+                el.textContent = channelName.length > 10 
+                    ? channelName.substring(0, 8) + '...' 
+                    : channelName;
+            } else {
+                el.textContent = channelName;
+            }
+        });
+    }
+    
     async joinVoice() {
         if (this.isConnected) return Promise.resolve();
         
-        const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+        const channelId = this.currentChannelId || document.querySelector('meta[name="channel-id"]')?.content;
         if (channelId && window.autoJoinVoiceChannel) {
             try {
                 await window.autoJoinVoiceChannel(channelId);
                 this.isConnected = true;
+                this.dispatchEvent('voiceConnect', {
+                    channelId: this.currentChannelId,
+                    channelName: this.currentChannelName,
+                    meetingId: window.videosdkMeeting?.id
+                });
                 return Promise.resolve();
             } catch (error) {
                 this.showToast('Failed to connect to voice', 'error');
@@ -55,12 +88,12 @@ class VoiceManager {
         }
         
         this.isConnected = false;
+        this.currentChannelId = null;
+        this.currentChannelName = null;
         this.participants.clear();
         this.dispatchEvent('voiceDisconnect');
         this.showToast('Disconnected from voice', 'info');
     }
-    
-
     
     addParticipant(participant) {
         this.participants.set(participant.id, participant);

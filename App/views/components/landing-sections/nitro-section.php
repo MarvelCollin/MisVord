@@ -19,91 +19,90 @@ if (!function_exists('asset')) {
     </div>
 
     <div class="container mx-auto px-4 relative z-10">
-        <div class="text-center mb-12">
-            <div class="crown-icon mb-4">
-                <i class="fas fa-crown text-5xl"></i>
+        <div class="nitro-content">
+            <div class="title-section">
+                <div class="rotated-title">
+                    <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 nitro-title" data-animate="title">
+                        <span class="gradient-text">MisVord Nitro</span>
+                    </h2>
+                    <p class="text-lg text-gray-300 max-w-2xl nitro-subtitle" data-animate="subtitle">
+                        Unlock the full potential of your communication experience
+                    </p>
+                </div>
             </div>
-            <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 nitro-title" data-animate="title">
-                <span class="gradient-text">MisVord Nitro</span>
-            </h2>
-            <p class="text-lg text-gray-300 max-w-2xl mx-auto nitro-subtitle" data-animate="subtitle">
-                Unlock the full potential of your communication experience
-            </p>
-        </div>
 
-        <div class="nitro-timeline">
-            <div class="timeline-track">
-                <div class="timeline-line"></div>
-                
-                <div class="timeline-feature" data-delay="0">
-                    <div class="timeline-point">
-                        <div class="point-icon">
-                            <i class="fas fa-palette"></i>
-                        </div>
-                    </div>
-                    <div class="timeline-content">
-                        <h3 class="feature-title">Custom Themes</h3>
-                        <p class="feature-description">Personalize your interface with exclusive premium themes</p>
+            <div class="hexagon-container">
+                <div class="crown-center">
+                    <div class="crown-icon">
+                        <i class="fas fa-crown"></i>
                     </div>
                 </div>
 
-                <div class="timeline-feature" data-delay="100">
-                    <div class="timeline-point">
-                        <div class="point-icon">
-                            <i class="fas fa-file-upload"></i>
+                <div class="rotating-hexagons">
+                    <div class="hexagon-feature" data-delay="0" style="--rotation: 0deg">
+                        <div class="hexagon-content">
+                            <div class="feature-icon">
+                                <i class="fas fa-palette"></i>
+                            </div>
+                            <h3 class="feature-title">Custom Themes</h3>
+                            <p class="feature-description">Premium themes & colors</p>
                         </div>
+                        <div class="hexagon-border"></div>
                     </div>
-                    <div class="timeline-content">
-                        <h3 class="feature-title">Larger Uploads</h3>
-                        <p class="feature-description">Share files up to 100MB in size</p>
+                    
+                    <div class="hexagon-feature" data-delay="100" style="--rotation: 60deg">
+                        <div class="hexagon-content">
+                            <div class="feature-icon">
+                                <i class="fas fa-file-upload"></i>
+                            </div>
+                            <h3 class="feature-title">Larger Uploads</h3>
+                            <p class="feature-description">Share files up to 100MB</p>
+                        </div>
+                        <div class="hexagon-border"></div>
                     </div>
-                </div>
 
-                <div class="timeline-feature" data-delay="200">
-                    <div class="timeline-point">
-                        <div class="point-icon">
-                            <i class="fas fa-user-crown"></i>
+                    <div class="hexagon-feature" data-delay="200" style="--rotation: 120deg">
+                        <div class="hexagon-content">
+                            <div class="feature-icon">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                            <h3 class="feature-title">Premium Badge</h3>
+                            <p class="feature-description">Exclusive status</p>
                         </div>
+                        <div class="hexagon-border"></div>
                     </div>
-                    <div class="timeline-content">
-                        <h3 class="feature-title">Premium Badge</h3>
-                        <p class="feature-description">Show off your premium status</p>
-                    </div>
-                </div>
 
-                <div class="timeline-feature" data-delay="300">
-                    <div class="timeline-point">
-                        <div class="point-icon">
-                            <i class="fas fa-magic"></i>
+                    <div class="hexagon-feature" data-delay="300" style="--rotation: 180deg">
+                        <div class="hexagon-content">
+                            <div class="feature-icon">
+                                <i class="fas fa-magic"></i>
+                            </div>
+                            <h3 class="feature-title">Exclusive Features</h3>
+                            <p class="feature-description">Early access to beta</p>
                         </div>
+                        <div class="hexagon-border"></div>
                     </div>
-                    <div class="timeline-content">
-                        <h3 class="feature-title">Exclusive Features</h3>
-                        <p class="feature-description">Access beta features first</p>
-                    </div>
-                </div>
 
-                <div class="timeline-feature" data-delay="400">
-                    <div class="timeline-point">
-                        <div class="point-icon">
-                            <i class="fas fa-headset"></i>
+                    <div class="hexagon-feature" data-delay="400" style="--rotation: 240deg">
+                        <div class="hexagon-content">
+                            <div class="feature-icon">
+                                <i class="fas fa-headset"></i>
+                            </div>
+                            <h3 class="feature-title">Enhanced Audio</h3>
+                            <p class="feature-description">Crystal clear quality</p>
                         </div>
+                        <div class="hexagon-border"></div>
                     </div>
-                    <div class="timeline-content">
-                        <h3 class="feature-title">Enhanced Audio</h3>
-                        <p class="feature-description">Crystal clear voice quality</p>
-                    </div>
-                </div>
 
-                <div class="timeline-feature" data-delay="500">
-                    <div class="timeline-point">
-                        <div class="point-icon">
-                            <i class="fas fa-bolt"></i>
+                    <div class="hexagon-feature" data-delay="500" style="--rotation: 300deg">
+                        <div class="hexagon-content">
+                            <div class="feature-icon">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <h3 class="feature-title">Priority Support</h3>
+                            <p class="feature-description">Fast response time</p>
                         </div>
-                    </div>
-                    <div class="timeline-content">
-                        <h3 class="feature-title">Priority Support</h3>
-                        <p class="feature-description">Get faster response times</p>
+                        <div class="hexagon-border"></div>
                     </div>
                 </div>
             </div>

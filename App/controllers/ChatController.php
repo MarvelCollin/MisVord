@@ -712,121 +712,107 @@ class ChatController extends BaseController
     public function renderChatSection($chatType, $chatId)
     {
         $this->requireAuth();
-        $currentUserId = $this->getCurrentUserId();
-
+        
         try {
-            if ($chatType === 'dm' || $chatType === 'direct') {
-
-                $chatRoom = $this->chatRoomRepository->find($chatId);
-                if (!$chatRoom) {
-                    http_response_code(404);
-                    echo "Chat room not found";
-                    return;
-                }
-
-
-                if (!$this->chatRoomRepository->isParticipant($chatId, $currentUserId)) {
-                    http_response_code(403);
-                    echo "Access denied";
-                    return;
-                }
-
-
-                $participants = $this->chatRoomRepository->getParticipants($chatId);
-                $friend = null;
-
-                foreach ($participants as $participant) {
-                    if ($participant['user_id'] != $currentUserId) {
-                        $friend = [
-                            'id' => $participant['user_id'],
-                            'username' => $participant['username'],
-                            'avatar_url' => $participant['avatar_url']
-                        ];
-                        break;
-                    }
-                }
-
-
-                try {
-                    $limit = 20;
-                    $offset = 0;
-                    $rawMessages = $this->chatRoomMessageRepository->getMessagesByRoomId($chatId, $limit, $offset);
-                    $messages = array_map([$this, 'formatMessage'], $rawMessages);
-                } catch (Exception $e) {
-                    $messages = [];
-                }
-
-
-                $chatData = [
-                    'friend_username' => $friend['username'] ?? 'Unknown User',
-                    'friend_id' => $friend['id'] ?? null,
-                    'friend_avatar_url' => $friend['avatar_url'] ?? null
-                ];
-
-
-                $GLOBALS['chatType'] = 'direct';
-                $GLOBALS['targetId'] = $chatId;
-                $GLOBALS['chatData'] = $chatData;
-                $GLOBALS['messages'] = $messages;
-            } elseif ($chatType === 'channel') {
-
+            error_log("[Chat Section] Starting renderChatSection - Type: $chatType, ID: $chatId");
+            
+            $userId = $this->getCurrentUserId();
+            error_log("[Chat Section] Current user ID: $userId");
+            
+            if ($chatType === 'channel') {
+                error_log("[Chat Section] Fetching channel messages");
+                // Get channel messages
+                $messages = $this->getChannelMessages($chatId, $userId);
+                error_log("[Chat Section] Found " . count($messages['data']['messages']) . " messages");
+                
+                // Get channel info
                 $channel = $this->channelRepository->find($chatId);
                 if (!$channel) {
-                    http_response_code(404);
-                    echo "Channel not found";
-                    return;
+                    return $this->notFound('Channel not found');
                 }
-
-
-                $membership = $this->userServerMembershipRepository->findByUserAndServer($currentUserId, $channel->server_id);
-                if (!$membership) {
-                    http_response_code(403);
-                    echo "Access denied";
-                    return;
-                }
-                try {
-                    $limit = 20;
-                    $offset = 0;
-                    $rawMessages = $this->channelMessageRepository->getMessagesByChannelId($chatId, $limit, $offset);
-                    $messages = array_map([$this, 'formatMessage'], $rawMessages);
-                } catch (Exception $e) {
-                    $messages = [];
-                }
-
-
+                
                 $channelData = [
                     'id' => $channel->id,
                     'name' => $channel->name,
-                    'topic' => $channel->topic ?? '',
+                    'type' => $channel->type,
+                    'description' => $channel->description,
                     'server_id' => $channel->server_id
                 ];
-
-
-                $GLOBALS['chatType'] = 'channel';
-                $GLOBALS['targetId'] = $chatId;
-                $GLOBALS['chatData'] = $channelData;
-                $GLOBALS['messages'] = $messages;
+                
+                return $this->success([
+                    'data' => [
+                        'type' => 'channel',
+                        'target_id' => $chatId,
+                        'messages' => $messages['data']['messages'],
+                        'channel' => $channelData
+                    ]
+                ]);
             } else {
-                http_response_code(400);
-                echo "Invalid chat type";
-                return;
-            }
-            header('Content-Type: text/html; charset=utf-8');
-
-
-            require_once __DIR__ . '/../views/components/app-sections/chat-section.php';
-        } catch (Exception $e) {
-            if (function_exists('logger')) {
-                logger()->error("Chat section render error", [
-                    'error' => $e->getMessage(),
-                    'chat_type' => $chatType,
-                    'chat_id' => $chatId,
-                    'user_id' => $currentUserId
+                error_log("[Chat Section] Fetching DM messages");
+                // Get DM messages
+                $messages = $this->getDirectMessages($chatId, $userId);
+                error_log("[Chat Section] Found " . count($messages['data']['messages']) . " messages");
+                
+                return $this->success([
+                    'data' => [
+                        'type' => 'direct',
+                        'target_id' => $chatId,
+                        'messages' => $messages['data']['messages']
+                    ]
                 ]);
             }
+        } catch (Exception $e) {
+            error_log("[Chat Section] Error: " . $e->getMessage());
+            error_log("[Chat Section] Stack trace: " . $e->getTraceAsString());
+            return $this->error($e->getMessage());
+        }
+    }
 
-            http_response_code(500);
-            echo "Error rendering chat section";
+    public function renderVoiceSection($channelId)
+    {
+        $this->requireAuth();
+        
+        try {
+            error_log("[Voice Section] Starting renderVoiceSection - Channel ID: $channelId");
+            
+            $userId = $this->getCurrentUserId();
+            error_log("[Voice Section] Current user ID: $userId");
+            
+            // Get channel info
+            $channelRepo = new ChannelRepository();
+            $channel = $channelRepo->find($channelId);
+            error_log("[Voice Section] Channel data: " . json_encode($channel));
+            
+            if (!$channel || $channel['type'] !== 'voice') {
+                error_log("[Voice Section] Invalid channel - exists: " . ($channel ? 'true' : 'false') . ", type: " . ($channel ? $channel['type'] : 'N/A'));
+                return $this->notFound('Voice channel not found');
+            }
+            
+            $GLOBALS['channelId'] = $channelId;
+            $GLOBALS['channel'] = $channel;
+            error_log("[Voice Section] Set globals - channelId: $channelId, channel name: " . $channel['name']);
+            
+            if ($this->isAjaxRequest()) {
+                error_log("[Voice Section] Rendering voice section view for Ajax request");
+                ob_start();
+                require __DIR__ . '/../views/components/app-sections/voice-section.php';
+                $html = ob_get_clean();
+                error_log("[Voice Section] Generated HTML length: " . strlen($html));
+                error_log("[Voice Section] HTML preview: " . substr($html, 0, 200));
+                echo $html;
+                exit;
+            }
+            
+            error_log("[Voice Section] Returning channel data for non-Ajax request");
+            return $channel;
+        } catch (Exception $e) {
+            error_log("[Voice Section] Error: " . $e->getMessage());
+            error_log("[Voice Section] Stack trace: " . $e->getTraceAsString());
+            
+            if ($this->isAjaxRequest()) {
+                return $this->error($e->getMessage());
+            }
+            throw $e;
         }
     }
 

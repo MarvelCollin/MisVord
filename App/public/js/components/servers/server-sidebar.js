@@ -651,21 +651,23 @@ export function updateActiveServer() {
 }
 
 export async function handleServerClick(serverId, event) {
-    console.log('[Server Sidebar] handleServerClick called with serverId:', serverId);
+    console.group('[Server Sidebar] Server Click Flow');
+    console.log('Starting handleServerClick with:', { serverId, eventType: event?.type });
+    
     if (!serverId) {
-        console.log('[Server Sidebar] No server ID provided, returning');
+        console.error('No server ID provided, returning');
+        console.groupEnd();
         return;
     }
     
-    // Prevent default link behavior if event is provided
     if (event) {
-        console.log('[Server Sidebar] Preventing default click behavior');
         event.preventDefault();
+        console.log('Prevented default event behavior');
     }
 
     try {
         // First, fetch the server's channels
-        console.log('[Server Sidebar] Fetching channels for server:', serverId);
+        console.log('Fetching channels for server:', serverId);
         const channelResponse = await new Promise((resolve, reject) => {
             ajax({
                 url: `/api/servers/${serverId}/channels`,
@@ -677,89 +679,68 @@ export async function handleServerClick(serverId, event) {
         });
 
         if (!channelResponse.success || !channelResponse.data) {
-            console.error('[Server Sidebar] Failed to fetch channels:', channelResponse);
+            console.error('Failed to fetch channels:', channelResponse);
+            console.groupEnd();
             return;
         }
 
-        console.log('[Server Sidebar] Received channel data:', {
-            channelCount: channelResponse.data.channels.length,
-            channels: channelResponse.data.channels.map(ch => ({id: ch.id, name: ch.name, type: ch.type})),
-            categoryCount: channelResponse.data.categories.length,
-            uncategorizedCount: channelResponse.data.uncategorized.length
-        });
+        console.group('Channel Data');
+        console.log('Raw channel response:', channelResponse);
+        console.log('Channel count:', channelResponse.data.channels.length);
+        console.log('Categories:', channelResponse.data.categories);
+        console.log('Channels:', channelResponse.data.channels.map(ch => ({
+            id: ch.id,
+            name: ch.name,
+            type: ch.type,
+            categoryId: ch.category_id
+        })));
+        console.groupEnd();
 
         // Get the first channel if available
         const firstChannel = channelResponse.data.channels && channelResponse.data.channels.length > 0 
             ? channelResponse.data.channels[0] 
             : null;
 
-        console.log('[Server Sidebar] First channel:', firstChannel ? {
+        console.log('Selected first channel:', firstChannel ? {
             id: firstChannel.id,
             name: firstChannel.name,
-            type: firstChannel.type
+            type: firstChannel.type,
+            categoryId: firstChannel.category_id
         } : 'No channels available');
 
-        // Update URL without reloading, preserving or setting channel parameter
+        // Update URL without reloading
         const newUrl = firstChannel 
             ? `/server/${serverId}?channel=${firstChannel.id}` 
             : `/server/${serverId}`;
-        console.log('[Server Sidebar] Updating URL to:', newUrl);
+        console.log('Updating URL to:', newUrl);
         window.history.pushState({ serverId }, '', newUrl);
-        
-        console.log('[Server Sidebar] Making Ajax request for server content');
-        const serverResponse = await new Promise((resolve, reject) => {
-            ajax({
-                url: `/server/${serverId}?render_html=1`,
-                method: 'GET',
-                dataType: 'text',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
-        });
-
-        console.log('[Server Sidebar] Server content received via Ajax');
-        const mainContent = document.querySelector('.flex-1') || 
-                          document.querySelector('[class*="server-content"]') || 
-                          document.querySelector('main');
-        
-        if (!mainContent) {
-            console.error('[Server Sidebar] No main content element found to update');
-            return;
-        }
 
         // Clean up current channel socket if any
         const currentChannelId = new URLSearchParams(window.location.search).get('channel');
         if (currentChannelId && window.globalSocketManager) {
-            console.log('[Server Sidebar] Leaving channel:', currentChannelId);
+            console.log('Cleaning up socket for channel:', currentChannelId);
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
         // Clean up voice manager if any
         if (window.voiceManager) {
-            console.log('[Server Sidebar] Cleaning up voice manager');
+            console.log('Cleaning up voice manager');
             window.voiceManager.leaveVoice();
             window.voiceManager = null;
         }
 
-        // Now fetch the channel section HTML with the channel data
-        console.log('[Server Sidebar] Fetching channel section HTML with data:', {
-            channelCount: channelResponse.data.channels.length,
-            firstChannelId: firstChannel?.id,
-            categories: channelResponse.data.categories
-        });
-
+        // Prepare channel section data
+        console.group('Channel Section Update');
         const channelSectionData = {
             channels: channelResponse.data.channels,
             categories: channelResponse.data.categories,
             activeChannelId: firstChannel ? firstChannel.id : null
         };
+        console.log('Channel section data:', channelSectionData);
 
-        console.log('[Server Sidebar] Sending channel section data:', JSON.stringify(channelSectionData));
-
+        // Update the channel section
         const channelHtml = await new Promise((resolve, reject) => {
+            console.log('Fetching channel section HTML');
             ajax({
                 url: `/server/${serverId}/channel-section`,
                 method: 'POST',
@@ -770,140 +751,347 @@ export async function handleServerClick(serverId, event) {
                     'Content-Type': 'application/json'
                 },
                 success: (response) => {
-                    console.log('[Server Sidebar] Channel section response length:', response.length);
-                    console.log('[Server Sidebar] Channel section response preview:', response.substring(0, 200));
+                    console.log('Channel section HTML received, length:', response.length);
+                    console.log('Preview of HTML:', response.substring(0, 200));
                     resolve(response);
                 },
                 error: (err) => {
-                    console.error('[Server Sidebar] Channel section error:', err);
+                    console.error('Channel section error:', err);
                     reject(err);
                 }
             });
         });
 
-        // Update the channel section
+        // Update the channel wrapper
         const channelWrapper = document.querySelector('.channel-wrapper');
         if (channelWrapper) {
-            console.log('[Server Sidebar] Updating channel wrapper HTML');
-            console.log('[Server Sidebar] Channel wrapper before update:', {
+            console.log('Found channel wrapper, updating HTML');
+            console.log('Channel wrapper before update:', {
                 childCount: channelWrapper.children.length,
-                html: channelWrapper.innerHTML.substring(0, 200)
+                firstChild: channelWrapper.firstElementChild?.outerHTML.substring(0, 200)
             });
             channelWrapper.innerHTML = channelHtml;
-            console.log('[Server Sidebar] Channel wrapper after update:', {
+            console.log('Channel wrapper after update:', {
                 childCount: channelWrapper.children.length,
-                html: channelWrapper.innerHTML.substring(0, 200)
+                firstChild: channelWrapper.firstElementChild?.outerHTML.substring(0, 200)
             });
         } else {
-            console.error('[Server Sidebar] Channel wrapper element not found');
+            console.error('Channel wrapper element not found!');
+            console.log('Available elements with similar classes:', 
+                Array.from(document.querySelectorAll('[class*="channel"]')).map(el => ({
+                    className: el.className,
+                    id: el.id
+                }))
+            );
         }
+        console.groupEnd();
 
-        // Update page content
-        if (window.pageUtils) {
-            console.log('[Server Sidebar] Using pageUtils to update content');
-            window.pageUtils.updatePageContent(mainContent, serverResponse);
-        } else {
-            console.log('[Server Sidebar] Using manual DOM parsing to update content');
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(serverResponse, 'text/html');
+        // Update chat/voice section based on channel type
+        if (firstChannel) {
+            console.group('Section Update');
+            // Show/hide sections based on channel type
+            const chatSection = document.querySelector('.chat-section');
+            const voiceSection = document.querySelector('.voice-section');
             
-            // Find the server content section
-            const serverContent = doc.querySelector('.server-content') || 
-                                doc.querySelector('.flex-1') || 
-                                doc.querySelector('main');
+            if (chatSection) chatSection.classList.add('hidden');
+            if (voiceSection) voiceSection.classList.add('hidden');
             
-            if (serverContent) {
-                // Update the main content
-                mainContent.innerHTML = serverContent.innerHTML;
-                
-                // Update the server sidebar if it exists in the response
-                const newSidebar = doc.querySelector('.server-sidebar');
-                const currentSidebar = document.querySelector('.server-sidebar');
-                if (newSidebar && currentSidebar) {
-                    currentSidebar.innerHTML = newSidebar.innerHTML;
-                }
-                
-                // Execute any inline scripts
-                const scripts = doc.querySelectorAll('script:not([src])');
-                scripts.forEach(script => {
-                    if (script.textContent.trim()) {
-                        try {
-                            eval(script.textContent);
-                        } catch (error) {
-                            console.error('[Server Sidebar] Script execution error:', error);
+            if (firstChannel.type === 'text') {
+                console.log('Updating chat section for channel:', firstChannel.id);
+                if (chatSection) {
+                    chatSection.classList.remove('hidden');
+                    console.log('Found chat section element');
+                    try {
+                        const response = await new Promise((resolve, reject) => {
+                            ajax({
+                                url: `/api/chat/channel/${firstChannel.id}`,
+                                method: 'GET',
+                                dataType: 'json',
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                success: resolve,
+                                error: reject
+                            });
+                        });
+                        console.log('Received chat data:', response);
+                        
+                        // Get the messages container
+                        const messagesContainer = chatSection.querySelector('.messages-container');
+                        if (!messagesContainer) {
+                            console.error('Messages container not found');
+                            return;
                         }
+                        
+                        // Clear existing messages
+                        messagesContainer.innerHTML = '';
+                        
+                        // Add messages if they exist
+                        if (response.data?.data?.messages?.length > 0) {
+                            const messages = response.data.data.messages;
+                            const messageGroups = groupMessagesByUser(messages);
+                            
+                            messageGroups.forEach(group => {
+                                const messageGroup = document.createElement('div');
+                                messageGroup.className = 'message-group';
+                                messageGroup.dataset.userId = group.userId;
+                                
+                                let messageContent = '';
+                                group.messages.forEach(message => {
+                                    messageContent += `
+                                        <div class="message-content" data-message-id="${message.id}" data-user-id="${message.user_id}">
+                                            <div class="message-main-text text-[#dcddde]">
+                                                ${formatMessageContent(message.content)}
+                                                ${message.edited_at ? '<span class="edited-badge text-xs text-[#a3a6aa] ml-1">(edited)</span>' : ''}
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                                
+                                messageGroup.innerHTML = `
+                                    <div class="message-avatar">
+                                        <img src="${group.avatarUrl || '/public/assets/common/default-profile-picture.png'}" 
+                                             alt="${group.username}'s avatar" 
+                                             onerror="this.src='/public/assets/common/default-profile-picture.png'">
+                                    </div>
+                                    <div class="message-content-wrapper">
+                                        <div class="message-header">
+                                            <span class="message-username">${group.username}</span>
+                                            <span class="message-timestamp">${formatTimestamp(group.messages[0].sent_at)}</span>
+                                        </div>
+                                        ${messageContent}
+                                    </div>
+                                `;
+                                
+                                messagesContainer.appendChild(messageGroup);
+                            });
+                        } else {
+                            // Show empty state
+                            messagesContainer.innerHTML = `
+                                <div class="flex flex-col items-center justify-center h-full text-[#dcddde]">
+                                    <i class="fas fa-comments text-6xl mb-4 text-[#4f545c]"></i>
+                                    <p class="text-lg">No messages yet</p>
+                                    <p class="text-sm text-[#a3a6aa]">Be the first to send a message!</p>
+                                </div>
+                            `;
+                        }
+                    } catch (error) {
+                        console.error('Error updating chat section:', error);
                     }
-                });
+                } else {
+                    console.error('Chat section element not found');
+                }
+            } else if (firstChannel.type === 'voice') {
+                console.log('Updating voice section for channel:', firstChannel.id);
+                if (voiceSection) {
+                    voiceSection.classList.remove('hidden');
+                    console.log('Found voice section element');
+                    try {
+                        // Initialize voice manager if needed
+                        if (!window.voiceManager) {
+                            window.voiceManager = new VoiceManager();
+                        }
+                        // Don't auto-join voice, let the user click the join button
+                        window.voiceManager.setupVoice(firstChannel.id);
+                        
+                        // Update meta tags for voice channel
+                        const channelIdMeta = document.querySelector('meta[name="channel-id"]');
+                        if (channelIdMeta) {
+                            channelIdMeta.content = firstChannel.id;
+                        } else {
+                            const meta = document.createElement('meta');
+                            meta.name = 'channel-id';
+                            meta.content = firstChannel.id;
+                            document.head.appendChild(meta);
+                        }
+                        
+                        const meetingIdMeta = document.querySelector('meta[name="meeting-id"]');
+                        if (meetingIdMeta) {
+                            meetingIdMeta.content = `voice_channel_${firstChannel.id}`;
+                        } else {
+                            const meta = document.createElement('meta');
+                            meta.name = 'meeting-id';
+                            meta.content = `voice_channel_${firstChannel.id}`;
+                            document.head.appendChild(meta);
+                        }
+                    } catch (error) {
+                        console.error('Error updating voice section:', error);
+                    }
+                } else {
+                    console.error('Voice section element not found');
+                }
             }
+            console.groupEnd();
+                        
+                        function formatTimestamp(timestamp) {
+                            if (!timestamp) return '';
+                            
+                            try {
+                                const date = new Date(timestamp);
+                                const now = new Date();
+                                
+                                if (date.toDateString() === now.toDateString()) {
+                                    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                                } else {
+                                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                }
+                            } catch (e) {
+                                console.error('Error formatting timestamp:', e);
+                                return '';
+                            }
+                        }
+                        
+                        function formatMessageContent(content) {
+                            if (!content) return '';
+                            
+                            let formattedContent = content
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/"/g, '&quot;')
+                                .replace(/'/g, '&#039;')
+                                .replace(/\n/g, '<br>');
+                            
+                            // Format markdown
+                            formattedContent = formattedContent
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                .replace(/```([\s\S]*?)```/g, '<div class="bg-[#2b2d31] p-2 my-1 rounded text-sm font-mono"><code>$1</code></div>')
+                                .replace(/`(.*?)`/g, '<code class="bg-[#2b2d31] px-1 py-0.5 rounded text-sm font-mono">$1</code>');
+                            
+                            return formattedContent;
+                        }
+                        
+                        function groupMessagesByUser(messages) {
+                            const groups = [];
+                            let currentGroup = null;
+                            
+                            messages.forEach(message => {
+                                if (!currentGroup || currentGroup.userId !== message.user_id) {
+                                    currentGroup = {
+                                        userId: message.user_id,
+                                        username: message.username,
+                                        avatarUrl: message.avatar_url,
+                                        messages: []
+                                    };
+                                    groups.push(currentGroup);
+                                }
+                                currentGroup.messages.push(message);
+                            });
+                            
+                            return groups;
+                        }
+                        
+                        if (window.chatSection) {
+                            console.log('Initializing chat section');
+                            window.chatSection.init();
+                        } else {
+                            console.warn('Chat section object not found in window');
+                        }
+                    } catch (err) {
+                        console.error('Error updating chat section:', err);
+                    }
+                } else {
+                    console.error('Chat section element not found!');
+                    console.log('Available sections:', 
+                        Array.from(document.querySelectorAll('section')).map(el => ({
+                            className: el.className,
+                            id: el.id
+                        }))
+                    );
+                }
+            } else if (firstChannel.type === 'voice') {
+                console.log('Updating voice section for channel:', firstChannel.id);
+                const voiceSection = document.querySelector('.voice-section');
+                if (voiceSection) {
+                    console.log('Found voice section element');
+                    try {
+                        const voiceHtml = await new Promise((resolve, reject) => {
+                            ajax({
+                                url: `/api/voice/channel/${firstChannel.id}`,
+                                method: 'GET',
+                                dataType: 'text',
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                success: resolve,
+                                error: reject
+                            });
+                        });
+                        console.log('Received voice HTML, length:', voiceHtml.length);
+                        console.log('Preview of voice HTML:', voiceHtml.substring(0, 200));
+                        voiceSection.innerHTML = voiceHtml;
+                        
+                        if (window.voiceManager) {
+                            console.log('Initializing voice manager');
+                            window.voiceManager.init();
+                        } else {
+                            console.warn('Voice manager not found in window');
+                        }
+                    } catch (err) {
+                        console.error('Error updating voice section:', err);
+                    }
+                } else {
+                    console.error('Voice section element not found!');
+                    console.log('Available sections:', 
+                        Array.from(document.querySelectorAll('section')).map(el => ({
+                            className: el.className,
+                            id: el.id
+                        }))
+                    );
+                }
+            }
+            console.groupEnd();
         }
 
         // Update active server in sidebar
-        console.log('[Server Sidebar] Updating active server');
+        console.log('Updating active server state');
         updateActiveServer();
 
-        // Initialize server page components
-        if (typeof window.initServerPage === 'function') {
-            console.log('[Server Sidebar] Initializing server page');
-            window.initServerPage();
-        }
-        
         // Initialize channel handlers
-        if (typeof window.initializeChannelClickHandlers === 'function') {
-            console.log('[Server Sidebar] Initializing channel click handlers');
-            const channelItems = document.querySelectorAll('.channel-item');
-            console.log('[Server Sidebar] Found channel items:', {
-                count: channelItems.length,
-                items: Array.from(channelItems).map(item => ({
-                    id: item.getAttribute('data-channel-id'),
-                    type: item.getAttribute('data-channel-type')
-                }))
-            });
-            window.initializeChannelClickHandlers();
-        }
-
-        // Re-initialize server sidebar if needed
-        if (typeof window.initServerSidebar === 'function') {
-            console.log('[Server Sidebar] Re-initializing server sidebar');
-            window.initServerSidebar();
-        }
-
-        // Dispatch server change event
-        console.log('[Server Sidebar] Dispatching ServerChanged event');
-        const event = new CustomEvent('ServerChanged', { 
-            detail: { 
-                serverId,
-                previousChannelId: currentChannelId 
-            } 
+        console.group('Channel Handlers');
+        const channelItems = document.querySelectorAll('.channel-item');
+        console.log('Found channel items:', {
+            count: channelItems.length,
+            items: Array.from(channelItems).map(item => ({
+                id: item.dataset.channelId,
+                type: item.dataset.channelType,
+                name: item.textContent.trim()
+            }))
         });
-        document.dispatchEvent(event);
-
-        // Wait a bit for the DOM to update
-        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Switch to first channel if available
-        if (firstChannel && window.channelSwitchManager) {
-            console.log('[Server Sidebar] Switching to first channel:', firstChannel.id);
-            const channelElement = document.querySelector(`[data-channel-id="${firstChannel.id}"]`);
+        if (firstChannel) {
+            console.log('Looking for first channel element:', firstChannel.id);
+            const channelElement = document.querySelector(`.channel-item[data-channel-id="${firstChannel.id}"]`);
             if (channelElement) {
-                console.log('[Server Sidebar] Found channel element:', {
-                    id: channelElement.getAttribute('data-channel-id'),
-                    type: channelElement.getAttribute('data-channel-type')
+                console.log('Found first channel element:', {
+                    id: channelElement.dataset.channelId,
+                    type: channelElement.dataset.channelType,
+                    name: channelElement.textContent.trim()
                 });
-                window.channelSwitchManager.switchToChannel(serverId, firstChannel.id, channelElement);
             } else {
-                console.warn('[Server Sidebar] Channel element not found for ID:', firstChannel.id);
-                console.log('[Server Sidebar] Available channel elements:', 
-                    Array.from(document.querySelectorAll('[data-channel-id]')).map(el => ({
-                        id: el.getAttribute('data-channel-id'),
-                        type: el.getAttribute('data-channel-type')
+                console.error('Channel element not found for ID:', firstChannel.id);
+                console.log('Available channel elements:', 
+                    Array.from(channelItems).map(el => ({
+                        id: el.dataset.channelId,
+                        type: el.dataset.channelType,
+                        name: el.textContent.trim()
                     }))
                 );
             }
         }
+        console.groupEnd();
+
+        // Dispatch server changed event
+        console.log('Dispatching ServerChanged event');
+        window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
+
     } catch (error) {
-        console.error('[Server Sidebar] Error in handleServerClick:', error);
-        window.location.href = `/server/${serverId}`;
+        console.error('Error in handleServerClick:', error);
+        console.trace();
     }
+    console.groupEnd();
 }
 
 export function refreshServerGroups() {
@@ -916,3 +1104,42 @@ export const ServerSidebar = {
     renderFolders: () => performCompleteRender(),
     refresh: () => performCompleteRender()
 };
+
+function formatTimestamp(timestamp) {
+    if (!timestamp) return '';
+    
+    try {
+        const date = new Date(timestamp);
+        const now = new Date();
+        
+        if (date.toDateString() === now.toDateString()) {
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        } else {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+    } catch (e) {
+        console.error('Error formatting timestamp:', e);
+        return '';
+    }
+}
+
+function formatMessageContent(content) {
+    if (!content) return '';
+    
+    let formattedContent = content
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/\n/g, '<br>');
+    
+    // Format markdown
+    formattedContent = formattedContent
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/```([\s\S]*?)```/g, '<div class="bg-[#2b2d31] p-2 my-1 rounded text-sm font-mono"><code>$1</code></div>')
+        .replace(/`(.*?)`/g, '<code class="bg-[#2b2d31] px-1 py-0.5 rounded text-sm font-mono">$1</code>');
+    
+    return formattedContent;
+}

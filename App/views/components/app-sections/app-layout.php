@@ -178,16 +178,20 @@ $additional_js[] = 'components/app-layout';
                     if (isset($_GET['type']) && $_GET['type'] === 'voice') {
                         $channelType = 'voice';
                     }
-
-                    if ($channelType === 'voice') {
-                        include dirname(__DIR__) . '/app-sections/voice-section.php';
-                    } else {
-                        include dirname(__DIR__) . '/app-sections/chat-section.php';
-                    }
                     ?>
+                    
+                    <!-- Always include both sections, but hide one based on channel type -->
+                    <div class="chat-section <?php echo $channelType === 'text' ? '' : 'hidden'; ?>">
+                        <?php include dirname(__DIR__) . '/app-sections/chat-section.php'; ?>
+                    </div>
+                    <div class="voice-section <?php echo $channelType === 'voice' ? '' : 'hidden'; ?>">
+                        <?php include dirname(__DIR__) . '/app-sections/voice-section.php'; ?>
+                    </div>
                 </div>
             <?php elseif ($contentType === 'dm'): ?>
-                <?php include dirname(__DIR__) . '/app-sections/chat-section.php'; ?>
+                <div class="chat-section">
+                    <?php include dirname(__DIR__) . '/app-sections/chat-section.php'; ?>
+                </div>
             <?php endif; ?>
         </div>
 
