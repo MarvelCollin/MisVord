@@ -114,42 +114,28 @@ class VoiceStateManager {
     }
 
     toggleVideo() {
-        console.log('[VoiceStateManager] toggleVideo() called');
-        console.log('[VoiceStateManager] Current state:', {
-            hasVideoSDKManager: !!window.videoSDKManager,
-            hasVideosdkMeeting: !!window.videosdkMeeting,
-            isConnected: window.videoSDKManager?.isConnected,
-            currentVideoState: this.state?.isVideoOn
-        });
-
         if (!window.videoSDKManager || !window.videosdkMeeting) {
-            console.error('[VoiceStateManager] Voice not connected - missing VideoSDK components');
             this.showToast('Voice not connected', 'error');
             return;
         }
 
         const videoButton = document.getElementById('voiceVideoBtn');
-        console.log('[VoiceStateManager] Video button found:', !!videoButton);
         if (videoButton) videoButton.disabled = true;
 
         try {
-            console.log('[VoiceStateManager] Calling VideoSDK toggleWebcam...');
             window.videoSDKManager.toggleWebcam().then(isVideoOn => {
-                console.log(`[VoiceStateManager] Video toggled successfully. New state: ${isVideoOn}`);
                 this.storageManager.setVoiceState({ isVideoOn });
                 this.showToast(isVideoOn ? 'Camera enabled' : 'Camera disabled');
             }).catch(error => {
-                console.error('[VoiceStateManager] Error from VideoSDK toggleWebcam:', error);
+                console.error('Error toggling camera:', error);
                 this.showToast('Failed to toggle camera', 'error');
                 const currentVideoState = window.videoSDKManager.getWebcamState();
-                console.log('[VoiceStateManager] Fallback - current video state:', currentVideoState);
                 this.storageManager.setVoiceState({ isVideoOn: currentVideoState });
             }).finally(() => {
-                console.log('[VoiceStateManager] Re-enabling video button');
                 if (videoButton) videoButton.disabled = false;
             });
         } catch (error) {
-            console.error('[VoiceStateManager] Error in toggleVideo wrapper:', error);
+            console.error('Error in toggleVideo wrapper:', error);
             this.showToast('Failed to toggle camera', 'error');
             if (videoButton) videoButton.disabled = false;
         }
@@ -329,50 +315,12 @@ class VoiceStateManager {
         });
     }
 
-    testCamera() {
-        console.log('=== Testing Camera Functionality ===');
-        console.log('Step 1: Checking if connected to voice...');
-        
-        if (!window.videoSDKManager || !window.videosdkMeeting) {
-            console.error('❌ Not connected to voice channel. Please join a voice channel first.');
-            return false;
-        }
-        
-        console.log('✅ Connected to voice channel');
-        console.log('Step 2: Testing camera permissions...');
-        
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                console.log('✅ Camera permission granted');
-                stream.getTracks().forEach(track => track.stop());
-                
-                console.log('Step 3: Testing camera toggle...');
-                this.toggleVideo();
-                
-                setTimeout(() => {
-                    const currentState = window.videoSDKManager.getWebcamState();
-                    console.log('Step 4: Camera state after toggle:', currentState);
-                    
-                    if (currentState) {
-                        console.log('✅ Camera appears to be working!');
-                    } else {
-                        console.log('❌ Camera toggle may have failed. Check the logs above for errors.');
-                    }
-                }, 2000);
-            })
-            .catch(error => {
-                console.error('❌ Camera permission denied or device error:', error.name, error.message);
-                console.log('Please allow camera access in your browser settings and try again.');
-            });
-        
-        return true;
-    }
+
 }
 
 const voiceStateManager = new VoiceStateManager();
 
 window.voiceStateManager = voiceStateManager;
-window.testCamera = () => voiceStateManager.testCamera();
 
 export { VoiceStateManager };
 export default voiceStateManager;

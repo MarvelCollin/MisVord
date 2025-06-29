@@ -6,7 +6,6 @@ require_once __DIR__ . '/BaseController.php';
 
 class ExploreController extends BaseController
 {
-
     private $serverRepository;
     private $userServerMembershipRepository;
 
@@ -19,60 +18,44 @@ class ExploreController extends BaseController
     
     public function getPublicServers()
     {
-        $currentUserId = $_SESSION['user_id'] ?? 0;
-        $servers = [];
-        $userServerId = [];        try {
+        try {
             $servers = $this->serverRepository->getPublicServersWithMemberCount();
             
-            $servers = array_map(function($server) {
-                if (!is_array($server)) {
-                    return (array) $server;
-                }
-                return $server;
+            return array_map(function($server) {
+                return is_array($server) ? $server : (array) $server;
             }, $servers);
-            
-            $userServerId = $this->userServerMembershipRepository->getServerIdsForUser($currentUserId);
         } catch (Exception $e) {
             log_error("Error fetching public servers", ['error' => $e->getMessage()]);
-            $servers = [];
-            $userServerId = [];
+            return [];
         }
-
-        return [
-            'servers' => $servers,
-            'userServerIds' => $userServerId
-        ];
     }
 
     private function getFeaturedServers($limit = 3)
     {
-        $currentUserId = $_SESSION['user_id'] ?? 0;
-        $featuredServers = [];
-        $userServerId = [];        
-        
         try {
             $featuredServers = $this->serverRepository->getFeaturedServersWithMemberCount($limit);
             
-            $featuredServers = array_map(function($server) {
+            return array_map(function($server) {
                 return is_array($server) ? $server : (array) $server;
             }, $featuredServers);
-            
-            $userServerId = $this->userServerMembershipRepository->getServerIdsForUser($currentUserId);
         } catch (Exception $e) {
             log_error("Error fetching featured servers", ['error' => $e->getMessage()]);
-            $featuredServers = [];
-            $userServerId = [];
+            return [];
         }
+    }
 
-        return [
-            'featuredServers' => $featuredServers,
-            'userServerIds' => $userServerId
-        ];
+    private function getUserServerIds($userId)
+    {
+        try {
+            return $this->userServerMembershipRepository->getServerIdsForUser($userId);
+        } catch (Exception $e) {
+            log_error("Error fetching user server IDs", ['error' => $e->getMessage()]);
+            return [];
+        }
     }
 
     public function prepareExploreData()
     {
-
         $currentUserId = $_SESSION['user_id'] ?? 0;
 
         $userServers = $this->serverRepository->getForUser($currentUserId);
@@ -80,9 +63,9 @@ class ExploreController extends BaseController
             return is_array($server) ? $server : (array) $server;
         }, $userServers);
         
-        $GLOBALS['userServers'] = $userServers;        
-        $allServersData = $this->getPublicServers();
-        $featuredServersData = $this->getFeaturedServers(3);
+        $servers = $this->getPublicServers();
+        $featuredServers = $this->getFeaturedServers(3);
+        $userServerIds = $this->getUserServerIds($currentUserId);
 
         $categories = [
             'gaming' => 'Gaming',
@@ -95,9 +78,9 @@ class ExploreController extends BaseController
 
         return [
             'userServers' => $userServers,
-            'servers' => $allServersData['servers'],
-            'userServerIds' => $allServersData['userServerIds'],
-            'featuredServers' => $featuredServersData['featuredServers'],
+            'servers' => $servers,
+            'userServerIds' => $userServerIds,
+            'featuredServers' => $featuredServers,
             'categories' => $categories,
             'currentUserId' => $currentUserId
         ];
@@ -115,16 +98,10 @@ class ExploreController extends BaseController
 
             $exploreData = $this->prepareExploreData();
             
-            $userServers = $exploreData['userServers'];
-            $servers = $exploreData['servers'];
-            $userServerId = $exploreData['userServerIds'];
-            $featuredServers = $exploreData['featuredServers'];
-            $categories = $exploreData['categories'];
-
-            $GLOBALS['servers'] = $servers;
-            $GLOBALS['userServerIds'] = $userServerId;
-            $GLOBALS['featuredServers'] = $featuredServers;
-            $GLOBALS['categories'] = $categories;
+            $GLOBALS['servers'] = $exploreData['servers'];
+            $GLOBALS['userServerIds'] = $exploreData['userServerIds'];
+            $GLOBALS['featuredServers'] = $exploreData['featuredServers'];
+            $GLOBALS['categories'] = $exploreData['categories'];
             $GLOBALS['contentType'] = 'explore';
 
             ob_start();

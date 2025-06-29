@@ -125,128 +125,63 @@
 
 .server-icon {
   position: absolute;
-  top: -40px;
-  left: 24px;
-  z-index: 10;
-  transition: all 0.3s ease;
-}
-
-.server-icon .w-18 {
-  width: 72px;
-  height: 72px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.server-icon img,
-.server-icon div {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.server-card:hover .server-icon {
-  transform: translateY(-2px);
-}
-
-.server-card:hover .server-icon .w-18 {
-  transform: scale(1.05) rotate(3deg);
-}
-
-.server-card .server-icon {
   width: 72px;
   height: 72px;
   border-radius: 20px;
   background-color: #2f3136;
   border: 4px solid #36393f;
-  position: absolute;
-  bottom: -32px;
-  left: 20px;
   overflow: hidden;
   transition: all 0.3s ease;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  z-index: 1;
+  z-index: 10;
 }
 
-.server-card .p-6 {
+.server-icon.featured {
+  top: -40px;
+  left: 24px;
+}
+
+.server-icon.featured .w-18 {
+  width: 72px;
+  height: 72px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.server-card:hover .server-icon.featured {
+  transform: translateY(-2px);
+}
+
+.server-card:hover .server-icon.featured .w-18 {
+  transform: scale(1.05) rotate(3deg);
+}
+
+.server-icon-small {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
   position: relative;
-  z-index: 2;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.server-card .server-icon .w-18 {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-.server-card .server-icon .w-18 img {
+.server-icon img,
+.server-icon div,
+.server-icon-small img,
+.server-icon-small div {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .server-card:hover .server-icon {
   transform: scale(1.1) rotate(2deg);
   border-radius: 16px;
-}
-
-.server-card .server-icon > div {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: inherit;
-}
-
-.server-card .w-14 {
-  width: 56px !important;
-  height: 56px !important;
-  border-radius: 12px;
-  overflow: hidden;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 9998 !important;
-}
-
-.server-card .w-14 img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover;
-  border-radius: inherit;
-}
-
-.server-card .w-14 > div {
-  width: 100% !important;
-  height: 100% !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: inherit;
-}
-
-.server-card .w-12 {
-  width: 48px !important;
-  height: 48px !important;
-  border-radius: 10px;
-  overflow: hidden;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 9998 !important;
-}
-
-.server-card .w-12 img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover;
-  border-radius: inherit;
-}
-
-.server-card .w-12 > div {
-  width: 100% !important;
-  height: 100% !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: inherit;
 }
 
 .featured-badge {
@@ -425,20 +360,15 @@
     height: 120px;
   }
   
-  .server-card .server-icon {
+  .server-icon {
     width: 64px;
     height: 64px;
     bottom: -28px;
   }
 
-  .server-card .w-14 {
-    width: 48px !important;
-    height: 48px !important;
-  }
-
-  .server-card .w-12 {
-    width: 40px !important;
-    height: 40px !important;
+  .server-icon-small {
+    width: 48px;
+    height: 48px;
   }
 }
 
@@ -462,18 +392,13 @@
     height: 260px;
   }
 
-  .server-card .w-14 {
-    width: 44px !important;
-    height: 44px !important;
-  }
-
-  .server-card .w-12 {
-    width: 36px !important;
-    height: 36px !important;
+  .server-icon-small {
+    width: 44px;
+    height: 44px;
   }
 }
 
-.flex.h-full .w-\[72px\] .sidebar-server-icon {
+.sidebar-server-icon {
   width: 48px;
   height: 48px;
   margin-bottom: 8px;
@@ -482,58 +407,51 @@
   transition: all 0.3s ease;
 }
 
-.flex.h-full .w-\[72px\] .sidebar-server-icon:hover {
+.sidebar-server-icon:hover {
   transform: translateY(-2px);
 }
 
-.flex.h-full .w-\[72px\] .sidebar-server-icon a {
+.sidebar-server-icon a {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-.flex.h-full .w-\[72px\] .sidebar-server-icon a div {
-  width: 48px !important;
-  height: 48px !important;
+.sidebar-server-icon a div {
+  width: 48px;
+  height: 48px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 50%;
 }
 
-.flex.h-full .w-\[72px\] .sidebar-server-icon:hover a div {
+.sidebar-server-icon:hover a div {
   border-radius: 16px;
 }
 
-.flex.h-full .w-\[72px\] .group .absolute {
-  z-index: 100;
-}
-
-.flex.h-full .w-\[72px\] .sidebar-server-icon .absolute.left-0 {
+.sidebar-server-icon .absolute.left-0 {
   height: 0;
   transition: height 0.2s ease;
   background-color: #ffffff;
   border-radius: 0 4px 4px 0;
 }
 
-.flex.h-full .w-\[72px\] .sidebar-server-icon.active .absolute.left-0 {
-  height: 40px !important;
+.sidebar-server-icon.active .absolute.left-0 {
+  height: 40px;
 }
 
-.flex.h-full .w-\[72px\] .sidebar-server-icon:hover .absolute.left-0.group-hover\:h-5 {
-  height: 20px !important;
+.sidebar-server-icon:hover .absolute.left-0 {
+  height: 20px;
 }
 
-.w-\[72px\] a[href="/explore-servers"] .bg-discord-primary {
+.explore-button-active {
   border-radius: 16px;
   background: linear-gradient(135deg, #5865f2 0%, #7289da 100%);
   transform: scale(1.1);
   box-shadow: 0 8px 20px rgba(88, 101, 242, 0.3);
-}
-
-.w-\[72px\] a[href="/explore-servers"] .text-white {
   color: white;
 }
 
-.w-\[72px\] a[href="/explore-servers"] + .absolute.left-0.top-1\/2.-translate-y-1\/2 {
+.explore-button-active + .absolute.left-0 {
   height: 40px;
 }
 
@@ -559,27 +477,4 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.server-card div.server-icon {
-  z-index: 9999 !important;
-  position: absolute !important;
-}
-
-.server-card .server-icon .w-18 {
-  z-index: 9999 !important;
-  position: relative !important;
-}
-
-.server-card .server-icon .w-18.h-18.rounded-2xl {
-  z-index: 9999 !important;
-  position: relative !important;
-}
-
-div[class*="server-icon"] {
-  z-index: 9999 !important;
-}
-
-.server-card [class*="w-18"] {
-  z-index: 9999 !important;
 }

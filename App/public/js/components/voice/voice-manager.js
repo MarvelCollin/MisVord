@@ -37,27 +37,13 @@ class VoiceManager {
         if (this.preloadStarted) return;
         
         this.preloadStarted = true;
-        console.log('🔄 Preloading voice resources...');
         
         try {
             await this.loadVideoSDKScript();
-            
             await this.initVideoSDK();
-            
-            const channelId = document.querySelector('meta[name="channel-id"]')?.content;
-            if (channelId) {
-                const meetingId = `voice_channel_${channelId}`;
-                console.log('🔍 Pre-validating meeting:', meetingId);
-                
-                if (this.videoSDKManager) {
-                    await this.videoSDKManager.validateMeeting(meetingId);
-                }
-            }
-            
             this.preloadComplete = true;
-            console.log('✅ Voice resources preloaded successfully');
         } catch (error) {
-            console.warn('⚠️ Voice preload encountered an issue:', error);
+            console.warn('Voice preload failed:', error);
         }
     }
 
@@ -127,28 +113,12 @@ class VoiceManager {
     }
     
     setupErrorHandling() {
-        // Add global error handler for stream events
-        window.addEventListener('error', (event) => {
-            // Check if the error is related to VideoSDK streams
-            if (event.error && event.error.message && (
-                event.error.message.includes('Cannot read properties of undefined') ||
-                event.error.message.includes('kind') ||
-                event.error.message.includes('stream')
-            )) {
-                console.warn('Voice manager caught stream error:', event.error.message);
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
-            }
-        }, true);
-        
-        // Listen for custom stream events
         window.addEventListener('videosdkStreamEnabled', (event) => {
-            console.log('Voice manager received stream enabled event:', event.detail);
+            console.log('Stream enabled:', event.detail);
         });
         
         window.addEventListener('videosdkStreamDisabled', (event) => {
-            console.log('Voice manager received stream disabled event:', event.detail);
+            console.log('Stream disabled:', event.detail);
         });
     }
     
@@ -178,30 +148,24 @@ class VoiceManager {
     }
     
     async joinVoice() {
-        console.log('🎤 Attempting to join voice channel');
         if (this.isConnected) {
-            console.log('Already connected to voice');
             return Promise.resolve();
         }
         
         const channelId = this.currentChannelId || document.querySelector('meta[name="channel-id"]')?.content;
         if (!channelId) {
-            console.error('❌ No channel ID available');
             this.showToast('Channel not available', 'error');
             return Promise.reject(new Error('Channel not available'));
         }
 
         try {
-            console.log('🔄 Setting up voice for channel:', channelId);
             this.setupVoice(channelId);
 
             if (!this.preloadComplete) {
-                console.log('⏳ Initializing voice manager...');
                 await this.init();
             }
 
             if (!this.videoSDKManager) {
-                console.log('⏳ Waiting for VideoSDK initialization...');
                 await this.initializationPromise;
             }
 
@@ -212,16 +176,12 @@ class VoiceManager {
             window.videoSDKJoiningInProgress = true;
 
             const meetingId = `voice_channel_${channelId}`;
-            console.log('🔄 Creating/joining meeting:', meetingId);
 
-            // Create meeting room
             const meeting = await this.videoSDKManager.createMeetingRoom(meetingId);
             if (!meeting) {
                 throw new Error('Failed to create meeting room');
             }
-            console.log('✅ Meeting room created:', meeting);
             
-            // Initialize meeting
             await this.videoSDKManager.initMeeting({
                 meetingId: meeting,
                 name: window.currentUsername || 'Anonymous',
@@ -229,38 +189,26 @@ class VoiceManager {
                 webcamEnabled: false
             });
             
-            // Join meeting with simplified approach
             await this.videoSDKManager.joinMeeting();
             
             this.currentMeetingId = meeting;
             this.isConnected = true;
             
-            // Get channel name from multiple sources
             const channelName = this.currentChannelName || 
                                document.querySelector('meta[name="channel-name"]')?.content ||
                                document.querySelector('.channel-name')?.textContent?.trim() ||
                                document.querySelector('h2')?.textContent?.trim() ||
                                'Voice Channel';
             
-            console.log('🎤 Dispatching voiceConnect event with details:', {
-                channelId: this.currentChannelId,
-                channelName: channelName,
-                meetingId: meeting
-            });
-            
-            // Dispatch event for voice indicator
             this.dispatchEvent('voiceConnect', {
                 channelId: this.currentChannelId,
                 channelName: channelName,
                 meetingId: meeting
             });
-            
 
-
-            console.log('✅ Successfully joined voice channel');
             return Promise.resolve();
         } catch (error) {
-            console.error('❌ Failed to join voice:', error);
+            console.error('Failed to join voice:', error);
             
             window.videoSDKJoiningInProgress = false;
             this.isConnected = false;

@@ -1,15 +1,11 @@
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('Explore servers DOM loaded');
     if (typeof window !== 'undefined' && window.logger) {
         window.logger.info('explore', 'Explore servers page initialized');
     }
-
     initExplorePage();
 });
 
 function initExplorePage() {
-    console.log('Initializing explore page components');
-
     initServerCards();
     initCategoryFilter();
     initSearchFilter();
@@ -18,8 +14,6 @@ function initExplorePage() {
     highlightExploreButton();
     initServerDetailTriggers();
     initScrollAnimations();
-
-    console.log('showServerDetail function available:', typeof window.showServerDetail);
 }
 
 window.initExplorePage = initExplorePage;
@@ -52,39 +46,6 @@ function initScrollAnimations() {
     });
 }
 
-function showLoadingSkeleton() {
-    const serverGrid = document.querySelector('.server-grid');
-    const loadingSkeleton = document.getElementById('loading-skeleton');
-    
-    if (serverGrid && loadingSkeleton) {
-        serverGrid.style.display = 'none';
-        loadingSkeleton.classList.remove('hidden');
-        loadingSkeleton.style.display = 'grid';
-    }
-}
-
-function hideLoadingSkeleton() {
-    const serverGrid = document.querySelector('.server-grid');
-    const loadingSkeleton = document.getElementById('loading-skeleton');
-    
-    if (serverGrid && loadingSkeleton) {
-        loadingSkeleton.style.display = 'none';
-        loadingSkeleton.classList.add('hidden');
-        serverGrid.style.display = 'grid';
-        
-        const cards = serverGrid.querySelectorAll('.server-card');
-        cards.forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-                card.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, index * 100);
-        });
-    }
-}
-
 function highlightExploreButton() {
     const exploreButton = document.querySelector('a[href="/explore-servers"]');
     if (exploreButton) {
@@ -99,8 +60,6 @@ function initSidebarServerIcons() {
     const serverIcons = document.querySelectorAll('.sidebar-server-icon');
 
     serverIcons.forEach(icon => {
-        const parent = icon.parentElement;
-
         icon.style.display = 'block';
         icon.style.margin = '0 auto 8px auto';
         icon.style.position = 'relative';
@@ -117,14 +76,13 @@ function initServerCards() {
     serverCards.forEach((card, index) => {
         card.addEventListener('mouseenter', handleServerCardHover);
         card.addEventListener('mouseleave', handleServerCardLeave);
-        
         card.style.animationDelay = `${index * 0.1}s`;
     });
 }
 
 function handleServerCardHover(e) {
     const card = e.currentTarget;
-    const icon = card.querySelector('.server-icon, .w-14, .w-12');
+    const icon = card.querySelector('.server-icon, .server-icon-small');
     
     if (icon) {
         icon.style.transform = 'scale(1.1) rotate(3deg)';
@@ -134,7 +92,7 @@ function handleServerCardHover(e) {
 
 function handleServerCardLeave(e) {
     const card = e.currentTarget;
-    const icon = card.querySelector('.server-icon, .w-14, .w-12');
+    const icon = card.querySelector('.server-icon, .server-icon-small');
     
     if (icon) {
         icon.style.transform = 'scale(1) rotate(0deg)';
@@ -459,7 +417,7 @@ function extractServerDataFromCard(card) {
     }
 
     let iconUrl = null;
-    const iconImg = card.querySelector('.server-icon img') || card.querySelector('.rounded-xl img') || card.querySelector('.rounded-2xl img') || card.querySelector('.w-14 img');
+    const iconImg = card.querySelector('.server-icon img') || card.querySelector('.rounded-xl img') || card.querySelector('.rounded-2xl img') || card.querySelector('.server-icon-small img');
     if (iconImg) {
         iconUrl = iconImg.src;
     }

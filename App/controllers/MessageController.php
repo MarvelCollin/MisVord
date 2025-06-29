@@ -487,7 +487,8 @@ class MessageController extends BaseController
                 $formattedReactions[] = [
                     'emoji' => $reaction->emoji,
                     'user_id' => $reaction->user_id,
-                    'username' => $user ? $user->username : 'Unknown User'
+                    'username' => $user ? $user->username : 'Unknown User',
+                    'avatar_url' => $user && $user->avatar_url ? $user->avatar_url : '/public/assets/common/default-profile-picture.png'
                 ];
             }
             

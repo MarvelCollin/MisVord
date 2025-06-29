@@ -1,14 +1,11 @@
 function loadCSS(cssFiles) {
     if (!cssFiles || !Array.isArray(cssFiles)) return Promise.resolve();
     
-    console.log('[CSS Loader] Loading CSS files:', cssFiles);
-    
     const promises = cssFiles.map(cssFile => {
         return new Promise((resolve, reject) => {
             const href = `/public/css/${cssFile}.css`;
             
             if (document.querySelector(`link[href="${href}"]`)) {
-                console.log('[CSS Loader] CSS already loaded:', href);
                 resolve();
                 return;
             }
@@ -18,15 +15,8 @@ function loadCSS(cssFiles) {
             link.type = 'text/css';
             link.href = href;
             
-            link.onload = () => {
-                console.log('[CSS Loader] CSS loaded successfully:', href);
-                resolve();
-            };
-            
-            link.onerror = () => {
-                console.error('[CSS Loader] Failed to load CSS:', href);
-                reject(new Error(`Failed to load CSS: ${href}`));
-            };
+            link.onload = () => resolve();
+            link.onerror = () => reject(new Error(`Failed to load CSS: ${href}`));
             
             document.head.appendChild(link);
         });
@@ -36,18 +26,12 @@ function loadCSS(cssFiles) {
 }
 
 export function loadExplorePage() {
-    console.log('[Explore Loader] Starting loadExplorePage');
-    
-    console.log('[Explore Loader] Loading required CSS files');
-    loadCSS(['explore-servers', 'server-detail']).then(() => {
-        console.log('[Explore Loader] CSS files loaded successfully');
-    }).catch(error => {
+    loadCSS(['explore-servers', 'server-detail']).catch(error => {
         console.error('[Explore Loader] Failed to load CSS:', error);
     });
     
     const mainContent = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
 
-    console.log('[Explore Loader] Found main content:', !!mainContent);
     if (mainContent) {
         if (typeof window.handleSkeletonLoading === 'function') {
             window.handleSkeletonLoading(true);
@@ -57,120 +41,62 @@ export function loadExplorePage() {
 
         const currentChannelId = getCurrentChannelId();
         if (currentChannelId && window.globalSocketManager) {
-            console.log('[Explore Loader] Cleaning up current channel socket: ' + currentChannelId);
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
-            console.log('[Explore Loader] Cleaning up voice manager');
             window.voiceManager.leaveVoice();
             window.voiceManager = null;
         }
 
-        const url = '/explore-servers/layout';
-
-        console.log('[Explore AJAX] Starting request to:', url);
-
         $.ajax({
-            url: url,
+            url: '/explore-servers/layout',
             method: 'GET',
             dataType: 'html',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             success: function(response) {
-                console.log('[Explore AJAX] SUCCESS - Response received');
-                console.log('[Explore AJAX] Response type:', typeof response);
-                console.log('[Explore AJAX] Response length:', response ? response.length : 'null');
-                console.log('[Explore AJAX] Response preview:', response ? response.substring(0, 150) + '...' : 'empty');
-                
                 if (typeof response === 'string') {
-                    console.log('[Explore AJAX] Processing string response');
                     updateExploreLayout(response);
                     
                     if (typeof window.handleSkeletonLoading === 'function') {
                         window.handleSkeletonLoading(false);
-                        console.log('[Explore AJAX] Skeleton loading disabled');
                     }
                     
                     if (typeof window.initExplorePage === 'function') {
                         window.initExplorePage();
-                        console.log('[Explore AJAX] Explore page initialized');
                     }
                     
                     const event = new CustomEvent('ExplorePageChanged', { 
-                        detail: { 
-                            pageType: 'explore'
-                        } 
+                        detail: { pageType: 'explore' } 
                     });
                     document.dispatchEvent(event);
-                    console.log('[Explore AJAX] ExplorePageChanged event dispatched');
                     
                 } else if (response && response.data && response.data.redirect) {
-                    console.log('[Explore AJAX] Redirect response:', response.data.redirect);
                     window.location.href = response.data.redirect;
                 } else {
-                    console.error('[Explore AJAX] INVALID RESPONSE FORMAT');
-                    console.error('[Explore AJAX] Expected string, got:', typeof response);
-                    console.error('[Explore AJAX] Response content:', response);
                     window.location.href = '/explore-servers';
                 }
             },
             error: function(xhr, status, error) {
-                console.error('[Explore AJAX] ERROR:', error);
-                console.error('[Explore AJAX] Status:', status);
-                console.error('[Explore AJAX] XHR:', xhr);
-                
                 if (typeof window.handleSkeletonLoading === 'function') {
                     window.handleSkeletonLoading(false);
                 }
-                
                 window.location.href = '/explore-servers';
             }
         });
     } else {
-        console.error('[Explore Loader] Main content element not found');
         window.location.href = '/explore-servers';
     }
 }
 
 function updateExploreLayout(html) {
-    console.log('[Explore Layout] Updating explore layout');
-    console.log('[Explore Layout] Input HTML length:', html.length);
-    console.log('[Explore Layout] HTML preview:', html.substring(0, 200) + '...');
-    
     const currentLayout = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
-    console.log('[Explore Layout] Current layout container found:', !!currentLayout);
 
     if (currentLayout) {
-        console.log('[Explore Layout] Before replacement - current layout children:', currentLayout.children.length);
-        
-        console.log('[Explore Layout] Replacing layout innerHTML with explore content');
         currentLayout.innerHTML = html;
         
-        console.log('[Explore Layout] After replacement - new layout children:', currentLayout.children.length);
-        
-        // Execute any inline scripts
-        const scriptTags = currentLayout.querySelectorAll('script');
-        scriptTags.forEach(script => {
-            if (script.type === 'module' || script.type === 'text/javascript' || !script.type) {
-                try {
-                    if (script.src) {
-                        const newScript = document.createElement('script');
-                        newScript.src = script.src;
-                        newScript.type = script.type || 'text/javascript';
-                        document.head.appendChild(newScript);
-                    } else {
-                        eval(script.textContent);
-                    }
-                    console.log('[Explore Layout] Executed script:', script.type || 'inline');
-                } catch (error) {
-                    console.error('[Explore Layout] Error executing script:', error);
-                }
-            }
-        });
-        
-        console.log('[Explore Layout] Updating browser history');
         window.history.pushState(
             { page: 'explore' }, 
             'Explore Servers - misvord', 
@@ -179,22 +105,9 @@ function updateExploreLayout(html) {
         
         if (typeof window.updateActiveServer === 'function') {
             window.updateActiveServer('explore');
-            console.log('[Explore Layout] Active server state updated for explore');
         }
-        
-        console.log('[Explore Layout] SUCCESS - Explore layout replacement completed');
-    } else {
-        console.error('[Explore Layout] FAILED - Layout container not found');
-        console.error('[Explore Layout] Available containers:', {
-            'app-container': !!document.querySelector('#app-container'),
-            'flex.flex-1': !!document.querySelector('.flex.flex-1'),
-            'overflow-hidden': !!document.querySelector('.overflow-hidden'),
-            'all-flex-elements': document.querySelectorAll('.flex').length
-        });
     }
 }
-
-
 
 function showPageLoading(container) {
     container.innerHTML = `

@@ -323,65 +323,7 @@ class VoiceSection {
         localStorage.removeItem("voiceConnectionState");
     }
     
-    checkExistingConnection() {
-        const savedState = localStorage.getItem("voiceConnectionState");
-        if (savedState) {
-            try {
-                const state = JSON.parse(savedState);
-                const currentChannelId = document.querySelector('meta[name="channel-id"]')?.content;
-                
-                if (state.isConnected && state.currentChannelId === currentChannelId) {
-                    if (this.elements.joinView) {
-                        this.elements.joinView.classList.add('hidden');
-                    }
-                    
-                    if (this.elements.connectingView) {
-                        this.elements.connectingView.classList.remove('hidden');
-                    }
-                    
-                    if (this.elements.joinBtn) {
-                        this.elements.joinBtn.disabled = true;
-                        this.elements.joinBtn.textContent = 'Connecting...';
-                    }
-                    
-                    if (state.channelName) {
-                        this.updateChannelNames(state.channelName);
-                        
 
-                    }
-                    
-                    this.waitForVoiceManager().then(() => {
-                        this.connectToVoice().catch(error => {
-                            console.error('Error auto-connecting to voice:', error);
-                            this.handleConnectionError();
-                        });
-                    }).catch(error => {
-                        console.error('Failed to initialize voice manager for auto-connect:', error);
-                        this.handleConnectionError();
-                    });
-                }
-            } catch (error) {
-                console.error('Error parsing saved voice connection state:', error);
-                localStorage.removeItem("voiceConnectionState");
-            }
-        }
-    }
-    
-    checkForAutoJoin() {
-        const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
-        const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
-        const currentChannelId = document.querySelector('meta[name="channel-id"]')?.content;
-        
-        if (forceAutoJoin && autoJoinChannelId && autoJoinChannelId === currentChannelId) {
-            sessionStorage.removeItem('forceAutoJoin');
-            
-            setTimeout(() => {
-                if (this.elements.joinBtn && !window.voiceState.isConnected) {
-                    this.elements.joinBtn.click();
-                }
-            }, 500);
-        }
-    }
     
     updateChannelNames(channelName) {
         const channelNameElements = document.querySelectorAll('.channel-name, .voice-ind-title');
@@ -397,24 +339,17 @@ class VoiceSection {
     }
     
     autoJoin() {
-        // Prevent infinite recursion
         if (this.autoJoinInProgress || this.isProcessing) {
-            console.warn('⚠️ Auto-join already in progress, skipping');
             return false;
         }
         
-        // Check if already connected or button is being processed
         if (window.voiceState?.isConnected || 
             this.elements.joinBtn?.getAttribute('data-processing') === 'true') {
-            console.log('ℹ️ Voice already connected or processing, skipping auto-join');
             return false;
         }
         
         if (this.elements.joinBtn) {
-            console.log('🎯 Starting auto-join process');
             this.autoJoinInProgress = true;
-            
-            // Use direct method call instead of dispatching click event to avoid recursion
             this.handleJoinClick();
             return true;
         }
@@ -478,15 +413,12 @@ window.triggerVoiceAutoJoin = function() {
 };
 
 window.handleAutoJoin = function() {
-    // Use the voice section's autoJoin method to prevent recursion
     if (window.voiceSection) {
         return window.voiceSection.autoJoin();
     }
     
-    // Fallback if voice section not available
     const joinBtn = document.getElementById('joinBtn');
     if (joinBtn && !window.voiceState?.isConnected && joinBtn.getAttribute('data-processing') !== 'true') {
-        console.log('🎯 Fallback auto-join triggered');
         joinBtn.click();
         return true;
     }

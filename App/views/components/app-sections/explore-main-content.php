@@ -62,7 +62,7 @@ $categories = $GLOBALS['categories'] ?? [];
                         </div>
 
                         <div class="relative px-6 pt-4 pb-6">
-                            <div class="server-icon absolute -top-10 left-6">
+                            <div class="server-icon featured absolute -top-10 left-6">
                                 <div class="w-18 h-18 rounded-2xl bg-discord-dark p-1 shadow-xl">
                                     <?php if (!empty($server['image_url'])): ?>
                                         <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-xl">
@@ -131,7 +131,7 @@ $categories = $GLOBALS['categories'] ?? [];
                          data-server-id="<?php echo $serverId; ?>" data-category="<?php echo htmlspecialchars($server['category'] ?? ''); ?>">
                         <div class="p-5">
                             <div class="flex items-start mb-4">
-                                <div class="w-14 h-14 rounded-xl bg-discord-primary overflow-hidden mr-4 flex-shrink-0 shadow-lg">
+                                <div class="server-icon-small rounded-xl bg-discord-primary overflow-hidden mr-4 flex-shrink-0 shadow-lg">
                                     <?php if (!empty($server['image_url'])): ?>
                                         <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover">
                                     <?php else: ?>
@@ -179,16 +179,4 @@ $categories = $GLOBALS['categories'] ?? [];
             </div>
         </div>
     </div>
-
-    <script>
-    if (typeof window.initExplorePage === 'function') {
-        window.initExplorePage();
-    } else {
-        document.addEventListener('DOMContentLoaded', function() {
-            if (typeof window.initExplorePage === 'function') {
-                window.initExplorePage();
-            }
-        });
-    }
-    </script>
 </div>

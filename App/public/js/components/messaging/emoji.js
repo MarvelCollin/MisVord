@@ -453,6 +453,30 @@ class EmojiReactions {
                     this.showEmojiPicker(messageId, triggerElement);
                 }
             }
+            
+            else if (e.target.classList.contains('bubble-reaction') || e.target.closest('.bubble-reaction')) {
+                e.stopPropagation();
+                const reactionElement = e.target.classList.contains('bubble-reaction') ? e.target : e.target.closest('.bubble-reaction');
+                messageId = reactionElement.dataset.messageId;
+                const emoji = reactionElement.dataset.emoji;
+                
+                if (messageId && emoji) {
+                    console.log('🎯 [EMOJI-REACTIONS] Database bubble reaction clicked:', { messageId, emoji });
+                    this.toggleReaction(messageId, emoji);
+                }
+            }
+            
+            else if (e.target.classList.contains('message-reaction-pill') || e.target.closest('.message-reaction-pill')) {
+                e.stopPropagation();
+                const reactionElement = e.target.classList.contains('message-reaction-pill') ? e.target : e.target.closest('.message-reaction-pill');
+                messageId = reactionElement.dataset.messageId;
+                const emoji = reactionElement.dataset.emoji;
+                
+                if (messageId && emoji) {
+                    console.log('🎯 [EMOJI-REACTIONS] Database message reaction clicked:', { messageId, emoji });
+                    this.toggleReaction(messageId, emoji);
+                }
+            }
         });
     }
 
