@@ -670,6 +670,11 @@ Route::post('/user/status', function() {
     $controller->updateStatus();
 });
 
+Route::post('/api/users/fix-bot-status', function() {
+    $controller = new UserController();
+    $controller->fixBotStatus();
+});
+
 Route::get('/api/user/security-question', function() {
     $controller = new UserController();
     $controller->getCurrentUserSecurityQuestion();
@@ -921,6 +926,11 @@ Route::get('/api/bots/check/([^/]+)', function($username) {
 Route::post('/api/bots/add-to-server', function() {
     $controller = new BotController();
     $controller->addToServer();
+});
+
+Route::get('/api/debug/bot-detection', function() {
+    $controller = new DebugController();
+    $controller->botDebug();
 });
 
 Route::post('/api/bots/remove-from-server', function() {

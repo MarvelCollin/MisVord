@@ -314,6 +314,11 @@ function showMasterDebugModal() {
                                         <i class="fas fa-flask mr-1"></i>Full Test
                                     </button>
                                 </div>
+                                <div class="grid grid-cols-1 gap-2 mb-3">
+                                    <button onclick="runDatabaseBotDebug()" class="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded text-sm">
+                                        <i class="fas fa-database mr-1"></i>Database Debug
+                                    </button>
+                                </div>
                                 <div class="text-xs text-gray-500">
                                     Commands: /titibot ping, /titibot play [song], /titibot stop, /titibot help
                                 </div>
@@ -430,13 +435,67 @@ async function createTitiBot() {
     const button = document.getElementById('create-bot-master') || document.getElementById('create-bot-btn');
     if (!button) return;
     
-    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Checking...';
     button.disabled = true;
     
     addDebugLogMaster('🤖 Initiating TitiBot creation process...', 'info');
     addDebugLogMaster(`📋 Bot configuration: username=titibot, email=titibot@misvord.local`, 'info');
     
     try {
+        addDebugLogMaster('🔍 Checking if TitiBot already exists...', 'info');
+        const checkResponse = await fetch('/api/bots/check/titibot');
+        
+        if (checkResponse.ok) {
+            const checkData = await checkResponse.json();
+            
+            if (checkData.exists && checkData.is_bot) {
+                addDebugLogMaster('✅ TitiBot already exists and is properly configured', 'success');
+                window.titiBotData = checkData.bot;
+                
+                button.innerHTML = '<i class="fas fa-check mr-1"></i>Bot Exists';
+                button.className = 'bg-gray-600 text-gray-400 py-2 px-4 rounded cursor-not-allowed';
+                
+                if (window.showToast) {
+                    window.showToast('✅ TitiBot already exists and is ready!', 'success');
+                }
+                
+                const statusInfo = document.getElementById('bot-status-info');
+                if (statusInfo) {
+                    statusInfo.innerHTML = '<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot exists - ready for initialization</span>';
+                }
+                
+                refreshMasterStatus();
+                return;
+                
+            } else if (checkData.exists && !checkData.is_bot) {
+                addDebugLogMaster('⚠️ TitiBot user exists but needs status fix', 'warning');
+                
+                button.innerHTML = '<i class="fas fa-wrench mr-1"></i>Fixing Status...';
+                
+                const fixResponse = await fetch('/api/users/fix-bot-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'titibot' })
+                });
+                
+                if (fixResponse.ok) {
+                    addDebugLogMaster('✅ TitiBot status fixed successfully', 'success');
+                    
+                    button.innerHTML = '<i class="fas fa-check mr-1"></i>Bot Exists';
+                    button.className = 'bg-gray-600 text-gray-400 py-2 px-4 rounded cursor-not-allowed';
+                    
+                    if (window.showToast) {
+                        window.showToast('✅ TitiBot status fixed and ready!', 'success');
+                    }
+                    
+                    setTimeout(checkBotStatusForMaster, 1000);
+                    return;
+                }
+            }
+        }
+        
+        addDebugLogMaster('🆕 TitiBot not found, proceeding with creation...', 'info');
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
         const response = await fetch('/api/bots/create', {
             method: 'POST',
             headers: {
@@ -734,6 +793,7 @@ function initializeMasterDebugPanel() {
     refreshMasterStatus();
     loadUserServersForMaster();
     checkBotStatusForMaster();
+    autoSelectCurrentServer();
     
     addDebugLogMaster('🚀 Master Debug Panel initialized', 'success');
     addDebugLogMaster('All debugging tools consolidated in one interface', 'info');
@@ -825,15 +885,59 @@ async function checkBotStatusForMaster() {
                 
                 statusInfo.innerHTML = '<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot exists - ready for initialization</span>';
                 
+                const createButton = document.getElementById('create-bot-master');
+                if (createButton) {
+                    createButton.innerHTML = '<i class="fas fa-check mr-1"></i>Bot Exists';
+                    createButton.disabled = true;
+                    createButton.className = 'bg-gray-600 text-gray-400 py-2 px-4 rounded cursor-not-allowed';
+                }
+                
                 await checkBotServerMemberships();
                 
             } else if (data.exists && !data.is_bot) {
                 addDebugLogMaster(`⚠️ User 'titibot' exists but is not marked as bot`, 'warning');
                 addDebugLogMaster(`   User status: ${data.user?.status || 'unknown'}`, 'warning');
-                statusInfo.innerHTML = '<span class="text-orange-400"><i class="fas fa-exclamation-triangle mr-1"></i>User exists but not a bot</span>';
+                statusInfo.innerHTML = '<span class="text-yellow-400"><i class="fas fa-wrench mr-1"></i>Fixing TitiBot status...</span>';
+                
+                try {
+                    const fixResponse = await fetch('/api/users/fix-bot-status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: 'titibot' })
+                    });
+                    
+                    if (fixResponse.ok) {
+                        const fixData = await fixResponse.json();
+                        addDebugLogMaster('✅ TitiBot status updated to "bot"', 'success');
+                        addDebugLogMaster(`   Updated user ID: ${fixData.user?.id}`, 'info');
+                        
+                        const createButton = document.getElementById('create-bot-master');
+                        if (createButton) {
+                            createButton.innerHTML = '<i class="fas fa-check mr-1"></i>Bot Exists';
+                            createButton.disabled = true;
+                            createButton.className = 'bg-gray-600 text-gray-400 py-2 px-4 rounded cursor-not-allowed';
+                        }
+                        
+                        setTimeout(checkBotStatusForMaster, 1000);
+                    } else {
+                        const errorData = await fixResponse.json();
+                        addDebugLogMaster(`❌ Failed to fix TitiBot status: ${errorData.message}`, 'error');
+                        statusInfo.innerHTML = '<span class="text-red-400"><i class="fas fa-times-circle mr-1"></i>Status fix failed</span>';
+                    }
+                } catch (updateError) {
+                    addDebugLogMaster(`❌ Error fixing TitiBot status: ${updateError.message}`, 'error');
+                    statusInfo.innerHTML = '<span class="text-red-400"><i class="fas fa-times-circle mr-1"></i>Status fix error</span>';
+                }
             } else {
                 addDebugLogMaster(`📋 TitiBot does not exist in database`, 'info');
                 statusInfo.innerHTML = '<span class="text-yellow-400"><i class="fas fa-plus-circle mr-1"></i>TitiBot needs to be created</span>';
+                
+                const createButton = document.getElementById('create-bot-master');
+                if (createButton) {
+                    createButton.innerHTML = '<i class="fas fa-plus mr-1"></i>Create Bot';
+                    createButton.disabled = false;
+                    createButton.className = 'bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded';
+                }
             }
             
             refreshMasterStatus();
@@ -1281,7 +1385,150 @@ function forceBotInit() {
     window.globalSocketManager.io.emit('bot-init', initData);
     addDebugLogMaster('🤖 Bot initialization signal sent', 'success');
 }
+
+async function runDatabaseBotDebug() {
+    addDebugLogMaster('🔬 Starting comprehensive database bot detection debug...', 'info');
+    addDebugLogMaster('🔍 This will test all database queries to find why TitiBot is not detected', 'info');
+    
+    try {
+        const response = await fetch('/api/debug/bot-detection');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            addDebugLogMaster('✅ Database debug test completed successfully', 'success');
+            addDebugLogMaster('📊 Analyzing database query results...', 'info');
+            
+            const debug = data.debug_data;
+            
+            // Test 1: Direct database query
+            addDebugLogMaster('🔍 Test 1: Direct SQL query for titibot', 'info');
+            if (debug.direct_query_result && debug.direct_query_result.length > 0) {
+                const user = debug.direct_query_result[0];
+                addDebugLogMaster(`✅ Found user: ID=${user.id}, username="${user.username}", status="${user.status}"`, 'success');
+                addDebugLogMaster(`   Email: ${user.email}`, 'info');
+                addDebugLogMaster(`   Created: ${user.created_at}`, 'info');
+            } else {
+                addDebugLogMaster('❌ No user found with username "titibot"', 'error');
+            }
+            
+            // Test 2: Case insensitive
+            addDebugLogMaster('🔍 Test 2: Case insensitive search', 'info');
+            if (debug.case_insensitive_result && debug.case_insensitive_result.length > 0) {
+                addDebugLogMaster(`✅ Case insensitive found: ${debug.case_insensitive_result.length} results`, 'success');
+            } else {
+                addDebugLogMaster('❌ No results with case insensitive search', 'error');
+            }
+            
+            // Test 3: Similar usernames
+            addDebugLogMaster('🔍 Test 3: Users with "titi" in username', 'info');
+            if (debug.similar_users && debug.similar_users.length > 0) {
+                addDebugLogMaster(`📋 Found ${debug.similar_users.length} similar users:`, 'info');
+                debug.similar_users.forEach(user => {
+                    addDebugLogMaster(`   - ID:${user.id} "${user.username}" (${user.status})`, 'info');
+                });
+            } else {
+                addDebugLogMaster('❌ No users with "titi" in username found', 'error');
+            }
+            
+            // Test 4: All bots
+            addDebugLogMaster('🔍 Test 4: All bot users in database', 'info');
+            if (debug.all_bots && debug.all_bots.length > 0) {
+                addDebugLogMaster(`🤖 Found ${debug.all_bots.length} bot users:`, 'success');
+                debug.all_bots.forEach(bot => {
+                    addDebugLogMaster(`   - ID:${bot.id} "${bot.username}" (${bot.email})`, 'info');
+                });
+            } else {
+                addDebugLogMaster('❌ No bot users found in database', 'error');
+            }
+            
+            // Test 5: Repository method
+            addDebugLogMaster('🔍 Test 5: UserRepository::findByUsername method', 'info');
+            if (debug.repository_result) {
+                const repo = debug.repository_result;
+                addDebugLogMaster(`✅ Repository found: ID=${repo.id}, username="${repo.username}", status="${repo.status}"`, 'success');
+            } else {
+                addDebugLogMaster('❌ UserRepository::findByUsername returned null', 'error');
+            }
+            
+            // Test 6: User 1004
+            addDebugLogMaster('🔍 Test 6: Checking user ID 1004 (your mentioned ID)', 'info');
+            if (debug.user_1004 && debug.user_1004.length > 0) {
+                const user = debug.user_1004[0];
+                addDebugLogMaster(`✅ User 1004 exists: username="${user.username}", status="${user.status}"`, 'success');
+                addDebugLogMaster(`   Email: ${user.email}`, 'info');
+                addDebugLogMaster(`   Is this your TitiBot? Username case: "${user.username}"`, user.username === 'titibot' ? 'success' : 'warning');
+            } else {
+                addDebugLogMaster('❌ User ID 1004 not found in database', 'error');
+            }
+            
+            // Database info
+            addDebugLogMaster('🔍 Database Information:', 'info');
+            addDebugLogMaster(`   Tables count: ${debug.database_info.tables_count}`, 'info');
+            addDebugLogMaster(`   Users table columns: ${debug.database_info.users_table_columns.join(', ')}`, 'info');
+            
+            // Summary and recommendations
+            addDebugLogMaster('📋 DIAGNOSIS SUMMARY:', 'info');
+            
+            if (debug.user_1004 && debug.user_1004.length > 0) {
+                const user1004 = debug.user_1004[0];
+                if (user1004.username !== 'titibot') {
+                    addDebugLogMaster(`🔍 ISSUE FOUND: User 1004 has username "${user1004.username}" not "titibot"`, 'warning');
+                    addDebugLogMaster(`💡 Your TitiBot exists but with username "${user1004.username}"`, 'info');
+                } else if (user1004.status !== 'bot') {
+                    addDebugLogMaster(`🔍 ISSUE FOUND: User 1004 has status "${user1004.status}" not "bot"`, 'warning');
+                    addDebugLogMaster(`💡 Run the bot status fix to update status to "bot"`, 'info');
+                } else {
+                    addDebugLogMaster(`✅ User 1004 looks correct - there might be a different issue`, 'success');
+                }
+            }
+            
+        } else {
+            addDebugLogMaster(`❌ Database debug failed: ${data.error}`, 'error');
+        }
+        
+    } catch (error) {
+        addDebugLogMaster(`💥 Database debug error: ${error.message}`, 'error');
+        addDebugLogMaster(`🔍 This might indicate database connection issues`, 'warning');
+    }
+}
                     
+function autoSelectCurrentServer() {
+    const currentServerId = getCurrentServerId();
+    
+    if (currentServerId) {
+        addDebugLogMaster(`🎯 Auto-selecting server: ${currentServerId}`, 'success');
+        
+        setTimeout(() => {
+            const serverSelect = document.getElementById('server-select-master');
+            if (serverSelect) {
+                const option = serverSelect.querySelector(`option[value="${currentServerId}"]`);
+                if (option) {
+                    serverSelect.value = currentServerId;
+                    addDebugLogMaster(`✅ Server "${option.textContent}" auto-selected`, 'success');
+                } else {
+                    addDebugLogMaster(`⚠️ Current server (${currentServerId}) not found in dropdown`, 'warning');
+                }
+            } else {
+                addDebugLogMaster('⚠️ Server dropdown not found for auto-selection', 'warning');
+            }
+        }, 500);
+    } else {
+        addDebugLogMaster('ℹ️ Not on a server page - no auto-selection needed', 'info');
+        
+        const dmMatch = window.location.pathname.match(/\/home\/channels\/dm\/(\d+)/);
+        if (dmMatch) {
+            addDebugLogMaster(`📬 Detected DM context: ${dmMatch[1]}`, 'info');
+        } else if (window.location.pathname.includes('/home')) {
+            addDebugLogMaster('🏠 Detected home/friends context', 'info');
+        }
+    }
+}
+
 function getCurrentChannelId() {
     const urlParams = new URLSearchParams(window.location.search);
     let channelId = urlParams.get('channel');

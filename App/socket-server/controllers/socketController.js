@@ -7,12 +7,14 @@ const roomManager = require('../services/roomManager');
 const userService = require('../services/userService');
 const messageService = require('../services/messageService');
 
+const eventController = require('./eventController');
 const userSockets = new Map();
 const userStatus = new Map();
 const recentMessages = new Map();
 const voiceMeetings = new Map();
 
 function setup(io) {
+    eventController.setIO(io);
     io.on('connection', (client) => {
         console.log(`🔌 [CONNECTION] Client connected: ${client.id}`);
         
@@ -695,6 +697,29 @@ function handleDisconnect(io, client) {
         });
         
         userSockets.delete(client.id);
+        
+        const roomManager = require('../services/roomManager');
+        const userService = require('../services/userService');
+        
+        const userOffline = roomManager.removeUserSocket(user_id, client.id);
+        
+        if (userOffline) {
+            console.log(`👤 [DISCONNECT-HANDLER] User ${user_id} is now offline, removing presence`);
+            userService.removePresence(user_id);
+            
+            if (io && typeof io.emit === 'function') {
+                console.log(`📡 [DISCONNECT-HANDLER] Broadcasting user offline status to all clients`);
+                io.emit('user-offline', {
+                    user_id: user_id,
+                    username: username,
+                    status: 'offline',
+                    timestamp: Date.now()
+                });
+                console.log(`✅ [DISCONNECT-HANDLER] User offline broadcast sent successfully`);
+            } else {
+                console.error(`❌ [DISCONNECT-HANDLER] IO object not available for broadcasting user offline status`);
+            }
+        }
         
         // Clean up voice meetings
         let voiceMeetingsUpdated = [];

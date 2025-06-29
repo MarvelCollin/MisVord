@@ -124,15 +124,66 @@ document.addEventListener('DOMContentLoaded', function() {
     
     updateActiveFriends();
     
-    window.addEventListener('globalSocketReady', updateActiveFriends);
-    window.addEventListener('socketAuthenticated', updateActiveFriends);
+    function setupSocketListeners() {
+        console.log('🔌 [ACTIVE-NOW] Setting up socket listeners');
+        if (window.globalSocketManager && window.globalSocketManager.io) {
+            console.log('✅ [ACTIVE-NOW] Socket manager available, setting up listeners');
+            
+            window.globalSocketManager.io.on('user-online', (data) => {
+                console.log('👥 [ACTIVE-NOW] User came online:', data);
+                setTimeout(updateActiveFriends, 100);
+            });
+            
+            window.globalSocketManager.io.on('user-offline', (data) => {
+                console.log('👥 [ACTIVE-NOW] User went offline:', data);
+                setTimeout(updateActiveFriends, 100);
+            });
+            
+            window.globalSocketManager.io.on('user-presence-update', (data) => {
+                console.log('👥 [ACTIVE-NOW] User presence updated:', data);
+                setTimeout(updateActiveFriends, 100);
+            });
+            
+            window.globalSocketManager.io.on('status-changed', (data) => {
+                console.log('👥 [ACTIVE-NOW] User status changed:', data);
+                setTimeout(updateActiveFriends, 100);
+            });
+            
+            console.log('✅ [ACTIVE-NOW] All socket listeners set up');
+            return true;
+        }
+        console.warn('⚠️ [ACTIVE-NOW] Socket manager not ready yet');
+        return false;
+    }
+    
+    window.addEventListener('globalSocketReady', function() {
+        console.log('🔌 [ACTIVE-NOW] Global socket ready event received');
+        setupSocketListeners();
+        updateActiveFriends();
+    });
+    
+    window.addEventListener('socketAuthenticated', function() {
+        console.log('🔐 [ACTIVE-NOW] Socket authenticated event received');
+        setupSocketListeners();
+        updateActiveFriends();
+    });
+    
+    if (!setupSocketListeners()) {
+        let retryCount = 0;
+        const maxRetries = 10;
+        const retryInterval = setInterval(() => {
+            retryCount++;
+            console.log(`🔄 [ACTIVE-NOW] Retry ${retryCount}/${maxRetries} to setup socket listeners`);
+            
+            if (setupSocketListeners() || retryCount >= maxRetries) {
+                clearInterval(retryInterval);
+                if (retryCount >= maxRetries) {
+                    console.error('❌ [ACTIVE-NOW] Failed to setup socket listeners after max retries');
+                }
+            }
+        }, 1000);
+    }
     
     setInterval(updateActiveFriends, 60000);
-                
-    if (window.globalSocketManager && window.globalSocketManager.io) {
-        window.globalSocketManager.io.on('user-online', () => updateActiveFriends());
-        window.globalSocketManager.io.on('user-offline', () => updateActiveFriends());
-        window.globalSocketManager.io.on('status-changed', () => updateActiveFriends());
-    }
 });
 </script>

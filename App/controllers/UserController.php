@@ -406,6 +406,65 @@ class UserController extends BaseController
         }
     }
     
+    public function fixBotStatus()
+    {
+        $this->requireAuth();
+        $input = $this->getInput();
+        
+        if (!isset($input['username'])) {
+            return $this->error('Username is required', 400);
+        }
+        
+        $username = trim($input['username']);
+        
+        try {
+            $user = $this->userRepository->findByUsername($username);
+            
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
+            
+            if ($user->status === 'bot') {
+                return $this->success([
+                    'message' => 'User is already marked as bot',
+                    'user' => [
+                        'id' => $user->id,
+                        'username' => $user->username,
+                        'status' => $user->status
+                    ]
+                ]);
+            }
+            
+            $result = $this->userRepository->update($user->id, ['status' => 'bot']);
+            
+            if (!$result) {
+                return $this->serverError('Failed to update user status to bot');
+            }
+            
+            $this->logActivity('user_status_fixed_to_bot', [
+                'user_id' => $user->id,
+                'username' => $username,
+                'previous_status' => $user->status,
+                'fixed_by' => $this->getCurrentUserId()
+            ]);
+            
+            $updatedUser = $this->userRepository->find($user->id);
+            
+            return $this->success([
+                'message' => 'User status updated to bot successfully',
+                'user' => [
+                    'id' => $updatedUser->id,
+                    'username' => $updatedUser->username,
+                    'status' => $updatedUser->status,
+                    'display_name' => $updatedUser->display_name
+                ]
+            ]);
+            
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while fixing bot status: ' . $e->getMessage());
+        }
+    }
+    
     public function changePassword()
     {
         $this->requireAuth();

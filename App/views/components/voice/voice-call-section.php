@@ -29,7 +29,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     <div class="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-[#313338] via-[#2b2d31] to-[#1e1f22]">
         <div class="flex-1 flex relative">
         <div id="mainContentArea" class="flex-1 flex flex-col relative">
-            <div id="screenShareContainer" class="hidden flex-1 bg-[#1a1b1e] rounded-lg m-4 relative overflow-hidden shadow-xl">
+            <div id="screenShareContainer" class="hidden bg-[#1a1b1e] rounded-lg m-4 relative overflow-hidden shadow-xl" style="height: 60%;">
                 <div class="absolute top-4 left-4 z-10 bg-[#1e1f22]/90 backdrop-blur-sm rounded-lg px-3 py-2">
                     <div class="flex items-center space-x-2">
                         <div class="w-3 h-3 bg-[#3ba55c] rounded-full"></div>
@@ -44,8 +44,43 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
                 </div>
             </div>
             
+            <div id="mixedLayout" class="hidden flex-1 flex gap-4 p-4">
+                <div id="screenShareSide" class="flex-1 bg-[#1a1b1e] rounded-lg relative overflow-hidden shadow-xl">
+                    <div class="absolute top-4 left-4 z-10 bg-[#1e1f22]/90 backdrop-blur-sm rounded-lg px-3 py-2">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 bg-[#3ba55c] rounded-full"></div>
+                            <span class="text-white text-sm font-medium" id="mixedScreenUsername">Screen Share</span>
+                        </div>
+                    </div>
+                    <video id="mixedScreenVideo" class="w-full h-full object-contain bg-black" autoplay playsinline></video>
+                    <div class="absolute bottom-4 right-4 z-10">
+                        <button onclick="closeScreenShare()" class="bg-[#ed4245] hover:bg-[#fc5054] text-white p-2 rounded-full transition-all duration-200">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="cameraSide" class="flex-1 bg-[#1a1b1e] rounded-lg relative overflow-hidden shadow-xl">
+                    <div class="absolute top-4 left-4 z-10 bg-[#1e1f22]/90 backdrop-blur-sm rounded-lg px-3 py-2">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 bg-[#3ba55c] rounded-full animate-pulse"></div>
+                            <span class="text-white text-sm font-medium" id="mixedCameraUsername">Your Camera</span>
+                        </div>
+                    </div>
+                    <video id="mixedCameraVideo" class="w-full h-full object-cover bg-black" autoplay playsinline muted></video>
+                    <div id="cameraPlaceholder" class="hidden absolute inset-0 bg-[#1a1b1e] flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-2xl mx-auto mb-3">
+                                Y
+                            </div>
+                            <span class="text-white text-sm">Camera Off</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div id="participantGrid" class="flex-1 p-4">
-                <div id="videoGrid" class="grid gap-4 h-full" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-rows: minmax(200px, 1fr);">
+                <div id="videoGrid" class="grid gap-4 h-full" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); grid-auto-rows: minmax(180px, 1fr);">
                 </div>
                 
                 <div id="voiceOnlyGrid" class="hidden flex-1 flex items-center justify-center">
@@ -193,7 +228,8 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 .discord-video-card {
     @apply bg-[#1e1f22] rounded-lg overflow-hidden shadow-lg border border-[#40444b]/30 hover:border-[#40444b]/60 transition-all duration-200;
-    min-height: 200px;
+    min-height: 160px;
+    max-height: 300px;
     aspect-ratio: 16/9;
 }
 
@@ -219,11 +255,25 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 #videoGrid {
     display: grid;
-    gap: 1rem;
+    gap: 0.75rem;
     height: 100%;
     max-height: calc(100vh - 200px);
     overflow-y: auto;
     padding: 1rem;
+}
+
+#mixedLayout {
+    height: calc(100vh - 160px);
+}
+
+#screenShareSide, #cameraSide {
+    min-height: 300px;
+}
+
+#mixedLayout .flex-1 {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 #videoGrid::-webkit-scrollbar {
@@ -574,12 +624,23 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
     #videoGrid {
         grid-template-columns: 1fr !important;
-        gap: 0.75rem;
-        padding: 0.75rem;
+        gap: 0.5rem;
+        padding: 0.5rem;
     }
 
     .discord-video-card {
-        min-height: 180px;
+        min-height: 140px;
+        max-height: 220px;
+    }
+
+    #mixedLayout {
+        flex-direction: column !important;
+        height: auto;
+    }
+
+    #screenShareSide, #cameraSide {
+        min-height: 200px;
+        margin-bottom: 0.75rem;
     }
 
     .discord-voice-card {
@@ -638,7 +699,6 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 <script src="/public/js/components/voice/voice-section.js"></script>
 <script src="/public/js/components/videosdk/videosdk.js"></script>
-<script src="/public/js/components/voice/video-handler.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -1096,6 +1156,11 @@ class DiscordVoiceManager {
             const video = card.querySelector('video');
             if (video && stream) {
                 this.attachStreamToVideo(video, stream);
+                
+                // If this is the local participant and screen share is active, update mixed camera view
+                if (participantId === 'local' && this.screenShareActive) {
+                    setTimeout(() => this.updateMixedCameraView(), 100);
+                }
             }
         }
 
@@ -1111,6 +1176,14 @@ class DiscordVoiceManager {
         this.videoParticipants.delete(participantId);
 
         this.removeExistingParticipantElement(participantId);
+        
+        // Clear mixed camera view if this is local participant
+        if (participantId === 'local') {
+            const mixedCameraVideo = document.getElementById('mixedCameraVideo');
+            if (mixedCameraVideo && mixedCameraVideo.srcObject) {
+                mixedCameraVideo.srcObject = null;
+            }
+        }
         
         const voiceGrid = document.querySelector('#voiceOnlyGrid .grid');
         if (!voiceGrid) {
@@ -1128,6 +1201,10 @@ class DiscordVoiceManager {
         const screenContainer = document.getElementById('screenShareContainer');
         const screenVideo = document.getElementById('screenShareVideo');
         const screenUsername = document.getElementById('screenShareUsername');
+        
+        // Mixed layout elements
+        const mixedScreenVideo = document.getElementById('mixedScreenVideo');
+        const mixedScreenUsername = document.getElementById('mixedScreenUsername');
 
         if (!screenContainer || !screenVideo || !screenUsername) {
             console.warn('DiscordVoiceManager: Screen share elements not found');
@@ -1137,22 +1214,81 @@ class DiscordVoiceManager {
         if (isSharing && stream) {
             this.screenShareActive = true;
             const participant = this.participants.get(participantId) || { username: participantId };
+            const displayName = participant.username === 'local' ? 'Your Screen' : `${participant.username}'s Screen`;
             
-            screenUsername.textContent = `${participant.username}'s Screen`;
+            // Update both regular and mixed layout elements
+            screenUsername.textContent = displayName;
             this.attachStreamToVideo(screenVideo, stream);
-            screenContainer.classList.remove('hidden');
+            
+            if (mixedScreenUsername) mixedScreenUsername.textContent = displayName;
+            if (mixedScreenVideo) this.attachStreamToVideo(mixedScreenVideo, stream);
+            
+            // Update local camera in mixed layout if active
+            this.updateMixedCameraView();
             
             console.log(`🖥️ Screen share started by ${participant.username}`);
         } else {
             this.screenShareActive = false;
-            screenContainer.classList.add('hidden');
+            
+            // Clear both layouts
             if (screenVideo.srcObject) {
                 screenVideo.srcObject = null;
             }
+            if (mixedScreenVideo && mixedScreenVideo.srcObject) {
+                mixedScreenVideo.srcObject = null;
+            }
+            
             console.log(`🖥️❌ Screen share stopped`);
         }
 
         this.updateLayout();
+    }
+
+    updateMixedCameraView() {
+        const mixedCameraVideo = document.getElementById('mixedCameraVideo');
+        const mixedCameraUsername = document.getElementById('mixedCameraUsername');
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        
+        if (!mixedCameraVideo) return;
+
+        if (!this.videoParticipants.has('local')) {
+            // Show placeholder when camera is off
+            if (mixedCameraVideo.srcObject) {
+                mixedCameraVideo.srcObject = null;
+            }
+            mixedCameraVideo.classList.add('hidden');
+            if (cameraPlaceholder) cameraPlaceholder.classList.remove('hidden');
+            if (mixedCameraUsername) mixedCameraUsername.textContent = 'Camera Off';
+            return;
+        }
+
+        // Find the local participant's video stream
+        const localVideoCard = document.querySelector('[data-participant-id="local"][data-type="video"]');
+        if (localVideoCard) {
+            const localVideo = localVideoCard.querySelector('video');
+            if (localVideo && localVideo.srcObject) {
+                this.attachStreamToVideo(mixedCameraVideo, localVideo.srcObject);
+                mixedCameraVideo.classList.remove('hidden');
+                if (cameraPlaceholder) cameraPlaceholder.classList.add('hidden');
+                if (mixedCameraUsername) {
+                    mixedCameraUsername.textContent = 'Your Camera';
+                }
+            }
+        }
+    }
+
+    hideLocalVideoInGrid() {
+        const localVideoCard = document.querySelector('[data-participant-id="local"][data-type="video"]');
+        if (localVideoCard) {
+            localVideoCard.style.display = 'none';
+        }
+    }
+
+    showLocalVideoInGrid() {
+        const localVideoCard = document.querySelector('[data-participant-id="local"][data-type="video"]');
+        if (localVideoCard) {
+            localVideoCard.style.display = 'block';
+        }
     }
 
     attachStreamToVideo(videoElement, stream) {
@@ -1187,10 +1323,13 @@ class DiscordVoiceManager {
 
     updateLayout() {
         const hasVideo = this.videoParticipants.size > 0;
+        const hasLocalVideo = this.videoParticipants.has('local');
         const hasScreenShare = this.screenShareActive;
         const videoGrid = document.getElementById('videoGrid');
         const voiceGrid = document.getElementById('voiceOnlyGrid');
         const participantGrid = document.getElementById('participantGrid');
+        const screenShareContainer = document.getElementById('screenShareContainer');
+        const mixedLayout = document.getElementById('mixedLayout');
 
         // Add null checks to prevent errors
         if (!videoGrid || !voiceGrid || !participantGrid) {
@@ -1198,15 +1337,34 @@ class DiscordVoiceManager {
             return;
         }
 
-        if (hasScreenShare) {
+        // Hide all layouts first
+        if (screenShareContainer) screenShareContainer.classList.add('hidden');
+        if (mixedLayout) mixedLayout.classList.add('hidden');
+        
+        if (hasScreenShare && hasLocalVideo) {
+            // Mixed layout: Screen share + Camera side by side
+            this.currentLayout = 'mixed';
+            participantGrid.classList.add('hidden');
+            if (mixedLayout) mixedLayout.classList.remove('hidden');
+            // Hide the local video card from the main grid to prevent duplication
+            this.hideLocalVideoInGrid();
+            // Update mixed camera view
+            this.updateMixedCameraView();
+        } else if (hasScreenShare) {
+            // Full screen share only
             this.currentLayout = 'screen-share';
             participantGrid.classList.add('hidden');
+            if (screenShareContainer) screenShareContainer.classList.remove('hidden');
         } else if (hasVideo) {
+            // Video grid layout
             this.currentLayout = 'video';
             videoGrid.classList.remove('hidden');
             voiceGrid.classList.add('hidden');
             participantGrid.classList.remove('hidden');
+            // Show the local video card back in the main grid
+            this.showLocalVideoInGrid();
         } else {
+            // Voice only layout
             this.currentLayout = 'voice-only';
             videoGrid.classList.add('hidden');
             voiceGrid.classList.remove('hidden');
@@ -1281,45 +1439,9 @@ function closeScreenShare() {
 }
 
 function updateDiscordLayout() {
-    // This function is now handled by DiscordVoiceManager class
-    // Keeping it for compatibility but using the new system
+    // DEPRECATED: This function is replaced by DiscordVoiceManager.updateLayout()
     if (window.discordVoiceManager) {
         window.discordVoiceManager.updateLayout();
-        return;
-    }
-
-    // Fallback with null checks for legacy compatibility
-    const screenShareContainer = document.getElementById('screenShareContainer');
-    const voiceOnlyGrid = document.getElementById('voiceOnlyGrid');
-    const videoSidebar = document.getElementById('videoSidebar');
-    const voiceParticipantsBar = document.getElementById('voiceParticipantsBar');
-    
-    const hasScreenShare = document.querySelector('[data-stream-type="share"]');
-    const videoParticipants = document.querySelectorAll('[data-stream-type="video"]');
-    const discordVideoCards = document.querySelectorAll('.discord-video-card');
-    
-    if (hasScreenShare) {
-        if (screenShareContainer) screenShareContainer.classList.remove('hidden');
-        if (voiceOnlyGrid) voiceOnlyGrid.classList.add('hidden');
-    } else if (discordVideoCards.length > 0 || videoParticipants.length > 0) {
-        if (screenShareContainer) screenShareContainer.classList.add('hidden');
-        if (voiceOnlyGrid) voiceOnlyGrid.classList.add('hidden');
-    } else {
-        if (screenShareContainer) screenShareContainer.classList.add('hidden');
-        if (voiceOnlyGrid) voiceOnlyGrid.classList.remove('hidden');
-    }
-    
-    if (discordVideoCards.length > 0 || videoParticipants.length > 0) {
-        if (videoSidebar) videoSidebar.classList.remove('hidden');
-    } else {
-        if (videoSidebar) videoSidebar.classList.add('hidden');
-    }
-    
-    const voiceParticipants = document.querySelectorAll('.voice-participant-avatar, .discord-voice-card');
-    if (voiceParticipants.length > 0) {
-        if (voiceParticipantsBar) voiceParticipantsBar.classList.remove('hidden');
-    } else {
-        if (voiceParticipantsBar) voiceParticipantsBar.classList.add('hidden');
     }
 }
 

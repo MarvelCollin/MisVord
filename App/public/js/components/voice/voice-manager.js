@@ -113,30 +113,8 @@ class VoiceManager {
     }
     
     setupErrorHandling() {
-        window.addEventListener('videosdkStreamEnabled', (event) => {
-            const detail = event.detail;
-            if (!detail) {
-                console.warn('[VoiceManager] Stream enabled event with no detail');
-                return;
-            }
-            
-            if (!detail.stream) {
-                console.error('[VoiceManager] Stream enabled event with undefined stream:', detail);
-                return;
-            }
-            
-            console.log(`[VoiceManager] Stream enabled: ${detail.kind} stream for participant ${detail.participant}`);
-        });
-        
-        window.addEventListener('videosdkStreamDisabled', (event) => {
-            const detail = event.detail;
-            if (!detail) {
-                console.warn('[VoiceManager] Stream disabled event with no detail');
-                return;
-            }
-            
-            console.log(`[VoiceManager] Stream disabled: ${detail.kind} stream for participant ${detail.participant}`);
-        });
+        // DISABLED: Stream handling moved to DiscordVoiceManager
+        console.log('[VoiceManager] Stream handling disabled - using DiscordVoiceManager instead');
     }
     
     setupVoice(channelId) {

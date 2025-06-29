@@ -103,3 +103,118 @@ if (file_exists($tooltipPath)) {
 
 <?php include dirname(__DIR__) . '/home/new-direct-modal.php'; ?>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔌 [DM-SIDEBAR] Direct messages sidebar loaded');
+    
+    function getStatusColor(isOnline) {
+        return isOnline ? 'bg-discord-green' : 'bg-gray-500';
+    }
+    
+    function updateUserStatus(userId, isOnline) {
+        const statusIndicator = document.querySelector(`.user-status-indicator[data-user-id="${userId}"]`);
+        if (statusIndicator) {
+            statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark user-status-indicator ${getStatusColor(isOnline)}`;
+            console.log(`📊 [DM-SIDEBAR] Updated user ${userId} status to ${isOnline ? 'online' : 'offline'}`);
+        }
+    }
+    
+    function updateAllUserStatuses() {
+        console.log('🔄 [DM-SIDEBAR] Updating all user statuses');
+        
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            console.warn('⚠️ [DM-SIDEBAR] Socket not ready, retrying in 1 second');
+            setTimeout(updateAllUserStatuses, 1000);
+            return;
+        }
+        
+        if (!window.ChatAPI) {
+            console.warn('⚠️ [DM-SIDEBAR] ChatAPI not available, retrying in 1 second');
+            setTimeout(updateAllUserStatuses, 1000);
+            return;
+        }
+        
+        window.ChatAPI.getOnlineUsers().then(onlineUsers => {
+            console.log('📊 [DM-SIDEBAR] Retrieved online users:', onlineUsers);
+            
+            const allStatusIndicators = document.querySelectorAll('.user-status-indicator[data-user-id]');
+            allStatusIndicators.forEach(indicator => {
+                const userId = indicator.getAttribute('data-user-id');
+                const isOnline = onlineUsers[userId] !== undefined;
+                updateUserStatus(userId, isOnline);
+            });
+            
+            console.log(`✅ [DM-SIDEBAR] Updated status for ${allStatusIndicators.length} users`);
+        }).catch(error => {
+            console.error('❌ [DM-SIDEBAR] Failed to get online users:', error);
+        });
+    }
+    
+    function setupSocketListeners() {
+        console.log('🔌 [DM-SIDEBAR] Setting up socket listeners');
+        if (window.globalSocketManager && window.globalSocketManager.io) {
+            console.log('✅ [DM-SIDEBAR] Socket manager available, setting up listeners');
+            
+            window.globalSocketManager.io.on('user-online', (data) => {
+                console.log('👥 [DM-SIDEBAR] User came online:', data);
+                if (data.user_id) {
+                    updateUserStatus(data.user_id, true);
+                }
+            });
+            
+            window.globalSocketManager.io.on('user-offline', (data) => {
+                console.log('👥 [DM-SIDEBAR] User went offline:', data);
+                if (data.user_id) {
+                    updateUserStatus(data.user_id, false);
+                }
+            });
+            
+            window.globalSocketManager.io.on('user-presence-update', (data) => {
+                console.log('👥 [DM-SIDEBAR] User presence updated:', data);
+                if (data.user_id) {
+                    const isOnline = data.status === 'online' || data.status === 'appear';
+                    updateUserStatus(data.user_id, isOnline);
+                }
+            });
+            
+            console.log('✅ [DM-SIDEBAR] All socket listeners set up');
+            return true;
+        }
+        console.warn('⚠️ [DM-SIDEBAR] Socket manager not ready yet');
+        return false;
+    }
+    
+    window.addEventListener('globalSocketReady', function() {
+        console.log('🔌 [DM-SIDEBAR] Global socket ready event received');
+        setupSocketListeners();
+        updateAllUserStatuses();
+    });
+    
+    window.addEventListener('socketAuthenticated', function() {
+        console.log('🔐 [DM-SIDEBAR] Socket authenticated event received');
+        setupSocketListeners();
+        updateAllUserStatuses();
+    });
+    
+    if (!setupSocketListeners()) {
+        let retryCount = 0;
+        const maxRetries = 10;
+        const retryInterval = setInterval(() => {
+            retryCount++;
+            console.log(`🔄 [DM-SIDEBAR] Retry ${retryCount}/${maxRetries} to setup socket listeners`);
+            
+            if (setupSocketListeners() || retryCount >= maxRetries) {
+                clearInterval(retryInterval);
+                if (retryCount >= maxRetries) {
+                    console.error('❌ [DM-SIDEBAR] Failed to setup socket listeners after max retries');
+                }
+            }
+        }, 1000);
+    }
+    
+    updateAllUserStatuses();
+    
+    setInterval(updateAllUserStatuses, 60000);
+});
+</script>
+

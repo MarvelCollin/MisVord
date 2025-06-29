@@ -63,6 +63,23 @@ class AuthHandler {
         console.log(`📤 [AUTH-HANDLER] Sending auth success response:`, response);
         client.emit('auth-success', response);
         
+        console.log(`👤 [AUTH-HANDLER] Setting user online status after authentication`);
+        const userService = require('../services/userService');
+        userService.updatePresence(user_id, 'online', null);
+        
+        if (io && typeof io.emit === 'function') {
+            console.log(`📡 [AUTH-HANDLER] Broadcasting user online status to all clients`);
+            io.emit('user-online', {
+                user_id: user_id,
+                username: client.data.username,
+                status: 'online',
+                timestamp: Date.now()
+            });
+            console.log(`✅ [AUTH-HANDLER] User online broadcast sent successfully`);
+        } else {
+            console.error(`❌ [AUTH-HANDLER] IO object not available or invalid for broadcasting user online status`);
+        }
+        
         console.log(`✅ [AUTH-HANDLER] User ${user_id} (${client.data.username}) authenticated successfully on client ${client.id}`);
     }
     

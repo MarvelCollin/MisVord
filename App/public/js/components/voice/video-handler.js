@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // DISABLED: Old video handler - replaced by DiscordVoiceManager
+    console.log('[VideoHandler] Old video handler disabled - using DiscordVoiceManager instead');
+    return;
+    
     if (window.videoHandlerInitialized) return;
     window.videoHandlerInitialized = true;
 

@@ -60,10 +60,17 @@ class GlobalSocketManager {
     }
     
     loadConnectionDetails() {
-        // Force connection details to localhost:1002
+        // Force connection details to localhost:1002  
         this.socketHost = 'localhost';
         this.socketPort = '1002';
         this.socketSecure = false;
+        
+        console.log('🔧 [SOCKET] Connection details loaded:', {
+            host: this.socketHost,
+            port: this.socketPort,
+            secure: this.socketSecure,
+            url: `http://${this.socketHost}:${this.socketPort}`
+        });
         
         // Try multiple sources for user data
         let metaUserId = document.querySelector('meta[name="user-id"]')?.content;
@@ -147,6 +154,8 @@ class GlobalSocketManager {
                 reconnectAttempts: this.reconnectAttempts
             });
             
+            console.log('🔌 [SOCKET] Socket connected successfully, sending authentication...');
+            
             // Send authentication immediately after connection
             this.sendAuthentication();
         });
@@ -167,6 +176,13 @@ class GlobalSocketManager {
         // Handle authentication success
         this.io.on('auth-success', (data) => {
             this.authenticated = true;
+            console.log('🔐 [SOCKET] Authentication successful!', {
+                userId: this.userId,
+                username: this.username,
+                socketId: this.io.id,
+                responseData: data
+            });
+            
             this.debug(`Socket authenticated successfully`, {
                 userId: this.userId,
                 username: this.username,
@@ -174,6 +190,10 @@ class GlobalSocketManager {
                 data: data
             });
             
+            this.log('Sending initial online presence update after authentication');
+            this.updatePresence('online');
+            
+            console.log('🔔 [SOCKET] Dispatching globalSocketReady event');
             const event = new CustomEvent('globalSocketReady', {
                 detail: {
                     manager: this,
@@ -183,6 +203,7 @@ class GlobalSocketManager {
             
             window.dispatchEvent(event);
             
+            console.log('🔔 [SOCKET] Dispatching socketAuthenticated event');
             const authEvent = new CustomEvent('socketAuthenticated', {
                 detail: {
                     manager: this,
@@ -192,6 +213,8 @@ class GlobalSocketManager {
             });
             
             window.dispatchEvent(authEvent);
+            
+            console.log('✅ [SOCKET] All authentication events dispatched successfully');
         });
         
         // Handle authentication error
@@ -259,6 +282,19 @@ class GlobalSocketManager {
         
         this.io.on('error', (error) => {
             this.error('Socket error', error);
+        });
+        
+        // Add debugging for user online/offline events
+        this.io.on('user-online', (data) => {
+            console.log('👥 [SOCKET] Received user-online event:', data);
+        });
+        
+        this.io.on('user-offline', (data) => {
+            console.log('👥 [SOCKET] Received user-offline event:', data);
+        });
+        
+        this.io.on('user-presence-update', (data) => {
+            console.log('👥 [SOCKET] Received user-presence-update event:', data);
         });
         
         // NOTE: Message events are now handled by individual component socket-handlers

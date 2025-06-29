@@ -138,4 +138,69 @@ class DebugController extends BaseController
             'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'UNKNOWN'
         ]);
     }
+    public function botDebug()
+    {
+        header('Content-Type: application/json');
+        
+        try {
+            require_once __DIR__ . '/../database/repositories/UserRepository.php';
+            require_once __DIR__ . '/../database/query.php';
+            
+            $userRepo = new UserRepository();
+            $query = new Query();
+            
+            // Test 1: Direct database query for titibot
+            $directQuery = $query->query("SELECT * FROM users WHERE username = 'titibot'");
+            
+            // Test 2: Case insensitive search
+            $caseInsensitive = $query->query("SELECT * FROM users WHERE LOWER(username) = 'titibot'");
+            
+            // Test 3: All users with 'titi' in name
+            $similarUsers = $query->query("SELECT id, username, status, email FROM users WHERE username LIKE '%titi%'");
+            
+            // Test 4: All bot users
+            $allBots = $query->query("SELECT id, username, status, email FROM users WHERE status = 'bot'");
+            
+            // Test 5: User repository method
+            $repoResult = $userRepo->findByUsername('titibot');
+            
+            // Test 6: Check if user 1004 exists
+            $user1004 = $query->query("SELECT * FROM users WHERE id = 1004");
+            
+            // Test 7: Database connection info
+            $tables = $query->query("SHOW TABLES");
+            $userTableInfo = $query->query("DESCRIBE users");
+            
+            echo json_encode([
+                'success' => true,
+                'debug_data' => [
+                    'direct_query_result' => $directQuery,
+                    'case_insensitive_result' => $caseInsensitive,
+                    'similar_users' => $similarUsers,
+                    'all_bots' => $allBots,
+                    'repository_result' => $repoResult ? [
+                        'id' => $repoResult->id,
+                        'username' => $repoResult->username,
+                        'status' => $repoResult->status,
+                        'email' => $repoResult->email
+                    ] : null,
+                    'user_1004' => $user1004,
+                    'database_info' => [
+                        'tables_count' => count($tables),
+                        'users_table_columns' => array_column($userTableInfo, 'Field')
+                    ]
+                ],
+                'timestamp' => date('Y-m-d H:i:s')
+            ], JSON_PRETTY_PRINT);
+            
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], JSON_PRETTY_PRINT);
+        }
+        
+        exit;
+    }
 }
