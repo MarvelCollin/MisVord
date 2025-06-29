@@ -1,5 +1,3 @@
-import BubbleChatComponent from './bubble-chat-component.js';
-
 class MessageHandler {
     constructor(chatSection) {
         this.chatSection = chatSection;
@@ -7,13 +5,8 @@ class MessageHandler {
         this.lastMessageGroup = null;
         this.messageGroupTimeThreshold = 5 * 60 * 1000; // 5 minutes in milliseconds
         this.temporaryMessages = new Map(); // Track temporary messages
-        
-        // Initialize the bubble chat component
-        this.bubbleComponent = window.BubbleChatComponent || new BubbleChatComponent();
     }
     
-
-
     addMessage(messageData) {
         // Enhanced validation - reject invalid messages
         if (!messageData || 
@@ -74,11 +67,11 @@ class MessageHandler {
         
         if (shouldGroupWithPrevious && this.lastMessageGroup) {
             // Append to existing message group
-            const messageContent = this.bubbleComponent.createMessageContent(formattedMessage);
+            const messageContent = this.createMessageContent(formattedMessage);
             
             // Add temporary styling if needed
             if (isTemporary) {
-                this.bubbleComponent.markAsTemporary(messageContent);
+                this.markAsTemporary(messageContent);
                 this.temporaryMessages.set(messageData.id, messageContent);
             }
             
@@ -87,7 +80,7 @@ class MessageHandler {
             messageElement = messageContent;
         } else {
             // Create new message group using bubble component
-            messageGroup = this.bubbleComponent.createMessageGroup(formattedMessage);
+            messageGroup = this.createMessageGroup(formattedMessage);
             if (!messageGroup) {
                 console.error('❌ [MESSAGE-HANDLER] Failed to create message group for:', formattedMessage);
                 return;
@@ -97,8 +90,8 @@ class MessageHandler {
             messageElement = messageGroup.querySelector('[data-message-id]');
         
             // Add temporary styling if needed
-        if (isTemporary) {
-                this.bubbleComponent.markAsTemporary(messageElement);
+            if (isTemporary) {
+                this.markAsTemporary(messageElement);
                 this.temporaryMessages.set(messageData.id, messageElement);
             }
         }
@@ -112,8 +105,195 @@ class MessageHandler {
         console.log(`✅ [MESSAGE-HANDLER] Message ${messageData.id} successfully added to UI (source: ${messageData.source})`);
     }
     
+    createMessageGroup(messageData) {
+        if (!messageData || !messageData.id || (!messageData.content && !messageData.attachments?.length)) {
+            console.error('❌ [MESSAGE-HANDLER] Invalid message data for group creation:', messageData);
+            return null;
+        }
+        
+        const messageGroup = document.createElement('div');
+        messageGroup.className = 'bubble-message-group';
+        messageGroup.dataset.userId = messageData.user_id || messageData.userId;
+        messageGroup.dataset.timestamp = messageData.timestamp || Date.now();
+        
+        const avatar = this.createAvatar(messageData);
+        messageGroup.appendChild(avatar);
+        
+        const contentWrapper = this.createContentWrapper(messageData);
+        messageGroup.appendChild(contentWrapper);
+        
+        return messageGroup;
+    }
+    
+    createAvatar(messageData) {
+        const avatarContainer = document.createElement('div');
+        avatarContainer.className = 'bubble-avatar';
+        
+        const avatarImg = document.createElement('img');
+        avatarImg.src = messageData.avatar_url || messageData.avatarUrl || '/public/assets/common/default-profile-picture.png';
+        avatarImg.alt = messageData.username || 'User';
+        avatarImg.onerror = function() {
+            this.src = '/public/assets/common/default-profile-picture.png';
+        };
+        
+        avatarContainer.appendChild(avatarImg);
+        return avatarContainer;
+    }
+    
+    createContentWrapper(messageData) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'bubble-content-wrapper';
+        
+        const header = this.createHeader(messageData);
+        wrapper.appendChild(header);
+        
+        const contents = document.createElement('div');
+        contents.className = 'bubble-contents';
+        
+        const messageContent = this.createMessageContent(messageData);
+        contents.appendChild(messageContent);
+        
+        wrapper.appendChild(contents);
+        return wrapper;
+    }
+    
+    createHeader(messageData) {
+        const header = document.createElement('div');
+        header.className = 'bubble-header';
+        
+        const username = document.createElement('span');
+        username.className = 'bubble-username';
+        username.textContent = messageData.username || 'Unknown User';
+        
+        const timestamp = document.createElement('span');
+        timestamp.className = 'bubble-timestamp';
+        timestamp.textContent = this.formatTimestamp(messageData.sent_at || messageData.timestamp);
+        
+        header.appendChild(username);
+        header.appendChild(timestamp);
+        
+        return header;
+    }
+    
+    createMessageContent(messageData) {
+        const content = document.createElement('div');
+        content.className = 'bubble-message-content';
+        content.dataset.messageId = messageData.id;
+        content.dataset.userId = messageData.user_id || messageData.userId;
+        
+        if (messageData.content) {
+            const messageText = this.createMessageText(messageData);
+            content.appendChild(messageText);
+        }
+        
+        const actions = this.createMessageActions(messageData);
+        content.appendChild(actions);
+        
+        return content;
+    }
+    
+    createMessageText(messageData) {
+        const textContainer = document.createElement('div');
+        textContainer.className = 'bubble-message-text';
+        textContainer.textContent = messageData.content || '';
+        
+        return textContainer;
+    }
+    
+    createMessageActions(messageData) {
+        const actions = document.createElement('div');
+        actions.className = 'bubble-message-actions';
+        
+        const replyBtn = document.createElement('button');
+        replyBtn.className = 'bubble-action-button';
+        replyBtn.innerHTML = '<i class="fas fa-reply"></i>';
+        replyBtn.title = 'Reply';
+        replyBtn.dataset.action = 'reply';
+        replyBtn.dataset.messageId = messageData.id;
+        actions.appendChild(replyBtn);
+        
+        const reactBtn = document.createElement('button');
+        reactBtn.className = 'bubble-action-button';
+        reactBtn.innerHTML = '<i class="fas fa-smile"></i>';
+        reactBtn.title = 'Add Reaction';
+        reactBtn.dataset.action = 'react';
+        reactBtn.dataset.messageId = messageData.id;
+        actions.appendChild(reactBtn);
+        
+        const currentUserId = this.chatSection.userId;
+        const isOwnMessage = (messageData.user_id || messageData.userId) == currentUserId;
+        
+        if (isOwnMessage) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'bubble-action-button';
+            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+            editBtn.title = 'Edit';
+            editBtn.dataset.action = 'edit';
+            editBtn.dataset.messageId = messageData.id;
+            actions.appendChild(editBtn);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'bubble-action-button delete-button';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.title = 'Delete';
+            deleteBtn.dataset.action = 'delete';
+            deleteBtn.dataset.messageId = messageData.id;
+            actions.appendChild(deleteBtn);
+        }
+        
+        const moreBtn = document.createElement('button');
+        moreBtn.className = 'bubble-action-button';
+        moreBtn.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+        moreBtn.title = 'More Actions';
+        moreBtn.dataset.action = 'more';
+        moreBtn.dataset.messageId = messageData.id;
+        actions.appendChild(moreBtn);
+        
+        return actions;
+    }
+    
+    formatTimestamp(timestamp) {
+        if (!timestamp) return '';
+        
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) {
+            return 'Today at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else if (diffDays === 1) {
+            return 'Yesterday at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else {
+            return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+    }
+    
+    markAsTemporary(messageElement) {
+        messageElement.classList.add('bubble-message-temporary');
+        messageElement.style.opacity = '0.7';
+    }
+    
+    markAsConfirmed(messageElement) {
+        messageElement.classList.remove('bubble-message-temporary');
+        messageElement.style.opacity = '';
+    }
+    
+    markAsFailed(messageElement, error) {
+        messageElement.classList.add('bubble-message-failed');
+        messageElement.style.opacity = '0.5';
+        messageElement.style.borderLeft = '3px solid #ed4245';
+        messageElement.style.paddingLeft = '8px';
+        
+        const errorText = document.createElement('div');
+        errorText.className = 'bubble-error-text';
+        errorText.style.color = '#ed4245';
+        errorText.style.fontSize = '12px';
+        errorText.style.marginTop = '4px';
+        errorText.textContent = error || 'Failed to send message';
+        messageElement.appendChild(errorText);
+    }
+    
     formatMessageForBubble(messageData) {
-        // Convert messageData to format expected by bubble component
         return {
             id: messageData.id,
             user_id: messageData.user_id || messageData.userId,
@@ -159,10 +339,6 @@ class MessageHandler {
         );
     }
 
-    
-
-
-
     handleMessageConfirmed(data) {
         console.log('✅ [MESSAGE-HANDLER] Message confirmed:', data);
         
@@ -184,7 +360,7 @@ class MessageHandler {
         tempMessageContent.dataset.messageId = permanent_message_id;
         
         // Remove temporary styling using bubble component
-        this.bubbleComponent.markAsConfirmed(tempMessageContent);
+        this.markAsConfirmed(tempMessageContent);
         
         // Update processed IDs
         this.processedMessageIds.delete(temp_message_id);
@@ -214,7 +390,7 @@ class MessageHandler {
         }
         
         // Mark as failed using bubble component
-        this.bubbleComponent.markAsFailed(tempMessageContent, error);
+        this.markAsFailed(tempMessageContent, error);
         
         // Remove from temporary messages map
         this.temporaryMessages.delete(temp_message_id);

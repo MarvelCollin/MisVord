@@ -30,6 +30,8 @@ $additional_js = [
     'components/servers/server-sidebar',
     'components/servers/channel-redirect',
     'components/channels/channel-manager',
+    'components/messaging/chat-section',
+    'utils/channel-switch-manager',
     'utils/load-home-page',
     'utils/load-server-page',
     'pages/server-page'

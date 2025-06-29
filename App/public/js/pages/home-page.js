@@ -1,7 +1,4 @@
-import { UserAPI } from '../api/user-api.js';
-import { FriendAPI } from '../api/friend-api.js';
-
-const friendAPI = FriendAPI;
+import friendAPI from '../api/friend-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initFriendProfileCards();
@@ -32,7 +29,7 @@ function showProfileCard(e) {
         window.activeProfileCard = null;
     }
 
-    const rect = friendItem.getBoundingClientRect();    UserAPI.getUserProfile(userId)
+    const rect = friendItem.getBoundingClientRect();    window.userAPI.getUserProfile(userId)
         .then(data => {
             if (!data) return;
 

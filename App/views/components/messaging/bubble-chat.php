@@ -451,9 +451,9 @@ if (!function_exists('isBubbleVideoFile')) {
                                             <div class="bubble-file-size"><?= formatBubbleFileSize($attachmentSize) ?></div>
                                         <?php endif; ?>
                                     </div>
-                                    <button class="bubble-download-button" onclick="BubbleChatComponent.downloadFile('<?= htmlspecialchars($attachmentUrl) ?>', '<?= htmlspecialchars($attachmentName) ?>')">
-                                        <i class="fas fa-download"></i>
-                                    </button>
+                                                        <button class="bubble-download-button" onclick="downloadAttachment('<?= htmlspecialchars($attachmentUrl) ?>', '<?= htmlspecialchars($attachmentName) ?>')">
+                        <i class="fas fa-download"></i>
+                    </button>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -520,3 +520,14 @@ if (!function_exists('isBubbleVideoFile')) {
         </div>
     </div>
 </div>
+
+<script>
+function downloadAttachment(url, filename) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>

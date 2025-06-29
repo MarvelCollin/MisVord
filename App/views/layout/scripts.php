@@ -87,3 +87,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Voice components -->
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
+<script type="module" src="<?php echo asset('/js/components/voice/global-voice-indicator.js'); ?>"></script>

@@ -272,7 +272,7 @@ if (!function_exists('renderBubbleMessageContent')) {
                     echo '<div class="bubble-file-size">' . formatBubbleFileSize($attachmentSize) . '</div>';
                 }
                 echo '</div>';
-                echo '<button class="bubble-download-button" onclick="BubbleChatComponent.downloadFile(\'' . htmlspecialchars($attachmentUrl) . '\', \'' . htmlspecialchars($attachmentName) . '\')">';
+                echo '<button class="bubble-download-button" onclick="downloadAttachment(\'' . htmlspecialchars($attachmentUrl) . '\', \'' . htmlspecialchars($attachmentName) . '\')">';
                 echo '<i class="fas fa-download"></i>';
                 echo '</button>';
                 echo '</div>';

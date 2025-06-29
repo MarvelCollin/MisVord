@@ -28,9 +28,9 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#313338] via-[#2b2d31] to-[#1e1f22]">
+    <div class="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-[#313338] via-[#2b2d31] to-[#1e1f22]">
         <!-- Video Grid -->
-        <div id="videoGrid" class="hidden w-full max-w-7xl mx-auto p-6 grid gap-6 overflow-auto">
+        <div id="videoGrid" class="hidden w-full max-w-7xl mx-auto p-6 grid gap-6 overflow-auto flex-1">
             <!-- Video grid items will be dynamically added here -->
         </div>
 
@@ -41,8 +41,97 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
             </div>
         </div>
 
+        <!-- Voice Controls Panel -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
+            <div class="bg-[#1e1f22]/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-[#40444b]/50 p-4">
+                <div class="flex items-center space-x-4">
+                    <!-- Microphone -->
+                    <div class="relative group">
+                        <button id="voiceMicBtn" class="mic-btn w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Mute/Unmute">
+                            <i class="fas fa-microphone text-xl"></i>
+                        </button>
+                        <!-- Tooltip -->
+                        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                            <span class="mic-tooltip">Mute</span>
+                        </div>
+                    </div>
+
+                    <!-- Deafen -->
+                    <div class="relative group">
+                        <button id="voiceDeafenBtn" class="deafen-btn w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Deafen/Undeafen">
+                            <i class="fas fa-headphones text-xl"></i>
+                        </button>
+                        <!-- Tooltip -->
+                        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                            <span class="deafen-tooltip">Deafen</span>
+                        </div>
+                    </div>
+
+                    <!-- Video/Camera -->
+                    <div class="relative group">
+                        <button id="voiceVideoBtn" class="video-btn w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Turn On/Off Camera">
+                            <i class="fas fa-video-slash text-xl"></i>
+                        </button>
+                        <!-- Tooltip -->
+                        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                            <span class="video-tooltip">Turn On Camera</span>
+                        </div>
+                    </div>
+
+                    <!-- Screen Share -->
+                    <div class="relative group">
+                        <button id="voiceScreenBtn" class="screen-btn w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Share Screen">
+                            <i class="fas fa-desktop text-xl"></i>
+                        </button>
+                        <!-- Tooltip -->
+                        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                            <span class="screen-tooltip">Share Screen</span>
+                        </div>
+                    </div>
+
+                    <!-- Settings -->
+                    <div class="relative group">
+                        <button id="voiceSettingsBtn" class="w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Voice Settings">
+                            <i class="fas fa-cog text-xl"></i>
+                        </button>
+                        <!-- Tooltip -->
+                        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                            Voice Settings
+                        </div>
+                    </div>
+
+                    <!-- Disconnect -->
+                    <div class="relative group ml-4 pl-4 border-l border-[#40444b]">
+                        <button id="voiceDisconnectBtn" class="w-14 h-14 rounded-full bg-[#ed4245] hover:bg-[#fc5054] text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Leave Voice Channel">
+                            <i class="fas fa-phone-slash text-xl"></i>
+                        </button>
+                        <!-- Tooltip -->
+                        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                            Leave Channel
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connection Info Bar -->
+                <div class="mt-3 pt-3 border-t border-[#40444b]/50 flex items-center justify-center space-x-4 text-xs text-[#72767d]">
+                    <div class="flex items-center space-x-1">
+                        <div class="w-2 h-2 bg-[#3ba55c] rounded-full animate-pulse"></div>
+                        <span>Connected</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-clock"></i>
+                        <span id="voiceConnectionTime">00:00</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-users"></i>
+                        <span id="voiceParticipantCount">1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Loading State -->
-        <div id="loadingState" class="hidden absolute inset-0 bg-gradient-to-br from-[#313338]/95 via-[#2b2d31]/95 to-[#1e1f22]/95 backdrop-blur-sm flex items-center justify-center">
+        <div id="loadingState" class="hidden absolute inset-0 bg-gradient-to-br from-[#313338]/95 via-[#2b2d31]/95 to-[#1e1f22]/95 backdrop-blur-sm flex items-center justify-center z-30">
             <div class="flex flex-col items-center space-y-6 p-8 bg-[#2f3136]/80 rounded-2xl border border-[#40444b]/30 shadow-2xl backdrop-blur-md">
                 <div class="relative">
                     <div class="animate-spin rounded-full h-16 w-16 border-4 border-[#5865f2]/30 border-t-[#5865f2] shadow-lg"></div>

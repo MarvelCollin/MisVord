@@ -223,8 +223,8 @@ class DirectMessageNavigation {
                                 class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-1"
                             >
                             +
-                        </button>
-                        </div>
+                                </button>
+                            </div>
 
                         <div class="flex-1 flex items-center">
                             <textarea
@@ -259,8 +259,8 @@ class DirectMessageNavigation {
                             </button>
                         </div>
                     </form>
-                </div>
-            `;
+                    </div>
+                `;
             
             mainContent.appendChild(chatSection);
         } else {

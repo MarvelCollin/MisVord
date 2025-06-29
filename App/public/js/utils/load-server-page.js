@@ -71,9 +71,9 @@ export function loadServerPage(serverId, channelId = null) {
                         console.log('[Server AJAX] Server page initialized');
                     }
                     
-                    if (typeof window.initializeChannelClickHandlers === 'function') {
-                        window.initializeChannelClickHandlers();
-                        console.log('[Server AJAX] Channel click handlers initialized');
+                    if (typeof window.ChannelSwitchManager !== 'undefined' && !window.channelSwitchManager) {
+                        window.channelSwitchManager = new window.ChannelSwitchManager();
+                        console.log('[Server AJAX] Channel switch manager initialized');
                     }
                     
                     if (typeof window.updateActiveServer === 'function') {
