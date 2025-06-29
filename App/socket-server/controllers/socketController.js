@@ -243,6 +243,29 @@ function setup(io) {
             MessageHandler.forwardMessage(io, client, 'message-updated', data);
         });
         
+        client.on('message-edit-temp', (data) => {
+            console.log(`✏️ [MESSAGE-EDIT-TEMP] Temp edit from ${client.id}:`, {
+                messageId: data.message_id,
+                tempEditId: data.temp_edit_id,
+                userId: data.user_id,
+                username: data.username,
+                newContent: data.content?.substring(0, 50) + (data.content?.length > 50 ? '...' : ''),
+                targetType: data.target_type,
+                targetId: data.target_id
+            });
+            
+            if (!data.message_id) {
+                console.warn('⚠️ [MESSAGE-EDIT-TEMP] Temp edit missing message_id:', data);
+                return;
+            }
+            
+            data.user_id = data.user_id || client.data.user_id;
+            data.username = data.username || client.data.username;
+            
+            console.log(`✅ [MESSAGE-EDIT-TEMP] Processing temp edit for message ${data.message_id}`);
+            MessageHandler.handleTempEdit(io, client, data);
+        });
+        
         client.on('message-deleted', (data) => {
             console.log(`🗑️ [MESSAGE-DELETE] Message deletion from ${client.id}:`, {
                 messageId: data.message_id,

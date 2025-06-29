@@ -13,6 +13,7 @@ class VideoSDKManager {
         this.tokenExpiry = 0;
         
         this.fallbackToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlrZXkiOiI4YWQyZGJjZC02MzhkLTRmYmItOTk5Yy05YTQ4YTgzY2FhMTUiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIiwiYWxsb3dfcHVibGlzaCJdLCJpYXQiOjE3NTEyMTU2MjEsImV4cCI6MTc1MzgwNzYyMX0.duF2XwBk9-glZTDWS8QyX4yGNaf6faZXUCLsc07QxJk";
+        this._webcamToggling = false;
     }
 
     async getAuthToken() {
@@ -546,10 +547,13 @@ class VideoSDKManager {
     
     async checkCameraPermission() {
         try {
+            console.log('[VideoSDK] Checking camera permission...');
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            console.log('[VideoSDK] Camera permission granted, got stream with', stream.getTracks().length, 'tracks');
             stream.getTracks().forEach(track => track.stop());
             return true;
         } catch (error) {
+            console.error('[VideoSDK] Camera permission check failed:', error);
             if (error.name === 'NotAllowedError') {
                 window.showToast?.('Camera permission denied. Please allow camera access in your browser settings.', 'error');
             } else if (error.name === 'NotFoundError') {
@@ -557,35 +561,52 @@ class VideoSDKManager {
             } else if (error.name === 'NotReadableError') {
                 window.showToast?.('Camera is being used by another application. Please close other apps and try again.', 'error');
             } else {
-                window.showToast?.('Camera access error. Please check your camera settings.', 'error');
+                window.showToast?.('Camera access error: ' + error.message, 'error');
             }
             return false;
         }
     }
 
     async toggleWebcam() {
-        if (!this.meeting || !this.isConnected || !this.isMeetingJoined || !this.meeting.localParticipant) {
-            window.showToast?.('Voice not fully connected. Please wait a moment and try again.', 'error');
-            return false;
+        if (this._webcamToggling) {
+            console.log('[VideoSDK] Webcam toggle already in progress, skipping');
+            return this.getWebcamState();
         }
         
+        this._webcamToggling = true;
+        
         try {
+            console.log('[VideoSDK] toggleWebcam called');
+            
+            if (!this.meeting || !this.isConnected || !this.isMeetingJoined || !this.meeting.localParticipant) {
+                console.error('[VideoSDK] Meeting not ready for webcam toggle');
+                window.showToast?.('Voice not fully connected. Please wait a moment and try again.', 'error');
+                return false;
+            }
+            
             const isWebcamOn = this.getWebcamState();
+            console.log('[VideoSDK] Current webcam state:', isWebcamOn);
             
             if (isWebcamOn) {
+                console.log('[VideoSDK] Disabling webcam...');
                 await this.meeting.disableWebcam();
+                console.log('[VideoSDK] Webcam disabled successfully');
                 return false;
             } else {
+                console.log('[VideoSDK] Enabling webcam...');
                 const hasPermission = await this.checkCameraPermission();
                 if (!hasPermission) {
+                    console.error('[VideoSDK] Camera permission denied');
                     return false;
                 }
                 
+                console.log('[VideoSDK] Camera permission OK, calling meeting.enableWebcam()...');
                 await this.meeting.enableWebcam();
+                console.log('[VideoSDK] Webcam enabled successfully');
                 return true;
             }
         } catch (error) {
-            console.error("Error toggling webcam:", error);
+            console.error("[VideoSDK] Error toggling webcam:", error);
             
             if (error.code === 3014 || error.name === 'NotAllowedError') {
                 window.showToast?.('Camera permission denied. Please allow camera access.', 'error');
@@ -598,9 +619,13 @@ class VideoSDKManager {
             } else if (error.code === 3035) {
                 window.showToast?.('Please wait for voice connection to complete before using camera.', 'error');
             } else {
-                window.showToast?.('Failed to toggle camera. Please try again.', 'error');
+                window.showToast?.('Failed to toggle camera: ' + error.message, 'error');
             }
             return false;
+        } finally {
+            setTimeout(() => {
+                this._webcamToggling = false;
+            }, 500);
         }
     }
     

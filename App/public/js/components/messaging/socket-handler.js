@@ -50,6 +50,11 @@ class SocketHandler {
         io.on('message-pinned', this.handleMessagePinned.bind(this));
         io.on('message-unpinned', this.handleMessageUnpinned.bind(this));
         
+        // Edit temp system handlers
+        io.on('message-edit-temp', this.handleMessageEditTemp.bind(this));
+        io.on('message-edit-confirmed', this.handleMessageEditConfirmed.bind(this));
+        io.on('message-edit-failed', this.handleMessageEditFailed.bind(this));
+        
         // Message ID update handler (for converting temporary IDs to permanent) - using underscores
         io.on('message_id_updated', this.handleMessageIdUpdated.bind(this));
         
@@ -541,6 +546,97 @@ class SocketHandler {
             }
         } catch (error) {
             console.error('❌ [SOCKET-HANDLER] Error handling reaction removal:', error);
+        }
+    }
+    
+    handleMessageEditTemp(data) {
+        try {
+            if (!data || !data.message_id) return;
+            
+            console.log('✏️ [SOCKET-HANDLER] Temp edit received:', {
+                messageId: data.message_id,
+                tempEditId: data.temp_edit_id,
+                userId: data.user_id,
+                username: data.username,
+                content: data.content?.substring(0, 50) + (data.content?.length > 50 ? '...' : '')
+            });
+            
+            // Only show temp edit from other users, not yourself
+            const isSender = data.user_id === window.globalSocketManager?.userId;
+            if (isSender) {
+                console.log('🔄 [SOCKET-HANDLER] Ignoring own temp edit');
+                return;
+            }
+            
+            // Find the message element
+            const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+            if (messageElement) {
+                // Update content
+                const messageTextElement = messageElement.querySelector('.message-main-text, .bubble-message-text');
+                if (messageTextElement && data.content) {
+                    messageTextElement.innerHTML = this.chatSection.formatMessageContent(data.content);
+                    
+                    // Add/update edited badge
+                    let editedBadge = messageElement.querySelector('.edited-badge, .bubble-edited-badge');
+                    if (!editedBadge) {
+                        editedBadge = document.createElement('span');
+                        editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                        editedBadge.textContent = '(edited)';
+                        messageTextElement.appendChild(editedBadge);
+                    }
+                    
+                    // Mark as temp edit
+                    this.chatSection.markMessageAsTempEdit(messageElement, data.temp_edit_id);
+                }
+            }
+        } catch (error) {
+            console.error('❌ [SOCKET-HANDLER] Error handling temp edit:', error);
+        }
+    }
+    
+    handleMessageEditConfirmed(data) {
+        try {
+            if (!data || !data.message_id) return;
+            
+            console.log('✅ [SOCKET-HANDLER] Edit confirmed:', {
+                messageId: data.message_id,
+                tempEditId: data.temp_edit_id
+            });
+            
+            // Find the message element
+            const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+            if (messageElement) {
+                // Remove temp edit styling
+                this.chatSection.markEditAsConfirmed(messageElement);
+            }
+        } catch (error) {
+            console.error('❌ [SOCKET-HANDLER] Error handling edit confirmation:', error);
+        }
+    }
+    
+    handleMessageEditFailed(data) {
+        try {
+            if (!data || !data.message_id) return;
+            
+            console.log('❌ [SOCKET-HANDLER] Edit failed:', {
+                messageId: data.message_id,
+                tempEditId: data.temp_edit_id,
+                error: data.error
+            });
+            
+            // Find the message element
+            const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+            if (messageElement) {
+                // Mark as failed
+                this.chatSection.markEditAsFailed(messageElement, data.error);
+            }
+            
+            // Show notification
+            if (this.chatSection && this.chatSection.showNotification) {
+                this.chatSection.showNotification('Failed to edit message: ' + (data.error || 'Unknown error'), 'error');
+            }
+        } catch (error) {
+            console.error('❌ [SOCKET-HANDLER] Error handling edit failure:', error);
         }
     }
     

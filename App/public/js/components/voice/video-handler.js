@@ -11,9 +11,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const pendingPlayPromises = new Map();
+    const processedStreams = new Map();
+    const streamProcessingTimestamps = new Map();
+    let initializationInProgress = false;
     
     window.addEventListener('voiceConnect', () => {
-        initializeView();
+        if (!initializationInProgress) {
+            initializationInProgress = true;
+            setTimeout(() => {
+                initializeView();
+                initializationInProgress = false;
+            }, 500);
+        }
+    });
+
+    function isDuplicateStreamEvent(participantId, streamType) {
+        const key = `${participantId}-${streamType}`;
+        const now = Date.now();
+        const lastProcessed = streamProcessingTimestamps.get(key);
+        
+        if (lastProcessed && (now - lastProcessed) < 1000) {
+            console.log(`[VideoHandler] Skipping duplicate stream event for ${participantId} (${streamType})`);
+            return true;
+        }
+        
+        streamProcessingTimestamps.set(key, now);
+        return false;
+    }
+
+    window.addEventListener('videosdkStreamEnabled', (event) => {
+        console.log('[VideoHandler] Received videosdkStreamEnabled event:', event.detail);
+        const { kind, stream, participant } = event.detail;
+        
+        if (kind === 'video' || kind === 'share') {
+            if (!isDuplicateStreamEvent(participant, kind)) {
+                console.log('[VideoHandler] Processing video stream for participant:', participant);
+                attachStream(participant, stream);
+            }
+        }
+    });
+
+    window.addEventListener('videosdkStreamDisabled', (event) => {
+        console.log('[VideoHandler] Received videosdkStreamDisabled event:', event.detail);
+        const { kind, participant } = event.detail;
+        
+        if (kind === 'video' || kind === 'share') {
+            if (!isDuplicateStreamEvent(participant, `disable-${kind}`)) {
+                console.log('[VideoHandler] Disabling video for participant:', participant);
+                const videoEl = document.querySelector(`video[data-participant-id="${participant}"]`);
+                const avatarContainer = document.querySelector(`.participant-container[data-participant-id="${participant}"]`);
+                
+                if (videoEl) {
+                    stopVideoSafely(videoEl);
+                    videoEl.classList.add('hidden');
+                }
+                if (avatarContainer) avatarContainer.classList.remove('hidden');
+            }
+        }
     });
 
     function createAvatarElement(participantId, username = 'User') {
@@ -175,6 +229,21 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!participantId) return;
         
+        const processKey = `${participantId}-${stream?.track?.id || 'default'}`;
+        if (processedStreams.has(processKey)) {
+            console.log(`[VideoHandler] Stream already processed for ${participantId}, skipping duplicate`);
+            return;
+        }
+        
+        console.log(`[VideoHandler] attachStream called for ${participantId}`, {
+            hasStream: !!stream,
+            streamType: typeof stream,
+            isMediaStream: stream instanceof MediaStream
+        });
+        
+        processedStreams.set(processKey, Date.now());
+        setTimeout(() => processedStreams.delete(processKey), 2000);
+        
         const username = participantId === 'local' ? 'You' : participantId;
         let videoEl = document.querySelector(`video[data-participant-id="${participantId}"]`);
         let avatarContainer = document.querySelector(`.participant-container[data-participant-id="${participantId}"]`);
@@ -197,8 +266,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const streamType = getStreamType(stream);
             const mediaStream = getMediaStream(stream);
 
+            console.log(`[VideoHandler] Processing stream for ${participantId}:`, {
+                streamType,
+                hasMediaStream: !!mediaStream,
+                mediaStreamTracks: mediaStream?.getTracks().length || 0
+            });
+
             if ((streamType === 'video' || streamType === 'share') && mediaStream) {
                 try {
+                    console.log(`[VideoHandler] Setting up video for ${participantId}`);
                     stopVideoSafely(videoEl);
                     
                     videoEl.srcObject = mediaStream;
@@ -206,16 +282,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (avatarContainer) avatarContainer.classList.add('hidden');
                     
                     const playSuccess = await safeVideoPlay(videoEl, participantId);
+                    console.log(`[VideoHandler] Video play result for ${participantId}:`, playSuccess);
                     
                     if (!playSuccess) {
+                        console.warn(`[VideoHandler] Video play failed for ${participantId}, showing avatar`);
                         videoEl.classList.add('hidden');
                         if (avatarContainer) avatarContainer.classList.remove('hidden');
                     }
                 } catch (error) {
+                    console.error(`[VideoHandler] Error setting up video for ${participantId}:`, error);
                     videoEl.classList.add('hidden');
                     if (avatarContainer) avatarContainer.classList.remove('hidden');
                 }
             } else {
+                console.log(`[VideoHandler] Showing avatar for ${participantId} (streamType: ${streamType})`);
                 if (avatarContainer) avatarContainer.classList.remove('hidden');
                 if (videoEl) {
                     videoEl.classList.add('hidden');
@@ -227,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 localAvatarWrapper.style.display = 'none';
             }
         } catch (error) {
+            console.error(`[VideoHandler] Error in attachStream for ${participantId}:`, error);
             if (avatarContainer) avatarContainer.classList.remove('hidden');
             if (videoEl) videoEl.classList.add('hidden');
         }
@@ -350,8 +431,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            setupMeetingEventHandlers(window.videosdkMeeting);
-
+            console.log('[VideoHandler] Initializing video view');
+            
             if (window.videoSDKManager?.getWebcamState()) {
                 const localParticipant = window.videosdkMeeting.localParticipant;
                 if (localParticipant?.streams) {
@@ -377,11 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.addEventListener('voiceConnect', () => {
-        setTimeout(initializeView, 500);
-    });
-
     if (window.videosdkMeeting) {
-        initializeView();
+        setTimeout(initializeView, 100);
     }
 }); 

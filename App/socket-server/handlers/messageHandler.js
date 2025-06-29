@@ -478,6 +478,13 @@ class MessageHandler {
             // Broadcast temporary message immediately (now with reply data if applicable)
             if (targetRoom) {
                 // First emit to bot for processing (before room broadcast)
+                console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing:`, {
+                    messageId: broadcastData.id,
+                    content: broadcastData.content?.substring(0, 50) + '...',
+                    userId: broadcastData.user_id,
+                    username: broadcastData.username,
+                    channelId: broadcastData.channel_id
+                });
                 io.emit('bot-message-intercept', broadcastData);
                 
                 io.to(targetRoom).emit(eventName, broadcastData);
@@ -488,6 +495,12 @@ class MessageHandler {
                 });
             } else {
                 // First emit to bot for processing
+                console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing (no room):`, {
+                    messageId: broadcastData.id,
+                    content: broadcastData.content?.substring(0, 50) + '...',
+                    userId: broadcastData.user_id,
+                    username: broadcastData.username
+                });
                 io.emit('bot-message-intercept', broadcastData);
                 
                 io.emit(eventName, broadcastData);
@@ -728,6 +741,148 @@ class MessageHandler {
                 message_data: messageData,
                 timestamp: Date.now()
             });
+        }
+    }
+    
+    static async handleTempEdit(io, client, data) {
+        console.log(`✏️ [TEMP-EDIT] Starting temp edit handling from client ${client.id}`);
+        
+        if (!client.data?.authenticated || !client.data?.user_id) {
+            console.error(`❌ [TEMP-EDIT] Unauthenticated client attempted to edit message`);
+            client.emit('message-edit-failed', { 
+                message_id: data.message_id,
+                temp_edit_id: data.temp_edit_id,
+                error: 'Authentication required' 
+            });
+            return;
+        }
+        
+        if (!data.message_id || !data.content || !data.target_type || !data.target_id) {
+            console.error(`❌ [TEMP-EDIT] Missing required fields:`, data);
+            client.emit('message-edit-failed', { 
+                message_id: data.message_id,
+                temp_edit_id: data.temp_edit_id,
+                error: 'Missing required fields: message_id, content, target_type, target_id' 
+            });
+            return;
+        }
+        
+        console.log(`✏️ [TEMP-EDIT] Processing temp edit:`, {
+            messageId: data.message_id,
+            tempEditId: data.temp_edit_id,
+            userId: client.data.user_id,
+            username: client.data.username,
+            targetType: data.target_type,
+            targetId: data.target_id,
+            content: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : '')
+        });
+        
+        try {
+            // Step 1: Broadcast temp edit to other users immediately
+            const targetRoom = data.target_type === 'channel' 
+                ? roomManager.getChannelRoom(data.target_id)
+                : roomManager.getDMRoom(data.target_id);
+            
+            const tempBroadcastData = {
+                message_id: data.message_id,
+                content: data.content,
+                user_id: client.data.user_id,
+                username: client.data.username,
+                target_type: data.target_type,
+                target_id: data.target_id,
+                temp_edit_id: data.temp_edit_id,
+                is_temporary: true,
+                timestamp: Date.now()
+            };
+            
+            if (targetRoom) {
+                console.log(`📡 [TEMP-EDIT] Broadcasting temp edit to room: ${targetRoom}`);
+                client.to(targetRoom).emit('message-edit-temp', tempBroadcastData);
+            } else {
+                console.log(`📡 [TEMP-EDIT] Broadcasting temp edit to all clients`);
+                client.broadcast.emit('message-edit-temp', tempBroadcastData);
+            }
+            
+            // Step 2: Save to database via HTTP call
+            console.log(`💾 [TEMP-EDIT] Saving edit to database via HTTP call...`);
+            
+            const response = await fetch(`http://app:1001/api/messages/${data.message_id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Socket-User-ID': client.data.user_id.toString(),
+                    'X-Socket-Username': client.data.username,
+                    'X-Socket-Session-ID': client.data.session_id || '',
+                    'X-Socket-Avatar-URL': client.data.avatar_url || '/public/assets/common/default-profile-picture.png',
+                    'User-Agent': 'SocketServer/1.0'
+                },
+                body: JSON.stringify({
+                    content: data.content
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const editResult = await response.json();
+            console.log(`✅ [TEMP-EDIT] Edit saved to database:`, editResult);
+            
+            if (editResult.success) {
+                // Step 3: Broadcast confirmation to all users
+                const confirmationData = {
+                    message_id: data.message_id,
+                    content: data.content,
+                    user_id: client.data.user_id,
+                    username: client.data.username,
+                    target_type: data.target_type,
+                    target_id: data.target_id,
+                    temp_edit_id: data.temp_edit_id,
+                    is_confirmed: true,
+                    timestamp: Date.now(),
+                    message_data: editResult.data
+                };
+                
+                if (targetRoom) {
+                    console.log(`📡 [TEMP-EDIT] Broadcasting edit confirmation to room: ${targetRoom}`);
+                    io.to(targetRoom).emit('message-edit-confirmed', confirmationData);
+                } else {
+                    console.log(`📡 [TEMP-EDIT] Broadcasting edit confirmation to all clients`);
+                    io.emit('message-edit-confirmed', confirmationData);
+                }
+                
+                console.log(`✅ [TEMP-EDIT] Edit completed successfully for message ${data.message_id}`);
+                
+            } else {
+                throw new Error(editResult.message || 'Database edit failed');
+            }
+            
+        } catch (error) {
+            console.error(`❌ [TEMP-EDIT] Edit save failed:`, error);
+            
+            // Step 3 (error): Broadcast failure to all users
+            const failureData = {
+                message_id: data.message_id,
+                user_id: client.data.user_id,
+                username: client.data.username,
+                target_type: data.target_type,
+                target_id: data.target_id,
+                temp_edit_id: data.temp_edit_id,
+                error: error.message || 'Failed to save edit',
+                timestamp: Date.now()
+            };
+            
+            const targetRoom = data.target_type === 'channel' 
+                ? roomManager.getChannelRoom(data.target_id)
+                : roomManager.getDMRoom(data.target_id);
+            
+            if (targetRoom) {
+                console.log(`📡 [TEMP-EDIT] Broadcasting edit failure to room: ${targetRoom}`);
+                io.to(targetRoom).emit('message-edit-failed', failureData);
+            } else {
+                console.log(`📡 [TEMP-EDIT] Broadcasting edit failure to all clients`);
+                io.emit('message-edit-failed', failureData);
+            }
         }
     }
 }
