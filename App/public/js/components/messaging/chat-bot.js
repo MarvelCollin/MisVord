@@ -225,18 +225,33 @@ class ChatBot {
     async fetchTitiBotData() {
         try {
             console.log('🤖 [CHAT-BOT] Fetching TitiBot data from server...');
-            const response = await fetch('/api/bots/check/titibot');
+            console.log('🌐 [CHAT-BOT] Making request to: /api/bots/public-check/titibot');
+            
+            const response = await fetch('/api/bots/public-check/titibot');
+            console.log('📡 [CHAT-BOT] Response received:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok
+            });
             
             if (!response.ok) {
                 console.warn('⚠️ [CHAT-BOT] Failed to check TitiBot status:', response.status, response.statusText);
-                return;
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
+            console.log('📄 [CHAT-BOT] Parsing response as JSON...');
             const data = await response.json();
-            console.log('🤖 [CHAT-BOT] Server response:', data);
+            console.log('🤖 [CHAT-BOT] Server response parsed successfully:', data);
             
-            const botExists = data.data ? (data.data.exists && data.data.is_bot) : (data.exists && data.is_bot);
-            const botInfo = data.data ? data.data.bot : data.bot;
+            const botExists = data.exists && data.is_bot;
+            const botInfo = data.bot;
+            
+            console.log('🔍 [CHAT-BOT] Bot validation:', {
+                exists: data.exists,
+                is_bot: data.is_bot,
+                botExists: botExists,
+                hasBotInfo: !!botInfo
+            });
             
             if (botExists && botInfo) {
                 window.titiBotData = botInfo;
@@ -245,9 +260,24 @@ class ChatBot {
                 this.initializeTitiBotInSocket(botInfo);
             } else {
                 console.log('⚠️ [CHAT-BOT] TitiBot not found on server or not a bot');
+                // Trigger fallback
+                throw new Error('TitiBot not found or invalid');
             }
         } catch (error) {
             console.error('❌ [CHAT-BOT] Error fetching TitiBot data:', error);
+            console.log('🔄 [CHAT-BOT] Triggering fallback initialization...');
+            
+            // Fallback: Use hardcoded bot data
+            const fallbackBotData = {
+                id: 4,
+                username: 'titibot',
+                display_name: 'TitiBot',
+                avatar_url: '/public/assets/common/default-profile-picture.png'
+            };
+            
+            console.log('🔄 [CHAT-BOT] Using fallback bot data:', fallbackBotData);
+            window.titiBotData = fallbackBotData;
+            this.initializeTitiBotInSocket(fallbackBotData);
         }
     }
 
@@ -343,7 +373,18 @@ class ChatBot {
         if (window.titiBotData && window.titiBotData.id) {
             this.initializeTitiBotInSocket(window.titiBotData);
         } else {
-            this.fetchTitiBotData();
+            console.log('🤖 [CHAT-BOT] No cached TitiBot data, fetching from server...');
+            this.fetchTitiBotData().catch(error => {
+                console.warn('⚠️ [CHAT-BOT] API fetch failed, using fallback initialization:', error);
+                // Fallback: Try to initialize with hardcoded bot data
+                const fallbackBotData = {
+                    id: 4, // From the debug output we saw earlier
+                    username: 'titibot'
+                };
+                console.log('🔄 [CHAT-BOT] Attempting fallback initialization with hardcoded data');
+                window.titiBotData = fallbackBotData;
+                this.initializeTitiBotInSocket(fallbackBotData);
+            });
         }
     }
 }
@@ -351,3 +392,4 @@ class ChatBot {
 if (typeof window !== 'undefined') {
     window.ChatBot = ChatBot;
 }
+export default ChatBot;

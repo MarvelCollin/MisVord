@@ -4,6 +4,7 @@ import SocketHandler from './socket-handler.js';
 import ChatUIHandler from './chat-ui-handler.js';
 import FileUploadHandler from './file-upload-handler.js';
 import SendReceiveHandler from './send-receive-handler.js';
+import ChatBot from './chat-bot.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Chat section script loaded via DOM content loaded');
@@ -70,6 +71,7 @@ class ChatSection {
         this.uiHandler = new ChatUIHandler(this);
         this.fileUploadHandler = new FileUploadHandler(this);
         this.sendReceiveHandler = new SendReceiveHandler(this);
+        this.chatBot = new ChatBot(this);
         
         // DOM elements
         this.chatContainer = document.querySelector('.flex-1.flex.flex-col.bg-\\[\\#313338\\].h-screen.overflow-hidden') || document.getElementById('chat-container');
@@ -211,6 +213,7 @@ class ChatSection {
         }
         
         this.cleanupEmptyMessages(); // Clean up any existing empty messages
+        this.chatBot.init();
     }
     
     joinSocketRoom() {
@@ -612,6 +615,12 @@ class ChatSection {
         this.sendButton.disabled = !hasContent;
         this.sendButton.classList.toggle('opacity-50', !hasContent);
         this.sendButton.classList.toggle('cursor-not-allowed', !hasContent);
+    }
+    
+    resizeTextarea() {
+        if (!this.messageInput) return;
+        this.messageInput.style.height = 'auto';
+        this.messageInput.style.height = this.messageInput.scrollHeight + 'px';
     }
     
     handleTypingEvent() {

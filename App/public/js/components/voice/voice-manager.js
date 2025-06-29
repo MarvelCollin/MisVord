@@ -1,10 +1,6 @@
 class VoiceManager {
     constructor() {
         this.isConnected = false;
-        this.isMuted = false;
-        this.isDeafened = false;
-        this.isVideoOn = false;
-        this.isScreenSharing = false;
         this.participants = new Map();
         this.currentChannelId = null;
         this.currentChannelName = null;
@@ -223,7 +219,7 @@ class VoiceManager {
                                document.querySelector('h2')?.textContent?.trim() ||
                                'Voice Channel';
             
-            this.dispatchEvent('voiceConnect', {
+            this.dispatchEvent(window.VOICE_EVENTS?.VOICE_CONNECT || 'voiceConnect', {
                 channelId: this.currentChannelId,
                 channelName: channelName,
                 meetingId: meeting
@@ -257,7 +253,7 @@ class VoiceManager {
         this.currentChannelName = null;
         this.currentMeetingId = null;
         this.participants.clear();
-        this.dispatchEvent('voiceDisconnect');
+        this.dispatchEvent(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect');
         this.showToast('Disconnected from voice', 'info');
     }
     
@@ -279,10 +275,6 @@ class VoiceManager {
 
     resetState() {
         this.isConnected = false;
-        this.isMuted = false;
-        this.isDeafened = false;
-        this.isVideoOn = false;
-        this.isScreenSharing = false;
         this.participants.clear();
         this.currentChannelId = null;
         this.currentChannelName = null;
@@ -317,13 +309,13 @@ window.addEventListener('DOMContentLoaded', async function() {
     }, 1000);
 });
 
-window.addEventListener('voiceUIReady', function() {
+window.addEventListener(window.VOICE_EVENTS?.VOICE_UI_READY || 'voiceUIReady', function() {
     if (window.voiceManager) {
         window.voiceManager.preloadResources();
     }
 });
 
-window.addEventListener('voiceDisconnect', function() {
+window.addEventListener(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect', function() {
     if (window.voiceManager) {
         window.voiceManager.leaveVoice();
     }

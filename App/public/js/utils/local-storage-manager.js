@@ -163,8 +163,6 @@ class LocalStorageManager {
         return this.get('misvord_voice_state', {
             isMuted: false,
             isDeafened: false,
-            isVideoOn: false,
-            isScreenSharing: false,
             volume: 100,
             channelId: null,
             channelName: null
@@ -218,7 +216,6 @@ class LocalStorageManager {
     updateAllVoiceControls(state) {
         this.updateMicControls(state);
         this.updateDeafenControls(state);
-        this.updateScreenShareControls(state);
     }
 
     updateMicControls(state) {
@@ -261,25 +258,7 @@ class LocalStorageManager {
         });
     }
 
-    updateScreenShareControls(state) {
-        const screenButtons = document.querySelectorAll('.screen-btn, #voiceScreenBtn, button[title*="Screen"], button[title*="screen"]');
-        screenButtons.forEach(btn => {
-            const icon = btn.querySelector('i');
-            if (!icon) return;
 
-            if (state.isScreenSharing) {
-                icon.className = 'fas fa-desktop text-[#5865f2]';
-                btn.classList.add('bg-[#5865f2]/20', 'text-[#5865f2]');
-                btn.classList.remove('bg-[#2f3136]', 'text-[#b9bbbe]', 'text-discord-lighter');
-                btn.title = 'Stop Sharing';
-            } else {
-                icon.className = 'fas fa-desktop text-lg';
-                btn.classList.remove('bg-[#5865f2]/20', 'text-[#5865f2]');
-                btn.classList.add('bg-[#2f3136]', 'text-[#b9bbbe]');
-                btn.title = 'Share Screen';
-            }
-        });
-    }
 
     toggleVoiceMute() {
         const state = this.getVoiceState();
@@ -325,59 +304,7 @@ class LocalStorageManager {
         });
     }
 
-    async toggleVoiceVideo() {
-        if (!window.videoSDKManager || !window.videosdkMeeting) {
-            this.showToast('Voice not connected', 'error');
-            return false;
-        }
 
-        if (!window.videoSDKManager.isReady()) {
-            this.showToast('Please wait for voice connection to complete', 'error');
-            return false;
-        }
-
-        try {
-            const newVideoState = await window.videoSDKManager.toggleWebcam();
-            console.log('[LocalStorageManager] Video state toggled:', newVideoState);
-            this.showToast(newVideoState ? 'Camera enabled' : 'Camera disabled');
-            this.setVoiceState({ isVideoOn: newVideoState });
-            return newVideoState;
-        } catch (error) {
-            console.error('Error toggling camera:', error);
-            this.showToast('Failed to toggle camera', 'error');
-            const currentState = this.getVoiceState();
-            return currentState.isVideoOn;
-        }
-    }
-
-    async toggleVoiceScreenShare() {
-        if (!window.videoSDKManager || !window.videosdkMeeting) {
-            this.showToast('Voice not connected', 'error');
-            return false;
-        }
-        
-        if (!window.videoSDKManager.isReady()) {
-            this.showToast('Please wait for voice connection to complete', 'error');
-            return false;
-        }
-
-        try {
-            const newScreenShareState = await window.videoSDKManager.toggleScreenShare();
-            console.log('[LocalStorageManager] Screen share state toggled:', newScreenShareState);
-            this.showToast(newScreenShareState ? 'Screen sharing started' : 'Screen sharing stopped');
-            this.setVoiceState({ isScreenSharing: newScreenShareState });
-            return newScreenShareState;
-        } catch (error) {
-            console.error('Error toggling screen share:', error);
-            if (error.code === 3016) {
-                this.showToast('Screen sharing permission denied', 'error');
-            } else {
-                this.showToast('Failed to toggle screen share', 'error');
-            }
-            const currentState = this.getVoiceState();
-            return currentState.isScreenSharing;
-        }
-    }
 
     showToast(message, type = 'info') {
         if (window.showToast) {

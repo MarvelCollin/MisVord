@@ -43,14 +43,10 @@ class VoiceStateManager {
     syncWithVideoSDK() {
         if (window.videoSDKManager && window.videosdkMeeting && window.videosdkMeeting.localParticipant) {
             try {
-                const participant = window.videosdkMeeting.localParticipant;
-                
                 const currentState = this.storageManager.getVoiceState();
                 const updatedState = {
                     ...currentState,
                     isMuted: !window.videoSDKManager.getMicState(),
-                    isVideoOn: window.videoSDKManager.getWebcamState(),
-                    isScreenSharing: window.videoSDKManager.getScreenShareState(),
                     isDeafened: window.videoSDKManager.getDeafenState ? window.videoSDKManager.getDeafenState() : currentState.isDeafened
                 };
                 
@@ -70,13 +66,7 @@ class VoiceStateManager {
         return this.storageManager.toggleVoiceDeafen();
     }
 
-    toggleVideo() {
-        return this.storageManager.toggleVoiceVideo();
-    }
 
-    async toggleScreenShare() {
-        return await this.storageManager.toggleVoiceScreenShare();
-    }
 
     getState() {
         return this.storageManager.getVoiceState();
@@ -130,8 +120,6 @@ class VoiceStateManager {
         this.storageManager.setVoiceState({
             isMuted: false,
             isDeafened: false,
-            isVideoOn: false,
-            isScreenSharing: false,
             volume: 100
         });
     }

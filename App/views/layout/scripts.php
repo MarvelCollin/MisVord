@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="<?php echo js('api/channel-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/server-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/bot-api'); ?>?v=<?php echo time(); ?>"></script>
-<script src="<?php echo js('components/messaging/chat-bot'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('components/bot/music-player-system'); ?>?v=<?php echo time(); ?>"></script>
 <?php endif; ?>
 
@@ -91,7 +90,12 @@ document.addEventListener('DOMContentLoaded', function() {
 <script type="module" src="/public/js/utils/channel-switch-manager.js"></script>
 <script type="module" src="/public/js/utils/load-explore-page.js"></script>
 
-<!-- Voice components -->
+<!-- Voice components (consolidated and deduplication-free) -->
+<script src="<?php echo asset('/js/components/voice/voice-events.js'); ?>"></script>
+<script src="<?php echo asset('/js/utils/voice-utils.js'); ?>"></script>
+<script src="<?php echo asset('/js/components/voice/voice-dependency-loader.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/utils/voice-state-manager.js'); ?>"></script>
+<script src="<?php echo asset('/js/components/videosdk/videosdk.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
+<script src="<?php echo asset('/js/components/voice/voice-section.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/components/voice/global-voice-indicator.js'); ?>"></script>

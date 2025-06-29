@@ -101,52 +101,28 @@ function handleMouseMove(event) {
     });
 }
 
-async function loadScript(src) {
-    return new Promise((resolve, reject) => {
-        const scriptPath = src.split('?')[0];
-        const existingScript = document.querySelector(`script[src*="${scriptPath.split('/').pop()}"]`);
-        if (existingScript) {
-            console.log(`[voice-not-join.php] Script already loaded: ${scriptPath}`);
-            resolve();
-            return;
-        }
-        
-        console.log(`[voice-not-join.php] Loading script: ${src}`);
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = true;
-        script.onload = () => {
-            console.log(`[voice-not-join.php] Script loaded successfully: ${src}`);
-            resolve();
-        };
-        script.onerror = () => {
-            console.error(`[voice-not-join.php] Failed to load script: ${src}`);
-            reject(new Error(`Failed to load ${src}`));
-        };
-        document.head.appendChild(script);
-    });
-}
+
 
 async function ensureVoiceScriptsLoaded() {
     try {
         if (typeof VideoSDK === 'undefined') {
             console.log('[voice-not-join.php] Loading VideoSDK...');
-            await loadScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
+            await window.loadVoiceScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
         }
         
         if (!window.videoSDKManager && !document.querySelector('script[src*="videosdk/videosdk.js"]')) {
             console.log('[voice-not-join.php] Loading VideoSDK manager...');
-            await loadScript('/public/js/components/videosdk/videosdk.js?v=' + Date.now());
+            await window.loadVoiceScript('/public/js/components/videosdk/videosdk.js?v=' + Date.now());
         }
         
         if (!window.voiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
             console.log('[voice-not-join.php] Loading voice manager...');
-            await loadScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
+            await window.loadVoiceScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
         }
         
         if (!window.VoiceSection && !document.querySelector('script[src*="voice-section.js"]')) {
             console.log('[voice-not-join.php] Loading voice section...');
-            await loadScript('/public/js/components/voice/voice-section.js?v=' + Date.now());
+            await window.loadVoiceScript('/public/js/components/voice/voice-section.js?v=' + Date.now());
         }
         
         await new Promise(resolve => {
@@ -184,42 +160,7 @@ async function ensureVoiceScriptsLoaded() {
     }
 }
 
-async function waitForVideoSDKReady(timeout = 15000) {
-    return new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-            reject(new Error('Timeout waiting for VideoSDK to be fully ready'));
-        }, timeout);
-        
-        const checkReady = () => {
-            if (window.videoSDKManager && window.videoSDKManager.isReady()) {
-                clearTimeout(timeoutId);
-                resolve();
-            } else {
-                setTimeout(checkReady, 200);
-            }
-        };
-        
-        if (window.videoSDKManager && window.videoSDKManager.isReady()) {
-            clearTimeout(timeoutId);
-            resolve();
-        } else {
-            const onMeetingReady = () => {
-                clearTimeout(timeoutId);
-                window.removeEventListener('videosdkMeetingFullyJoined', onMeetingReady);
-                setTimeout(() => {
-                    if (window.videoSDKManager && window.videoSDKManager.isReady()) {
-                        resolve();
-                    } else {
-                        checkReady();
-                    }
-                }, 500);
-            };
-            
-            window.addEventListener('videosdkMeetingFullyJoined', onMeetingReady);
-            checkReady();
-        }
-    });
-}
+
 
 function resetJoinState() {
     const joinBtn = document.getElementById('joinBtn');
@@ -250,39 +191,12 @@ async function joinVoiceChannel() {
         
         if (window.voiceManager) {
             console.log('[voice-not-join.php] Using voiceManager.joinVoice()');
-            
             await window.voiceManager.joinVoice();
-            
             console.log('[voice-not-join.php] Waiting for VideoSDK to be fully ready...');
-            await waitForVideoSDKReady();
-            
-            const channelName = document.querySelector('meta[name="channel-name"]')?.content ||
-                               document.querySelector('.channel-name')?.textContent?.trim() ||
-                               'Voice Channel';
-            const channelId = document.querySelector('meta[name="channel-id"]')?.content;
-            
+            await window.waitForVideoSDKReady();
             console.log('[voice-not-join.php] Voice joined and VideoSDK is fully ready');
-            
-        } else if (window.voiceSection && window.voiceSection.autoJoin) {
-            console.log('[voice-not-join.php] Using voiceSection.autoJoin()');
-            window.voiceSection.autoJoin();
-            
-            console.log('[voice-not-join.php] Waiting for VideoSDK to be fully ready...');
-            await waitForVideoSDKReady();
-        } else if (window.triggerVoiceAutoJoin) {
-            console.log('[voice-not-join.php] Using triggerVoiceAutoJoin()');
-            window.triggerVoiceAutoJoin();
-            
-            console.log('[voice-not-join.php] Waiting for VideoSDK to be fully ready...');
-            await waitForVideoSDKReady();
-        } else if (window.handleAutoJoin) {
-            console.log('[voice-not-join.php] Using handleAutoJoin()');
-            window.handleAutoJoin();
-            
-            console.log('[voice-not-join.php] Waiting for VideoSDK to be fully ready...');
-            await waitForVideoSDKReady();
         } else {
-            throw new Error('No voice join method available');
+            throw new Error('Voice manager not available');
         }
         
     } catch (error) {
@@ -315,9 +229,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const joinBtn = document.getElementById('joinBtn');
     console.log('[voice-not-join.php] Join button found:', !!joinBtn);
     if (joinBtn) {
-        console.log('[voice-not-join.php] Join button HTML:', joinBtn.outerHTML);
         joinBtn.addEventListener('click', async function(e) {
-            console.log('[voice-not-join.php] Join button clicked via addEventListener');
+            console.log('[voice-not-join.php] Join button clicked');
             e.preventDefault();
             e.stopPropagation();
             try {
@@ -328,305 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    document.body.addEventListener('click', async function(e) {
-        const clickedJoinBtn = e.target.id === 'joinBtn' || e.target.closest('#joinBtn');
-        if (clickedJoinBtn) {
-            console.log('[voice-not-join.php] Join button clicked via document body handler');
-            e.preventDefault();
-            e.stopPropagation();
-            try {
-                await joinVoiceChannel();
-            } catch (error) {
-                console.error('[voice-not-join.php] Error in body click handler:', error);
-            }
-        }
-    }, true);
-    
     console.log('[voice-not-join.php] Dispatching voiceUIReady event to start preloading');
     window.dispatchEvent(new CustomEvent('voiceUIReady'));
 });
 </script>
-
-<style>
-@keyframes twinkle-star {
-    0%, 100% {
-        opacity: 0.3;
-        transform: scale(1);
-        box-shadow: 0 0 6px currentColor;
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.5);
-        box-shadow: 0 0 12px currentColor, 0 0 20px currentColor;
-    }
-}
-
-@keyframes twinkle-star-2 {
-    0%, 100% {
-        opacity: 0.4;
-        transform: scale(1) rotate(0deg);
-        box-shadow: 0 0 4px currentColor;
-    }
-    50% {
-        opacity: 0.9;
-        transform: scale(1.3) rotate(180deg);
-        box-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
-    }
-}
-
-@keyframes twinkle-star-3 {
-    0%, 100% {
-        opacity: 0.5;
-        transform: scale(1);
-        box-shadow: 0 0 8px currentColor;
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.4);
-        box-shadow: 0 0 16px currentColor, 0 0 24px currentColor;
-    }
-}
-
-@keyframes cosmic-drift-1 {
-    0%, 100% {
-        transform: translate(0, 0) rotate(0deg) scale(1);
-        opacity: 0.25;
-    }
-    25% {
-        transform: translate(8px, -12px) rotate(90deg) scale(1.05);
-        opacity: 0.15;
-    }
-    50% {
-        transform: translate(-4px, -8px) rotate(180deg) scale(0.95);
-        opacity: 0.3;
-    }
-    75% {
-        transform: translate(-8px, 6px) rotate(270deg) scale(1.02);
-        opacity: 0.2;
-    }
-}
-
-@keyframes cosmic-drift-2 {
-    0%, 100% {
-        transform: translate(0, 0) rotate(0deg) scale(1);
-        opacity: 0.2;
-    }
-    33% {
-        transform: translate(-12px, 8px) rotate(120deg) scale(1.08);
-        opacity: 0.28;
-    }
-    66% {
-        transform: translate(6px, -6px) rotate(240deg) scale(0.92);
-        opacity: 0.15;
-    }
-}
-
-@keyframes cosmic-drift-3 {
-    0%, 100% {
-        transform: translate(0, 0) scale(1);
-        opacity: 0.15;
-    }
-    50% {
-        transform: translate(10px, -12px) scale(1.1);
-        opacity: 0.25;
-    }
-}
-
-@keyframes cosmic-drift-4 {
-    0%, 100% {
-        transform: translate(0, 0) rotate(0deg);
-        opacity: 0.12;
-    }
-    50% {
-        transform: translate(-10px, 12px) rotate(-180deg);
-        opacity: 0.2;
-    }
-}
-
-@keyframes meteor-1 {
-    0% {
-        top: -20px;
-        left: 100%;
-        opacity: 0;
-    }
-    10% {
-        opacity: 1;
-    }
-    90% {
-        opacity: 1;
-    }
-    100% {
-        top: 100vh;
-        left: -100px;
-        opacity: 0;
-    }
-}
-
-@keyframes meteor-2 {
-    0% {
-        top: -20px;
-        right: 100%;
-        opacity: 0;
-    }
-    15% {
-        opacity: 1;
-    }
-    85% {
-        opacity: 1;
-    }
-    100% {
-        top: 100vh;
-        right: -100px;
-        opacity: 0;
-    }
-}
-
-@keyframes fade-in-cosmic {
-    0% {
-        opacity: 0;
-        transform: translateY(50px) scale(0.9);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-@keyframes cosmic-shimmer {
-    0%, 100% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-}
-
-
-
-@keyframes distant-star {
-    0%, 100% {
-        opacity: 0.6;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.2);
-    }
-}
-
-@keyframes distant-star-2 {
-    0%, 100% {
-        opacity: 0.7;
-        transform: scale(1) rotate(0deg);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.1) rotate(180deg);
-    }
-}
-
-@keyframes distant-star-3 {
-    0%, 100% {
-        opacity: 0.75;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.15);
-    }
-}
-
-@keyframes cosmic-scan {
-    0% {
-        transform: translateX(-100%);
-        opacity: 0;
-    }
-    50% {
-        opacity: 1;
-    }
-    100% {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-}
-
-@keyframes pulse-cosmic {
-    0%, 100% {
-        opacity: 0.8;
-    }
-    50% {
-        opacity: 1;
-    }
-}
-
-.animate-twinkle-star {
-    animation: twinkle-star 3s ease-in-out infinite;
-}
-
-.animate-twinkle-star-2 {
-    animation: twinkle-star-2 4s ease-in-out infinite 1s;
-}
-
-.animate-twinkle-star-3 {
-    animation: twinkle-star-3 3.5s ease-in-out infinite 2s;
-}
-
-.animate-cosmic-drift-1 {
-    animation: cosmic-drift-1 30s ease-in-out infinite;
-    transition: transform 0.3s ease-out;
-}
-
-.animate-cosmic-drift-2 {
-    animation: cosmic-drift-2 25s ease-in-out infinite 8s;
-    transition: transform 0.3s ease-out;
-}
-
-.animate-cosmic-drift-3 {
-    animation: cosmic-drift-3 35s ease-in-out infinite 15s;
-    transition: transform 0.3s ease-out;
-}
-
-.animate-cosmic-drift-4 {
-    animation: cosmic-drift-4 28s ease-in-out infinite 3s;
-    transition: transform 0.3s ease-out;
-}
-
-.animate-meteor-1 {
-    animation: meteor-1 8s linear infinite 3s;
-}
-
-.animate-meteor-2 {
-    animation: meteor-2 12s linear infinite 7s;
-}
-
-.animate-fade-in-cosmic {
-    animation: fade-in-cosmic 1.5s ease-out;
-}
-
-.animate-cosmic-shimmer {
-    background-size: 400% 400%;
-    animation: cosmic-shimmer 4s ease-in-out infinite;
-}
-
-
-
-.animate-distant-star {
-    animation: distant-star 5s ease-in-out infinite;
-}
-
-.animate-distant-star-2 {
-    animation: distant-star-2 6s ease-in-out infinite 2s;
-}
-
-.animate-distant-star-3 {
-    animation: distant-star-3 4.5s ease-in-out infinite 1s;
-}
-
-.animate-cosmic-scan {
-    animation: cosmic-scan 3s ease-in-out infinite;
-}
-
-.animate-pulse-cosmic {
-    animation: pulse-cosmic 2s ease-in-out infinite;
-}
-</style>

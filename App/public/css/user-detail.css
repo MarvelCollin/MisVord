@@ -446,6 +446,22 @@
   height: 16px;
 }
 
+.user-detail-char-counter {
+  font-size: 11px;
+  color: var(--discord-lighter);
+  text-align: right;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.user-detail-char-counter.warning {
+  color: #faa61a;
+}
+
+.user-detail-char-counter.danger {
+  color: var(--discord-red);
+}
+
 .skeleton-loading {
   position: relative;
   overflow: hidden;

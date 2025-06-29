@@ -133,7 +133,7 @@ class GlobalVoiceIndicator {
             
             <!-- Controls -->
             <div class="voice-indicator-controls p-3 bg-[#232428] rounded-b-lg">
-                <div class="grid grid-cols-4 gap-2">
+                <div class="grid grid-cols-3 gap-2">
                     <!-- Microphone -->
                     <button class="mic-btn control-btn bg-[#2f3136] hover:bg-[#3c3f47] p-3 rounded-md transition-all duration-200 group" title="Mute/Unmute">
                         <i class="fas fa-microphone text-[#b9bbbe] group-hover:text-white transition-colors"></i>
@@ -142,11 +142,6 @@ class GlobalVoiceIndicator {
                     <!-- Deafen -->
                     <button class="deafen-btn control-btn bg-[#2f3136] hover:bg-[#3c3f47] p-3 rounded-md transition-all duration-200 group" title="Deafen/Undeafen">
                         <i class="fas fa-headphones text-[#b9bbbe] group-hover:text-white transition-colors"></i>
-                    </button>
-                    
-                    <!-- Screen Share -->
-                    <button class="screen-btn control-btn bg-[#2f3136] hover:bg-[#3c3f47] p-3 rounded-md transition-all duration-200 group" title="Share Screen">
-                        <i class="fas fa-desktop text-[#b9bbbe] group-hover:text-white transition-colors"></i>
                     </button>
                     
                     <!-- Info/Settings -->
@@ -254,28 +249,7 @@ class GlobalVoiceIndicator {
             deafenBtn.addEventListener('click', this.handleDeafenClick);
         }
 
-        const screenBtn = this.indicator.querySelector('.screen-btn');
-        if (screenBtn) {
-            screenBtn.removeEventListener('click', this.handleScreenClick);
-            this.handleScreenClick = async () => {
-                if (screenBtn.disabled) return;
-                
-                screenBtn.disabled = true;
-                screenBtn.style.opacity = '0.6';
-                
-                try {
-                    if (window.localStorageManager) {
-                        await window.localStorageManager.toggleVoiceScreenShare();
-                    }
-                } finally {
-                    setTimeout(() => {
-                        screenBtn.disabled = false;
-                        screenBtn.style.opacity = '1';
-                    }, 1000);
-                }
-            };
-            screenBtn.addEventListener('click', this.handleScreenClick);
-        }
+
 
         const infoBtn = this.indicator.querySelector('.info-btn');
         if (infoBtn) {
@@ -336,19 +310,7 @@ class GlobalVoiceIndicator {
             }
         }
 
-        const screenBtn = this.indicator.querySelector('.screen-btn');
-        const screenIcon = screenBtn?.querySelector('i');
-        if (screenBtn && screenIcon) {
-            if (state.isScreenSharing) {
-                screenIcon.className = 'fas fa-desktop text-[#5865f2]';
-                screenBtn.classList.add('bg-[#5865f2]/20');
-                screenBtn.classList.remove('bg-[#2f3136]');
-            } else {
-                screenIcon.className = 'fas fa-desktop text-[#b9bbbe] group-hover:text-white';
-                screenBtn.classList.remove('bg-[#5865f2]/20');
-                screenBtn.classList.add('bg-[#2f3136]');
-            }
-        }
+
     }
 
     updateConnectionInfo() {
@@ -544,15 +506,6 @@ class GlobalVoiceIndicator {
             this.indicator.style.display = 'flex';
         } else {
             this.indicator.style.display = 'none';
-        }
-
-        if (this.indicator.style.display === 'flex') {
-            const screenBtn = this.indicator.querySelector('.screen-btn');
-            if (screenBtn && voiceCallSection) {
-                screenBtn.style.display = 'none';
-            } else if (screenBtn) {
-                screenBtn.style.display = 'flex';
-            }
         }
     }
 }

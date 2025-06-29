@@ -923,6 +923,60 @@ Route::get('/api/bots/check/([^/]+)', function($username) {
     $controller->check($username);
 });
 
+Route::get('/api/bots/public-check/([^/]+)', function($username) {
+    header('Content-Type: application/json');
+    
+    try {
+        require_once __DIR__ . '/../database/repositories/UserRepository.php';
+        $userRepository = new UserRepository();
+        
+        $user = $userRepository->findByUsername($username);
+        
+        if (!$user) {
+            echo json_encode([
+                'success' => true,
+                'exists' => false,
+                'is_bot' => false,
+                'message' => 'Bot does not exist'
+            ]);
+            return;
+        }
+        
+        $isBot = $user->status === 'bot';
+        
+        if (!$isBot) {
+            echo json_encode([
+                'success' => true,
+                'exists' => true,
+                'is_bot' => false,
+                'message' => 'User exists but is not a bot'
+            ]);
+            return;
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'exists' => true,
+            'is_bot' => true,
+            'bot' => [
+                'id' => $user->id,
+                'username' => $user->username,
+                'discriminator' => $user->discriminator,
+                'status' => $user->status,
+                'display_name' => $user->display_name,
+                'avatar_url' => $user->avatar_url,
+                'created_at' => $user->created_at
+            ]
+        ]);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'An error occurred while checking bot: ' . $e->getMessage()
+        ]);
+    }
+});
+
 Route::post('/api/bots/add-to-server', function() {
     $controller = new BotController();
     $controller->addToServer();
@@ -931,6 +985,108 @@ Route::post('/api/bots/add-to-server', function() {
 Route::get('/api/debug/bot-detection', function() {
     $controller = new DebugController();
     $controller->botDebug();
+});
+
+Route::get('/api/debug/bot-system-status', function() {
+    header('Content-Type: application/json');
+    
+    try {
+        require_once __DIR__ . '/../database/repositories/UserRepository.php';
+        $userRepository = new UserRepository();
+        
+        // Check if TitiBot exists
+        $titiBot = $userRepository->findByUsername('titibot');
+        
+        $response = [
+            'success' => true,
+            'timestamp' => date('Y-m-d H:i:s'),
+            'titibot_check' => [
+                'exists' => !!$titiBot,
+                'is_bot' => $titiBot ? ($titiBot->status === 'bot') : false,
+                'bot_data' => $titiBot ? [
+                    'id' => $titiBot->id,
+                    'username' => $titiBot->username,
+                    'status' => $titiBot->status,
+                    'email' => $titiBot->email,
+                    'created_at' => $titiBot->created_at
+                ] : null
+            ],
+            'database_status' => 'connected',
+            'socket_endpoints' => [
+                'bot_init' => '/api/debug/test-bot-init',
+                'message_intercept' => '/api/debug/test-message-intercept'
+            ]
+        ];
+        
+        echo json_encode($response, JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+});
+
+Route::post('/api/debug/create-titibot', function() {
+    header('Content-Type: application/json');
+    
+    try {
+        require_once __DIR__ . '/../database/repositories/UserRepository.php';
+        $userRepository = new UserRepository();
+        
+        // Check if TitiBot already exists
+        $existingBot = $userRepository->findByUsername('titibot');
+        if ($existingBot) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'TitiBot already exists',
+                'bot_id' => $existingBot->id,
+                'status' => $existingBot->status
+            ]);
+            return;
+        }
+        
+        // Create TitiBot
+        $botData = [
+            'username' => 'titibot',
+            'email' => 'titibot@system.local',
+            'password' => password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT), // Random password
+            'discriminator' => '0000',
+            'display_name' => 'TitiBot',
+            'bio' => 'Official music and fun bot',
+            'status' => 'bot',
+            'avatar_url' => '/public/assets/common/default-profile-picture.png'
+        ];
+        
+        $bot = $userRepository->createBot($botData);
+        
+        if ($bot) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'TitiBot created successfully',
+                'bot_data' => [
+                    'id' => $bot->id,
+                    'username' => $bot->username,
+                    'status' => $bot->status,
+                    'created_at' => $bot->created_at
+                ]
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to create TitiBot'
+            ]);
+        }
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
 });
 
 Route::post('/api/bots/remove-from-server', function() {

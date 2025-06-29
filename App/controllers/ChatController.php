@@ -422,9 +422,13 @@ class ChatController extends BaseController
             return $this->validationError(['friend_id' => 'Cannot create chat with yourself']);
         }
 
-        $friendship = $this->friendListRepository->findFriendshipBetweenUsers($userId, $friendId);
-        if (!$friendship || $friendship->status !== 'accepted') {
-            return $this->forbidden('You can only message friends');
+        $friend = $this->userRepository->find($friendId);
+        if (!$friend) {
+            return $this->notFound('User not found');
+        }
+
+        if ($friend->status === 'banned' || $friend->status === 'deleted') {
+            return $this->forbidden('Cannot message this user');
         }
 
         try {
@@ -446,10 +450,6 @@ class ChatController extends BaseController
                 ]);
             }
 
-            $friend = $this->userRepository->find($friendId);
-            if (!$friend) {
-                return $this->notFound('Friend not found');
-            }
             $chatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
 
 
@@ -494,9 +494,13 @@ class ChatController extends BaseController
             return $this->validationError(['user_id' => 'Cannot create chat with yourself']);
         }
 
-        $friendship = $this->friendListRepository->findFriendshipBetweenUsers($userId, $friendId);
-        if (!$friendship || $friendship->status !== 'accepted') {
-            return $this->forbidden('You can only message friends');
+        $friend = $this->userRepository->find($friendId);
+        if (!$friend) {
+            return $this->notFound('User not found');
+        }
+
+        if ($friend->status === 'banned' || $friend->status === 'deleted') {
+            return $this->forbidden('Cannot message this user');
         }
 
         try {
@@ -560,15 +564,18 @@ class ChatController extends BaseController
         }
 
         try {
-            $friendship = $this->friendListRepository->findFriendshipBetweenUsers($userId, $friendId);
-            if (!$friendship || $friendship->status !== 'accepted') {
-                return $this->forbidden('You can only message friends');
+            $friend = $this->userRepository->find($friendId);
+            if (!$friend) {
+                return $this->notFound('User not found');
+            }
+
+            if ($friend->status === 'banned' || $friend->status === 'deleted') {
+                return $this->forbidden('Cannot message this user');
             }
 
             $chatRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
 
             if ($chatRoom) {
-                $friend = $this->userRepository->find($friendId);
                 $roomData = [
                     'id' => $chatRoom->id,
                     'type' => $chatRoom->type,
@@ -581,7 +588,6 @@ class ChatController extends BaseController
 
                 $newChatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
                 if ($newChatRoom) {
-                    $friend = $this->userRepository->find($friendId);
                     $roomData = [
                         'id' => $newChatRoom->id,
                         'type' => $newChatRoom->type,

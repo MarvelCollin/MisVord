@@ -26,6 +26,7 @@ class UserDetailModal {
         
         this.messageInput = this.modal.querySelector('#user-detail-message-input');
         this.sendBtn = this.modal.querySelector('#user-detail-send-btn');
+        this.charCounter = this.modal.querySelector('#user-detail-char-counter');
 
         this.mutualSection = this.modal.querySelector('.user-detail-mutual');
         this.mutualServersElement = this.modal.querySelector('#user-detail-mutual-servers');
@@ -81,6 +82,11 @@ class UserDetailModal {
                     e.preventDefault();
                     this.handleSendMessage();
                 }
+            });
+            
+            this.messageInput.addEventListener('input', () => {
+                this.updateCharCounter();
+                this.updateSendButtonState();
             });
         }
         
@@ -559,9 +565,15 @@ class UserDetailModal {
                 }
             }
 
-            this.updateMutualInfo(userData, isSelf);
-            this.updateMessageSection(user, isSelf);
-            this.updateActionButtons(userData);
+                    this.updateMutualInfo(userData, isSelf);
+        this.updateMessageSection(user, isSelf);
+        this.updateActionButtons(userData);
+        this.updateCharCounter();
+        this.updateSendButtonState();
+        
+        if (this.messageInput && user.username) {
+            this.messageInput.placeholder = `Message ${user.username}`;
+        }
         }, 200);
     }
 
@@ -771,35 +783,173 @@ class UserDetailModal {
         }
 
         const content = this.messageInput.value.trim();
+        if (content.length > 2000) {
+            if (window.showToast) {
+                window.showToast('Message is too long (max 2000 characters)', 'error');
+            }
+            return;
+        }
+        const originalValue = this.messageInput.value;
         this.messageInput.value = '';
         this.messageInput.disabled = true;
         this.sendBtn.disabled = true;
+        
+        const originalBtnContent = this.sendBtn.innerHTML;
+        this.sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
         try {
-            const chatApi = await import('../../api/chat-api.js').then(module => module.default);
+            if (!window.ChatAPI) {
+                throw new Error('Chat system not available');
+            }
 
-            const dmRoomData = await chatApi.createDirectMessage(this.currentUserId);
+
+
+            console.log('Creating DM for user ID:', this.currentUserId);
             
-            if (!dmRoomData.data || (!dmRoomData.data.room_id && !dmRoomData.data.channel_id)) {
-                throw new Error(dmRoomData.message || 'Could not open a DM with this user.');
+            let dmRoomData;
+            try {
+                dmRoomData = await window.ChatAPI.createDirectMessage(this.currentUserId);
+            } catch (apiError) {
+                console.error('ChatAPI.createDirectMessage failed:', apiError);
+                
+                console.log('Attempting direct API fallback...');
+                const directResponse = await fetch('/api/chat/dm/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ friend_id: this.currentUserId })
+                });
+                
+                console.log('Direct API response status:', directResponse.status);
+                
+                if (!directResponse.ok) {
+                    const errorText = await directResponse.text();
+                    console.error('Direct API failed:', directResponse.status, errorText);
+                    throw new Error(`API request failed: ${directResponse.status} - ${errorText}`);
+                }
+                
+                dmRoomData = await directResponse.json();
+                console.log('Direct API response:', dmRoomData);
+            }
+            
+            console.log('DM creation response:', dmRoomData);
+            
+            let roomId = null;
+            
+            if (dmRoomData && dmRoomData.success === true && dmRoomData.data) {
+                roomId = dmRoomData.data.room_id || dmRoomData.data.channel_id || dmRoomData.data.chat_room?.id;
+            } else if (dmRoomData && dmRoomData.data) {
+                roomId = dmRoomData.data.room_id || dmRoomData.data.channel_id || dmRoomData.data.chat_room?.id;
+            } else if (dmRoomData && dmRoomData.room_id) {
+                roomId = dmRoomData.room_id;
+            }
+            
+            console.log('Extracted room ID:', roomId);
+            
+            if (!roomId) {
+                console.error('Failed to extract room ID from response:', dmRoomData);
+                throw new Error('Could not extract room ID from response');
             }
 
-            const roomId = dmRoomData.data.room_id || dmRoomData.data.channel_id;
+            console.log('Sending message to room ID:', roomId);
+            
+            let messageSent = false;
+            
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                console.log('Using WebSocket to send message');
+                const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+                
+                const messageData = {
+                    content: content,
+                    target_type: 'dm',
+                    target_id: roomId,
+                    message_type: 'text',
+                    attachments: [],
+                    mentions: [],
+                    reply_message_id: null,
+                    temp_message_id: tempId
+                };
 
-            await chatApi.sendMessage(roomId, content, 'direct');
+                console.log('Emitting WebSocket message:', messageData);
+                window.globalSocketManager.io.emit('save-and-send-message', messageData);
+                messageSent = true;
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } else {
+                console.log('Using HTTP fallback to send message');
+                try {
+                    const messageResponse = await fetch(`/api/chat/dm/${roomId}/messages`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            content: content,
+                            target_type: 'dm',
+                            target_id: roomId,
+                            message_type: 'text'
+                        })
+                    });
+
+                    console.log('Message send response status:', messageResponse.status);
+
+                    if (!messageResponse.ok) {
+                        const errorText = await messageResponse.text();
+                        console.error('Message send failed:', messageResponse.status, errorText);
+                        throw new Error(`Failed to send message: ${messageResponse.status}`);
+                    }
+
+                    const result = await messageResponse.json();
+                    console.log('Message send result:', result);
+                    
+                    if (!result.success) {
+                        throw new Error(result.message || 'Failed to send message');
+                    }
+                    
+                    messageSent = true;
+                } catch (httpError) {
+                    console.error('HTTP message send failed:', httpError);
+                    throw new Error('Failed to send message via HTTP');
+                }
+            }
+            
+            console.log('Message sent successfully:', messageSent);
+
             this.hide();
-            if (window.showToast) {
-                window.showToast('Message sent!', 'success');
-            }
+            
+            setTimeout(() => {
+                window.location.href = `/home/channels/dm/${roomId}`;
+            }, 100);
 
         } catch (error) {
             console.error('Error sending direct message:', error);
-            if (window.showToast) {
-                window.showToast(error.message || 'Failed to send message.', 'error');
+            this.messageInput.value = originalValue;
+            
+            let errorMessage = 'Failed to send message';
+            if (error.message) {
+                if (error.message.includes('User not found')) {
+                    errorMessage = 'This user does not exist';
+                } else if (error.message.includes('Cannot message this user')) {
+                    errorMessage = 'Cannot message this user';
+                } else if (error.message.includes('Chat system not available')) {
+                    errorMessage = 'Chat system is not ready. Please try again.';
+                } else if (error.message.includes('Chat connection not ready')) {
+                    errorMessage = 'Connection not ready. Please try again.';
+                } else {
+                    errorMessage = error.message;
+                }
             }
+            
+
         } finally {
             if (this.messageInput) this.messageInput.disabled = false;
-            if (this.sendBtn) this.sendBtn.disabled = false;
+            if (this.sendBtn) {
+                this.sendBtn.disabled = false;
+                this.sendBtn.innerHTML = originalBtnContent;
+            }
         }
     }
 
@@ -955,6 +1105,37 @@ class UserDetailModal {
     
     hideMutualDetail() {
         this.mutualDetailModal.classList.remove('active');
+    }
+
+    updateCharCounter() {
+        if (!this.messageInput || !this.charCounter) return;
+        
+        const length = this.messageInput.value.length;
+        this.charCounter.textContent = `${length}/2000`;
+        
+        this.charCounter.classList.remove('warning', 'danger');
+        if (length > 1800) {
+            this.charCounter.classList.add('danger');
+        } else if (length > 1500) {
+            this.charCounter.classList.add('warning');
+        }
+    }
+
+    updateSendButtonState() {
+        if (!this.messageInput || !this.sendBtn) return;
+        
+        const hasContent = this.messageInput.value.trim().length > 0;
+        const isValidLength = this.messageInput.value.length <= 2000;
+        const isEnabled = hasContent && isValidLength;
+        
+        this.sendBtn.disabled = !isEnabled;
+        if (isEnabled) {
+            this.sendBtn.style.opacity = '1';
+            this.sendBtn.style.cursor = 'pointer';
+        } else {
+            this.sendBtn.style.opacity = '0.5';
+            this.sendBtn.style.cursor = 'not-allowed';
+        }
     }
 }
 

@@ -26,7 +26,7 @@ async function initializeTitiBot() {
     console.log('🤖 Initializing TitiBot...');
     
     try {
-        const response = await fetch('http://app:1001/api/bots/check/titibot', {
+        const response = await fetch('http://app:1001/api/bots/public-check/titibot', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -36,8 +36,8 @@ async function initializeTitiBot() {
 
         if (response.ok) {
             const result = await response.json();
-            if (result.success && result.data && result.data.bot) {
-                const bot = result.data.bot;
+            if (result.success && result.exists && result.is_bot && result.bot) {
+                const bot = result.bot;
                 console.log(`✅ TitiBot found in database with ID: ${bot.id}`);
                 
                 const BotHandler = require('./handlers/botHandler');

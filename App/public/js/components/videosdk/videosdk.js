@@ -212,7 +212,9 @@ class VideoSDKManager {
                     stream = data.stream;
                 } else if (data.track) {
                     stream = new MediaStream([data.track]);
-                    kind = data.track.kind === 'video' ? 'video' : 'audio';
+                    if (kind === 'unknown') {
+                        kind = data.track.kind === 'video' ? 'video' : 'audio';
+                    }
                 } else if (data.id && participant.streams && participant.streams.get(data.id)) {
                     stream = participant.streams.get(data.id);
                 } else {
@@ -253,6 +255,22 @@ class VideoSDKManager {
                         kind = stream.track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
                     } else if (stream.track?.kind === 'audio') {
                         kind = 'audio';
+                    }
+                }
+                
+                // After kind heuristic determination, refine screen share detection
+                if (kind === 'video') {
+                    let label = '';
+                    if (data.track && data.track.label) {
+                        label = data.track.label.toLowerCase();
+                    } else if (stream instanceof MediaStream) {
+                        const vt = stream.getVideoTracks()[0];
+                        if (vt && vt.label) label = vt.label.toLowerCase();
+                    } else if (stream && stream.track && stream.track.label) {
+                        label = stream.track.label.toLowerCase();
+                    }
+                    if (label.includes('screen') || label.includes('share')) {
+                        kind = 'share';
                     }
                 }
                 

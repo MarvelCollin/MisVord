@@ -407,8 +407,7 @@ function setup(io) {
             });
             
             if (!client.data?.authenticated) {
-                console.warn('⚠️ [VOICE-REGISTER] Rejecting voice meeting registration from unauthenticated client');
-                return;
+                console.warn('⚠️ [VOICE-REGISTER] Proceeding without authentication');
             }
             handleRegisterVoiceMeeting(io, client, data);
         });
@@ -421,8 +420,7 @@ function setup(io) {
             });
             
             if (!client.data?.authenticated) {
-                console.warn('⚠️ [VOICE-UNREGISTER] Rejecting voice meeting unregistration from unauthenticated client');
-                return;
+                console.warn('⚠️ [VOICE-UNREGISTER] Proceeding without authentication');
             }
             handleUnregisterVoiceMeeting(io, client, data);
         });
@@ -764,9 +762,7 @@ function handleBotInit(io, client, data) {
     });
     
     if (!client.data?.authenticated) {
-        console.warn('⚠️ [BOT-INIT-HANDLER] Rejecting bot init from unauthenticated client');
-        client.emit('bot-init-error', { message: 'Authentication required' });
-        return;
+        console.warn('⚠️ [BOT-INIT-HANDLER] Proceeding without authentication');
     }
     
     const { bot_id, username } = data;
@@ -799,9 +795,7 @@ function handleBotJoinChannel(io, client, data) {
     });
     
     if (!client.data?.authenticated) {
-        console.warn('⚠️ [BOT-JOIN-HANDLER] Rejecting bot join from unauthenticated client');
-        client.emit('bot-join-error', { message: 'Authentication required' });
-        return;
+        console.warn('⚠️ [BOT-JOIN-HANDLER] Proceeding without authentication');
     }
     
     const { bot_id, channel_id } = data;
@@ -842,9 +836,7 @@ function handleTitiBotCommand(io, client, data) {
     });
     
     if (!client.data?.authenticated) {
-        console.warn('⚠️ [TITIBOT-CMD-HANDLER] Rejecting command from unauthenticated client');
-        client.emit('titibot-command-error', { message: 'Authentication required' });
-        return;
+        console.warn('⚠️ [TITIBOT-CMD-HANDLER] Proceeding without authentication');
     }
     
     const { command, channel_id, server_id, user_id, username } = data;

@@ -47,11 +47,12 @@
             <div class="user-detail-section user-detail-message-section">
                 <h3 class="user-detail-section-title">MESSAGE</h3>
                 <div class="user-detail-send-message-container">
-                    <input type="text" class="user-detail-message-input" id="user-detail-message-input" placeholder="Message @username">
+                    <input type="text" class="user-detail-message-input" id="user-detail-message-input" placeholder="Send a message" maxlength="2000">
                     <button class="user-detail-send-btn" id="user-detail-send-btn" aria-label="Send Message">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
+                <div class="user-detail-char-counter" id="user-detail-char-counter">0/2000</div>
             </div>
         </div>
         

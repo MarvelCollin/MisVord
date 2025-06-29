@@ -378,19 +378,35 @@ class MessageHandler {
     }
 
     static async saveAndSendMessage(io, client, data) {
-        console.log(`💾 [SAVE-AND-SEND] Starting save and send for message from client ${client.id}`);
+        console.log(`🚀 [SAVE-AND-SEND] === STARTING MESSAGE PROCESSING ===`);
+        console.log(`📥 [SAVE-AND-SEND] Input data:`, JSON.stringify(data, null, 2));
+        console.log(`👤 [SAVE-AND-SEND] Client data:`, JSON.stringify(client.data, null, 2));
         
-        if (!client.data?.authenticated || !client.data?.user_id) {
-            console.error(`❌ [SAVE-AND-SEND] Unauthenticated client attempted to send message`);
-            client.emit('message_error', { error: 'Authentication required' });
+        // Check if this might be a bot command
+        const isLikelyBotCommand = data.content && data.content.toLowerCase().includes('/titibot');
+        console.log(`🤖 [SAVE-AND-SEND] Likely bot command: ${isLikelyBotCommand}`);
+        
+        if (!client.data?.user_id) {
+            console.error(`❌ [SAVE-AND-SEND] No authenticated user found`);
             return;
         }
-            
-        if (!data.content || !data.target_type || !data.target_id) {
-            console.error(`❌ [SAVE-AND-SEND] Missing required fields:`, data);
-            client.emit('message_error', { error: 'Missing required fields: content, target_type, target_id' });
+
+        if (!data.target_type || !data.target_id || !data.content) {
+            console.error(`❌ [SAVE-AND-SEND] Missing required data:`, {
+                target_type: data.target_type,
+                target_id: data.target_id,
+                has_content: !!data.content
+            });
+            console.error(`❌ [SAVE-AND-SEND] Full data object:`, JSON.stringify(data, null, 2));
             return;
         }
+        
+        console.log(`✅ [SAVE-AND-SEND] Data validation passed, proceeding with message processing`);
+        console.log(`📋 [SAVE-AND-SEND] Validated data:`, {
+            target_type: data.target_type,
+            target_id: data.target_id,
+            content_preview: data.content?.substring(0, 50) + '...'
+        });
         
         console.log(`📝 [SAVE-AND-SEND] Processing new message:`, {
             userId: client.data.user_id,
@@ -402,27 +418,37 @@ class MessageHandler {
         });
         
         try {    
-            const temp_message_id = data.temp_message_id || `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-                    const currentTimestamp = Date.now();
-        
-            const broadcastData = {
+            const temp_message_id = data.temp_message_id || `temp-${Date.now()}`;
+            const currentTimestamp = new Date().toISOString();
+
+            let broadcastData = {
                 id: temp_message_id,
-                content: data.content,
+                temp_message_id: temp_message_id,
                 user_id: client.data.user_id,
                 username: client.data.username,
                 avatar_url: client.data.avatar_url || '/public/assets/common/default-profile-picture.png',
-                sent_at: new Date().toISOString(),
-                message_type: data.message_type || 'text',
+                content: data.content,
                 attachments: data.attachments || [],
+                mentions: data.mentions || [],
                 reply_message_id: data.reply_message_id,
-                reply_data: null,
-                timestamp: currentTimestamp,
-                temp_message_id: temp_message_id,
-                source: 'websocket-originated',
-                is_temporary: true
+                sent_at: currentTimestamp,
+                timestamp: Date.parse(currentTimestamp),
+                message_type: data.message_type || 'text',
+                is_temporary: true,
+                source: `websocket-temp-${client.id}`
             };
-            
-            // IMPORTANT: Fetch reply data BEFORE broadcasting temporary message
+
+            if (data.target_type === 'channel') {
+                broadcastData.channel_id = data.target_id;
+                broadcastData.target_type = 'channel';
+                broadcastData.target_id = data.target_id;
+            } else if (data.target_type === 'dm') {
+                broadcastData.room_id = data.target_id;
+                broadcastData.target_type = 'dm';
+                broadcastData.target_id = data.target_id;
+            }
+
+            // Step 2: Fetch reply data if needed (for temporary broadcast)
             if (data.reply_message_id) {
                 console.log(`📝 [SAVE-AND-SEND] Fetching reply data for temporary broadcast: ${data.reply_message_id}`);
                 try {
@@ -460,16 +486,6 @@ class MessageHandler {
                 }
             }
                     
-            if (data.target_type === 'channel') {
-                broadcastData.channel_id = data.target_id;
-                broadcastData.target_type = 'channel';
-                broadcastData.target_id = data.target_id;
-            } else if (data.target_type === 'dm') {
-                broadcastData.room_id = data.target_id;
-                broadcastData.target_type = 'dm';
-                broadcastData.target_id = data.target_id;
-                    }
-        
             const eventName = data.target_type === 'channel' ? 'new-channel-message' : 'user-message-dm';
             const targetRoom = data.target_type === 'channel' 
                 ? roomManager.getChannelRoom(data.target_id)
@@ -477,6 +493,17 @@ class MessageHandler {
             
             // Broadcast temporary message to other users (excluding sender)
             if (targetRoom) {
+                console.log(`📡 [SAVE-AND-SEND] About to emit bot-message-intercept with data:`, JSON.stringify({
+                    id: broadcastData.id,
+                    user_id: broadcastData.user_id,
+                    username: broadcastData.username,
+                    content: broadcastData.content,
+                    target_type: broadcastData.target_type,
+                    target_id: broadcastData.target_id,
+                    channel_id: broadcastData.channel_id,
+                    room_id: broadcastData.room_id
+                }, null, 2));
+                
                 // First emit to bot for processing (before room broadcast)
                 console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing:`, {
                     messageId: broadcastData.id,
@@ -486,6 +513,7 @@ class MessageHandler {
                     channelId: broadcastData.channel_id
                 });
                 io.emit('bot-message-intercept', broadcastData);
+                console.log(`✅ [SAVE-AND-SEND] bot-message-intercept emitted successfully`);
                 
                 client.to(targetRoom).emit(eventName, broadcastData);
                 console.log(`✅ [SAVE-AND-SEND] Temporary message broadcasted to room ${targetRoom} (excluding sender)`, {
@@ -635,7 +663,7 @@ class MessageHandler {
                         success: true,
                         message_id: realMessageId,
                         temp_message_id: data.temp_message_id || temp_message_id,
-                        timestamp: currentTimestamp
+                        timestamp: Date.now()
                     });
                 } else {
                     throw new Error(saveResult.message || 'Database save failed');

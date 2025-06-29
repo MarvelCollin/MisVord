@@ -18,300 +18,284 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
 <meta name="server-id" content="<?php echo htmlspecialchars($currentServer->id ?? ''); ?>">
 
-<div class="flex flex-col h-full w-full bg-[#313338] relative">
-    <div class="flex items-center px-4 py-3 bg-[#2b2d31] border-b border-[#1a1b1e] shadow-sm">
-        <div class="flex items-center space-x-2">
-            <i class="fas fa-volume-up text-[#b5bac1]"></i>
-            <span class="text-white font-medium"><?php echo htmlspecialchars($channelName); ?></span>
+<div class="voice-call-app w-full h-screen bg-gradient-to-br from-[#313338] via-[#2b2d31] to-[#1e1f22] flex flex-col relative overflow-hidden">
+    <div class="voice-header bg-[#2b2d31]/90 backdrop-blur-sm border-b border-[#1a1b1e] p-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-[#5865f2] rounded-full flex items-center justify-center">
+                <i class="fas fa-volume-up text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-white font-semibold text-lg"><?php echo htmlspecialchars($channelName); ?></h1>
+                <p class="text-[#b5bac1] text-sm">Voice Channel</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 text-[#b5bac1] text-sm">
+            <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 bg-[#3ba55c] rounded-full animate-pulse"></div>
+                <span>Connected</span>
+            </div>
+            <span>•</span>
+            <span id="voiceParticipantCount">1</span>
+            <span>participants</span>
         </div>
     </div>
 
-    <div class="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-[#313338] via-[#2b2d31] to-[#1e1f22]">
-        <div class="flex-1 flex relative">
-        <div id="mainContentArea" class="flex-1 flex flex-col relative">
-            <div id="screenShareContainer" class="hidden bg-[#1a1b1e] rounded-lg m-4 relative overflow-hidden shadow-xl" style="height: 60%;">
-                <div class="absolute top-4 left-4 z-10 bg-[#1e1f22]/90 backdrop-blur-sm rounded-lg px-3 py-2">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-3 h-3 bg-[#3ba55c] rounded-full"></div>
-                        <span class="text-white text-sm font-medium" id="screenShareUsername">Screen Share</span>
+    <div class="voice-content flex-1 flex relative">
+        <div id="cameraSection" class="hidden w-96 bg-[#1a1b1e] border-r border-[#40444b]/30 flex flex-col">
+            <div class="bg-[#2b2d31] p-4 border-b border-[#40444b]/30">
+                <div class="flex items-center space-x-2 mb-3">
+                    <div class="w-8 h-8 bg-[#3ba55c] rounded-full flex items-center justify-center">
+                        <i class="fas fa-video text-white text-sm"></i>
                     </div>
+                    <h3 class="text-white font-semibold">Camera Feed</h3>
                 </div>
-                <video id="screenShareVideo" class="w-full h-full object-contain bg-black" autoplay playsinline></video>
-                <div class="absolute bottom-4 right-4 z-10">
-                    <button onclick="closeScreenShare()" class="bg-[#ed4245] hover:bg-[#fc5054] text-white p-2 rounded-full transition-all duration-200">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div id="mixedLayout" class="hidden flex-1 flex gap-4 p-4">
-                <div id="screenShareSide" class="flex-1 bg-[#1a1b1e] rounded-lg relative overflow-hidden shadow-xl">
-                    <div class="absolute top-4 left-4 z-10 bg-[#1e1f22]/90 backdrop-blur-sm rounded-lg px-3 py-2">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 bg-[#3ba55c] rounded-full"></div>
-                            <span class="text-white text-sm font-medium" id="mixedScreenUsername">Screen Share</span>
+                <div class="relative bg-black rounded-lg overflow-hidden shadow-lg" style="aspect-ratio: 16/9;">
+                    <video id="localCameraVideo" class="w-full h-full object-cover" autoplay playsinline muted></video>
+                    <div id="cameraPlaceholder" class="absolute inset-0 bg-gradient-to-br from-[#313338] to-[#1a1b1e] flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xl mx-auto mb-3 shadow-lg">
+                                <?php echo strtoupper(substr($userName, 0, 1)); ?>
+                            </div>
+                            <span class="text-[#b5bac1] text-sm font-medium">Camera Off</span>
+                            <p class="text-[#72767d] text-xs mt-1">Click camera button to enable</p>
                         </div>
                     </div>
-                    <video id="mixedScreenVideo" class="w-full h-full object-contain bg-black" autoplay playsinline></video>
-                    <div class="absolute bottom-4 right-4 z-10">
-                        <button onclick="closeScreenShare()" class="bg-[#ed4245] hover:bg-[#fc5054] text-white p-2 rounded-full transition-all duration-200">
-                            <i class="fas fa-times"></i>
+                    <div class="absolute top-3 left-3 bg-[#1e1f22]/90 backdrop-blur-sm rounded-lg px-2 py-1">
+                        <span class="text-white text-xs font-medium">You</span>
+                    </div>
+                    <div id="cameraControls" class="absolute bottom-3 right-3 flex space-x-2 opacity-0 hover:opacity-100 transition-opacity duration-200">
+                        <button onclick="toggleCameraSettings()" class="bg-black/60 hover:bg-black/80 p-2 rounded-full transition-all duration-200" title="Camera Settings">
+                            <i class="fas fa-cog text-white text-xs"></i>
                         </button>
                     </div>
                 </div>
-                
-                <div id="cameraSide" class="flex-1 bg-[#1a1b1e] rounded-lg relative overflow-hidden shadow-xl">
-                    <div class="absolute top-4 left-4 z-10 bg-[#1e1f22]/90 backdrop-blur-sm rounded-lg px-3 py-2">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 bg-[#3ba55c] rounded-full animate-pulse"></div>
-                            <span class="text-white text-sm font-medium" id="mixedCameraUsername">Your Camera</span>
-                        </div>
-                    </div>
-                    <video id="mixedCameraVideo" class="w-full h-full object-cover bg-black" autoplay playsinline muted></video>
-                    <div id="cameraPlaceholder" class="hidden absolute inset-0 bg-[#1a1b1e] flex items-center justify-center">
-                        <div class="text-center">
-                            <div class="w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-2xl mx-auto mb-3">
-                                Y
-                            </div>
-                            <span class="text-white text-sm">Camera Off</span>
-                        </div>
-                    </div>
-                </div>
             </div>
             
-            <div id="participantGrid" class="flex-1 p-4">
-                <div id="videoGrid" class="grid gap-4 h-full" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); grid-auto-rows: minmax(180px, 1fr);">
+            <div class="flex-1 p-4 overflow-y-auto">
+                <div class="flex items-center space-x-2 mb-3">
+                    <div class="w-6 h-6 bg-[#5865f2] rounded-full flex items-center justify-center">
+                        <i class="fas fa-users text-white text-xs"></i>
+                    </div>
+                    <h3 class="text-white font-medium">Participants</h3>
+                    <span class="bg-[#5865f2] text-white text-xs px-2 py-1 rounded-full" id="sidebarParticipantCount">1</span>
+                </div>
+                <div id="participantsList" class="space-y-3">
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content flex-1 flex flex-col relative">
+            <div id="screenShareSection" class="hidden flex-1 bg-black relative border border-[#40444b]/30 rounded-lg m-4 overflow-hidden shadow-2xl">
+                <div class="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent p-4 z-10">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-[#ed4245] rounded-full flex items-center justify-center animate-pulse">
+                                <i class="fas fa-desktop text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-semibold" id="screenShareTitle">Screen Share Active</h3>
+                                <p class="text-[#b5bac1] text-sm" id="screenShareUsername">Your Screen</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="minimizeScreenShare()" class="bg-black/60 hover:bg-black/80 p-2 rounded-full transition-all duration-200" title="Minimize">
+                                <i class="fas fa-compress text-white"></i>
+                            </button>
+                            <button onclick="stopScreenShare()" class="bg-[#ed4245] hover:bg-[#fc5054] p-2 rounded-full transition-all duration-200" title="Stop Sharing">
+                                <i class="fas fa-times text-white"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 
-                <div id="voiceOnlyGrid" class="hidden flex-1 flex items-center justify-center">
-                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-6 max-w-6xl w-full justify-items-center">
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div id="videoSidebar" class="hidden w-80 p-4 flex flex-col space-y-4 max-h-full overflow-y-auto">
-            <div class="text-[#b5bac1] text-sm font-medium px-2 mb-2">Participants</div>
-            <div id="videoParticipants" class="space-y-3">
-            </div>
-        </div>
-    </div>
-    
-    <div id="voiceParticipantsBar" class="bg-[#2b2d31] border-t border-[#1a1b1e] p-4">
-        <div class="flex items-center justify-center">
-            <div class="flex items-center space-x-4 max-w-6xl overflow-x-auto" id="voiceParticipantsList">
-            </div>
-        </div>
-    </div>
-
-    <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
-        <div class="voice-control-panel bg-[#1e1f22]/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-[#40444b]/50 p-4">
-            <div class="flex items-center space-x-4">
-                <div class="relative group">
-                    <button id="voiceMicBtn" class="mic-btn w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Mute/Unmute">
-                        <i class="fas fa-microphone text-xl"></i>
-                    </button>
-                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                        <span class="mic-tooltip">Mute</span>
-                    </div>
-                </div>
-
-                <div class="relative group">
-                    <button id="voiceDeafenBtn" class="deafen-btn w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Deafen/Undeafen">
-                        <i class="fas fa-headphones text-xl"></i>
-                    </button>
-                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                        <span class="deafen-tooltip">Deafen</span>
-                    </div>
-                </div>
-
-                <div class="relative group">
-                    <button id="voiceVideoBtn" class="video-btn w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Turn On/Off Camera">
-                        <i class="fas fa-video-slash text-xl"></i>
-                    </button>
-                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                        <span class="video-tooltip">Turn On Camera</span>
-                    </div>
-                </div>
-
-                <div class="relative group">
-                    <button id="voiceScreenBtn" class="screen-btn w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Share Screen">
-                        <i class="fas fa-desktop text-xl"></i>
-                    </button>
-                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                        <span class="screen-tooltip">Share Screen</span>
-                    </div>
-                </div>
-
-                <div class="relative group">
-                    <button id="voiceSettingsBtn" class="w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Voice Settings">
-                        <i class="fas fa-cog text-xl"></i>
-                    </button>
-                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                        Voice Settings
-                    </div>
-                </div>
-
-                <div class="relative group ml-4 pl-4 border-l border-[#40444b]">
-                    <button id="voiceDisconnectBtn" class="w-14 h-14 rounded-full bg-[#ed4245] hover:bg-[#fc5054] text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95" title="Leave Voice Channel">
-                        <i class="fas fa-phone-slash text-xl"></i>
-                    </button>
-                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                        Leave Channel
+                <video id="screenShareVideo" class="w-full h-full object-contain bg-black" autoplay playsinline></video>
+                
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                    <div class="flex items-center justify-center space-x-4">
+                        <div class="flex items-center space-x-2 bg-black/60 rounded-lg px-3 py-2">
+                            <div class="w-2 h-2 bg-[#3ba55c] rounded-full animate-pulse"></div>
+                            <span class="text-white text-sm">Live</span>
+                        </div>
+                        <div class="flex items-center space-x-2 bg-black/60 rounded-lg px-3 py-2">
+                            <i class="fas fa-eye text-[#b5bac1]"></i>
+                            <span class="text-white text-sm" id="screenViewerCount">1 viewer</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-3 pt-3 border-t border-[#40444b]/50 flex items-center justify-center space-x-4 text-xs text-[#72767d]">
-                <div class="flex items-center space-x-1">
-                    <div class="w-2 h-2 bg-[#3ba55c] rounded-full animate-pulse"></div>
-                    <span>Connected</span>
+            <div id="voiceOnlySection" class="flex-1 flex items-center justify-center">
+                <div class="text-center max-w-lg">
+                    <div class="relative mb-8">
+                        <div class="w-32 h-32 bg-gradient-to-br from-[#5865f2] to-[#4752c4] rounded-full flex items-center justify-center text-white font-bold text-4xl mx-auto shadow-2xl">
+                            <i class="fas fa-microphone"></i>
+                        </div>
+                        <div class="absolute -bottom-2 -right-2 w-12 h-12 bg-[#3ba55c] rounded-full flex items-center justify-center animate-pulse">
+                            <i class="fas fa-check text-white"></i>
+                        </div>
+                    </div>
+                    <h2 class="text-white text-3xl font-bold mb-3">Voice Connected</h2>
+                    <p class="text-[#b5bac1] text-lg mb-8">You're connected to <span class="text-white font-medium"><?php echo htmlspecialchars($channelName); ?></span></p>
+                    
+                    <div class="bg-[#2b2d31]/50 backdrop-blur-sm rounded-xl p-6 border border-[#40444b]/30">
+                        <h3 class="text-white font-semibold mb-4 flex items-center justify-center space-x-2">
+                            <i class="fas fa-users text-[#5865f2]"></i>
+                            <span>In this channel</span>
+                        </h3>
+                        <div id="voiceParticipantsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-center space-x-1">
-                    <i class="fas fa-clock"></i>
-                    <span id="voiceConnectionTime">00:00</span>
+            </div>
+
+            <div id="videoGridSection" class="hidden flex-1 p-6">
+                <div class="mb-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-[#3ba55c] rounded-full flex items-center justify-center">
+                                <i class="fas fa-video text-white text-sm"></i>
+                            </div>
+                            <h3 class="text-white font-semibold text-lg">Video Participants</h3>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="toggleVideoLayout()" class="bg-[#2f3136] hover:bg-[#3c3f47] px-3 py-2 rounded-lg text-white text-sm transition-all duration-200">
+                                <i class="fas fa-th-large mr-2"></i>Grid View
+                            </button>
+                            <button onclick="toggleVideoSidebar()" class="bg-[#2f3136] hover:bg-[#3c3f47] px-3 py-2 rounded-lg text-white text-sm transition-all duration-200">
+                                <i class="fas fa-sidebar mr-2"></i>Sidebar
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-center space-x-1">
-                    <i class="fas fa-users"></i>
-                    <span id="voiceParticipantCount">1</span>
+                <div id="videoGrid" class="grid gap-4 h-full auto-rows-fr bg-[#1a1b1e]/30 rounded-xl p-4 border border-[#40444b]/30">
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="loadingState" class="hidden absolute inset-0 bg-gradient-to-br from-[#313338]/95 via-[#2b2d31]/95 to-[#1e1f22]/95 backdrop-blur-sm flex items-center justify-center z-30">
-        <div class="flex flex-col items-center space-y-6 p-8 bg-[#2f3136]/80 rounded-2xl border border-[#40444b]/30 shadow-2xl backdrop-blur-md">
-            <div class="relative">
-                <div class="animate-spin rounded-full h-16 w-16 border-4 border-[#5865f2]/30 border-t-[#5865f2] shadow-lg"></div>
-                <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-[#5865f2]/20 to-transparent animate-pulse"></div>
+    <div class="voice-controls bg-[#1e1f22]/95 backdrop-blur-xl border-t border-[#40444b]/50 p-6">
+        <div class="flex items-center justify-center space-x-6">
+            <div class="relative group">
+                <button id="micBtn" class="w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
+                    <i class="fas fa-microphone text-xl"></i>
+                </button>
+                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                    <span class="mic-tooltip">Mute</span>
+                </div>
             </div>
-            <div class="text-center space-y-2">
-                <span class="text-[#dcddde] text-lg font-semibold">Connecting to voice...</span>
-                <span class="text-[#72767d] text-sm">Please wait while we set up your connection</span>
+
+            <div class="relative group">
+                <button id="deafenBtn" class="w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
+                    <i class="fas fa-headphones text-xl"></i>
+                </button>
+                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                    <span class="deafen-tooltip">Deafen</span>
+                </div>
+            </div>
+
+            <div class="relative group">
+                <button id="videoBtn" class="w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
+                    <i class="fas fa-video-slash text-xl"></i>
+                </button>
+                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                    <span class="video-tooltip">Turn On Camera</span>
+                </div>
+            </div>
+
+            <div class="relative group">
+                <button id="screenBtn" class="w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
+                    <i class="fas fa-desktop text-xl"></i>
+                </button>
+                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                    <span class="screen-tooltip">Share Screen</span>
+                </div>
+            </div>
+
+            <div class="w-px h-8 bg-[#40444b]"></div>
+
+            <div class="relative group">
+                <button id="disconnectBtn" class="w-14 h-14 rounded-full bg-[#ed4245] hover:bg-[#fc5054] text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
+                    <i class="fas fa-phone-slash text-xl"></i>
+                </button>
+                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                    Leave Channel
+                </div>
             </div>
         </div>
     </div>
-</div>
+
+    <div id="loadingOverlay" class="hidden absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-[#2f3136] rounded-2xl p-8 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-[#5865f2]/30 border-t-[#5865f2] mx-auto mb-4"></div>
+            <p class="text-white font-medium">Connecting to voice...</p>
+        </div>
+    </div>
 </div>
 
 <style>
-@keyframes discord-speaking {
-    0%, 100% { 
-        box-shadow: 0 0 0 0 rgba(59, 165, 93, 0.7);
-    }
-    50% { 
-        box-shadow: 0 0 0 8px rgba(59, 165, 93, 0);
-    }
+.voice-call-app {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.participant-container:hover {
-    transform: translateY(-2px);
-}
-
-.speaking-ring {
-    animation: discord-speaking 2s infinite;
-}
-
-#screenShareContainer video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    background: #000;
-}
-
-#speakerView video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.video-participant-card {
     background: #1e1f22;
-}
-
-.discord-video-card {
-    @apply bg-[#1e1f22] rounded-lg overflow-hidden shadow-lg border border-[#40444b]/30 hover:border-[#40444b]/60 transition-all duration-200;
-    min-height: 160px;
-    max-height: 300px;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid rgba(64, 68, 75, 0.3);
+    transition: all 0.2s ease;
+    position: relative;
     aspect-ratio: 16/9;
 }
 
-.discord-video-card video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    background: #000;
-}
-
-.discord-video-card:hover {
+.video-participant-card:hover {
+    border-color: rgba(64, 68, 75, 0.6);
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
-.discord-voice-card {
-    @apply transition-all duration-200 hover:scale-105;
-}
-
-.discord-voice-card:hover {
-    transform: translateY(-4px) scale(1.05);
-}
-
-#videoGrid {
-    display: grid;
-    gap: 0.75rem;
-    height: 100%;
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
-    padding: 1rem;
-}
-
-#mixedLayout {
-    height: calc(100vh - 160px);
-}
-
-#screenShareSide, #cameraSide {
-    min-height: 300px;
-}
-
-#mixedLayout .flex-1 {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-#videoGrid::-webkit-scrollbar {
-    width: 8px;
-}
-
-#videoGrid::-webkit-scrollbar-track {
-    background: #313338;
-    border-radius: 4px;
-}
-
-#videoGrid::-webkit-scrollbar-thumb {
-    background: #40444b;
-    border-radius: 4px;
-}
-
-#videoGrid::-webkit-scrollbar-thumb:hover {
-    background: #4f545c;
-}
-
-.video-participant-card {
-    @apply bg-[#1e1f22] rounded-lg overflow-hidden shadow-lg border border-[#40444b]/30 hover:border-[#40444b]/60 transition-all duration-200;
-}
-
 .video-participant-card video {
     width: 100%;
-    height: 160px;
+    height: 100%;
     object-fit: cover;
     background: #000;
 }
 
+.voice-participant-card {
+    display: flex;
+    flex-col;
+    align-items: center;
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+
+.voice-participant-card:hover {
+    transform: scale(1.05);
+}
+
 .voice-participant-avatar {
-    @apply relative w-12 h-12 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-semibold text-sm transition-all duration-200;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    position: relative;
+    transition: all 0.2s ease;
 }
 
 .voice-participant-avatar.speaking {
-    @apply ring-2 ring-[#3ba55c] ring-offset-2 ring-offset-[#2b2d31];
-    animation: pulse-voice 2s infinite;
+    animation: pulse-speaking 2s infinite;
+}
+
+@keyframes pulse-speaking {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 165, 93, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(59, 165, 93, 0);
+    }
 }
 
 .voice-participant-avatar.muted::after {
@@ -323,1452 +307,792 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     height: 16px;
     background: #ed4245;
     border-radius: 50%;
-    border: 2px solid #2b2d31;
+    border: 2px solid #1e1f22;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 16 16'%3e%3cpath d='M13 8c0 .564-.094 1.107-.266 1.613l-.814-.814A4.02 4.02 0 0 0 12 8V7a.5.5 0 0 1 1 0v1zm-5 4c.818 0 1.578-.188 2.262-.524l-.816-.816A2.99 2.99 0 0 1 8 11a3 3 0 0 1-3-3V6.341l-.912-.912A4.001 4.001 0 0 0 4 8v1a5 5 0 0 0 4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-1.025A5 5 0 0 1 3 9V8a5.001 5.001 0 0 1 .776-2.676L2.636 4.184a.5.5 0 1 1 .708-.708l11 11a.5.5 0 0 1-.708.708L8.5 9.5z'/%3e%3cpath d='M8 6a2 2 0 1 1 4 0v1a2 2 0 0 1-1.188 1.825l-.812-.812V6a1 1 0 0 0-2 0z'/%3e%3c/svg%3e");
     background-size: 8px 8px;
     background-repeat: no-repeat;
     background-position: center;
 }
 
-#voiceParticipantsBar {
-    scrollbar-width: thin;
-    scrollbar-color: #40444b #2b2d31;
+#videoGrid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
-#voiceParticipantsBar::-webkit-scrollbar {
-    height: 4px;
+#screenShareSection {
+    position: relative;
+    z-index: 1;
 }
 
-#voiceParticipantsBar::-webkit-scrollbar-track {
-    background: #2b2d31;
+#cameraSection {
+    position: relative;
+    z-index: 2;
 }
 
-#voiceParticipantsBar::-webkit-scrollbar-thumb {
-    background: #40444b;
-    border-radius: 2px;
-}
-
-#voiceParticipantsBar::-webkit-scrollbar-thumb:hover {
-    background: #4f545c;
-}
-
-#videoSidebar {
-    scrollbar-width: thin;
-    scrollbar-color: #40444b #313338;
-}
-
-#videoSidebar::-webkit-scrollbar {
-    width: 6px;
-}
-
-#videoSidebar::-webkit-scrollbar-track {
-    background: #313338;
-}
-
-#videoSidebar::-webkit-scrollbar-thumb {
-    background: #40444b;
-    border-radius: 3px;
-}
-
-#videoSidebar::-webkit-scrollbar-thumb:hover {
-    background: #4f545c;
-}
-
-.video-participant-name {
-    @apply absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white text-xs font-medium;
-}
-
-.video-participant-controls {
-    @apply absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200;
-}
-
-.video-participant-controls button {
-    @apply w-6 h-6 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white text-xs transition-all duration-200;
-}
-
-@keyframes pulse-voice {
-    0%, 100% { 
-        box-shadow: 0 0 0 0 rgba(59, 165, 93, 0.4);
-        transform: scale(1);
-    }
-    50% { 
-        box-shadow: 0 0 0 6px rgba(59, 165, 93, 0);
-        transform: scale(1.05);
-    }
-}
-
-.fade-in {
-    animation: fadeInUp 0.5s ease-out forwards;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.loading-dot {
-    @apply w-2 h-2 bg-[#5865f2] rounded-full;
-    animation: loading-dot 1.4s infinite ease-in-out both;
-}
-
-.loading-dot:nth-child(1) { animation-delay: -0.32s; }
-.loading-dot:nth-child(2) { animation-delay: -0.16s; }
-
-@keyframes loading-dot {
-    0%, 80%, 100% { transform: scale(0); }
-    40% { transform: scale(1); }
-}
-
-@keyframes discord-glow {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(59, 165, 93, 0.4);
-    }
-    50% {
-        box-shadow: 0 0 0 10px rgba(59, 165, 93, 0);
-    }
-}
-
-@keyframes slide-in-up {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes slide-in-right {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.discord-speaking-glow {
-    animation: discord-glow 2s infinite;
-}
-
-.participant-enter {
-    animation: slide-in-up 0.4s ease-out forwards;
-}
-
-.video-card-enter {
-    animation: slide-in-right 0.5s ease-out forwards;
-}
-
-.speaking-border {
-    border: 2px solid #3ba55c !important;
-    box-shadow: 0 0 15px rgba(59, 165, 93, 0.3);
-}
-
-.participant-muted::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    right: -2px;
-    width: 20px;
-    height: 20px;
-    background: #ed4245;
-    border-radius: 50%;
-    border: 2px solid #1e1f22;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 16 16'%3e%3cpath d='M13 8c0 .564-.094 1.107-.266 1.613l-.814-.814A4.02 4.02 0 0 0 12 8V7a.5.5 0 0 1 1 0v1zm-5 4c.818 0 1.578-.188 2.262-.524l-.816-.816A2.99 2.99 0 0 1 8 11a3 3 0 0 1-3-3V6.341l-.912-.912A4.001 4.001 0 0 0 4 8v1a5 5 0 0 0 4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-1.025A5 5 0 0 1 3 9V8a5.001 5.001 0 0 1 .776-2.676L2.636 4.184a.5.5 0 1 1 .708-.708l11 11a.5.5 0 0 1-.708.708L8.5 9.5z'/%3e%3cpath d='M8 6a2 2 0 1 1 4 0v1a2 2 0 0 1-1.188 1.825l-.812-.812V6a1 1 0 0 0-2 0z'/%3e%3c/svg%3e");
-    background-size: 10px 10px;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-.participant-deafened::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 20px;
-    height: 20px;
-    background: #ed4245;
-    border-radius: 50%;
-    border: 2px solid #1e1f22;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 16 16'%3e%3cpath d='M6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06zM6 5.04 4.312 6.39A.5.5 0 0 1 4 6.5H2v3h2a.5.5 0 0 1 .312.11L6 10.96V5.04zm7.854.606a.5.5 0 0 1 0 .708L12.207 8l1.647 1.646a.5.5 0 0 1-.708.708L11.5 8.707l-1.646 1.647a.5.5 0 0 1-.708-.708L10.793 8 9.146 6.354a.5.5 0 1 1 .708-.708L11.5 7.293l1.646-1.647a.5.5 0 0 1 .708 0z'/%3e%3c/svg%3e");
-    background-size: 10px 10px;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-.voice-control-panel {
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-}
-
-.voice-control-panel button {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.voice-control-panel button:hover {
-    transform: translateY(-2px) scale(1.05);
-}
-
-.voice-control-panel button:active {
-    transform: translateY(0) scale(0.95);
-}
-
-.slider {
-    background: linear-gradient(to right, #5865f2 0%, #5865f2 var(--value, 100%), #1e1f22 var(--value, 100%), #1e1f22 100%);
-}
-
-.slider::-webkit-slider-thumb {
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #5865f2;
-    cursor: pointer;
-    border: 2px solid #36393f;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s ease;
-}
-
-.slider::-webkit-slider-thumb:hover {
-    background: #4752c4;
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
-}
-
-.slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #5865f2;
-    cursor: pointer;
-    border: 2px solid #36393f;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s ease;
-}
-
-.slider::-moz-range-thumb:hover {
-    background: #4752c4;
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
-}
-
-.form-checkbox {
-    accent-color: #5865f2;
-}
-
-.form-checkbox:checked {
-    background-color: #5865f2;
-    border-color: #5865f2;
-}
-
-@keyframes pulse-green {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scale(1.1);
-    }
-}
-
-.connection-pulse {
-    animation: pulse-green 2s infinite;
-}
-
-.voice-control-panel .group:hover .absolute {
-    transform: translateX(-50%) translateY(-2px);
-}
-
-@media (max-width: 640px) {
-    .voice-control-panel {
-        transform: translateX(-50%) scale(0.9);
-        bottom: 1rem;
-    }
-    
-    .voice-control-panel .flex {
-        space-x: 0.75rem;
-    }
-    
-    .voice-control-panel button {
-        width: 3rem;
-        height: 3rem;
-    }
-    
-    .voice-control-panel .text-xl {
-        font-size: 1rem;
-    }
-    
-    #videoSidebar {
-        width: 240px;
-    }
-    
-    #voiceParticipantsBar {
-        padding: 0.75rem;
-    }
-    
-    .voice-participant-avatar {
-        width: 2.5rem;
-        height: 2.5rem;
-        font-size: 0.75rem;
-    }
-
-    #videoGrid {
-        grid-template-columns: 1fr !important;
-        gap: 0.5rem;
-        padding: 0.5rem;
-    }
-
-    .discord-video-card {
-        min-height: 140px;
-        max-height: 220px;
-    }
-
-    #mixedLayout {
-        flex-direction: column !important;
-        height: auto;
-    }
-
-    #screenShareSide, #cameraSide {
-        min-height: 200px;
-        margin-bottom: 0.75rem;
-    }
-
-    .discord-voice-card {
-        padding: 0.75rem;
-    }
-
-    #voiceOnlyGrid .grid {
-        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)) !important;
-        gap: 1rem;
-        max-width: 100%;
-    }
+.main-content {
+    position: relative;
+    z-index: 1;
 }
 
 @media (max-width: 768px) {
-    #videoSidebar {
-        position: absolute;
-        top: 0;
-        right: 0;
-        height: 100%;
-        z-index: 10;
-        background: rgba(49, 51, 56, 0.95);
-        backdrop-filter: blur(10px);
+    #cameraSection {
+        width: 100%;
+        height: 200px;
+        border-r: none;
+        border-b: 1px solid rgba(64, 68, 75, 0.3);
     }
-}
-
-.control-loading {
-    opacity: 0.5;
-    pointer-events: none;
-}
-
-.control-loading::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: conic-gradient(from 0deg, transparent, #5865f2, transparent);
-    border-radius: inherit;
-    animation: spin 1s linear infinite;
-    mask: radial-gradient(circle at center, transparent 60%, black 61%);
-}
-
-.settings-modal-enter {
-    animation: modalEnter 0.3s ease-out forwards;
-}
-
-@keyframes modalEnter {
-    from {
-        opacity: 0;
-        transform: scale(0.9) translateY(-20px);
+    
+    .voice-content {
+        flex-direction: column;
     }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
+    
+    #videoGrid {
+        grid-template-columns: 1fr;
+    }
+    
+    .voice-controls .flex {
+        space-x: 1rem;
+    }
+    
+    .voice-controls button {
+        width: 3rem;
+        height: 3rem;
     }
 }
 </style>
 
-<script src="/public/js/components/voice/voice-section.js"></script>
 <script src="/public/js/components/videosdk/videosdk.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    initializeVoiceControls();
-});
-
-function initializeVoiceControls() {
-    const micBtn = document.getElementById('voiceMicBtn');
-    const deafenBtn = document.getElementById('voiceDeafenBtn');
-    const videoBtn = document.getElementById('voiceVideoBtn');
-    const screenBtn = document.getElementById('voiceScreenBtn');
-    const settingsBtn = document.getElementById('voiceSettingsBtn');
-    const disconnectBtn = document.getElementById('voiceDisconnectBtn');
-
-    if (micBtn) {
-        micBtn.addEventListener('click', function() {
-            toggleMicrophone();
-        });
-    }
-
-    if (deafenBtn) {
-        deafenBtn.addEventListener('click', function() {
-            toggleDeafen();
-        });
-    }
-
-    if (videoBtn) {
-        videoBtn.addEventListener('click', function() {
-            toggleCamera();
-        });
-    }
-
-    if (screenBtn) {
-        screenBtn.addEventListener('click', function() {
-            toggleScreenShare();
-        });
-    }
-
-    if (settingsBtn) {
-        settingsBtn.addEventListener('click', function() {
-            openVoiceSettings();
-        });
-    }
-
-    if (disconnectBtn) {
-        disconnectBtn.addEventListener('click', function() {
-            disconnectFromVoice();
-        });
-    }
-}
-
-function toggleMicrophone() {
-    if (!window.videoSDKManager || !window.videoSDKManager.isReady()) {
-        showToast('Voice not connected', 'error');
-        return;
-    }
-
-    try {
-        const newMicState = window.videoSDKManager.toggleMic();
-        const micBtn = document.getElementById('voiceMicBtn');
-        if (!micBtn) {
-            console.error('Microphone button not found');
-            return;
-        }
-
-        const micIcon = micBtn.querySelector('i');
-        const micTooltip = micBtn.parentElement?.querySelector('.mic-tooltip');
-
-        if (newMicState) {
-            if (micIcon) {
-                micIcon.className = 'fas fa-microphone text-xl';
-            }
-            if (micTooltip) {
-                micTooltip.textContent = 'Mute';
-            }
-            micBtn.classList.remove('bg-red-500');
-            micBtn.classList.add('bg-[#2f3136]');
-            showToast('Microphone enabled', 'success');
-        } else {
-            if (micIcon) {
-                micIcon.className = 'fas fa-microphone-slash text-xl';
-            }
-            if (micTooltip) {
-                micTooltip.textContent = 'Unmute';
-            }
-            micBtn.classList.remove('bg-[#2f3136]');
-            micBtn.classList.add('bg-red-500');
-            showToast('Microphone muted', 'info');
-        }
-    } catch (error) {
-        console.error('Error toggling microphone:', error);
-        showToast('Failed to toggle microphone', 'error');
-    }
-}
-
-function toggleDeafen() {
-    if (!window.videoSDKManager || !window.videoSDKManager.isReady()) {
-        showToast('Voice not connected', 'error');
-        return;
-    }
-
-    try {
-        const newDeafenState = window.videoSDKManager.toggleDeafen();
-        const deafenBtn = document.getElementById('voiceDeafenBtn');
-        if (!deafenBtn) {
-            console.error('Deafen button not found');
-            return;
-        }
-
-        const deafenIcon = deafenBtn.querySelector('i');
-        const deafenTooltip = deafenBtn.parentElement?.querySelector('.deafen-tooltip');
-
-        if (newDeafenState) {
-            if (deafenIcon) {
-                deafenIcon.className = 'fas fa-volume-mute text-xl';
-            }
-            if (deafenTooltip) {
-                deafenTooltip.textContent = 'Undeafen';
-            }
-            deafenBtn.classList.remove('bg-[#2f3136]');
-            deafenBtn.classList.add('bg-red-500');
-            showToast('Audio deafened', 'info');
-        } else {
-            if (deafenIcon) {
-                deafenIcon.className = 'fas fa-headphones text-xl';
-            }
-            if (deafenTooltip) {
-                deafenTooltip.textContent = 'Deafen';
-            }
-            deafenBtn.classList.remove('bg-red-500');
-            deafenBtn.classList.add('bg-[#2f3136]');
-            showToast('Audio undeafened', 'success');
-        }
-    } catch (error) {
-        console.error('Error toggling deafen:', error);
-        showToast('Failed to toggle deafen', 'error');
-    }
-}
-
-async function toggleCamera() {
-    if (!window.videoSDKManager || !window.videoSDKManager.isReady()) {
-        showToast('Voice not connected', 'error');
-        return;
-    }
-
-    const videoBtn = document.getElementById('voiceVideoBtn');
-    if (!videoBtn) {
-        console.error('Video button not found');
-        return;
-    }
-
-    const videoIcon = videoBtn.querySelector('i');
-    const videoTooltip = videoBtn.parentElement?.querySelector('.video-tooltip');
-    
-    videoBtn.disabled = true;
-    videoBtn.style.opacity = '0.6';
-
-    try {
-        const newVideoState = await window.videoSDKManager.toggleWebcam();
-        
-        if (newVideoState) {
-            if (videoIcon) {
-                videoIcon.className = 'fas fa-video text-xl';
-            }
-            if (videoTooltip) {
-                videoTooltip.textContent = 'Turn Off Camera';
-            }
-            videoBtn.classList.remove('bg-[#2f3136]');
-            videoBtn.classList.add('bg-green-600');
-            showToast('Camera enabled', 'success');
-        } else {
-            if (videoIcon) {
-                videoIcon.className = 'fas fa-video-slash text-xl';
-            }
-            if (videoTooltip) {
-                videoTooltip.textContent = 'Turn On Camera';
-            }
-            videoBtn.classList.remove('bg-green-600');
-            videoBtn.classList.add('bg-[#2f3136]');
-            showToast('Camera disabled', 'info');
-        }
-    } catch (error) {
-        console.error('Error toggling camera:', error);
-        showToast('Failed to toggle camera', 'error');
-    } finally {
-        setTimeout(() => {
-            videoBtn.disabled = false;
-            videoBtn.style.opacity = '1';
-        }, 1000);
-    }
-}
-
-async function toggleScreenShare() {
-    if (!window.videoSDKManager || !window.videoSDKManager.isReady()) {
-        showToast('Voice not connected', 'error');
-        return;
-    }
-
-    const screenBtn = document.getElementById('voiceScreenBtn');
-    if (!screenBtn) {
-        console.error('Screen share button not found');
-        return;
-    }
-
-    const screenIcon = screenBtn.querySelector('i');
-    const screenTooltip = screenBtn.parentElement?.querySelector('.screen-tooltip');
-    
-    screenBtn.disabled = true;
-    screenBtn.style.opacity = '0.6';
-
-    try {
-        const newScreenState = await window.videoSDKManager.toggleScreenShare();
-        
-        if (newScreenState) {
-            if (screenIcon) {
-                screenIcon.className = 'fas fa-stop-circle text-xl';
-            }
-            if (screenTooltip) {
-                screenTooltip.textContent = 'Stop Sharing';
-            }
-            screenBtn.classList.remove('bg-[#2f3136]');
-            screenBtn.classList.add('bg-blue-600');
-            showToast('Screen share started', 'success');
-        } else {
-            if (screenIcon) {
-                screenIcon.className = 'fas fa-desktop text-xl';
-            }
-            if (screenTooltip) {
-                screenTooltip.textContent = 'Share Screen';
-            }
-            screenBtn.classList.remove('bg-blue-600');
-            screenBtn.classList.add('bg-[#2f3136]');
-            showToast('Screen share stopped', 'info');
-        }
-    } catch (error) {
-        console.error('Error toggling screen share:', error);
-        showToast('Failed to toggle screen share', 'error');
-    } finally {
-        setTimeout(() => {
-            screenBtn.disabled = false;
-            screenBtn.style.opacity = '1';
-        }, 1000);
-    }
-}
-
-function openVoiceSettings() {
-    showToast('Voice settings feature coming soon', 'info');
-}
-
-function disconnectFromVoice() {
-    if (window.voiceManager && window.voiceManager.isConnected) {
-        window.voiceManager.leaveVoice();
-        showToast('Disconnected from voice channel', 'info');
-    } else {
-        showToast('Not connected to voice', 'error');
-    }
-}
-
-function showToast(message, type = 'info', duration = 3000) {
-    if (window.showToast) {
-        window.showToast(message, type, duration);
-    } else {
-        console.log(`[${type.toUpperCase()}] ${message}`);
-    }
-}
-
-class DiscordVoiceManager {
+class VoiceCallManager {
     constructor() {
         this.participants = new Map();
-        this.videoParticipants = new Set();
-        this.screenShareActive = false;
-        this.currentLayout = 'voice-only';
+        this.isConnected = false;
+        this.isMuted = false;
+        this.isDeafened = false;
+        this.isVideoOn = false;
+        this.isScreenSharing = false;
+        this.currentView = 'voice-only';
+        this.localParticipantId = null;
         this.init();
     }
 
     init() {
         this.setupEventListeners();
-        this.updateParticipantCount();
+        this.setupControls();
+        this.addLocalParticipant();
     }
 
     setupEventListeners() {
-        window.addEventListener('voiceConnect', () => {
-            this.addParticipant('local', 'You', true);
-            this.updateLayout();
-        });
-
-        window.addEventListener('voiceDisconnect', () => {
-            this.clearAllParticipants();
-        });
+        console.log(`🎧 [DEBUG] Setting up VoiceCallManager event listeners...`);
 
         window.addEventListener('videosdkStreamEnabled', (event) => {
             const { kind, stream, participant } = event.detail;
+            console.log(`📹 [DEBUG] videosdkStreamEnabled event received:`, {
+                kind: kind,
+                participant: participant,
+                stream: stream,
+                streamType: typeof stream,
+                eventDetail: event.detail
+            });
+            
             if (kind === 'video') {
-                this.handleVideoEnabled(participant, stream);
+                console.log(`📹 [DEBUG] Handling video stream for ${participant}`);
+                this.handleCameraStream(participant, stream);
             } else if (kind === 'share') {
-                this.handleScreenShare(participant, stream, true);
+                console.log(`📹 [DEBUG] Handling screen share for ${participant}`);
+                this.handleScreenShare(participant, stream);
+            } else {
+                console.log(`📹 [DEBUG] Ignoring stream kind: ${kind}`);
             }
         });
 
         window.addEventListener('videosdkStreamDisabled', (event) => {
             const { kind, participant } = event.detail;
+            console.log(`📹❌ [DEBUG] videosdkStreamDisabled event received:`, {
+                kind: kind,
+                participant: participant,
+                eventDetail: event.detail
+            });
+            
             if (kind === 'video') {
-                this.handleVideoDisabled(participant);
+                console.log(`📹❌ [DEBUG] Handling video disabled for ${participant}`);
+                this.handleCameraDisabled(participant);
             } else if (kind === 'share') {
-                this.handleScreenShare(participant, null, false);
+                console.log(`📹❌ [DEBUG] Handling screen share stopped`);
+                this.handleScreenShareStopped();
             }
         });
+
+        window.addEventListener('voiceConnect', (event) => {
+            console.log(`🔗 [DEBUG] voiceConnect event received:`, event.detail);
+            this.isConnected = true;
+            
+            // Capture the local participant ID
+            if (window.videoSDKManager?.meeting?.localParticipant) {
+                this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
+                console.log(`🔗 [DEBUG] Local participant ID captured:`, this.localParticipantId);
+            }
+            
+            this.updateView();
+        });
+
+        window.addEventListener('voiceDisconnect', (event) => {
+            console.log(`🔌 [DEBUG] voiceDisconnect event received:`, event.detail);
+            this.isConnected = false;
+            this.cleanup();
+        });
+
+        console.log(`🎧 [DEBUG] VoiceCallManager event listeners set up complete`);
     }
 
-    addParticipant(participantId, username = 'User', isLocal = false) {
-        if (this.participants.has(participantId)) {
-            return;
-        }
+    setupControls() {
+        document.getElementById('micBtn').addEventListener('click', () => this.toggleMic());
+        document.getElementById('deafenBtn').addEventListener('click', () => this.toggleDeafen());
+        document.getElementById('videoBtn').addEventListener('click', () => this.toggleVideo());
+        document.getElementById('screenBtn').addEventListener('click', () => this.toggleScreenShare());
+        document.getElementById('disconnectBtn').addEventListener('click', () => this.disconnect());
+    }
 
+    addLocalParticipant() {
+        const username = document.querySelector('meta[name="username"]')?.content || 'You';
+        this.addParticipant('local', username, true);
+    }
+
+    addParticipant(id, name, isLocal = false) {
         const participant = {
-            id: participantId,
-            username: username,
-            isLocal: isLocal,
-            hasVideo: false,
+            id,
+            name,
+            isLocal,
             isMuted: false,
             isDeafened: false,
-            isSpeaking: false
+            isSpeaking: false,
+            hasVideo: false
         };
 
-        this.participants.set(participantId, participant);
+        this.participants.set(id, participant);
         this.createParticipantElement(participant);
         this.updateParticipantCount();
-        this.updateLayout();
-
-        console.log(`➕ Participant added: ${username} (${participantId})`);
-    }
-
-    removeParticipant(participantId) {
-        if (!this.participants.has(participantId)) {
-            return;
-        }
-
-        const participant = this.participants.get(participantId);
-        this.participants.delete(participantId);
-        this.videoParticipants.delete(participantId);
-
-        const element = document.querySelector(`[data-participant-id="${participantId}"]`);
-        if (element) {
-            element.remove();
-        }
-
-        this.updateParticipantCount();
-        this.updateLayout();
-
-        console.log(`➖ Participant removed: ${participant.username} (${participantId})`);
     }
 
     createParticipantElement(participant) {
-        const videoGrid = document.getElementById('videoGrid');
-        const voiceGrid = document.querySelector('#voiceOnlyGrid .grid');
-        
-        if (participant.hasVideo && videoGrid) {
-            this.createVideoParticipantCard(participant, videoGrid);
-        } else if (!participant.hasVideo && voiceGrid) {
-            this.createVoiceParticipantCard(participant, voiceGrid);
-        } else {
-            console.warn('DiscordVoiceManager: Required container element not found for participant');
-        }
-    }
+        const container = document.getElementById('voiceParticipantsGrid');
+        if (!container) return;
 
-    createVideoParticipantCard(participant, container) {
-        if (!container) {
-            console.warn('DiscordVoiceManager: No container provided for video participant card');
-            return null;
-        }
+        const element = document.createElement('div');
+        element.className = 'voice-participant-card';
+        element.dataset.participantId = participant.id;
 
-        const card = document.createElement('div');
-        card.className = 'discord-video-card bg-[#1e1f22] rounded-lg overflow-hidden shadow-lg border border-[#40444b]/30 hover:border-[#40444b]/60 transition-all duration-200 relative group video-card-enter';
-        card.dataset.participantId = participant.id;
-        card.dataset.type = 'video';
+        const avatarColor = this.getAvatarColor(participant.name);
+        const initial = participant.name.charAt(0).toUpperCase();
 
-        card.innerHTML = `
-            <div class="relative w-full h-full min-h-[200px]">
-                <video class="w-full h-full object-cover bg-black" autoplay playsinline muted="${participant.isLocal}"></video>
-                
-                <div class="absolute top-3 left-3 bg-[#1e1f22]/90 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center space-x-2">
-                    <div class="w-2 h-2 rounded-full ${participant.isSpeaking ? 'bg-[#3ba55c] animate-pulse' : 'bg-[#72767d]'}"></div>
-                    <span class="text-white text-sm font-medium">${participant.username}</span>
-                </div>
-
-                <div class="absolute top-3 right-3 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    ${participant.isMuted ? '<div class="bg-red-500 p-1.5 rounded-full"><i class="fas fa-microphone-slash text-white text-xs"></i></div>' : ''}
-                    ${participant.isDeafened ? '<div class="bg-red-500 p-1.5 rounded-full"><i class="fas fa-volume-mute text-white text-xs"></i></div>' : ''}
-                </div>
-
-                <div class="absolute bottom-3 right-3 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button onclick="discordVoiceManager.toggleParticipantVideo('${participant.id}')" class="bg-[#2f3136] hover:bg-[#3c3f47] p-2 rounded-full transition-all duration-200" title="Toggle Video">
-                        <i class="fas fa-video text-white text-xs"></i>
-                    </button>
-                    ${!participant.isLocal ? `<button onclick="discordVoiceManager.toggleParticipantMute('${participant.id}')" class="bg-[#2f3136] hover:bg-[#3c3f47] p-2 rounded-full transition-all duration-200" title="Mute Participant">
-                        <i class="fas fa-microphone-slash text-white text-xs"></i>
-                    </button>` : ''}
-                </div>
+        element.innerHTML = `
+            <div class="voice-participant-avatar" style="background: ${avatarColor}">
+                ${initial}
             </div>
+            <span class="text-white text-xs mt-2 text-center max-w-full truncate">${participant.name}</span>
         `;
 
-        container.appendChild(card);
-        return card;
+        container.appendChild(element);
     }
 
-    createVoiceParticipantCard(participant, container) {
-        if (!container) {
-            console.warn('DiscordVoiceManager: No container provided for voice participant card');
-            return null;
-        }
-
-        const card = document.createElement('div');
-        card.className = 'discord-voice-card flex flex-col items-center space-y-2 p-4 transition-all duration-200 hover:scale-105 participant-enter';
-        card.dataset.participantId = participant.id;
-        card.dataset.type = 'voice';
-
-        const avatarColor = this.getAvatarColor(participant.username);
-        const initial = participant.username.charAt(0).toUpperCase();
-
-        card.innerHTML = `
-            <div class="relative">
-                <div class="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg transition-all duration-200 ${participant.isSpeaking ? 'ring-4 ring-[#3ba55c] ring-opacity-60 animate-pulse' : ''}" style="background: ${avatarColor}">
-                    ${initial}
-                </div>
-                ${participant.isMuted ? '<div class="absolute -bottom-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"><i class="fas fa-microphone-slash text-white text-xs"></i></div>' : ''}
-                ${participant.isDeafened ? '<div class="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"><i class="fas fa-volume-mute text-white text-xs"></i></div>' : ''}
-            </div>
-            <span class="text-white text-sm font-medium text-center max-w-[100px] truncate">${participant.username}</span>
-        `;
-
-        container.appendChild(card);
-        return card;
-    }
-
-    handleVideoEnabled(participantId, stream) {
-        if (!this.participants.has(participantId)) {
-            this.addParticipant(participantId, participantId);
-        }
-
-        const participant = this.participants.get(participantId);
-        participant.hasVideo = true;
-        this.videoParticipants.add(participantId);
-
-        this.removeExistingParticipantElement(participantId);
+    handleCameraStream(participantId, stream) {
+        console.log(`🎥 [DEBUG] Handling camera stream for ${participantId}`, {
+            stream: stream,
+            streamType: typeof stream,
+            isMediaStream: stream instanceof MediaStream,
+            hasStreamProperty: !!stream?.stream,
+            hasTrackProperty: !!stream?.track,
+            streamTracks: stream instanceof MediaStream ? stream.getTracks().length : 'N/A'
+        });
         
-        const videoGrid = document.getElementById('videoGrid');
-        if (!videoGrid) {
-            console.warn('DiscordVoiceManager: videoGrid not found for video enabled');
-            return;
-        }
-
-        const card = this.createVideoParticipantCard(participant, videoGrid);
-        
-        if (card) {
-            const video = card.querySelector('video');
+        if (participantId === this.localParticipantId) {
+            const video = document.getElementById('localCameraVideo');
+            const placeholder = document.getElementById('cameraPlaceholder');
+            const cameraSection = document.getElementById('cameraSection');
+            
+            console.log(`🎥 [DEBUG] Elements found:`, {
+                video: !!video,
+                placeholder: !!placeholder,
+                cameraSection: !!cameraSection
+            });
+            
             if (video && stream) {
-                this.attachStreamToVideo(video, stream);
+                console.log(`🎥 [DEBUG] Attempting to attach stream...`);
                 
-                // If this is the local participant and screen share is active, update mixed camera view
-                if (participantId === 'local' && this.screenShareActive) {
-                    setTimeout(() => this.updateMixedCameraView(), 100);
+                try {
+                    this.attachStreamToVideo(video, stream);
+                    console.log(`🎥 [DEBUG] Stream attached, updating visibility...`);
+                    
+                    video.classList.remove('hidden');
+                    console.log(`🎥 [DEBUG] Video element shown`);
+                    
+                    if (placeholder) {
+                        placeholder.classList.add('hidden');
+                        console.log(`🎥 [DEBUG] Placeholder hidden`);
+                    }
+                    
+                    if (cameraSection) {
+                        cameraSection.classList.remove('hidden');
+                        console.log(`🎥 [DEBUG] Camera section shown`);
+                    }
+                    
+                    this.isVideoOn = true;
+                    console.log('✅ [DEBUG] Local camera stream attached and visible - SUCCESS');
+                    
+                    setTimeout(() => {
+                        console.log(`🎥 [DEBUG] Post-attachment status:`, {
+                            videoSrcObject: !!video.srcObject,
+                            videoVisible: !video.classList.contains('hidden'),
+                            placeholderHidden: placeholder?.classList.contains('hidden'),
+                            cameraSectionVisible: !cameraSection?.classList.contains('hidden'),
+                            isVideoOn: this.isVideoOn
+                        });
+                    }, 1000);
+                    
+                } catch (error) {
+                    console.error(`🎥 [ERROR] Failed to attach stream:`, error);
                 }
+            } else {
+                console.error(`🎥 [ERROR] Missing elements or stream:`, {
+                    hasVideo: !!video,
+                    hasStream: !!stream
+                });
             }
+        } else {
+            console.log(`🎥 [DEBUG] Creating video participant card for ${participantId}`);
+            this.createVideoParticipantCard(participantId, stream);
         }
-
-        this.updateLayout();
-        console.log(`📹 Video enabled for ${participant.username}`);
+        
+        console.log(`🎥 [DEBUG] Calling updateView()...`);
+        this.updateView();
     }
 
-    handleVideoDisabled(participantId) {
-        if (!this.participants.has(participantId)) return;
+    handleCameraDisabled(participantId) {
+        console.log(`🎥❌ Handling camera disabled for ${participantId}`);
+        
+        if (participantId === this.localParticipantId) {
+            const video = document.getElementById('localCameraVideo');
+            const placeholder = document.getElementById('cameraPlaceholder');
+            
+            if (video && video.srcObject) {
+                const tracks = video.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            
+            if (video) video.classList.add('hidden');
+            if (placeholder) placeholder.classList.remove('hidden');
+            
+            this.isVideoOn = false;
+            console.log('✅ Local camera stream removed and hidden');
+        } else {
+            this.removeVideoParticipantCard(participantId);
+        }
+        
+        this.updateView();
+    }
+
+    handleScreenShare(participantId, stream) {
+        console.log(`🖥️ Handling screen share for ${participantId}`, stream);
+        
+        const video = document.getElementById('screenShareVideo');
+        const username = document.getElementById('screenShareUsername');
+        const title = document.getElementById('screenShareTitle');
+        const section = document.getElementById('screenShareSection');
+        
+        if (video && stream && section) {
+            this.attachStreamToVideo(video, stream);
+            
+            const participant = this.participants.get(participantId);
+            const displayName = participantId === this.localParticipantId ? 'Your Screen' : 
+                              (participant ? `${participant.name}'s Screen` : `${participantId}'s Screen`);
+            
+            if (username) username.textContent = displayName;
+            if (title) title.textContent = 'Screen Share Active';
+            
+            section.classList.remove('hidden');
+            this.isScreenSharing = true;
+            
+            console.log('✅ Screen share stream attached and visible');
+        }
+        
+        this.updateView();
+    }
+
+    handleScreenShareStopped() {
+        console.log(`🖥️❌ Handling screen share stopped`);
+        
+        const video = document.getElementById('screenShareVideo');
+        const section = document.getElementById('screenShareSection');
+        
+        if (video && video.srcObject) {
+            const tracks = video.srcObject.getTracks();
+            tracks.forEach(track => track.stop());
+            video.srcObject = null;
+        }
+        
+        if (section) section.classList.add('hidden');
+        this.isScreenSharing = false;
+        
+        console.log('✅ Screen share stream removed and hidden');
+        this.updateView();
+    }
+
+    createVideoParticipantCard(participantId, stream) {
+        const container = document.getElementById('videoGrid');
+        if (!container) return;
 
         const participant = this.participants.get(participantId);
-        participant.hasVideo = false;
-        this.videoParticipants.delete(participantId);
+        if (!participant) return;
 
-        this.removeExistingParticipantElement(participantId);
-        
-        // Clear mixed camera view if this is local participant
-        if (participantId === 'local') {
-            const mixedCameraVideo = document.getElementById('mixedCameraVideo');
-            if (mixedCameraVideo && mixedCameraVideo.srcObject) {
-                mixedCameraVideo.srcObject = null;
-            }
+        const card = document.createElement('div');
+        card.className = 'video-participant-card';
+        card.dataset.participantId = participantId;
+
+        card.innerHTML = `
+            <video autoplay playsinline muted></video>
+            <div class="absolute top-3 left-3 bg-black/60 rounded px-2 py-1">
+                <span class="text-white text-sm">${participant.name}</span>
+            </div>
+        `;
+
+        const video = card.querySelector('video');
+        if (video && stream) {
+            this.attachStreamToVideo(video, stream);
         }
-        
-        const voiceGrid = document.querySelector('#voiceOnlyGrid .grid');
-        if (!voiceGrid) {
-            console.warn('DiscordVoiceManager: voiceGrid not found for video disabled');
-            return;
-        }
 
-        this.createVoiceParticipantCard(participant, voiceGrid);
-
-        this.updateLayout();
-        console.log(`📹❌ Video disabled for ${participant.username}`);
+        container.appendChild(card);
+        participant.hasVideo = true;
+        this.updateView();
     }
 
-    handleScreenShare(participantId, stream, isSharing) {
-        const screenContainer = document.getElementById('screenShareContainer');
-        const screenVideo = document.getElementById('screenShareVideo');
-        const screenUsername = document.getElementById('screenShareUsername');
+    removeVideoParticipantCard(participantId) {
+        const card = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card`);
+        if (card) {
+            card.remove();
+        }
         
-        // Mixed layout elements
-        const mixedScreenVideo = document.getElementById('mixedScreenVideo');
-        const mixedScreenUsername = document.getElementById('mixedScreenUsername');
-
-        if (!screenContainer || !screenVideo || !screenUsername) {
-            console.warn('DiscordVoiceManager: Screen share elements not found');
-            return;
+        const participant = this.participants.get(participantId);
+        if (participant) {
+            participant.hasVideo = false;
         }
-
-        if (isSharing && stream) {
-            this.screenShareActive = true;
-            const participant = this.participants.get(participantId) || { username: participantId };
-            const displayName = participant.username === 'local' ? 'Your Screen' : `${participant.username}'s Screen`;
-            
-            // Update both regular and mixed layout elements
-            screenUsername.textContent = displayName;
-            this.attachStreamToVideo(screenVideo, stream);
-            
-            if (mixedScreenUsername) mixedScreenUsername.textContent = displayName;
-            if (mixedScreenVideo) this.attachStreamToVideo(mixedScreenVideo, stream);
-            
-            // Update local camera in mixed layout if active
-            this.updateMixedCameraView();
-            
-            console.log(`🖥️ Screen share started by ${participant.username}`);
-        } else {
-            this.screenShareActive = false;
-            
-            // Clear both layouts
-            if (screenVideo.srcObject) {
-                screenVideo.srcObject = null;
-            }
-            if (mixedScreenVideo && mixedScreenVideo.srcObject) {
-                mixedScreenVideo.srcObject = null;
-            }
-            
-            console.log(`🖥️❌ Screen share stopped`);
-        }
-
-        this.updateLayout();
-    }
-
-    updateMixedCameraView() {
-        const mixedCameraVideo = document.getElementById('mixedCameraVideo');
-        const mixedCameraUsername = document.getElementById('mixedCameraUsername');
-        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
         
-        if (!mixedCameraVideo) return;
-
-        if (!this.videoParticipants.has('local')) {
-            // Show placeholder when camera is off
-            if (mixedCameraVideo.srcObject) {
-                mixedCameraVideo.srcObject = null;
-            }
-            mixedCameraVideo.classList.add('hidden');
-            if (cameraPlaceholder) cameraPlaceholder.classList.remove('hidden');
-            if (mixedCameraUsername) mixedCameraUsername.textContent = 'Camera Off';
-            return;
-        }
-
-        // Find the local participant's video stream
-        const localVideoCard = document.querySelector('[data-participant-id="local"][data-type="video"]');
-        if (localVideoCard) {
-            const localVideo = localVideoCard.querySelector('video');
-            if (localVideo && localVideo.srcObject) {
-                this.attachStreamToVideo(mixedCameraVideo, localVideo.srcObject);
-                mixedCameraVideo.classList.remove('hidden');
-                if (cameraPlaceholder) cameraPlaceholder.classList.add('hidden');
-                if (mixedCameraUsername) {
-                    mixedCameraUsername.textContent = 'Your Camera';
-                }
-            }
-        }
-    }
-
-    hideLocalVideoInGrid() {
-        const localVideoCard = document.querySelector('[data-participant-id="local"][data-type="video"]');
-        if (localVideoCard) {
-            localVideoCard.style.display = 'none';
-        }
-    }
-
-    showLocalVideoInGrid() {
-        const localVideoCard = document.querySelector('[data-participant-id="local"][data-type="video"]');
-        if (localVideoCard) {
-            localVideoCard.style.display = 'block';
-        }
+        this.updateView();
     }
 
     attachStreamToVideo(videoElement, stream) {
         try {
+            console.log(`🔧 [DEBUG] attachStreamToVideo called with:`, {
+                videoElement: !!videoElement,
+                videoElementId: videoElement?.id,
+                stream: stream,
+                streamType: typeof stream,
+                isMediaStream: stream instanceof MediaStream,
+                hasStreamProperty: !!stream?.stream,
+                hasTrackProperty: !!stream?.track
+            });
+
+            if (videoElement.srcObject) {
+                console.log(`🔧 [DEBUG] Cleaning up existing srcObject...`);
+                const tracks = videoElement.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+
             let mediaStream = null;
-            
             if (stream instanceof MediaStream) {
+                console.log(`🔧 [DEBUG] Stream is MediaStream directly`);
                 mediaStream = stream;
             } else if (stream.stream instanceof MediaStream) {
+                console.log(`🔧 [DEBUG] Stream has .stream property with MediaStream`);
                 mediaStream = stream.stream;
             } else if (stream.track) {
+                console.log(`🔧 [DEBUG] Stream has .track property, creating MediaStream`);
                 mediaStream = new MediaStream([stream.track]);
+            } else {
+                console.error(`🔧 [ERROR] Unknown stream format:`, stream);
             }
 
-            if (mediaStream && videoElement) {
-                videoElement.srcObject = mediaStream;
-                videoElement.play().catch(error => {
-                    console.warn('Video play failed:', error);
+            if (mediaStream) {
+                console.log(`🔧 [DEBUG] Setting srcObject and playing...`, {
+                    mediaStreamTracks: mediaStream.getTracks().length,
+                    trackTypes: mediaStream.getTracks().map(t => t.kind)
                 });
+                videoElement.srcObject = mediaStream;
+                videoElement.play().then(() => {
+                    console.log(`🔧 [SUCCESS] Video element is now playing`);
+                }).catch(error => {
+                    console.warn(`🔧 [WARN] Video play failed:`, error);
+                });
+            } else {
+                console.error(`🔧 [ERROR] No valid MediaStream found`);
             }
         } catch (error) {
-            console.error('Error attaching stream to video:', error);
+            console.error('🔧 [ERROR] Error attaching stream:', error);
         }
     }
 
-    removeExistingParticipantElement(participantId) {
-        const existingElement = document.querySelector(`[data-participant-id="${participantId}"]`);
-        if (existingElement) {
-            existingElement.remove();
-        }
+    hasOtherVideo() {
+        return Array.from(this.participants.values()).some(p => p.hasVideo && p.id !== this.localParticipantId);
     }
 
-    updateLayout() {
-        const hasVideo = this.videoParticipants.size > 0;
-        const hasLocalVideo = this.videoParticipants.has('local');
-        const hasScreenShare = this.screenShareActive;
-        const videoGrid = document.getElementById('videoGrid');
-        const voiceGrid = document.getElementById('voiceOnlyGrid');
-        const participantGrid = document.getElementById('participantGrid');
-        const screenShareContainer = document.getElementById('screenShareContainer');
-        const mixedLayout = document.getElementById('mixedLayout');
+    updateView() {
+        const voiceSection = document.getElementById('voiceOnlySection');
+        const videoSection = document.getElementById('videoGridSection');
+        const screenSection = document.getElementById('screenShareSection');
+        const cameraSection = document.getElementById('cameraSection');
 
-        // Add null checks to prevent errors
-        if (!videoGrid || !voiceGrid || !participantGrid) {
-            console.warn('DiscordVoiceManager: Required layout elements not found');
+        console.log(`🔄 [DEBUG] updateView() called with state:`, {
+            isVideoOn: this.isVideoOn,
+            isScreenSharing: this.isScreenSharing,
+            hasOtherVideo: this.hasOtherVideo(),
+            currentView: this.currentView,
+            elementsFound: {
+                voiceSection: !!voiceSection,
+                videoSection: !!videoSection,
+                screenSection: !!screenSection,
+                cameraSection: !!cameraSection
+            }
+        });
+
+        // Hide all sections first
+        voiceSection?.classList.add('hidden');
+        videoSection?.classList.add('hidden');
+        console.log(`🔄 [DEBUG] Hidden voice and video sections`);
+
+        if (this.isScreenSharing) {
+            this.currentView = 'screen-share';
+            console.log('📺 [DEBUG] Showing screen share view');
+        } else if (this.isVideoOn || this.hasOtherVideo()) {
+            this.currentView = 'video';
+            videoSection?.classList.remove('hidden');
+            console.log('🎥 [DEBUG] Showing video grid section');
+            
+            if (this.isVideoOn) {
+                cameraSection?.classList.remove('hidden');
+                console.log('🎥 [DEBUG] Showing camera section (local video on)');
+            } else {
+                console.log('🎥 [DEBUG] Camera section not shown (local video off)');
+            }
+        } else {
+            this.currentView = 'voice-only';
+            voiceSection?.classList.remove('hidden');
+            cameraSection?.classList.add('hidden');
+            console.log('🎤 [DEBUG] Showing voice-only view');
+        }
+
+        // Final state check
+        setTimeout(() => {
+            console.log(`🔄 [DEBUG] Final view state:`, {
+                currentView: this.currentView,
+                voiceSectionVisible: voiceSection && !voiceSection.classList.contains('hidden'),
+                videoSectionVisible: videoSection && !videoSection.classList.contains('hidden'),
+                cameraSectionVisible: cameraSection && !cameraSection.classList.contains('hidden'),
+                screenSectionVisible: screenSection && !screenSection.classList.contains('hidden')
+            });
+        }, 100);
+
+        this.updateParticipantCount();
+    }
+
+    async toggleMic() {
+        if (!window.videoSDKManager?.isReady()) {
+            this.showToast('Voice not connected', 'error');
             return;
         }
 
-        // Hide all layouts first
-        if (screenShareContainer) screenShareContainer.classList.add('hidden');
-        if (mixedLayout) mixedLayout.classList.add('hidden');
+        try {
+            const newState = window.videoSDKManager.toggleMic();
+            this.isMuted = !newState;
+            this.updateMicButton();
+            this.showToast(this.isMuted ? 'Microphone muted' : 'Microphone enabled', 'info');
+        } catch (error) {
+            console.error('Error toggling mic:', error);
+            this.showToast('Failed to toggle microphone', 'error');
+        }
+    }
+
+    async toggleDeafen() {
+        if (!window.videoSDKManager?.isReady()) {
+            this.showToast('Voice not connected', 'error');
+            return;
+        }
+
+        try {
+            const newState = window.videoSDKManager.toggleDeafen();
+            this.isDeafened = newState;
+            this.updateDeafenButton();
+            this.showToast(this.isDeafened ? 'Audio deafened' : 'Audio undeafened', 'info');
+        } catch (error) {
+            console.error('Error toggling deafen:', error);
+            this.showToast('Failed to toggle deafen', 'error');
+        }
+    }
+
+    async toggleVideo() {
+        console.log(`📹 [DEBUG] toggleVideo() called`);
         
-        if (hasScreenShare && hasLocalVideo) {
-            // Mixed layout: Screen share + Camera side by side
-            this.currentLayout = 'mixed';
-            participantGrid.classList.add('hidden');
-            if (mixedLayout) mixedLayout.classList.remove('hidden');
-            // Hide the local video card from the main grid to prevent duplication
-            this.hideLocalVideoInGrid();
-            // Update mixed camera view
-            this.updateMixedCameraView();
-        } else if (hasScreenShare) {
-            // Full screen share only
-            this.currentLayout = 'screen-share';
-            participantGrid.classList.add('hidden');
-            if (screenShareContainer) screenShareContainer.classList.remove('hidden');
-        } else if (hasVideo) {
-            // Video grid layout
-            this.currentLayout = 'video';
-            videoGrid.classList.remove('hidden');
-            voiceGrid.classList.add('hidden');
-            participantGrid.classList.remove('hidden');
-            // Show the local video card back in the main grid
-            this.showLocalVideoInGrid();
-        } else {
-            // Voice only layout
-            this.currentLayout = 'voice-only';
-            videoGrid.classList.add('hidden');
-            voiceGrid.classList.remove('hidden');
-            participantGrid.classList.remove('hidden');
-        }
-
-        this.updateGridColumns();
-        console.log(`🔄 Layout updated: ${this.currentLayout}`);
-    }
-
-    updateGridColumns() {
-        const videoGrid = document.getElementById('videoGrid');
-        if (!videoGrid) {
-            console.warn('DiscordVoiceManager: videoGrid element not found');
+        if (!window.videoSDKManager?.isReady()) {
+            console.error(`📹 [ERROR] VideoSDK not ready:`, {
+                videoSDKManager: !!window.videoSDKManager,
+                isReady: window.videoSDKManager?.isReady?.()
+            });
+            this.showToast('Voice not connected', 'error');
             return;
         }
 
-        const participantCount = this.videoParticipants.size;
-
-        if (participantCount <= 1) {
-            videoGrid.style.gridTemplateColumns = '1fr';
-        } else if (participantCount <= 4) {
-            videoGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
-        } else if (participantCount <= 9) {
-            videoGrid.style.gridTemplateColumns = 'repeat(3, 1fr)';
-        } else {
-            videoGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+        // Ensure we have the local participant ID
+        if (!this.localParticipantId && window.videoSDKManager?.meeting?.localParticipant) {
+            this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
+            console.log(`📹 [DEBUG] Captured missing local participant ID:`, this.localParticipantId);
         }
+
+        try {
+            console.log(`📹 [DEBUG] Calling videoSDKManager.toggleWebcam()...`);
+            const newState = await window.videoSDKManager.toggleWebcam();
+            console.log(`📹 [DEBUG] toggleWebcam() returned:`, newState);
+            
+            // Manual test: Trigger the event ourselves to see if the UI responds
+            if (newState) {
+                console.log(`📹 [DEBUG] Camera should be ON - Testing manual event trigger...`);
+                
+                // Get the current meeting and local participant
+                if (window.videoSDKManager.meeting?.localParticipant) {
+                    const participant = window.videoSDKManager.meeting.localParticipant;
+                    console.log(`📹 [DEBUG] Local participant found:`, {
+                        id: participant.id,
+                        streams: participant.streams ? Array.from(participant.streams.keys()) : 'No streams map'
+                    });
+                    
+                    // Check if we can find a video stream
+                    if (participant.streams) {
+                        participant.streams.forEach((stream, streamId) => {
+                            console.log(`📹 [DEBUG] Found stream ${streamId}:`, {
+                                stream: stream,
+                                streamType: typeof stream,
+                                isMediaStream: stream instanceof MediaStream,
+                                hasStreamProperty: !!stream?.stream
+                            });
+                            
+                            if (streamId.includes('video') || streamId.includes('cam')) {
+                                console.log(`📹 [DEBUG] Found video stream, manually triggering event...`);
+                                window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', {
+                                    detail: {
+                                        kind: 'video',
+                                        stream: stream,
+                                        participant: participant.id
+                                    }
+                                }));
+                            }
+                        });
+                    }
+                }
+            } else {
+                console.log(`📹 [DEBUG] Camera should be OFF`);
+            }
+            
+            this.updateVideoButton();
+            this.showToast(newState ? 'Camera enabled' : 'Camera disabled', 'info');
+        } catch (error) {
+            console.error('📹 [ERROR] Error toggling video:', error);
+            this.showToast('Failed to toggle camera', 'error');
+        }
+    }
+
+    async toggleScreenShare() {
+        if (!window.videoSDKManager?.isReady()) {
+            this.showToast('Voice not connected', 'error');
+            return;
+        }
+
+        try {
+            const newState = await window.videoSDKManager.toggleScreenShare();
+            this.updateScreenButton();
+            this.showToast(newState ? 'Screen share started' : 'Screen share stopped', 'info');
+        } catch (error) {
+            console.error('Error toggling screen share:', error);
+            this.showToast('Failed to toggle screen share', 'error');
+        }
+    }
+
+    updateMicButton() {
+        const btn = document.getElementById('micBtn');
+        const icon = btn.querySelector('i');
+        const tooltip = btn.parentElement.querySelector('.mic-tooltip');
+        
+        if (this.isMuted) {
+            icon.className = 'fas fa-microphone-slash text-xl';
+            tooltip.textContent = 'Unmute';
+            btn.classList.add('bg-red-500');
+            btn.classList.remove('bg-[#2f3136]');
+        } else {
+            icon.className = 'fas fa-microphone text-xl';
+            tooltip.textContent = 'Mute';
+            btn.classList.remove('bg-red-500');
+            btn.classList.add('bg-[#2f3136]');
+        }
+    }
+
+    updateDeafenButton() {
+        const btn = document.getElementById('deafenBtn');
+        const icon = btn.querySelector('i');
+        const tooltip = btn.parentElement.querySelector('.deafen-tooltip');
+        
+        if (this.isDeafened) {
+            icon.className = 'fas fa-volume-mute text-xl';
+            tooltip.textContent = 'Undeafen';
+            btn.classList.add('bg-red-500');
+            btn.classList.remove('bg-[#2f3136]');
+        } else {
+            icon.className = 'fas fa-headphones text-xl';
+            tooltip.textContent = 'Deafen';
+            btn.classList.remove('bg-red-500');
+            btn.classList.add('bg-[#2f3136]');
+        }
+    }
+
+    updateVideoButton() {
+        const btn = document.getElementById('videoBtn');
+        const icon = btn.querySelector('i');
+        const tooltip = btn.parentElement.querySelector('.video-tooltip');
+        
+        if (this.isVideoOn) {
+            icon.className = 'fas fa-video text-xl';
+            tooltip.textContent = 'Turn Off Camera';
+            btn.classList.add('bg-green-600');
+            btn.classList.remove('bg-[#2f3136]');
+        } else {
+            icon.className = 'fas fa-video-slash text-xl';
+            tooltip.textContent = 'Turn On Camera';
+            btn.classList.remove('bg-green-600');
+            btn.classList.add('bg-[#2f3136]');
+        }
+    }
+
+    updateScreenButton() {
+        const btn = document.getElementById('screenBtn');
+        const icon = btn.querySelector('i');
+        const tooltip = btn.parentElement.querySelector('.screen-tooltip');
+        
+        if (this.isScreenSharing) {
+            icon.className = 'fas fa-stop-circle text-xl';
+            tooltip.textContent = 'Stop Sharing';
+            btn.classList.add('bg-blue-600');
+            btn.classList.remove('bg-[#2f3136]');
+        } else {
+            icon.className = 'fas fa-desktop text-xl';
+            tooltip.textContent = 'Share Screen';
+            btn.classList.remove('bg-blue-600');
+            btn.classList.add('bg-[#2f3136]');
+        }
+    }
+
+    disconnect() {
+        if (window.voiceManager?.isConnected) {
+            window.voiceManager.leaveVoice();
+        }
+        this.showToast('Disconnected from voice channel', 'info');
     }
 
     updateParticipantCount() {
-        const countElement = document.getElementById('voiceParticipantCount');
-        if (countElement) {
-            countElement.textContent = this.participants.size;
-        }
+        const count = this.participants.size;
+        const mainCount = document.getElementById('voiceParticipantCount');
+        const sidebarCount = document.getElementById('sidebarParticipantCount');
+        
+        if (mainCount) mainCount.textContent = count;
+        if (sidebarCount) sidebarCount.textContent = count;
     }
 
     getAvatarColor(username) {
-        const colors = [
-            '#5865f2', '#3ba55c', '#faa61a', '#ed4245', '#9b59b6',
-            '#e91e63', '#00bcd4', '#607d8b', '#795548', '#ff5722'
-        ];
+        const colors = ['#5865f2', '#3ba55c', '#faa61a', '#ed4245', '#9b59b6', '#e91e63', '#00bcd4', '#607d8b'];
         const hash = username.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
         return colors[hash % colors.length];
     }
 
-    clearAllParticipants() {
-        this.participants.clear();
-        this.videoParticipants.clear();
-        this.screenShareActive = false;
-        
-        const videoGrid = document.getElementById('videoGrid');
-        const voiceGrid = document.querySelector('#voiceOnlyGrid .grid');
-        const screenContainer = document.getElementById('screenShareContainer');
-        
-        if (videoGrid) videoGrid.innerHTML = '';
-        if (voiceGrid) voiceGrid.innerHTML = '';
-        if (screenContainer) screenContainer.classList.add('hidden');
-        
-        this.updateParticipantCount();
-        this.updateLayout();
-        console.log('🧹 All participants cleared');
-    }
-}
-
-window.discordVoiceManager = new DiscordVoiceManager();
-
-function closeScreenShare() {
-    if (window.videoSDKManager && window.videoSDKManager.getScreenShareState()) {
-        toggleScreenShare();
-    }
-}
-
-function updateDiscordLayout() {
-    // DEPRECATED: This function is replaced by DiscordVoiceManager.updateLayout()
-    if (window.discordVoiceManager) {
-        window.discordVoiceManager.updateLayout();
-    }
-}
-
-function createVideoParticipantCard(participant) {
-    const card = document.createElement('div');
-    card.className = 'video-participant-card group relative';
-    card.dataset.participantId = participant.id;
-    card.dataset.streamType = 'video';
-    
-    const displayName = (participant.name || participant.id || 'User').length > 15 
-        ? (participant.name || participant.id || 'User').substring(0, 12) + '...' 
-        : (participant.name || participant.id || 'User');
-    
-    card.innerHTML = `
-        <video autoplay playsinline muted class="w-full h-40 object-cover bg-black"></video>
-        <div class="video-participant-name">${displayName}</div>
-        <div class="video-participant-controls">
-            <button class="pin-btn" title="Pin">
-                <i class="fas fa-thumbtack"></i>
-            </button>
-            <button class="mute-btn" title="Mute">
-                <i class="fas fa-microphone-slash"></i>
-            </button>
-        </div>
-    `;
-    
-    const pinBtn = card.querySelector('.pin-btn');
-    const muteBtn = card.querySelector('.mute-btn');
-    
-    if (pinBtn) {
-        pinBtn.addEventListener('click', () => pinParticipant(participant.id));
-    }
-    
-    if (muteBtn) {
-        muteBtn.addEventListener('click', () => muteParticipant(participant.id));
-    }
-    
-    return card;
-}
-
-function createVoiceParticipantAvatar(participant) {
-    const avatar = document.createElement('div');
-    avatar.className = 'voice-participant-avatar';
-    avatar.dataset.participantId = participant.id;
-    
-    const nameInitial = (participant.name || participant.id || 'U').charAt(0).toUpperCase();
-    const displayName = (participant.name || participant.id || 'User').length > 10 
-        ? (participant.name || participant.id || 'User').substring(0, 8) + '...' 
-        : (participant.name || participant.id || 'User');
-    
-    avatar.innerHTML = `
-        <span class="text-sm font-bold">${nameInitial}</span>
-        <div class="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-[#b5bac1] whitespace-nowrap">${displayName}</div>
-    `;
-    
-    return avatar;
-}
-
-function createScreenShareView(participant) {
-    const screenShareContainer = document.getElementById('screenShareContainer');
-    const screenShareVideo = document.getElementById('screenShareVideo');
-    const screenShareUsername = document.getElementById('screenShareUsername');
-    
-    screenShareUsername.textContent = `${participant.name || participant.id} is sharing their screen`;
-    screenShareContainer.dataset.participantId = participant.id;
-    screenShareContainer.dataset.streamType = 'share';
-    
-    return screenShareVideo;
-}
-
-function addParticipantVideo(participantId, stream, streamType = 'video') {
-    if (streamType === 'share') {
-        const video = createScreenShareView({ id: participantId, name: participantId });
-        if (video && stream) {
-            video.srcObject = stream;
+    showToast(message, type) {
+        if (window.showToast) {
+            window.showToast(message, type, 3000);
+        } else {
+            console.log(`[${type.toUpperCase()}] ${message}`);
         }
-    } else {
-        const videoParticipants = document.getElementById('videoParticipants');
-        const existingCard = videoParticipants.querySelector(`[data-participant-id="${participantId}"]`);
+    }
+
+    cleanup() {
+        console.log('🧹 Cleaning up voice call manager');
         
-        if (!existingCard) {
-            const card = createVideoParticipantCard({ id: participantId, name: participantId });
-            const video = card.querySelector('video');
-            if (video && stream) {
-                video.srcObject = stream;
+        const videos = document.querySelectorAll('#localCameraVideo, #screenShareVideo, .video-participant-card video');
+        videos.forEach(video => {
+            if (video.srcObject) {
+                const tracks = video.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
             }
-            videoParticipants.appendChild(card);
-        }
-    }
-    
-    updateDiscordLayout();
-}
-
-function removeParticipantVideo(participantId, streamType = 'video') {
-    if (streamType === 'share') {
-        const screenShareContainer = document.getElementById('screenShareContainer');
-        const screenShareVideo = document.getElementById('screenShareVideo');
-        screenShareContainer.removeAttribute('data-participant-id');
-        screenShareContainer.removeAttribute('data-stream-type');
-        if (screenShareVideo) {
-            screenShareVideo.srcObject = null;
-        }
-    } else {
-        const videoParticipants = document.getElementById('videoParticipants');
-        const card = videoParticipants.querySelector(`[data-participant-id="${participantId}"]`);
-        if (card) {
-            card.remove();
-        }
-    }
-    
-    updateDiscordLayout();
-}
-
-function addVoiceParticipant(participantId, participantName) {
-    const voiceParticipantsList = document.getElementById('voiceParticipantsList');
-    const existingAvatar = voiceParticipantsList.querySelector(`[data-participant-id="${participantId}"]`);
-    
-    if (!existingAvatar) {
-        const avatar = createVoiceParticipantAvatar({ 
-            id: participantId, 
-            name: participantName || participantId 
         });
-        voiceParticipantsList.appendChild(avatar);
+
+        const cameraSection = document.getElementById('cameraSection');
+        const screenSection = document.getElementById('screenShareSection');
+        const videoGrid = document.getElementById('videoGrid');
+        const participantsList = document.getElementById('participantsList');
+
+        cameraSection?.classList.add('hidden');
+        screenSection?.classList.add('hidden');
+        if (videoGrid) videoGrid.innerHTML = '';
+        if (participantsList) participantsList.innerHTML = '';
+
+        this.participants.clear();
+        this.isVideoOn = false;
+        this.isScreenSharing = false;
+        this.currentView = 'voice-only';
+        this.localParticipantId = null;
+        
+        this.updateView();
     }
-    
-    updateDiscordLayout();
 }
 
-function removeVoiceParticipant(participantId) {
-    const voiceParticipantsList = document.getElementById('voiceParticipantsList');
-    const avatar = voiceParticipantsList.querySelector(`[data-participant-id="${participantId}"]`);
-    if (avatar) {
-        avatar.remove();
+function stopScreenShare() {
+    if (window.voiceCallManager) {
+        window.voiceCallManager.toggleScreenShare();
     }
-    
-    updateDiscordLayout();
 }
 
-function updateParticipantSpeaking(participantId, isSpeaking) {
-    const voiceAvatar = document.querySelector(`.voice-participant-avatar[data-participant-id="${participantId}"]`);
-    if (voiceAvatar) {
-        if (isSpeaking) {
-            voiceAvatar.classList.add('speaking');
+function minimizeScreenShare() {
+    const screenSection = document.getElementById('screenShareSection');
+    if (screenSection) {
+        screenSection.style.transform = 'scale(0.3)';
+        screenSection.style.transformOrigin = 'bottom right';
+        screenSection.style.position = 'fixed';
+        screenSection.style.bottom = '120px';
+        screenSection.style.right = '20px';
+        screenSection.style.width = '300px';
+        screenSection.style.height = '200px';
+        screenSection.style.zIndex = '100';
+        screenSection.style.transition = 'all 0.3s ease';
+    }
+}
+
+function toggleCameraSettings() {
+    window.voiceCallManager?.showToast('Camera settings coming soon', 'info');
+}
+
+function toggleVideoLayout() {
+    const videoGrid = document.getElementById('videoGrid');
+    if (videoGrid) {
+        const currentCols = videoGrid.style.gridTemplateColumns;
+        if (currentCols.includes('repeat(auto-fit')) {
+            videoGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
         } else {
-            voiceAvatar.classList.remove('speaking');
-        }
-    }
-    
-    const videoCard = document.querySelector(`.video-participant-card[data-participant-id="${participantId}"]`);
-    if (videoCard) {
-        const video = videoCard.querySelector('video');
-        if (video) {
-            if (isSpeaking) {
-                video.style.border = '2px solid #3ba55c';
-                video.style.boxShadow = '0 0 10px rgba(59, 165, 93, 0.5)';
-            } else {
-                video.style.border = 'none';
-                video.style.boxShadow = 'none';
-            }
+            videoGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(280px, 1fr))';
         }
     }
 }
 
-function updateParticipantMuted(participantId, isMuted) {
-    const voiceAvatar = document.querySelector(`.voice-participant-avatar[data-participant-id="${participantId}"]`);
-    if (voiceAvatar) {
-        if (isMuted) {
-            voiceAvatar.classList.add('muted');
-        } else {
-            voiceAvatar.classList.remove('muted');
-        }
+function toggleVideoSidebar() {
+    const cameraSection = document.getElementById('cameraSection');
+    if (cameraSection) {
+        cameraSection.classList.toggle('hidden');
     }
 }
 
-function pinParticipant(participantId) {
-    const speakerView = document.getElementById('speakerView');
-    const speakerVideo = document.getElementById('speakerVideo');
-    const speakerUsername = document.getElementById('speakerUsername');
-    
-    const videoCard = document.querySelector(`.video-participant-card[data-participant-id="${participantId}"]`);
-    if (videoCard) {
-        const sourceVideo = videoCard.querySelector('video');
-        if (sourceVideo && sourceVideo.srcObject) {
-            speakerVideo.srcObject = sourceVideo.srcObject;
-            speakerUsername.textContent = participantId;
-            
-            document.querySelectorAll('.video-participant-card').forEach(card => {
-                card.classList.remove('active-speaker');
-            });
-            videoCard.classList.add('active-speaker');
-            
-            updateDiscordLayout();
-        }
-    }
-}
-
-function muteParticipant(participantId) {
-    console.log(`Mute participant ${participantId} - This would require admin permissions`);
-}
-
-function addLocalParticipant() {
-    const username = document.querySelector('meta[name="username"]')?.content || 'You';
-    addVoiceParticipant('local', username);
-}
-
-function addRemoteParticipant(participantId, participantName) {
-    addVoiceParticipant(participantId, participantName);
-}
-
-function removeParticipant(participantId) {
-    removeVoiceParticipant(participantId);
-    removeParticipantVideo(participantId, 'video');
-    removeParticipantVideo(participantId, 'share');
-}
-
-function setupVoiceEventHandlers() {
-    console.log('🔧 Setting up Discord-style voice event handlers');
-    
-    window.addEventListener('voiceConnect', (event) => {
-        console.log('🎤 Voice connected event received:', event.detail);
-        addLocalParticipant();
-        
-        if (window.videosdkMeeting) {
-            console.log('🔍 VideoSDK meeting found, setting up participant handlers');
-            
-            window.videosdkMeeting.participants.forEach((participant) => {
-                if (participant.id !== window.videosdkMeeting.localParticipant.id) {
-                    addRemoteParticipant(participant.id, participant.displayName || participant.id);
-                }
-            });
-            
-            window.videosdkMeeting.on('participant-joined', (participant) => {
-                console.log('👤 Participant joined:', participant.id);
-                addRemoteParticipant(participant.id, participant.displayName || participant.id);
-            });
-            
-            window.videosdkMeeting.on('participant-left', (participant) => {
-                console.log('👤 Participant left:', participant.id);
-                removeParticipant(participant.id);
-            });
-        }
-    });
-    
-    window.addEventListener('voiceDisconnect', () => {
-        console.log('🔇 Voice disconnected, clearing all participants');
-        document.getElementById('voiceParticipantsList').innerHTML = '';
-        document.getElementById('videoParticipants').innerHTML = '';
-        document.getElementById('screenShareContainer').classList.add('hidden');
-        document.getElementById('speakerView').classList.add('hidden');
-        document.getElementById('voiceOnlyGrid').classList.remove('hidden');
-        updateDiscordLayout();
-    });
-    
-    window.addEventListener('videosdkStreamEnabled', (event) => {
-        const { kind, stream, participant } = event.detail;
-        console.log(`📹 Stream enabled: ${kind} for ${participant}`);
-        
-        if (kind === 'video') {
-            addParticipantVideo(participant, stream, 'video');
-        } else if (kind === 'share') {
-            addParticipantVideo(participant, stream, 'share');
-        }
-    });
-    
-    window.addEventListener('videosdkStreamDisabled', (event) => {
-        const { kind, participant } = event.detail;
-        console.log(`📹 Stream disabled: ${kind} for ${participant}`);
-        
-        if (kind === 'video') {
-            removeParticipantVideo(participant, 'video');
-        } else if (kind === 'share') {
-            removeParticipantVideo(participant, 'share');
-        }
-    });
-}
-
-function toggleLoading(show) {
-    const loadingState = document.getElementById('loadingState');
-    if (loadingState) {
-        if (show) {
-            loadingState.classList.remove('hidden');
-        } else {
-            loadingState.classList.add('hidden');
-        }
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-        const components = {
-            screenShareContainer: !!document.getElementById('screenShareContainer'),
-            speakerView: !!document.getElementById('speakerView'),
-            voiceOnlyGrid: !!document.getElementById('voiceOnlyGrid'),
-            videoSidebar: !!document.getElementById('videoSidebar'),
-            voiceParticipantsBar: !!document.getElementById('voiceParticipantsBar'),
-            voiceSection: !!window.voiceSection,
-            voiceManager: !!window.voiceManager,
-            videoSDKManager: !!window.videoSDKManager,
-            videosdkMeeting: !!window.videosdkMeeting
-        };
-        
-        console.log('🔍 Discord-style voice components check:', components);
-        
-        setupVoiceEventHandlers();
-        updateDiscordLayout();
-        
-        if (window.voiceState?.isConnected) {
-            console.log('🔧 Voice is connected, adding local participant');
-            addLocalParticipant();
-        }
-    }, 1000);
+document.addEventListener('DOMContentLoaded', () => {
+    window.voiceCallManager = new VoiceCallManager();
 });
-
-window.addEventListener('videoGridUpdate', updateDiscordLayout);
-window.addEventListener('voiceConnect', () => toggleLoading(false));
-window.addEventListener('voiceDisconnect', () => toggleLoading(false));
-
-window.updateDiscordLayout = updateDiscordLayout;
-window.addParticipantVideo = addParticipantVideo;
-window.removeParticipantVideo = removeParticipantVideo;
-window.addVoiceParticipant = addVoiceParticipant;
-window.removeVoiceParticipant = removeVoiceParticipant;
-window.updateParticipantSpeaking = updateParticipantSpeaking;
-window.updateParticipantMuted = updateParticipantMuted;
-window.pinParticipant = pinParticipant;
-window.addLocalParticipant = addLocalParticipant;
-window.addRemoteParticipant = addRemoteParticipant;
-window.removeParticipant = removeParticipant;
-window.toggleLoading = toggleLoading;
 </script>
