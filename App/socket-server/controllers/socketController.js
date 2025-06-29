@@ -440,9 +440,32 @@ function setup(io) {
             console.log(`🤖 [TITIBOT-CMD] TitiBot command from ${client.id}:`, data);
             handleTitiBotCommand(io, client, data);
         });
+
+        client.on('join-tic-tac-toe', (data) => {
+            console.log(`🎯 [TIC-TAC-TOE] Join game request from ${client.id}:`, data);
+            ActivityHandler.handleTicTacToeJoin(io, client, data);
+        });
+
+        client.on('tic-tac-toe-ready', (data) => {
+            console.log(`🎯 [TIC-TAC-TOE] Ready state change from ${client.id}:`, data);
+            ActivityHandler.handleTicTacToeReady(io, client, data);
+        });
+
+        client.on('tic-tac-toe-move', (data) => {
+            console.log(`🎯 [TIC-TAC-TOE] Move from ${client.id}:`, data);
+            ActivityHandler.handleTicTacToeMove(io, client, data);
+        });
+
+        client.on('leave-tic-tac-toe', (data) => {
+            console.log(`🎯 [TIC-TAC-TOE] Leave game from ${client.id}:`, data);
+            ActivityHandler.handleTicTacToeLeave(io, client, data);
+        });
         
         client.on('disconnect', () => {
             console.log(`❌ [DISCONNECT] Client disconnected: ${client.id}`);
+            if (client.data?.ticTacToeServerId) {
+                ActivityHandler.handleTicTacToeLeave(io, client, {});
+            }
             handleDisconnect(io, client);
         });
     });

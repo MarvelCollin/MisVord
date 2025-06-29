@@ -17,13 +17,10 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeHomeIconEasterEgg();
     
     document.addEventListener('click', async function(e) {
-        console.log('[Click Handler] Click event detected');
-        
         const homeLink = e.target.closest('a[href="/home"]') || 
                         e.target.closest('a[href="/"]') ||
                         e.target.closest('.server-icon:first-child a');
         if (homeLink && !isHandlingClick) {
-            console.log('[Click Handler] HOME NAVIGATION DETECTED');
             e.preventDefault();
             
             handleEasterEggLogic();
@@ -31,7 +28,6 @@ document.addEventListener('DOMContentLoaded', function() {
             isHandlingClick = true;
             try {
                 await handleHomeClick(e);
-                console.log('[Click Handler] Home navigation completed successfully');
             } catch (error) {
                 console.error('[Click Handler] ERROR in home navigation:', error);
             } finally {
@@ -43,13 +39,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const exploreLink = e.target.closest('a[href="/explore-servers"]') ||
                            e.target.closest('a[href="/explore"]');
         if (exploreLink && !isHandlingClick) {
-            console.log('[Click Handler] EXPLORE NAVIGATION DETECTED');
             e.preventDefault();
             
             isHandlingClick = true;
             try {
                 await handleExploreClick(e);
-                console.log('[Click Handler] Explore navigation completed successfully');
             } catch (error) {
                 console.error('[Click Handler] ERROR in explore navigation:', error);
             } finally {
@@ -60,7 +54,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const serverLink = e.target.closest('.server-icon a[href^="/server/"]');
         if (serverLink && !isHandlingClick) {
-            console.log('[Click Handler] SERVER NAVIGATION DETECTED');
             e.preventDefault(); 
             
             const serverId = serverLink.getAttribute('data-server-id');
@@ -68,7 +61,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 isHandlingClick = true;
                 try {
                     await handleServerClick(serverId, e);
-                    console.log('[Click Handler] Server navigation completed successfully');
                 } catch (error) {
                     console.error('[Click Handler] ERROR in server navigation:', error);
                 } finally {

@@ -46,6 +46,13 @@ foreach ($members as $member) {
         <input type="text" placeholder="Search" class="w-full bg-black bg-opacity-30 text-white text-sm rounded px-2 py-1 focus:outline-none">
     </div>
     
+    <div class="border-b border-gray-800 p-3">
+        <button id="temp-tic-tac-toe-button" class="flex items-center gap-2 w-full px-3 py-2 rounded-md text-[#949ba4] hover:text-white hover:bg-[#404249] transition-colors duration-200 bg-[#5865f2] hover:bg-[#4752c4]">
+            <i class="fas fa-chess-board text-lg"></i>
+            <span class="font-medium text-white">Tic Mac Voe</span>
+        </button>
+    </div>
+    
     <div class="participant-content flex-1 overflow-y-auto p-2" data-lazyload="participant-list">
         <div class="px-2">
             <?php 
@@ -180,7 +187,294 @@ document.addEventListener('DOMContentLoaded', function() {
     
     loadSocketIO(initializeSocketConnection);
     initializeParticipantHover();
+    initializeTempTicTacToeButton();
 });
+
+function initializeTempTicTacToeButton() {
+    const tempButton = document.getElementById('temp-tic-tac-toe-button');
+    if (tempButton) {
+        tempButton.addEventListener('click', function() {
+            if (window.activityManager) {
+                window.activityManager.openTicTacToe();
+            } else {
+                setTimeout(() => {
+                    if (window.activityManager) {
+                        window.activityManager.openTicTacToe();
+                    } else {
+                        createTempTicTacToeModal();
+                    }
+                }, 1000);
+            }
+        });
+    }
+}
+
+function createTempTicTacToeModal() {
+    if (document.getElementById('tic-tac-toe-modal')) return;
+    
+    const serverId = <?php echo $currentServerId; ?>;
+    const userId = <?php echo $_SESSION['user_id'] ?? 0; ?>;
+    const username = '<?php echo $_SESSION['username'] ?? 'Unknown'; ?>';
+    
+    if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+        alert('WebSocket connection not ready. Please wait and try again.');
+        return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.id = 'tic-tac-toe-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-[#313338] rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white">Tic Mac Voe</h2>
+                <button id="close-tic-tac-toe" class="text-[#949ba4] hover:text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="tic-tac-toe-content">
+                <div id="welcome-section" class="text-center">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-medium text-white mb-2">Welcome to Tic Mac Voe!</h3>
+                        <p class="text-[#949ba4] text-sm">Waiting for players to join...</p>
+                    </div>
+                    
+                    <div id="player-list" class="space-y-3 mb-6">
+                    </div>
+                    
+                    <div id="game-controls" class="space-y-3">
+                        <button id="ready-button" class="w-full bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-4 rounded-md transition-colors duration-200">
+                            Ready
+                        </button>
+                        <button id="play-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 hidden">
+                            Play
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="game-section" class="hidden">
+                    <div id="game-info" class="text-center mb-4">
+                        <div id="current-turn" class="text-[#949ba4] text-sm mb-2"></div>
+                        <div id="game-players" class="flex justify-center gap-4 mb-4">
+                        </div>
+                    </div>
+                    
+                    <div id="game-board" class="grid grid-cols-3 gap-2 mb-4 max-w-xs mx-auto">
+                    </div>
+                    
+                    <div id="game-result" class="text-center hidden">
+                        <div id="winner-text" class="text-xl font-bold mb-4"></div>
+                        <button id="new-game-button" class="bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-4 rounded-md transition-colors duration-200">
+                            New Game
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const closeButton = modal.querySelector('#close-tic-tac-toe');
+    const readyButton = modal.querySelector('#ready-button');
+    const playButton = modal.querySelector('#play-button');
+    const newGameButton = modal.querySelector('#new-game-button');
+    
+    closeButton.addEventListener('click', () => {
+        if (window.globalSocketManager.isReady()) {
+            window.globalSocketManager.io.emit('leave-tic-tac-toe', { server_id: serverId });
+        }
+        modal.remove();
+    });
+    
+    readyButton.addEventListener('click', () => {
+        const isReady = readyButton.textContent === 'Ready';
+        window.globalSocketManager.io.emit('tic-tac-toe-ready', { ready: isReady });
+        readyButton.textContent = isReady ? 'Not Ready' : 'Ready';
+        readyButton.className = isReady 
+            ? 'w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200'
+            : 'w-full bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-4 rounded-md transition-colors duration-200';
+    });
+    
+    playButton.addEventListener('click', () => {
+        document.getElementById('welcome-section').classList.add('hidden');
+        document.getElementById('game-section').classList.remove('hidden');
+    });
+    
+    newGameButton.addEventListener('click', () => {
+        document.getElementById('game-result').classList.add('hidden');
+        createGameBoard();
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            if (window.globalSocketManager.isReady()) {
+                window.globalSocketManager.io.emit('leave-tic-tac-toe', { server_id: serverId });
+            }
+            modal.remove();
+        }
+    });
+    
+    window.globalSocketManager.io.emit('join-tic-tac-toe', { server_id: serverId });
+    
+    const io = window.globalSocketManager.io;
+    
+    io.on('tic-tac-toe-joined', (data) => updatePlayerList(data.players));
+    io.on('tic-tac-toe-player-joined', (data) => updatePlayerList([data.player]));
+    io.on('tic-tac-toe-ready-update', (data) => {
+        updatePlayerList(data.players);
+        if (data.can_start) {
+            playButton.classList.remove('hidden');
+        } else {
+            playButton.classList.add('hidden');
+        }
+    });
+    io.on('tic-tac-toe-game-start', (data) => {
+        window.currentGameData = data;
+        document.getElementById('welcome-section').classList.add('hidden');
+        document.getElementById('game-section').classList.remove('hidden');
+        updateGameInfo();
+        createGameBoard();
+    });
+    io.on('tic-tac-toe-move-made', (data) => {
+        window.currentGameData.board = data.board;
+        window.currentGameData.current_turn = data.current_turn;
+        updateGameBoard();
+        updateGameInfo();
+    });
+    io.on('tic-tac-toe-game-end', (data) => {
+        showGameResult(data);
+    });
+    io.on('tic-tac-toe-error', (data) => {
+        alert('Error: ' + data.message);
+    });
+}
+
+function updatePlayerList(players) {
+    const playerList = document.getElementById('player-list');
+    if (!playerList) return;
+    
+    playerList.innerHTML = '';
+    players.forEach(player => {
+        const playerDiv = document.createElement('div');
+        playerDiv.className = 'flex items-center gap-3 p-3 bg-[#2b2d31] rounded-md';
+        playerDiv.innerHTML = `
+            <img src="${player.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="${player.username}" class="w-8 h-8 rounded-full">
+            <div class="flex-1 text-left">
+                <div class="text-white font-medium">${player.username}</div>
+                <div class="text-[#949ba4] text-sm">${player.ready ? 'Ready' : 'Not Ready'}</div>
+            </div>
+            ${player.ready ? '<i class="fas fa-check text-green-400"></i>' : '<i class="fas fa-clock text-yellow-400"></i>'}
+        `;
+        playerList.appendChild(playerDiv);
+    });
+}
+
+function updateGameInfo() {
+    if (!window.currentGameData) return;
+    
+    const currentTurn = document.getElementById('current-turn');
+    const gamePlayers = document.getElementById('game-players');
+    const userId = <?php echo $_SESSION['user_id'] ?? 0; ?>;
+    
+    const currentPlayer = window.currentGameData.players.find(p => p.user_id == window.currentGameData.current_turn);
+    const isMyTurn = window.currentGameData.current_turn == userId;
+    
+    if (currentTurn) {
+        currentTurn.textContent = isMyTurn ? 'Your turn' : `${currentPlayer ? currentPlayer.username : 'Unknown'}'s turn`;
+        currentTurn.className = isMyTurn ? 'text-green-400 text-sm mb-2 font-semibold' : 'text-[#949ba4] text-sm mb-2';
+    }
+    
+    if (gamePlayers) {
+        gamePlayers.innerHTML = '';
+        window.currentGameData.players.forEach((player, index) => {
+            const symbol = index === 0 ? 'X' : 'O';
+            const isCurrentTurn = player.user_id == window.currentGameData.current_turn;
+            
+            const playerDiv = document.createElement('div');
+            playerDiv.className = `flex items-center gap-2 p-2 rounded-md ${isCurrentTurn ? 'bg-[#5865f2]' : 'bg-[#2b2d31]'}`;
+            playerDiv.innerHTML = `
+                <img src="${player.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="${player.username}" class="w-6 h-6 rounded-full">
+                <span class="text-white font-medium">${player.username}</span>
+                <span class="text-[#949ba4]">(${symbol})</span>
+            `;
+            gamePlayers.appendChild(playerDiv);
+        });
+    }
+}
+
+function createGameBoard() {
+    const gameBoard = document.getElementById('game-board');
+    if (!gameBoard) return;
+    
+    gameBoard.innerHTML = '';
+    for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('button');
+        cell.className = 'w-16 h-16 bg-[#2b2d31] hover:bg-[#404249] text-white text-2xl font-bold rounded-md transition-colors duration-200';
+        cell.addEventListener('click', () => makeMove(i));
+        gameBoard.appendChild(cell);
+    }
+    updateGameBoard();
+}
+
+function updateGameBoard() {
+    if (!window.currentGameData) return;
+    
+    const cells = document.querySelectorAll('#game-board button');
+    cells.forEach((cell, index) => {
+        const value = window.currentGameData.board[index];
+        cell.textContent = value || '';
+        cell.disabled = value !== null;
+        
+        if (value) {
+            cell.className = 'w-16 h-16 bg-[#404249] text-white text-2xl font-bold rounded-md cursor-not-allowed';
+            if (value === 'X') {
+                cell.classList.add('text-blue-400');
+            } else {
+                cell.classList.add('text-red-400');
+            }
+        }
+    });
+}
+
+function makeMove(position) {
+    const userId = <?php echo $_SESSION['user_id'] ?? 0; ?>;
+    
+    if (!window.currentGameData || window.currentGameData.current_turn != userId) {
+        alert('Not your turn!');
+        return;
+    }
+    
+    if (window.currentGameData.board[position] !== null) {
+        alert('Invalid move!');
+        return;
+    }
+    
+    window.globalSocketManager.io.emit('tic-tac-toe-move', { position: position });
+}
+
+function showGameResult(data) {
+    const gameResult = document.getElementById('game-result');
+    const winnerText = document.getElementById('winner-text');
+    const userId = <?php echo $_SESSION['user_id'] ?? 0; ?>;
+    
+    if (gameResult) gameResult.classList.remove('hidden');
+    
+    if (data.is_draw) {
+        winnerText.textContent = "It's a draw!";
+        winnerText.className = 'text-xl font-bold mb-4 text-yellow-400';
+    } else if (data.winner_user_id == userId) {
+        winnerText.textContent = 'You won! 🎉';
+        winnerText.className = 'text-xl font-bold mb-4 text-green-400';
+    } else {
+        const winner = window.currentGameData.players.find(p => p.user_id == data.winner_user_id);
+        winnerText.textContent = `${winner ? winner.username : 'Unknown'} won!`;
+        winnerText.className = 'text-xl font-bold mb-4 text-red-400';
+    }
+    
+    updateGameBoard();
+}
 
 function initializeParticipantHover() {
     const participantItems = document.querySelectorAll('.participant-content .user-profile-trigger');

@@ -210,8 +210,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     document.body.addEventListener('click', function(e) {
-        console.log('[voice-not-join.php] Document body click detected on:', e.target.tagName, e.target.id, e.target.className);
-        
         const clickedJoinBtn = e.target.id === 'joinBtn' || e.target.closest('#joinBtn');
         if (clickedJoinBtn) {
             console.log('[voice-not-join.php] Join button clicked via document body handler');

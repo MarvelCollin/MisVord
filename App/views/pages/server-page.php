@@ -23,6 +23,7 @@ $GLOBALS['isLoading'] = isset($_GET['loading']) && $_GET['loading'] === 'true';
 $page_title = 'misvord - ' . $serverName;
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';
+$additional_css = ['tic-tac-toe'];
 $page_js = 'pages/app';
 $head_scripts = ['logger-init'];
 $additional_js = [
@@ -31,6 +32,8 @@ $additional_js = [
     'components/servers/channel-redirect',
     'components/channels/channel-manager',
     'components/messaging/chat-section',
+    'components/activity/activity',
+    'components/activity/tic-tac-toe',
     'utils/channel-switch-manager',
     'utils/load-home-page',
     'utils/load-server-page',

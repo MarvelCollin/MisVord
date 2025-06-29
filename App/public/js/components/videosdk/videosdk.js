@@ -471,11 +471,25 @@ class VideoSDKManager {
                                     
                         console.log(`[VideoSDK] Stream monitor detected new ${kind} stream (ID: ${streamId})`);
                         
-                        participant.safeEmit('stream-enabled', { 
-                            kind, 
-                            stream: stream.stream || stream,
-                            streamId
-                        });
+                        if (hasValidVideoStream) {
+                            console.log('[VideoSDK] About to emit video stream to handler:', {
+                                participantId: participant.id,
+                                streamId: stream.id,
+                                streamKind: stream.kind,
+                                streamObject: stream,
+                                streamKeys: Object.keys(stream),
+                                streamStream: stream.stream,
+                                streamStreamType: typeof stream.stream,
+                                streamStreamConstructor: stream.stream?.constructor?.name,
+                                streamStreamKeys: stream.stream ? Object.keys(stream.stream) : null
+                            });
+                            
+                            participant.safeEmit('stream-enabled', {
+                                participantId: participant.id,
+                                stream: stream,
+                                streamType: kind
+                            });
+                        }
                         
                         participant._previousStreams.set(streamId, kind);
                     }

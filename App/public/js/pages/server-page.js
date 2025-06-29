@@ -447,4 +447,20 @@ window.ensureServerPageLoaded = function() {
   });
 };
 
-export { initServerPage };
+function initServerPage() {
+  console.log('[Server Page] Initializing server page');
+  
+  try {
+    initializeServerComponents();
+    loadServerContent();
+    setupPopStateListener();
+    setupChannelListObserver();
+    initializeServerModals();
+    
+    console.log('[Server Page] Server page initialization completed');
+  } catch (error) {
+    console.error('[Server Page] Error during server page initialization:', error);
+  }
+}
+
+window.initServerPage = initServerPage;

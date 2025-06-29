@@ -15,14 +15,163 @@ class EmojiReactions {
         this.loadingReactions = new Set();
         this.loadedMessageIds = new Set();
         this.debounceTimers = new Map();
+        this.emojiPickerContainer = null;
+        
+        // Tooltip properties
+        this.currentTooltip = null;
+        this.tooltipTimeout = null;
+        
+        this.initTooltipStyles();
+    }
+
+    initTooltipStyles() {
+        if (document.querySelector('style[data-reaction-tooltip-styles]')) {
+            return; // Styles already added
+        }
+        
+        const tooltipStyles = `
+/* Reaction Tooltip Styles */
+.reaction-tooltip {
+    position: fixed;
+    z-index: 10000;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    max-width: 320px;
+}
+
+.reaction-tooltip-content {
+    background: #1e1f22;
+    border: 1px solid #41434a;
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+    overflow: hidden;
+    pointer-events: auto;
+}
+
+.reaction-tooltip-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid #41434a;
+    background: #2b2d31;
+}
+
+.reaction-tooltip-emoji {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.reaction-tooltip-count {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f2f3f5;
+}
+
+.reaction-tooltip-users {
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #41434a #2b2d31;
+}
+
+.reaction-tooltip-users::-webkit-scrollbar {
+    width: 8px;
+}
+
+.reaction-tooltip-users::-webkit-scrollbar-track {
+    background: #2b2d31;
+}
+
+.reaction-tooltip-users::-webkit-scrollbar-thumb {
+    background: #41434a;
+    border-radius: 4px;
+}
+
+.reaction-tooltip-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    transition: background-color 0.15s ease;
+}
+
+.reaction-tooltip-user:hover {
+    background-color: #404249;
+}
+
+.reaction-tooltip-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.reaction-tooltip-username {
+    font-size: 14px;
+    font-weight: 500;
+    color: #f2f3f5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.reaction-tooltip-more {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: #a3a6aa;
+    text-align: center;
+    font-style: italic;
+    border-top: 1px solid #41434a;
+}
+
+/* Reaction hover effects */
+.bubble-reaction:hover,
+.message-reaction-pill:hover {
+    transform: scale(1.05);
+    background-color: rgba(88, 101, 242, 0.1) !important;
+    border-color: #5865f2 !important;
+}
+
+.bubble-reaction.user-reacted,
+.message-reaction-pill.user-reacted {
+    background-color: rgba(88, 101, 242, 0.15);
+    border-color: #5865f2;
+}
+
+.bubble-reaction.user-reacted:hover,
+.message-reaction-pill.user-reacted:hover {
+    background-color: rgba(88, 101, 242, 0.25) !important;
+}
+`;
+        
+        const styleElement = document.createElement('style');
+        styleElement.setAttribute('data-reaction-tooltip-styles', 'true');
+        styleElement.textContent = tooltipStyles;
+        document.head.appendChild(styleElement);
+        
+        console.log('✅ [EMOJI-REACTIONS] Tooltip styles initialized');
     }
 
     init() {
-        if (this.initialized) return;
+        if (this.initialized) {
+            console.log('🔄 [EMOJI-REACTIONS] System already initialized, skipping...');
+            return;
+        }
+        
+        console.log('🚀 [EMOJI-REACTIONS] Initializing emoji reactions system...');
+        
         this.setupStyles();
-        this.setupMessageHandling();
-        this.setupSocketListeners();
+        this.setupMessageHandling(); 
+        this.setupExistingReactionButtons();
+        this.setupTooltipEventListeners();
+        
         this.initialized = true;
+        console.log('✅ [EMOJI-REACTIONS] Emoji reactions system initialized successfully');
     }
 
     setupStyles() {
@@ -370,18 +519,160 @@ class EmojiReactions {
         }
         
         try {
-            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-            const reactionsContainer = messageElement?.querySelector('.message-reactions-container');
-            const existingReaction = reactionsContainer?.querySelector(`[data-emoji="${emoji}"]`);
-            const isUserReacted = existingReaction?.classList.contains('user-reacted');
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content || window.globalSocketManager?.userId;
             
-            if (isUserReacted) {
+            // Check if current user has already reacted with this emoji using actual data
+            const hasUserReacted = this.hasUserReacted(messageId, emoji, currentUserId);
+            
+            console.log('🔄 [EMOJI-REACTIONS] Toggle reaction:', {
+                messageId,
+                emoji,
+                currentUserId,
+                hasUserReacted,
+                currentReactions: this.currentReactions[messageId]?.length || 0
+            });
+            
+            if (hasUserReacted) {
+                console.log('➖ [EMOJI-REACTIONS] User already reacted, removing reaction');
                 await this.removeReaction(messageId, emoji);
             } else {
+                console.log('➕ [EMOJI-REACTIONS] User hasn\'t reacted, adding reaction');
                 await this.addReaction(messageId, emoji);
             }
         } catch (error) {
-            console.error('Error toggling reaction:', error);
+            console.error('❌ [EMOJI-REACTIONS] Error toggling reaction:', error);
+        }
+    }
+
+    hasUserReacted(messageId, emoji, userId) {
+        if (!this.currentReactions[messageId]) {
+            return false;
+        }
+        
+        return this.currentReactions[messageId].some(reaction => 
+            reaction.emoji === emoji && String(reaction.user_id) === String(userId)
+        );
+    }
+
+    getUsersWhoReacted(messageId, emoji) {
+        if (!this.currentReactions[messageId]) {
+            return [];
+        }
+        
+        return this.currentReactions[messageId]
+            .filter(reaction => reaction.emoji === emoji)
+            .map(reaction => ({
+                user_id: reaction.user_id,
+                username: reaction.username,
+                avatar_url: reaction.avatar_url || '/public/assets/common/default-profile-picture.png'
+            }));
+    }
+
+    createReactionTooltip(messageId, emoji, users) {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'reaction-tooltip';
+        tooltip.dataset.messageId = messageId;
+        tooltip.dataset.emoji = emoji;
+        
+        const tooltipContent = document.createElement('div');
+        tooltipContent.className = 'reaction-tooltip-content';
+        
+        // Tooltip header
+        const header = document.createElement('div');
+        header.className = 'reaction-tooltip-header';
+        header.innerHTML = `
+            <span class="reaction-tooltip-emoji">${emoji}</span>
+            <span class="reaction-tooltip-count">${users.length}</span>
+        `;
+        tooltipContent.appendChild(header);
+        
+        // Users list
+        const usersList = document.createElement('div');
+        usersList.className = 'reaction-tooltip-users';
+        
+        users.slice(0, 10).forEach(user => { // Limit to 10 users for performance
+            const userItem = document.createElement('div');
+            userItem.className = 'reaction-tooltip-user';
+            
+            userItem.innerHTML = `
+                <img class="reaction-tooltip-avatar" 
+                     src="${user.avatar_url}" 
+                     alt="${user.username}"
+                     onerror="this.src='/public/assets/common/default-profile-picture.png'">
+                <span class="reaction-tooltip-username">${this.escapeHtml(user.username)}</span>
+            `;
+            
+            usersList.appendChild(userItem);
+        });
+        
+        if (users.length > 10) {
+            const moreUsers = document.createElement('div');
+            moreUsers.className = 'reaction-tooltip-more';
+            moreUsers.textContent = `and ${users.length - 10} more...`;
+            usersList.appendChild(moreUsers);
+        }
+        
+        tooltipContent.appendChild(usersList);
+        tooltip.appendChild(tooltipContent);
+        
+        return tooltip;
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    showReactionTooltip(reactionElement, messageId, emoji) {
+        // Remove any existing tooltips
+        this.hideReactionTooltip();
+        
+        const users = this.getUsersWhoReacted(messageId, emoji);
+        if (users.length === 0) return;
+        
+        const tooltip = this.createReactionTooltip(messageId, emoji, users);
+        document.body.appendChild(tooltip);
+        
+        // Position the tooltip
+        const rect = reactionElement.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+        let top = rect.top - tooltipRect.height - 8;
+        
+        // Ensure tooltip stays within viewport
+        if (left < 8) left = 8;
+        if (left + tooltipRect.width > window.innerWidth - 8) {
+            left = window.innerWidth - tooltipRect.width - 8;
+        }
+        if (top < 8) {
+            top = rect.bottom + 8; // Show below if no space above
+        }
+        
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+        tooltip.style.opacity = '1';
+        tooltip.style.transform = 'translateY(0)';
+        
+        this.currentTooltip = tooltip;
+        
+        // Auto-hide after delay if not hovered
+        this.tooltipTimeout = setTimeout(() => {
+            if (this.currentTooltip && !this.currentTooltip.matches(':hover')) {
+                this.hideReactionTooltip();
+            }
+        }, 3000);
+    }
+
+    hideReactionTooltip() {
+        if (this.currentTooltip) {
+            this.currentTooltip.remove();
+            this.currentTooltip = null;
+        }
+        if (this.tooltipTimeout) {
+            clearTimeout(this.tooltipTimeout);
+            this.tooltipTimeout = null;
         }
     }
 
@@ -440,7 +731,8 @@ class EmojiReactions {
                 user_id: currentUserId,
                 username: currentUsername,
                 temp_reaction_id: tempReactionId,
-                is_temporary: true
+                is_temporary: true,
+                avatar_url: null
             });
             
             const tempSocketData = {
@@ -448,6 +740,7 @@ class EmojiReactions {
                 emoji: emoji,
                 user_id: currentUserId,
                 username: currentUsername,
+                avatar_url: window.globalSocketManager?.avatar_url || '/public/assets/common/default-profile-picture.png',
                 target_type: targetType,
                 target_id: targetId,
                 action: 'added',
@@ -518,7 +811,7 @@ class EmojiReactions {
                 emoji: emoji,
                 user_id: currentUserId,
                 temp_reaction_id: tempReactionId,
-                is_temporary: true
+                avatar_url: window.globalSocketManager?.avatar_url || '/public/assets/common/default-profile-picture.png'
             });
             
             const tempSocketData = {
@@ -526,6 +819,7 @@ class EmojiReactions {
                 emoji: emoji,
                 user_id: currentUserId,
                 username: currentUsername,
+                avatar_url: window.globalSocketManager?.avatar_url || '/public/assets/common/default-profile-picture.png',
                 target_type: targetType,
                 target_id: targetId,
                 action: 'removed',
@@ -622,12 +916,23 @@ class EmojiReactions {
         reactionsContainer.innerHTML = '';
 
         const emojiCounts = {};
+        const emojiUsers = {};
         const userReactions = new Set();
         const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
 
         reactions.forEach(reaction => {
             const emoji = reaction.emoji;
             emojiCounts[emoji] = (emojiCounts[emoji] || 0) + 1;
+            
+            // Store users who reacted with each emoji for tooltips
+            if (!emojiUsers[emoji]) {
+                emojiUsers[emoji] = [];
+            }
+            emojiUsers[emoji].push({
+                user_id: reaction.user_id,
+                username: reaction.username,
+                avatar_url: reaction.avatar_url || '/public/assets/common/default-profile-picture.png'
+            });
             
             if (String(reaction.user_id) === String(currentUserId)) {
                 userReactions.add(emoji);
@@ -639,7 +944,19 @@ class EmojiReactions {
             reactionPill.className = isBubbleMessage ? 'bubble-reaction' : 'message-reaction-pill';
             reactionPill.dataset.emoji = emoji;
             reactionPill.dataset.messageId = messageId;
-            reactionPill.title = `${count} reaction${count > 1 ? 's' : ''}`;
+            
+            // Create descriptive title for accessibility
+            const usersWhoReacted = emojiUsers[emoji] || [];
+            const usernames = usersWhoReacted.map(u => u.username).slice(0, 3);
+            let title = `${emoji} ${count} reaction${count > 1 ? 's' : ''}`;
+            if (usernames.length > 0) {
+                if (usernames.length <= 3) {
+                    title += ` by ${usernames.join(', ')}`;
+                } else {
+                    title += ` by ${usernames.join(', ')} and ${usersWhoReacted.length - 3} more`;
+                }
+            }
+            reactionPill.title = title;
 
             if (userReactions.has(emoji)) {
                 reactionPill.classList.add('user-reacted');
@@ -662,9 +979,32 @@ class EmojiReactions {
                 reactionPill.classList.add('reaction-appear');
             }, 10);
 
+            // Add click handler for toggle functionality
             reactionPill.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleReaction(messageId, emoji);
+            });
+
+            // Add hover handlers for tooltip
+            let hoverTimeout;
+            reactionPill.addEventListener('mouseenter', (e) => {
+                // Small delay before showing tooltip to avoid flicker
+                hoverTimeout = setTimeout(() => {
+                    this.showReactionTooltip(reactionPill, messageId, emoji);
+                }, 500);
+            });
+
+            reactionPill.addEventListener('mouseleave', (e) => {
+                if (hoverTimeout) {
+                    clearTimeout(hoverTimeout);
+                    hoverTimeout = null;
+                }
+                // Delay hiding to allow moving to tooltip
+                setTimeout(() => {
+                    if (this.currentTooltip && !this.currentTooltip.matches(':hover') && !reactionPill.matches(':hover')) {
+                        this.hideReactionTooltip();
+                    }
+                }, 100);
             });
 
             reactionsContainer.appendChild(reactionPill);
@@ -749,10 +1089,10 @@ class EmojiReactions {
     }
 
     handleReactionAdded(data) {
-        const { message_id, emoji, user_id, username, temp_reaction_id, is_temporary } = data;
+        const { message_id, emoji, user_id, username, temp_reaction_id, is_temporary, avatar_url } = data;
         
         console.log('🔔 handleReactionAdded called with:', { 
-            message_id, emoji, user_id, username, temp_reaction_id, is_temporary 
+            message_id, emoji, user_id, username, temp_reaction_id, is_temporary, avatar_url
         });
         
         if (!this.currentReactions[message_id]) {
@@ -769,15 +1109,25 @@ class EmojiReactions {
         });
             
         if (existingIndex === -1) {
+            // Determine avatar URL from multiple sources
+            let finalAvatarUrl = avatar_url;
+            if (!finalAvatarUrl) {
+                // Try to get from existing user data or use default
+                const existingUser = this.currentReactions[message_id].find(r => 
+                    String(r.user_id) === String(user_id));
+                finalAvatarUrl = existingUser?.avatar_url || '/public/assets/common/default-profile-picture.png';
+            }
+            
             this.currentReactions[message_id].push({
                 emoji,
                 user_id: String(user_id),
                 username,
+                avatar_url: finalAvatarUrl,
                 temp_reaction_id,
                 is_temporary
             });
             
-            console.log('👆 Added reaction to memory, updating display for message:', message_id);
+            console.log('👆 Added reaction to memory with avatar URL, updating display for message:', message_id);
             this.updateReactionsDisplay(message_id, this.currentReactions[message_id]);
             
             setTimeout(() => {
@@ -806,7 +1156,15 @@ class EmojiReactions {
     }
 
     handleReactionRemoved(data) {
-        const { message_id, emoji, user_id, temp_reaction_id } = data;
+        const { message_id, emoji, user_id, temp_reaction_id, avatar_url } = data;
+        
+        console.log('🗑️ [EMOJI-REACTIONS] Reaction removed:', {
+            messageId: message_id,
+            emoji,
+            userId: user_id,
+            tempId: temp_reaction_id,
+            avatarUrl: avatar_url
+        });
         
         if (!this.currentReactions[message_id]) return;
 
@@ -821,14 +1179,15 @@ class EmojiReactions {
     }
 
     handleReactionConfirmed(data) {
-        const { message_id, emoji, user_id, username, temp_reaction_id, action } = data;
+        const { message_id, emoji, user_id, username, temp_reaction_id, action, avatar_url } = data;
         
         console.log('✅ [EMOJI-REACTIONS] Confirming permanent reaction:', {
             messageId: message_id,
             emoji,
             userId: user_id,
             action,
-            tempId: temp_reaction_id
+            tempId: temp_reaction_id,
+            avatarUrl: avatar_url
         });
         
         if (!this.currentReactions[message_id]) {
@@ -840,14 +1199,29 @@ class EmojiReactions {
                 String(r.user_id) === String(user_id) && r.emoji === emoji);
                 
             if (existingIndex === -1) {
+                // Determine avatar URL from multiple sources
+                let finalAvatarUrl = avatar_url;
+                if (!finalAvatarUrl) {
+                    // Try to get from existing user data or use default
+                    const existingUser = this.currentReactions[message_id].find(r => 
+                        String(r.user_id) === String(user_id));
+                    finalAvatarUrl = existingUser?.avatar_url || '/public/assets/common/default-profile-picture.png';
+                }
+                
                 this.currentReactions[message_id].push({
                     emoji,
                     user_id: String(user_id),
                     username,
+                    avatar_url: finalAvatarUrl,
                     is_permanent: true
                 });
             } else {
+                // Update existing temporary reaction to permanent
                 this.currentReactions[message_id][existingIndex].is_permanent = true;
+                // Ensure avatar URL is set
+                if (avatar_url && !this.currentReactions[message_id][existingIndex].avatar_url) {
+                    this.currentReactions[message_id][existingIndex].avatar_url = avatar_url;
+                }
             }
         } else if (action === 'removed') {
             this.currentReactions[message_id] = this.currentReactions[message_id].filter(r => 
@@ -967,6 +1341,29 @@ class EmojiReactions {
                 console.log('✅ [EMOJI-REACTIONS] Enabled reaction button for permanent ID:', messageId);
             }
         }
+    }
+
+    setupTooltipEventListeners() {
+        // Hide tooltip when clicking elsewhere
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.reaction-tooltip') && 
+                !e.target.closest('.bubble-reaction') && 
+                !e.target.closest('.message-reaction-pill')) {
+                this.hideReactionTooltip();
+            }
+        });
+
+        // Hide tooltip when scrolling
+        document.addEventListener('scroll', () => {
+            this.hideReactionTooltip();
+        }, true);
+
+        // Hide tooltip when window resizes
+        window.addEventListener('resize', () => {
+            this.hideReactionTooltip();
+        });
+
+        console.log('✅ [EMOJI-REACTIONS] Tooltip event listeners set up');
     }
 }
 

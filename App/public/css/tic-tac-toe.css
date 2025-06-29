@@ -1,0 +1,295 @@
+#tic-tac-toe-modal {
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+}
+
+#tic-tac-toe-modal .bg-\[#313338\] {
+    animation: slideIn 0.2s ease-out;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: 1px solid #404249;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+#tic-tac-toe-button {
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#tic-tac-toe-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+#tic-tac-toe-button:hover::before {
+    left: 100%;
+}
+
+#tic-tac-toe-button:hover {
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(88, 101, 242, 0.3);
+}
+
+#player-list .flex.items-center {
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+#player-list .flex.items-center:hover {
+    border-color: #404249;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#game-board {
+    perspective: 1000px;
+}
+
+#game-board button {
+    transition: all 0.15s ease;
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+#game-board button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: #5865f2;
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
+
+#game-board button:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+#game-board button::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#game-board button:hover:not(:disabled)::after {
+    opacity: 1;
+}
+
+#game-board button[disabled] {
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+.winning-cell {
+    animation: winAnimation 0.6s ease-in-out;
+    background: linear-gradient(45deg, #10b981, #059669) !important;
+    color: white !important;
+    border-color: #10b981 !important;
+}
+
+@keyframes winAnimation {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+#ready-button, #play-button, #new-game-button {
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#ready-button::before, #play-button::before, #new-game-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+#ready-button:hover::before, #play-button:hover::before, #new-game-button:hover::before {
+    left: 100%;
+}
+
+#ready-button:active, #play-button:active, #new-game-button:active {
+    transform: scale(0.98);
+}
+
+#current-turn {
+    transition: all 0.3s ease;
+}
+
+#current-turn.text-green-400 {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+#game-players .flex.items-center {
+    transition: all 0.2s ease;
+}
+
+#game-players .bg-\[#5865f2\] {
+    animation: activeTurn 1s ease-in-out infinite alternate;
+}
+
+@keyframes activeTurn {
+    from {
+        background-color: #5865f2;
+        box-shadow: 0 0 10px rgba(88, 101, 242, 0.5);
+    }
+    to {
+        background-color: #4752c4;
+        box-shadow: 0 0 20px rgba(88, 101, 242, 0.8);
+    }
+}
+
+#game-result {
+    animation: resultSlideIn 0.4s ease-out;
+}
+
+@keyframes resultSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#winner-text {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+#winner-text.text-green-400 {
+    animation: celebration 0.8s ease-in-out;
+}
+
+@keyframes celebration {
+    0%, 100% {
+        transform: scale(1);
+    }
+    25% {
+        transform: scale(1.1) rotate(-2deg);
+    }
+    75% {
+        transform: scale(1.1) rotate(2deg);
+    }
+}
+
+.avatar-glow {
+    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.5);
+    animation: avatarGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes avatarGlow {
+    from {
+        box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.5);
+    }
+    to {
+        box-shadow: 0 0 0 4px rgba(88, 101, 242, 0.8);
+    }
+}
+
+#close-tic-tac-toe {
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#close-tic-tac-toe:hover {
+    background-color: #f87171;
+    color: white;
+    transform: rotate(90deg);
+}
+
+.loading-spinner {
+    border: 3px solid #313338;
+    border-top: 3px solid #5865f2;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 480px) {
+    #tic-tac-toe-modal .bg-\[#313338\] {
+        margin: 1rem;
+        max-width: calc(100vw - 2rem);
+    }
+    
+    #game-board {
+        max-width: 240px;
+    }
+    
+    #game-board button {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.25rem;
+    }
+    
+    #game-players {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    #player-list .flex.items-center {
+        padding: 0.75rem;
+    }
+}
