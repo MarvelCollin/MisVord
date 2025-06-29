@@ -76,6 +76,11 @@ export function loadServerPage(serverId, channelId = null) {
                         console.log('[Server AJAX] Channel switch manager initialized');
                     }
                     
+                    if (typeof window.initializeParticipantSection === 'function') {
+                        window.initializeParticipantSection();
+                        console.log('[Server AJAX] Participant section initialized');
+                    }
+                    
                     if (typeof window.updateActiveServer === 'function') {
                         window.updateActiveServer('server', serverId);
                         console.log('[Server AJAX] Active server state updated');

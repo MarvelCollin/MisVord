@@ -86,7 +86,6 @@ function getServerIdFromURL() {
 function initializeServerComponents() {
     console.log('[Server Page] Initializing server components');
     
-    // Initialize existing server-specific components that don't require AJAX
     if (typeof window.initializeServerDropdown === 'function') {
         window.initializeServerDropdown();
     }
@@ -95,9 +94,12 @@ function initializeServerComponents() {
         window.initializeChannelManager();
     }
     
-    // Initialize chat section as globally available
     if (typeof window.initializeChatSection === 'function') {
         window.initializeChatSection();
+    }
+    
+    if (typeof window.initializeParticipantSection === 'function') {
+        window.initializeParticipantSection();
     }
     
     console.log('[Server Page] Server components initialized');

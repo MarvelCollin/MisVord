@@ -473,6 +473,11 @@ Route::delete('/api/messages/([0-9]+)', function($messageId) {
     $controller->deleteMessage($messageId);
 });
 
+Route::post('/api/messages/render-bubble', function() {
+    $controller = new MessageController();
+    $controller->renderBubbleMessage();
+});
+
 Route::get('/api/chat/render/(channel|dm|direct)/([0-9]+)', function($chatType, $chatId) {
     $controller = new ChatController();
     $controller->renderChatSection($chatType, $chatId);

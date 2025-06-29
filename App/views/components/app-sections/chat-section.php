@@ -1,14 +1,11 @@
 <?php
 require_once __DIR__ . '/../common/file-preview-card.php';
-require_once __DIR__ . '/../messaging/bubble-chat.php';
 $currentUserId = $_SESSION['user_id'] ?? 0;
 
 $chatType = $GLOBALS['chatType'] ?? null;
 $targetId = $GLOBALS['targetId'] ?? null;
 $chatData = $GLOBALS['chatData'] ?? null;
 $messages = $GLOBALS['messages'] ?? [];
-
-
 
 if (!$chatType) {
     $currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
@@ -87,329 +84,28 @@ if ($chatType === 'channel') {
     return;
 }
 
-function formatMessageContent($content) {
-    $content = htmlspecialchars($content);
-    $content = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $content);
-    $content = preg_replace('/\*(.*?)\*/', '<em>$1</em>', $content);
-    $content = preg_replace('/~~(.*?)~~/', '<del>$1</del>', $content);
-    $content = preg_replace('/`(.*?)`/', '<code class="bg-[#2f3136] text-[#dcddde] px-1 py-0.5 rounded text-sm">$1</code>', $content);
-    $content = preg_replace_callback('/```(.*?)```/s', function($matches) {
-        return '<pre class="bg-[#2f3136] text-[#dcddde] p-2 rounded mt-1 overflow-x-auto"><code>' . $matches[1] . '</code></pre>';
-    }, $content);
-    $content = preg_replace('/\n/', '<br>', $content);
-    return $content;
-}
 
-function formatTimestamp($timestamp) {
-    if (empty($timestamp)) return '';
-    
-    $date = DateTime::createFromFormat('Y-m-d H:i:s', $timestamp);
-    if (!$date) {
-        $date = new DateTime($timestamp);
-    }
-    
-    $now = new DateTime();
-    $diff = $now->diff($date);
-    
-    if ($diff->days == 0) {
-        return 'Today at ' . $date->format('g:i A');
-    } elseif ($diff->days == 1) {
-        return 'Yesterday at ' . $date->format('g:i A');
-    } else {
-        return $date->format('m/d/Y g:i A');
-    }
-}
 
-if (!function_exists('formatBubbleTimestamp')) {
-    function formatBubbleTimestamp($sentAt) {
-        if (empty($sentAt)) return '';
+if (!function_exists('renderMessage')) {
+    function renderMessage($messages, $startIndex) {
+        if (!isset($messages[$startIndex])) return $startIndex;
         
-        $date = new DateTime($sentAt);
-        $now = new DateTime();
-        $diffDays = $now->diff($date)->days;
+        $currentMessage = $messages[$startIndex];
+        $messageId = is_array($currentMessage) ? ($currentMessage['id'] ?? '') : ($currentMessage->id ?? '');
+        $content = is_array($currentMessage) ? ($currentMessage['content'] ?? '') : ($currentMessage->content ?? '');
+        $attachments = is_array($currentMessage) ? ($currentMessage['attachments'] ?? []) : ($currentMessage->attachments ?? []);
         
-        if ($diffDays === 0) {
-            return 'Today at ' . $date->format('g:i A');
-        } elseif ($diffDays === 1) {
-            return 'Yesterday at ' . $date->format('g:i A');
-        } else {
-            return $date->format('M j, Y g:i A');
-        }
-    }
-}
-
-if (!function_exists('formatBubbleContent')) {
-    function formatBubbleContent($content) {
-        if (empty($content)) return '';
-        
-        $formatted = htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
-        
-        $formatted = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $formatted);
-        $formatted = preg_replace('/\*(.*?)\*/', '<em>$1</em>', $formatted);
-        $formatted = preg_replace('/~~(.*?)~~/', '<del>$1</del>', $formatted);
-        $formatted = preg_replace('/`(.*?)`/', '<code class="bg-[#2f3136] text-[#dcddde] px-1 py-0.5 rounded text-sm">$1</code>', $formatted);
-        $formatted = nl2br($formatted);
-        
-        return $formatted;
-    }
-}
-
-if (!function_exists('getBubbleFileIcon')) {
-    function getBubbleFileIcon($filename) {
-        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        
-        $icons = [
-            'pdf' => '<i class="fas fa-file-pdf text-red-500"></i>',
-            'doc' => '<i class="fas fa-file-word text-blue-500"></i>',
-            'docx' => '<i class="fas fa-file-word text-blue-500"></i>',
-            'xls' => '<i class="fas fa-file-excel text-green-500"></i>',
-            'xlsx' => '<i class="fas fa-file-excel text-green-500"></i>',
-            'ppt' => '<i class="fas fa-file-powerpoint text-orange-500"></i>',
-            'pptx' => '<i class="fas fa-file-powerpoint text-orange-500"></i>',
-            'zip' => '<i class="fas fa-file-archive text-yellow-500"></i>',
-            'rar' => '<i class="fas fa-file-archive text-yellow-500"></i>',
-            'txt' => '<i class="fas fa-file-alt text-gray-500"></i>',
-            'js' => '<i class="fas fa-file-code text-purple-500"></i>',
-            'php' => '<i class="fas fa-file-code text-purple-500"></i>',
-            'html' => '<i class="fas fa-file-code text-purple-500"></i>',
-            'css' => '<i class="fas fa-file-code text-purple-500"></i>',
-            'mp3' => '<i class="fas fa-file-audio text-green-400"></i>',
-            'wav' => '<i class="fas fa-file-audio text-green-400"></i>'
-        ];
-        
-        return $icons[$extension] ?? '<i class="fas fa-file"></i>';
-    }
-}
-
-if (!function_exists('formatBubbleFileSize')) {
-    function formatBubbleFileSize($bytes) {
-        if (!$bytes || $bytes === 0) return '0 B';
-        
-        $sizes = ['B', 'KB', 'MB', 'GB'];
-        $i = floor(log($bytes) / log(1024));
-        
-        return round($bytes / pow(1024, $i), 2) . ' ' . $sizes[$i];
-    }
-}
-
-if (!function_exists('isBubbleImageFile')) {
-    function isBubbleImageFile($url) {
-        return preg_match('/\.(jpeg|jpg|gif|png|webp)$/i', $url);
-    }
-}
-
-if (!function_exists('isBubbleVideoFile')) {
-    function isBubbleVideoFile($url) {
-        return preg_match('/\.(mp4|webm|mov|avi|wmv)$/i', $url);
-    }
-}
-
-if (!function_exists('renderBubbleMessageContent')) {
-    function renderBubbleMessageContent($message) {
-    $messageId = is_array($message) ? ($message['id'] ?? '') : ($message->id ?? '');
-    $userId = is_array($message) ? ($message['user_id'] ?? 0) : ($message->user_id ?? 0);
-    $content = is_array($message) ? ($message['content'] ?? '') : ($message->content ?? '');
-    $editedAt = is_array($message) ? ($message['edited_at'] ?? null) : ($message->edited_at ?? null);
-    $attachments = is_array($message) ? ($message['attachments'] ?? []) : ($message->attachments ?? []);
-    $reactions = is_array($message) ? ($message['reactions'] ?? []) : ($message->reactions ?? []);
-    $replyMessageId = is_array($message) ? ($message['reply_message_id'] ?? null) : ($message->reply_message_id ?? null);
-    $replyData = is_array($message) ? ($message['reply_data'] ?? null) : ($message->reply_data ?? null);
-    
-    // Prevent rendering empty/invalid message content
-    if (empty($messageId) || $messageId === '0' || (empty($content) && empty($attachments))) {
-        error_log("❌ [RENDER-BUBBLE] Skipping invalid message content - ID: '$messageId', Content: '$content', Attachments: " . count($attachments));
-        return; // Don't render empty message content
-    }
-    
-    $currentUserId = $_SESSION['user_id'] ?? 0;
-    $isOwnMessage = ($userId == $currentUserId);
-    
-    echo '<div class="bubble-message-content" data-message-id="' . htmlspecialchars($messageId) . '" data-user-id="' . htmlspecialchars($userId) . '">';
-    
-    // Reply if present
-    if ($replyData) {
-        echo '<div class="bubble-reply-container" data-reply-message-id="' . htmlspecialchars($replyMessageId) . '">';
-        echo '<div style="margin-right: 4px;"><i class="fas fa-reply"></i></div>';
-        echo '<span class="bubble-reply-username">' . htmlspecialchars($replyData['username'] ?? 'Unknown') . '</span>';
-        $replyContent = $replyData['content'] ?? '';
-        echo '<span class="bubble-reply-content">' . htmlspecialchars(strlen($replyContent) > 50 ? substr($replyContent, 0, 50) . '...' : $replyContent) . '</span>';
-        echo '</div>';
-    }
-    
-    // Message text
-    if ($content) {
-        echo '<div class="bubble-message-text">';
-        echo formatBubbleContent($content);
-        if ($editedAt) {
-            echo '<span class="bubble-edited-badge">(edited)</span>';
-        }
-        echo '</div>';
-    }
-    
-    // Attachments
-    if (!empty($attachments)) {
-        echo '<div class="bubble-attachments">';
-        foreach ($attachments as $attachment) {
-            $attachmentUrl = is_array($attachment) ? ($attachment['url'] ?? $attachment) : $attachment;
-            $attachmentName = is_array($attachment) ? ($attachment['name'] ?? basename($attachmentUrl)) : basename($attachmentUrl);
-            $attachmentSize = is_array($attachment) ? ($attachment['size'] ?? null) : null;
-            
-            echo '<div class="bubble-attachment">';
-            
-            if (isBubbleImageFile($attachmentUrl)) {
-                echo '<img src="' . htmlspecialchars($attachmentUrl) . '" alt="' . htmlspecialchars($attachmentName) . '"';
-                echo ' loading="lazy" onclick="window.open(\'' . htmlspecialchars($attachmentUrl) . '\', \'_blank\')"';
-                echo ' onerror="this.style.display=\'none\'; this.parentNode.innerHTML=\'<div class=\\\'bubble-file-attachment\\\'><i class=\\\'fas fa-image\\\'></i> Image failed to load</div>\';">';
-            } elseif (isBubbleVideoFile($attachmentUrl)) {
-                echo '<video src="' . htmlspecialchars($attachmentUrl) . '" controls preload="metadata"';
-                echo ' onerror="this.style.display=\'none\'; this.parentNode.innerHTML=\'<div class=\\\'bubble-file-attachment\\\'><i class=\\\'fas fa-video\\\'></i> Video failed to load</div>\';"></video>';
-            } else {
-                echo '<div class="bubble-file-attachment">';
-                echo '<div class="bubble-file-icon">' . getBubbleFileIcon($attachmentName) . '</div>';
-                echo '<div class="bubble-file-info">';
-                echo '<div class="bubble-file-name">' . htmlspecialchars($attachmentName) . '</div>';
-                if ($attachmentSize) {
-                    echo '<div class="bubble-file-size">' . formatBubbleFileSize($attachmentSize) . '</div>';
-                }
-                echo '</div>';
-                echo '<button class="bubble-download-button" onclick="downloadAttachment(\'' . htmlspecialchars($attachmentUrl) . '\', \'' . htmlspecialchars($attachmentName) . '\')">';
-                echo '<i class="fas fa-download"></i>';
-                echo '</button>';
-                echo '</div>';
-            }
-            
-            echo '</div>';
-        }
-        echo '</div>';
-    }
-    
-
-    
-    // Reactions
-    if (!empty($reactions)) {
-        echo '<div class="bubble-reactions">';
-        
-        $groupedReactions = [];
-        foreach ($reactions as $reaction) {
-            $emoji = is_array($reaction) ? ($reaction['emoji'] ?? '') : ($reaction->emoji ?? '');
-            if (!isset($groupedReactions[$emoji])) {
-                $groupedReactions[$emoji] = [
-                    'emoji' => $emoji,
-                    'count' => 0,
-                    'users' => [],
-                    'hasCurrentUser' => false
-                ];
-            }
-            $groupedReactions[$emoji]['count']++;
-            $groupedReactions[$emoji]['users'][] = is_array($reaction) ? ($reaction['username'] ?? '') : ($reaction->username ?? '');
-            if ((is_array($reaction) ? ($reaction['user_id'] ?? 0) : ($reaction->user_id ?? 0)) == $currentUserId) {
-                $groupedReactions[$emoji]['hasCurrentUser'] = true;
-            }
+        if (empty($messageId) || $messageId === '0' || (empty($content) && empty($attachments))) {
+            return $startIndex;
         }
         
-        foreach ($groupedReactions as $group) {
-            $userReactedClass = $group['hasCurrentUser'] ? 'user-reacted' : '';
-            echo '<div class="bubble-reaction ' . $userReactedClass . '" title="' . htmlspecialchars(implode(', ', $group['users'])) . '"';
-            echo ' data-emoji="' . htmlspecialchars($group['emoji']) . '" data-message-id="' . htmlspecialchars($messageId) . '">';
-            echo '<span class="bubble-reaction-emoji">' . htmlspecialchars($group['emoji']) . '</span>';
-            echo '<span class="bubble-reaction-count">' . $group['count'] . '</span>';
-            echo '</div>';
-        }
+        $messageData = is_array($currentMessage) ? $currentMessage : (array) $currentMessage;
+        $GLOBALS['messageData'] = $messageData;
+        $GLOBALS['currentUserId'] = $_SESSION['user_id'] ?? 0;
         
-        echo '</div>';
-    }
-    
-    echo '</div>'; // End message content
-    }
-}
-
-if (!function_exists('renderMessageGroup')) {
-    function renderMessageGroup($messages, $startIndex) {
-    if (!isset($messages[$startIndex])) return $startIndex;
-    
-    $firstMessage = $messages[$startIndex];
-    $userId = is_array($firstMessage) ? ($firstMessage['user_id'] ?? 0) : ($firstMessage->user_id ?? 0);
-    $username = is_array($firstMessage) ? ($firstMessage['username'] ?? '') : ($firstMessage->username ?? '');
-    $avatarUrl = is_array($firstMessage) ? ($firstMessage['avatar_url'] ?? '/public/assets/common/default-profile-picture.png') : ($firstMessage->avatar_url ?? '/public/assets/common/default-profile-picture.png');
-    $sentAt = is_array($firstMessage) ? ($firstMessage['sent_at'] ?? '') : ($firstMessage->sent_at ?? '');
-    $messageId = is_array($firstMessage) ? ($firstMessage['id'] ?? '') : ($firstMessage->id ?? '');
-    $content = is_array($firstMessage) ? ($firstMessage['content'] ?? '') : ($firstMessage->content ?? '');
-    $attachments = is_array($firstMessage) ? ($firstMessage['attachments'] ?? []) : ($firstMessage->attachments ?? []);
-    
-    // Prevent rendering empty/invalid message groups
-    if (empty($messageId) || $messageId === '0' || (empty($content) && empty($attachments))) {
-        error_log("❌ [CHAT-SECTION] Skipping invalid message group - ID: '$messageId', Content: '$content', Attachments: " . count($attachments));
-        return $startIndex; // Skip this message group
-    }
-    
-    echo '<div class="bubble-message-group" data-user-id="' . htmlspecialchars($userId) . '" data-timestamp="' . (strtotime($sentAt) * 1000) . '">';
-    
-    // Avatar
-    echo '<div class="bubble-avatar">';
-    echo '<img src="' . htmlspecialchars($avatarUrl) . '" alt="' . htmlspecialchars($username) . '" onerror="this.src=\'/public/assets/common/default-profile-picture.png\';">';
-    echo '</div>';
-    
-    // Content wrapper
-    echo '<div class="bubble-content-wrapper">';
-    
-    // Header
-    echo '<div class="bubble-header">';
-    echo '<span class="bubble-username">' . htmlspecialchars($username) . '</span>';
-    echo '<span class="bubble-timestamp">' . formatBubbleTimestamp($sentAt) . '</span>';
-    echo '</div>';
-    
-    // Contents container
-    echo '<div class="bubble-contents">';
-    
-    $i = $startIndex;
-    while ($i < count($messages)) {
-        $currentMessage = $messages[$i];
-        $currentMessageId = is_array($currentMessage) ? ($currentMessage['id'] ?? '') : ($currentMessage->id ?? '');
-        $currentContent = is_array($currentMessage) ? ($currentMessage['content'] ?? '') : ($currentMessage->content ?? '');
-        $currentAttachments = is_array($currentMessage) ? ($currentMessage['attachments'] ?? []) : ($currentMessage->attachments ?? []);
+        include __DIR__ . '/../messaging/bubble-chat.php';
         
-        // Skip invalid messages within the group
-        if (empty($currentMessageId) || $currentMessageId === '0' || (empty($currentContent) && empty($currentAttachments))) {
-            error_log("❌ [CHAT-SECTION] Skipping invalid message in group - ID: '$currentMessageId'");
-            $i++;
-            continue;
-        }
-        
-        if (!shouldGroupWithPreviousMessage($currentMessage, $firstMessage)) {
-            break;
-        }
-        
-        renderBubbleMessageContent($currentMessage);
-        $i++;
-    }
-    
-    echo '</div>'; // End contents
-    echo '</div>'; // End content wrapper
-    echo '</div>'; // End message group
-    
-    return $i - 1;
-    }
-}
-
-if (!function_exists('shouldGroupWithPreviousMessage')) {
-    function shouldGroupWithPreviousMessage($currentMessage, $firstMessage) {
-    $currentUserId = is_array($currentMessage) ? ($currentMessage['user_id'] ?? 0) : ($currentMessage->user_id ?? 0);
-    $firstUserId = is_array($firstMessage) ? ($firstMessage['user_id'] ?? 0) : ($firstMessage->user_id ?? 0);
-    
-    if ($currentUserId !== $firstUserId) {
-        return false;
-    }
-    
-    $currentTime = is_array($currentMessage) ? ($currentMessage['sent_at'] ?? '') : ($currentMessage->sent_at ?? '');
-    $firstTime = is_array($firstMessage) ? ($firstMessage['sent_at'] ?? '') : ($firstMessage->sent_at ?? '');
-    
-    $currentDate = DateTime::createFromFormat('Y-m-d H:i:s', $currentTime);
-    $firstDate = DateTime::createFromFormat('Y-m-d H:i:s', $firstTime);
-    
-    if (!$currentDate || !$firstDate) return false;
-    
-    $diff = $currentDate->getTimestamp() - $firstDate->getTimestamp();
-    return $diff <= 300;
+        return $startIndex;
     }
 }
 
@@ -436,243 +132,17 @@ if (!function_exists('shouldGroupWithPreviousMessage')) {
     background-color: #2b2d31;
 }
 
-.message-group-item {
-    position: relative;
-    padding: 2px 16px;
-    transition: background-color 0.1s ease;
+#chat-messages {
+    background-color: #313338;
 }
 
-.message-group-item:hover {
-    background-color: rgba(6, 6, 7, 0.02);
-}
-
-.message-group-wrapper {
-    display: flex;
-    align-items: flex-start;
-    margin-top: 4px;
-}
-
-.message-avatar-wrapper {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    margin-right: 16px;
-    flex-shrink: 0;
-    margin-top: 4px;
-    transition: opacity 0.3s ease;
-}
-
-.message-avatar-wrapper img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.message-content-area {
-    flex-grow: 1;
-    min-width: 0;
-    padding-top: 2px;
-}
-
-.message-header-info {
-    display: flex;
-    align-items: baseline;
-    margin-bottom: 4px;
-}
-
-.message-username-text {
-    font-weight: 600;
-    color: #f2f3f5;
-    margin-right: 8px;
-    font-size: 15px;
-    cursor: pointer;
-}
-
-.message-username-text:hover {
-    text-decoration: underline;
-}
-
-.message-timestamp-text {
-    font-size: 12px;
-    color: #a3a6aa;
-    font-weight: 500;
-    margin-left: 4px;
-}
-
-.message-body-text {
-    color: #dcddde;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-size: 16px;
-    line-height: 1.375;
-    margin: 0;
-    padding: 0;
-}
-
-.message-consecutive {
-    margin-top: 0;
-}
-
-.message-consecutive .message-body-text {
-    padding-left: 0;
-}
-
-.edited-badge {
-    font-size: 10px;
-    color: #a3a6aa;
-    margin-left: 4px;
-    font-style: italic;
-}
-
-.message-fade-in {
-    opacity: 0;
-    transform: translateY(8px);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.message-appear {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.reaction-fade-in {
-    opacity: 0;
-    transform: scale(0.8);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.reaction-appear {
-    opacity: 1;
-    transform: scale(1);
-}
-
-@keyframes reaction-pop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.3); }
-    100% { transform: scale(1); }
-}
-
-.reaction-pop {
-    animation: reaction-pop 0.5s ease-in-out;
-}
-
-.reaction-skeleton {
-    min-height: 28px;
-    padding: 4px 0;
-    opacity: 0.8;
-}
-
-.reaction-loading-pulse {
-    height: 24px;
-    width: 80px;
-    background: linear-gradient(90deg, rgba(79, 84, 92, 0.2) 0%, rgba(79, 84, 92, 0.3) 50%, rgba(79, 84, 92, 0.2) 100%);
-    border-radius: 12px;
-    animation: pulse 1.5s ease-in-out infinite;
-    background-size: 200% 100%;
-}
-
-@keyframes pulse {
-    0% { background-position: 0% 0; }
-    100% { background-position: 200% 0; }
-}
-
-#chat-messages .message-group:hover {
-    background-color: rgba(79, 84, 92, 0.16) !important;
-}
-
-#chat-messages .message-group:first-child {
-    margin-top: 0;
-}
-
-#chat-messages .message-group:last-child {
-    margin-bottom: 16px;
-}
-
-#chat-messages .message-avatar {
-    width: 40px !important;
-    height: 40px !important;
-    margin-right: 16px !important;
-    flex-shrink: 0 !important;
-    margin-top: 2px !important;
-}
-
-#chat-messages .message-avatar img {
-    width: 100% !important;
-    height: 100% !important;
-    border-radius: 50% !important;
-    object-fit: cover !important;
-}
-
-#chat-messages .message-content-wrapper {
-    flex: 1 !important;
-    min-width: 0 !important;
-}
-
-#chat-messages .message-header {
-    display: flex !important;
-    align-items: baseline !important;
-    margin-bottom: 4px !important;
-}
-
-#chat-messages .message-username {
-    font-weight: 600 !important;
-    color: #f2f3f5 !important;
-    margin-right: 8px !important;
-    font-size: 15px !important;
-    cursor: pointer !important;
-}
-
-#chat-messages .message-username:hover {
-    text-decoration: underline !important;
-}
-
-#chat-messages .message-timestamp {
-    font-size: 12px !important;
-    color: #a3a6aa !important;
-}
-
-#chat-messages .message-contents {
-    margin-top: 0 !important;
-}
-
-#chat-messages .message-content {
-    position: relative !important;
-    overflow: visible !important;
-}
-
-#chat-messages .message-main-text {
-    color: #dcddde !important;
-    word-wrap: break-word !important;
-}
-
-#chat-messages .message-actions-js {
-    position: absolute !important;
-    right: -4px !important;
-    top: -4px !important;
-    z-index: 999 !important;
-    opacity: 0 !important;
-    transition: opacity 0.2s ease !important;
-}
-
-#chat-messages .message-group:hover .message-actions-js {
-    opacity: 1 !important;
+#chat-messages .messages-container {
+    padding: 16px 0;
 }
 
 @media (max-width: 768px) {
-    .message-avatar-wrapper {
-        width: 32px;
-        height: 32px;
-        margin-right: 12px;
-    }
-    
-    .message-username-text {
-        font-size: 14px;
-    }
-    
-    .message-body-text {
-        font-size: 15px;
+    .bubble-message-group {
+        padding: 2px 8px;
     }
 }
 </style>
@@ -699,7 +169,7 @@ if (!function_exists('shouldGroupWithPreviousMessage')) {
                 <?php
                 $i = 0;
                 while ($i < count($messages)) {
-                    $i = renderMessageGroup($messages, $i);
+                    $i = renderMessage($messages, $i);
                     $i++;
                 }
                 ?>

@@ -43,7 +43,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
         <!-- Voice Controls Panel -->
         <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
-            <div class="bg-[#1e1f22]/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-[#40444b]/50 p-4">
+            <div class="voice-control-panel bg-[#1e1f22]/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-[#40444b]/50 p-4">
                 <div class="flex items-center space-x-4">
                     <!-- Microphone -->
                     <div class="relative group">
@@ -278,6 +278,149 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 .debug-highlight {
     border: 2px solid #ff0000 !important;
     background-color: rgba(255, 0, 0, 0.1) !important;
+}
+
+/* Voice Controls Styles */
+.voice-control-panel {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* Enhanced button animations */
+.voice-control-panel button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.voice-control-panel button:hover {
+    transform: translateY(-2px) scale(1.05);
+}
+
+.voice-control-panel button:active {
+    transform: translateY(0) scale(0.95);
+}
+
+/* Custom slider styles */
+.slider {
+    background: linear-gradient(to right, #5865f2 0%, #5865f2 var(--value, 100%), #1e1f22 var(--value, 100%), #1e1f22 100%);
+}
+
+.slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #5865f2;
+    cursor: pointer;
+    border: 2px solid #36393f;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+    background: #4752c4;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #5865f2;
+    cursor: pointer;
+    border: 2px solid #36393f;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+    background: #4752c4;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+}
+
+/* Custom checkbox styles */
+.form-checkbox {
+    accent-color: #5865f2;
+}
+
+.form-checkbox:checked {
+    background-color: #5865f2;
+    border-color: #5865f2;
+}
+
+/* Connection status animations */
+@keyframes pulse-green {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+.connection-pulse {
+    animation: pulse-green 2s infinite;
+}
+
+/* Tooltip improvements */
+.voice-control-panel .group:hover .absolute {
+    transform: translateX(-50%) translateY(-2px);
+}
+
+/* Mobile responsiveness for voice controls */
+@media (max-width: 640px) {
+    .voice-control-panel {
+        transform: translateX(-50%) scale(0.9);
+        bottom: 1rem;
+    }
+    
+    .voice-control-panel .flex {
+        space-x: 0.75rem;
+    }
+    
+    .voice-control-panel button {
+        width: 3rem;
+        height: 3rem;
+    }
+    
+    .voice-control-panel .text-xl {
+        font-size: 1rem;
+    }
+}
+
+/* Loading state for controls */
+.control-loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.control-loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: conic-gradient(from 0deg, transparent, #5865f2, transparent);
+    border-radius: inherit;
+    animation: spin 1s linear infinite;
+    mask: radial-gradient(circle at center, transparent 60%, black 61%);
+}
+
+/* Enhanced modal animations */
+.settings-modal-enter {
+    animation: modalEnter 0.3s ease-out forwards;
+}
+
+@keyframes modalEnter {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 </style>
 
@@ -615,6 +758,352 @@ window.toggleLoading = toggleLoading;
 window.addLocalParticipant = addLocalParticipant;
 window.addRemoteParticipant = addRemoteParticipant;
 window.removeParticipant = removeParticipant;
+
+// Voice Controls Synchronization
+function setupVoiceControlSync() {
+    console.log('🔧 Setting up voice control synchronization');
+    
+    // Get all control elements
+    const voiceMicBtn = document.getElementById('voiceMicBtn');
+    const voiceDeafenBtn = document.getElementById('voiceDeafenBtn');
+    const voiceVideoBtn = document.getElementById('voiceVideoBtn');
+    const voiceScreenBtn = document.getElementById('voiceScreenBtn');
+    const voiceSettingsBtn = document.getElementById('voiceSettingsBtn');
+    const voiceDisconnectBtn = document.getElementById('voiceDisconnectBtn');
+    
+    // Connection timer elements
+    const connectionTimeEl = document.getElementById('voiceConnectionTime');
+    const participantCountEl = document.getElementById('voiceParticipantCount');
+    
+    let connectionStartTime = null;
+    let connectionTimer = null;
+    
+    // Microphone control
+    if (voiceMicBtn) {
+        voiceMicBtn.addEventListener('click', () => {
+            if (window.voiceStateManager) {
+                window.voiceStateManager.toggleMic();
+            }
+        });
+    }
+    
+    // Deafen control
+    if (voiceDeafenBtn) {
+        voiceDeafenBtn.addEventListener('click', () => {
+            if (window.voiceStateManager) {
+                window.voiceStateManager.toggleDeafen();
+            }
+        });
+    }
+    
+    // Video control
+    if (voiceVideoBtn) {
+        voiceVideoBtn.addEventListener('click', () => {
+            if (window.voiceStateManager) {
+                window.voiceStateManager.toggleVideo();
+            }
+        });
+    }
+    
+    // Screen share control
+    if (voiceScreenBtn) {
+        voiceScreenBtn.addEventListener('click', () => {
+            if (window.voiceStateManager) {
+                window.voiceStateManager.toggleScreenShare();
+            }
+        });
+    }
+    
+    // Settings control
+    if (voiceSettingsBtn) {
+        voiceSettingsBtn.addEventListener('click', () => {
+            showVoiceSettings();
+        });
+    }
+    
+    // Disconnect control
+    if (voiceDisconnectBtn) {
+        voiceDisconnectBtn.addEventListener('click', () => {
+            if (window.voiceStateManager) {
+                window.voiceStateManager.disconnectVoice();
+            } else if (window.voiceManager) {
+                window.voiceManager.leaveVoice();
+            }
+        });
+    }
+    
+    // Update controls based on voice state
+    function updateVoiceControls() {
+        if (!window.voiceStateManager) return;
+        
+        const state = window.voiceStateManager.getState();
+        
+        // Update microphone button
+        if (voiceMicBtn) {
+            const micIcon = voiceMicBtn.querySelector('i');
+            const micTooltip = voiceMicBtn.parentElement.querySelector('.mic-tooltip');
+            
+            if (state.isMuted || state.isDeafened) {
+                micIcon.className = 'fas fa-microphone-slash text-xl';
+                voiceMicBtn.classList.add('bg-[#ed4245]', 'text-white');
+                voiceMicBtn.classList.remove('bg-[#2f3136]', 'text-[#b9bbbe]');
+                if (micTooltip) micTooltip.textContent = 'Unmute';
+            } else {
+                micIcon.className = 'fas fa-microphone text-xl';
+                voiceMicBtn.classList.remove('bg-[#ed4245]', 'text-white');
+                voiceMicBtn.classList.add('bg-[#2f3136]', 'text-[#b9bbbe]');
+                if (micTooltip) micTooltip.textContent = 'Mute';
+            }
+        }
+        
+        // Update deafen button
+        if (voiceDeafenBtn) {
+            const deafenIcon = voiceDeafenBtn.querySelector('i');
+            const deafenTooltip = voiceDeafenBtn.parentElement.querySelector('.deafen-tooltip');
+            
+            if (state.isDeafened) {
+                deafenIcon.className = 'fas fa-volume-xmark text-xl';
+                voiceDeafenBtn.classList.add('bg-[#ed4245]', 'text-white');
+                voiceDeafenBtn.classList.remove('bg-[#2f3136]', 'text-[#b9bbbe]');
+                if (deafenTooltip) deafenTooltip.textContent = 'Undeafen';
+            } else {
+                deafenIcon.className = 'fas fa-headphones text-xl';
+                voiceDeafenBtn.classList.remove('bg-[#ed4245]', 'text-white');
+                voiceDeafenBtn.classList.add('bg-[#2f3136]', 'text-[#b9bbbe]');
+                if (deafenTooltip) deafenTooltip.textContent = 'Deafen';
+            }
+        }
+        
+        // Update video button
+        if (voiceVideoBtn) {
+            const videoIcon = voiceVideoBtn.querySelector('i');
+            const videoTooltip = voiceVideoBtn.parentElement.querySelector('.video-tooltip');
+            
+            if (state.isVideoOn) {
+                videoIcon.className = 'fas fa-video text-xl';
+                voiceVideoBtn.classList.add('bg-[#3ba55c]', 'text-white');
+                voiceVideoBtn.classList.remove('bg-[#2f3136]', 'text-[#b9bbbe]');
+                if (videoTooltip) videoTooltip.textContent = 'Turn Off Camera';
+            } else {
+                videoIcon.className = 'fas fa-video-slash text-xl';
+                voiceVideoBtn.classList.remove('bg-[#3ba55c]', 'text-white');
+                voiceVideoBtn.classList.add('bg-[#2f3136]', 'text-[#b9bbbe]');
+                if (videoTooltip) videoTooltip.textContent = 'Turn On Camera';
+            }
+        }
+        
+        // Update screen share button
+        if (voiceScreenBtn) {
+            const screenIcon = voiceScreenBtn.querySelector('i');
+            const screenTooltip = voiceScreenBtn.parentElement.querySelector('.screen-tooltip');
+            
+            if (state.isScreenSharing) {
+                screenIcon.className = 'fas fa-desktop text-xl';
+                voiceScreenBtn.classList.add('bg-[#5865f2]', 'text-white');
+                voiceScreenBtn.classList.remove('bg-[#2f3136]', 'text-[#b9bbbe]');
+                if (screenTooltip) screenTooltip.textContent = 'Stop Sharing';
+            } else {
+                screenIcon.className = 'fas fa-desktop text-xl';
+                voiceScreenBtn.classList.remove('bg-[#5865f2]', 'text-white');
+                voiceScreenBtn.classList.add('bg-[#2f3136]', 'text-[#b9bbbe]');
+                if (screenTooltip) screenTooltip.textContent = 'Share Screen';
+            }
+        }
+    }
+    
+    // Start connection timer
+    function startConnectionTimer() {
+        connectionStartTime = Date.now();
+        
+        if (connectionTimer) {
+            clearInterval(connectionTimer);
+        }
+        
+        connectionTimer = setInterval(() => {
+            if (connectionTimeEl && connectionStartTime) {
+                const elapsed = Math.floor((Date.now() - connectionStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                connectionTimeEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }, 1000);
+    }
+    
+    // Stop connection timer
+    function stopConnectionTimer() {
+        if (connectionTimer) {
+            clearInterval(connectionTimer);
+            connectionTimer = null;
+        }
+        connectionStartTime = null;
+        if (connectionTimeEl) {
+            connectionTimeEl.textContent = '00:00';
+        }
+    }
+    
+    // Update participant count
+    function updateParticipantCount() {
+        if (participantCountEl) {
+            const participants = document.querySelectorAll('.participant-container').length;
+            participantCountEl.textContent = participants.toString();
+        }
+    }
+    
+    // Listen for voice state changes
+    if (window.voiceStateManager) {
+        window.voiceStateManager.addListener(updateVoiceControls);
+    }
+    
+    // Listen for voice events
+    window.addEventListener('voiceConnect', (e) => {
+        console.log('🎤 Voice controls: Voice connected');
+        startConnectionTimer();
+        updateVoiceControls();
+        setTimeout(updateParticipantCount, 500);
+    });
+    
+    window.addEventListener('voiceDisconnect', () => {
+        console.log('🔇 Voice controls: Voice disconnected');
+        stopConnectionTimer();
+        updateVoiceControls();
+        if (participantCountEl) {
+            participantCountEl.textContent = '0';
+        }
+    });
+    
+    // Listen for participant changes
+    window.addEventListener('participantJoined', updateParticipantCount);
+    window.addEventListener('participantLeft', updateParticipantCount);
+    
+    // Periodic participant count update
+    setInterval(updateParticipantCount, 2000);
+    
+    // Initial update
+    updateVoiceControls();
+    updateParticipantCount();
+    
+    console.log('✅ Voice control synchronization setup complete');
+}
+
+// Voice settings modal
+function showVoiceSettings() {
+    // Create settings modal
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]';
+    modal.innerHTML = `
+        <div class="bg-[#2f3136] rounded-lg p-6 m-4 max-w-lg w-full settings-modal-enter">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-semibold text-white">Voice Settings</h3>
+                <button class="close-settings text-[#b9bbbe] hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- Input Device -->
+                <div>
+                    <label class="block text-sm font-medium text-[#b9bbbe] mb-2">Input Device</label>
+                    <select class="w-full bg-[#1e1f22] border border-[#40444b] rounded-md px-3 py-2 text-white">
+                        <option>Default - Built-in Microphone</option>
+                    </select>
+                </div>
+                
+                <!-- Output Device -->
+                <div>
+                    <label class="block text-sm font-medium text-[#b9bbbe] mb-2">Output Device</label>
+                    <select class="w-full bg-[#1e1f22] border border-[#40444b] rounded-md px-3 py-2 text-white">
+                        <option>Default - Built-in Speakers</option>
+                    </select>
+                </div>
+                
+                <!-- Input Volume -->
+                <div>
+                    <label class="block text-sm font-medium text-[#b9bbbe] mb-2">Input Volume</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="range" min="0" max="100" value="100" class="flex-1 h-2 bg-[#1e1f22] rounded-lg appearance-none cursor-pointer slider">
+                        <span class="text-white text-sm w-10">100%</span>
+                    </div>
+                </div>
+                
+                <!-- Output Volume -->
+                <div>
+                    <label class="block text-sm font-medium text-[#b9bbbe] mb-2">Output Volume</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="range" min="0" max="100" value="100" class="flex-1 h-2 bg-[#1e1f22] rounded-lg appearance-none cursor-pointer slider">
+                        <span class="text-white text-sm w-10">100%</span>
+                    </div>
+                </div>
+                
+                <!-- Voice Activity -->
+                <div>
+                    <label class="flex items-center space-x-3">
+                        <input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#5865f2] bg-[#1e1f22] border-[#40444b] rounded">
+                        <span class="text-[#b9bbbe]">Voice Activity Detection</span>
+                    </label>
+                </div>
+                
+                <!-- Push to Talk -->
+                <div>
+                    <label class="flex items-center space-x-3">
+                        <input type="checkbox" class="form-checkbox h-4 w-4 text-[#5865f2] bg-[#1e1f22] border-[#40444b] rounded">
+                        <span class="text-[#b9bbbe]">Push to Talk</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="flex justify-end space-x-3 mt-6 pt-6 border-t border-[#40444b]">
+                <button class="close-settings px-4 py-2 bg-[#4f545c] hover:bg-[#5d6269] text-white rounded transition-colors">
+                    Cancel
+                </button>
+                <button class="px-4 py-2 bg-[#5865f2] hover:bg-[#4752c4] text-white rounded transition-colors">
+                    Save
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Close modal handlers
+    const closeButtons = modal.querySelectorAll('.close-settings');
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', () => modal.remove());
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+    
+    // Slider value updates
+    const sliders = modal.querySelectorAll('input[type="range"]');
+    sliders.forEach(slider => {
+        const valueSpan = slider.parentElement.querySelector('span');
+        slider.addEventListener('input', () => {
+            valueSpan.textContent = slider.value + '%';
+        });
+    });
+}
+
+// Initialize voice control sync when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Delay to ensure voice state manager is ready
+    setTimeout(setupVoiceControlSync, 1000);
+});
+
+// Also initialize when voice state manager becomes available
+if (window.voiceStateManager) {
+    setupVoiceControlSync();
+} else {
+    // Wait for voice state manager
+    const checkVoiceStateManager = () => {
+        if (window.voiceStateManager) {
+            setupVoiceControlSync();
+        } else {
+            setTimeout(checkVoiceStateManager, 500);
+        }
+    };
+    checkVoiceStateManager();
+}
 
 // Function to refresh all participant styling
 window.refreshParticipantStyling = function() {

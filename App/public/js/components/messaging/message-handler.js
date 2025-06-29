@@ -7,8 +7,7 @@ class MessageHandler {
         this.temporaryMessages = new Map(); // Track temporary messages
     }
     
-    addMessage(messageData) {
-        // Enhanced validation - reject invalid messages
+    async addMessage(messageData) {
         if (!messageData || 
             !messageData.id || 
             messageData.id === '' || 
@@ -20,13 +19,11 @@ class MessageHandler {
         
         const isTemporary = messageData.is_temporary || messageData.id.toString().startsWith('temp-');
         
-        // Primary deduplication check - skip if we've already processed this message
         if (this.processedMessageIds.has(messageData.id)) {
             console.log(`🔄 [MESSAGE-HANDLER] Message ${messageData.id} already processed, skipping`);
             return;
         }
         
-        // Check if message element already exists in DOM
         const existingElement = document.querySelector(`[data-message-id="${messageData.id}"]`);
         if (existingElement && !isTemporary) {
             console.log(`🔄 [MESSAGE-HANDLER] Message ${messageData.id} already exists in DOM, skipping`);
@@ -34,7 +31,6 @@ class MessageHandler {
             return;
         }
         
-        // Handle temporary message updates
         if (isTemporary) {
             console.log(`📥 [MESSAGE-HANDLER] Adding temporary message ${messageData.id} to UI`);
         } else {
@@ -47,62 +43,92 @@ class MessageHandler {
             return;
         }
         
-        // Hide empty state if it's showing
         this.chatSection.hideEmptyState();
         
-        // Format the message data for the bubble component
         const formattedMessage = this.formatMessageForBubble(messageData);
         
-        // Final validation on formatted message
         if (!this.isValidFormattedMessage(formattedMessage)) {
             console.error('❌ [MESSAGE-HANDLER] Formatted message failed validation:', formattedMessage);
             return;
         }
         
-        // Check if we should append to existing message group or create a new one
-        const shouldGroupWithPrevious = this.shouldGroupWithPreviousMessage(messageData);
-        
-        let messageElement;
-        let messageGroup;
-        
-        if (shouldGroupWithPrevious && this.lastMessageGroup) {
-            // Append to existing message group
-            const messageContent = this.createMessageContent(formattedMessage);
+        try {
+            const bubbleHtml = await this.renderBubbleMessage(formattedMessage);
             
-            // Add temporary styling if needed
-            if (isTemporary) {
-                this.markAsTemporary(messageContent);
-                this.temporaryMessages.set(messageData.id, messageContent);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = bubbleHtml;
+            const messageGroup = tempDiv.firstElementChild;
+            
+            if (messageGroup) {
+                messagesContainer.appendChild(messageGroup);
+                this.lastMessageGroup = messageGroup;
+                const messageElement = messageGroup.querySelector('[data-message-id]');
+                
+                if (isTemporary) {
+                    this.markAsTemporary(messageElement);
+                    this.temporaryMessages.set(messageData.id, messageElement);
+                }
+                
+                this.processedMessageIds.add(messageData.id);
+                this.chatSection.scrollToBottomIfNeeded();
+                
+                console.log(`✅ [MESSAGE-HANDLER] Message ${messageData.id} successfully added to UI using bubble component`);
+            } else {
+                console.error('❌ [MESSAGE-HANDLER] Failed to create message element from bubble HTML');
             }
             
-            this.lastMessageGroup.querySelector('.bubble-contents').appendChild(messageContent);
-            messageGroup = this.lastMessageGroup;
-            messageElement = messageContent;
-        } else {
-            // Create new message group using bubble component
-            messageGroup = this.createMessageGroup(formattedMessage);
-            if (!messageGroup) {
-                console.error('❌ [MESSAGE-HANDLER] Failed to create message group for:', formattedMessage);
-                return;
-            }
-            messagesContainer.appendChild(messageGroup);
-            this.lastMessageGroup = messageGroup;
-            messageElement = messageGroup.querySelector('[data-message-id]');
+        } catch (error) {
+            console.error('❌ [MESSAGE-HANDLER] Error rendering bubble message:', error);
+            this.fallbackAddMessage(formattedMessage, messagesContainer, isTemporary);
+        }
+    }
+    
+    async renderBubbleMessage(messageData) {
+        const response = await fetch('/api/messages/render-bubble', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message_data: messageData
+            })
+        });
         
-            // Add temporary styling if needed
-            if (isTemporary) {
-                this.markAsTemporary(messageElement);
-                this.temporaryMessages.set(messageData.id, messageElement);
-            }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        // Add to processed messages IMMEDIATELY to prevent duplicates
-        this.processedMessageIds.add(messageData.id);
+        const result = await response.json();
         
-        // Scroll to bottom if needed
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to render bubble message');
+        }
+        
+        return result.html;
+    }
+    
+    fallbackAddMessage(formattedMessage, messagesContainer, isTemporary) {
+        console.log('🔧 [MESSAGE-HANDLER] Using fallback message rendering');
+        
+        const messageGroup = this.createMessageGroup(formattedMessage);
+        if (!messageGroup) {
+            console.error('❌ [MESSAGE-HANDLER] Failed to create message group for:', formattedMessage);
+            return;
+        }
+        
+        messagesContainer.appendChild(messageGroup);
+        this.lastMessageGroup = messageGroup;
+        const messageElement = messageGroup.querySelector('[data-message-id]');
+        
+        if (isTemporary) {
+            this.markAsTemporary(messageElement);
+            this.temporaryMessages.set(formattedMessage.id, messageElement);
+        }
+        
+        this.processedMessageIds.add(formattedMessage.id);
         this.chatSection.scrollToBottomIfNeeded();
         
-        console.log(`✅ [MESSAGE-HANDLER] Message ${messageData.id} successfully added to UI (source: ${messageData.source})`);
+        console.log(`✅ [MESSAGE-HANDLER] Message ${formattedMessage.id} successfully added to UI using fallback`);
     }
     
     createMessageGroup(messageData) {

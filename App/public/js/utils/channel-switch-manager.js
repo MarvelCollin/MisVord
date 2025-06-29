@@ -151,36 +151,100 @@ class ChannelSwitchManager {
 
         if (channelType === 'voice') {
             console.log('[ChannelSwitchManager] Switching to voice section');
+            
+            // Hide chat section
             if (chatSection) {
                 chatSection.classList.add('hidden');
                 chatSection.style.display = 'none';
+                console.log('[ChannelSwitchManager] Chat section hidden');
             }
+            
+            // Show voice section
             if (voiceSection) {
                 voiceSection.classList.remove('hidden');
                 voiceSection.style.display = 'flex';
+                console.log('[ChannelSwitchManager] Voice section shown');
+            } else {
+                console.log('[ChannelSwitchManager] Voice section not found - will be created');
             }
-            // Clear chat section instance
+            
+            // Cleanup chat section instance
             if (window.chatSection) {
+                console.log('[ChannelSwitchManager] Cleaning up chat section instance');
+                if (typeof window.chatSection.cleanup === 'function') {
+                    window.chatSection.cleanup();
+                }
                 window.chatSection = null;
             }
+            
+            // Reset chat messages to ensure clean state
+            const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages) {
+                chatMessages.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-400">
+                        <i class="fas fa-comments text-6xl mb-4"></i>
+                        <p class="text-lg">Switch to a text channel to see messages</p>
+                    </div>
+                `;
+            }
+            
         } else {
             console.log('[ChannelSwitchManager] Switching to chat section');
+            
+            // Hide voice section
             if (voiceSection) {
                 voiceSection.classList.add('hidden');
                 voiceSection.style.display = 'none';
+                console.log('[ChannelSwitchManager] Voice section hidden');
             }
+            
+            // Show chat section
             if (chatSection) {
                 chatSection.classList.remove('hidden');
                 chatSection.style.display = 'flex';
+                console.log('[ChannelSwitchManager] Chat section shown');
+            } else {
+                console.log('[ChannelSwitchManager] Chat section not found - will be created');
             }
-            // Cleanup voice manager
-            if (window.voiceManager && window.voiceManager.isConnected) {
-                window.voiceManager.leaveVoice();
-            }
+            
+            // Cleanup voice manager and components
             if (window.voiceManager) {
+                console.log('[ChannelSwitchManager] Cleaning up voice manager');
+                if (window.voiceManager.isConnected && typeof window.voiceManager.leaveVoice === 'function') {
+                    window.voiceManager.leaveVoice();
+                }
                 window.voiceManager = null;
             }
+            
+            if (window.voiceSection) {
+                console.log('[ChannelSwitchManager] Cleaning up voice section instance');
+                if (typeof window.voiceSection.cleanup === 'function') {
+                    window.voiceSection.cleanup();
+                }
+                window.voiceSection = null;
+            }
+            
+            // Reset voice section UI to initial state
+            const joinView = document.getElementById('joinView');
+            const connectingView = document.getElementById('connectingView');
+            const connectedView = document.getElementById('connectedView');
+            
+            if (joinView) joinView.classList.remove('hidden');
+            if (connectingView) connectingView.classList.add('hidden');
+            if (connectedView) connectedView.classList.add('hidden');
         }
+        
+        // Add transition effects
+        this.addSectionTransitions();
+    }
+    
+    addSectionTransitions() {
+        const sections = document.querySelectorAll('.chat-section, .voice-section');
+        sections.forEach(section => {
+            if (!section.style.transition) {
+                section.style.transition = 'opacity 0.2s ease-in-out';
+            }
+        });
     }
 
     updateChatMetaTags(channelId, serverId) {
@@ -216,44 +280,327 @@ class ChannelSwitchManager {
     initializeChatSection(channelId) {
         console.log('[ChannelSwitchManager] Initializing chat section for channel:', channelId);
         
+        // Ensure chat section element exists
+        let chatSection = document.querySelector('.chat-section');
+        if (!chatSection) {
+            console.log('[ChannelSwitchManager] Chat section element not found, creating it');
+            const mainContent = document.querySelector('#main-content');
+            if (mainContent) {
+                chatSection = document.createElement('div');
+                chatSection.className = 'chat-section flex flex-col flex-1 h-screen';
+                chatSection.innerHTML = `
+                    <div class="flex flex-col flex-1 bg-discord-background">
+                        <div class="h-12 border-b border-discord-600 px-4 flex items-center">
+                            <div class="flex items-center">
+                                <i class="fas fa-hashtag text-gray-500 mr-2"></i>
+                                <span class="text-white font-semibold" id="channel-name">Loading...</span>
+                            </div>
+                        </div>
+                        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 bg-discord-background">
+                            <div class="flex flex-col items-center justify-center h-full text-gray-400">
+                                <i class="fas fa-comments text-6xl mb-4"></i>
+                                <p class="text-lg">Loading messages...</p>
+                            </div>
+                        </div>
+                        <div class="p-4 border-t border-discord-600">
+                            <form id="message-form" class="flex">
+                                <input type="text" id="message-input" placeholder="Type a message..." 
+                                       class="flex-1 bg-discord-light text-white px-4 py-2 rounded-l-lg focus:outline-none">
+                                <button type="submit" class="bg-discord-primary px-4 py-2 rounded-r-lg hover:bg-discord-primary-dark">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                mainContent.appendChild(chatSection);
+            }
+        }
+        
+        // Update channel name in header
+        const channelNameElement = document.querySelector('#channel-name');
+        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        const channelName = channelElement ? channelElement.textContent.trim().replace('#', '') : 'channel';
+        if (channelNameElement) {
+            channelNameElement.textContent = channelName;
+        }
+        
         // Check if chat section exists and switch target
         if (window.chatSection && typeof window.chatSection.switchTarget === 'function') {
             console.log('[ChannelSwitchManager] Switching existing chat section to channel:', channelId);
             window.chatSection.switchTarget('channel', channelId);
         } else {
             console.log('[ChannelSwitchManager] Creating new chat section instance');
-            // Initialize new chat section
+            // Initialize new chat section with proper delay
             setTimeout(() => {
-                if (typeof window.initializeChatSection === 'function') {
-                    window.initializeChatSection();
-                } else if (typeof window.ChatSection === 'function') {
-                    const chatSection = new window.ChatSection({
-                        chatType: 'channel',
-                        targetId: channelId,
-                        userId: window.currentUserId || document.querySelector('meta[name="user-id"]')?.getAttribute('content'),
-                        username: window.currentUsername || document.querySelector('meta[name="username"]')?.getAttribute('content')
-                    });
-                    window.chatSection = chatSection;
-                }
+                this.createChatSectionInstance(channelId);
             }, 100);
         }
+        
+        // Join socket room for this channel
+        if (window.globalSocketManager) {
+            console.log('[ChannelSwitchManager] Joining channel socket room:', channelId);
+            window.globalSocketManager.joinChannel(channelId);
+        }
+    }
+    
+    createChatSectionInstance(channelId) {
+        if (typeof window.initializeChatSection === 'function') {
+            console.log('[ChannelSwitchManager] Using global initializeChatSection function');
+            window.initializeChatSection();
+        } else if (typeof window.ChatSection === 'function') {
+            console.log('[ChannelSwitchManager] Creating ChatSection instance manually');
+            const chatSection = new window.ChatSection({
+                chatType: 'channel',
+                targetId: channelId,
+                userId: window.currentUserId || document.querySelector('meta[name="user-id"]')?.getAttribute('content'),
+                username: window.currentUsername || document.querySelector('meta[name="username"]')?.getAttribute('content')
+            });
+            window.chatSection = chatSection;
+            
+            // Initialize the chat section
+            if (typeof chatSection.init === 'function') {
+                chatSection.init();
+            }
+        } else {
+            console.log('[ChannelSwitchManager] Loading chat section script dynamically');
+            this.loadChatSectionScript().then(() => {
+                this.createChatSectionInstance(channelId);
+            });
+        }
+    }
+    
+    loadChatSectionScript() {
+        return new Promise((resolve, reject) => {
+            if (document.querySelector('script[src*="chat-section.js"]')) {
+                resolve();
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = '/public/js/components/messaging/chat-section.js?v=' + Date.now();
+            script.onload = () => {
+                console.log('[ChannelSwitchManager] Chat section script loaded');
+                resolve();
+            };
+            script.onerror = () => {
+                console.error('[ChannelSwitchManager] Failed to load chat section script');
+                reject();
+            };
+            document.head.appendChild(script);
+        });
     }
 
     initializeVoiceSection(channelId) {
         console.log('[ChannelSwitchManager] Initializing voice section for channel:', channelId);
         
-        // Initialize voice components
-        setTimeout(() => {
-            if (typeof window.initializeVoiceComponents === 'function') {
-                window.initializeVoiceComponents();
+        // Ensure voice section element exists
+        let voiceSection = document.querySelector('.voice-section');
+        if (!voiceSection) {
+            console.log('[ChannelSwitchManager] Voice section element not found, creating it');
+            const mainContent = document.querySelector('#main-content');
+            if (mainContent) {
+                voiceSection = document.createElement('div');
+                voiceSection.className = 'voice-section flex flex-col h-screen bg-[#313338] text-white';
+                voiceSection.innerHTML = `
+                    <div class="flex flex-col flex-1">
+                        <div class="h-12 border-b border-gray-600 px-4 flex items-center">
+                            <div class="flex items-center">
+                                <i class="fas fa-volume-high text-gray-500 mr-2"></i>
+                                <span class="text-white font-semibold" id="voice-channel-name">Loading...</span>
+                            </div>
+                        </div>
+                        <div class="flex-1 flex flex-col items-center justify-center p-8">
+                            <div id="joinView" class="text-center">
+                                <i class="fas fa-microphone text-6xl mb-4 text-gray-400"></i>
+                                <h2 class="text-2xl font-bold mb-4">Join Voice Channel</h2>
+                                <p class="text-gray-400 mb-6">Connect to start talking with others in this channel</p>
+                                <button id="joinBtn" class="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                                    <i class="fas fa-microphone mr-2"></i>
+                                    Join Voice
+                                </button>
+                            </div>
+                            <div id="connectingView" class="text-center hidden">
+                                <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-green-500 mb-4"></div>
+                                <p class="text-lg">Connecting to voice channel...</p>
+                            </div>
+                            <div id="connectedView" class="w-full hidden">
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div class="text-center">
+                                        <div class="relative w-20 h-20 mx-auto mb-2">
+                                            <img id="userAvatar" src="/public/assets/common/default-profile-picture.png" 
+                                                 alt="User Avatar" class="w-full h-full rounded-full">
+                                            <div id="micStatus" class="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white">
+                                                <i class="fas fa-microphone text-white text-xs"></i>
+                                            </div>
+                                        </div>
+                                        <p id="userName" class="text-sm font-medium">You</p>
+                                    </div>
+                                </div>
+                                <div class="mt-8 flex justify-center space-x-4">
+                                    <button id="muteBtn" class="bg-gray-600 hover:bg-gray-700 text-white p-3 rounded-full">
+                                        <i class="fas fa-microphone"></i>
+                                    </button>
+                                    <button id="videoBtn" class="bg-gray-600 hover:bg-gray-700 text-white p-3 rounded-full">
+                                        <i class="fas fa-video"></i>
+                                    </button>
+                                    <button id="leaveBtn" class="bg-red-500 hover:bg-red-600 text-white p-3 rounded-full">
+                                        <i class="fas fa-phone-slash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                mainContent.appendChild(voiceSection);
+            }
+        }
+        
+        // Update voice channel name in header
+        const voiceChannelNameElement = document.querySelector('#voice-channel-name');
+        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        const channelName = channelElement ? channelElement.textContent.trim() : 'Voice Channel';
+        if (voiceChannelNameElement) {
+            voiceChannelNameElement.textContent = channelName;
+        }
+        
+        // Load voice scripts and initialize
+        this.loadVoiceScripts().then(() => {
+            console.log('[ChannelSwitchManager] Voice scripts loaded, initializing voice components');
+            this.initializeVoiceComponents(channelId);
+        }).catch(error => {
+            console.error('[ChannelSwitchManager] Failed to load voice scripts:', error);
+        });
+    }
+    
+    loadVoiceScripts() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // Load VideoSDK if not already loaded
+                if (!window.VideoSDK) {
+                    console.log('[ChannelSwitchManager] Loading VideoSDK');
+                    await this.loadScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
+                }
+                
+                // Load VideoSDK manager if not already loaded
+                if (!window.videoSDKManager) {
+                    console.log('[ChannelSwitchManager] Loading VideoSDK manager');
+                    await this.loadScript('/public/js/components/videosdk/videosdk.js?v=' + Date.now());
+                }
+                
+                // Load voice manager if not already loaded
+                if (!window.VoiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
+                    console.log('[ChannelSwitchManager] Loading voice manager');
+                    await this.loadScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
+                }
+                
+                // Load voice section if not already loaded
+                if (!window.VoiceSection && !document.querySelector('script[src*="voice-section.js"]')) {
+                    console.log('[ChannelSwitchManager] Loading voice section');
+                    await this.loadScript('/public/js/components/voice/voice-section.js?v=' + Date.now());
+                }
+                
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+    
+    loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const existingScript = document.querySelector(`script[src="${src}"]`);
+            if (existingScript) {
+                resolve();
+                return;
             }
             
-            // Dispatch voice section loaded event
-            const event = new CustomEvent('voiceSectionLoaded', {
-                detail: { channelId }
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+    
+    initializeVoiceComponents(channelId) {
+        console.log('[ChannelSwitchManager] Initializing voice components for channel:', channelId);
+        
+        // Initialize join button functionality
+        const joinBtn = document.getElementById('joinBtn');
+        if (joinBtn) {
+            // Remove existing event listeners
+            const newJoinBtn = joinBtn.cloneNode(true);
+            joinBtn.parentNode.replaceChild(newJoinBtn, joinBtn);
+            
+            newJoinBtn.addEventListener('click', () => {
+                console.log('[ChannelSwitchManager] Join voice button clicked');
+                this.handleVoiceJoin(channelId);
             });
-            document.dispatchEvent(event);
-        }, 100);
+        }
+        
+        // Initialize leave button functionality
+        const leaveBtn = document.getElementById('leaveBtn');
+        if (leaveBtn) {
+            const newLeaveBtn = leaveBtn.cloneNode(true);
+            leaveBtn.parentNode.replaceChild(newLeaveBtn, leaveBtn);
+            
+            newLeaveBtn.addEventListener('click', () => {
+                console.log('[ChannelSwitchManager] Leave voice button clicked');
+                this.handleVoiceLeave();
+            });
+        }
+        
+        // Initialize VoiceSection if available
+        if (typeof window.VoiceSection === 'function') {
+            console.log('[ChannelSwitchManager] Creating VoiceSection instance');
+            window.voiceSection = new window.VoiceSection();
+        }
+        
+        // Dispatch voice section loaded event
+        const event = new CustomEvent('voiceSectionLoaded', {
+            detail: { channelId }
+        });
+        document.dispatchEvent(event);
+    }
+    
+    handleVoiceJoin(channelId) {
+        console.log('[ChannelSwitchManager] Handling voice join for channel:', channelId);
+        
+        const joinView = document.getElementById('joinView');
+        const connectingView = document.getElementById('connectingView');
+        
+        if (joinView) joinView.classList.add('hidden');
+        if (connectingView) connectingView.classList.remove('hidden');
+        
+        // Initialize voice manager if available
+        if (window.voiceManager && typeof window.voiceManager.joinVoice === 'function') {
+            window.voiceManager.joinVoice();
+        } else if (window.voiceSection && typeof window.voiceSection.autoJoin === 'function') {
+            window.voiceSection.autoJoin();
+        } else {
+            console.warn('[ChannelSwitchManager] No voice manager available for joining');
+            setTimeout(() => {
+                if (joinView) joinView.classList.remove('hidden');
+                if (connectingView) connectingView.classList.add('hidden');
+            }, 2000);
+        }
+    }
+    
+    handleVoiceLeave() {
+        console.log('[ChannelSwitchManager] Handling voice leave');
+        
+        if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
+            window.voiceManager.leaveVoice();
+        }
+        
+        const joinView = document.getElementById('joinView');
+        const connectedView = document.getElementById('connectedView');
+        const connectingView = document.getElementById('connectingView');
+        
+        if (connectedView) connectedView.classList.add('hidden');
+        if (connectingView) connectingView.classList.add('hidden');
+        if (joinView) joinView.classList.remove('hidden');
     }
 
     showChannelSwitchingState(element) {

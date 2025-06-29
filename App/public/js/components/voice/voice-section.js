@@ -13,6 +13,8 @@ class VoiceSection {
         this.initializationAttempts = 0;
         this.maxInitAttempts = 10;
         this.initialized = false;
+        this.isProcessing = false;
+        this.autoJoinInProgress = false;
         
         setTimeout(() => {
             this.findElements();
@@ -118,42 +120,15 @@ class VoiceSection {
         this.elements.joinBtn = newJoinBtn;
         
         this.elements.joinBtn.addEventListener('click', async (e) => {
-            if (this.elements.joinBtn.getAttribute('data-processing') === 'true') {
-                return;
-            }
-            
-            this.elements.joinBtn.setAttribute('data-processing', 'true');
-            
-            const btnSpan = this.elements.joinBtn.querySelector('span');
-            if (btnSpan) {
-                const icon = btnSpan.querySelector('i');
-                btnSpan.textContent = 'Connecting...';
-                if (icon) {
-                    btnSpan.prepend(icon);
-                }
-            } else {
-                this.elements.joinBtn.textContent = 'Connecting...';
-            }
-            
-            if (this.elements.joinView) {
-                this.elements.joinView.classList.add('hidden');
-            }
-            
-            if (this.elements.connectingView) {
-                this.elements.connectingView.classList.remove('hidden');
-            }
-            
-            try {
-                await this.waitForVoiceManager();
-                await this.connectToVoice();
-            } catch (error) {
-                console.error('Error connecting to voice:', error);
-                this.handleConnectionError();
-            }
+            this.handleJoinClick();
         });
         
         window.addEventListener('voiceConnect', (event) => {
             const details = event.detail || {};
+            
+            // Reset processing flags on successful connection
+            this.isProcessing = false;
+            this.autoJoinInProgress = false;
             
             if (this.elements.connectingView) {
                 this.elements.connectingView.classList.add('hidden');
@@ -198,6 +173,10 @@ class VoiceSection {
         });
         
         window.addEventListener('voiceDisconnect', () => {
+            // Reset processing flags on disconnect
+            this.isProcessing = false;
+            this.autoJoinInProgress = false;
+            
             if (this.elements.videoGrid) {
                 this.elements.videoGrid.classList.add('hidden');
             }
@@ -226,6 +205,51 @@ class VoiceSection {
             window.voiceState.isConnected = false;
             localStorage.removeItem("voiceConnectionState");
         });
+    }
+    
+    async handleJoinClick() {
+        // Prevent multiple simultaneous join attempts
+        if (this.isProcessing || this.elements.joinBtn?.getAttribute('data-processing') === 'true') {
+            console.log('🚫 Join already in progress, skipping');
+            return;
+        }
+        
+        console.log('🎯 Starting join process');
+        this.isProcessing = true;
+        
+        if (this.elements.joinBtn) {
+            this.elements.joinBtn.setAttribute('data-processing', 'true');
+            
+            const btnSpan = this.elements.joinBtn.querySelector('span');
+            if (btnSpan) {
+                const icon = btnSpan.querySelector('i');
+                btnSpan.textContent = 'Connecting...';
+                if (icon) {
+                    btnSpan.prepend(icon);
+                }
+            } else {
+                this.elements.joinBtn.textContent = 'Connecting...';
+            }
+        }
+        
+        if (this.elements.joinView) {
+            this.elements.joinView.classList.add('hidden');
+        }
+        
+        if (this.elements.connectingView) {
+            this.elements.connectingView.classList.remove('hidden');
+        }
+        
+        try {
+            await this.waitForVoiceManager();
+            await this.connectToVoice();
+        } catch (error) {
+            console.error('Error connecting to voice:', error);
+            this.handleConnectionError();
+        } finally {
+            this.isProcessing = false;
+            this.autoJoinInProgress = false;
+        }
     }
     
     async connectToVoice() {
@@ -268,6 +292,10 @@ class VoiceSection {
     
     handleConnectionError() {
         console.error('Connection error occurred');
+        
+        // Reset processing flags
+        this.isProcessing = false;
+        this.autoJoinInProgress = false;
         
         if (this.elements.joinBtn) {
             this.elements.joinBtn.removeAttribute('data-processing');
@@ -369,13 +397,25 @@ class VoiceSection {
     }
     
     autoJoin() {
-        if (this.elements.joinBtn && !window.voiceState.isConnected) {
-            const clickEvent = new MouseEvent('click', {
-                bubbles: true,
-                cancelable: true,
-                view: window
-            });
-            this.elements.joinBtn.dispatchEvent(clickEvent);
+        // Prevent infinite recursion
+        if (this.autoJoinInProgress || this.isProcessing) {
+            console.warn('⚠️ Auto-join already in progress, skipping');
+            return false;
+        }
+        
+        // Check if already connected or button is being processed
+        if (window.voiceState?.isConnected || 
+            this.elements.joinBtn?.getAttribute('data-processing') === 'true') {
+            console.log('ℹ️ Voice already connected or processing, skipping auto-join');
+            return false;
+        }
+        
+        if (this.elements.joinBtn) {
+            console.log('🎯 Starting auto-join process');
+            this.autoJoinInProgress = true;
+            
+            // Use direct method call instead of dispatching click event to avoid recursion
+            this.handleJoinClick();
             return true;
         }
         return false;
@@ -394,6 +434,8 @@ class VoiceSection {
         this.connectionStartTime = null;
         this.initializationAttempts = 0;
         this.initialized = false;
+        this.isProcessing = false;
+        this.autoJoinInProgress = false;
         
         // Clear references to DOM elements
         this.elements = {
@@ -436,14 +478,16 @@ window.triggerVoiceAutoJoin = function() {
 };
 
 window.handleAutoJoin = function() {
+    // Use the voice section's autoJoin method to prevent recursion
+    if (window.voiceSection) {
+        return window.voiceSection.autoJoin();
+    }
+    
+    // Fallback if voice section not available
     const joinBtn = document.getElementById('joinBtn');
-    if (joinBtn && !window.voiceState?.isConnected) {
-        const clickEvent = new MouseEvent('click', {
-            bubbles: true,
-            cancelable: true,
-            view: window
-        });
-        joinBtn.dispatchEvent(clickEvent);
+    if (joinBtn && !window.voiceState?.isConnected && joinBtn.getAttribute('data-processing') !== 'true') {
+        console.log('🎯 Fallback auto-join triggered');
+        joinBtn.click();
         return true;
     }
     return false;

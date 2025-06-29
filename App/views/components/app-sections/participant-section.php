@@ -8,18 +8,6 @@ $members = $GLOBALS['serverMembers'] ?? [];
 
 $totalMemberCount = count($members);
 
-function renderMemberSkeleton($count = 1) {
-    for ($i = 0; $i < $count; $i++) {
-        echo '<div class="flex items-center px-2 py-1 rounded">';
-        echo '  <div class="relative mr-2">';
-        echo '    <div class="w-8 h-8 rounded-full bg-gray-700 animate-pulse"></div>';
-        echo '    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-600 animate-pulse"></span>';
-        echo '  </div>';
-        echo '  <div class="h-4 bg-gray-700 rounded w-' . rand(16, 28) . ' animate-pulse"></div>';
-        echo '</div>';
-    }
-}
-
 $roleGroups = [
     'owner' => [],
     'admin' => [],
@@ -58,14 +46,7 @@ foreach ($members as $member) {
         <input type="text" placeholder="Search" class="w-full bg-black bg-opacity-30 text-white text-sm rounded px-2 py-1 focus:outline-none">
     </div>
     
-    <div class="participant-skeleton flex-1 overflow-y-auto p-2 skeleton-loader">
-        <div class="mb-4">
-            <div class="h-3 bg-gray-700 rounded w-28 ml-2 mb-3 animate-pulse"></div>
-            <?php renderMemberSkeleton(8); ?>
-        </div>
-    </div>
-    
-    <div class="participant-content flex-1 overflow-y-auto p-2 hidden" data-lazyload="participant-list">
+    <div class="participant-content flex-1 overflow-y-auto p-2" data-lazyload="participant-list">
         <div class="px-2">
             <?php 
             $roleDisplayOrder = ['owner', 'admin', 'bot', 'member', 'offline'];
@@ -189,40 +170,30 @@ function loadSocketIO(callback) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const participantSkeleton = document.querySelector('.participant-skeleton');
-    const participantContent = document.querySelector('.participant-content');
+    const participantContainer = document.querySelector('[data-lazyload="participant-list"]');
+    if (participantContainer) {
+        if (window.LazyLoader && typeof window.LazyLoader.triggerDataLoaded === 'function') {
+            const isEmpty = <?php echo empty($members) ? 'true' : 'false'; ?>;
+            window.LazyLoader.triggerDataLoaded('participant-list', isEmpty);
+        }
+    }
     
-    setTimeout(function() {
-        if (participantSkeleton && participantContent) {
-            participantSkeleton.classList.add('hidden');
-            participantContent.classList.remove('hidden');
-        }
-        
-        const participantContainer = document.querySelector('[data-lazyload="participant-list"]');
-        if (participantContainer) {
-            if (window.LazyLoader && typeof window.LazyLoader.triggerDataLoaded === 'function') {
-                const isEmpty = <?php echo empty($members) ? 'true' : 'false'; ?>;
-                window.LazyLoader.triggerDataLoaded('participant-list', isEmpty);
-            }
-        }
-        
-        loadSocketIO(initializeSocketConnection);
-    }, 1000);
+    loadSocketIO(initializeSocketConnection);
+    initializeParticipantHover();
 });
 
-function toggleParticipantLoading(loading = true) {
-    const participantSkeleton = document.querySelector('.participant-skeleton');
-    const participantContent = document.querySelector('.participant-content');
+function initializeParticipantHover() {
+    const participantItems = document.querySelectorAll('.participant-content .user-profile-trigger');
     
-    if (!participantSkeleton || !participantContent) return;
-    
-    if (loading) {
-        participantSkeleton.classList.remove('hidden');
-        participantContent.classList.add('hidden');
-    } else {
-        participantSkeleton.classList.add('hidden');
-        participantContent.classList.remove('hidden');
-    }
+    participantItems.forEach(item => {
+        item.addEventListener('mouseover', function() {
+            this.classList.add('bg-discord-light');
+        });
+        
+        item.addEventListener('mouseout', function() {
+            this.classList.remove('bg-discord-light');
+        });
+    });
 }
 
 function initializeSocketConnection() {
@@ -390,19 +361,14 @@ function getStatusClass(status) {
     }
 }
 
-window.toggleParticipantLoading = toggleParticipantLoading;
-
-document.addEventListener('DOMContentLoaded', function() {
-    const participantItems = document.querySelectorAll('.participant-content .user-profile-trigger');
+window.initializeParticipantSection = function() {
+    console.log('Initializing participant section');
     
-    participantItems.forEach(item => {
-        item.addEventListener('mouseover', function() {
-            this.classList.add('bg-discord-light');
-        });
-        
-        item.addEventListener('mouseout', function() {
-            this.classList.remove('bg-discord-light');
-        });
-    });
-});
+    loadSocketIO(initializeSocketConnection);
+    initializeParticipantHover();
+};
+
+window.toggleParticipantLoading = function(loading = true) {
+    console.log('Participant loading toggle called but using simple DOM - no skeleton');
+};
 </script>

@@ -577,6 +577,47 @@ class MessageController extends BaseController
         }
     }
 
+    public function renderBubbleMessage()
+    {
+        try {
+            $messageId = $this->request['message_id'] ?? null;
+            $messageData = $this->request['message_data'] ?? null;
+            
+            if (!$messageData) {
+                throw new ValidationException('Message data is required');
+            }
+            
+            if (!is_array($messageData)) {
+                $messageData = json_decode($messageData, true);
+            }
+            
+            if (!$messageData || !isset($messageData['id'])) {
+                throw new ValidationException('Invalid message data');
+            }
+            
+            $currentUserId = $_SESSION['user_id'] ?? 0;
+            
+            ob_start();
+            $GLOBALS['messageData'] = $messageData;
+            $GLOBALS['currentUserId'] = $currentUserId;
+            include __DIR__ . '/../views/components/messaging/bubble-chat.php';
+            $html = ob_get_clean();
+            
+            $this->jsonResponse([
+                'success' => true,
+                'html' => $html,
+                'message_id' => $messageData['id']
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error rendering bubble message: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     private function getUserRepository() {
         require_once __DIR__ . '/../database/repositories/UserRepository.php';
         return new UserRepository();
