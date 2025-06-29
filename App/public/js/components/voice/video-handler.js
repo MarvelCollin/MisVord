@@ -307,10 +307,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        console.log(`[VideoHandler] Attempting to attach stream for ${participantId}`, {
+        console.log(`[VideoHandler] attachStream called for ${participantId}:`, {
             hasStream: !!stream,
-            streamType: stream ? getStreamType(stream) : 'no-stream'
+            streamType: stream ? getStreamType(stream) : 'no-stream',
+            rawStream: stream
         });
+        
+        if (stream) {
+            console.log(`[VideoHandler] Raw stream object for ${participantId}:`, stream);
+        }
         
         const username = participantId === 'local' ? 'You' : participantId;
         let videoEl = document.querySelector(`video[data-participant-id="${participantId}"]`);
@@ -564,4 +569,55 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.videosdkMeeting) {
         initializeView();
     }
+
+    window.debugVideoHandler = function() {
+        console.log('=== Video Handler Debug ===');
+        console.log('VideoSDK Meeting:', !!window.videosdkMeeting);
+        
+        if (window.videosdkMeeting && window.videosdkMeeting.localParticipant) {
+            const participant = window.videosdkMeeting.localParticipant;
+            console.log('Local Participant ID:', participant.id);
+            console.log('Streams available:', participant.streams ? Array.from(participant.streams.keys()) : 'No streams');
+            
+            if (participant.streams && participant.streams.size > 0) {
+                participant.streams.forEach((stream, streamId) => {
+                    console.log(`\n--- Stream ID: ${streamId} ---`);
+                    console.log('Stream object:', stream);
+                    console.log('Stream type detected:', getStreamType(stream));
+                    console.log('MediaStream extracted:', getMediaStream(stream));
+                });
+            }
+        }
+        
+        console.log('========================');
+    };
+
+    window.testVideoStream = function() {
+        console.log('=== Testing Video Stream ===');
+        
+        if (!window.videosdkMeeting) {
+            console.error('❌ No VideoSDK meeting found. Join a voice channel first.');
+            return;
+        }
+        
+        const participant = window.videosdkMeeting.localParticipant;
+        if (!participant) {
+            console.error('❌ No local participant found.');
+            return;
+        }
+        
+        console.log('✅ Testing with participant:', participant.id);
+        
+        if (participant.streams && participant.streams.size > 0) {
+            participant.streams.forEach((stream, streamId) => {
+                if (getStreamType(stream) === 'video') {
+                    console.log(`🎥 Testing video stream: ${streamId}`);
+                    attachStream('local', stream);
+                }
+            });
+        } else {
+            console.log('📹 No streams found, testing with null stream');
+            attachStream('local', null);
+        }
+    };
 }); 

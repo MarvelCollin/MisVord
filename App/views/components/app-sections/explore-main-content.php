@@ -179,4 +179,16 @@ $categories = $GLOBALS['categories'] ?? [];
             </div>
         </div>
     </div>
+
+    <script>
+    if (typeof window.initExplorePage === 'function') {
+        window.initExplorePage();
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof window.initExplorePage === 'function') {
+                window.initExplorePage();
+            }
+        });
+    }
+    </script>
 </div>

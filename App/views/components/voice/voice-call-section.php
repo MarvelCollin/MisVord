@@ -697,11 +697,57 @@ document.addEventListener('DOMContentLoaded', function() {
         refreshBtn.innerHTML = '🎨 Refresh';
         refreshBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors';
         refreshBtn.onclick = window.refreshParticipantStyling;
-        
 
+        const cameraDebugBtn = document.createElement('button');
+        cameraDebugBtn.innerHTML = '📹 Camera';
+        cameraDebugBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors';
+        cameraDebugBtn.onclick = () => {
+            if (typeof window.debugCamera === 'function') {
+                window.debugCamera();
+            } else {
+                console.error('❌ debugCamera function not available');
+            }
+        };
+
+        const videoHandlerBtn = document.createElement('button');
+        videoHandlerBtn.innerHTML = '🎬 Handler';
+        videoHandlerBtn.className = 'bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm transition-colors';
+        videoHandlerBtn.onclick = () => {
+            if (typeof window.debugVideoHandler === 'function') {
+                window.debugVideoHandler();
+            } else {
+                console.error('❌ debugVideoHandler function not available');
+            }
+        };
+
+        const testCameraBtn = document.createElement('button');
+        testCameraBtn.innerHTML = '🧪 Test Cam';
+        testCameraBtn.className = 'bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm transition-colors';
+        testCameraBtn.onclick = () => {
+            if (typeof window.testCamera === 'function') {
+                window.testCamera();
+            } else {
+                console.error('❌ testCamera function not available');
+            }
+        };
+
+        const testStreamBtn = document.createElement('button');
+        testStreamBtn.innerHTML = '🔄 Stream';
+        testStreamBtn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm transition-colors';
+        testStreamBtn.onclick = () => {
+            if (typeof window.testVideoStream === 'function') {
+                window.testVideoStream();
+            } else {
+                console.error('❌ testVideoStream function not available');
+            }
+        };
         
         debugContainer.appendChild(debugBtn);
         debugContainer.appendChild(refreshBtn);
+        debugContainer.appendChild(cameraDebugBtn);
+        debugContainer.appendChild(videoHandlerBtn);
+        debugContainer.appendChild(testCameraBtn);
+        debugContainer.appendChild(testStreamBtn);
         document.body.appendChild(debugContainer);
     }
     
@@ -1141,8 +1187,6 @@ window.refreshParticipantStyling = function() {
     
     console.log('✅ Participant styling refreshed');
 };
-
-
 
 // Debug function to test participant system
 window.debugVoiceSystem = function() {
