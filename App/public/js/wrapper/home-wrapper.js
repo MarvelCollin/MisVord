@@ -164,9 +164,15 @@ class HomeWrapper {
         this.clearMessages(errorDiv, successDiv);
         
         try {
-            const response = await this.makeAjaxRequest('/ajax/friends/send', {
+            const response = await $.ajax({
+                url: '/ajax/friends/send',
                 method: 'POST',
-                data: { username }
+                dataType: 'json',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                data: JSON.stringify({ username })
             });
             
             if (response.success) {
@@ -185,9 +191,15 @@ class HomeWrapper {
 
     async acceptFriendRequest(requestId) {
         try {
-            const response = await this.makeAjaxRequest('/ajax/friends/accept', {
+            const response = await $.ajax({
+                url: '/ajax/friends/accept',
                 method: 'POST',
-                data: { id: requestId }
+                dataType: 'json',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                data: JSON.stringify({ id: requestId })
             });
             
             if (response.success) {
@@ -204,9 +216,15 @@ class HomeWrapper {
 
     async declineFriendRequest(requestId) {
         try {
-            const response = await this.makeAjaxRequest('/ajax/friends/decline', {
+            const response = await $.ajax({
+                url: '/ajax/friends/decline',
                 method: 'POST',
-                data: { id: requestId }
+                dataType: 'json',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                data: JSON.stringify({ id: requestId })
             });
             
             if (response.success) {
@@ -223,9 +241,15 @@ class HomeWrapper {
 
     async cancelFriendRequest(userId) {
         try {
-            const response = await this.makeAjaxRequest('/ajax/friends/cancel', {
+            const response = await $.ajax({
+                url: '/ajax/friends/cancel',
                 method: 'POST',
-                data: { user_id: userId }
+                dataType: 'json',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                data: JSON.stringify({ user_id: userId })
             });
             
             if (response.success) {
@@ -242,9 +266,15 @@ class HomeWrapper {
 
     async createDirectMessage(friendId) {
         try {
-            const response = await this.makeAjaxRequest('/ajax/chat/create-dm', {
+            const response = await $.ajax({
+                url: '/ajax/chat/create-dm',
                 method: 'POST',
-                data: { friend_id: friendId }
+                dataType: 'json',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                data: JSON.stringify({ friend_id: friendId })
             });
             
             if (response.success && response.data) {
@@ -275,47 +305,6 @@ class HomeWrapper {
             const matches = username.toLowerCase().includes(searchQuery);
             item.style.display = matches ? 'flex' : 'none';
         });
-    }
-
-    async makeAjaxRequest(url, options = {}) {
-        const defaultOptions = {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        };
-        
-        const finalOptions = { ...defaultOptions, ...options };
-        
-        if (window.ajax) {
-            return new Promise((resolve, reject) => {
-                window.ajax({
-                    url,
-                    method: finalOptions.method,
-                    data: finalOptions.data,
-                    headers: finalOptions.headers,
-                    dataType: 'json',
-                    success: (response) => {
-                        if (response && typeof response === 'object' && response.success !== undefined) {
-                            resolve(response);
-                        } else {
-                            resolve({
-                                success: true,
-                                data: response,
-                                message: 'Request completed successfully'
-                            });
-                        }
-                    },
-                    error: (error) => {
-                        console.error('[HomeWrapper] AJAX Error:', error);
-                        reject(new Error(error.message || 'Request failed'));
-                    }
-                });
-            });
-        } else {
-            throw new Error('Ajax function not available');
-        }
     }
 
     refreshPage() {

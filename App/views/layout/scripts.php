@@ -14,7 +14,7 @@ if ($is_settings_page) {
 
 $is_auth_page = isset($data_page) && $data_page === 'auth';
 
-$core_scripts = ['core/ui/toast', 'utils/ajax'];
+$core_scripts = ['core/ui/toast'];
 if (!$is_auth_page) {
     $core_scripts[] = 'core/socket/global-socket-manager';
 }
@@ -25,6 +25,9 @@ if ($is_auth_page) {
     $auth_scripts[] = 'components/common/captcha';
 }
 ?>
+
+<!-- jQuery CDN -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
 <script>
 (function() {

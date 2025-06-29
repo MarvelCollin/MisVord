@@ -1,8 +1,5 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
-import { ajax } from '../../utils/ajax.js';
 import { playDiscordoSound, playCallSound } from '../../utils/music-loader-static.js';
-import { loadHomePage } from '../../utils/load-home-page.js';
-import { loadServerPage } from '../../utils/load-server-page.js';
 
 let isRendering = false;
 let serverDataCache = null;
@@ -21,42 +18,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.addEventListener('click', async function(e) {
         console.log('[Click Handler] Click event detected');
-        console.log('[Click Handler] Target element:', {
-            tagName: e.target.tagName,
-            className: e.target.className,
-            id: e.target.id,
-            href: e.target.href,
-            dataset: e.target.dataset
-        });
-        console.log('[Click Handler] Currently handling click:', isHandlingClick);
         
         const homeLink = e.target.closest('a[href="/home"]') || 
                         e.target.closest('a[href="/"]') ||
                         e.target.closest('.server-icon:first-child a');
         if (homeLink && !isHandlingClick) {
             console.log('[Click Handler] HOME NAVIGATION DETECTED');
-            console.log('[Click Handler] Home link found:', {
-                href: homeLink.getAttribute('href'),
-                element: homeLink.tagName,
-                parentClass: homeLink.parentElement?.className
-            });
             e.preventDefault();
             
-            console.log('[Click Handler] Executing easter egg logic');
             handleEasterEggLogic();
             
             isHandlingClick = true;
-            console.log('[Click Handler] Starting home navigation');
             try {
                 await handleHomeClick(e);
                 console.log('[Click Handler] Home navigation completed successfully');
             } catch (error) {
                 console.error('[Click Handler] ERROR in home navigation:', error);
-                console.error('[Click Handler] Fallback to location.href');
-                window.location.href = homeLink.getAttribute('href') || '/home';
             } finally {
                 isHandlingClick = false;
-                console.log('[Click Handler] Home click handling finished');
             }
             return;
         }
@@ -65,25 +44,16 @@ document.addEventListener('DOMContentLoaded', function() {
                            e.target.closest('a[href="/explore"]');
         if (exploreLink && !isHandlingClick) {
             console.log('[Click Handler] EXPLORE NAVIGATION DETECTED');
-            console.log('[Click Handler] Explore link found:', {
-                href: exploreLink.getAttribute('href'),
-                element: exploreLink.tagName,
-                parentClass: exploreLink.parentElement?.className
-            });
             e.preventDefault();
             
             isHandlingClick = true;
-            console.log('[Click Handler] Starting explore navigation');
             try {
                 await handleExploreClick(e);
                 console.log('[Click Handler] Explore navigation completed successfully');
             } catch (error) {
                 console.error('[Click Handler] ERROR in explore navigation:', error);
-                console.error('[Click Handler] Fallback to location.href');
-                window.location.href = exploreLink.getAttribute('href') || '/explore-servers';
             } finally {
                 isHandlingClick = false;
-                console.log('[Click Handler] Explore click handling finished');
             }
             return;
         }
@@ -91,48 +61,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const serverLink = e.target.closest('.server-icon a[href^="/server/"]');
         if (serverLink && !isHandlingClick) {
             console.log('[Click Handler] SERVER NAVIGATION DETECTED');
-            console.log('[Click Handler] Server link found:', {
-                href: serverLink.getAttribute('href'),
-                serverId: serverLink.getAttribute('data-server-id'),
-                element: serverLink.tagName,
-                parentClass: serverLink.parentElement?.className
-            });
             e.preventDefault(); 
             
             const serverId = serverLink.getAttribute('data-server-id');
             if (serverId) {
                 isHandlingClick = true;
-                console.log('[Click Handler] Starting server navigation for ID:', serverId);
                 try {
                     await handleServerClick(serverId, e);
                     console.log('[Click Handler] Server navigation completed successfully');
                 } catch (error) {
                     console.error('[Click Handler] ERROR in server navigation:', error);
-                    console.error('[Click Handler] Server ID was:', serverId);
-                    console.error('[Click Handler] Error details:', {
-                        message: error.message,
-                        critical: error.critical,
-                        stack: error.stack
-                    });
-                    if (error.critical) {
-                        console.error('[Click Handler] Critical error - would fallback to page reload');
-                    }
                 } finally {
                     isHandlingClick = false;
-                    console.log('[Click Handler] Server click handling finished');
                 }
-            } else {
-                console.error('[Click Handler] Server link found but no server ID available');
-                console.error('[Click Handler] Server link attributes:', {
-                    href: serverLink.href,
-                    dataset: serverLink.dataset,
-                    attributes: Array.from(serverLink.attributes).map(attr => ({ name: attr.name, value: attr.value }))
-                });
             }
-        } else if (serverLink) {
-            console.log('[Click Handler] Server link found but already handling click - skipping');
-        } else {
-            console.log('[Click Handler] No navigation target found - regular click');
         }
     });
     
@@ -155,20 +97,20 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function handleEasterEggLogic() {
-        const currentTime = Date.now();
-        
-        if (currentTime - lastClickTime > CLICK_TIMEOUT) {
-            homeIconClickCount = 1;
-        } else {
-            homeIconClickCount++;
-        }
-        
-        lastClickTime = currentTime;
-        
-        if (homeIconClickCount >= CLICKS_NEEDED) {
-            homeIconClickCount = 0;
-            playDiscordoSound();
-        }
+    const currentTime = Date.now();
+    
+    if (currentTime - lastClickTime > CLICK_TIMEOUT) {
+        homeIconClickCount = 1;
+    } else {
+        homeIconClickCount++;
+    }
+    
+    lastClickTime = currentTime;
+    
+    if (homeIconClickCount >= CLICKS_NEEDED) {
+        homeIconClickCount = 0;
+        playDiscordoSound();
+    }
 }
 
 function initializeHomeIconEasterEgg() {
@@ -745,23 +687,21 @@ function showContextMenu(event, groupId, groupName) {
 
 async function getServerData() {
     try {
-        const response = await fetch('/api/user/servers', {
+        const response = await $.ajax({
+            url: '/api/user/servers',
             method: 'GET',
-            credentials: 'include',
+            dataType: 'json',
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
         
-        if (response.ok) {
-            const data = await response.json();
-            if (data.data && data.data.servers) {
-                const serverMap = {};
-                data.data.servers.forEach(server => {
-                    serverMap[server.id] = server;
-                });
-                serverDataCache = serverMap;
-                cacheExpiry = Date.now() + 300000;
-                return serverMap;
-            }
+        if (response.data && response.data.servers) {
+            const serverMap = {};
+            response.data.servers.forEach(server => {
+                serverMap[server.id] = server;
+            });
+            serverDataCache = serverMap;
+            cacheExpiry = Date.now() + 300000;
+            return serverMap;
         }
     } catch (error) {
         console.error('Failed to fetch server data:', error);
@@ -852,33 +792,17 @@ export function updateActiveServer(pageType = null, serverId = null) {
 }
 
 export async function handleHomeClick(event) {
-    console.group('[Home Navigation] Home Click Flow Started');
-    console.log('[Home Navigation] Event details:', {
-        type: event ? event.type : 'no-event',
-        target: event ? event.target.tagName : 'no-target',
-        currentPath: window.location.pathname
-    });
+    console.log('[Home Navigation] Home Click Flow Started');
     
     if (event) {
         event.preventDefault();
         event.stopPropagation();
-        event.stopImmediatePropagation();
-        console.log('[Home Navigation] Event prevented successfully');
     }
     
     if (window.location.pathname === '/home' || window.location.pathname === '/home/' || window.location.pathname === '/') {
         console.log('[Home Navigation] Already on home page, skipping navigation');
-        console.groupEnd();
         return;
     }
-    
-    console.log('[Home Navigation] Pre-navigation state check');
-    console.log('[Home Navigation] - Current URL:', window.location.href);
-    console.log('[Home Navigation] - Available functions:', {
-        loadHomePage: typeof window.loadHomePage,
-        globalSocketManager: typeof window.globalSocketManager,
-        voiceManager: typeof window.voiceManager
-    });
     
     try {
         const currentChannelId = new URLSearchParams(window.location.search).get('channel');
@@ -893,20 +817,37 @@ export async function handleHomeClick(event) {
             window.voiceManager = null;
         }
 
-        console.log('[Home Navigation] Starting AJAX home page load');
-        if (window.loadHomePage && typeof window.loadHomePage === 'function') {
-            await window.loadHomePage('friends');
-            console.log('[Home Navigation] AJAX home page load completed successfully');
+        console.log('[Home Navigation] Loading home page with AJAX');
+        const response = await $.ajax({
+            url: '/home',
+            method: 'GET',
+            dataType: 'html',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
+        const mainContent = document.getElementById('main-content') || 
+                           document.querySelector('.main-content') || 
+                           document.querySelector('#app-content') ||
+                           document.querySelector('.app-content') ||
+                           document.querySelector('main') ||
+                           document.querySelector('.content-wrapper');
+        
+        if (mainContent && response) {
+            console.log('[Home Navigation] Found main content container:', mainContent.className || mainContent.id);
+            mainContent.innerHTML = response;
+            console.log('[Home Navigation] Home page content loaded successfully');
         } else {
-            console.error('[Home Navigation] CRITICAL - loadHomePage function not available');
-            console.error('[Home Navigation] Available window functions:', Object.keys(window).filter(k => k.includes('load')));
-            throw new Error('loadHomePage function not available');
+            console.error('[Home Navigation] Could not find main content container or no response');
+            console.log('[Home Navigation] Available containers:', {
+                'main-content': !!document.getElementById('main-content'),
+                'main': !!document.querySelector('main'),
+                'body': !!document.body
+            });
         }
 
-        console.log('[Home Navigation] Updating active server state');
+        window.history.pushState({ pageType: 'home' }, 'Home', '/home');
         updateActiveServer('home');
 
-        console.log('[Home Navigation] Dispatching HomePageChanged event');
         window.dispatchEvent(new CustomEvent('HomePageChanged', { 
             detail: { 
                 pageType: 'friends',
@@ -918,116 +859,79 @@ export async function handleHomeClick(event) {
 
     } catch (error) {
         console.error('[Home Navigation] ERROR in handleHomeClick:', error);
-        console.error('[Home Navigation] Error stack:', error.stack);
-        console.log('[Home Navigation] FALLBACK - Using location.href (no reload)');
-        window.location.href = '/home';
-    } finally {
-        console.groupEnd();
+        throw error;
     }
 }
 
 export async function handleServerClick(serverId, event) {
-    console.group('[Server Navigation] Server Click Flow Started');
-    console.log('[Server Navigation] Input params:', {
-        serverId: serverId,
-        eventType: event?.type,
-        eventTarget: event?.target?.tagName,
-        currentPath: window.location.pathname
-    });
+    console.log('[Server Navigation] Server Click Flow Started');
     
     if (!serverId) {
-        console.error('[Server Navigation] CRITICAL - No server ID provided');
-        console.groupEnd();
+        console.error('[Server Navigation] No server ID provided');
         throw new Error('No server ID provided');
     }
 
-    console.log('[Server Navigation] Pre-navigation state check');
-    console.log('[Server Navigation] - Current URL:', window.location.href);
-    console.log('[Server Navigation] - Target server ID:', serverId);
-    console.log('[Server Navigation] - Available functions:', {
-        loadServerPage: typeof window.loadServerPage,
-        globalSocketManager: typeof window.globalSocketManager,
-        voiceManager: typeof window.voiceManager
-    });
-
     try {
-        console.log('[Server Navigation] Using simplified server navigation approach');
-        
         const currentChannelId = new URLSearchParams(window.location.search).get('channel');
         if (currentChannelId && window.globalSocketManager) {
             console.log('[Server Navigation] Cleaning up socket for channel:', currentChannelId);
             window.globalSocketManager.leaveChannel(currentChannelId);
-                        } else {
-            console.log('[Server Navigation] No active channel to clean up');
         }
 
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
             console.log('[Server Navigation] Cleaning up voice manager');
             window.voiceManager.leaveVoice();
             window.voiceManager = null;
-                        } else {
-            console.log('[Server Navigation] No voice manager to clean up');
         }
         
-        console.log('[Server Navigation] Starting AJAX server page load');
-        if (window.loadServerPage && typeof window.loadServerPage === 'function') {
-            console.log('[Server Navigation] Calling loadServerPage with serverId:', serverId);
-            await window.loadServerPage(serverId);
-            console.log('[Server Navigation] AJAX server page load completed successfully');
-                        } else {
-            console.error('[Server Navigation] CRITICAL - loadServerPage function not available');
-            console.error('[Server Navigation] Available window functions:', Object.keys(window).filter(k => k.includes('load')));
-            console.error('[Server Navigation] Window.loadServerPage type:', typeof window.loadServerPage);
-            throw new Error('loadServerPage function not available');
-        }
+        console.log('[Server Navigation] Loading server page with AJAX');
+        const response = await $.ajax({
+            url: `/server/${serverId}`,
+            method: 'GET',
+            dataType: 'html',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
+        const mainContent = document.getElementById('main-content') || 
+                           document.querySelector('.main-content') || 
+                           document.querySelector('#app-content') ||
+                           document.querySelector('.app-content') ||
+                           document.querySelector('main') ||
+                           document.querySelector('.content-wrapper');
         
-        console.log('[Server Navigation] Updating active server state');
+        if (mainContent && response) {
+            console.log('[Server Navigation] Found main content container:', mainContent.className || mainContent.id);
+            mainContent.innerHTML = response;
+            console.log('[Server Navigation] Server page content loaded successfully');
+        } else {
+            console.error('[Server Navigation] Could not find main content container or no response');
+        }
+
+        window.history.pushState({ pageType: 'server', serverId: serverId }, `Server ${serverId}`, `/server/${serverId}`);
         updateActiveServer('server', serverId);
 
-        console.log('[Server Navigation] Dispatching ServerChanged event');
         window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
 
         console.log('[Server Navigation] SUCCESS - Server navigation completed');
 
     } catch (error) {
         console.error('[Server Navigation] ERROR in handleServerClick:', error);
-        console.error('[Server Navigation] Error stack:', error.stack);
-        console.error('[Server Navigation] Server ID was:', serverId);
-        console.error('[Server Navigation] Event was:', event);
-        console.log('[Server Navigation] ERROR: Cannot load server, no fallback allowed per user request');
-    } finally {
-        console.groupEnd();
+        throw error;
     }
 }
 
 export async function handleExploreClick(event) {
-    console.group('[Explore Navigation] Explore Click Flow Started');
-    console.log('[Explore Navigation] Event details:', {
-        type: event ? event.type : 'no-event',
-        target: event ? event.target.tagName : 'no-target',
-        currentPath: window.location.pathname
-    });
+    console.log('[Explore Navigation] Explore Click Flow Started');
     
     if (event) {
         event.preventDefault();
         event.stopPropagation();
-        event.stopImmediatePropagation();
-        console.log('[Explore Navigation] Event prevented successfully');
     }
     
     if (window.location.pathname === '/explore-servers' || window.location.pathname === '/explore') {
         console.log('[Explore Navigation] Already on explore page, skipping navigation');
-        console.groupEnd();
         return;
     }
-    
-    console.log('[Explore Navigation] Pre-navigation state check');
-    console.log('[Explore Navigation] - Current URL:', window.location.href);
-    console.log('[Explore Navigation] - Available functions:', {
-        loadExplorePage: typeof window.loadExplorePage,
-        globalSocketManager: typeof window.globalSocketManager,
-        voiceManager: typeof window.voiceManager
-    });
     
     try {
         const currentChannelId = new URLSearchParams(window.location.search).get('channel');
@@ -1042,20 +946,32 @@ export async function handleExploreClick(event) {
             window.voiceManager = null;
         }
 
-        console.log('[Explore Navigation] Starting AJAX explore page load');
-        if (window.loadExplorePage && typeof window.loadExplorePage === 'function') {
-            await window.loadExplorePage();
-            console.log('[Explore Navigation] AJAX explore page load completed successfully');
+        console.log('[Explore Navigation] Loading explore page with AJAX');
+        const response = await $.ajax({
+            url: '/explore-servers',
+            method: 'GET',
+            dataType: 'html',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
+        const mainContent = document.getElementById('main-content') || 
+                           document.querySelector('.main-content') || 
+                           document.querySelector('#app-content') ||
+                           document.querySelector('.app-content') ||
+                           document.querySelector('main') ||
+                           document.querySelector('.content-wrapper');
+        
+        if (mainContent && response) {
+            console.log('[Explore Navigation] Found main content container:', mainContent.className || mainContent.id);
+            mainContent.innerHTML = response;
+            console.log('[Explore Navigation] Explore page content loaded successfully');
         } else {
-            console.error('[Explore Navigation] CRITICAL - loadExplorePage function not available');
-            console.error('[Explore Navigation] Available window functions:', Object.keys(window).filter(k => k.includes('load')));
-            throw new Error('loadExplorePage function not available');
+            console.error('[Explore Navigation] Could not find main content container or no response');
         }
 
-        console.log('[Explore Navigation] Updating active server state');
+        window.history.pushState({ pageType: 'explore' }, 'Explore Servers', '/explore-servers');
         updateActiveServer('explore');
 
-        console.log('[Explore Navigation] Dispatching ExplorePageChanged event');
         window.dispatchEvent(new CustomEvent('ExplorePageChanged', { 
             detail: { 
                 pageType: 'explore',
@@ -1067,11 +983,7 @@ export async function handleExploreClick(event) {
 
     } catch (error) {
         console.error('[Explore Navigation] ERROR in handleExploreClick:', error);
-        console.error('[Explore Navigation] Error stack:', error.stack);
-        console.log('[Explore Navigation] FALLBACK - Using location.href');
-        window.location.href = '/explore-servers';
-    } finally {
-        console.groupEnd();
+        throw error;
     }
 }
 
