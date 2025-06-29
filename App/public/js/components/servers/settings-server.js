@@ -85,6 +85,8 @@ function initServerSettingsPage() {
         initMemberManagementTab();
     } else if (activeSection === 'delete') {
         initDeleteServerTab();
+    } else if (activeSection === 'my-profile') {
+        initMyProfileTab();
     }
     
     initCloseButton();
@@ -1296,6 +1298,100 @@ async function updateServerCategory(serverId, category) {
     } catch (error) {
         console.error('Error updating server category:', error);
         showToast(error.message || 'Error updating server category', 'error');
+    } finally {
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = originalIcon;
+    }
+}
+
+function initMyProfileTab() {
+    const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    if (!serverId) return;
+    
+    const nicknameInput = document.getElementById('user-nickname');
+    const approveNicknameBtn = document.getElementById('approve-user-nickname');
+    
+    loadUserServerProfile(serverId);
+    
+    if (nicknameInput && approveNicknameBtn) {
+        nicknameInput.addEventListener('input', function() {
+            checkForChanges(this, approveNicknameBtn);
+        });
+        
+        nicknameInput.addEventListener('keyup', function() {
+            checkForChanges(this, approveNicknameBtn);
+        });
+        
+        nicknameInput.addEventListener('paste', function() {
+            setTimeout(() => checkForChanges(this, approveNicknameBtn), 10);
+        });
+        
+        approveNicknameBtn.addEventListener('click', function() {
+            updateUserNickname(serverId, nicknameInput.value.trim());
+        });
+    }
+}
+
+async function loadUserServerProfile(serverId) {
+    try {
+        const data = await window.serverAPI.getPerServerProfile(serverId);
+        
+        if (data.success && data.data && data.data.profile) {
+            const profile = data.data.profile;
+            const nicknameInput = document.getElementById('user-nickname');
+            
+            if (nicknameInput) {
+                const nickname = profile.nickname || '';
+                nicknameInput.value = nickname;
+                nicknameInput.dataset.originalValue = nickname;
+                
+                const approveBtn = document.getElementById('approve-user-nickname');
+                if (approveBtn) {
+                    checkForChanges(nicknameInput, approveBtn);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading user server profile:', error);
+        showToast('Failed to load your server profile', 'error');
+    }
+}
+
+async function updateUserNickname(serverId, nickname) {
+    const approveBtn = document.getElementById('approve-user-nickname');
+    const nicknameInput = document.getElementById('user-nickname');
+    
+    if (nickname.length > 32) {
+        showToast('Nickname cannot exceed 32 characters', 'error');
+        return;
+    }
+    
+    approveBtn.disabled = true;
+    const originalIcon = approveBtn.innerHTML;
+    approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    try {
+        const data = await window.serverAPI.updatePerServerProfile(serverId, {
+            nickname: nickname
+        });
+        
+        if (data.success) {
+            showToast('Nickname updated successfully', 'success');
+            
+            nicknameInput.dataset.originalValue = nickname;
+            nicknameInput.value = nickname;
+            
+            approveBtn.classList.remove('show');
+            setTimeout(() => {
+                approveBtn.style.display = 'none';
+                approveBtn.classList.add('hidden');
+            }, 300);
+        } else {
+            throw new Error(data.message || 'Failed to update nickname');
+        }
+    } catch (error) {
+        console.error('Error updating nickname:', error);
+        showToast(error.message || 'Error updating nickname', 'error');
     } finally {
         approveBtn.disabled = false;
         approveBtn.innerHTML = originalIcon;

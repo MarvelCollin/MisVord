@@ -20,6 +20,22 @@ function setup(io) {
             AuthHandler.handle(io, client, data);
         });
         
+        client.on('debug-test', (username) => {
+            console.log(`🧪 [DEBUG-TEST] Debug ping received from ${username || 'unknown'} (${client.id})`);
+            console.log(`👤 [DEBUG-TEST] User details: ${JSON.stringify({
+                socketId: client.id,
+                username: username,
+                authenticated: client.data?.authenticated || false,
+                userId: client.data?.user_id || 'not authenticated'
+            }, null, 2)}`);
+            
+            client.emit('debug-test-response', {
+                received: true,
+                timestamp: new Date().toISOString(),
+                server_id: process.pid
+            });
+        });
+        
         client.on('join-room', (data) => {
             console.log(`🚪 [ROOM] Client ${client.id} joining room:`, data);
             if (!data || !data.room_type || !data.room_id) {
@@ -66,7 +82,6 @@ function setup(io) {
                     });
                 }
                 
-                // Debug: Send a test message to the room to verify connectivity
                 setTimeout(() => {
                     console.log(`🔍 [ROOM] Sending test message to room ${roomName}`);
                     io.to(roomName).emit('room-debug', { 
@@ -101,7 +116,7 @@ function setup(io) {
                 channelId: data.channel_id,
                 userId: data.user_id,
                 username: data.username,
-                content: data.content?.substring(0, 50) + (data.content?.length > 50 ? '...' : ''),
+                content: data.content,
                 messageType: data.message_type,
                 source: data.source
             });
@@ -127,7 +142,12 @@ function setup(io) {
                     data.id = data.message_id;
                 }
                 
-                console.log(`✅ [MESSAGE-CHANNEL] Processing new channel message for channel ${channel_id}`);
+                console.log(`✅ [MESSAGE-CHANNEL] Processing new channel message for channel ${channel_id}:`, {
+                    messageId: data.id,
+                    content: data.content,
+                    userId: data.user_id,
+                    username: data.username
+                });
                 MessageHandler.forwardMessage(io, client, 'new-channel-message', data);
             } else {
                 console.log(`🔄 [MESSAGE-CHANNEL] Duplicate message detected, skipping: ${messageId}`);
@@ -140,10 +160,13 @@ function setup(io) {
                 roomId: data.room_id,
                 userId: data.user_id,
                 username: data.username,
-                content: data.content?.substring(0, 50) + (data.content?.length > 50 ? '...' : ''),
+                content: data.content,
                 messageType: data.message_type,
                 source: data.source
             });
+            
+            // Log the complete message data
+            console.log(`📦 [MESSAGE-DM] Complete message data:`, JSON.stringify(data, null, 2));
             
             const messageId = data.id || data.message_id;
             const signature = messageService.generateSignature('user-message-dm', client.data?.user_id, messageId, data.content, data.timestamp);
@@ -163,11 +186,29 @@ function setup(io) {
                     data.id = data.message_id;
                 }
                 
-                console.log(`✅ [MESSAGE-DM] Processing new DM message for room ${room_id}`);
+                console.log(`✅ [MESSAGE-DM] Processing new DM message for room ${room_id}:`, {
+                    messageId: data.id,
+                    content: data.content,
+                    userId: data.user_id,
+                    username: data.username
+                });
                 MessageHandler.forwardMessage(io, client, 'user-message-dm', data);
             } else {
                 console.log(`🔄 [MESSAGE-DM] Duplicate message detected, skipping: ${messageId}`);
             }
+        });
+        
+        // WebSocket-only message sending (saves to database and broadcasts)
+        client.on('save-and-send-message', async (data) => {
+            console.log(`💾 [SAVE-SEND] WebSocket-only message from ${client.id}:`, {
+                targetType: data.target_type,
+                targetId: data.target_id,
+                content: data.content?.substring(0, 50) + (data.content?.length > 50 ? '...' : ''),
+                messageType: data.message_type || 'text'
+            });
+            
+            // Use the new saveAndSendMessage method for WebSocket-only messaging
+            await MessageHandler.saveAndSendMessage(io, client, data);
         });
         
         client.on('message-updated', (data) => {

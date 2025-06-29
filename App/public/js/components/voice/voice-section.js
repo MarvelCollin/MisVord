@@ -39,48 +39,25 @@ class VoiceSection {
     }
     
     init() {
-        console.log("Voice section init called");
-        this.findElements();
+        if (this.initialized) return;
         
-        if (!this.elements.joinBtn && !this.elements.voiceControls) {
-            if (this.initializationAttempts < this.maxInitAttempts) {
-                this.initializationAttempts++;
-                console.log(`Voice elements not found, retrying (${this.initializationAttempts}/${this.maxInitAttempts})`);
-                setTimeout(() => {
-                    this.findElements();
-                    this.init();
-                }, 300);
-            } else {
-                console.warn("Max voice init attempts reached, giving up");
-            }
-            return;
-        }
+        this.findElements();
+        this.setupEventListeners();
         
         if (!window.voiceState) {
             window.voiceState = { isConnected: false };
         }
         
-        if (this.initialized) {
-            console.log("Voice section already initialized, re-initializing");
-        }
-        
-        this.loadDependencies().then(() => {
-            this.waitForVoiceManager().then(() => {
+        this.loadDependencies()
+            .then(() => {
+                console.log('Voice section dependencies loaded');
                 this.initialized = true;
-                this.setupEventListeners();
-                this.checkExistingConnection();
-                this.checkForAutoJoin();
-                
-                // Ensure voice tools are initialized
-                if (typeof window.initializeVoiceTools === 'function') {
-                    window.initializeVoiceTools();
-                }
-            }).catch(error => {
-                console.error('Failed to initialize voice manager:', error);
+            })
+            .catch(error => {
+                console.error('Failed to load voice section dependencies:', error);
             });
-        }).catch(error => {
-            console.error('Failed to load dependencies:', error);
-        });
+            
+        // No auto-connection on page load
     }
 
     async loadDependencies() {
@@ -209,6 +186,39 @@ class VoiceSection {
                 this.updateChannelNames(details.channelName);
             }
             
+            // Show and update the voice indicator
+            if (this.elements.voiceIndicator) {
+                this.elements.voiceIndicator.style.display = 'block';
+                this.elements.voiceIndicator.classList.remove('scale-0', 'opacity-0');
+                
+                // Update channel name in voice indicator if applicable
+                const channelNameEl = this.elements.voiceIndicator.querySelector('.channel-name');
+                if (channelNameEl && details.channelName) {
+                    channelNameEl.textContent = details.channelName.length > 10 
+                        ? details.channelName.substring(0, 8) + '...' 
+                        : details.channelName;
+                }
+                
+                // Initialize duration timer if it exists
+                const durationEl = this.elements.voiceIndicator.querySelector('.connection-duration');
+                if (durationEl) {
+                    this.connectionStartTime = Date.now();
+                    if (this.durationInterval) {
+                        clearInterval(this.durationInterval);
+                    }
+                    
+                    this.durationInterval = setInterval(() => {
+                        if (!this.connectionStartTime || !durationEl) return;
+                        
+                        const duration = Math.floor((Date.now() - this.connectionStartTime) / 1000);
+                        const minutes = Math.floor(duration / 60);
+                        const seconds = duration % 60;
+                        
+                        durationEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    }, 1000);
+                }
+            }
+            
             if (details.meetingId && details.channelName) {
                 localStorage.setItem("voiceConnectionState", JSON.stringify({
                     isConnected: true,
@@ -242,6 +252,23 @@ class VoiceSection {
                 this.elements.joinBtn.style.pointerEvents = 'auto';
                 this.elements.joinBtn.style.cursor = 'pointer';
                 this.elements.joinBtn.textContent = 'Join Voice';
+            }
+            
+            // Hide voice indicator
+            if (this.elements.voiceIndicator) {
+                this.elements.voiceIndicator.classList.add('scale-0', 'opacity-0');
+                setTimeout(() => {
+                    if (this.elements.voiceIndicator) {
+                        this.elements.voiceIndicator.style.display = 'none';
+                    }
+                }, 300);
+                
+                // Clear duration timer
+                if (this.durationInterval) {
+                    clearInterval(this.durationInterval);
+                    this.durationInterval = null;
+                }
+                this.connectionStartTime = null;
             }
             
             window.voiceState.isConnected = false;

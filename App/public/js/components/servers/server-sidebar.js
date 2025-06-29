@@ -1,6 +1,8 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
 import { ajax } from '../../utils/ajax.js';
 import { playDiscordoSound, playCallSound } from '../../utils/music-loader-static.js';
+import { loadHomePage } from '../../utils/load-home-page.js';
+import { loadServerPage } from '../../utils/load-server-page.js';
 
 let isRendering = false;
 let serverDataCache = null;
@@ -18,6 +20,31 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeHomeIconEasterEgg();
     
     document.addEventListener('click', async function(e) {
+        console.log('[Server Sidebar] Click detected on:', e.target);
+        
+        const homeLink = e.target.closest('a[href="/home"]') || 
+                        e.target.closest('a[href="/"]') ||
+                        e.target.closest('.server-icon:first-child a');
+        if (homeLink && !isHandlingClick) {
+            console.log('[Server Sidebar] Home link clicked:', homeLink.getAttribute('href'));
+            console.log('[Server Sidebar] Home link element:', homeLink);
+            console.log('[Server Sidebar] Home link parent:', homeLink.parentElement);
+            e.preventDefault();
+            
+            handleEasterEggLogic();
+            
+            isHandlingClick = true;
+            try {
+                await handleHomeClick(e);
+            } catch (error) {
+                console.error('Error handling home click:', error);
+                window.location.href = homeLink.getAttribute('href') || '/home';
+            } finally {
+                isHandlingClick = false;
+            }
+            return;
+        }
+
         const serverLink = e.target.closest('.server-icon a[href^="/server/"]');
         if (serverLink && !isHandlingClick) {
             console.log('[Server Sidebar] Server link clicked:', serverLink.getAttribute('href'));
@@ -43,54 +70,39 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('popstate', function(event) {
         console.log('[Server Sidebar] Popstate event triggered:', event.state);
         const serverId = event.state?.serverId;
-        if (serverId) {
+        const pageType = event.state?.pageType;
+        
+        if (pageType === 'home') {
+            handleHomeClick();
+        } else if (serverId) {
             handleServerClick(serverId);
+        } else {
+            const currentPath = window.location.pathname;
+            if (currentPath === '/home' || currentPath === '/home/' || currentPath === '/') {
+                handleHomeClick();
+            }
         }
     });
 });
 
+function handleEasterEggLogic() {
+    const currentTime = Date.now();
+    
+    if (currentTime - lastClickTime > CLICK_TIMEOUT) {
+        homeIconClickCount = 1;
+    } else {
+        homeIconClickCount++;
+    }
+    
+    lastClickTime = currentTime;
+    
+    if (homeIconClickCount >= CLICKS_NEEDED) {
+        homeIconClickCount = 0;
+        playDiscordoSound();
+    }
+}
+
 function initializeHomeIconEasterEgg() {
-    // Try various selectors that might contain the home icon
-    const selectors = [
-        '.home-icon', 
-        'a[href="/"]', 
-        'a[href="/home"]',
-        '.server-icon[data-home="true"]',
-        '#home-button',
-        '.server-icon:first-child'
-    ];
-    
-    // Try to find the home icon
-    let homeIcon = null;
-    for (const selector of selectors) {
-        homeIcon = document.querySelector(selector);
-        if (homeIcon) break;
-    }
-    
-    if (!homeIcon) {
-        // If home icon not found, try again after a short delay
-        setTimeout(initializeHomeIconEasterEgg, 500);
-        return;
-    }
-    
-    // Set up click handler
-    homeIcon.addEventListener('click', function(e) {
-        const currentTime = Date.now();
-        
-        if (currentTime - lastClickTime > CLICK_TIMEOUT) {
-            // Reset if too much time has passed
-            homeIconClickCount = 1;
-        } else {
-            homeIconClickCount++;
-        }
-        
-        lastClickTime = currentTime;
-        
-        if (homeIconClickCount >= CLICKS_NEEDED) {
-            homeIconClickCount = 0;
-            playDiscordoSound();
-        }
-    });
 }
 
 function initServerSidebar() {
@@ -701,6 +713,68 @@ export function updateActiveServer() {
         if (activeIcon) {
             activeIcon.classList.add('active');
         }
+    } else if (currentPath === '/home' || currentPath === '/home/' || currentPath === '/') {
+        const homeIcon = document.querySelector('.server-icon:first-child');
+        if (homeIcon) {
+            homeIcon.classList.add('active');
+        }
+    }
+}
+
+export async function handleHomeClick(event) {
+    console.group('[Server Sidebar] Home Click Flow');
+    console.log('Starting handleHomeClick');
+    
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        console.log('[Server Sidebar] Event prevented successfully');
+    }
+    
+    if (window.location.pathname === '/home' || window.location.pathname === '/home/' || window.location.pathname === '/') {
+        console.log('[Server Sidebar] Already on home page, skipping navigation');
+        console.groupEnd();
+        return;
+    }
+    
+    try {
+        const currentChannelId = new URLSearchParams(window.location.search).get('channel');
+        if (currentChannelId && window.globalSocketManager) {
+            console.log('Cleaning up socket for channel:', currentChannelId);
+            window.globalSocketManager.leaveChannel(currentChannelId);
+        }
+
+        if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
+            console.log('Cleaning up voice manager');
+            window.voiceManager.leaveVoice();
+            window.voiceManager = null;
+        }
+
+        console.log('Loading home page content via AJAX');
+        if (window.loadHomePage && typeof window.loadHomePage === 'function') {
+            await window.loadHomePage('friends');
+        } else {
+            console.error('[Server Sidebar] loadHomePage function not available');
+            throw new Error('loadHomePage function not available');
+        }
+
+        updateActiveServer();
+
+        console.log('Dispatching HomePageChanged event');
+        window.dispatchEvent(new CustomEvent('HomePageChanged', { 
+            detail: { 
+                pageType: 'friends',
+                previousChannelId: currentChannelId 
+            } 
+        }));
+
+    } catch (error) {
+        console.error('Error in handleHomeClick:', error);
+        console.log('[Server Sidebar] CRITICAL: Using location.href as fallback (no reload)');
+        window.location.href = '/home';
+    } finally {
+        console.groupEnd();
     }
 }
 
@@ -715,7 +789,24 @@ export async function handleServerClick(serverId, event) {
     }
 
     try {
-        // First, fetch the server's channels
+        const currentPath = window.location.pathname;
+        const isOnHomePage = currentPath === '/home' || currentPath === '/home/' || currentPath === '/';
+        
+        if (isOnHomePage) {
+            console.log('Transitioning from home to server, loading full server page');
+            
+            if (window.loadServerPage && typeof window.loadServerPage === 'function') {
+                await window.loadServerPage(serverId);
+            } else {
+                console.error('loadServerPage function not available, using fallback');
+                window.location.href = `/server/${serverId}`;
+                return;
+            }
+            
+            updateActiveServer();
+            window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
+            return;
+        }
         console.log('Fetching channels for server:', serverId);
         const channelResponse = await new Promise((resolve, reject) => {
             ajax({
@@ -735,7 +826,7 @@ export async function handleServerClick(serverId, event) {
             console.error('Failed to fetch channels:', channelResponse);
             console.groupEnd();
             const err = new Error('Failed to fetch channels');
-            err.critical = false; // Not a critical error, don't reload
+            err.critical = false;
             throw err;
         }
 
@@ -751,7 +842,6 @@ export async function handleServerClick(serverId, event) {
         })));
         console.groupEnd();
 
-        // Get the first channel if available
         const firstChannel = channelResponse.data.channels && channelResponse.data.channels.length > 0 
             ? channelResponse.data.channels[0] 
             : null;
@@ -763,28 +853,23 @@ export async function handleServerClick(serverId, event) {
             categoryId: firstChannel.category_id
         } : 'No channels available');
 
-        // Update URL without reloading
         const newUrl = firstChannel 
             ? `/server/${serverId}?channel=${firstChannel.id}` 
             : `/server/${serverId}`;
         console.log('Updating URL to:', newUrl);
         window.history.pushState({ serverId }, '', newUrl);
 
-        // Clean up current channel socket if any
         const currentChannelId = new URLSearchParams(window.location.search).get('channel');
         if (currentChannelId && window.globalSocketManager) {
             console.log('Cleaning up socket for channel:', currentChannelId);
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
-        // Clean up voice manager if any
         if (window.voiceManager) {
             console.log('Cleaning up voice manager');
             window.voiceManager.leaveVoice();
             window.voiceManager = null;
         }
-
-        // Prepare channel section data
         console.group('Channel Section Update');
         const channelSectionData = {
             channels: channelResponse.data.channels,
@@ -793,7 +878,6 @@ export async function handleServerClick(serverId, event) {
         };
         console.log('Channel section data:', channelSectionData);
 
-        // Update the channel section
         const channelHtml = await new Promise((resolve, reject) => {
             console.log('Fetching channel section HTML');
             ajax({
@@ -819,23 +903,30 @@ export async function handleServerClick(serverId, event) {
             });
         });
 
-        // Update the channel wrapper
         const channelWrapper = document.querySelector('.channel-wrapper');
         if (channelWrapper) {
             console.log('Found channel wrapper, updating HTML');
             channelWrapper.innerHTML = channelHtml;
         } else {
-            console.error('Channel wrapper element not found!');
-            const err = new Error('Channel wrapper element not found');
-            err.critical = false; // Not a critical error, don't reload
-            throw err;
+            console.error('Channel wrapper element not found! This suggests we need full server page load.');
+            console.log('Available elements:', {
+                'channel-section': !!document.querySelector('.channel-section'),
+                'server-content': !!document.querySelector('.server-content'),
+                'channel-wrapper': !!document.querySelector('.channel-wrapper')
+            });
+            
+            console.log('Falling back to full server page load');
+            if (window.loadServerPage && typeof window.loadServerPage === 'function') {
+                await window.loadServerPage(serverId);
+            } else {
+                window.location.href = `/server/${serverId}`;
+            }
+            return;
         }
         console.groupEnd();
 
-        // Update chat/voice section based on channel type
         if (firstChannel) {
             console.group('Section Update');
-            // Show/hide sections based on channel type
             const chatSection = document.querySelector('.chat-section');
             const voiceSection = document.querySelector('.voice-section');
             
@@ -864,7 +955,6 @@ export async function handleServerClick(serverId, event) {
                             });
                         });
                         
-                        // Get the messages container
                         const messagesContainer = chatSection.querySelector('.messages-container');
                         if (!messagesContainer) {
                             const err = new Error('Messages container not found');
@@ -872,10 +962,8 @@ export async function handleServerClick(serverId, event) {
                             throw err;
                         }
                         
-                        // Clear existing messages
                         messagesContainer.innerHTML = '';
                         
-                        // Add messages if they exist
                         if (response.data?.data?.messages?.length > 0) {
                             const messages = response.data.data.messages;
                             const messageGroups = groupMessagesByUser(messages);
@@ -935,7 +1023,6 @@ export async function handleServerClick(serverId, event) {
                                 messagesContainer.appendChild(messageGroup);
                             });
                         } else {
-                            // Show empty state
                             messagesContainer.innerHTML = `
                                 <div class="flex flex-col items-center justify-center h-full text-[#dcddde]">
                                     <i class="fas fa-comments text-6xl mb-4 text-[#4f545c]"></i>
@@ -946,7 +1033,6 @@ export async function handleServerClick(serverId, event) {
                         }
                     } catch (error) {
                         console.error('Error updating chat section:', error);
-                        // Don't throw here, just log the error and continue
                     }
                 }
             } else if (firstChannel.type === 'voice') {
@@ -954,17 +1040,12 @@ export async function handleServerClick(serverId, event) {
                 if (voiceSection) {
                     voiceSection.classList.remove('hidden');
                     try {
-                        // Play the call sound when switching to a voice channel
                         playCallSound();
                         
-                        // Initialize voice manager if needed
                         if (!window.voiceManager) {
                             window.voiceManager = new VoiceManager();
                         }
-                        // Don't auto-join voice, let the user click the join button
                         window.voiceManager.setupVoice(firstChannel.id);
-                        
-                        // Update meta tags for voice channel
                         const channelIdMeta = document.querySelector('meta[name="channel-id"]');
                         if (channelIdMeta) {
                             channelIdMeta.content = firstChannel.id;
@@ -986,18 +1067,14 @@ export async function handleServerClick(serverId, event) {
                         }
                     } catch (error) {
                         console.error('Error updating voice section:', error);
-                        // Don't throw here, just log the error and continue
                     }
                 }
             }
             console.groupEnd();
         }
 
-        // Update active server in sidebar
         console.log('Updating active server state');
     updateActiveServer();
-
-        // Initialize channel handlers
         console.group('Channel Handlers');
         const channelItems = document.querySelectorAll('.channel-item');
         console.log('Found channel items:', {
@@ -1009,7 +1086,6 @@ export async function handleServerClick(serverId, event) {
             }))
         });
 
-        // Switch to first channel if available
         if (firstChannel) {
             console.log('Looking for first channel element:', firstChannel.id);
             const channelElement = document.querySelector(`.channel-item[data-channel-id="${firstChannel.id}"]`);
@@ -1024,17 +1100,37 @@ export async function handleServerClick(serverId, event) {
             }
         }
         console.groupEnd();
-
-        // Dispatch server changed event
         console.log('Dispatching ServerChanged event');
         window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
 
     } catch (error) {
         console.error('Error in handleServerClick:', error);
         console.trace();
-        throw error; // Re-throw to be handled by the click handler
+        throw error;
     } finally {
         console.groupEnd();
+    }
+}
+
+function showServerChannelSection() {
+    const serverChannelSelectors = [
+        '.w-60.bg-discord-dark.flex.flex-col',
+        'div[class*="w-60"][class*="bg-discord-dark"]',  
+        'div[class*="w-60 bg-discord-dark"]'
+    ];
+    
+    let found = false;
+    serverChannelSelectors.forEach(selector => {
+        const element = document.querySelector(selector);
+        if (element) {
+            console.log('[Server Sidebar] Showing server channel section with selector:', selector);
+            element.style.display = 'flex';
+            found = true;
+        }
+    });
+    
+    if (!found) {
+        console.log('[Server Sidebar] No server channel section found to show');
     }
 }
 
@@ -1078,7 +1174,6 @@ function formatMessageContent(content) {
         .replace(/'/g, '&#039;')
         .replace(/\n/g, '<br>');
     
-    // Format markdown
     formattedContent = formattedContent
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')

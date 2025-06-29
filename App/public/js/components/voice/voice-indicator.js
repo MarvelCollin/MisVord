@@ -23,18 +23,24 @@ class VoiceIndicator {
     }
     
     setupDragAndDrop() {
-        const dragHandle = this.indicator.querySelector('.drag-handle');
+        const dragHandle = this.indicator;
         if (!dragHandle) return;
         
         let isDragging = false;
-        let currentX;
-        let currentY;
-        let initialX;
-        let initialY;
         let xOffset = 0;
         let yOffset = 0;
+        let initialX;
+        let initialY;
         
         const dragStart = (e) => {
+            if (e.target.closest('button')) {
+                return;
+            }
+            
+            isDragging = true;
+            this.indicator.classList.add('active');
+            document.body.style.userSelect = 'none';
+            
             if (e.type === "touchstart") {
                 initialX = e.touches[0].clientX - xOffset;
                 initialY = e.touches[0].clientY - yOffset;
@@ -42,18 +48,15 @@ class VoiceIndicator {
                 initialX = e.clientX - xOffset;
                 initialY = e.clientY - yOffset;
             }
-            
-            if (e.target === dragHandle || dragHandle.contains(e.target)) {
-                isDragging = true;
-                this.indicator.classList.add('active');
-            }
         };
         
         const dragEnd = () => {
+            if (!isDragging) return;
+            
             isDragging = false;
             this.indicator.classList.remove('active');
-            
-            // Save position
+            document.body.style.userSelect = 'auto';
+
             localStorage.setItem('voiceIndicatorPosition', JSON.stringify({ x: xOffset, y: yOffset }));
         };
         
@@ -62,6 +65,7 @@ class VoiceIndicator {
             
             e.preventDefault();
             
+            let currentX, currentY;
             if (e.type === "touchmove") {
                 currentX = e.touches[0].clientX - initialX;
                 currentY = e.touches[0].clientY - initialY;
@@ -73,27 +77,28 @@ class VoiceIndicator {
             xOffset = currentX;
             yOffset = currentY;
             
-            this.setTranslate(currentX, currentY);
+            this.setTranslate(xOffset, yOffset);
         };
         
-        dragHandle.addEventListener('touchstart', dragStart, false);
-        dragHandle.addEventListener('touchend', dragEnd, false);
-        dragHandle.addEventListener('touchmove', drag, false);
-        
         dragHandle.addEventListener('mousedown', dragStart, false);
-        document.addEventListener('mousemove', drag, false);
         document.addEventListener('mouseup', dragEnd, false);
+        document.addEventListener('mousemove', drag, false);
         
-        // Restore position
+        dragHandle.addEventListener('touchstart', dragStart, { passive: false });
+        document.addEventListener('touchend', dragEnd, false);
+        document.addEventListener('touchmove', drag, { passive: false });
+        
         const savedPosition = localStorage.getItem('voiceIndicatorPosition');
         if (savedPosition) {
             try {
                 const { x, y } = JSON.parse(savedPosition);
-                xOffset = x;
-                yOffset = y;
-                this.setTranslate(x, y);
+                if (typeof x === 'number' && typeof y === 'number') {
+                    xOffset = x;
+                    yOffset = y;
+                    this.setTranslate(x, y);
+                }
             } catch (error) {
-                console.error('Error restoring voice indicator position:', error);
+                console.error('Error parsing voice indicator position:', error);
             }
         }
     }
@@ -181,10 +186,28 @@ class VoiceIndicator {
         }
     }
     
+    showIndicator() {
+        if (!this.indicator) return;
+        console.log('Showing voice indicator');
+        this.indicator.style.display = 'block';
+        this.indicator.classList.remove('scale-0', 'opacity-0');
+    }
+    
+    hideIndicator() {
+        if (!this.indicator) return;
+        console.log('Hiding voice indicator');
+        this.indicator.classList.add('scale-0', 'opacity-0');
+        setTimeout(() => {
+            if (!this.indicator) return;
+            this.indicator.style.display = 'none';
+        }, 300); // Wait for transition to complete
+    }
+    
     handleConnect(detail) {
         if (!this.indicator) return;
         
-        this.indicator.classList.remove('scale-0', 'opacity-0');
+        console.log('Voice connected, showing indicator');
+        this.showIndicator();
         
         if (this.channelNameEl && detail?.channelName) {
             this.channelNameEl.textContent = detail.channelName.length > 10 
@@ -199,7 +222,8 @@ class VoiceIndicator {
     handleDisconnect() {
         if (!this.indicator) return;
         
-        this.indicator.classList.add('scale-0', 'opacity-0');
+        console.log('Voice disconnected, hiding indicator');
+        this.hideIndicator();
         this.stopDurationTimer();
         this.connectionStartTime = null;
     }

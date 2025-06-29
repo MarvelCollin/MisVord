@@ -491,6 +491,7 @@ class UserController extends BaseController
             }
             
             $currentUserId = $this->getCurrentUserId();
+            $serverId = $_GET['server_id'] ?? null;
             
             $userData = [
                 'id' => $user->id,
@@ -506,6 +507,18 @@ class UserController extends BaseController
                 'is_friend' => $this->friendListRepository->areFriends($currentUserId, $userId),
                 'friend_request_sent' => $this->friendListRepository->hasPendingRequest($currentUserId, $userId)
             ];
+            
+            if ($serverId) {
+                require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+                $membershipRepository = new UserServerMembershipRepository();
+                
+                if ($membershipRepository->isMember($currentUserId, $serverId) && $membershipRepository->isMember($userId, $serverId)) {
+                    $serverProfile = $membershipRepository->getPerServerProfile($userId, $serverId);
+                    if ($serverProfile) {
+                        $userData['server_profile'] = $serverProfile;
+                    }
+                }
+            }
             
             return $this->success([
                 'user' => $userData

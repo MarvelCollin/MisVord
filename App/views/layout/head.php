@@ -715,14 +715,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (window.globalSocketManager && window.globalSocketManager.isReady()) {
                 const username = document.querySelector('meta[name="username"]')?.content || 'unknown';
                 
+                window.globalSocketManager.debug('Sending debug ping to server...', {
+                    username: username,
+                    socketId: window.globalSocketManager.io.id,
+                    timestamp: new Date().toISOString()
+                });
+                
                 window.globalSocketManager.io.emit('debug-test', username);
-                console.log('Debug ping sent:', username);
                 
                 if (window.showToast) {
-                    window.showToast(`Ping sent from ${username}`, 'success');
+                    window.showToast(`Debug ping sent. Check server logs for response.`, 'info');
                 }
             } else {
-                console.warn('🧪 Cannot send debug message: socket not ready');
+                console.warn('%c🧪 Cannot send debug message: socket not ready', 'color: #ff9800; font-weight: bold');
                 if (window.showToast) {
                     window.showToast('Socket not ready for debug test', 'error');
                 }
@@ -1025,9 +1030,4 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endif; ?>
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo $cache_version; ?>" type="module"></script>
-<?php 
-$current_path = $_SERVER['REQUEST_URI'] ?? '';
-if (strpos($current_path, '/server/') !== false): 
-?>
-<script src="<?php echo js('components/channels/channel-loader'); ?>?v=<?php echo $cache_version; ?>" type="module"></script>
-<?php endif; ?>
+

@@ -5,6 +5,12 @@ class ChatAPI {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         };
+        
+        // Initialize tracking of sent messages
+        if (!window._sentMessageIds) window._sentMessageIds = new Set();
+        
+        // Set up periodic cleanup of sent message IDs (every 5 minutes)
+        setInterval(() => this.cleanupSentMessageIds(), 5 * 60 * 1000);
     }
 
     async parseResponse(response) {
@@ -59,320 +65,110 @@ class ChatAPI {
             }
             throw new Error('JSON parsing failed');
         }
-    }    async makeRequest(url, options = {}) {
-        console.log(`📡 [CHAT-API] Making request:`, {
-            url,
-            method: options.method || 'GET',
-            hasBody: !!options.body
-        });
+    }
 
-        const defaultHeaders = {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        };
-
-        const requestOptions = {
-            method: options.method || 'GET',
-                headers: {
-                ...defaultHeaders,
-                ...(options.headers || {})
-            },
-            credentials: 'include'
-        };
-
-        if (options.body) {
-            requestOptions.body = options.body;
-        }
-
+    async makeRequest(url, options = {}) {
         try {
-            const response = await fetch(url, requestOptions);
-            console.log(`📡 [CHAT-API] Response received:`, {
+            // Log the request
+            console.log('📡 API Request:', url);
+            
+            const defaultOptions = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            };
+            
+            // Merge options
+            const fetchOptions = { ...defaultOptions, ...options };
+            
+            // Make request
+            const response = await fetch(url, fetchOptions);
+            console.log('📡 Response received:', {
                 url,
                 status: response.status,
                 statusText: response.statusText
             });
             
+            // Handle response
             if (!response.ok) {
                 console.error('API Request failed with status:', {
                     url,
-                    status: response.status,
+                    status: response.status, 
                     statusText: response.statusText
                 });
-                    throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
+                
+                throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
             }
-
+            
+            // Parse JSON response
             const data = await response.json();
             return data;
         } catch (error) {
             console.error('API Request failed:', error);
             throw error;
         }
-    }    async getMessages(chatType, targetId, limit = 20, offset = 0) {
+    }
+
+    async getMessages(targetId, chatType, options = {}) {
         if (!targetId) {
             throw new Error('Target ID is required');
         }
 
+        // Normalize chat type
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
-        const url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
         
-        try {
-            const response = await this.makeRequest(url);
-            
-            if (!response) {
-                throw new Error('Empty response');
-            }
-            
-            return response;
-        } catch (error) {
-            throw error;
+        // Set up query parameters
+        const limit = options.limit || 50;
+        const before = options.before || null;
+        const offset = options.offset || 0;
+        
+        // Use the primary endpoint format
+        let url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
+        if (before) {
+            url += `&before=${before}`;
         }
+        
+        console.log('🔍 Getting messages from:', url);
+        
+        // Fetch messages from primary endpoint
+        const response = await this.makeRequest(url);
+        return response;
     }
-    
-    async checkAuthentication() {
-        return true; 
-    }    async sendMessage(targetId, content, chatType = 'channel', options = {}) {
-        console.log(`📤 [CHAT-API] Starting sendMessage:`, {
-            targetId,
-            content: content?.substring(0, 50) + (content?.length > 50 ? '...' : ''),
-            chatType,
-            options
-        });
-        
-        if (!targetId || !content) {
-            throw new Error('Target ID and content are required');
-        }
-        
-        // Map 'direct' to 'dm' for API compatibility
-        const apiChatType = chatType === 'direct' ? 'dm' : chatType;
-        
-        // Generate a temporary message ID for immediate display
-        const tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Prepare socket data with temporary ID
-        const socketData = {
-            id: tempMessageId,
-            content: content,
-            user_id: window.globalSocketManager?.userId,
-            username: window.globalSocketManager?.username,
-            avatar_url: null,
-            message_type: options.message_type || 'text',
-            attachments: options.attachments || [],
-            reply_message_id: options.reply_message_id || null,
-            reply_data: options.reply_data || null,
-            timestamp: Date.now(),
-            target_type: apiChatType,
-            target_id: targetId,
-            channel_id: apiChatType === 'channel' ? targetId : null,
-            room_id: apiChatType === 'dm' ? targetId : null,
-            is_temporary: true
-        };
-        
-        // Add temporary message directly to UI for instant feedback
-        if (window.chatSection && window.chatSection.messageHandler) {
-            console.log(`📝 [CHAT-API] Adding temporary message directly to UI: ${tempMessageId}`);
-            window.chatSection.messageHandler.addMessage(socketData);
-        }
-        
-        // Emit socket event immediately using emitToRoom for better broadcasting
-        if (window.globalSocketManager) {
-            console.log(`📡 [CHAT-API] Broadcasting message using emitToRoom: ${tempMessageId}`);
-            const eventName = apiChatType === 'channel' ? 'new-channel-message' : 'user-message-dm';
-            window.globalSocketManager.emitToRoom(eventName, socketData, apiChatType, targetId);
-        } else {
-            console.warn(`⚠️ [CHAT-API] globalSocketManager not available, using direct emit`);
-            // Fallback to direct emit
-            if (apiChatType === 'channel') {
-                console.log(`📡 [CHAT-API] Emitting channel message: ${tempMessageId}`);
-                window.globalSocketManager?.io?.emit('new-channel-message', socketData);
-            } else {
-                console.log(`📡 [CHAT-API] Emitting DM message: ${tempMessageId}`);
-                window.globalSocketManager?.io?.emit('user-message-dm', socketData);
-            }
-        }
-        
-        // Prepare request data for API
-        const requestData = {
-            content: content,
-            message_type: options.message_type || 'text',
-            attachments: options.attachments || [],
-            reply_message_id: options.reply_message_id || null,
-            reply_data: options.reply_data || null,
-            temp_message_id: tempMessageId,
-            // Add missing fields required for proper routing
-            target_type: apiChatType,
-            target_id: targetId,
-            user_id: window.globalSocketManager?.userId,
-            username: window.globalSocketManager?.username
-        };
-        
+
+
+
+    async uploadFiles(formData) {
         try {
-            // Save to database using the correct endpoint
-            const endpoint = apiChatType === 'channel' 
-                ? `/api/chat/channel/${targetId}/messages` 
-                : `/api/chat/dm/${targetId}/messages`;
-                
-            const response = await this.makeRequest(endpoint, {
+            const response = await fetch('/api/media/upload', {
                 method: 'POST',
-                body: JSON.stringify(requestData)
+                body: formData,
+                credentials: 'same-origin'
             });
             
-            // Extract message data from the nested response structure
-            const messageData = response?.data?.data?.message || response?.data?.message || response?.data || {};
-            const messageId = messageData.id || messageData.message_id || response?.data?.message_id;
-            
-            console.log(`✅ [CHAT-API] Message saved to database, ID:`, messageId);
-            
-            if (response?.success && messageId) {
-                // Prepare confirmation data
-                const confirmData = {
-                    temp_message_id: tempMessageId,
-                    permanent_message_id: messageId
-                };
-                
-                if (apiChatType === 'channel') {
-                    confirmData.channel_id = targetId;
-                } else {
-                    confirmData.room_id = targetId;
-                }
-                
-                // Update UI directly
-                if (window.chatSection && window.chatSection.messageHandler) {
-                    console.log(`🔄 [CHAT-API] Updating temporary message in UI: ${tempMessageId} → ${messageId}`);
-                    window.chatSection.messageHandler.handleMessageConfirmed(confirmData);
-                }
-                
-                // Emit a message-confirmed event using emitToRoom for better broadcasting
-                console.log(`📡 [CHAT-API] Broadcasting message confirmation: ${tempMessageId} → ${messageId}`);
-                if (window.globalSocketManager) {
-                    window.globalSocketManager.emitToRoom('message-confirmed', confirmData, apiChatType, targetId);
-                } else {
-                    console.warn(`⚠️ [CHAT-API] globalSocketManager not available, using direct emit`);
-                    window.globalSocketManager?.io?.emit('message-confirmed', confirmData);
-                }
-                
-                return {
-                    success: true,
-                    data: {
-                        message_id: messageId,
-                        temp_message_id: tempMessageId
-                    }
-                };
-            } else {
-                throw new Error('Failed to get message ID from response');
+            if (!response.ok) {
+                throw new Error(`File upload failed with status: ${response.status}`);
             }
+            
+            return await response.json();
         } catch (error) {
-            console.error('❌ [CHAT-API] Error sending message:', error);
-            
-            // Prepare failure data
-            const failData = {
-                temp_message_id: tempMessageId,
-                error: error.message
-            };
-            
-            if (apiChatType === 'channel') {
-                failData.channel_id = targetId;
-            } else {
-                failData.room_id = targetId;
-            }
-            
-            // Update UI directly
-            if (window.chatSection && window.chatSection.messageHandler) {
-                console.log(`❌ [CHAT-API] Marking temporary message as failed in UI: ${tempMessageId}`);
-                window.chatSection.messageHandler.handleMessageFailed(failData);
-            }
-            
-            // Emit message failed event using emitToRoom for better broadcasting
-            console.log(`📡 [CHAT-API] Broadcasting message failed: ${tempMessageId}`);
-            if (window.globalSocketManager) {
-                window.globalSocketManager.emitToRoom('message-failed', failData, apiChatType, targetId);
-            } else {
-                console.warn(`⚠️ [CHAT-API] globalSocketManager not available, using direct emit`);
-                window.globalSocketManager?.io?.emit('message-failed', failData);
-            }
-            
+            console.error('Error uploading files:', error);
             throw error;
         }
     }
 
-
-
-    async updateMessage(messageId, content) {
-        const url = `/api/messages/${messageId}`;
+    async getPinnedMessages(targetId, chatType) {
+        if (!targetId) {
+            throw new Error('Target ID is required');
+        }
         
-        try {
-            const response = await this.makeRequest(url, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    content: content
-                })
-            });
-            
-            console.log(`✅ [CHAT-API] Update message response:`, {
-                success: response?.success,
-                hasData: !!response?.data,
-                hasNestedData: !!(response?.data?.data),
-                hasMessage: !!(response?.data?.data?.message || response?.data?.message)
-            });
-            
-            // Handle both nested and non-nested response structures
-            const messageData = response?.data?.data?.message || response?.data?.message;
-            const targetType = response?.data?.data?.target_type || response?.data?.target_type;
-            const targetId = response?.data?.data?.target_id || response?.data?.target_id;
-            
-            if (response && response.success && messageData) {
-                this.emitSocketEventForMessage(targetType, targetId, 'message-updated', {
-                    message_id: messageId,
-                    message: messageData,
-                    user_id: messageData.user_id,
-                    username: messageData.username
-                });
-            }
-            
-            return response;
-        } catch (error) {
-            console.error('❌ [CHAT-API] Error updating message in database:', error);
-            throw error;
-        }
-    }
-    
-
-
-    async deleteMessage(messageId) {
-        const url = `/api/messages/${messageId}`;
+        const apiChatType = chatType === 'direct' ? 'dm' : chatType;
+        const url = `${this.baseURL}/${apiChatType}/${targetId}/pins`;
         
-        try {
-            const response = await this.makeRequest(url, {
-                method: 'DELETE'
-            });
-            
-            console.log(`✅ [CHAT-API] Delete message response:`, {
-                success: response?.success,
-                hasData: !!response?.data,
-                hasNestedData: !!(response?.data?.data)
-            });
-            
-            // Handle both nested and non-nested response structures
-            const targetType = response?.data?.data?.target_type || response?.data?.target_type;
-            const targetId = response?.data?.data?.target_id || response?.data?.target_id;
-            const userId = response?.data?.data?.user_id || response?.data?.user_id;
-            const username = response?.data?.data?.username || response?.data?.username;
-            
-            if (response && response.success && targetType && targetId) {
-                this.emitSocketEventForMessage(targetType, targetId, 'message-deleted', {
-                    message_id: messageId,
-                    user_id: userId,
-                    username: username || 'Unknown'
-                });
-            }
-            
-            return response;
-        } catch (error) {
-            console.error('❌ [CHAT-API] Error deleting message:', error);
-            throw error;
-        }
+        return await this.makeRequest(url);
     }
-    
-
 
     async pinMessage(messageId) {
         if (!messageId) {
@@ -381,26 +177,88 @@ class ChatAPI {
         
         const url = `/api/messages/${messageId}/pin`;
         
-        try {
-            const response = await this.makeRequest(url, {
-                method: 'POST'
-            });
-            
-            if (response && response.success && response.data && response.data.target_type) {
-                const eventName = response.data.action === 'pinned' ? 'message-pinned' : 'message-unpinned';
-                this.emitSocketEventForMessage(response.data.target_type, response.data.target_id, eventName, {
-                    message_id: messageId,
-                    action: response.data.action,
-                    message: response.data.message,
-                    user_id: window.globalSocketManager?.userId || null,
-                    username: window.globalSocketManager?.username || 'Unknown'
-                });
-            }
-            
-            return response;
-        } catch (error) {
-            throw error;
+        return await this.makeRequest(url, { method: 'POST' });
+    }
+
+    async unpinMessage(messageId) {
+        if (!messageId) {
+            throw new Error('Message ID is required');
         }
+        
+        const url = `/api/messages/${messageId}/unpin`;
+        
+        return await this.makeRequest(url, { method: 'POST' });
+    }
+
+    async editMessage(messageId, content) {
+        if (!messageId) {
+            throw new Error('Message ID is required');
+        }
+        
+        if (!content) {
+            throw new Error('Message content is required');
+        }
+        
+        const url = `/api/messages/${messageId}`;
+        const options = {
+            method: 'PUT',
+            body: JSON.stringify({
+                content: content
+            })
+        };
+        
+        return await this.makeRequest(url, options);
+    }
+
+    async deleteMessage(messageId) {
+        if (!messageId) {
+            throw new Error('Message ID is required');
+        }
+        
+        const url = `/api/messages/${messageId}`;
+        
+        return await this.makeRequest(url, { method: 'DELETE' });
+    }
+
+    async addReaction(messageId, emoji) {
+        if (!messageId || !emoji) {
+            throw new Error('Message ID and emoji are required');
+        }
+        
+        const url = `/api/messages/${messageId}/reactions`;
+        const options = {
+            method: 'POST',
+            body: JSON.stringify({
+                emoji: emoji
+            })
+        };
+        
+        return await this.makeRequest(url, options);
+    }
+
+    async removeReaction(messageId, emoji) {
+        if (!messageId || !emoji) {
+            throw new Error('Message ID and emoji are required');
+        }
+        
+        const url = `/api/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`;
+        
+        return await this.makeRequest(url, { method: 'DELETE' });
+    }
+
+    async searchMessages(targetId, chatType, query) {
+        if (!targetId || !query) {
+            throw new Error('Target ID and search query are required');
+        }
+        
+        const apiChatType = chatType === 'direct' ? 'dm' : chatType;
+        const url = `${this.baseURL}/${apiChatType}/${targetId}/search?q=${encodeURIComponent(query)}`;
+        
+        return await this.makeRequest(url);
+    }
+
+    async checkAuthentication() {
+        return true; 
     }
 
     async getMessageTarget(messageId) {
@@ -560,17 +418,7 @@ class ChatAPI {
         }
     }
 
-    async sendMessageToServer(messageData) {
-        try {
-            return await this.makeRequest(`${this.baseURL}/send`, {
-                method: 'POST',
-                body: JSON.stringify(messageData)
-            });
-        } catch (error) {
-            console.error('Error sending message:', error);
-            throw error;
-        }
-    }
+
 
     async uploadFile(formData) {
         try {
@@ -622,160 +470,7 @@ class ChatAPI {
         }
     }
 
-    async addReaction(messageId, emoji) {
-        if (!messageId || !emoji) {
-            throw new Error('Message ID and emoji are required');
-        }
-        
-        const url = `/api/messages/${messageId}/reactions`;
-        
-        try {
-            const response = await this.makeRequest(url, {
-                method: 'POST',
-                body: JSON.stringify({
-                    emoji: emoji
-                })
-            });
-            
-            console.log(`✅ [CHAT-API] Add reaction response:`, {
-                success: response?.success,
-                hasData: !!response?.data,
-                hasNestedData: !!(response?.data?.data)
-            });
-            
-            // Handle both nested and non-nested response structures
-            const targetType = response?.data?.data?.target_type || response?.data?.target_type;
-            const targetId = response?.data?.data?.target_id || response?.data?.target_id;
-            const userId = response?.data?.data?.user_id || response?.data?.user_id;
-            const username = response?.data?.data?.username || response?.data?.username;
-            
-            if (response && response.success && targetType && targetId) {
-                this.emitSocketEventForMessage(targetType, targetId, 'reaction-added', {
-                    message_id: messageId,
-                    user_id: userId,
-                    username: username,
-                    emoji: emoji,
-                    action: 'added'
-                });
-            }
-            
-            return response;
-        } catch (error) {
-            console.error('❌ [CHAT-API] Error adding reaction:', error);
-            throw error;
-        }
-    }
 
-    async removeReaction(messageId, emoji) {
-        if (!messageId || !emoji) {
-            throw new Error('Message ID and emoji are required');
-        }
-        
-        const url = `/api/messages/${messageId}/reactions`;
-        
-        try {
-            const response = await this.makeRequest(url, {
-                method: 'DELETE',
-                body: JSON.stringify({
-                    emoji: emoji
-                })
-            });
-            
-            console.log(`✅ [CHAT-API] Remove reaction response:`, {
-                success: response?.success,
-                hasData: !!response?.data,
-                hasNestedData: !!(response?.data?.data)
-            });
-            
-            // Handle both nested and non-nested response structures
-            const targetType = response?.data?.data?.target_type || response?.data?.target_type;
-            const targetId = response?.data?.data?.target_id || response?.data?.target_id;
-            const userId = response?.data?.data?.user_id || response?.data?.user_id;
-            const username = response?.data?.data?.username || response?.data?.username;
-            
-            if (response && response.success && targetType && targetId) {
-                this.emitSocketEventForMessage(targetType, targetId, 'reaction-removed', {
-                    message_id: messageId,
-                    user_id: userId,
-                    username: username,
-                    emoji: emoji,
-                    action: 'removed'
-                });
-            }
-            
-            return response;
-        } catch (error) {
-            console.error('❌ [CHAT-API] Error removing reaction:', error);
-            throw error;
-        }
-    }
-    emitSocketEvent(chatType, targetId, eventName, data) {
-        console.log(`🔌 [CHAT-API] emitSocketEvent called:`, {
-            chatType,
-            targetId,
-            eventName,
-            userId: data.user_id,
-            messageId: data.id || data.message_id
-        });
-
-        // Determine the correct event name based on chat type and original event
-        const eventNameMap = {
-            'new-message': {
-                'channel': 'new-channel-message',
-                'dm': 'user-message-dm'
-            },
-            'message-updated': 'message-updated',
-            'message-deleted': 'message-deleted',
-            'reaction-added': 'reaction-added',
-            'reaction-removed': 'reaction-removed',
-            'message-pinned': 'message-pinned',
-            'message-unpinned': 'message-unpinned'
-        };
-
-        const finalEventName = eventNameMap[eventName]?.[chatType] || eventNameMap[eventName] || eventName;
-        
-        console.log(`🔄 [CHAT-API] Event name determined:`, {
-            originalEventName: eventName,
-            finalEventName,
-            socketEventName: finalEventName,
-            chatType
-        });
-        
-        // Prepare the socket data
-        const socketData = {
-            ...data,
-            event: finalEventName
-        };
-
-        // Add chat type specific fields
-        if (chatType === 'channel') {
-            socketData.channel_id = targetId;
-        } else if (chatType === 'dm') {
-            socketData.room_id = targetId;
-        }
-        
-        console.log(`📡 [CHAT-API] Final socket data prepared:`, {
-            event: socketData.event,
-            id: socketData.id,
-            userId: socketData.user_id,
-            username: socketData.username,
-            channelId: socketData.channel_id,
-            roomId: socketData.room_id
-        });
-        
-        // Emit the event
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-        console.log(`🚀 [CHAT-API] Emitting socket event...`);
-            window.globalSocketManager.emitToRoom(finalEventName, socketData, chatType, targetId);
-            console.log(`✅ [CHAT-API] Socket event emitted successfully:`, {
-                event: finalEventName,
-                messageId: socketData.id || socketData.message_id,
-                targetRoom: chatType === 'channel' ? `channel-${targetId}` : `dm-room-${targetId}`
-            });
-        } else {
-            console.warn(`⚠️ [CHAT-API] Socket manager not ready, skipping event emission`);
-        }
-    }
     
     emitSocketEventForMessage(chatType, targetId, eventName, data) {
         console.log(`🔌 [CHAT-API] emitSocketEvent called:`, {
@@ -892,6 +587,15 @@ class ChatAPI {
         } catch (error) {
             console.error('Error fetching message:', error);
             return null;
+        }
+    }
+
+    // Helper to prevent memory leaks by cleaning up sent message tracking
+    cleanupSentMessageIds() {
+        if (window._sentMessageIds && window._sentMessageIds.size > 1000) {
+            console.log(`%c[CHAT-API CLEANUP]`, 'color: #607D8B; font-weight: bold;', 
+                `Cleaning up sent message tracking (${window._sentMessageIds.size} ids)`);
+            window._sentMessageIds.clear();
         }
     }
 }

@@ -40,6 +40,15 @@ if ($is_auth_page) {
 
 <?php if (!$is_auth_page): ?>
 <script src="<?php echo js('api/chat-api'); ?>?v=<?php echo time(); ?>"></script>
+<script>
+// Initialize ChatAPI immediately to ensure it's available
+document.addEventListener('DOMContentLoaded', function() {
+    if (!window.ChatAPI) {
+        window.ChatAPI = new ChatAPI();
+        console.log("✅ ChatAPI initialized in scripts.php");
+    }
+});
+</script>
 <script src="<?php echo js('api/media-api'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('api/user-api'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('api/friend-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
@@ -71,3 +80,7 @@ if ($is_auth_page) {
 <?php endforeach; ?>
 
 <script type="module" src="/public/js/utils/channel-switch-manager.js"></script>
+
+<!-- Voice components -->
+<script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
+<script src="<?php echo asset('/js/components/voice/voice-indicator.js'); ?>"></script>

@@ -2,12 +2,20 @@
 
 .voice-ind-container {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45);
-  opacity: 1 !important;
-  transform: scale(1) !important;
+  opacity: 0 !important;
+  transform: scale(0) !important;
   transition: all 0.2s ease;
   width: 220px;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(79, 84, 92, 0.2);
+  display: none !important;
+}
+
+.voice-ind-container.scale-100,
+.voice-ind-container.opacity-100 {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+  display: flex !important;
 }
 
 .voice-ind-signal div {
@@ -71,11 +79,6 @@
 .channel-name, .connection-duration {
   font-size: 11px;
   letter-spacing: 0.2px;
-}
-
-.voice-ind-container:not(.scale-0) {
-  display: flex !important;
-  flex-direction: column;
 }
 
 .disconnect-btn {

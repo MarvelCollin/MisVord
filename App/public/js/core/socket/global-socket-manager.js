@@ -18,36 +18,40 @@ class GlobalSocketManager {
     }
     
     init(userData = null) {
-        if (window.__SOCKET_INITIALISED__) {
+        // Avoid double-initialization *only* if we already have an active socket
+        if (window.__SOCKET_INITIALISED__ && this.connected) {
             return false;
         }
-        window.__SOCKET_INITIALISED__ = true;
-        
+
         if (userData) {
             this.userId = userData.user_id;
             this.username = userData.username;
         }
-        
+
         this.loadConnectionDetails();
-        
+
         if (!this.socketHost || !this.socketPort) {
             this.error('Socket connection details not found');
             return false;
         }
-        
+
         const isAuthPage = document.body && document.body.getAttribute('data-page') === 'auth';
         if (isAuthPage) {
             this.log('Auth page detected, socket initialization skipped');
             return false;
         }
-        
+
+        // Make sure socket.io library is present; if not we'll let the caller try again later
         if (typeof io === 'undefined') {
-            this.error('Socket.io library not available, skipping connection');
+            this.error('Socket.io library not yet loaded (io undefined) – deferring initialization');
             return false;
         }
-        
+
         try {
-            this.connect();
+            const connected = this.connect();
+            if (connected !== false) {
+                window.__SOCKET_INITIALISED__ = true;
+            }
             return true;
         } catch (e) {
             this.error('Failed to initialize socket', e);
@@ -103,7 +107,7 @@ class GlobalSocketManager {
     connect() {
         if (this.io && this.connected) {
             this.log('Socket already connected');
-            return;
+            return true;
         }
         
         // Simple hardcoded connection
@@ -124,6 +128,7 @@ class GlobalSocketManager {
             });
             
             this.setupEventHandlers();
+            return true;
         } catch (e) {
             this.error('Failed to connect to socket', e);
             throw e;
@@ -136,16 +141,38 @@ class GlobalSocketManager {
         this.io.on('connect', () => {
             this.connected = true;
             this.reconnectAttempts = 0;
-            this.log(`Socket connected: ${this.io.id}`);
+            this.debug(`Socket connected with ID: ${this.io.id}`, { 
+                userId: this.userId,
+                socketId: this.io.id,
+                reconnectAttempts: this.reconnectAttempts
+            });
             
             // Send authentication immediately after connection
             this.sendAuthentication();
         });
         
+        // Add debug-test-response handler
+        this.io.on('debug-test-response', (data) => {
+            this.debug('Debug ping response received from server', {
+                response: data,
+                timestamp: new Date().toISOString(),
+                roundTripTime: new Date() - new Date(data.timestamp)
+            });
+            
+            if (window.showToast) {
+                window.showToast(`Debug ping confirmed by server: ${data.server_id}`, 'success');
+            }
+        });
+        
         // Handle authentication success
         this.io.on('auth-success', (data) => {
             this.authenticated = true;
-            this.log(`Socket authenticated successfully:`, data);
+            this.debug(`Socket authenticated successfully`, {
+                userId: this.userId,
+                username: this.username,
+                socketId: this.io.id,
+                data: data
+            });
             
             const event = new CustomEvent('globalSocketReady', {
                 detail: {
@@ -171,6 +198,12 @@ class GlobalSocketManager {
         this.io.on('auth-error', (data) => {
             this.authenticated = false;
             this.error('Socket authentication failed:', data);
+            this.debug('Authentication error details', {
+                userId: this.userId,
+                username: this.username,
+                socketId: this.io.id,
+                errorData: data
+            });
         });
         
         this.io.on('channel-joined', (data) => {
@@ -194,7 +227,11 @@ class GlobalSocketManager {
         this.io.on('disconnect', () => {
             this.connected = false;
             this.authenticated = false;
-            this.log('Socket disconnected');
+            this.debug('Socket disconnected', {
+                previousSocketId: this.io.id,
+                wasAuthenticated: this.authenticated,
+                joinedRooms: Array.from(this.joinedRooms)
+            });
             
             window.dispatchEvent(new Event('globalSocketDisconnected'));
         });
@@ -203,6 +240,12 @@ class GlobalSocketManager {
             this.error('Socket connection error', error);
             this.lastError = error;
             this.reconnectAttempts++;
+            
+            this.debug('Connection error details', {
+                error: error.message,
+                reconnectAttempt: this.reconnectAttempts,
+                maxAttempts: this.maxReconnectAttempts
+            });
             
             if (this.reconnectAttempts >= this.maxReconnectAttempts) {
                 this.log('Max reconnection attempts reached');
@@ -218,34 +261,9 @@ class GlobalSocketManager {
             this.error('Socket error', error);
         });
         
-        this.io.on('user-message-dm', (data) => {
-            this.log(`💬 GlobalSocketManager: Received DM message:`, data);
-            
-            const event = new CustomEvent('newDMMessage', {
-                detail: data
-            });
-            window.dispatchEvent(event);
-        });
-        
-        // Global listener for all channel messages, regardless of current channel
-        this.io.on('new-channel-message', (data) => {
-            this.log(`💬 GlobalSocketManager: Received channel message:`, data);
-            
-            const event = new CustomEvent('newChannelMessage', {
-                detail: data
-            });
-            window.dispatchEvent(event);
-            
-            // If the chat section exists and has an addMessage method, use it
-            if (window.chatSection && typeof window.chatSection.addMessage === 'function') {
-                window.chatSection.addMessage(data);
-            }
-            
-            // Optional: update unread badge if that function exists
-            if (typeof window.updateUnreadBadge === 'function') {
-                window.updateUnreadBadge(data.channel_id);
-            }
-        });
+        // NOTE: Message events are now handled by individual component socket-handlers
+        // Removed duplicate listeners for 'user-message-dm' and 'new-channel-message'
+        // to prevent double message processing
     }
     
     sendAuthentication() {
@@ -554,10 +572,6 @@ class GlobalSocketManager {
                     detail: messageData
                 });
                 window.dispatchEvent(event);
-                
-                if (window.chatSection && typeof window.chatSection.addMessage === 'function') {
-                    window.chatSection.addMessage(messageData);
-                }
             }
         });
         
@@ -606,18 +620,40 @@ class GlobalSocketManager {
     }
     
     log(...args) {
+        const timestamp = new Date().toISOString();
+        
         if (typeof window !== 'undefined' && window.logger) {
             window.logger.info('socket', ...args);
         } else {
-            console.log('[SOCKET]', ...args);
+            console.log(`%c[SOCKET ${timestamp}]`, 'color: #4CAF50; font-weight: bold;', ...args);
+        }
+    }
+    
+    debug(...args) {
+        const timestamp = new Date().toISOString();
+        const stack = new Error().stack?.split('\n')[2]?.trim() || '';
+        
+        if (typeof window !== 'undefined' && window.logger) {
+            window.logger.debug('socket', ...args);
+        } else {
+            console.debug(
+                `%c[SOCKET DEBUG ${timestamp}]`, 
+                'color: #2196F3; font-weight: bold;', 
+                ...args,
+                '\n',
+                `%c${stack}`, 
+                'color: #607D8B; font-size: 0.8em;'
+            );
         }
     }
     
     error(...args) {
+        const timestamp = new Date().toISOString();
+        
         if (typeof window !== 'undefined' && window.logger) {
             window.logger.error('socket', ...args);
         } else {
-            console.error('[SOCKET ERROR]', ...args);
+            console.error(`%c[SOCKET ERROR ${timestamp}]`, 'color: #F44336; font-weight: bold;', ...args);
         }
     }
 }

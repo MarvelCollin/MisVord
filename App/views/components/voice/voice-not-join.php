@@ -4,7 +4,7 @@ $currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
 $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name'] : $activeChannel->name) : 'Voice Channel';
 ?>
 
-<div id="joinView" class="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a0f] via-[#1a1a2e] to-[#16213e] relative overflow-hidden" onmousemove="handleMouseMove(event)">
+<div id="joinView" class="h-full w-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a0f] via-[#1a1a2e] to-[#16213e] relative overflow-hidden" onmousemove="handleMouseMove(event)">
     <div id="interactive-glow" class="absolute w-96 h-96 rounded-full bg-[radial-gradient(circle,rgba(139,92,246,0.2)_0%,transparent_70%)] blur-2xl opacity-0 transition-all duration-300 pointer-events-none"></div>
     
     <div class="absolute inset-8">
@@ -64,7 +64,7 @@ $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name
     <div class="absolute bottom-[20%] right-[12%] w-2.5 h-2.5 bg-gradient-to-br from-cyan-200 to-blue-200 rounded-full animate-distant-star-3 opacity-75 shadow-lg shadow-cyan-300/50"></div>
 </div>
 
-<div id="connectingView" class="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a0f] via-[#1a1a2e] to-[#16213e] hidden relative overflow-hidden">
+<div id="connectingView" class="h-full w-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a0f] via-[#1a1a2e] to-[#16213e] hidden relative overflow-hidden">
     <div class="relative z-10 text-center space-y-6">
         <div class="relative">
             <div class="animate-spin rounded-full h-16 w-16 border-2 border-transparent bg-gradient-to-r from-[#8b5cf6] via-[#06b6d4] to-[#6366f1] shadow-2xl shadow-purple-500/30"></div>
@@ -230,6 +230,10 @@ document.addEventListener('DOMContentLoaded', function() {
             joinVoiceChannel();
         }
     }, true);
+    
+    // Dispatch event to start preloading VideoSDK resources
+    console.log('[voice-not-join.php] Dispatching voiceUIReady event to start preloading');
+    window.dispatchEvent(new CustomEvent('voiceUIReady'));
 });
 </script>
 

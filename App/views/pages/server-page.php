@@ -27,8 +27,11 @@ $page_js = 'pages/app';
 $head_scripts = ['logger-init'];
 $additional_js = [
     'components/servers/server-dropdown',
+    'components/servers/server-sidebar',
     'components/servers/channel-redirect',
     'components/channels/channel-manager',
+    'utils/load-home-page',
+    'utils/load-server-page',
     'pages/server-page'
 ];
 $contentType = 'server';

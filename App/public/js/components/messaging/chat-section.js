@@ -327,7 +327,7 @@ class ChatSection {
         if (this.isLoading) return;
         
         if (!this.targetId) {
-            console.warn('⚠️ [CHAT-SECTION] Cannot load messages: No target ID');
+            console.warn('⚠️ Cannot load messages: No target ID');
             this.showEmptyState('No channel or chat selected');
             return;
         }
@@ -343,39 +343,63 @@ class ChatSection {
                 throw new Error('ChatAPI not initialized');
             }
             
-            const response = await window.ChatAPI.getMessages(this.chatType, this.targetId, limit, options.offset || 0);
+            console.log('🔍 Loading messages:', {
+                targetId: this.targetId, 
+                chatType: this.chatType,
+                before: before,
+                limit: limit
+            });
             
-            if (response.success) {
-                const messages = response.data?.data?.messages || [];
+            const response = await window.ChatAPI.getMessages(
+                this.targetId,
+                this.chatType,
+                { limit, before, offset: options.offset || 0 }
+            );
+            
+            console.log('📨 Messages response:', response);
+            
+            if (response && response.success) {
+                // Handle different response structures
+                const messages = response.data?.messages || 
+                                response.data?.data?.messages || 
+                                [];
+                
+                console.log('📨 Parsed messages:', messages.length);
                 
                 if (messages.length === 0) {
                     this.hasMoreMessages = false;
                     if (!before) {
                         this.showEmptyState();
-            }
-        } else {
+                    }
+                } else {
                     this.hideEmptyState();
                     
                     // Update last loaded message ID for pagination
-                    this.lastLoadedMessageId = messages[0].id;
+                    if (messages.length > 0 && messages[0].id) {
+                        this.lastLoadedMessageId = messages[0].id;
+                    }
                     
                     // Render messages
                     messages.forEach(message => {
                         this.messageHandler.addMessage(message);
                     });
                     
+                    // Scroll to bottom if this is the initial load
                     if (!before) {
                         this.scrollToBottom();
                     }
+                    
+                    // Set flag if we have more messages to load
+                    this.hasMoreMessages = messages.length >= limit;
                 }
                 
                 this.updateLoadMoreButton();
-        } else {
-                console.error('❌ [CHAT-SECTION] Failed to load messages:', response.message);
+            } else {
+                console.error('❌ Failed to load messages:', response?.message || 'Unknown error');
                 this.showEmptyState('Failed to load messages. Please try again.');
             }
         } catch (error) {
-            console.error('❌ [CHAT-SECTION] Error loading messages:', error);
+            console.error('❌ Error loading messages:', error);
             this.showEmptyState('Failed to load messages. Please try again.');
         } finally {
             this.isLoading = false;

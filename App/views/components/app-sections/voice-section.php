@@ -7,37 +7,20 @@ if (!$activeChannel) {
     return;
 }
 
-// Check if user is already connected to voice
-$isConnectedToVoice = false;
-$savedVoiceState = isset($_COOKIE['voiceConnectionState']) ? json_decode($_COOKIE['voiceConnectionState'], true) : null;
-
-// If there's localStorage data available, check it through JS
-echo '<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const savedState = localStorage.getItem("voiceConnectionState");
-        if (savedState) {
-            try {
-                const state = JSON.parse(savedState);
-                const currentChannelId = "' . $activeChannelId . '";
-                if (state.isConnected && state.currentChannelId === currentChannelId && window.videosdkMeeting) {
-                    document.getElementById("voice-not-join-container")?.classList.add("hidden");
-                    document.getElementById("voice-call-container")?.classList.remove("hidden");
-                }
-            } catch(e) {
-                console.error("Error parsing voice state:", e);
-            }
-        }
-    });
-</script>';
+// Add a container div that ensures full coverage of the main content area
+echo '<div class="voice-container flex flex-col h-full w-full bg-[#313338] overflow-hidden">';
 
 // Container for voice-not-join component (shown first)
-echo '<div id="voice-not-join-container">';
+echo '<div id="voice-not-join-container" class="flex-1 h-full w-full">';
 include __DIR__ . '/../voice/voice-not-join.php';
 echo '</div>';
 
 // Container for voice-call-section component (hidden initially)
-echo '<div id="voice-call-container" class="hidden">';
+echo '<div id="voice-call-container" class="hidden flex-1 h-full w-full">';
 include __DIR__ . '/../voice/voice-call-section.php';
+echo '</div>';
+
+// Close the main container
 echo '</div>';
 
 // Add listener to switch views when voice connects
@@ -52,3 +35,21 @@ echo '<script>
         document.getElementById("voice-call-container")?.classList.add("hidden");
     });
 </script>';
+
+// Add additional CSS to ensure proper sizing
+echo '<style>
+    .voice-container {
+        position: relative;
+        min-height: 100%;
+        height: 100vh;
+    }
+    
+    #voice-not-join-container,
+    #voice-call-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+</style>';

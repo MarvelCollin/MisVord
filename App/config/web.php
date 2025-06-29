@@ -34,6 +34,14 @@ function handleRoute($routes)
 {
     $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     
+    $log_file = dirname(__DIR__) . '/logs/router_debug.log';
+    $log_entry = "--- New Request ---\n"
+               . "Timestamp: " . date('Y-m-d H:i:s') . "\n"
+               . "Request URI: {$_SERVER['REQUEST_URI']}\n"
+               . "Processed URI: {$uri}\n"
+               . "Method: {$_SERVER['REQUEST_METHOD']}\n\n";
+    file_put_contents($log_file, $log_entry, FILE_APPEND);
+    
     if (strpos($uri, '/api/') === 0) {
         error_reporting(0);
         ini_set('display_errors', 0);
@@ -88,6 +96,9 @@ function handleRoute($routes)
 
         foreach ($routes as $pattern => $handler) {
 
+            $originalPatternForLog = $pattern;
+            file_put_contents($log_file, "Checking pattern: {$originalPatternForLog}\n", FILE_APPEND);
+
             $methodPattern = null;
             $originalPattern = $pattern;
             if (strpos($pattern, ':') !== false) {
@@ -114,6 +125,7 @@ function handleRoute($routes)
                 }
             }
             if (preg_match($patternRegex, $uri, $matches)) {
+                file_put_contents($log_file, "SUCCESS: Matched pattern {$originalPattern}\n\n", FILE_APPEND);
                 if (strpos($pattern, '{') !== false) {
                     $params = [];
                     foreach ($matches as $key => $value) {
@@ -145,6 +157,7 @@ function handleRoute($routes)
             }
         }
         if (!$matched) {
+            file_put_contents($log_file, "FAILURE: No route matched for URI: {$uri}\n\n", FILE_APPEND);
             $viewFile = $routes['404'] ?? 'pages/404.php';
             $matchedRoute = '404 (Not Found)';
             http_response_code(404);

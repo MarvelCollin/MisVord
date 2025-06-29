@@ -57,6 +57,29 @@ Route::get('/home/channels/dm/([0-9]+)', function($dmId) {
     $_SESSION['active_dm'] = $dmId;
     require_once __DIR__ . '/../views/pages/home.php';
 });
+
+Route::get('/home/content', function() {
+    require_once __DIR__ . '/../controllers/HomeController.php';
+    $controller = new HomeController();
+    $controller->getHomeContent();
+});
+Route::post('/home/content', function() {
+    require_once __DIR__ . '/../controllers/HomeController.php';
+    $controller = new HomeController();
+    $controller->getHomeContent();
+});
+
+Route::get('/home/layout', function() {
+    require_once __DIR__ . '/../controllers/HomeController.php';
+    $controller = new HomeController();
+    $controller->getHomeLayout();
+});
+Route::post('/home/layout', function() {
+    require_once __DIR__ . '/../controllers/HomeController.php';
+    $controller = new HomeController();
+    $controller->getHomeLayout();
+});
+
 Route::get('/login', function() {
     $controller = new AuthenticationController();
     $controller->showLogin();
@@ -212,6 +235,20 @@ Route::post('/api/channels/category', function() {
     $controller->createCategory();
 });
 
+Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
+    require_once __DIR__ . '/../controllers/MessageController.php';
+    $controller = new MessageController();
+    $_GET['chat_type'] = 'channel';
+    $controller->getMessages($channelId);
+});
+
+Route::post('/api/channels/([0-9]+)/messages', function($channelId) {
+    require_once __DIR__ . '/../controllers/MessageController.php';
+    $controller = new MessageController();
+    $_POST['chat_type'] = 'channel';
+    $controller->sendMessage($channelId);
+});
+
 Route::get('/api/channels/([0-9]+)', function($channelId) {
     $controller = new ChannelController();
     $controller->show($channelId);
@@ -225,16 +262,6 @@ Route::get('/api/channels/content', function() {
 Route::get('/api/channels/([0-9]+)/participants', function($channelId) {
     $controller = new ChannelController();
     $controller->getChannelParticipants($channelId);
-});
-
-Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
-    $controller = new ChannelController();
-    $controller->getMessages($channelId);
-});
-
-Route::post('/api/channels/([0-9]+)/messages', function($channelId) {
-    $controller = new ChannelController();
-    $controller->sendMessage($channelId);
 });
 
 Route::get('/api/servers/([0-9]+)', function($serverId) {
@@ -380,6 +407,17 @@ Route::post('/api/chat/send', function() {
     $controller->sendMessage();
 });
 
+Route::post('/api/chat/channel/([0-9]+)/messages', function($channelId) {
+    $controller = new ChatController();
+    $controller->sendMessageToTarget('channel', $channelId);
+});
+
+Route::post('/api/chat/dm/([0-9]+)/messages', function($roomId) {
+    $controller = new ChatController();
+    $controller->sendMessageToTarget('dm', $roomId);
+});
+
+// Keep the original route for backward compatibility
 Route::post('/api/chat/(channel|dm)/([0-9]+)/messages', function($type, $id) {
     $controller = new ChatController();
     $controller->sendMessageToTarget($type, $id);
@@ -516,6 +554,72 @@ Route::post('/api/servers/([0-9]+)/members/([0-9]+)/demote', function($serverId,
 Route::post('/api/servers/([0-9]+)/members/([0-9]+)/kick', function($serverId, $userId) {
     $controller = new ServerController();
     $controller->kickMember($serverId, $userId);
+});
+
+Route::get('/api/debug/server-profile/([0-9]+)', function($serverId) {
+    header('Content-Type: application/json');
+    
+    try {
+        session_start();
+        $_SESSION['user_id'] = $_SESSION['user_id'] ?? 1;
+        
+        require_once __DIR__ . '/../controllers/ServerController.php';
+        $controller = new ServerController();
+        
+        $result = $controller->getPerServerProfile($serverId);
+        
+        echo json_encode([
+            'success' => true,
+            'debug' => 'getPerServerProfile test',
+            'result' => $result
+        ], JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+    exit;
+});
+
+Route::post('/api/debug/server-profile/([0-9]+)', function($serverId) {
+    header('Content-Type: application/json');
+    
+    try {
+        session_start();
+        $_SESSION['user_id'] = $_SESSION['user_id'] ?? 1;
+        
+        require_once __DIR__ . '/../controllers/ServerController.php';
+        $controller = new ServerController();
+        
+        $result = $controller->updatePerServerProfile($serverId);
+        
+        echo json_encode([
+            'success' => true,
+            'debug' => 'updatePerServerProfile test',
+            'result' => $result
+        ], JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+    exit;
+});
+
+Route::get('/api/servers/([0-9]+)/profile', function($serverId) {
+    $controller = new ServerController();
+    $controller->getPerServerProfile($serverId);
+});
+
+Route::post('/api/servers/([0-9]+)/profile', function($serverId) {
+    $controller = new ServerController();
+    $controller->updatePerServerProfile($serverId);
 });
 
 Route::get('/api/explore/servers/search', function() {
@@ -1257,10 +1361,56 @@ Route::get('/api/chat/dm/([0-9]+)', function($dmId) {
     $controller->renderChatSection('direct', $dmId);
 });
 
-Route::get('/api/chat/channel/([0-9]+)', function($channelId) {
-    $controller = new ChatController();
-    $controller->renderChatSection('channel', $channelId);
+// Primary routes for channel messages with chat_type parameter
+Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
+    require_once __DIR__ . '/../controllers/MessageController.php';
+    $controller = new MessageController();
+    $_GET['chat_type'] = 'channel';
+    $controller->getMessages($channelId);
 });
+
+Route::post('/api/channels/([0-9]+)/messages', function($channelId) {
+    require_once __DIR__ . '/../controllers/MessageController.php';
+    $controller = new MessageController();
+    $_POST['chat_type'] = 'channel';
+    $controller->sendMessage($channelId);
+});
+
+// Alternative routes for chat messages via /api/chat/channel - FIXED to use ChatController
+Route::get('/api/chat/channel/([0-9]+)/messages', function($channelId) {
+    $controller = new ChatController();
+    $controller->getMessages('channel', $channelId);
+});
+
+Route::post('/api/chat/channel/([0-9]+)/messages', function($channelId) {
+    $controller = new ChatController();
+    // Set the target type and ID for ChatController::sendMessage()
+    $_POST['target_type'] = 'channel';
+    $_POST['target_id'] = $channelId;
+    $controller->sendMessage();
+});
+
+// Direct message routes - FIXED to use ChatController for proper DM handling
+Route::get('/api/chat/dm/([0-9]+)/messages', function($roomId) {
+    $controller = new ChatController();
+    $controller->getMessages('dm', $roomId);
+});
+
+Route::post('/api/chat/dm/([0-9]+)/messages', function($roomId) {
+    $controller = new ChatController();
+    // Set the target type and ID for ChatController::sendMessage()
+    $_POST['target_type'] = 'dm';
+    $_POST['target_id'] = $roomId;
+    $controller->sendMessage();
+});
+
+// WebSocket message saving endpoint (called by socket server)
+Route::post('/api/chat/save-message', function() {
+    $controller = new ChatController();
+    $controller->saveMessageFromSocket();
+});
+
+// Chat message routes using ChatController
 
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'

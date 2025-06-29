@@ -44,6 +44,12 @@ ob_start();
                     </a>
                 </li>
                 
+                <li>
+                    <a href="?server_id=<?php echo $serverId; ?>&section=my-profile" class="sidebar-item <?php echo $section === 'my-profile' ? 'active' : ''; ?>">
+                        My Profile
+                    </a>
+                </li>
+                
                 <li class="mt-6">
                     <div class="sidebar-category">
                         <span>PEOPLE</span>
@@ -239,6 +245,32 @@ ob_start();
                     </div>
                     
                 </form>
+            </div>
+
+        <?php elseif ($section === 'my-profile'): ?>
+            <div class="p-10 max-w-[740px]">
+                <div class="mb-8">
+                    <h1 class="text-2xl font-bold mb-2">My Server Profile</h1>
+                    <p class="text-discord-lighter">Customize how you appear in this server</p>
+                </div>
+                
+                <div class="bg-discord-darker rounded-lg p-6 space-y-6">
+                    <div class="form-group">
+                        <label for="user-nickname" class="block text-sm font-medium text-white mb-2">Nickname</label>
+                        <div class="flex">
+                            <input type="text" id="user-nickname" name="nickname" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary flex-grow" placeholder="Enter a nickname for this server" data-original-value="">
+                            <button type="button" id="approve-user-nickname" class="ml-2 bg-purple-600 hover:bg-purple-700 text-white px-3 rounded-md hidden approve-btn">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-discord-lighter mt-1">This nickname will only be visible in this server. Leave empty to use your global username.</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 text-xs text-discord-lighter">
+                    <p class="mb-2"><i class="fas fa-info-circle mr-1"></i> Your nickname is only visible to members of this server.</p>
+                    <p>Maximum 32 characters allowed.</p>
+                </div>
             </div>
 
         <?php elseif ($section === 'roles'): ?>

@@ -12,6 +12,8 @@ class VoiceManager {
         this.initializationPromise = null;
         this.initialized = false;
         this.currentMeetingId = null;
+        this.preloadStarted = false;
+        this.preloadComplete = false;
         
     }
     
@@ -21,13 +23,41 @@ class VoiceManager {
         try {
             await this.loadVideoSDKScript();
             await this.initVideoSDK();
-        this.attachEventListeners();
+            this.attachEventListeners();
             this.setupErrorHandling();
             this.initialized = true;
             console.log('✅ Voice manager initialized');
         } catch (error) {
             console.error('❌ Failed to initialize voice manager:', error);
             throw error;
+        }
+    }
+
+    async preloadResources() {
+        if (this.preloadStarted) return;
+        
+        this.preloadStarted = true;
+        console.log('🔄 Preloading voice resources...');
+        
+        try {
+            await this.loadVideoSDKScript();
+            
+            await this.initVideoSDK();
+            
+            const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+            if (channelId) {
+                const meetingId = `voice_channel_${channelId}`;
+                console.log('🔍 Pre-validating meeting:', meetingId);
+                
+                if (this.videoSDKManager) {
+                    await this.videoSDKManager.validateMeeting(meetingId);
+                }
+            }
+            
+            this.preloadComplete = true;
+            console.log('✅ Voice resources preloaded successfully');
+        } catch (error) {
+            console.warn('⚠️ Voice preload encountered an issue:', error);
         }
     }
 
@@ -165,7 +195,7 @@ class VoiceManager {
             console.log('🔄 Setting up voice for channel:', channelId);
             this.setupVoice(channelId);
 
-            if (!this.initialized) {
+            if (!this.preloadComplete) {
                 console.log('⏳ Initializing voice manager...');
                 await this.init();
             }
@@ -203,24 +233,24 @@ class VoiceManager {
             await this.videoSDKManager.joinMeeting();
             
             this.currentMeetingId = meeting;
-                this.isConnected = true;
+            this.isConnected = true;
             
             // Dispatch event
-                this.dispatchEvent('voiceConnect', {
-                    channelId: this.currentChannelId,
-                    channelName: this.currentChannelName,
+            this.dispatchEvent('voiceConnect', {
+                channelId: this.currentChannelId,
+                channelName: this.currentChannelName,
                 meetingId: meeting
-                });
+            });
 
             console.log('✅ Successfully joined voice channel');
-                return Promise.resolve();
-            } catch (error) {
+            return Promise.resolve();
+        } catch (error) {
             console.error('❌ Failed to join voice:', error);
             
             window.videoSDKJoiningInProgress = false;
             this.isConnected = false;
-                this.showToast('Failed to connect to voice', 'error');
-                return Promise.reject(error);
+            this.showToast('Failed to connect to voice', 'error');
+            return Promise.reject(error);
         }
     }
     
@@ -297,11 +327,17 @@ window.addEventListener('DOMContentLoaded', async function() {
     window.voiceManager = new VoiceManager();
     setTimeout(async () => {
         try {
-            await window.voiceManager.init();
+            console.log('Voice manager instance created');
         } catch (error) {
             console.error('Failed to initialize voice manager:', error);
         }
     }, 1000);
+});
+
+window.addEventListener('voiceUIReady', function() {
+    if (window.voiceManager) {
+        window.voiceManager.preloadResources();
+    }
 });
 
 window.addEventListener('voiceDisconnect', function() {

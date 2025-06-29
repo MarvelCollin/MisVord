@@ -12,7 +12,6 @@ class RoomManager {
     }
 
     getChannelRoom(channelId) {
-        // If channelId already has the prefix, don't add it again
         const normalizedChannelId = channelId.toString().replace('channel-', '');
         const channelRoom = `channel-${normalizedChannelId}`;
         console.log(`📺 [ROOM-MANAGER] Generated channel room name: ${channelRoom} for channel ${channelId}`);
@@ -20,7 +19,6 @@ class RoomManager {
     }
 
     getDMRoom(roomId) {
-        // If roomId already has the prefix, don't add it again
         const normalizedRoomId = roomId.toString().replace('dm-room-', '');
         const dmRoom = `dm-room-${normalizedRoomId}`;
         console.log(`💬 [ROOM-MANAGER] Generated DM room name: ${dmRoom} for room ${roomId}`);

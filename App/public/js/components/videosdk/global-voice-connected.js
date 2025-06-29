@@ -15,16 +15,11 @@ class GlobalVoiceIndicator {
   init() {
     if (this.initialized) return;
 
-    this.loadConnectionState();
     this.setupEventListeners();
     this.initialized = true;
 
     this.checkIfOnVoiceChannelPage();
     this.setupNavigationObserver();
-
-    if (this.isConnected && window.videosdkMeeting && !this.onVoiceChannelPage) {
-      this.loadIndicatorComponent(true);
-    }
 
     this.startConnectionVerification();
   }
@@ -65,57 +60,11 @@ class GlobalVoiceIndicator {
     return false;
   }
 
-  loadConnectionState() {
-    const savedState = localStorage.getItem("voiceConnectionState");
-    
-    if (!savedState) {
-      this.resetState();
-      return;
-    }
-    
-    try {
-      const state = JSON.parse(savedState);
-      
-      if (state.isConnected && state.meetingId && window.videosdkMeeting) {
-        this.isConnected = state.isConnected;
-        this.channelName = state.channelName || "Voice Channel";
-        this.meetingId = state.meetingId;
-        this.currentChannelId = state.currentChannelId || null;
-        this.connectionTime = state.connectionTime || Date.now();
-        
-        this.checkIfOnVoiceChannelPage();
-      } else {
-        this.resetState();
-      }
-    } catch (e) {
-      console.error("Error loading voice connection state:", e);
-      this.resetState();
-    }
-  }
-
-  saveConnectionState() {
-    if (!this.isConnected || !window.videosdkMeeting) {
-      localStorage.removeItem("voiceConnectionState");
-      return;
-    }
-    
-    const state = {
-      isConnected: this.isConnected,
-      channelName: this.channelName,
-      meetingId: this.meetingId,
-      currentChannelId: this.currentChannelId,
-      connectionTime: this.connectionTime
-    };
-    
-    localStorage.setItem("voiceConnectionState", JSON.stringify(state));
-  }
-
   resetState() {
     this.isConnected = false;
     this.channelName = "";
     this.meetingId = "";
     this.connectionTime = 0;
-    localStorage.removeItem("voiceConnectionState");
     
     if (this.indicator) {
       this.hideIndicator();
@@ -325,7 +274,6 @@ class GlobalVoiceIndicator {
     this.meetingId = meetingId;
     this.currentChannelId = channelId;
     this.connectionTime = Date.now();
-    this.saveConnectionState();
     
     this.checkIfOnVoiceChannelPage();
 
@@ -350,11 +298,6 @@ class GlobalVoiceIndicator {
     this.hideIndicator();
     this.stopTimer();
     
-    localStorage.removeItem("voiceConnectionState");
-    
-    const event = new CustomEvent("globalVoiceDisconnect");
-    window.dispatchEvent(event);
-
     if (window.videosdkMeeting) {
       try {
         window.videosdkMeeting.leave();
@@ -636,34 +579,4 @@ const globalVoiceIndicator = new GlobalVoiceIndicator();
 
 window.globalVoiceIndicator = globalVoiceIndicator;
 
-document.addEventListener("DOMContentLoaded", function () {
-  const meta = document.querySelector('meta[name="meeting-id"]');
-
-  if (meta && localStorage.getItem("voiceConnectionState")) {
-    try {
-      const state = JSON.parse(localStorage.getItem("voiceConnectionState"));
-      if (state.isConnected) {
-        if (document.getElementById("videoContainer")) {
-          return;
-        }
-
-        setTimeout(() => {
-          if (window.videosdkMeeting) {
-            const event = new CustomEvent("voiceConnect", {
-              detail: {
-                channelName: state.channelName,
-                meetingId: state.meetingId,
-              },
-            });
-            window.dispatchEvent(event);
-          } else {
-            localStorage.removeItem("voiceConnectionState");
-          }
-        }, 1000);
-      }
-    } catch (e) {
-      console.error("Failed to parse voice connection state", e);
-      localStorage.removeItem("voiceConnectionState");
-    }
-  }
-});
+// No automatic connection on page load

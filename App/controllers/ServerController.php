@@ -1319,7 +1319,8 @@ class ServerController extends BaseController
                     'id' => $member['id'],
                     'username' => $member['username'],
                     'discriminator' => $member['discriminator'] ?? '0000',
-                    'display_name' => $member['display_name'] ?? $member['username'],
+                    'display_name' => $member['nickname'] ?? $member['display_name'] ?? $member['username'],
+                    'nickname' => $member['nickname'] ?? null,
                     'avatar_url' => $member['avatar_url'],
                     'role' => $isOwner ? 'owner' : ($member['role'] ?? 'member'),
                     'is_owner' => $isOwner,
@@ -2028,6 +2029,197 @@ class ServerController extends BaseController
                 return $this->serverError('Failed to load channel section');
             }
             throw $e;
+        }
+    }
+
+    public function getServerLayout($serverId) {
+        $this->requireAuth();
+
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $serverId);
+            if (!$membership) {
+                return $this->forbidden('You are not a member of this server');
+            }
+
+            $channels = $this->channelRepository->getByServerId($serverId);
+            $categories = $this->categoryRepository->getForServer($serverId);
+            $serverMembers = $this->userServerMembershipRepository->getServerMembers($serverId);
+
+            $activeChannelId = $_GET['channel'] ?? null;
+            $activeChannel = null;
+            $channelMessages = [];
+
+            if (!$activeChannelId && !empty($channels)) {
+                foreach ($channels as $channel) {
+                    if ($channel['type'] === 'text' || $channel['type'] === 0 || $channel['type_name'] === 'text') {
+                        $activeChannelId = $channel['id'];
+                        break;
+                    }
+                }
+            }
+
+            if ($activeChannelId) {
+                $activeChannel = $this->channelRepository->find($activeChannelId);
+                if ($activeChannel && $activeChannel->server_id == $serverId) {
+                    try {
+                        $channelMessages = $this->messageRepository->getForChannel($activeChannelId, 50, 0);
+                    } catch (Exception $e) {
+                        $this->logActivity('channel_messages_error', [
+                            'channel_id' => $activeChannelId,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+
+            $GLOBALS['server'] = $server;
+            $GLOBALS['currentServer'] = $server;
+            $GLOBALS['serverChannels'] = $channels;
+            $GLOBALS['serverCategories'] = $categories;
+            $GLOBALS['activeChannelId'] = $activeChannelId;
+            $GLOBALS['channelMessages'] = $channelMessages;
+            $GLOBALS['serverMembers'] = $serverMembers;
+            $GLOBALS['contentType'] = 'server';
+
+            ob_start();
+            ?>
+            <div class="flex flex-1 overflow-hidden">
+                <div class="flex flex-col flex-1" id="main-content">
+                    <div class="main-content-area flex-1">
+                        <?php
+                        $activeChannel = null;
+                        $channelType = isset($_GET['type']) ? $_GET['type'] : 'text';
+
+                        foreach ($channels as $channel) {
+                            if ($channel['id'] == $activeChannelId) {
+                                $activeChannel = $channel;
+                                if (isset($channel['type_name']) && $channel['type_name'] === 'voice') {
+                                    $channelType = 'voice';
+                                } elseif (isset($channel['type']) && ($channel['type'] === 'voice' || $channel['type'] === 2)) {
+                                    $channelType = 'voice';
+                                }
+                                $GLOBALS['activeChannel'] = $activeChannel;
+                                break;
+                            }
+                        }
+                        ?>
+                        
+                        <div class="chat-section <?php echo $channelType === 'text' ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
+                            <?php include __DIR__ . '/../views/components/app-sections/chat-section.php'; ?>
+                        </div>
+                        <div class="voice-section <?php echo $channelType === 'voice' ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
+                            <?php include __DIR__ . '/../views/components/app-sections/voice-section.php'; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <?php include __DIR__ . '/../views/components/app-sections/participant-section.php'; ?>
+            </div>
+            <?php
+            $html = ob_get_clean();
+
+            if ($this->isAjaxRequest()) {
+                echo $html;
+                exit;
+            }
+
+            return $html;
+        } catch (Exception $e) {
+            if ($this->isAjaxRequest()) {
+                return $this->serverError('Failed to load server layout');
+            }
+            throw $e;
+        }
+    }
+
+    public function getPerServerProfile($serverId)
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            if (!$this->membershipRepository->isMember($userId, $serverId)) {
+                return $this->forbidden('You are not a member of this server');
+            }
+
+            $profile = $this->membershipRepository->getPerServerProfile($userId, $serverId);
+            if (!$profile) {
+                return $this->notFound('User profile not found in this server');
+            }
+
+            return $this->success([
+                'profile' => $profile
+            ]);
+
+        } catch (Exception $e) {
+            $this->logActivity('per_server_profile_get_error', [
+                'server_id' => $serverId,
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to get per-server profile: ' . $e->getMessage());
+        }
+    }
+    
+    public function updatePerServerProfile($serverId)
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            if (!$this->membershipRepository->isMember($userId, $serverId)) {
+                return $this->forbidden('You are not a member of this server');
+            }
+
+            $input = $this->getInput();
+            $input = $this->sanitize($input);
+
+            $nickname = $input['nickname'] ?? null;
+            
+            if ($nickname !== null && strlen($nickname) > 32) {
+                return $this->validationError(['nickname' => 'Nickname cannot exceed 32 characters']);
+            }
+
+            $result = $this->membershipRepository->updateUserNickname($userId, $serverId, $nickname);
+
+            if ($result) {
+                $this->logActivity('per_server_profile_updated', [
+                    'server_id' => $serverId,
+                    'user_id' => $userId,
+                    'nickname' => $nickname
+                ]);
+
+                return $this->success([
+                    'profile' => [
+                        'nickname' => $nickname
+                    ]
+                ], 'Per-server profile updated successfully');
+            } else {
+                throw new Exception('Failed to update per-server profile');
+            }
+
+        } catch (Exception $e) {
+            $this->logActivity('per_server_profile_update_error', [
+                'server_id' => $serverId,
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to update per-server profile: ' . $e->getMessage());
         }
     }
 }

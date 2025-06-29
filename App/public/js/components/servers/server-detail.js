@@ -89,9 +89,9 @@ class ServerDetailModal {
             iconElement.classList.remove('hidden');
             iconFallback.classList.add('hidden');
         } else {
-            iconElement.classList.add('hidden');
-            iconFallback.classList.remove('hidden');
-            iconFallbackText.textContent = (server.name || 'S').charAt(0).toUpperCase();
+            iconElement.src = '/assets/common/default-profile-picture.png';
+            iconElement.classList.remove('hidden');
+            iconFallback.classList.add('hidden');
         }
         
         if (server.banner_url) {

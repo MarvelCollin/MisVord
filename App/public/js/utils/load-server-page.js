@@ -20,14 +20,20 @@ export function loadServerPage(serverId) {
 
         const currentChannelId = getCurrentChannelId();
         if (currentChannelId && window.globalSocketManager) {
-            console.log(`🧹 Cleaning up current channel socket: ${currentChannelId}`);
+            console.log('Cleaning up current channel socket: ' + currentChannelId);
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
-        if (window.voiceManager) {
-            console.log('🎤 Cleaning up voice manager');
-            window.voiceManager.cleanup();
+        if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
+            console.log('Cleaning up voice manager');
+            window.voiceManager.leaveVoice();
             window.voiceManager = null;
+        }
+
+        if (!window.serverAPI || typeof window.serverAPI.getServerPageHTML !== 'function') {
+            console.error('serverAPI not available, falling back to full page load');
+            window.location.href = `/server/${serverId}`;
+            return;
         }
 
         window.serverAPI.getServerPageHTML(serverId)

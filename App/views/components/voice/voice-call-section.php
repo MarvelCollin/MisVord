@@ -18,67 +18,152 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
 <meta name="server-id" content="<?php echo htmlspecialchars($currentServer->id ?? ''); ?>">
 
-<div class="flex flex-col h-screen bg-[#313338]">
-        <div id="connectingView" class="hidden flex-1 flex flex-col items-center justify-center bg-[#313338]">
-            <div class="text-center space-y-4">
-                <div class="inline-block">
-                    <div class="animate-spin rounded-full h-12 w-12 border-4 border-t-[#5865f2] border-r-[#5865f2] border-b-transparent border-l-transparent"></div>
-                </div>
-                <p class="text-white text-lg">Connecting to voice...</p>
-            </div>
-        </div>
-        
-        <div id="videoGrid" class="hidden flex-1 p-4 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-auto">
-        </div>
-        
-        <div id="voiceControls" class="hidden">
-            <?php include __DIR__ . '/voice-tool.php'; ?>
+<div class="flex flex-col h-full w-full bg-[#313338] relative">
+    <!-- Channel Header -->
+    <div class="flex items-center px-4 py-3 bg-[#2b2d31] border-b border-[#1a1b1e] shadow-sm">
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-volume-up text-[#b5bac1]"></i>
+            <span class="text-white font-medium"><?php echo htmlspecialchars($channelName); ?></span>
         </div>
     </div>
 
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+        <!-- Video Grid -->
+        <div id="videoGrid" class="hidden w-full max-w-7xl mx-auto p-4 grid gap-4 overflow-auto">
+            <!-- Video grid items will be dynamically added here -->
+        </div>
+
+        <!-- Voice Only View -->
+        <div id="voiceOnlyView" class="flex-1 w-full flex items-center justify-center p-8 max-w-6xl mx-auto">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full">
+                <!-- Voice only participants will be added here -->
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden absolute inset-0 bg-[#313338] bg-opacity-90 flex items-center justify-center">
+            <div class="flex flex-col items-center space-y-4">
+                <div class="animate-spin rounded-full h-12 w-12 border-4 border-[#5865f2] border-t-transparent"></div>
+                <span class="text-[#b5bac1]">Connecting to voice...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
-.avatar-container {
-    position: relative;
-    background: #2f3136;
-    border-radius: 8px;
-    overflow: hidden;
+/* Base styles for participant containers */
+.participant-container {
+    @apply relative bg-[#2f3136] rounded-xl overflow-hidden transition-all duration-300 shadow-md hover:shadow-lg hover:transform hover:scale-[1.02];
 }
 
-.user-status-dot {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 10px;
-    height: 10px;
-    background-color: #3ba55d;
-    border-radius: 50%;
-    border: 2px solid #36393f;
+/* Video participant styles */
+.video-participant {
+    @apply aspect-video relative bg-[#1e1f22];
 }
 
-@media (min-width: 768px) {
-    .videoGrid-1 { grid-template-columns: 1fr; }
-    .videoGrid-2 { grid-template-columns: 1fr 1fr; }
-    .videoGrid-3, .videoGrid-4 { grid-template-columns: 1fr 1fr; }
-    .videoGrid-5, .videoGrid-6, .videoGrid-7, .videoGrid-8, .videoGrid-9 { grid-template-columns: 1fr 1fr 1fr; }
+.video-participant video {
+    @apply w-full h-full object-cover;
 }
 
-@keyframes pulse-voice {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(59, 165, 93, 0.4); }
-    50% { box-shadow: 0 0 0 8px rgba(59, 165, 93, 0); }
+/* Voice only participant styles */
+.voice-participant {
+    @apply flex flex-col items-center justify-center p-6 space-y-4 bg-[#2f3136] rounded-xl hover:bg-[#34363c] transition-colors duration-200;
 }
 
-.voice-active {
+.voice-participant .avatar {
+    @apply w-20 h-20 rounded-full bg-[#1a1b1e] flex items-center justify-center text-3xl font-medium text-white relative shadow-inner;
+}
+
+.voice-participant .name {
+    @apply text-[#b5bac1] text-sm font-medium truncate max-w-full;
+}
+
+/* Status indicators */
+.status-indicator {
+    @apply absolute bottom-2 right-2 w-4 h-4 rounded-full border-[3px] border-[#2f3136] shadow-sm;
+}
+
+.status-speaking {
+    @apply bg-[#3ba55d];
     animation: pulse-voice 2s infinite;
-    border-color: #3ba55d !important;
 }
 
+.status-muted {
+    @apply bg-[#ED4245];
+}
+
+.status-idle {
+    @apply bg-[#b5bac1];
+}
+
+/* Screen share styles */
 .screen-share-container {
-    grid-column: span 2;
+    @apply col-span-2 row-span-2 bg-[#1e1f22] rounded-xl overflow-hidden shadow-lg;
 }
 
-.screen-share-container ~ .avatar-container,
-.screen-share-container ~ video {
-    max-height: 150px;
+/* Animations */
+@keyframes pulse-voice {
+    0%, 100% { 
+        box-shadow: 0 0 0 0 rgba(59, 165, 93, 0.4);
+        transform: scale(1);
+    }
+    50% { 
+        box-shadow: 0 0 0 8px rgba(59, 165, 93, 0);
+        transform: scale(1.05);
+    }
+}
+
+/* Grid layouts */
+@media (min-width: 768px) {
+    .videoGrid-1 { 
+        grid-template-columns: minmax(0, 800px);
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .videoGrid-2 { 
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-width: 1200px;
+    }
+    .videoGrid-3, .videoGrid-4 { 
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-width: 1400px;
+    }
+    .videoGrid-5, .videoGrid-6 { 
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        max-width: 1600px;
+    }
+    .videoGrid-7, .videoGrid-8, .videoGrid-9 { 
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        max-width: 1800px;
+    }
+}
+
+/* Hover effects */
+.participant-container:hover .participant-controls {
+    @apply opacity-100 transform translate-y-0;
+}
+
+.participant-controls {
+    @apply absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 transform translate-y-2 transition-all duration-200;
+}
+
+.participant-controls button {
+    @apply text-white hover:text-[#b5bac1] transition-colors duration-200 p-2 rounded-full hover:bg-white/10;
+}
+
+/* Loading animation */
+.loading-dot {
+    @apply w-2 h-2 bg-[#5865f2] rounded-full;
+    animation: loading-dot 1.4s infinite ease-in-out both;
+}
+
+.loading-dot:nth-child(1) { animation-delay: -0.32s; }
+.loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes loading-dot {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
 }
 </style>
 
@@ -87,22 +172,32 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 <script src="/public/js/components/voice/video-handler.js"></script>
 
 <script>
-// Voice grid layout helper. Local indicator/timer logic has been removed to avoid duplication with the global component.
 function updateGridLayout() {
     const videoGrid = document.getElementById('videoGrid');
-    if (!videoGrid) return;
+    const voiceOnlyView = document.getElementById('voiceOnlyView');
+    if (!videoGrid || !voiceOnlyView) return;
     
-    const participantCount = videoGrid.querySelectorAll('.avatar-container, video:not(.hidden)').length;
+    const videoParticipants = videoGrid.querySelectorAll('video:not(.hidden)').length;
+    const hasScreenShare = videoGrid.querySelector('.screen-share-container');
     
+    // Show/hide appropriate view with fade transition
+    if (videoParticipants > 0) {
+        videoGrid.classList.remove('hidden');
+        videoGrid.classList.add('fade-in');
+        voiceOnlyView.classList.add('hidden');
+    } else {
+        videoGrid.classList.add('hidden');
+        voiceOnlyView.classList.remove('hidden');
+        voiceOnlyView.classList.add('fade-in');
+    }
+    
+    // Update video grid layout
     for (let i = 1; i <= 9; i++) {
         videoGrid.classList.remove(`videoGrid-${i}`);
     }
+    videoGrid.classList.add(`videoGrid-${videoParticipants}`);
     
-    // Add appropriate grid class
-    videoGrid.classList.add(`videoGrid-${participantCount}`);
-    
-    // Check if any screen shares are present
-    const hasScreenShare = videoGrid.querySelector('.screen-share-container');
+    // Handle screen share layout
     if (hasScreenShare) {
         videoGrid.classList.add('has-screen-share');
     } else {
@@ -110,45 +205,83 @@ function updateGridLayout() {
     }
 }
 
+// Create participant element template
+function createParticipantElement(participant, isVideo = false) {
+    const container = document.createElement('div');
+    container.className = `participant-container ${isVideo ? 'video-participant' : 'voice-participant'}`;
+    
+    const nameInitial = participant.name.charAt(0).toUpperCase();
+    const displayName = participant.name.length > 15 
+        ? participant.name.substring(0, 12) + '...' 
+        : participant.name;
+    
+    container.innerHTML = `
+        ${isVideo ? `
+            <video autoplay playsinline class="peer"></video>
+            <div class="participant-controls">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-[#1a1b1e] flex items-center justify-center text-white">
+                            ${nameInitial}
+                        </div>
+                        <span class="text-white text-sm font-medium">${displayName}</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="mute-user" title="Mute User">
+                            <i class="fas fa-microphone-slash"></i>
+                        </button>
+                        <button class="volume-control" title="Adjust Volume">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        ` : `
+            <div class="avatar">
+                ${nameInitial}
+                <div class="status-indicator status-idle"></div>
+            </div>
+            <span class="name">${displayName}</span>
+        `}
+    `;
+    
+    return container;
+}
+
+// Show/hide loading state
+function toggleLoading(show) {
+    const loadingState = document.getElementById('loadingState');
+    if (loadingState) {
+        loadingState.classList.toggle('hidden', !show);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log("🔊 Voice call section loaded");
+    updateGridLayout();
     
-    // Check component loading
+    // Initialize voice components check
     setTimeout(function() {
         console.log("🔍 Voice components check:", {
             videoGrid: !!document.getElementById('videoGrid'),
-            joinBtn: !!document.getElementById('joinBtn'),
+            voiceOnlyView: !!document.getElementById('voiceOnlyView'),
             voiceControls: !!document.getElementById('voiceControls'),
             voiceSection: !!window.voiceSection,
             voiceManager: !!window.voiceManager,
             videoSDKManager: !!window.videoSDKManager
         });
     }, 1000);
-    
-    // Join button helper (fallback)
-    const joinBtn = document.getElementById('joinBtn');
-    if (joinBtn) {
-        joinBtn.addEventListener('click', function() {
-            const connectingView = document.getElementById('connectingView');
-            const joinView = document.getElementById('joinView');
-            if (joinView) joinView.classList.add('hidden');
-            if (connectingView) connectingView.classList.remove('hidden');
-            if (window.voiceSection && typeof window.voiceSection.autoJoin === 'function') {
-                window.voiceSection.autoJoin();
-            } else if (window.voiceManager && typeof window.voiceManager.joinVoice === 'function') {
-                window.voiceManager.joinVoice();
-            } else if (window.triggerVoiceAutoJoin) {
-                window.triggerVoiceAutoJoin();
-            } else if (window.handleAutoJoin) {
-                window.handleAutoJoin();
-            }
-        });
-    }
 });
 
-// Listen for grid updates to adjust layout
+// Listen for grid updates
 window.addEventListener('videoGridUpdate', updateGridLayout);
 
-// Expose for external use
+// Listen for connection state changes
+window.addEventListener('voiceConnect', () => toggleLoading(false));
+window.addEventListener('voiceDisconnect', () => toggleLoading(false));
+
+// Expose functions
 window.updateGridLayout = updateGridLayout;
+window.createParticipantElement = createParticipantElement;
+window.toggleLoading = toggleLoading;
 </script>

@@ -14,7 +14,6 @@
   --discord-folder-bg: #1e1f22;
 }
 
-/* Server list container */
 .server-list {
   display: flex;
   flex-direction: column;
@@ -32,7 +31,6 @@
   display: none;
 }
 
-/* Server icon base styles */
 .server-icon {
   position: relative;
   width: 48px;
@@ -74,7 +72,6 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-/* Server groups/folders */
 .server-group {
   width: 48px;
   display: flex;
@@ -83,7 +80,6 @@
   margin: 0 0 8px 0;
 }
 
-/* Folder closed state - completely redesigned to match Discord exactly */
 .server-group .group-header {
   width: 48px;
   height: 48px;
@@ -104,7 +100,6 @@
   border-radius: 16px;
 }
 
-/* Folder icon styles */
 .folder-icon {
   width: 100%;
   height: 100%;
@@ -122,28 +117,22 @@
   font-size: 24px;
 }
 
-/* Make !important to ensure proper state visibility */
-/* Hide folder icon when group is open */
 .server-group.open .folder-icon {
   display: none !important;
 }
 
-/* Show grid when group is open */
 .server-group.open .server-preview-grid {
   display: grid !important;
 }
 
-/* Hide grid when group is closed */
 .server-group:not(.open) .server-preview-grid {
   display: none !important;
 }
 
-/* Show folder icon when group is closed */
 .server-group:not(.open) .folder-icon {
   display: flex !important;
 }
 
-/* Always set borderRadius on initial state */
 .server-group:not(.open) .group-header {
   border-radius: 16px !important;
 }
@@ -152,7 +141,6 @@
   border-radius: 16px 16px 0 0 !important;
 }
 
-/* Server preview grid and items */
 .server-preview-grid {
   width: 100%;
   height: 100%;
@@ -199,7 +187,6 @@
   border-radius: 3px;
 }
 
-/* Container for servers in group */
 .group-servers {
   display: flex;
   flex-direction: column;
@@ -214,7 +201,6 @@
   z-index: 1;
 }
 
-/* Collapsed state */
 .group-servers.hidden {
   height: 0;
   padding: 0;
@@ -222,7 +208,6 @@
   overflow: hidden;
 }
 
-/* Servers inside folder */
 .server-group .server-icon {
   position: relative;
   margin: 4px 0;
@@ -234,7 +219,6 @@
   margin: 0 auto;
 }
 
-/* Active styles */
 .server-icon.active .server-button {
   border-radius: 16px !important;
   background-color: var(--discord-primary) !important;
@@ -254,7 +238,6 @@
   transition: all 0.2s ease;
 }
 
-/* Hover effects */
 .server-icon:not(.active):hover .server-button {
   border-radius: 16px;
   background-color: var(--discord-green);
@@ -273,7 +256,6 @@
   transition: height 0.2s;
 }
 
-/* Context menu styling */
 .group-context-menu {
   background-color: #18191c;
   border: 1px solid #2f3136;
@@ -299,7 +281,6 @@
   color: white;
 }
 
-/* Tooltips */
 .tooltip {
   background-color: #18191c;
   color: white;
@@ -337,7 +318,6 @@
   transition-delay: 0.5s;
 }
 
-/* Drag and drop styles */
 .server-icon.dragging {
   opacity: 0.4;
   cursor: grabbing;
@@ -364,7 +344,6 @@
   z-index: 10;
 }
 
-/* Drop target for server list */
 .server-list.drop-target::after {
   content: "";
   position: absolute;
@@ -376,7 +355,6 @@
   transition: all 0.2s;
 }
 
-/* Server divider */
 .server-divider {
   height: 2px;
   width: 32px;
@@ -385,7 +363,6 @@
   margin: 4px 0;
 }
 
-/* Badge styling for unread notifications */
 .notification-badge {
   position: absolute;
   bottom: -4px;
@@ -449,8 +426,7 @@
     left: 46px;
   }
 }
-
-/* Add Server Button - Discord Style */
+    
 .discord-add-server-button {
   width: 48px;
   height: 48px;

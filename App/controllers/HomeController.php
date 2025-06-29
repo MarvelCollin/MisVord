@@ -112,6 +112,155 @@ class HomeController extends BaseController
         }
     }
 
+    public function getHomeContent() {
+        $this->requireAuth();
+
+        try {
+            $currentUserId = $this->getCurrentUserId();
+            
+            $userServers = $this->serverRepository->getForUser($currentUserId);
+            $GLOBALS['userServers'] = $userServers;
+
+            $currentUri = $_SERVER['REQUEST_URI'] ?? '';
+            $pageType = $this->getPageType($currentUri);
+            $GLOBALS['contentType'] = 'home';
+
+            switch ($pageType) {
+                case 'friends':
+                    $this->loadFriendsData($currentUserId);
+                    $GLOBALS['activeTab'] = $_GET['tab'] ?? 'online';
+                    break;
+                case 'dm':
+                    $this->loadDirectMessageData($currentUserId);
+                    break;
+                default:
+                    $this->loadFriendsData($currentUserId);
+                    $GLOBALS['activeTab'] = 'online';
+                    break;
+            }
+
+            ob_start();
+            include __DIR__ . '/../views/components/app-sections/home-main-content.php';
+            $html = ob_get_clean();
+
+            if ($this->isAjaxRequest()) {
+                echo $html;
+                exit;
+            }
+
+            return $html;
+        } catch (Exception $e) {
+            if ($this->isAjaxRequest()) {
+                return $this->serverError('Failed to load home content');
+            }
+            throw $e;
+        }
+    }
+
+    public function getHomeLayout() {
+        $this->requireAuth();
+
+        try {
+            $currentUserId = $this->getCurrentUserId();
+            
+            $userServers = $this->serverRepository->getForUser($currentUserId);
+            $GLOBALS['userServers'] = $userServers;
+            $GLOBALS['contentType'] = 'home';
+            $GLOBALS['activeTab'] = $_GET['tab'] ?? 'online';
+            
+            $this->loadFriendsData($currentUserId);
+
+            ob_start();
+            ?>
+            <div class="flex flex-1 overflow-hidden">
+                <?php include __DIR__ . '/../views/components/app-sections/direct-messages-sidebar.php'; ?>
+                
+                <div class="flex flex-col flex-1" id="main-content">
+                    <?php include __DIR__ . '/../views/components/app-sections/home-main-content.php'; ?>
+                </div>
+
+                <?php include __DIR__ . '/../views/components/app-sections/active-now-section.php'; ?>
+            </div>
+            <?php
+            $html = ob_get_clean();
+
+            if ($this->isAjaxRequest()) {
+                echo $html;
+                exit;
+            }
+
+            return $html;
+        } catch (Exception $e) {
+            if ($this->isAjaxRequest()) {
+                return $this->serverError('Failed to load home layout');
+            }
+            throw $e;
+        }
+    }
+
+    private function getPageType($uri) {
+        if (strpos($uri, '/home/friends') === 0) {
+            return 'friends';
+        }
+        if (strpos($uri, '/home/channels/dm/') === 0) {
+            return 'dm';
+        }
+        return 'friends';
+    }
+
+    private function loadDirectMessageData($userId) {
+        if (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
+            $activeDmId = $_SESSION['active_dm'];
+            $GLOBALS['contentType'] = 'dm';
+            $GLOBALS['chatType'] = 'direct';
+            $GLOBALS['targetId'] = $activeDmId;
+            
+            require_once __DIR__ . '/../database/repositories/ChatRoomRepository.php';
+            $chatRoomRepository = new ChatRoomRepository();
+            
+            $chatRoom = $chatRoomRepository->find($activeDmId);
+            if ($chatRoom) {
+                $participants = $chatRoomRepository->getParticipants($activeDmId);
+                $friend = null;
+                
+                foreach ($participants as $participant) {
+                    if ($participant['user_id'] != $userId) {
+                        $friend = [
+                            'id' => $participant['user_id'],
+                            'username' => $participant['username'],
+                            'avatar_url' => $participant['avatar_url']
+                        ];
+                        break;
+                    }
+                }
+                
+                $chatData = [
+                    'friend_username' => $friend['username'] ?? 'Unknown User',
+                    'friend_id' => $friend['id'] ?? null,
+                    'friend_avatar_url' => $friend['avatar_url'] ?? null
+                ];
+                
+                $GLOBALS['chatData'] = $chatData;
+                
+                require_once __DIR__ . '/../database/repositories/ChatRoomMessageRepository.php';
+                $chatRoomMessageRepository = new ChatRoomMessageRepository();
+                $rawMessages = $chatRoomMessageRepository->getMessagesByRoomId($activeDmId, 20, 0);
+                
+                require_once __DIR__ . '/ChatController.php';
+                $chatController = new ChatController();
+                $formattedMessages = [];
+                foreach ($rawMessages as $rawMessage) {
+                    $reflection = new ReflectionClass($chatController);
+                    $formatMethod = $reflection->getMethod('formatMessage');
+                    $formatMethod->setAccessible(true);
+                    $formattedMessages[] = $formatMethod->invoke($chatController, $rawMessage);
+                }
+                
+                $GLOBALS['messages'] = $formattedMessages;
+            }
+        }
+    }
+
     private function loadFriendsData($userId) {
         try {
             

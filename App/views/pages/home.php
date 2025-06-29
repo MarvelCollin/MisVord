@@ -97,7 +97,9 @@ $page_css = 'app';
 $page_js = 'pages/app';
 $additional_js = [
     'components/servers/server-dropdown', 
-    'components/servers/server-sidebar'
+    'components/servers/server-sidebar',
+    'utils/load-home-page',
+    'utils/load-server-page'
 ];
 $head_scripts = ['logger-init'];
 ?>

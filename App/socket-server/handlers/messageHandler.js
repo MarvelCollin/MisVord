@@ -20,7 +20,7 @@ class MessageHandler {
             targetId: data.target_id,
             channelId: data.channel_id,
             roomId: data.room_id,
-            content: data.content ? data.content.substring(0, 50) + (data.content.length > 50 ? '...' : '') : 'N/A'
+            content: data.content // Log full content
         });
         
         console.log(`📦 [MESSAGE-FORWARD] Complete incoming message data:`, JSON.stringify(data, null, 2));
@@ -68,6 +68,7 @@ class MessageHandler {
                 room: targetRoom,
                 messageId: broadcastData.id,
                 userId: broadcastData.user_id,
+                content: broadcastData.content, // Log full content
                 timestamp: broadcastData.timestamp,
                 source: broadcastData.source
             });
@@ -80,42 +81,20 @@ class MessageHandler {
                 client.join(targetRoom);
             }
             
-            // FIRST METHOD: Broadcast to all clients in the room including the sender
+            // Send to all clients in the room (this is the most reliable method)
             io.to(targetRoom).emit(eventName, broadcastData);
-            console.log(`✅ [MESSAGE-FORWARD] Method 1: Broadcasted ${eventName} to ${targetRoom} (including sender)`);
+            console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to room ${targetRoom}`);
             
-            // SECOND METHOD: Broadcast to all connected clients
-            io.emit(eventName, broadcastData);
-            console.log(`✅ [MESSAGE-FORWARD] Method 2: Broadcasted ${eventName} to all clients`);
-            
-            // THIRD METHOD: Send directly to each client
+            // Log room statistics for debugging
             const roomClients = io.sockets.adapter.rooms.get(targetRoom);
             if (roomClients) {
-                console.log(`👥 [MESSAGE-FORWARD] Clients in room ${targetRoom}: ${roomClients.size}`);
-                roomClients.forEach(clientId => {
-                    console.log(`  - Client: ${clientId}`);
-                });
-                
-                // Ensure message is received by all clients by sending directly to each client in the room
-                console.log(`🔄 [MESSAGE-FORWARD] Method 3: Sending direct messages to all ${roomClients.size} clients in room`);
-                roomClients.forEach(clientId => {
-                    const targetClient = io.sockets.sockets.get(clientId);
-                    if (targetClient) {
-                        console.log(`  - Sending direct message to client: ${clientId}`);
-                        targetClient.emit(eventName, broadcastData);
-                    }
-                });
+                console.log(`👥 [MESSAGE-FORWARD] Message delivered to ${roomClients.size} clients in room ${targetRoom}`);
             } else {
                 console.warn(`⚠️ [MESSAGE-FORWARD] No clients found in room ${targetRoom}`);
                 
-                // FOURTH METHOD: Broadcast to all clients as fallback
-                console.log(`🔄 [MESSAGE-FORWARD] Method 4: Broadcasting to all clients as fallback`);
-                Object.keys(io.sockets.sockets).forEach(socketId => {
-                    const socket = io.sockets.sockets.get(socketId);
-                    if (socket) {
-                        socket.emit(eventName, broadcastData);
-                    }
-                });
+                // As fallback, send to all authenticated clients
+                console.log(`🔄 [MESSAGE-FORWARD] Fallback: Broadcasting to all authenticated clients`);
+                io.emit(eventName, broadcastData);
             }
         } else {
             console.warn(`⚠️ [MESSAGE-FORWARD] No target room found for ${eventName}:`, {
@@ -125,9 +104,26 @@ class MessageHandler {
                 targetId: data.target_id
             });
             
-            // FALLBACK METHOD: Broadcast to all clients if no room is found
+            // If no room found, broadcast to all clients as fallback
             console.log(`🔄 [MESSAGE-FORWARD] Fallback: Broadcasting to all clients`);
-            io.emit(eventName, broadcastData);
+            const fallbackData = {
+                id: data.id || data.message_id,
+                content: data.content,
+                user_id: data.user_id,
+                username: data.username,
+                avatar_url: data.avatar_url,
+                channel_id: data.channel_id,
+                room_id: data.room_id,
+                target_type: data.target_type,
+                target_id: data.target_id,
+                message_type: data.message_type || 'text',
+                attachments: data.attachments || [],
+                reply_message_id: data.reply_message_id,
+                reply_data: data.reply_data,
+                timestamp: data.timestamp || Date.now(),
+                source: data.source || 'server-originated'
+            };
+            io.emit(eventName, fallbackData);
         }
     }
 
@@ -284,6 +280,183 @@ class MessageHandler {
             console.log(`✅ [TYPING-HANDLER] Typing event sent to DM room ${roomId}`);
         } else {
             console.warn(`⚠️ [TYPING-HANDLER] No channel_id or room_id provided in typing data`);
+        }
+    }
+
+    static async saveAndSendMessage(io, client, data) {
+        console.log(`💾 [SAVE-AND-SEND] Starting save and send for message from client ${client.id}`);
+        
+        if (!client.data?.authenticated || !client.data?.user_id) {
+            console.error(`❌ [SAVE-AND-SEND] Unauthenticated client attempted to send message`);
+            client.emit('message-error', { error: 'Authentication required' });
+            return;
+        }
+        
+        // Validate required fields
+        if (!data.content || !data.target_type || !data.target_id) {
+            console.error(`❌ [SAVE-AND-SEND] Missing required fields:`, data);
+            client.emit('message-error', { error: 'Missing required fields: content, target_type, target_id' });
+            return;
+        }
+        
+        console.log(`📝 [SAVE-AND-SEND] Processing new message:`, {
+            userId: client.data.user_id,
+            username: client.data.username,
+            targetType: data.target_type,
+            targetId: data.target_id,
+            content: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
+            messageType: data.message_type || 'text'
+        });
+        
+        try {
+            // Generate a temporary ID that will be replaced by database ID
+            const tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            const currentTimestamp = Date.now();
+            
+            // Prepare broadcast data for immediate display
+            const broadcastData = {
+                id: tempMessageId,
+                content: data.content,
+                user_id: client.data.user_id,
+                username: client.data.username,
+                avatar_url: client.data.avatar_url || '/public/assets/common/default-profile-picture.png',
+                sent_at: new Date().toISOString(),
+                message_type: data.message_type || 'text',
+                attachments: data.attachments || [],
+                reply_message_id: data.reply_message_id,
+                reply_data: data.reply_data,
+                timestamp: currentTimestamp,
+                temp_message_id: tempMessageId,
+                source: 'websocket-originated',
+                is_temporary: true
+            };
+            
+            // Add chat type specific fields for room targeting
+            if (data.target_type === 'channel') {
+                broadcastData.channel_id = data.target_id;
+                broadcastData.target_type = 'channel';
+                broadcastData.target_id = data.target_id;
+            } else if (data.target_type === 'dm') {
+                broadcastData.room_id = data.target_id;
+                broadcastData.target_type = 'dm';
+                broadcastData.target_id = data.target_id;
+            }
+            
+            console.log(`📡 [SAVE-AND-SEND] Broadcasting temporary message immediately...`);
+            
+            // Determine the correct event name and room
+            const eventName = data.target_type === 'channel' ? 'new-channel-message' : 'user-message-dm';
+            const targetRoom = data.target_type === 'channel' 
+                ? roomManager.getChannelRoom(data.target_id)
+                : roomManager.getDMRoom(data.target_id);
+            
+            if (targetRoom) {
+                // Broadcast temporary message immediately to all clients in the room (including sender)
+                io.to(targetRoom).emit(eventName, broadcastData);
+                console.log(`✅ [SAVE-AND-SEND] Temporary message broadcasted to room ${targetRoom}`);
+                
+                // Log room statistics
+                const roomClients = io.sockets.adapter.rooms.get(targetRoom);
+                if (roomClients) {
+                    console.log(`👥 [SAVE-AND-SEND] Temporary message delivered to ${roomClients.size} clients in room ${targetRoom}`);
+                }
+            } else {
+                console.warn(`⚠️ [SAVE-AND-SEND] No target room found, broadcasting to all clients`);
+                io.emit(eventName, broadcastData);
+            }
+            
+            // Send immediate success response to sender with temporary ID
+            client.emit('message-sent', {
+                success: true,
+                message_id: tempMessageId,
+                temp_message_id: tempMessageId,
+                timestamp: currentTimestamp,
+                is_temporary: true
+            });
+            
+            // Now save to database asynchronously and update with real ID
+            setTimeout(async () => {
+                try {
+                    console.log(`💾 [SAVE-AND-SEND] Saving message to database asynchronously...`);
+                    
+                    // Since we can't easily access PHP database from Node.js, 
+                    // we'll emit an event to let the frontend handle database saving
+                    client.emit('save-to-database', {
+                        temp_message_id: tempMessageId,
+                        content: data.content,
+                        target_type: data.target_type,
+                        target_id: data.target_id,
+                        message_type: data.message_type || 'text',
+                        attachments: data.attachments || [],
+                        mentions: data.mentions || [],
+                        reply_message_id: data.reply_message_id
+                    });
+                    
+                    console.log(`✅ [SAVE-AND-SEND] Database save request emitted to client`);
+                    
+                } catch (error) {
+                    console.error(`❌ [SAVE-AND-SEND] Error in database save:`, error);
+                    // If database save fails, we can still keep the temporary message
+                    // or emit an error to update the UI
+                    client.emit('database-save-error', {
+                        temp_message_id: tempMessageId,
+                        error: error.message || 'Failed to save to database'
+                    });
+                }
+            }, 100); // Small delay to ensure immediate UI update happens first
+            
+        } catch (error) {
+            console.error(`❌ [SAVE-AND-SEND] Error in save and send:`, error);
+            
+            // Send error response to sender
+            client.emit('message-error', {
+                error: error.message || 'Failed to send message',
+                timestamp: Date.now()
+            });
+        }
+    }
+
+    static handleMessageDatabaseSaved(io, client, data) {
+        console.log(`💾 [DATABASE-SAVED] Message database save confirmation from client ${client.id}`);
+        
+        if (!data.temp_message_id || !data.real_message_id) {
+            console.error(`❌ [DATABASE-SAVED] Missing required fields:`, data);
+            return;
+        }
+        
+        console.log(`🔄 [DATABASE-SAVED] Updating message ID from ${data.temp_message_id} to ${data.real_message_id}`);
+        
+        // Determine target room based on message data
+        let targetRoom;
+        const messageData = data.message_data;
+        
+        if (messageData.target_type === 'channel') {
+            targetRoom = roomManager.getChannelRoom(messageData.target_id);
+        } else if (messageData.target_type === 'dm') {
+            targetRoom = roomManager.getDMRoom(messageData.target_id);
+        }
+        
+        if (targetRoom) {
+            // Broadcast the ID update to all clients in the room
+            const updateData = {
+                temp_message_id: data.temp_message_id,
+                real_message_id: data.real_message_id,
+                message_data: messageData,
+                timestamp: Date.now()
+            };
+            
+            console.log(`📡 [DATABASE-SAVED] Broadcasting message ID update to room: ${targetRoom}`);
+            io.to(targetRoom).emit('message-id-updated', updateData);
+            
+            console.log(`✅ [DATABASE-SAVED] Message ID update broadcasted successfully`);
+        } else {
+            console.warn(`⚠️ [DATABASE-SAVED] No target room found, broadcasting to all clients`);
+            io.emit('message-id-updated', {
+                temp_message_id: data.temp_message_id,
+                real_message_id: data.real_message_id,
+                message_data: messageData,
+                timestamp: Date.now()
+            });
         }
     }
 }

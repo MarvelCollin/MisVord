@@ -1201,6 +1201,92 @@ class ChatController extends BaseController
             return $this->serverError('Failed to get message reactions: ' . $e->getMessage());
         }
     }
-    
 
+    public function saveMessageFromSocket()
+    {
+        // Authenticate using headers sent by socket server
+        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
+        $username = $_SERVER['HTTP_X_USERNAME'] ?? null;
+        
+        if (!$userId || !$username) {
+            return $this->unauthorized('Authentication headers required');
+        }
+        
+        // Verify user exists
+        $user = $this->userRepository->find($userId);
+        if (!$user) {
+            return $this->unauthorized('Invalid user');
+        }
+        
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        error_log("Socket message save request: " . json_encode($input));
+
+        // Validate required fields
+        $validationErrors = [];
+        if (empty($input['target_type'])) {
+            $validationErrors['target_type'] = 'Target type is required (channel or dm)';
+        } elseif (!in_array($input['target_type'], ['channel', 'dm'])) {
+            $validationErrors['target_type'] = 'Invalid target type. Must be "channel" or "dm"';
+        }
+
+        if (empty($input['target_id'])) {
+            $validationErrors['target_id'] = 'Target ID is required';
+        }
+
+        $content = trim($input['content'] ?? '');
+        $messageType = $input['message_type'] ?? 'text';
+        $attachments = $input['attachments'] ?? [];
+        $mentions = $input['mentions'] ?? [];
+        $replyMessageId = $input['reply_message_id'] ?? null;
+
+        // Only validate content if no attachments present
+        if (empty($content) && empty($attachments)) {
+            $validationErrors['content'] = 'Message must have either content or an attachment';
+        }
+
+        // Return all validation errors if any
+        if (!empty($validationErrors)) {
+            error_log("Socket message validation failed: " . json_encode($validationErrors));
+            return $this->validationError($validationErrors);
+        }
+
+        try {
+            if ($input['target_type'] === 'channel') {
+                $result = $this->sendChannelMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+            } else {
+                $result = $this->sendDirectMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+            }
+
+            error_log("Socket message save result: " . json_encode($result));
+
+            if ($result['success']) {
+                $message = $result['data']['message'];
+                return $this->success([
+                    'message_id' => $message['id'],
+                    'user_id' => $message['user_id'],
+                    'username' => $message['username'],
+                    'avatar_url' => $message['avatar_url'],
+                    'target_type' => $input['target_type'],
+                    'target_id' => $input['target_id'],
+                    'content' => $message['content'],
+                    'message_type' => $message['message_type'],
+                    'attachments' => $message['attachments'],
+                    'mentions' => $message['mentions'],
+                    'reply_message_id' => $message['reply_message_id'],
+                    'reply_data' => $message['reply_data'],
+                    'sent_at' => $message['sent_at'],
+                    'timestamp' => $message['timestamp']
+                ], 'Message saved successfully');
+            } else {
+                error_log("Failed to save socket message: " . json_encode($result));
+                return $result;
+            }
+        } catch (Exception $e) {
+            error_log("Error saving socket message: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return $this->serverError('Failed to save message: ' . $e->getMessage());
+        }
+    }
 }

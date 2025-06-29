@@ -1,6 +1,9 @@
 <?php
 
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
+require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
+require_once __DIR__ . '/../database/repositories/ChannelMessageRepository.php';
+require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/models/MessageReaction.php';
 require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/query.php';
@@ -10,11 +13,258 @@ require_once __DIR__ . '/BaseController.php';
 class MessageController extends BaseController
 {
     private $messageRepository;
+    private $channelRepository;
+    private $channelMessageRepository;
+    private $membershipRepository;
 
     public function __construct()
     {
         parent::__construct();
         $this->messageRepository = new MessageRepository();
+        $this->channelRepository = new ChannelRepository();
+        $this->channelMessageRepository = new ChannelMessageRepository();
+        $this->membershipRepository = new UserServerMembershipRepository();
+    }
+
+    public function getMessages($channelId = null)
+    {
+        $this->requireAuth();
+
+        // Get chatType and targetId from parameters or from the request body
+        $input = $this->getInput();
+        
+        // Check if this is a direct call with specific chatType (e.g. from chat-api.js)
+        $chatType = $_GET['chat_type'] ?? null;
+        
+        // If no chat_type, assume it's a channel request
+        if (!$chatType) {
+            $chatType = 'channel';
+        }
+        
+        // Use provided channelId or get it from input
+        $targetId = $channelId;
+        if (!$targetId) {
+            $targetId = $input['channel_id'] ?? $input['target_id'] ?? null;
+        }
+
+        // Check if we have a target ID
+        if (!$targetId) {
+            return $this->validationError(['target_id' => 'Target ID is required']);
+        }
+        
+        try {
+            // Set pagination parameters
+            $limit = $_GET['limit'] ?? 50;
+            $offset = $_GET['offset'] ?? 0;
+            
+            // Log the request for debugging
+            error_log("MessageController::getMessages - chatType: $chatType, targetId: $targetId, limit: $limit, offset: $offset");
+            
+            if ($chatType === 'channel') {
+                return $this->getChannelMessages($targetId, $limit, $offset);
+            } else if ($chatType === 'dm' || $chatType === 'direct') {
+                return $this->getDirectMessages($targetId, $limit, $offset);
+            } else {
+                return $this->validationError(['chat_type' => 'Invalid chat type']);
+            }
+        } catch (Exception $e) {
+            error_log("Error in MessageController::getMessages: " . $e->getMessage());
+            return $this->serverError('Failed to load messages: ' . $e->getMessage());
+        }
+    }
+    
+    private function getChannelMessages($channelId, $limit = 50, $offset = 0)
+    {
+        $userId = $this->getCurrentUserId();
+        
+        try {
+            // Verify channel exists
+            $channel = $this->channelRepository->find($channelId);
+            if (!$channel) {
+                return $this->notFound('Channel not found');
+            }
+            
+            // Check if user has access to this channel
+            if ($channel->server_id != 0) {
+                if (!$this->membershipRepository->isMember($userId, $channel->server_id)) {
+                    return $this->forbidden('You do not have access to this channel');
+                }
+            }
+            
+            // Retrieve messages
+            $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, $offset);
+            
+            // Log activity
+            $this->logActivity('channel_messages_viewed', [
+                'channel_id' => $channelId,
+                'message_count' => count($messages)
+            ]);
+            
+            // Return successful response
+            return $this->success([
+                'messages' => $messages,
+                'channel_id' => $channelId,
+                'total' => count($messages),
+                'has_more' => count($messages) >= $limit
+            ]);
+        } catch (Exception $e) {
+            error_log("Error in MessageController::getChannelMessages: " . $e->getMessage());
+            return $this->serverError('Failed to load channel messages');
+        }
+    }
+    
+    private function getDirectMessages($roomId, $limit = 50, $offset = 0)
+    {
+        $userId = $this->getCurrentUserId();
+        
+        try {
+            // Check if user is part of this chat room
+            require_once __DIR__ . '/../database/repositories/ChatRoomRepository.php';
+            $chatRoomRepository = new ChatRoomRepository();
+            
+            if (!$chatRoomRepository->isParticipant($roomId, $userId)) {
+                return $this->forbidden('You are not a participant in this chat');
+            }
+            
+            // Retrieve messages
+            require_once __DIR__ . '/../database/repositories/ChatRoomMessageRepository.php';
+            $chatRoomMessageRepository = new ChatRoomMessageRepository();
+            $messages = $chatRoomMessageRepository->getMessagesByRoomId($roomId, $limit, $offset);
+            
+            // Return successful response
+            return $this->success([
+                'messages' => $messages,
+                'room_id' => $roomId,
+                'total' => count($messages),
+                'has_more' => count($messages) >= $limit
+            ]);
+        } catch (Exception $e) {
+            error_log("Error in MessageController::getDirectMessages: " . $e->getMessage());
+            return $this->serverError('Failed to load direct messages');
+        }
+    }
+
+    public function sendMessage($channelId = null)
+    {
+        $this->requireAuth();
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        if ($channelId) {
+            $input['channel_id'] = $channelId;
+        }
+
+        $this->validate($input, [
+            'channel_id' => 'required',
+            'content' => 'required'
+        ]);
+
+        $targetId = $input['channel_id'];
+        $content = trim($input['content']);
+        $userId = $this->getCurrentUserId();
+        $messageType = $input['message_type'] ?? 'text';
+        $attachmentUrl = $input['attachment_url'] ?? null;
+        $mentions = $input['mentions'] ?? [];
+        $replyMessageId = $input['reply_message_id'] ?? null;
+
+        try {
+            $channel = $this->channelRepository->find($targetId);
+            if (!$channel) {
+                return $this->notFound('Channel not found');
+            }
+
+            if ($channel->server_id != 0) {
+                $membership = $this->membershipRepository->findByUserAndServer($userId, $channel->server_id);
+                if (!$membership) {
+                    return $this->forbidden('You are not a member of this server');
+                }
+            }
+
+            $query = new Query();
+            $query->beginTransaction();
+            
+            $messageData = [
+                'content' => $content,
+                'user_id' => $userId,
+                'message_type' => $messageType,
+                'attachment_url' => $attachmentUrl,
+                'sent_at' => date('Y-m-d H:i:s'),
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            if ($replyMessageId) {
+                $repliedMessage = $this->messageRepository->find($replyMessageId);
+                if ($repliedMessage) {
+                    $messageData['reply_message_id'] = $replyMessageId;
+                }
+            }
+
+            $message = $this->messageRepository->create($messageData);
+
+            if ($message && isset($message->id)) {
+                $this->channelMessageRepository->addMessageToChannel($targetId, $message->id);
+                
+                require_once __DIR__ . '/../database/repositories/UserRepository.php';
+                $userRepository = new UserRepository();
+                $user = $userRepository->find($userId);
+                
+                $formattedMessage = [
+                    'id' => $message->id,
+                    'content' => $message->content,
+                    'user_id' => $message->user_id,
+                    'username' => $user ? $user->username : ($_SESSION['username'] ?? 'Unknown'),
+                    'avatar_url' => $user && $user->avatar_url ? $user->avatar_url : '/public/assets/common/default-profile-picture.png',
+                    'sent_at' => $message->sent_at,
+                    'edited_at' => $message->edited_at,
+                    'type' => $message->message_type ?? 'text',
+                    'message_type' => $message->message_type ?? 'text',
+                    'attachment_url' => $message->attachment_url,
+                    'has_reactions' => false,
+                    'reaction_count' => 0,
+                    'reactions' => []
+                ];
+                
+                if ($message->reply_message_id) {
+                    $repliedMessage = $this->messageRepository->find($message->reply_message_id);
+                    if ($repliedMessage) {
+                        $repliedUser = $userRepository->find($repliedMessage->user_id);
+                        $formattedMessage['reply_message_id'] = $message->reply_message_id;
+                        $formattedMessage['reply_data'] = [
+                            'message_id' => $message->reply_message_id,
+                            'content' => $repliedMessage->content,
+                            'user_id' => $repliedMessage->user_id,
+                            'username' => $repliedUser ? $repliedUser->username : 'Unknown',
+                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/default-profile-picture.png'
+                        ];
+                    }
+                }
+
+                if (!empty($mentions)) {
+                    $formattedMessage['mentions'] = $mentions;
+                }
+
+                $query->commit();
+                
+                return $this->success([
+                    'success' => true,
+                    'data' => [
+                        'message' => $formattedMessage,
+                        'channel_id' => $targetId
+                    ]
+                ], 'Message sent successfully');
+            } else {
+                $query->rollback();
+                throw new Exception('Failed to save message');
+            }
+        } catch (Exception $e) {
+            if (isset($query)) {
+                $query->rollback();
+            }
+            error_log('Channel message send error: ' . $e->getMessage());
+            return $this->serverError('Failed to send message');
+        }
     }
 
     public function addReaction($messageId)
