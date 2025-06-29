@@ -129,12 +129,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 hasTrack: !!stream.track,
                 keys: Object.keys(stream),
                 streamType: typeof stream,
-                constructor: stream.constructor?.name
+                constructor: stream.constructor?.name,
+                streamKind: stream.kind
             });
             
             if (stream instanceof MediaStream) {
                 console.log('[VideoHandler] getMediaStream: Direct MediaStream found');
                 return stream;
+            }
+            
+            // VideoSDK specific: Check stream.stream property first
+            if (stream.stream) {
+                console.log('[VideoHandler] getMediaStream: Checking stream.stream property:', {
+                    isMediaStream: stream.stream instanceof MediaStream,
+                    hasGetVideoTracks: typeof stream.stream.getVideoTracks === 'function',
+                    streamObj: stream.stream
+                });
+                
+                if (stream.stream instanceof MediaStream) {
+                    console.log('[VideoHandler] getMediaStream: Found MediaStream in .stream property');
+                    return stream.stream;
+                }
+                
+                if (stream.stream.getVideoTracks && typeof stream.stream.getVideoTracks === 'function') {
+                    console.log('[VideoHandler] getMediaStream: Stream.stream has MediaStream methods');
+                    return stream.stream;
+                }
+                
+                // Handle nested stream structure
+                if (stream.stream.stream instanceof MediaStream) {
+                    console.log('[VideoHandler] getMediaStream: Found nested MediaStream in .stream.stream');
+                    return stream.stream.stream;
+                }
             }
             
             if (stream.track && typeof stream.track !== 'undefined') {
@@ -146,25 +172,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('[VideoHandler] getMediaStream: Found MediaStream in .mediaStream property');
                 return stream.mediaStream;
             }
-            
-            if (stream.stream instanceof MediaStream) {
-                console.log('[VideoHandler] getMediaStream: Found MediaStream in .stream property');
-                return stream.stream;
-            }
-
-            if (stream.stream && stream.stream.stream instanceof MediaStream) {
-                console.log('[VideoHandler] getMediaStream: Found nested MediaStream in .stream.stream');
-                return stream.stream.stream;
-            }
 
             if (stream.getVideoTracks && typeof stream.getVideoTracks === 'function') {
                 console.log('[VideoHandler] getMediaStream: Stream has MediaStream methods');
                 return stream;
-            }
-
-            if (stream.stream && stream.stream.getVideoTracks && typeof stream.stream.getVideoTracks === 'function') {
-                console.log('[VideoHandler] getMediaStream: Nested stream has MediaStream methods');
-                return stream.stream;
             }
 
             if (stream.track && stream.track.kind) {
@@ -179,7 +190,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.warn('[VideoHandler] getMediaStream: Could not extract MediaStream, trying all properties:', stream);
             
+            // Try all properties to find MediaStream
             for (const [key, value] of Object.entries(stream)) {
+                console.log(`[VideoHandler] getMediaStream: Checking property '${key}':`, {
+                    isMediaStream: value instanceof MediaStream,
+                    hasGetVideoTracks: value && typeof value.getVideoTracks === 'function',
+                    type: typeof value
+                });
+                
                 if (value instanceof MediaStream) {
                     console.log(`[VideoHandler] getMediaStream: Found MediaStream in property '${key}'`);
                     return value;

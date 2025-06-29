@@ -29,7 +29,7 @@ $page_title = 'misvord - Explore Servers';
 $body_class = 'bg-discord-dark text-white';
 $page_css = ['explore-servers', 'server-detail'];
 $page_js = 'pages/explore-servers';
-$head_scripts = ['logger-init', 'components/servers/server-detai'];
+$head_scripts = ['logger-init', 'components/servers/server-detail'];
 $additional_js = ['components/servers/server-dropdown'];
 $contentType = 'explore';
 

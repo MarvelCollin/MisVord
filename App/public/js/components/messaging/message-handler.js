@@ -514,11 +514,64 @@ class MessageHandler {
     markAsTemporary(messageElement) {
         messageElement.classList.add('bubble-message-temporary');
         messageElement.style.opacity = '0.7';
+        
+        // Disable reaction buttons for temporary messages
+        const reactionButton = messageElement.querySelector('.message-action-reaction');
+        if (reactionButton) {
+            reactionButton.style.pointerEvents = 'none';
+            reactionButton.style.opacity = '0.4';
+            reactionButton.disabled = true;
+            console.log('🚫 [MESSAGE-HANDLER] Disabled reaction button for temporary message');
+        }
+        
+        // Disable any emoji picker buttons
+        const emojiButtons = messageElement.querySelectorAll('.emoji-button, .reaction-add-button');
+        emojiButtons.forEach(button => {
+            button.style.pointerEvents = 'none';
+            button.style.opacity = '0.4';
+            button.disabled = true;
+        });
+        
+        // Add temporary indicator
+        if (!messageElement.querySelector('.temp-indicator')) {
+            const tempIndicator = document.createElement('span');
+            tempIndicator.className = 'temp-indicator text-xs text-gray-400 ml-2';
+            tempIndicator.innerHTML = '<i class="fas fa-clock"></i>';
+            tempIndicator.title = 'Message is being sent...';
+            
+            const messageHeader = messageElement.querySelector('.message-header, .bubble-message-header');
+            if (messageHeader) {
+                messageHeader.appendChild(tempIndicator);
+            }
+        }
     }
     
     markAsConfirmed(messageElement) {
         messageElement.classList.remove('bubble-message-temporary');
-        messageElement.style.opacity = '';
+        messageElement.style.opacity = '1';
+        
+        // Re-enable reaction buttons
+        const reactionButton = messageElement.querySelector('.message-action-reaction');
+        if (reactionButton) {
+            reactionButton.style.pointerEvents = '';
+            reactionButton.style.opacity = '';
+            reactionButton.disabled = false;
+            console.log('✅ [MESSAGE-HANDLER] Re-enabled reaction button for confirmed message');
+        }
+        
+        // Re-enable emoji picker buttons
+        const emojiButtons = messageElement.querySelectorAll('.emoji-button, .reaction-add-button');
+        emojiButtons.forEach(button => {
+            button.style.pointerEvents = '';
+            button.style.opacity = '';
+            button.disabled = false;
+        });
+        
+        // Remove temporary indicator
+        const tempIndicator = messageElement.querySelector('.temp-indicator');
+        if (tempIndicator) {
+            tempIndicator.remove();
+        }
     }
     
     markAsFailed(messageElement, error) {
@@ -656,4 +709,3 @@ class MessageHandler {
 }
 
 export default MessageHandler;
- 

@@ -330,6 +330,7 @@ class SocketHandler {
                 
                 // Remove temporary styling
                 tempElement.classList.remove('temporary-message');
+                tempElement.classList.remove('bubble-message-temporary');
                 tempElement.style.opacity = '1';
                 
                 // Remove any error indicators
@@ -345,13 +346,31 @@ class SocketHandler {
                 if (this.chatSection.messageHandler) {
                     this.chatSection.messageHandler.processedMessageIds.delete(data.temp_message_id);
                     this.chatSection.messageHandler.processedMessageIds.add(data.real_message_id);
+                    
+                    // Clean up temporary messages map
+                    if (this.chatSection.messageHandler.temporaryMessages) {
+                        this.chatSection.messageHandler.temporaryMessages.delete(data.temp_message_id);
+                    }
                 }
                 
                 // Re-enable reaction button now that we have a real message ID
-                if (window.emojiReactions && typeof window.emojiReactions.updateReactionButtonState === 'function') {
-                    console.log('🔄 Updating reaction button state for permanent message ID');
-                    window.emojiReactions.updateReactionButtonState(tempElement, data.real_message_id);
+                this.updateReactionButtonForPermanentId(tempElement, data.real_message_id);
+                
+                // Notify emoji reactions system of the ID change
+                if (window.emojiReactions) {
+                    console.log('🔄 Notifying emoji reactions system of ID change');
+                    window.emojiReactions.handleMessageIdUpdated(data.temp_message_id, data.real_message_id);
                 }
+                
+                // Dispatch global event for other systems that might need to know
+                window.dispatchEvent(new CustomEvent('messageIdUpdated', {
+                    detail: {
+                        tempId: data.temp_message_id,
+                        realId: data.real_message_id,
+                        messageElement: tempElement,
+                        messageData: data.message_data
+                    }
+                }));
                 
                 console.log(`✅ Successfully updated message ID from ${data.temp_message_id} to ${data.real_message_id}`);
             } else {
@@ -359,6 +378,45 @@ class SocketHandler {
             }
         } catch (error) {
             console.error('❌ Error handling message ID update:', error);
+        }
+    }
+    
+    updateReactionButtonForPermanentId(messageElement, permanentId) {
+        try {
+            // Re-enable reaction button
+            const reactionButton = messageElement.querySelector('.message-action-reaction');
+            if (reactionButton) {
+                reactionButton.style.pointerEvents = '';
+                reactionButton.style.opacity = '';
+                reactionButton.disabled = false;
+                
+                // Update data attributes if needed
+                if (reactionButton.dataset.messageId) {
+                    reactionButton.dataset.messageId = permanentId;
+                }
+                
+                console.log('🔄 Re-enabled reaction button for permanent message ID:', permanentId);
+            }
+            
+            // Also call the emoji reactions method if available
+            if (window.emojiReactions && typeof window.emojiReactions.updateReactionButtonState === 'function') {
+                console.log('🔄 Updating reaction button state for permanent message ID via emoji system');
+                window.emojiReactions.updateReactionButtonState(messageElement, permanentId);
+            }
+            
+            // Find and re-enable any emoji picker buttons
+            const emojiButtons = messageElement.querySelectorAll('[data-message-id], .emoji-button, .reaction-add-button');
+            emojiButtons.forEach(button => {
+                if (button.dataset.messageId) {
+                    button.dataset.messageId = permanentId;
+                }
+                button.style.pointerEvents = '';
+                button.style.opacity = '';
+                button.disabled = false;
+            });
+            
+        } catch (error) {
+            console.error('❌ Error updating reaction button for permanent ID:', error);
         }
     }
     

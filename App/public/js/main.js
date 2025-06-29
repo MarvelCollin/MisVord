@@ -4,6 +4,7 @@ import { globalSocketManager } from './core/socket/global-socket-manager.js';
 import PageLoader from './core/page-loader.js';
 import * as Components from './components/index.js';
 import { LazyLoader } from './utils/lazy-loader.js';
+import { loadCSS, unloadCSS } from './utils/css-loader.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Main application loaded');
@@ -12,6 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
         window.showToast = showToast;
         window.logger = logger;
         window.globalSocketManager = globalSocketManager;
+        window.loadCSS = loadCSS;
+        window.unloadCSS = unloadCSS;
         
         logger.info('general', 'Global utilities loaded:', {
             showToast: typeof showToast,
@@ -135,7 +138,9 @@ document.addEventListener('click', function(e) {
 window.misvord = {
     showToast,
     toggleDropdown,
-    autosizeTextarea
+    autosizeTextarea,
+    loadCSS,
+    unloadCSS
 };
 
 function initGlobalSocketManager() {
@@ -255,5 +260,7 @@ export function reinitUI() {
 export {
     showToast,
     toggleDropdown,
-    autosizeTextarea
+    autosizeTextarea,
+    loadCSS,
+    unloadCSS
 };

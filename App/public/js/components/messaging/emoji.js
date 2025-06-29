@@ -897,15 +897,74 @@ class EmojiReactions {
         }
     }
 
+    handleMessageIdUpdated(tempId, permanentId) {
+        try {
+            console.log('🔄 [EMOJI-REACTIONS] Handling message ID update:', {
+                tempId,
+                permanentId
+            });
+            
+            // Update currentReactions mapping from temp ID to permanent ID
+            if (this.currentReactions[tempId]) {
+                this.currentReactions[permanentId] = this.currentReactions[tempId];
+                delete this.currentReactions[tempId];
+                console.log('📝 [EMOJI-REACTIONS] Moved reactions from temp ID to permanent ID');
+            }
+            
+            // Update loaded message IDs
+            if (this.loadedMessageIds.has(tempId)) {
+                this.loadedMessageIds.delete(tempId);
+                this.loadedMessageIds.add(permanentId);
+            }
+            
+            // Clear any loading states for temp ID
+            this.loadingReactions.delete(tempId);
+            
+            // Update debounce timers
+            if (this.debounceTimers.has(tempId)) {
+                clearTimeout(this.debounceTimers.get(tempId));
+                this.debounceTimers.delete(tempId);
+            }
+            
+            // Find the message element and update reaction button state
+            const messageElement = document.querySelector(`[data-message-id="${permanentId}"]`);
+            if (messageElement) {
+                this.updateReactionButtonState(messageElement, permanentId);
+                
+                // Update any existing reaction elements with the new message ID
+                const reactionElements = messageElement.querySelectorAll('[data-message-id]');
+                reactionElements.forEach(element => {
+                    if (element.dataset.messageId === tempId) {
+                        element.dataset.messageId = permanentId;
+                    }
+                });
+                
+                // Refresh reactions display to ensure everything is working
+                if (this.currentReactions[permanentId]) {
+                    this.updateReactionsDisplay(permanentId, this.currentReactions[permanentId]);
+                }
+                
+                console.log('✅ [EMOJI-REACTIONS] Message ID update completed successfully');
+            }
+            
+        } catch (error) {
+            console.error('❌ [EMOJI-REACTIONS] Error handling message ID update:', error);
+        }
+    }
+
     updateReactionButtonState(messageElement, messageId) {
         const reactionButton = messageElement.querySelector('.message-action-reaction');
         if (reactionButton) {
             if (!/^\d+$/.test(String(messageId))) {
                 reactionButton.style.pointerEvents = 'none';
                 reactionButton.style.opacity = '0.4';
+                reactionButton.disabled = true;
+                console.log('🚫 [EMOJI-REACTIONS] Disabled reaction button for temp ID:', messageId);
             } else {
                 reactionButton.style.pointerEvents = '';
                 reactionButton.style.opacity = '';
+                reactionButton.disabled = false;
+                console.log('✅ [EMOJI-REACTIONS] Enabled reaction button for permanent ID:', messageId);
             }
         }
     }

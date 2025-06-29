@@ -1,5 +1,49 @@
+function loadCSS(cssFiles) {
+    if (!cssFiles || !Array.isArray(cssFiles)) return Promise.resolve();
+    
+    console.log('[CSS Loader] Loading CSS files:', cssFiles);
+    
+    const promises = cssFiles.map(cssFile => {
+        return new Promise((resolve, reject) => {
+            const href = `/public/css/${cssFile}.css`;
+            
+            if (document.querySelector(`link[href="${href}"]`)) {
+                console.log('[CSS Loader] CSS already loaded:', href);
+                resolve();
+                return;
+            }
+            
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = href;
+            
+            link.onload = () => {
+                console.log('[CSS Loader] CSS loaded successfully:', href);
+                resolve();
+            };
+            
+            link.onerror = () => {
+                console.error('[CSS Loader] Failed to load CSS:', href);
+                reject(new Error(`Failed to load CSS: ${href}`));
+            };
+            
+            document.head.appendChild(link);
+        });
+    });
+    
+    return Promise.all(promises);
+}
+
 export function loadExplorePage() {
     console.log('[Explore Loader] Starting loadExplorePage');
+    
+    console.log('[Explore Loader] Loading required CSS files');
+    loadCSS(['explore-servers', 'server-detail']).then(() => {
+        console.log('[Explore Loader] CSS files loaded successfully');
+    }).catch(error => {
+        console.error('[Explore Loader] Failed to load CSS:', error);
+    });
     
     const mainContent = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
 

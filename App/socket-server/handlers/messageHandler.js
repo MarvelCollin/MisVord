@@ -536,12 +536,15 @@ class MessageHandler {
                     };
                     
                     if (targetRoom) {
+                        // Broadcast to ALL users in the room (including sender) so everyone can react
                         io.to(targetRoom).emit('message_id_updated', updateData);
+                        // Also send directly to sender to ensure they get it
+                        client.emit('message_id_updated', updateData);
                     } else {
                         io.emit('message_id_updated', updateData);
                     }
                     
-                    console.log(`✅ [SAVE-AND-SEND] Message ID update broadcasted: ${temp_message_id} → ${realMessageId}`);
+                    console.log(`✅ [SAVE-AND-SEND] Message ID update broadcasted to ALL users: ${temp_message_id} → ${realMessageId}`);
                     
                     // Send success response to sender
                     client.emit('message_sent', {
@@ -614,10 +617,13 @@ class MessageHandler {
                 timestamp: Date.now()
             };
             
-            console.log(`📡 [DATABASE-SAVED] Broadcasting message ID update to room: ${targetRoom}`);
+            console.log(`📡 [DATABASE-SAVED] Broadcasting message ID update to ALL users in room: ${targetRoom}`);
+            // Broadcast to ALL users in the room (including sender) so everyone can react
             io.to(targetRoom).emit('message_id_updated', updateData);
+            // Also send directly to sender to ensure they get it
+            client.emit('message_id_updated', updateData);
             
-            console.log(`✅ [DATABASE-SAVED] Message ID update broadcasted successfully`);
+            console.log(`✅ [DATABASE-SAVED] Message ID update broadcasted successfully to ALL users`);
         } else {
             console.warn(`⚠️ [DATABASE-SAVED] No target room found, broadcasting to all clients`);
             io.emit('message_id_updated', {

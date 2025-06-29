@@ -974,6 +974,23 @@ export async function handleExploreClick(event) {
         }
 
         console.log('[Explore Navigation] Loading explore page with AJAX');
+        
+        function loadExploreCSS() {
+            const cssFiles = ['explore-servers', 'server-detail'];
+            cssFiles.forEach(cssFile => {
+                const href = `/public/css/${cssFile}.css`;
+                if (!document.querySelector(`link[href="${href}"]`)) {
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.type = 'text/css';
+                    link.href = href;
+                    document.head.appendChild(link);
+                    console.log('[Explore Navigation] CSS loaded:', href);
+                }
+            });
+        }
+        
+        loadExploreCSS();
         const response = await $.ajax({
             url: '/explore-servers/layout',
             method: 'GET',

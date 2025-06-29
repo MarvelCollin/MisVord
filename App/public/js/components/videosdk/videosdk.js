@@ -399,46 +399,77 @@ class VideoSDKManager {
                         let kind = 'unknown';
                         
                         try {
+                            // First try string matching for common patterns
                             if (streamId.includes('video') || streamId.includes('cam') || streamId.includes('webcam')) {
                                 kind = 'video';
                             } else if (streamId.includes('audio') || streamId.includes('mic')) {
                                 kind = 'audio';
                             } else if (streamId.includes('share') || streamId.includes('screen')) {
                                 kind = 'share';
-                            } else if (stream && stream.stream) {
-                                const mediaStream = stream.stream;
-                                if (mediaStream instanceof MediaStream) {
-                                    const videoTracks = mediaStream.getVideoTracks();
-                                    const audioTracks = mediaStream.getAudioTracks();
+                            } else {
+                                // String matching failed, examine the actual stream content
+                                console.log(`[VideoSDK] Examining stream content for ${streamId}:`, {
+                                    streamObj: stream,
+                                    hasStream: !!stream.stream,
+                                    streamKind: stream.kind
+                                });
+                                
+                                if (stream && stream.stream) {
+                                    const mediaStream = stream.stream;
+                                    console.log(`[VideoSDK] MediaStream analysis for ${streamId}:`, {
+                                        isMediaStream: mediaStream instanceof MediaStream,
+                                        hasGetVideoTracks: typeof mediaStream.getVideoTracks === 'function',
+                                        hasGetAudioTracks: typeof mediaStream.getAudioTracks === 'function'
+                                    });
                                     
-                                    if (videoTracks.length > 0) {
-                                        const track = videoTracks[0];
+                                    if (mediaStream instanceof MediaStream) {
+                                        const videoTracks = mediaStream.getVideoTracks();
+                                        const audioTracks = mediaStream.getAudioTracks();
+                                        
+                                        console.log(`[VideoSDK] Track analysis for ${streamId}:`, {
+                                            videoTracks: videoTracks.length,
+                                            audioTracks: audioTracks.length,
+                                            videoTrackLabels: videoTracks.map(t => t.label),
+                                            audioTrackLabels: audioTracks.map(t => t.label)
+                                        });
+                                        
+                                        if (videoTracks.length > 0) {
+                                            const track = videoTracks[0];
+                                            if (track.label && track.label.toLowerCase().includes('screen')) {
+                                                kind = 'share';
+                                                console.log(`[VideoSDK] Detected screen share from track label: ${track.label}`);
+                                            } else {
+                                                kind = 'video';
+                                                console.log(`[VideoSDK] Detected video from track: ${track.label}`);
+                                            }
+                                        } else if (audioTracks.length > 0) {
+                                            kind = 'audio';
+                                            console.log(`[VideoSDK] Detected audio from tracks: ${audioTracks.map(t => t.label).join(', ')}`);
+                                        }
+                                    }
+                                } else if (stream && stream.track) {
+                                    const track = stream.track;
+                                    console.log(`[VideoSDK] Direct track analysis for ${streamId}:`, {
+                                        trackKind: track.kind,
+                                        trackLabel: track.label
+                                    });
+                                    
+                                    if (track.kind === 'video') {
                                         if (track.label && track.label.toLowerCase().includes('screen')) {
                                             kind = 'share';
                                         } else {
                                             kind = 'video';
                                         }
-                                    } else if (audioTracks.length > 0) {
+                                    } else if (track.kind === 'audio') {
                                         kind = 'audio';
                                     }
                                 }
-                            } else if (stream && stream.track) {
-                                const track = stream.track;
-                                if (track.kind === 'video') {
-                                    if (track.label && track.label.toLowerCase().includes('screen')) {
-                                        kind = 'share';
-                                    } else {
-                                        kind = 'video';
-                                    }
-                                } else if (track.kind === 'audio') {
-                                    kind = 'audio';
-                                }
                             }
                         } catch (error) {
-                            console.warn('Error determining stream kind:', error);
+                            console.warn('[VideoSDK] Error determining stream kind:', error);
                         }
                                     
-                        console.log(`Stream monitor detected new ${kind} stream (ID: ${streamId})`);
+                        console.log(`[VideoSDK] Stream monitor detected new ${kind} stream (ID: ${streamId})`);
                         
                         participant.safeEmit('stream-enabled', { 
                             kind, 
@@ -452,7 +483,7 @@ class VideoSDKManager {
                 
                 participant._previousStreams.forEach((kind, streamId) => {
                     if (!participant.streams.has(streamId)) {
-                        console.log(`Stream monitor detected removed ${kind} stream (ID: ${streamId})`);
+                        console.log(`[VideoSDK] Stream monitor detected removed ${kind} stream (ID: ${streamId})`);
                         
                         participant.safeEmit('stream-disabled', { 
                             kind,

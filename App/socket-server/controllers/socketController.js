@@ -2,6 +2,7 @@ const AuthHandler = require('../handlers/authHandler');
 const RoomHandler = require('../handlers/roomHandler');
 const MessageHandler = require('../handlers/messageHandler');
 const BotHandler = require('../handlers/botHandler');
+const ActivityHandler = require('../handlers/activityHandler');
 const roomManager = require('../services/roomManager');
 const userService = require('../services/userService');
 const messageService = require('../services/messageService');
