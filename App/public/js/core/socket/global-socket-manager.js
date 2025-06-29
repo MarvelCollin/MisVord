@@ -264,6 +264,27 @@ class GlobalSocketManager {
         // NOTE: Message events are now handled by individual component socket-handlers
         // Removed duplicate listeners for 'user-message-dm' and 'new-channel-message'
         // to prevent double message processing
+        
+        // Jump to message functionality
+        this.io.on('jump-to-message-response', (data) => {
+            this.log('Jump to message response received:', data);
+            
+            if (window.jumpToMessage && typeof window.jumpToMessage === 'function') {
+                window.jumpToMessage(data.message_id);
+            } else if (window.messageHandler && typeof window.messageHandler.jumpToMessage === 'function') {
+                window.messageHandler.jumpToMessage(data.message_id);
+            } else {
+                console.warn('⚠️ [SOCKET] No jumpToMessage function available');
+            }
+        });
+        
+        this.io.on('jump-to-message-failed', (data) => {
+            this.error('Jump to message failed:', data);
+            
+            if (window.showToast && typeof window.showToast === 'function') {
+                window.showToast('Message not found or not accessible', 'error');
+            }
+        });
     }
     
     sendAuthentication() {

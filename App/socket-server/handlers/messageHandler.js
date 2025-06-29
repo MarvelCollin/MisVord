@@ -591,6 +591,32 @@ class MessageHandler {
         }
     }
 
+    static handleJumpToMessage(io, client, data) {
+        console.log(`🎯 [JUMP-MESSAGE] Jump to message request from client ${client.id}`);
+        
+        if (!data.message_id) {
+            console.error(`❌ [JUMP-MESSAGE] Missing message_id in jump request`);
+            client.emit('jump-to-message-failed', { error: 'Message ID required' });
+            return;
+        }
+        
+        console.log(`🎯 [JUMP-MESSAGE] Processing jump to message:`, {
+            messageId: data.message_id,
+            userId: data.user_id,
+            clientId: client.id
+        });
+        
+        client.emit('jump-to-message-response', {
+            message_id: data.message_id,
+            user_id: data.user_id,
+            action: 'scroll-and-highlight',
+            timestamp: Date.now(),
+            source: 'server-response'
+        });
+        
+        console.log(`✅ [JUMP-MESSAGE] Jump response sent to client for message ${data.message_id}`);
+    }
+    
     static handleMessageDatabaseSaved(io, client, data) {
         console.log(`💾 [DATABASE-SAVED] Message database save confirmation from client ${client.id}`);
         

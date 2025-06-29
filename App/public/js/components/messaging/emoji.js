@@ -1091,6 +1091,12 @@ class EmojiReactions {
                 });
                 
                 window.globalSocketManager.io.on('reaction-failed', function(data) {
+                    const currentUserId = document.querySelector('meta[name="user-id"]')?.content || window.globalSocketManager?.userId;
+                    
+                    if (String(data.user_id) !== String(currentUserId)) {
+                        return;
+                    }
+                    
                     console.log('❌ Received reaction-failed:', data);
                     
                     const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
@@ -1268,6 +1274,12 @@ class EmojiReactions {
 
     handleReactionFailed(data) {
         const { message_id, emoji, user_id, temp_reaction_id, error } = data;
+        
+        const currentUserId = document.querySelector('meta[name="user-id"]')?.content || window.globalSocketManager?.userId;
+        
+        if (String(user_id) !== String(currentUserId)) {
+            return;
+        }
         
         console.error('❌ [EMOJI-REACTIONS] Reaction failed:', {
             messageId: message_id,

@@ -38,31 +38,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function getStreamType(stream) {
         if (!stream) return 'audio';
         
-        if (stream instanceof MediaStream) {
-            const videoTracks = stream.getVideoTracks();
-            if (videoTracks.length > 0) {
-                const track = videoTracks[0];
+            if (stream instanceof MediaStream) {
+                const videoTracks = stream.getVideoTracks();
+                if (videoTracks.length > 0) {
+                    const track = videoTracks[0];
                 return track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
+                }
+                return 'audio';
             }
-            return 'audio';
-        }
-        
+            
         if (stream.kind) return stream.kind;
-        
-        if (stream.stream instanceof MediaStream) {
+                
+                if (stream.stream instanceof MediaStream) {
             const videoTracks = stream.stream.getVideoTracks();
-            if (videoTracks.length > 0) {
-                const track = videoTracks[0];
+                if (videoTracks.length > 0) {
+                    const track = videoTracks[0];
                 return track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
+                }
+                return 'audio';
             }
-            return 'audio';
-        }
-        
+            
         if (stream.track?.kind === 'video') {
             return stream.track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
         }
         
-        return 'audio';
+                    return 'audio';
     }
 
     function getMediaStream(stream) {
@@ -71,51 +71,51 @@ document.addEventListener('DOMContentLoaded', () => {
         if (stream.stream instanceof MediaStream) return stream.stream;
         if (stream.track) return new MediaStream([stream.track]);
         if (stream.mediaStream instanceof MediaStream) return stream.mediaStream;
-        return null;
+                return null;
     }
 
     async function safeVideoPlay(videoEl, participantId) {
         if (!videoEl || !participantId) return false;
 
-        const existingPromise = pendingPlayPromises.get(participantId);
-        if (existingPromise) {
-            try {
-                await existingPromise;
+            const existingPromise = pendingPlayPromises.get(participantId);
+            if (existingPromise) {
+                try {
+                    await existingPromise;
             } catch (e) {}
         }
 
         if (!videoEl.srcObject) return false;
 
-        const playPromise = new Promise(async (resolve, reject) => {
-            try {
-                if (videoEl.readyState >= 2) {
-                    await videoEl.play();
-                    resolve(true);
-                } else {
-                    const onLoadedData = async () => {
-                        try {
+            const playPromise = new Promise(async (resolve, reject) => {
+                try {
+                    if (videoEl.readyState >= 2) {
+                        await videoEl.play();
+                        resolve(true);
+                    } else {
+                        const onLoadedData = async () => {
+                            try {
+                                videoEl.removeEventListener('loadeddata', onLoadedData);
+                                await videoEl.play();
+                                resolve(true);
+                            } catch (error) {
+                                reject(error);
+                            }
+                        };
+                        
+                        videoEl.addEventListener('loadeddata', onLoadedData);
+                        
+                        setTimeout(() => {
                             videoEl.removeEventListener('loadeddata', onLoadedData);
-                            await videoEl.play();
-                            resolve(true);
-                        } catch (error) {
-                            reject(error);
-                        }
-                    };
-                    
-                    videoEl.addEventListener('loadeddata', onLoadedData);
-                    
-                    setTimeout(() => {
-                        videoEl.removeEventListener('loadeddata', onLoadedData);
-                        reject(new Error('Video load timeout'));
-                    }, 5000);
+                            reject(new Error('Video load timeout'));
+                        }, 5000);
+                    }
+                } catch (error) {
+                    reject(error);
                 }
-            } catch (error) {
-                reject(error);
-            }
-        });
+            });
 
-        pendingPlayPromises.set(participantId, playPromise);
-        
+            pendingPlayPromises.set(participantId, playPromise);
+            
         try {
             const result = await playPromise;
             pendingPlayPromises.delete(participantId);

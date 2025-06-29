@@ -1,7 +1,7 @@
-<div id="server-detail-modal" class="fixed inset-0 z-[99999]" style="display: none;">
-    <div class="modal-backdrop fixed inset-0 bg-black bg-opacity-90 z-[99998]"></div>
-    <div class="modal-container glass-effect rounded-2xl w-full max-w-lg mx-auto my-auto overflow-hidden shadow-2xl relative z-[100000] transform transition-all border border-white/10">
-        <button id="close-server-modal" class="absolute top-4 right-4 z-[100001] transition-all">
+<div id="server-detail-modal" class="fixed inset-0 z-[50000]" style="display: none;">
+    <div class="modal-backdrop fixed inset-0 bg-black bg-opacity-90 z-[49999]"></div>
+    <div class="modal-container glass-effect rounded-2xl w-full max-w-lg mx-auto my-auto overflow-hidden shadow-2xl relative z-[50001] transform transition-all border border-white/10">
+        <button id="close-server-modal" class="absolute top-4 right-4 z-[50002] transition-all">
             <i class="fas fa-times text-lg"></i>
         </button>
         
@@ -9,7 +9,6 @@
             <div class="server-banner h-45 bg-gradient-to-br from-[#5865f2] via-[#7289da] to-[#eb459e] relative overflow-hidden">
                 <img id="server-modal-banner" src="" alt="Server Banner" class="w-full h-full object-cover hidden absolute inset-0">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                <div class="shimmer-effect absolute inset-0 opacity-30"></div>
             </div>
             
             <div class="px-6 pt-16 pb-6 relative">
@@ -59,19 +58,6 @@
         </div>
     </div>
 </div>
-
-<style>
-    .shimmer-effect {
-        background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
-        background-size: 200% 100%;
-        animation: shimmer 3s infinite linear;
-    }
-    
-    @keyframes shimmer {
-        0% { background-position: -200% 0; }
-        100% { background-position: 200% 0; }
-    }
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

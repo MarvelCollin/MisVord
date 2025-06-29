@@ -49,7 +49,7 @@ $categories = $GLOBALS['categories'] ?? [];
                 foreach ($featuredServers as $server): 
                     $isMember = in_array($server['id'], $userServerId);
                 ?>
-                    <div class="server-card bg-discord-dark rounded-xl overflow-hidden transition-all cursor-pointer group"
+                    <div class="explore-server-card server-card bg-discord-dark rounded-xl overflow-hidden transition-all cursor-pointer group"
                          data-server-id="<?php echo $server['id']; ?>" data-category="<?php echo htmlspecialchars($server['category'] ?? ''); ?>">
                         <div class="server-banner h-36 bg-gradient-to-br from-purple-500 via-blue-500 to-pink-500 relative overflow-hidden">
                             <?php if (!empty($server['banner_url'])): ?>
@@ -62,7 +62,7 @@ $categories = $GLOBALS['categories'] ?? [];
                         </div>
 
                         <div class="relative px-6 pt-4 pb-6">
-                            <div class="server-icon featured absolute -top-10 left-6">
+                            <div class="explore-server-icon server-icon featured absolute -top-10 left-6">
                                 <div class="w-18 h-18 rounded-2xl bg-discord-dark p-1 shadow-xl">
                                     <?php if (!empty($server['image_url'])): ?>
                                         <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-xl">
@@ -127,11 +127,11 @@ $categories = $GLOBALS['categories'] ?? [];
                     $serverId = $server['id'];
                     $isMember = in_array($serverId, $userServerId);
                     ?>
-                    <div class="server-card bg-discord-dark rounded-xl overflow-hidden transition-all cursor-pointer group" 
+                    <div class="explore-server-card server-card bg-discord-dark rounded-xl overflow-hidden transition-all cursor-pointer group" 
                          data-server-id="<?php echo $serverId; ?>" data-category="<?php echo htmlspecialchars($server['category'] ?? ''); ?>">
                         <div class="p-5">
                             <div class="flex items-start mb-4">
-                                <div class="server-icon-small rounded-xl bg-discord-primary overflow-hidden mr-4 flex-shrink-0 shadow-lg">
+                                <div class="explore-server-icon-small server-icon-small rounded-xl bg-discord-primary overflow-hidden mr-4 flex-shrink-0 shadow-lg">
                                     <?php if (!empty($server['image_url'])): ?>
                                         <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover">
                                     <?php else: ?>

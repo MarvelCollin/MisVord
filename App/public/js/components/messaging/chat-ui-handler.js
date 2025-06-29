@@ -554,13 +554,16 @@ class ChatUIHandler {
     }
     
     replyToMessage(messageId) {
-        const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
+        const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"], [data-message-id="${messageId}"]`);
         if (!messageElement) return;
         
-        const messageTextElement = messageElement.querySelector('.message-main-text');
+        const messageTextElement = messageElement.querySelector('.message-main-text, .bubble-message-text');
         const messageText = messageTextElement ? messageTextElement.innerText : 'a message';
         const userId = messageElement.dataset.userId;
-        const username = messageElement.dataset.username;
+        const messageGroup = messageElement.closest('.message-group, .bubble-message-group');
+        const username = messageGroup ? 
+            (messageGroup.querySelector('.message-username, .bubble-username')?.textContent || 'Unknown User') :
+            messageElement.dataset.username || 'Unknown User';
         
         console.log(`📝 [CHAT] Replying to message:`, {
             messageId,
@@ -569,7 +572,7 @@ class ChatUIHandler {
             messageText: messageText.substring(0, 50) + (messageText.length > 50 ? '...' : '')
         });
         
-        this.activeReplyingTo = {
+        this.chatSection.replyingTo = {
             messageId,
             content: messageText,
             userId,
@@ -638,7 +641,7 @@ class ChatUIHandler {
     }
     
     cancelReply() {
-        this.activeReplyingTo = null;
+        this.chatSection.replyingTo = null;
         const replyContainer = document.getElementById('reply-container');
         if (replyContainer) {
             replyContainer.style.animation = 'replyInputSlideOut 0.2s ease-in forwards';

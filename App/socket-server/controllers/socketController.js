@@ -324,6 +324,17 @@ function setup(io) {
             MessageHandler.handlePin(io, client, 'message-unpinned', data);
         });
         
+        client.on('jump-to-message', (data) => {
+            console.log(`🎯 [JUMP-TO-MESSAGE] Jump to message request from ${client.id}:`, {
+                messageId: data.message_id,
+                userId: data.user_id
+            });
+            
+            data.user_id = data.user_id || client.data.user_id;
+            console.log(`✅ [JUMP-TO-MESSAGE] Processing jump to message ${data.message_id}`);
+            MessageHandler.handleJumpToMessage(io, client, data);
+        });
+        
         client.on('typing', (data) => {
             console.log(`⌨️ [TYPING-START] User started typing from ${client.id}:`, {
                 userId: client.data?.user_id,

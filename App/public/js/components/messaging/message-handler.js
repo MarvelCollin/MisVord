@@ -337,6 +337,34 @@ class MessageHandler {
     font-size: 12px;
     margin-top: 4px;
 }
+
+.bubble-reply-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    padding: 2px 8px;
+    border-left: 2px solid #4f545c;
+    background-color: rgba(79, 84, 92, 0.16);
+    border-radius: 3px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.bubble-reply-container:hover {
+    background-color: rgba(79, 84, 92, 0.3);
+    border-left-color: #dcddde;
+}
+
+.bubble-reply-username {
+    font-weight: 500;
+    color: #f2f3f5;
+    margin-right: 4px;
+}
+
+.bubble-reply-content {
+    color: #a3a6aa;
+}
 `;
             
             const styleElement = document.createElement('style');
@@ -424,6 +452,11 @@ class MessageHandler {
         content.dataset.messageId = messageData.id;
         content.dataset.userId = messageData.user_id || messageData.userId;
         
+        if (messageData.reply_data || messageData.replyData) {
+            const replyContainer = this.createReplyContainer(messageData);
+            content.appendChild(replyContainer);
+        }
+        
         if (messageData.content) {
             const messageText = this.createMessageText(messageData);
             content.appendChild(messageText);
@@ -433,6 +466,40 @@ class MessageHandler {
         content.appendChild(actions);
         
         return content;
+    }
+    
+    createReplyContainer(messageData) {
+        const replyData = messageData.reply_data || messageData.replyData;
+        const replyMessageId = messageData.reply_message_id || messageData.replyMessageId;
+        
+        const replyContainer = document.createElement('div');
+        replyContainer.className = 'bubble-reply-container';
+        replyContainer.dataset.replyMessageId = replyMessageId;
+        replyContainer.title = 'Jump to original message';
+        replyContainer.style.cursor = 'pointer';
+        
+        const replyIcon = document.createElement('div');
+        replyIcon.style.marginRight = '4px';
+        replyIcon.innerHTML = '<i class="fas fa-reply"></i>';
+        
+        const replyUsername = document.createElement('span');
+        replyUsername.className = 'bubble-reply-username';
+        replyUsername.textContent = replyData.username || 'Unknown';
+        
+        const replyContent = document.createElement('span');
+        replyContent.className = 'bubble-reply-content';
+        const content = replyData.content || '';
+        replyContent.textContent = content.length > 50 ? content.substring(0, 50) + '...' : content;
+        
+        replyContainer.appendChild(replyIcon);
+        replyContainer.appendChild(replyUsername);
+        replyContainer.appendChild(replyContent);
+        
+        replyContainer.addEventListener('click', () => {
+            this.jumpToMessage(replyMessageId);
+        });
+        
+        return replyContainer;
     }
     
     createMessageText(messageData) {
@@ -705,6 +772,36 @@ class MessageHandler {
         console.log(`🗑️ [MESSAGE-HANDLER] Removing message ${messageId} from tracking`);
         this.processedMessageIds.delete(messageId);
         this.temporaryMessages.delete(messageId);
+    }
+    
+    jumpToMessage(messageId) {
+        console.log('🎯 [REPLY-JUMP] Jumping to message:', messageId);
+        
+        const targetMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!targetMessage) {
+            console.warn('⚠️ [REPLY-JUMP] Original message not found:', messageId);
+            
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                window.globalSocketManager.io.emit('jump-to-message', {
+                    message_id: messageId,
+                    user_id: this.chatSection?.userId || null
+                });
+            }
+            return;
+        }
+        
+        targetMessage.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        targetMessage.classList.add('highlight-message');
+        
+        setTimeout(() => {
+            targetMessage.classList.remove('highlight-message');
+        }, 3000);
+        
+        console.log('✅ [REPLY-JUMP] Successfully jumped to message:', messageId);
     }
 }
 

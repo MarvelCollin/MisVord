@@ -71,7 +71,7 @@ function initSidebarServerIcons() {
 }
 
 function initServerCards() {
-    const serverCards = document.querySelectorAll('.server-card');
+    const serverCards = document.querySelectorAll('.explore-server-card');
 
     serverCards.forEach((card, index) => {
         card.addEventListener('mouseenter', handleServerCardHover);
@@ -82,7 +82,7 @@ function initServerCards() {
 
 function handleServerCardHover(e) {
     const card = e.currentTarget;
-    const icon = card.querySelector('.server-icon, .server-icon-small');
+    const icon = card.querySelector('.explore-server-icon, .explore-server-icon-small');
     
     if (icon) {
         icon.style.transform = 'scale(1.1) rotate(3deg)';
@@ -92,7 +92,7 @@ function handleServerCardHover(e) {
 
 function handleServerCardLeave(e) {
     const card = e.currentTarget;
-    const icon = card.querySelector('.server-icon, .server-icon-small');
+    const icon = card.querySelector('.explore-server-icon, .explore-server-icon-small');
     
     if (icon) {
         icon.style.transform = 'scale(1) rotate(0deg)';
@@ -125,7 +125,7 @@ function initCategoryFilter() {
 }
 
 function filterServersByCategory(category) {
-    const serverCards = document.querySelectorAll('.server-card:not(#featured-servers .server-card)');
+    const serverCards = document.querySelectorAll('.explore-server-card:not(#featured-servers .explore-server-card)');
 
     serverCards.forEach((card, index) => {
         const serverCategory = card.getAttribute('data-category');
@@ -194,7 +194,7 @@ function initSearchFilter() {
 }
 
 function performServerSearch(query) {
-    const allServerCards = document.querySelectorAll('.server-card');
+    const allServerCards = document.querySelectorAll('.explore-server-card');
     let visibleCount = 0;
 
     allServerCards.forEach((card, index) => {
@@ -227,7 +227,7 @@ function performServerSearch(query) {
 }
 
 function resetServerSearch() {
-    const allServerCards = document.querySelectorAll('.server-card');
+    const allServerCards = document.querySelectorAll('.explore-server-card');
     allServerCards.forEach((card, index) => {
         card.style.display = 'block';
         setTimeout(() => {
@@ -365,7 +365,7 @@ function joinServer(serverId, button) {
 }
 
 function initServerDetailTriggers() {
-    const serverCards = document.querySelectorAll('.server-card:not([data-detail-listener])');
+    const serverCards = document.querySelectorAll('.explore-server-card:not([data-detail-listener])');
 
     serverCards.forEach(card => {
         card.setAttribute('data-detail-listener', 'true');
@@ -417,7 +417,7 @@ function extractServerDataFromCard(card) {
     }
 
     let iconUrl = null;
-    const iconImg = card.querySelector('.server-icon img') || card.querySelector('.rounded-xl img') || card.querySelector('.rounded-2xl img') || card.querySelector('.server-icon-small img');
+    const iconImg = card.querySelector('.explore-server-icon img') || card.querySelector('.rounded-xl img') || card.querySelector('.rounded-2xl img') || card.querySelector('.explore-server-icon-small img');
     if (iconImg) {
         iconUrl = iconImg.src;
     }

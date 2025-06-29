@@ -101,84 +101,126 @@ function handleMouseMove(event) {
     });
 }
 
-function joinVoiceChannel() {
+async function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const existingScript = document.querySelector(`script[src="${src}"]`);
+        if (existingScript) {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+    });
+}
+
+async function ensureVoiceScriptsLoaded() {
+    try {
+        if (typeof VideoSDK === 'undefined') {
+            console.log('[voice-not-join.php] Loading VideoSDK...');
+            await loadScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
+        }
+        
+        if (!window.videoSDKManager) {
+            console.log('[voice-not-join.php] Loading VideoSDK manager...');
+            await loadScript('/public/js/components/videosdk/videosdk.js?v=' + Date.now());
+        }
+        
+        if (!window.voiceManager) {
+            console.log('[voice-not-join.php] Loading voice manager...');
+            await loadScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
+        }
+        
+        if (!window.VoiceSection) {
+            console.log('[voice-not-join.php] Loading voice section...');
+            await loadScript('/public/js/components/voice/voice-section.js?v=' + Date.now());
+        }
+        
+        await new Promise(resolve => {
+            if (window.voiceManager && window.videoSDKManager) {
+                resolve();
+            } else {
+                const checkReady = () => {
+                    if (window.voiceManager && window.videoSDKManager) {
+                        resolve();
+                    } else {
+                        setTimeout(checkReady, 100);
+                    }
+                };
+                checkReady();
+            }
+        });
+        
+        return true;
+    } catch (error) {
+        console.error('[voice-not-join.php] Error loading voice scripts:', error);
+        throw error;
+    }
+}
+
+function resetJoinState() {
+    const joinBtn = document.getElementById('joinBtn');
+    const joinView = document.getElementById('joinView');
+    const connectingView = document.getElementById('connectingView');
+    
+    if (joinBtn) joinBtn.disabled = false;
+    if (joinView) joinView.classList.remove('hidden');
+    if (connectingView) connectingView.classList.add('hidden');
+}
+
+async function joinVoiceChannel() {
     console.log('[voice-not-join.php] Join voice channel function called');
     
     const joinBtn = document.getElementById('joinBtn');
     const joinView = document.getElementById('joinView');
     const connectingView = document.getElementById('connectingView');
     
-    console.log('[voice-not-join.php] Elements found:', {
-        joinBtn: !!joinBtn,
-        joinView: !!joinView,
-        connectingView: !!connectingView
-    });
-    
     if (joinBtn) joinBtn.disabled = true;
     if (joinView) joinView.classList.add('hidden');
     if (connectingView) connectingView.classList.remove('hidden');
     
-    if (window.voiceManager) {
-        console.log('[voice-not-join.php] Using voiceManager.joinVoice()');
-        window.voiceManager.joinVoice()
-            .then(() => {
-                const channelName = document.querySelector('meta[name="channel-id"]')?.content || 'Voice Channel';
-                const meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
-                const channelId = document.querySelector('meta[name="channel-id"]')?.content;
-                
-                if (meetingId) {
-                    window.dispatchEvent(new CustomEvent('voiceConnect', {
-                        detail: {
-                            channelName: channelName,
-                            meetingId: meetingId,
-                            channelId: channelId
-                        }
-                    }));
-                }
-            })
-            .catch(error => {
-                console.error('[voice-not-join.php] Error joining voice:', error);
-                if (joinBtn) joinBtn.disabled = false;
-                if (joinView) joinView.classList.remove('hidden');
-                if (connectingView) connectingView.classList.add('hidden');
-            });
-    } else if (window.channelSwitchManager && window.channelSwitchManager.loadVoiceScripts) {
-        console.log('[voice-not-join.php] Using channelSwitchManager.loadVoiceScripts()');
-        window.channelSwitchManager.loadVoiceScripts().then(() => {
-            if (window.voiceManager) {
-                console.log('[voice-not-join.php] voiceManager loaded, joining voice');
-                window.voiceManager.joinVoice()
-                    .then(() => {
-                        const channelName = document.querySelector('meta[name="channel-id"]')?.content || 'Voice Channel';
-                        const meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
-                        const channelId = document.querySelector('meta[name="channel-id"]')?.content;
-                        
-                        if (meetingId) {
-                            window.dispatchEvent(new CustomEvent('voiceConnect', {
-                                detail: {
-                                    channelName: channelName,
-                                    meetingId: meetingId,
-                                    channelId: channelId
-                                }
-                            }));
-                        }
-                    });
-            }
-        });
-    } else if (window.voiceSection && window.voiceSection.autoJoin) {
-        console.log('[voice-not-join.php] Using voiceSection.autoJoin()');
-        window.voiceSection.autoJoin();
-    } else if (window.triggerVoiceAutoJoin) {
-        console.log('[voice-not-join.php] Using triggerVoiceAutoJoin()');
-        window.triggerVoiceAutoJoin();
-    } else if (window.handleAutoJoin) {
-        console.log('[voice-not-join.php] Using handleAutoJoin()');
-        window.handleAutoJoin();
-    } else {
-        console.log('[voice-not-join.php] No voice join method found');
-        if (joinBtn) joinBtn.disabled = false;
-        if (joinView) joinView.classList.remove('hidden');
-        if (connectingView) connectingView.classList.add('hidden');
+    try {
+        console.log('[voice-not-join.php] Ensuring voice scripts are loaded...');
+        await ensureVoiceScriptsLoaded();
+        
+        console.log('[voice-not-join.php] Voice scripts loaded, attempting to join...');
+        
+        if (window.voiceManager) {
+            console.log('[voice-not-join.php] Using voiceManager.joinVoice()');
+            
+            await window.voiceManager.joinVoice();
+            
+            const channelName = document.querySelector('meta[name="channel-name"]')?.content ||
+                               document.querySelector('.channel-name')?.textContent?.trim() ||
+                               'Voice Channel';
+            const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+            
+            console.log('[voice-not-join.php] Voice joined successfully');
+            
+        } else if (window.voiceSection && window.voiceSection.autoJoin) {
+            console.log('[voice-not-join.php] Using voiceSection.autoJoin()');
+            window.voiceSection.autoJoin();
+        } else if (window.triggerVoiceAutoJoin) {
+            console.log('[voice-not-join.php] Using triggerVoiceAutoJoin()');
+            window.triggerVoiceAutoJoin();
+        } else if (window.handleAutoJoin) {
+            console.log('[voice-not-join.php] Using handleAutoJoin()');
+            window.handleAutoJoin();
+        } else {
+            throw new Error('No voice join method available');
+        }
+        
+    } catch (error) {
+        console.error('[voice-not-join.php] Error joining voice:', error);
+        resetJoinState();
+        
+        if (window.showToast) {
+            window.showToast('Failed to join voice channel. Please try again.', 'error');
+        }
     }
 }
 
@@ -203,18 +245,29 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('[voice-not-join.php] Join button found:', !!joinBtn);
     if (joinBtn) {
         console.log('[voice-not-join.php] Join button HTML:', joinBtn.outerHTML);
-        joinBtn.addEventListener('click', function(e) {
+        joinBtn.addEventListener('click', async function(e) {
             console.log('[voice-not-join.php] Join button clicked via addEventListener');
-            joinVoiceChannel();
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+                await joinVoiceChannel();
+            } catch (error) {
+                console.error('[voice-not-join.php] Error in click handler:', error);
+            }
         });
     }
     
-    document.body.addEventListener('click', function(e) {
+    document.body.addEventListener('click', async function(e) {
         const clickedJoinBtn = e.target.id === 'joinBtn' || e.target.closest('#joinBtn');
         if (clickedJoinBtn) {
             console.log('[voice-not-join.php] Join button clicked via document body handler');
+            e.preventDefault();
             e.stopPropagation();
-            joinVoiceChannel();
+            try {
+                await joinVoiceChannel();
+            } catch (error) {
+                console.error('[voice-not-join.php] Error in body click handler:', error);
+            }
         }
     }, true);
     

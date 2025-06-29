@@ -184,6 +184,13 @@ if (!function_exists('isBubbleVideoFile')) {
     background-color: rgba(79, 84, 92, 0.16);
     border-radius: 3px;
     font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.bubble-reply-container:hover {
+    background-color: rgba(79, 84, 92, 0.3);
+    border-left-color: #dcddde;
 }
 
 .bubble-reply-username {
@@ -402,7 +409,7 @@ if (!function_exists('isBubbleVideoFile')) {
                 
                 <?php if ($replyData): ?>
                 <!-- Reply -->
-                <div class="bubble-reply-container" data-reply-message-id="<?= htmlspecialchars($replyMessageId) ?>">
+                <div class="bubble-reply-container" data-reply-message-id="<?= htmlspecialchars($replyMessageId) ?>" onclick="jumpToMessage('<?= htmlspecialchars($replyMessageId) ?>')" title="Jump to original message">
                     <div style="margin-right: 4px;"><i class="fas fa-reply"></i></div>
                     <span class="bubble-reply-username"><?= htmlspecialchars($replyData['username'] ?? 'Unknown') ?></span>
                     <span class="bubble-reply-content">
@@ -529,5 +536,35 @@ function downloadAttachment(url, filename) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+function jumpToMessage(messageId) {
+    console.log('🎯 [REPLY-JUMP] Jumping to message:', messageId);
+    
+    const targetMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (!targetMessage) {
+        console.warn('⚠️ [REPLY-JUMP] Original message not found:', messageId);
+        
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            window.globalSocketManager.io.emit('jump-to-message', {
+                message_id: messageId,
+                user_id: window.chatSection?.userId || null
+            });
+        }
+        return;
+    }
+    
+    targetMessage.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+    });
+    
+    targetMessage.classList.add('highlight-message');
+    
+    setTimeout(() => {
+        targetMessage.classList.remove('highlight-message');
+    }, 3000);
+    
+    console.log('✅ [REPLY-JUMP] Successfully jumped to message:', messageId);
 }
 </script>

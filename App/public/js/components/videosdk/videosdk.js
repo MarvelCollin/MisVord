@@ -170,216 +170,61 @@ class VideoSDKManager {
         
         try {
             const participant = this.meeting.localParticipant;
-            
-            // Create safe event system by completely wrapping the participant's event mechanism
-            this.wrapParticipantEventSystem(participant);
-            
-            // Register all event handlers through our safe wrapper
             this.registerStreamEvents(participant);
-            
+            this.startStreamMonitoring(participant);
         } catch (error) {
             console.error("Error setting up stream handlers:", error);
-        }
-    }
-    
-    wrapParticipantEventSystem(participant) {
-        // Skip if participant is missing or already wrapped
-        if (!participant || participant._safeEventSystemInstalled) return;
-        
-        try {
-            // Store original on method if it exists
-            const originalOn = participant.on;
-            
-            // Create our event registry
-            if (!participant._eventHandlers) {
-                participant._eventHandlers = {
-                    'stream-enabled': [],
-                    'stream-disabled': [],
-                    'error': []
-                };
-            }
-            
-            // Delete problematic property directly
-            if ('onn' in participant) {
-                console.log("Deleting problematic 'onn' property");
-                delete participant.onn;
-            }
-            
-            // Replace on method with our safe version
-            participant.on = function(eventName, handler) {
-                // Only allow valid events
-                if (typeof eventName !== 'string') {
-                    console.warn(`Invalid event type: ${typeof eventName}`);
-                    return;
-                }
-                
-                // Normalize event name
-                const normalizedName = eventName.trim().toLowerCase();
-                
-                // Check if it's a valid event
-                const validEvents = ['stream-enabled', 'stream-disabled', 'error'];
-                if (!validEvents.includes(normalizedName)) {
-                    console.warn(`Ignoring unrecognized event: ${eventName}`);
-                    return;
-                }
-                
-                // Store handler in our registry
-                if (!participant._eventHandlers[normalizedName]) {
-                    participant._eventHandlers[normalizedName] = [];
-                }
-                participant._eventHandlers[normalizedName].push(handler);
-                
-                // If original method exists, try to use it safely
-                if (typeof originalOn === 'function') {
-                    try {
-                        originalOn.call(participant, normalizedName, handler);
-                    } catch (err) {
-                        console.warn(`Error in original on method for ${normalizedName}, falling back to direct handler`);
-                        // We'll handle it through our registry
-                    }
-                }
-            };
-            
-            // Add method to trigger events manually
-            participant.safeEmit = function(eventName, data) {
-                const normalizedName = eventName?.trim().toLowerCase();
-                if (!normalizedName || !participant._eventHandlers[normalizedName]) return;
-                
-                // Call all handlers
-                participant._eventHandlers[normalizedName].forEach(handler => {
-                    try {
-                        handler(data);
-                    } catch (err) {
-                        console.error(`Error in ${normalizedName} handler:`, err);
-                    }
-                });
-            };
-            
-            // Mark as wrapped
-            participant._safeEventSystemInstalled = true;
-            console.log("Installed safe event system");
-            
-        } catch (error) {
-            console.error("Error wrapping participant event system:", error);
         }
     }
     
     registerStreamEvents(participant) {
         if (!participant || !participant.on) return;
         
-        // Create wrapper functions that use try-catch blocks
-        const safeRegister = (eventName, handler) => {
-            try {
-                participant.on(eventName, handler);
-            } catch (err) {
-                console.error(`Error registering ${eventName}:`, err);
+        try {
+            participant.on('stream-enabled', (data) => {
+                if (!data) return;
                 
-                // If direct registration fails, we still have our handler registry
-                if (participant._eventHandlers && participant._eventHandlers[eventName]) {
-                    if (!participant._eventHandlers[eventName].includes(handler)) {
-                        participant._eventHandlers[eventName].push(handler);
-                    }
-                }
-            }
-        };
-        
-        // Stream enabled handler
-        const streamEnabledHandler = (data) => {
-            if (!data) return;
-            
-            try {
                 let kind = data.kind || 'unknown';
                 let stream = data.stream;
                 
                 if (kind === 'unknown' && stream) {
-                    try {
-                        if (stream instanceof MediaStream) {
-                            const videoTracks = stream.getVideoTracks();
-                            const audioTracks = stream.getAudioTracks();
-                            
-                            if (videoTracks.length > 0) {
-                                const track = videoTracks[0];
-                                if (track.label && track.label.toLowerCase().includes('screen')) {
-                                    kind = 'share';
-                                } else {
-                                    kind = 'video';
-                                }
-                            } else if (audioTracks.length > 0) {
-                                kind = 'audio';
-                            }
-                        } else if (stream.stream instanceof MediaStream) {
-                            const mediaStream = stream.stream;
-                            const videoTracks = mediaStream.getVideoTracks();
-                            const audioTracks = mediaStream.getAudioTracks();
-                            
-                            if (videoTracks.length > 0) {
-                                const track = videoTracks[0];
-                                if (track.label && track.label.toLowerCase().includes('screen')) {
-                                    kind = 'share';
-                                } else {
-                                    kind = 'video';
-                                }
-                            } else if (audioTracks.length > 0) {
-                                kind = 'audio';
-                            }
-                        } else if (stream.track) {
-                            const track = stream.track;
-                            if (track.kind === 'video') {
-                                if (track.label && track.label.toLowerCase().includes('screen')) {
-                                    kind = 'share';
-                                } else {
-                                    kind = 'video';
-                                }
-                            } else if (track.kind === 'audio') {
-                                kind = 'audio';
-                            }
+                    if (stream instanceof MediaStream) {
+                        const videoTracks = stream.getVideoTracks();
+                        if (videoTracks.length > 0) {
+                            const track = videoTracks[0];
+                            kind = track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
+                        } else {
+                            kind = 'audio';
                         }
-                    } catch (error) {
-                        console.warn('Error re-detecting stream kind:', error);
+                    } else if (stream.stream instanceof MediaStream) {
+                        const videoTracks = stream.stream.getVideoTracks();
+                        if (videoTracks.length > 0) {
+                            const track = videoTracks[0];
+                            kind = track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
+                        } else {
+                            kind = 'audio';
+                        }
+                    } else if (stream.track?.kind === 'video') {
+                        kind = stream.track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
                     }
                 }
                 
-                console.log(`Stream of kind ${kind} enabled`);
-                
                 window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', { 
-                    detail: { 
-                        kind, 
-                        stream: stream,
-                        participant: participant.id
-                    } 
+                    detail: { kind, stream, participant: participant.id } 
                 }));
-            } catch (error) {
-                console.error("Error handling stream-enabled:", error);
-            }
-        };
-        
-        // Stream disabled handler
-        const streamDisabledHandler = (data) => {
-            if (!data) return;
-            
-            const kind = data.kind || 'unknown';
-            console.log(`Stream of kind ${kind} disabled`);
-            
-            window.dispatchEvent(new CustomEvent('videosdkStreamDisabled', { 
-                detail: { 
-                    kind,
-                    participant: participant.id
-                } 
-            }));
-        };
-        
-        // Error handler
-        const errorHandler = (error) => {
-            console.error("Stream error:", error);
-        };
-        
-        // Register all handlers safely
-        safeRegister('stream-enabled', streamEnabledHandler);
-        safeRegister('stream-disabled', streamDisabledHandler);
-        safeRegister('error', errorHandler);
-        
-        // Monitor for stream changes directly using a timer as a fallback
-        this.startStreamMonitoring(participant);
+            });
+
+            participant.on('stream-disabled', (data) => {
+                if (!data) return;
+                
+                const kind = data.kind || 'unknown';
+                window.dispatchEvent(new CustomEvent('videosdkStreamDisabled', { 
+                    detail: { kind, participant: participant.id } 
+                }));
+            });
+        } catch (error) {
+            console.error("Error registering stream events:", error);
+        }
     }
     
     startStreamMonitoring(participant) {
@@ -539,22 +384,19 @@ class VideoSDKManager {
     
     cleanupParticipantResources() {
         try {
-            // Clean up participant resources
             if (this.meeting?.localParticipant) {
                 const participant = this.meeting.localParticipant;
                 
-                // Clear any stream monitoring interval
                 if (participant._streamMonitorInterval) {
                     clearInterval(participant._streamMonitorInterval);
                     participant._streamMonitorInterval = null;
                 }
                 
-                // Reset monitoring state
                 participant._streamMonitoringActive = false;
                 
-                // Clear previous streams
                 if (participant._previousStreams) {
                     participant._previousStreams.clear();
+                    participant._previousStreams = null;
                 }
             }
         } catch (error) {
@@ -642,48 +484,59 @@ class VideoSDKManager {
         }
     }
     
+    async checkCameraPermission() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => track.stop());
+            return true;
+        } catch (error) {
+            if (error.name === 'NotAllowedError') {
+                window.showToast?.('Camera permission denied. Please allow camera access in your browser settings.', 'error');
+            } else if (error.name === 'NotFoundError') {
+                window.showToast?.('No camera device found. Please connect a camera and try again.', 'error');
+            } else if (error.name === 'NotReadableError') {
+                window.showToast?.('Camera is being used by another application. Please close other apps and try again.', 'error');
+            } else {
+                window.showToast?.('Camera access error. Please check your camera settings.', 'error');
+            }
+            return false;
+        }
+    }
+
     async toggleWebcam() {
-        if (!this.meeting) {
-            console.error('[VideoSDK] No meeting available for webcam toggle');
-            return false;
-        }
-
-        if (!this.isConnected) {
-            console.error('[VideoSDK] Meeting not connected for webcam toggle');
-            return false;
-        }
-
-        if (!this.meeting.localParticipant) {
-            console.error('[VideoSDK] Local participant not available for webcam toggle');
+        if (!this.meeting || !this.isConnected || !this.meeting.localParticipant) {
+            window.showToast?.('Voice not connected. Please join a voice channel first.', 'error');
             return false;
         }
         
         try {
             const isWebcamOn = this.getWebcamState();
-            console.log(`[VideoSDK] Current webcam state: ${isWebcamOn}`);
             
             if (isWebcamOn) {
-                console.log('[VideoSDK] Disabling webcam...');
                 await this.meeting.disableWebcam();
-                console.log('[VideoSDK] Webcam disabled successfully');
                 return false;
             } else {
-                console.log('[VideoSDK] Enabling webcam...');
+                const hasPermission = await this.checkCameraPermission();
+                if (!hasPermission) {
+                    return false;
+                }
+                
                 await this.meeting.enableWebcam();
-                console.log('[VideoSDK] Webcam enabled successfully');
                 return true;
             }
         } catch (error) {
-            console.error("[VideoSDK] Error toggling webcam:", error);
-            if (error.message) {
-                console.error("[VideoSDK] Error message:", error.message);
-            }
-            if (error.name === 'NotAllowedError') {
-                console.error("[VideoSDK] Camera permission denied");
-            } else if (error.name === 'NotFoundError') {
-                console.error("[VideoSDK] No camera device found");
-            } else if (error.name === 'NotReadableError') {
-                console.error("[VideoSDK] Camera device in use by another application");
+            console.error("Error toggling webcam:", error);
+            
+            if (error.code === 3014 || error.name === 'NotAllowedError') {
+                window.showToast?.('Camera permission denied. Please allow camera access.', 'error');
+            } else if (error.code === 3021 || error.name === 'NotFoundError') {
+                window.showToast?.('No camera found. Please connect a camera.', 'error');
+            } else if (error.code === 3023 || error.name === 'NotReadableError') {
+                window.showToast?.('Camera is in use by another application.', 'error');
+            } else if (error.code === 3033) {
+                window.showToast?.('Camera access unavailable.', 'error');
+            } else {
+                window.showToast?.('Failed to toggle camera. Please try again.', 'error');
             }
             return false;
         }

@@ -1,11 +1,11 @@
-.server-card {
+.explore-server-card {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid transparent;
   position: relative;
   overflow: hidden;
 }
 
-.server-card::before {
+.explore-server-card::before {
   content: '';
   position: absolute;
   top: 0;
@@ -16,17 +16,17 @@
   transition: left 0.5s ease;
 }
 
-.server-card:hover {
+.explore-server-card:hover {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   border-color: rgba(88, 101, 242, 0.3);
 }
 
-.server-card:hover::before {
+.explore-server-card:hover::before {
   left: 100%;
 }
 
-.server-card:active {
+.explore-server-card:active {
   transform: translateY(-2px) scale(1.01);
 }
 
@@ -119,11 +119,11 @@
   transition: transform 0.3s ease;
 }
 
-.server-card:hover .server-banner img {
+.explore-server-card:hover .server-banner img {
   transform: scale(1.05);
 }
 
-.server-icon {
+.explore-server-icon {
   position: absolute;
   width: 72px;
   height: 72px;
@@ -136,26 +136,26 @@
   z-index: 10;
 }
 
-.server-icon.featured {
+.explore-server-icon.featured {
   top: -40px;
   left: 24px;
 }
 
-.server-icon.featured .w-18 {
+.explore-server-icon.featured .w-18 {
   width: 72px;
   height: 72px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.server-card:hover .server-icon.featured {
+.explore-server-card:hover .explore-server-icon.featured {
   transform: translateY(-2px);
 }
 
-.server-card:hover .server-icon.featured .w-18 {
+.explore-server-card:hover .explore-server-icon.featured .w-18 {
   transform: scale(1.05) rotate(3deg);
 }
 
-.server-icon-small {
+.explore-server-icon-small {
   width: 56px;
   height: 56px;
   border-radius: 12px;
@@ -165,10 +165,10 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.server-icon img,
-.server-icon div,
-.server-icon-small img,
-.server-icon-small div {
+.explore-server-icon img,
+.explore-server-icon div,
+.explore-server-icon-small img,
+.explore-server-icon-small div {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -179,7 +179,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.server-card:hover .server-icon {
+.explore-server-card:hover .explore-server-icon {
   transform: scale(1.1) rotate(2deg);
   border-radius: 16px;
 }
@@ -360,13 +360,13 @@
     height: 120px;
   }
   
-  .server-icon {
+  .explore-server-icon {
     width: 64px;
     height: 64px;
     bottom: -28px;
   }
 
-  .server-icon-small {
+  .explore-server-icon-small {
     width: 48px;
     height: 48px;
   }
@@ -392,7 +392,7 @@
     height: 260px;
   }
 
-  .server-icon-small {
+  .explore-server-icon-small {
     width: 44px;
     height: 44px;
   }
