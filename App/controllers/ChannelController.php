@@ -27,6 +27,38 @@ class ChannelController extends BaseController
         $this->categoryRepository = new CategoryRepository();
     }
 
+    private function validateServerAccess($serverId, $requireOwner = false)
+    {
+        $userId = $this->getCurrentUserId();
+        
+        if ($requireOwner) {
+            if (!$this->membershipRepository->isOwner($userId, $serverId)) {
+                return $this->forbidden('You do not have permission to perform this action');
+            }
+        } else {
+            if (!$this->membershipRepository->isMember($userId, $serverId)) {
+                return $this->forbidden('You do not have access to this server');
+            }
+        }
+        
+        return null;
+    }
+
+    private function validateChannelAccess($channelId, $requireOwner = false)
+    {
+        $channel = $this->channelRepository->find($channelId);
+        if (!$channel) {
+            return [null, $this->notFound('Channel not found')];
+        }
+
+        $accessCheck = $this->validateServerAccess($channel->server_id, $requireOwner);
+        if ($accessCheck) {
+            return [null, $accessCheck];
+        }
+
+        return [$channel, null];
+    }
+
     public function index()
     {
         $this->requireAuth();
@@ -37,10 +69,10 @@ class ChannelController extends BaseController
         if (!$serverId) {
             return $this->validationError(['server_id' => 'Server ID is required']);
         }
+        
         try {
-            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
-                return $this->forbidden('You do not have access to this server');
-            }
+            $accessCheck = $this->validateServerAccess($serverId);
+            if ($accessCheck) return $accessCheck;
 
             $channels = $this->channelRepository->getByServerId($serverId);
 
@@ -72,14 +104,8 @@ class ChannelController extends BaseController
         }
 
         try {
-            $channel = $this->channelRepository->find($channelId);
-            if (!$channel) {
-                return $this->notFound('Channel not found');
-            }
-
-            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $channel->server_id)) {
-                return $this->forbidden('You do not have access to this channel');
-            }
+            [$channel, $error] = $this->validateChannelAccess($channelId);
+            if ($error) return $error;
 
             $this->logActivity('channel_viewed', ['channel_id' => $channelId]);
 
@@ -105,10 +131,10 @@ class ChannelController extends BaseController
             'server_id' => 'required',
             'type' => 'required'
         ]);
+        
         try {
-            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $input['server_id'])) {
-                return $this->forbidden('You do not have permission to create channels');
-            }
+            $accessCheck = $this->validateServerAccess($input['server_id'], true);
+            if ($accessCheck) return $accessCheck;
 
             $channelData = [
                 'name' => $input['name'],
@@ -158,14 +184,9 @@ class ChannelController extends BaseController
 
         $channelId = $input['channel_id'];
         try {
-            $channel = $this->channelRepository->find($channelId);
-            if (!$channel) {
-                return $this->notFound('Channel not found');
-            }
-
-            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $channel->server_id)) {
-                return $this->forbidden('You do not have permission to update this channel');
-            }
+            [$channel, $error] = $this->validateChannelAccess($channelId, true);
+            if ($error) return $error;
+            
             $updated = false;
             if (isset($input['name'])) {
                 $channel->name = $input['name'];
@@ -218,15 +239,10 @@ class ChannelController extends BaseController
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
         }
+        
         try {
-            $channel = $this->channelRepository->find($channelId);
-            if (!$channel) {
-                return $this->notFound('Channel not found');
-            }
-
-            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $channel->server_id)) {
-                return $this->forbidden('You do not have permission to delete this channel');
-            }
+            [$channel, $error] = $this->validateChannelAccess($channelId, true);
+            if ($error) return $error;
 
             if ($this->channelRepository->delete($channelId)) {
                 $this->logActivity('channel_deleted', [
@@ -259,15 +275,10 @@ class ChannelController extends BaseController
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
         }
+        
         try {
-            $channel = $this->channelRepository->find($channelId);
-            if (!$channel) {
-                return $this->notFound('Channel not found');
-            }
-
-            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $channel->server_id)) {
-                return $this->forbidden('You do not have access to this channel');
-            }
+            [$channel, $error] = $this->validateChannelAccess($channelId);
+            if ($error) return $error;
 
             $limit = $_GET['limit'] ?? 50;
             $offset = $_GET['offset'] ?? 0;
@@ -427,10 +438,10 @@ class ChannelController extends BaseController
             'name' => 'required',
             'server_id' => 'required'
         ]);
+        
         try {
-            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $input['server_id'])) {
-                return $this->forbidden('You do not have permission to create categories');
-            }
+            $accessCheck = $this->validateServerAccess($input['server_id'], true);
+            if ($accessCheck) return $accessCheck;
 
             $categoryData = [
                 'name' => $input['name'],
@@ -476,10 +487,10 @@ class ChannelController extends BaseController
             'server_id' => 'required',
             'updates' => 'required'
         ]);
+        
         try {
-            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $input['server_id'])) {
-                return $this->forbidden('You do not have permission to update positions');
-            }
+            $accessCheck = $this->validateServerAccess($input['server_id'], true);
+            if ($accessCheck) return $accessCheck;
 
             $updates = $input['updates'];
             $successCount = 0;

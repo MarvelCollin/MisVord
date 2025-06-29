@@ -1026,3 +1026,53 @@ button[type="submit"]:hover,
     background: transparent;
   }
 }
+
+/* Message editing state styling */
+.message-editing {
+  background: rgba(88, 101, 242, 0.1) !important;
+  border-radius: 8px;
+  padding: 8px;
+  margin: 4px 0;
+  border-left: 3px solid #5865f2;
+  transition: all 0.2s ease;
+}
+
+.edit-message-container {
+  animation: edit-form-slide-in 0.2s ease-out;
+}
+
+.edit-message-container textarea {
+  transition: all 0.2s ease;
+  min-height: 60px;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.edit-message-container textarea:focus {
+  transform: scale(1.01);
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+}
+
+.edit-message-container button {
+  transition: all 0.15s ease;
+}
+
+.edit-message-container button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.edit-message-container button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+@keyframes edit-form-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

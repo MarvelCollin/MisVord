@@ -32,12 +32,9 @@ function ensureServerDataLoaded() {
                     .then(channelResponse => {
                         if (channelResponse && channelResponse.data) {
                             console.log('Channels loaded successfully');
-                            if (typeof window.channelLoader !== 'undefined' && 
-                                typeof window.channelLoader.renderChannels === 'function') {
-                                const container = document.querySelector('.channel-list-container');
-                                if (container) {
-                                    window.channelLoader.renderChannels(container, channelResponse.data);
-                                }
+                            if (typeof window.channelManager !== 'undefined' && 
+                                typeof window.channelManager.renderChannelList === 'function') {
+                                window.channelManager.renderChannelList(channelResponse.data);
                             }
                         }
                     })

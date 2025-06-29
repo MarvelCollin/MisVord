@@ -260,6 +260,16 @@ Route::post('/api/channels/category', function() {
     $controller->createCategory();
 });
 
+Route::post('/api/categories', function() {
+    $controller = new ChannelController();
+    $controller->createCategory();
+});
+
+Route::post('/api/categories/create', function() {
+    $controller = new ChannelController();
+    $controller->createCategory();
+});
+
 Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
     require_once __DIR__ . '/../controllers/MessageController.php';
     $controller = new MessageController();

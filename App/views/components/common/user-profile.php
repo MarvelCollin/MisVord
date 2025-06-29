@@ -106,14 +106,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const deafenBtn = document.querySelector('.user-profile-section .deafen-btn');
     
     function updateUserProfileControls() {
-        let state;
-        if (window.localStorageManager) {
-            state = window.localStorageManager.getVoiceState();
-        } else if (window.voiceStateManager) {
-            state = window.voiceStateManager.getState();
-        } else {
+        if (!window.localStorageManager) {
+            console.warn('LocalStorageManager not available');
             return;
         }
+        
+        const state = window.localStorageManager.getVoiceState();
         
         if (micBtn) {
             const micIcon = micBtn.querySelector('i');
@@ -142,32 +140,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    function handleMicClick() {
+        if (window.localStorageManager) {
+            window.localStorageManager.toggleVoiceMute();
+        } else {
+            console.warn('LocalStorageManager not available for mic toggle');
+        }
+    }
+    
+    function handleDeafenClick() {
+        if (window.localStorageManager) {
+            window.localStorageManager.toggleVoiceDeafen();
+        } else {
+            console.warn('LocalStorageManager not available for deafen toggle');
+        }
+    }
+    
     if (micBtn) {
-        micBtn.addEventListener('click', function() {
-            if (window.voiceStateManager) {
-                window.voiceStateManager.toggleMic();
-            } else if (window.localStorageManager) {
-                window.localStorageManager.toggleVoiceMute();
-            }
-        });
+        micBtn.removeEventListener('click', handleMicClick);
+        micBtn.addEventListener('click', handleMicClick);
     }
     
     if (deafenBtn) {
-        deafenBtn.addEventListener('click', function() {
-            if (window.voiceStateManager) {
-                window.voiceStateManager.toggleDeafen();
-            } else if (window.localStorageManager) {
-                window.localStorageManager.toggleVoiceDeafen();
-            }
-        });
+        deafenBtn.removeEventListener('click', handleDeafenClick);
+        deafenBtn.addEventListener('click', handleDeafenClick);
     }
     
     window.addEventListener('voiceStateChanged', updateUserProfileControls);
     
-    if (window.voiceStateManager) {
-        window.voiceStateManager.addListener(updateUserProfileControls);
+    if (window.localStorageManager) {
+        window.localStorageManager.addVoiceStateListener(updateUserProfileControls);
     }
     
-    setTimeout(updateUserProfileControls, 1000);
+    const checkAndUpdate = () => {
+        if (window.localStorageManager) {
+            updateUserProfileControls();
+        } else {
+            setTimeout(checkAndUpdate, 100);
+        }
+    };
+    
+    checkAndUpdate();
 });
 </script> 

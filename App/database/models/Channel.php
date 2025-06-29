@@ -19,14 +19,15 @@ class Channel extends Model {
                     $type = $channel['type'];
                     if (!isset($channel['type_name'])) {
                         $channel['type_name'] = match($type) {
-                            'voice', 2 => 'voice',
-                            'text', 1 => 'text',
-                            'category', 3 => 'category',
-                            'announcement', 4 => 'announcement',
-                            'forum', 5 => 'forum',
+                            'voice', '2', 2 => 'voice',
+                            'text', '1', 1 => 'text',
+                            'category', '3', 3 => 'category',
+                            'announcement', '4', 4 => 'announcement',
+                            'forum', '5', 5 => 'forum',
                             default => 'text'
                         };
                     }
+                    $channel['type'] = is_numeric($type) ? (int)$type : $type;
                 } else {
                     $channel['type'] = 1;
                     $channel['type_name'] = 'text';
@@ -57,8 +58,20 @@ class Channel extends Model {
 
     public function save() {
         try {
-            if (isset($this->attributes['type']) && !is_numeric($this->attributes['type'])) {
-                $this->attributes['type'] = strtolower($this->attributes['type']);
+            if (isset($this->attributes['type'])) {
+                $type = $this->attributes['type'];
+                if (is_string($type)) {
+                    $this->attributes['type'] = match(strtolower($type)) {
+                        'text' => 1,
+                        'voice' => 2,
+                        'category' => 3,
+                        'announcement' => 4,
+                        'forum' => 5,
+                        default => 1
+                    };
+                } else {
+                    $this->attributes['type'] = (int)$type;
+                }
             }
 
             foreach (['position', 'category_id', 'parent_id'] as $field) {

@@ -347,6 +347,14 @@ class ChatSection {
     }
     
     handleMessageActions(e) {
+        console.log('🔍 [CHAT-SECTION] Message action clicked:', {
+            target: e.target,
+            targetClasses: Array.from(e.target.classList),
+            targetTagName: e.target.tagName,
+            targetDataAction: e.target.dataset?.action,
+            targetDataMessageId: e.target.dataset?.messageId
+        });
+        
         let actionButton = null;
         let messageId = null;
         let action = null;
@@ -356,6 +364,12 @@ class ChatSection {
             actionButton = e.target.classList.contains('bubble-action-button') ? e.target : e.target.closest('.bubble-action-button');
             action = actionButton.dataset.action;
             messageId = actionButton.dataset.messageId;
+            
+            console.log('✅ [CHAT-SECTION] Detected bubble action button:', {
+                button: actionButton,
+                action: action,
+                messageId: messageId
+            });
         }
         // Check for regular message action buttons
         else if (e.target.classList.contains('message-action-reply') || e.target.closest('.message-action-reply')) {
@@ -363,6 +377,24 @@ class ChatSection {
             action = 'reply';
             const messageElement = actionButton.closest('.message-content') || actionButton.closest('[data-message-id]');
             messageId = messageElement?.dataset.messageId;
+            
+            console.log('✅ [CHAT-SECTION] Detected regular message action button:', {
+                button: actionButton,
+                action: action,
+                messageId: messageId
+            });
+        }
+        // Check for any element with data-action attribute
+        else if (e.target.dataset?.action || e.target.closest('[data-action]')) {
+            actionButton = e.target.dataset?.action ? e.target : e.target.closest('[data-action]');
+            action = actionButton.dataset.action;
+            messageId = actionButton.dataset.messageId;
+            
+            console.log('✅ [CHAT-SECTION] Detected data-action element:', {
+                button: actionButton,
+                action: action,
+                messageId: messageId
+            });
         }
         // Check for context menu actions
         else if (e.target.closest('[data-action="reply"]')) {
@@ -370,6 +402,12 @@ class ChatSection {
             action = 'reply';
             const contextMenu = actionButton.closest('#message-context-menu');
             messageId = contextMenu?.dataset.messageId;
+            
+            console.log('✅ [CHAT-SECTION] Detected context menu action:', {
+                button: actionButton,
+                action: action,
+                messageId: messageId
+            });
         }
         
         if (action && messageId) {
@@ -392,6 +430,12 @@ class ChatSection {
                     console.log('🔄 [CHAT-SECTION] Unhandled action:', action);
                     break;
             }
+        } else {
+            console.log('⚠️ [CHAT-SECTION] No valid action detected:', {
+                action: action,
+                messageId: messageId,
+                targetElement: e.target
+            });
         }
     }
     
@@ -945,15 +989,45 @@ class ChatSection {
     }
     
     cancelEditing() {
-        if (!this.currentEditingMessage) return;
+        if (!this.currentEditingMessage) {
+            console.log('⚠️ [CHAT-SECTION] No current editing message to cancel');
+            return;
+        }
         
-        const { messageId, originalContent, element } = this.currentEditingMessage;
+        console.log('❌ [CHAT-SECTION] Canceling edit for message:', this.currentEditingMessage.messageId);
+        
+        const { messageId, originalContent, originalHTML, element, isBubbleMessage } = this.currentEditingMessage;
         
         // Restore original content
-        element.innerHTML = this.formatMessageContent(originalContent);
+        if (originalHTML) {
+            // Restore the exact original HTML
+            element.innerHTML = originalHTML;
+        } else {
+            // Fallback: recreate the content with formatting
+            element.innerHTML = this.formatMessageContent(originalContent);
+            
+            // Add edited badge if it was there before
+            if (originalContent && originalHTML && originalHTML.includes('(edited)')) {
+                let editedBadge = element.querySelector('.edited-badge, .bubble-edited-badge');
+                if (!editedBadge) {
+                    editedBadge = document.createElement('span');
+                    editedBadge.className = isBubbleMessage ? 'bubble-edited-badge text-xs text-[#a3a6aa] ml-1' : 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                    editedBadge.textContent = '(edited)';
+                    element.appendChild(editedBadge);
+                }
+            }
+        }
+        
+        // Remove editing visual feedback
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            messageElement.classList.remove('message-editing');
+        }
         
         // Clear editing state
         this.currentEditingMessage = null;
+        
+        console.log('✅ [CHAT-SECTION] Edit canceled and original content restored');
     }
     
     async saveEdit(messageId, newContent) {

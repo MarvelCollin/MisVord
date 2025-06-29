@@ -10,6 +10,9 @@ class LocalStorageManager {
             COLLAPSED_CATEGORIES: 'misvord_collapsed_categories',
             DRAFT_MESSAGES: 'misvord_draft_messages'
         };
+        
+        this.voiceStateListeners = new Set();
+        this.debounceTimers = new Map();
     }
 
     get(key, defaultValue = null) {
@@ -162,7 +165,9 @@ class LocalStorageManager {
             isDeafened: false,
             isVideoOn: false,
             isScreenSharing: false,
-            volume: 100
+            volume: 100,
+            channelId: null,
+            channelName: null
         });
     }
 
@@ -170,22 +175,152 @@ class LocalStorageManager {
         const current = this.getVoiceState();
         const updated = { ...current, ...state };
         const success = this.set('misvord_voice_state', updated);
+        
         if (success) {
-            window.dispatchEvent(new CustomEvent('voiceStateChanged', { 
-                detail: updated 
-            }));
+            this.dispatchVoiceStateChange(updated);
+            this.updateAllVoiceControls(updated);
         }
         return success;
     }
 
+    dispatchVoiceStateChange(state) {
+        const debounceKey = 'voiceStateChange';
+        
+        if (this.debounceTimers.has(debounceKey)) {
+            clearTimeout(this.debounceTimers.get(debounceKey));
+        }
+        
+        this.debounceTimers.set(debounceKey, setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', { 
+                detail: state 
+            }));
+            
+            this.voiceStateListeners.forEach(callback => {
+                try {
+                    callback(state);
+                } catch (error) {
+                    console.error('Error in voice state listener:', error);
+                }
+            });
+            
+            this.debounceTimers.delete(debounceKey);
+        }, 50));
+    }
+
+    addVoiceStateListener(callback) {
+        this.voiceStateListeners.add(callback);
+    }
+
+    removeVoiceStateListener(callback) {
+        this.voiceStateListeners.delete(callback);
+    }
+
+    updateAllVoiceControls(state) {
+        this.updateMicControls(state);
+        this.updateDeafenControls(state);
+        this.updateScreenShareControls(state);
+    }
+
+    updateMicControls(state) {
+        const micButtons = document.querySelectorAll('.mic-btn, #micBtn, button[title*="Mute"], button[title*="mute"]');
+        micButtons.forEach(btn => {
+            const icon = btn.querySelector('i');
+            if (!icon) return;
+
+            if (state.isMuted || state.isDeafened) {
+                icon.className = 'fas fa-microphone-slash text-lg';
+                btn.classList.add('text-[#ed4245]');
+                btn.classList.remove('text-discord-lighter', 'text-[#b9bbbe]', 'text-gray-300');
+                btn.title = 'Unmute';
+            } else {
+                icon.className = 'fas fa-microphone text-lg';
+                btn.classList.remove('text-[#ed4245]');
+                btn.classList.add('text-discord-lighter');
+                btn.title = 'Mute';
+            }
+        });
+    }
+
+    updateDeafenControls(state) {
+        const deafenButtons = document.querySelectorAll('.deafen-btn, #deafenBtn, button[title*="Deafen"], button[title*="deafen"]');
+        deafenButtons.forEach(btn => {
+            const icon = btn.querySelector('i');
+            if (!icon) return;
+
+            if (state.isDeafened) {
+                icon.className = 'fas fa-volume-xmark text-lg';
+                btn.classList.add('text-[#ed4245]');
+                btn.classList.remove('text-discord-lighter', 'text-[#b9bbbe]', 'text-gray-300');
+                btn.title = 'Undeafen';
+            } else {
+                icon.className = 'fas fa-headphones text-lg';
+                btn.classList.remove('text-[#ed4245]');
+                btn.classList.add('text-discord-lighter');
+                btn.title = 'Deafen';
+            }
+        });
+    }
+
+    updateScreenShareControls(state) {
+        const screenButtons = document.querySelectorAll('.screen-btn, #voiceScreenBtn, button[title*="Screen"], button[title*="screen"]');
+        screenButtons.forEach(btn => {
+            const icon = btn.querySelector('i');
+            if (!icon) return;
+
+            if (state.isScreenSharing) {
+                icon.className = 'fas fa-desktop text-[#5865f2]';
+                btn.classList.add('bg-[#5865f2]/20', 'text-[#5865f2]');
+                btn.classList.remove('bg-[#2f3136]', 'text-[#b9bbbe]', 'text-discord-lighter');
+                btn.title = 'Stop Sharing';
+            } else {
+                icon.className = 'fas fa-desktop text-lg';
+                btn.classList.remove('bg-[#5865f2]/20', 'text-[#5865f2]');
+                btn.classList.add('bg-[#2f3136]', 'text-[#b9bbbe]');
+                btn.title = 'Share Screen';
+            }
+        });
+    }
+
     toggleVoiceMute() {
         const state = this.getVoiceState();
-        return this.setVoiceState({ isMuted: !state.isMuted });
+        const newMutedState = !state.isMuted;
+        
+        if (window.videoSDKManager && window.videosdkMeeting) {
+            try {
+                if (newMutedState) {
+                    window.videoSDKManager.muteMic();
+                } else {
+                    window.videoSDKManager.unmuteMic();
+                }
+            } catch (error) {
+                console.error('Error syncing mic with VideoSDK:', error);
+            }
+        }
+        
+        this.showToast(newMutedState ? 'Muted' : 'Unmuted');
+        return this.setVoiceState({ isMuted: newMutedState });
     }
 
     toggleVoiceDeafen() {
         const state = this.getVoiceState();
         const newDeafenState = !state.isDeafened;
+        
+        if (window.videoSDKManager && window.videosdkMeeting) {
+            try {
+                if (newDeafenState) {
+                    window.videoSDKManager.muteMic();
+                } else {
+                    const shouldUnmute = !state.isMuted;
+                    if (shouldUnmute) {
+                        window.videoSDKManager.unmuteMic();
+                    }
+                }
+            } catch (error) {
+                console.error('Error syncing deafen with VideoSDK:', error);
+            }
+        }
+        
+        this.showToast(newDeafenState ? 'Deafened' : 'Undeafened');
         return this.setVoiceState({ 
             isDeafened: newDeafenState,
             isMuted: newDeafenState ? true : state.isMuted
@@ -197,9 +332,51 @@ class LocalStorageManager {
         return this.setVoiceState({ isVideoOn: !state.isVideoOn });
     }
 
-    toggleVoiceScreenShare() {
+    async toggleVoiceScreenShare() {
+        if (!window.videoSDKManager || !window.videosdkMeeting) {
+            this.showToast('Voice not connected', 'error');
+            return false;
+        }
+        
+        if (!window.videoSDKManager.isReady()) {
+            this.showToast('Please wait for voice connection to complete', 'error');
+            return false;
+        }
+
         const state = this.getVoiceState();
-        return this.setVoiceState({ isScreenSharing: !state.isScreenSharing });
+        const isCurrentlySharing = state.isScreenSharing;
+        
+        try {
+            let newScreenShareState;
+            if (isCurrentlySharing) {
+                await window.videoSDKManager.meeting.disableScreenShare();
+                newScreenShareState = false;
+                this.showToast('Screen sharing stopped');
+            } else {
+                await window.videoSDKManager.meeting.enableScreenShare();
+                newScreenShareState = true;
+                this.showToast('Screen sharing started');
+            }
+            
+            this.setVoiceState({ isScreenSharing: newScreenShareState });
+            return newScreenShareState;
+        } catch (error) {
+            console.error('Error toggling screen share:', error);
+            if (error.code === 3016) {
+                this.showToast('Screen sharing permission denied', 'error');
+            } else {
+                this.showToast('Failed to toggle screen share', 'error');
+            }
+            return isCurrentlySharing;
+        }
+    }
+
+    showToast(message, type = 'info') {
+        if (window.showToast) {
+            window.showToast(message, type, 3000);
+        } else {
+            console.log(`Toast (${type}): ${message}`);
+        }
     }
 
     static getServerGroups() {

@@ -691,13 +691,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (typeof refreshChannelList === 'function') {
                             refreshChannelList();
                             console.log("Channel list refreshed via AJAX");
-                        } else if (typeof window.channelLoader !== 'undefined' && window.channelLoader.loadChannelData) {
-                            const channelContainer = document.querySelector('.channel-list-container');
-                            if (channelContainer) {
-                                channelContainer.setAttribute('data-server-id', formData.get('server_id'));
-                                window.channelLoader.loadChannelData(channelContainer);
-                                console.log("Channel list refreshed via channel loader");
-                            }
+                        } else if (typeof window.channelManager !== 'undefined' && window.channelManager.refreshChannelList) {
+                            window.channelManager.refreshChannelList();
+                            console.log("Channel list refreshed via channel manager");
                         } else {
                             console.log("No AJAX refresh method available, falling back to page reload");
                             setTimeout(function() {

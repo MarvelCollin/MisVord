@@ -515,28 +515,37 @@ function forceHighlightCurrentChannel() {
 }
 
 function debugChannelState() {
-    const currentChannelId = new URLSearchParams(window.location.search).get('channel');
-    const channelItems = document.querySelectorAll('.channel-item');
-    const activeChannels = document.querySelectorAll('.channel-item.active-channel');
+    const channelList = document.querySelector('.channel-list');
+    const channels = channelList ? channelList.querySelectorAll('.channel-item') : [];
     
-    console.log(`🔍 CHANNEL DEBUG:`);
-    console.log(`   Current URL channel: ${currentChannelId}`);
-    console.log(`   Total channel items: ${channelItems.length}`);
-    console.log(`   Active channels: ${activeChannels.length}`);
-    
-    channelItems.forEach((item, index) => {
-        const channelId = item.dataset.channelId;
-        const isActive = item.classList.contains('active-channel');
-        const classes = Array.from(item.classList).join(' ');
-        console.log(`   Channel ${index + 1}: ID=${channelId}, Active=${isActive}, Classes=${classes}`);
+    console.table({
+        'Channel List Container': !!channelList,
+        'Channel Count': channels.length,
+        'Server ID from URL': getServerId(),
+        'Server ID from DOM': document.getElementById('current-server-id')?.value,
+        'Active Channel ID': new URLSearchParams(window.location.search).get('channel')
     });
+    
+    return {
+        channelList,
+        channels: Array.from(channels).map(ch => ({
+            id: ch.dataset.channelId,
+            name: ch.querySelector('span')?.textContent,
+            active: ch.classList.contains('active-channel')
+        }))
+    };
 }
 
 if (typeof window !== 'undefined') {
+    window.channelManager = {
+        renderChannelList,
+        refreshChannelList,
+        loadServerChannels,
+        initChannelManager,
+        debugChannelState
+    };
+    
     window.refreshChannelList = refreshChannelList;
-    window.renderChannelList = renderChannelList;
-    window.createChannelAtPosition = createChannelAtPosition;
     window.openCreateChannelModal = openCreateChannelModal;
-    window.forceHighlightCurrentChannel = forceHighlightCurrentChannel;
     window.debugChannelState = debugChannelState;
 }

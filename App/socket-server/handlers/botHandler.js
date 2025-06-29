@@ -63,6 +63,10 @@ class BotHandler {
 
         // Create a bound function to maintain proper context
         const messageHandler = (data) => {
+            // Normalize field names so detection works consistently
+            if (data.channelId && !data.channel_id) data.channel_id = data.channelId;
+            if (data.roomId && !data.room_id) data.room_id = data.roomId;
+
             console.log(`🔍 [BOT-HANDLER] Bot ${username} intercepted message:`, {
                 messageId: data.id,
                 content: data.content?.substring(0, 50) + '...',
@@ -74,7 +78,7 @@ class BotHandler {
             
             console.log(`🔍 [BOT-HANDLER] FULL MESSAGE DATA:`, JSON.stringify(data, null, 2));
             
-            // Determine message type based on data
+            // Determine message type after normalization
             const messageType = data.channel_id ? 'channel' : 'dm';
             console.log(`🔍 [BOT-HANDLER] Message type determined: ${messageType}`);
             
