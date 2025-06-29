@@ -4,7 +4,6 @@ class SendReceiveHandler {
     }
 
     async sendMessage() {
-        // Basic validation
         if (!this.chatSection.messageInput || !this.chatSection.messageInput.value.trim()) {
             return;
         }
@@ -12,7 +11,6 @@ class SendReceiveHandler {
         const content = this.chatSection.messageInput.value.trim();
         console.log('📤 Sending message via WebSocket:', content.substring(0, 50) + (content.length > 50 ? '...' : ''));
         
-        // Check if WebSocket is ready
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
             console.error('❌ WebSocket not ready for sending message');
             this.chatSection.showNotification('Connection error. Please try again.', 'error');
@@ -20,25 +18,39 @@ class SendReceiveHandler {
         }
         
         try {
-            // Prepare message options
             const options = { message_type: 'text' };
             
-            // Handle replies if present
             if (this.chatSection.replyingTo) {
                 options.reply_message_id = this.chatSection.replyingTo.messageId;
             }
 
-            // Handle file attachments if present
+            let attachmentUrls = [];
             if (this.chatSection.fileUploadHandler && 
                 this.chatSection.fileUploadHandler.currentFileUploads && 
                 this.chatSection.fileUploadHandler.currentFileUploads.length > 0) {
-                options.attachments = this.chatSection.fileUploadHandler.currentFileUploads;
+                
+                console.log('📁 Uploading files before sending message...');
+                this.chatSection.showNotification('Uploading files...', 'info');
+                
+                try {
+                    const files = this.chatSection.fileUploadHandler.currentFileUploads.map(upload => upload.file);
+                    const uploadResult = await this.uploadFiles(files);
+                    
+                    if (uploadResult.success && uploadResult.files && uploadResult.files.length > 0) {
+                        attachmentUrls = uploadResult.files.map(file => file.file_url);
+                        console.log('✅ Files uploaded successfully:', attachmentUrls.length, 'files');
+                    } else {
+                        throw new Error(uploadResult.error || 'File upload failed');
+                    }
+                } catch (uploadError) {
+                    console.error('❌ File upload failed:', uploadError);
+                    this.chatSection.showNotification('Failed to upload files: ' + uploadError.message, 'error');
+                    return;
+                }
             }
 
-            // Generate temporary ID first
             const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
             
-            // Prepare message data for immediate display
             const tempMessageData = {
                 id: tempId,
                 content: content,
@@ -47,7 +59,7 @@ class SendReceiveHandler {
                 avatar_url: window.globalSocketManager?.avatarUrl || '/public/assets/common/default-profile-picture.png',
                 sent_at: new Date().toISOString(),
                 message_type: options.message_type || 'text',
-                attachments: options.attachments || [],
+                attachments: attachmentUrls,
                 mentions: options.mentions || [],
                 reply_message_id: options.reply_message_id,
                 reply_data: null,
@@ -56,7 +68,6 @@ class SendReceiveHandler {
                 source: 'client-sent'
             };
             
-            // Handle reply data for immediate display
             if (this.chatSection.replyingTo) {
                 tempMessageData.reply_data = {
                     message_id: this.chatSection.replyingTo.messageId,
@@ -65,35 +76,29 @@ class SendReceiveHandler {
                 };
             }
             
-            // Add temporary message to UI immediately
             this.chatSection.messageHandler.addMessage(tempMessageData);
             
-            // Clear input after adding message
             this.chatSection.messageInput.value = '';
             this.chatSection.updateSendButton();
             
-            // Clear reply if present
             if (this.chatSection.replyingTo) {
                 this.chatSection.cancelReply();
             }
 
-            // Clear file uploads if present
             if (this.chatSection.fileUploadHandler && 
                 this.chatSection.fileUploadHandler.currentFileUploads && 
                 this.chatSection.fileUploadHandler.currentFileUploads.length > 0) {
                 this.chatSection.fileUploadHandler.removeFileUpload();
             }
 
-            // Send stop typing event
             this.sendStopTypingEvent();
 
-            // Prepare WebSocket message data
             const messageData = {
                 content: content,
                 target_type: this.chatSection.chatType === 'direct' ? 'dm' : this.chatSection.chatType,
                 target_id: this.chatSection.targetId,
                 message_type: options.message_type || 'text',
-                attachments: options.attachments || [],
+                attachments: attachmentUrls,
                 mentions: options.mentions || [],
                 reply_message_id: options.reply_message_id,
                 temp_message_id: tempId
@@ -103,10 +108,10 @@ class SendReceiveHandler {
                 event: 'save-and-send-message',
                 targetType: messageData.target_type,
                 targetId: messageData.target_id,
-                tempId: tempId
+                tempId: tempId,
+                hasAttachments: attachmentUrls.length > 0
             });
 
-            // Send message via WebSocket for database save and broadcast to others
             window.globalSocketManager.io.emit('save-and-send-message', messageData);
             
             console.log('✅ Message sent with temp ID:', tempId);
@@ -114,16 +119,12 @@ class SendReceiveHandler {
         } catch (error) {
             console.error('❌ Error sending message via WebSocket:', error);
             
-            // Restore input value
             this.chatSection.messageInput.value = content;
             this.chatSection.updateSendButton();
             
-            // Show notification
             this.chatSection.showNotification('Failed to send message. Please try again.', 'error');
         }
     }
-
-
 
     sendStopTypingEvent() {
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
@@ -234,38 +235,41 @@ class SendReceiveHandler {
 
     async uploadFiles(files) {
         try {
-            if (!window.ChatAPI) {
-                throw new Error('ChatAPI not initialized');
+            if (!files || files.length === 0) {
+                return { success: true, files: [] };
             }
             
             const formData = new FormData();
             
-            // Add each file to the form data
             for (let i = 0; i < files.length; i++) {
                 formData.append('files[]', files[i]);
             }
             
-            // Add target info
             formData.append('target_type', this.chatSection.chatType);
             formData.append('target_id', this.chatSection.targetId);
             
-            const response = await window.ChatAPI.uploadFiles(formData);
+            const response = await fetch('/api/media/upload-multiple', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
             
-            if (response.success) {
+            if (!response.ok) {
+                throw new Error(`Upload failed with status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success) {
                 return {
                     success: true,
-                    files: response.data.files || []
+                    files: result.uploaded_files || []
                 };
             } else {
-                console.error('❌ [SEND-RECEIVE] Failed to upload files:', response.message);
-                return {
-                    success: false,
-                    files: [],
-                    error: response.message
-                };
+                throw new Error(result.message || 'Upload failed');
             }
         } catch (error) {
-            console.error('❌ [SEND-RECEIVE] Error uploading files:', error);
+            console.error('❌ Error uploading files:', error);
             return {
                 success: false,
                 files: [],

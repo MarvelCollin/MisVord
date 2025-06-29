@@ -110,6 +110,8 @@ class SocketHandler {
                 return;
             }
             
+            const isTemporaryMessage = data.is_temporary || (data.id && data.id.toString().startsWith('temp-')) || !!data.temp_message_id;
+            
             console.log('📥 Received channel message:', {
                 id: data.id,
                 channelId: data.channel_id,
@@ -173,6 +175,8 @@ class SocketHandler {
                 });
                 return;
             }
+            
+            const isTemporaryMessage = data.is_temporary || (data.id && data.id.toString().startsWith('temp-')) || !!data.temp_message_id;
             
             console.log('📥 Received DM message:', {
                 id: data.id,
