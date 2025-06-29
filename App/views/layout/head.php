@@ -22,6 +22,11 @@ $include_socket_io = true;
 <meta name="user-id" content="<?php echo htmlspecialchars($_SESSION['user_id']); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>">
 <meta name="user-authenticated" content="true">
+<script>
+// Global username initialization - available on all pages
+window.currentUserId = <?php echo json_encode($_SESSION['user_id']); ?>;
+window.currentUsername = <?php echo json_encode($_SESSION['username'] ?? ''); ?>;
+</script>
 <?php else: ?>
 <meta name="user-authenticated" content="false">
 <?php endif; ?>

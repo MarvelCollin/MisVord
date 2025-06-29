@@ -5,6 +5,7 @@ class MusicPlayerSystem {
         this.currentIndex = 0;
         this.audio = new Audio();
         this.audio.crossOrigin = "anonymous";
+        this.audio.preload = "none";
         this.isPlaying = false;
         this.volume = 0.5;
         this.channelId = null;
@@ -18,12 +19,28 @@ class MusicPlayerSystem {
         this.setupEventListeners();
 
         this.audio.addEventListener('error', (e) => {
-            console.error('Audio playback error:', e);
+            console.error('🎵 [MUSIC-PLAYER] Audio playback error:', e, 'Audio src:', this.audio.src);
             this.handlePlaybackError();
         });
 
         this.audio.addEventListener('ended', () => {
             this.playNext();
+        });
+
+        this.audio.addEventListener('loadstart', () => {
+            console.log('🎵 [MUSIC-PLAYER] Audio loading started');
+        });
+
+        this.audio.addEventListener('canplay', () => {
+            console.log('🎵 [MUSIC-PLAYER] Audio can play');
+        });
+
+        this.audio.addEventListener('abort', () => {
+            console.log('🎵 [MUSIC-PLAYER] Audio loading aborted');
+        });
+
+        this.audio.addEventListener('stalled', () => {
+            console.log('🎵 [MUSIC-PLAYER] Audio loading stalled');
         });
     }
 
@@ -440,16 +457,24 @@ class MusicPlayerSystem {
             });
 
             this.audio.addEventListener('error', (e) => {
-                console.error('Audio playback error:', e);
+                console.error('🎵 [MUSIC-PLAYER] Audio playback error:', e, 'Audio src:', this.audio.src);
                 this.handlePlaybackError();
             });
 
             this.audio.addEventListener('loadstart', () => {
-                this.showStatus('Loading...');
+                console.log('🎵 [MUSIC-PLAYER] Audio loading started');
             });
 
             this.audio.addEventListener('canplay', () => {
-                this.showStatus('Ready to play');
+                console.log('🎵 [MUSIC-PLAYER] Audio can play');
+            });
+
+            this.audio.addEventListener('abort', () => {
+                console.log('🎵 [MUSIC-PLAYER] Audio loading aborted');
+            });
+
+            this.audio.addEventListener('stalled', () => {
+                console.log('🎵 [MUSIC-PLAYER] Audio loading stalled');
             });
         }
     }

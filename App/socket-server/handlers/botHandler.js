@@ -219,19 +219,20 @@ class BotHandler extends EventEmitter {
 
         switch (command) {
             case 'ping':
-                responseContent = `🏓 Pong! Hi ${originalMessage.username}, I'm TitiBot and I'm online!`;
+                responseContent = `🏓 Pong! Halo bang ${originalMessage.username}`;
                 break;
 
             case 'play':
                 if (!parameter) {
-                    responseContent = '❌ Please specify a song name. Usage: `/titibot play {song name}`';
+                    responseContent = '❌ Udah di bilang formatnya play {namaLagu} masih ngemeng';
                 } else {
-                    responseContent = `🎵 Playing: "${parameter}" (simulated - no external API)`;
+                    responseContent = `🎵 MUSIGGGGGGG: "${parameter}" - Searching and playing...`;
                     musicData = {
                         action: 'play',
+                        query: parameter,
                         track: {
                             title: parameter,
-                            artist: 'Unknown Artist',
+                            artist: 'Searching...',
                             previewUrl: null
                         }
                     };
@@ -239,37 +240,38 @@ class BotHandler extends EventEmitter {
                 break;
 
             case 'stop':
-                responseContent = '⏹️ Music stopped';
+                responseContent = '⏹️ Yah dimatiin';
                 musicData = { action: 'stop' };
                 break;
 
             case 'next':
-                responseContent = '⏭️ Playing next song';
+                responseContent = '⏭️ Mainin musig selanjutnya';
                 musicData = { action: 'next' };
                 break;
 
             case 'prev':
-                responseContent = '⏮️ Playing previous song';
+                responseContent = '⏮️ Mainin musig sebelumnya';
                 musicData = { action: 'prev' };
                 break;
 
             case 'queue':
                 if (!parameter) {
-                    responseContent = '❌ Please specify a song name. Usage: `/titibot queue {song name}`';
+                    responseContent = '❌ Udah di bilang formatnya queue {namaLagu} masih ngemeng';
                 } else {
-                    responseContent = `➕ Added to queue: "${parameter}"`;
+                    responseContent = `➕ Berhasil di tambahin di queue king: "${parameter}" - Searching...`;
                     musicData = {
                         action: 'queue',
+                        query: parameter,
                         track: {
                             title: parameter,
-                            artist: 'Unknown Artist'
+                            artist: 'Searching...'
                         }
                     };
                 }
                 break;
 
             default:
-                responseContent = '❌ Unknown command';
+                responseContent = '❌ bro minimal baca tutorial dulu kalo command';
         }
 
         console.log(`🚀 [BOT-RESPONSE] Sending bot response using DIRECT message emission (same as normal users)`);
@@ -286,142 +288,110 @@ class BotHandler extends EventEmitter {
 
         const botResponseData = {
             id: `bot-msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            temp_message_id: null,
-            user_id: parseInt(botId),
+            user_id: botId.toString(),
             username: username,
             avatar_url: '/public/assets/common/default-profile-picture.png',
             content: responseContent,
-            attachments: [],
-            mentions: [],
-            reply_message_id: null,
-            sent_at: currentTimestamp,
-            timestamp: Date.parse(currentTimestamp),
+            sent_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+            edited_at: null,
+            type: 'text',
             message_type: 'text',
-            is_temporary: false,
-            source: 'bot-response'
+            attachments: [],
+            has_reactions: false,
+            reaction_count: 0,
+            channel_id: messageType === 'channel' ? channelId : null,
+            room_id: messageType === 'dm' ? roomId : null,
+            is_bot: true,
+            bot_id: botId,
+            music_data: musicData
         };
-
-        let targetRoom;
-        let eventName;
-
-        if (messageType === 'channel' && channelId) {
-            targetRoom = roomManager.getChannelRoom(channelId);
-            eventName = 'new-channel-message';
-            botResponseData.channel_id = channelId;
-            botResponseData.target_type = 'channel';
-            botResponseData.target_id = channelId;
+        
+        const eventName = messageType === 'channel' ? 'new-channel-message' : 'user-message-dm';
+        const targetRoom = messageType === 'channel' ? `channel-${channelId}` : `dm-${roomId}`;
+        
+        console.log(`📡 [BOT-DIRECT] Emitting bot response to room ${targetRoom}:`, {
+            event: eventName,
+            messageId: botResponseData.id,
+            content: botResponseData.content?.substring(0, 50) + '...',
+            username: botResponseData.username,
+            musicData: musicData ? 'YES' : 'NO'
+        });
+        
+        io.to(targetRoom).emit(eventName, botResponseData);
+        console.log(`✅ [BOT-DIRECT] Bot response sent to ${targetRoom} via ${eventName}`);
+        
+        try {
+            console.log(`💾 [BOT-DATABASE] Saving bot message to database...`);
             
-            console.log(`🏠 [BOT-DIRECT] Channel response - Room: ${targetRoom}, Event: ${eventName}, Channel: ${channelId}`);
-        } else if (messageType === 'dm' && roomId) {
-            targetRoom = roomManager.getDMRoom(roomId);
-            eventName = 'user-message-dm';
-            botResponseData.room_id = roomId;
-            botResponseData.target_type = 'dm';
-            botResponseData.target_id = roomId;
+            const saveData = {
+                user_id: botId.toString(),
+                username: username,
+                target_type: messageType,
+                target_id: messageType === 'channel' ? channelId.toString() : roomId.toString(),
+                content: responseContent,
+                message_type: 'text',
+                attachments: [],
+                mentions: []
+            };
             
-            console.log(`🏠 [BOT-DIRECT] DM response - Room: ${targetRoom}, Event: ${eventName}, Room: ${roomId}`);
-        } else {
-            console.error(`❌ [BOT-DIRECT] Invalid message type or missing IDs:`, {
-                messageType,
-                channelId,
-                roomId,
-                originalTarget: originalMessage.target_type
-            });
-            return;
-        }
-
-        if (targetRoom && eventName) {
-            console.log(`📡 [BOT-DIRECT] Emitting bot response to room ${targetRoom}:`, {
-                event: eventName,
-                messageId: botResponseData.id,
-                content: botResponseData.content?.substring(0, 50) + '...',
-                username: botResponseData.username
-            });
+            console.log(`📤 [BOT-DATABASE] Save data:`, JSON.stringify(saveData, null, 2));
             
-            io.to(targetRoom).emit(eventName, botResponseData);
-            console.log(`✅ [BOT-DIRECT] Bot response sent to ${targetRoom} via ${eventName}`);
+            const http = require('http');
+            const postData = JSON.stringify(saveData);
             
-            try {
-                console.log(`💾 [BOT-DATABASE] Saving bot message to database...`);
+            const options = {
+                hostname: 'app',
+                port: 1001,
+                path: '/api/chat/save-bot-message',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(postData)
+                }
+            };
+            
+            const req = http.request(options, (res) => {
+                let responseData = '';
                 
-                const saveData = {
-                    user_id: botId.toString(),
-                    username: username,
-                    target_type: messageType,
-                    target_id: messageType === 'channel' ? channelId.toString() : roomId.toString(),
-                    content: responseContent,
-                    message_type: 'text',
-                    attachments: [],
-                    mentions: []
-                };
+                res.on('data', (chunk) => {
+                    responseData += chunk;
+                });
                 
-                console.log(`📤 [BOT-DATABASE] Save data:`, JSON.stringify(saveData, null, 2));
-                
-                const http = require('http');
-                const postData = JSON.stringify(saveData);
-                
-                const options = {
-                    hostname: 'app',
-                    port: 1001,
-                    path: '/api/chat/save-bot-message',
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Content-Length': Buffer.byteLength(postData)
-                    }
-                };
-                
-                const req = http.request(options, (res) => {
-                    let responseData = '';
-                    
-                    res.on('data', (chunk) => {
-                        responseData += chunk;
-                    });
-                    
-                    res.on('end', () => {
-                        try {
-                            const saveResult = JSON.parse(responseData);
-                            console.log(`💾 [BOT-DATABASE] Save result:`, JSON.stringify(saveResult, null, 2));
-                            
-                            if (saveResult.success) {
-                                console.log(`✅ [BOT-DATABASE] Bot message saved successfully with ID: ${saveResult.data.message_id}`);
-                            } else {
-                                console.error(`❌ [BOT-DATABASE] Failed to save bot message:`, saveResult);
-                            }
-                        } catch (parseError) {
-                            console.error(`❌ [BOT-DATABASE] Error parsing save response:`, parseError.message);
+                res.on('end', () => {
+                    try {
+                        const saveResult = JSON.parse(responseData);
+                        console.log(`💾 [BOT-DATABASE] Save result:`, JSON.stringify(saveResult, null, 2));
+                        
+                        if (saveResult.success) {
+                            console.log(`✅ [BOT-DATABASE] Bot message saved successfully with ID: ${saveResult.data.message_id}`);
+                        } else {
+                            console.error(`❌ [BOT-DATABASE] Failed to save bot message:`, saveResult);
                         }
-                    });
+                    } catch (parseError) {
+                        console.error(`❌ [BOT-DATABASE] Error parsing save response:`, parseError.message);
+                    }
                 });
-                
-                req.on('error', (error) => {
-                    console.error(`❌ [BOT-DATABASE] Request error:`, error.message);
-                });
-                
-                req.write(postData);
-                req.end();
-                
-            } catch (saveError) {
-                console.error(`❌ [BOT-DATABASE] Error saving bot message:`, saveError.message);
-            }
+            });
             
-            console.log(`🎯 [BOT-RESPONSE] === BOT RESPONSE COMPLETE ===`);
+            req.on('error', (error) => {
+                console.error(`❌ [BOT-DATABASE] Request error:`, error.message);
+            });
             
-            if (musicData) {
-                console.log(`🎵 [BOT-DIRECT] Sending music command:`, musicData);
-                io.to(targetRoom).emit('bot-music-command', {
-                    channel_id: channelId,
-                    room_id: roomId,
-                    music_data: musicData
-                });
-            }
-        } else {
-            console.error(`❌ [BOT-DIRECT] Failed to determine target room or event name:`, {
-                targetRoom,
-                eventName,
-                messageType,
-                channelId,
-                roomId
+            req.write(postData);
+            req.end();
+            
+        } catch (saveError) {
+            console.error(`❌ [BOT-DATABASE] Error saving bot message:`, saveError.message);
+        }
+        
+        console.log(`🎯 [BOT-RESPONSE] === BOT RESPONSE COMPLETE ===`);
+        
+        if (musicData) {
+            console.log(`🎵 [BOT-DIRECT] Sending music command:`, musicData);
+            io.to(targetRoom).emit('bot-music-command', {
+                channel_id: channelId,
+                room_id: roomId,
+                music_data: musicData
             });
         }
     }

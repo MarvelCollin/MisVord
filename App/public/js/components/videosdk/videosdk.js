@@ -164,6 +164,18 @@ class VideoSDKManager {
                 } else if (eventName === 'meeting-left') {
                     console.log(`Event: ${eventName}`);
                     this.isMeetingJoined = false;
+                } else if (eventName === 'participant-joined') {
+                    console.log(`🎉 [VideoSDK] Participant joined:`, args[0]);
+                    const participant = args[0];
+                    if (participant && participant.id) {
+                        this.handleParticipantJoined(participant);
+                    }
+                } else if (eventName === 'participant-left') {
+                    console.log(`👋 [VideoSDK] Participant left:`, args[0]);
+                    const participant = args[0];
+                    if (participant && participant.id) {
+                        this.handleParticipantLeft(participant);
+                    }
                 } else {
                     console.log(`Event: ${eventName}`);
                 }
@@ -181,6 +193,82 @@ class VideoSDKManager {
         }
         
         this.setupSimpleStreamHandlers();
+        this.setupExistingParticipants();
+    }
+    
+    handleParticipantJoined(participant) {
+        console.log(`👤 [VideoSDK] Setting up handlers for joined participant: ${participant.id}`);
+        
+        this.registerStreamEvents(participant);
+        this.startStreamMonitoring(participant);
+        
+        window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
+            detail: { participant: participant.id, participantObj: participant }
+        }));
+    }
+    
+    handleParticipantLeft(participant) {
+        console.log(`👋 [VideoSDK] Cleaning up handlers for left participant: ${participant.id}`);
+        
+        this.cleanupParticipantResourcesById(participant.id);
+        
+        window.dispatchEvent(new CustomEvent('videosdkParticipantLeft', {
+            detail: { participant: participant.id }
+        }));
+    }
+    
+    setupExistingParticipants() {
+        if (!this.meeting || !this.meeting.participants) return;
+        
+        console.log(`👥 [VideoSDK] Setting up handlers for existing participants`);
+        console.log(`👥 [VideoSDK] Total participants in meeting: ${this.meeting.participants.size}`);
+        console.log(`👥 [VideoSDK] Local participant ID: ${this.meeting.localParticipant?.id}`);
+        
+        try {
+            this.meeting.participants.forEach((participant, participantId) => {
+                console.log(`👤 [VideoSDK] Processing participant: ${participant.id} (${participant.displayName || participant.name || 'Unknown'})`);
+                
+                if (participant.id !== this.meeting.localParticipant?.id) {
+                    console.log(`👤 [VideoSDK] Setting up existing remote participant: ${participant.id}`);
+                    this.registerStreamEvents(participant);
+                    this.startStreamMonitoring(participant);
+                    
+                    // Dispatch event for UI to handle existing participant
+                    window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
+                        detail: { participant: participant.id, participantObj: participant }
+                    }));
+                } else {
+                    console.log(`👤 [VideoSDK] Skipping local participant: ${participant.id}`);
+                }
+            });
+        } catch (error) {
+            console.error('Error setting up existing participants:', error);
+        }
+    }
+    
+    cleanupParticipantResourcesById(participantId) {
+        try {
+            if (this.meeting?.participants) {
+                const participant = this.meeting.participants.get(participantId);
+                if (participant) {
+                    if (participant._streamMonitorInterval) {
+                        clearInterval(participant._streamMonitorInterval);
+                        participant._streamMonitorInterval = null;
+                    }
+                    
+                    participant._streamMonitoringActive = false;
+                    
+                    if (participant._previousStreams) {
+                        participant._previousStreams.clear();
+                        participant._previousStreams = null;
+                    }
+                    
+                    console.log(`🧹 [VideoSDK] Cleaned up resources for participant: ${participantId}`);
+                }
+            }
+        } catch (error) {
+            console.error(`Error cleaning up participant ${participantId}:`, error);
+        }
     }
     
     setupSimpleStreamHandlers() {
@@ -463,6 +551,28 @@ class VideoSDKManager {
     
     cleanupParticipantResources() {
         try {
+            // Clean up all participants, not just local
+            if (this.meeting?.participants) {
+                console.log(`🧹 [VideoSDK] Cleaning up resources for ${this.meeting.participants.size} participants`);
+                
+                this.meeting.participants.forEach((participant, participantId) => {
+                    if (participant._streamMonitorInterval) {
+                        clearInterval(participant._streamMonitorInterval);
+                        participant._streamMonitorInterval = null;
+                    }
+                    
+                    participant._streamMonitoringActive = false;
+                    
+                    if (participant._previousStreams) {
+                        participant._previousStreams.clear();
+                        participant._previousStreams = null;
+                    }
+                    
+                    console.log(`🧹 [VideoSDK] Cleaned up participant: ${participantId}`);
+                });
+            }
+            
+            // Also clean up local participant specifically
             if (this.meeting?.localParticipant) {
                 const participant = this.meeting.localParticipant;
                 
@@ -477,6 +587,8 @@ class VideoSDKManager {
                     participant._previousStreams.clear();
                     participant._previousStreams = null;
                 }
+                
+                console.log(`🧹 [VideoSDK] Cleaned up local participant: ${participant.id}`);
             }
         } catch (error) {
             console.error("Error cleaning up participant resources:", error);

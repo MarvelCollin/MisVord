@@ -192,9 +192,13 @@ class VoiceManager {
             
             // 🎯 STEP 4: Join the VideoSDK meeting (existing or new)
             console.log(`🚪 [VOICE-MANAGER] Joining VideoSDK meeting: ${meetingId}`);
+            // Get proper username from multiple sources
+            const userName = this.getUsernameFromMultipleSources();
+            console.log(`🏷️ [VOICE-MANAGER] Using username: ${userName}`);
+            
             await this.videoSDKManager.initMeeting({
                 meetingId: meetingId,
-                name: window.currentUsername || 'Anonymous',
+                name: userName,
                 micEnabled: true,
                 webcamEnabled: false
             });
@@ -381,6 +385,55 @@ class VoiceManager {
     
     showToast(message, type = 'info') {
         window.showToast?.(message, type, 3000);
+    }
+
+    getUsernameFromMultipleSources() {
+        // Priority order: window.currentUsername > meta tag > session storage > app container data > fallback
+        let username = null;
+        
+        // 1. Check window.currentUsername (set on home page)
+        if (window.currentUsername && window.currentUsername !== 'Anonymous') {
+            username = window.currentUsername;
+            console.log(`🏷️ [USERNAME] Got from window.currentUsername: ${username}`);
+        }
+        
+        // 2. Check meta tag (available on most pages)
+        if (!username) {
+            const metaUsername = document.querySelector('meta[name="username"]')?.content;
+            if (metaUsername && metaUsername !== 'Anonymous' && metaUsername.trim() !== '') {
+                username = metaUsername;
+                console.log(`🏷️ [USERNAME] Got from meta tag: ${username}`);
+            }
+        }
+        
+        // 3. Check app container data attributes
+        if (!username) {
+            const appContainer = document.getElementById('app-container');
+            const dataUsername = appContainer?.getAttribute('data-username');
+            if (dataUsername && dataUsername !== 'Anonymous' && dataUsername.trim() !== '') {
+                username = dataUsername;
+                console.log(`🏷️ [USERNAME] Got from app-container data: ${username}`);
+            }
+        }
+        
+        // 4. Check socket data div
+        if (!username) {
+            const socketData = document.getElementById('socket-data');
+            const socketUsername = socketData?.getAttribute('data-username');
+            if (socketUsername && socketUsername !== 'Anonymous' && socketUsername.trim() !== '') {
+                username = socketUsername;
+                console.log(`🏷️ [USERNAME] Got from socket-data: ${username}`);
+            }
+        }
+        
+        // 5. Fallback - but make it unique to avoid collisions
+        if (!username) {
+            const timestamp = Date.now().toString().slice(-4);
+            username = `User${timestamp}`;
+            console.log(`🏷️ [USERNAME] Using fallback: ${username}`);
+        }
+        
+        return username;
     }
 
     resetState() {

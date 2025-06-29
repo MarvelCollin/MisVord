@@ -187,11 +187,34 @@ if (!function_exists('renderMessage')) {
     <div class="px-4 py-[10px] bg-[#313338] border-t border-[#3f4147]">
         <div id="reply-container" class="hidden"></div>
 
+        <div id="file-upload-area" class="hidden mb-3 p-3 bg-[#2b2d31] rounded-lg">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[#f2f3f5] text-sm font-medium">
+                    <i class="fas fa-paperclip mr-2"></i>
+                    Files (<span id="file-count">0</span>)
+                </span>
+                <button id="clear-all-files" class="text-[#ed4245] hover:text-[#dc2626] text-sm transition-colors">
+                    <i class="fas fa-times mr-1"></i>Clear All
+                </button>
+            </div>
+            <div id="file-upload-list" class="flex flex-wrap gap-3"></div>
+        </div>
+
         <form id="message-form" class="flex items-center bg-[#383a40] rounded-lg h-11 relative">
+            <input 
+                type="file" 
+                id="file-upload" 
+                class="hidden" 
+                multiple 
+                accept="image/*,video/*,audio/*,text/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z"
+            >
+            
             <div class="flex items-center pr-[2px] gap-1">
                 <button
+                    id="file-upload-button"
                     type="button"
-                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-1"
+                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-1 text-lg font-bold active:scale-95"
+                    title="Upload files"
                 >
                 +
             </button>
@@ -212,12 +235,14 @@ if (!function_exists('renderMessage')) {
                 <button
                     type="button"
                     class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-1"
+                    title="Send gift"
                 >
                     <i class="fas fa-gift text-[20px]"></i>
                 </button>
                 <button
                     type="button"
                     class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1"
+                    title="Add emoji"
                 >
                     <i class="fas fa-face-smile text-[20px]"></i>
                 </button>
@@ -226,6 +251,7 @@ if (!function_exists('renderMessage')) {
                     type="submit"
                     class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1 opacity-50 cursor-not-allowed"
                     disabled
+                    title="Send message"
                 >
                     <i class="fas fa-paper-plane"></i>
                 </button>
@@ -235,17 +261,26 @@ if (!function_exists('renderMessage')) {
     <?php endif; ?>
 </div>
 
-<div id="file-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-[#36393f] rounded-lg shadow-lg max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
+<div id="file-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center opacity-0 invisible transition-all duration-200">
+    <div id="modal-container" class="bg-[#36393f] rounded-lg shadow-lg max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col scale-95 transition-transform duration-200">
         <div class="flex justify-between items-center p-4 border-b border-[#2f3136]">
-            <h3 class="text-[#dcddde] text-lg font-medium">File Preview</h3>
-            <button onclick="window.chatSection?.closeFileModal()" class="text-[#b5bac1] hover:text-[#dcddde]">
-                <i class="fas fa-times"></i>
+            <div class="flex items-center gap-3">
+                <div id="modal-file-icon" class="w-8 h-8 flex items-center justify-center"></div>
+                <div>
+                    <h3 id="modal-title" class="text-[#dcddde] text-lg font-medium"></h3>
+                    <p id="modal-file-info" class="text-[#b5bac1] text-sm"></p>
+                </div>
+            </div>
+            <button id="modal-close" class="text-[#b5bac1] hover:text-[#dcddde] transition-colors">
+                <i class="fas fa-times text-lg"></i>
             </button>
         </div>
-        <div class="flex-1 overflow-auto p-4">
+        <div id="modal-content" class="flex-1 overflow-auto p-4">
         </div>
-        <div class="p-4 border-t border-[#2f3136] flex justify-end gap-2">
+        <div id="modal-footer" class="p-4 border-t border-[#2f3136] flex justify-end gap-2">
+            <button id="modal-download" class="px-4 py-2 bg-[#5865f2] hover:bg-[#4752c4] text-white rounded transition-colors duration-200">
+                <i class="fas fa-download mr-2"></i>Download
+            </button>
         </div>
     </div>
 </div>
@@ -288,6 +323,18 @@ document.addEventListener('DOMContentLoaded', function() {
         messageInput.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
+        });
+    }
+    
+    // Initialize file upload button if not already handled by ChatSection
+    const fileUploadButton = document.getElementById('file-upload-button');
+    const fileUploadInput = document.getElementById('file-upload');
+    
+    if (fileUploadButton && fileUploadInput && !window.chatSection) {
+        fileUploadButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('📎 File upload button clicked (fallback)');
+            fileUploadInput.click();
         });
     }
     

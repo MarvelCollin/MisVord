@@ -381,7 +381,6 @@ class VoiceCallManager {
     init() {
         this.setupEventListeners();
         this.setupControls();
-        this.addLocalParticipant();
     }
 
     setupEventListeners() {
@@ -425,14 +424,45 @@ class VoiceCallManager {
             }
         });
 
+        window.addEventListener('videosdkParticipantJoined', (event) => {
+            const { participant, participantObj } = event.detail;
+            console.log(`👤 [DEBUG] videosdkParticipantJoined event received:`, {
+                participant: participant,
+                participantObj: participantObj
+            });
+            
+            // Add remote participant to UI
+            this.addRemoteParticipant(participant, participantObj);
+        });
+
+        window.addEventListener('videosdkParticipantLeft', (event) => {
+            const { participant } = event.detail;
+            console.log(`👋 [DEBUG] videosdkParticipantLeft event received:`, {
+                participant: participant
+            });
+            
+            // Remove remote participant from UI
+            this.removeRemoteParticipant(participant);
+        });
+
         window.addEventListener('voiceConnect', (event) => {
             console.log(`🔗 [DEBUG] voiceConnect event received:`, event.detail);
             this.isConnected = true;
             
-            // Capture the local participant ID
+            // Capture the local participant ID and add to UI
             if (window.videoSDKManager?.meeting?.localParticipant) {
                 this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
                 console.log(`🔗 [DEBUG] Local participant ID captured:`, this.localParticipantId);
+                
+                // Add local participant to UI if not already added
+                if (!this.participants.has(this.localParticipantId)) {
+                    const localParticipant = window.videoSDKManager.meeting.localParticipant;
+                    const localName = localParticipant.displayName || localParticipant.name || document.querySelector('meta[name="username"]')?.content || 'You';
+                    this.addParticipant(this.localParticipantId, localName, true);
+                    console.log(`👤 [DEBUG] Local participant added to UI: ${localName}`);
+                } else {
+                    console.log(`⚠️ [DEBUG] Local participant already exists in UI`);
+                }
             }
             
             // Display the meeting ID
@@ -447,6 +477,16 @@ class VoiceCallManager {
         window.addEventListener('voiceDisconnect', (event) => {
             console.log(`🔌 [DEBUG] voiceDisconnect event received:`, event.detail);
             this.isConnected = false;
+            
+            // Clear meeting ID display
+            const meetingIdDisplay = document.getElementById('meetingIdDisplay');
+            if (meetingIdDisplay) {
+                meetingIdDisplay.textContent = '-';
+                meetingIdDisplay.onclick = null;
+                meetingIdDisplay.style.cursor = 'default';
+                meetingIdDisplay.title = '';
+            }
+            
             this.cleanup();
         });
 
@@ -461,9 +501,61 @@ class VoiceCallManager {
         document.getElementById('disconnectBtn').addEventListener('click', () => this.disconnect());
     }
 
-    addLocalParticipant() {
-        const username = document.querySelector('meta[name="username"]')?.content || 'You';
-        this.addParticipant('local', username, true);
+    addRemoteParticipant(participantId, participantObj) {
+        console.log(`👤 [DEBUG] Adding remote participant ${participantId} to UI`);
+        
+        // Check if participant already exists
+        if (this.participants.has(participantId)) {
+            console.log(`⚠️ [DEBUG] Participant ${participantId} already exists, skipping duplicate`);
+            return;
+        }
+        
+        // Extract name from participant object if available
+        let participantName = `User ${participantId.slice(-4)}`;
+        if (participantObj && participantObj.displayName) {
+            participantName = participantObj.displayName;
+        } else if (participantObj && participantObj.name) {
+            participantName = participantObj.name;
+        }
+        
+        // Add to participants map
+        this.addParticipant(participantId, participantName, false);
+        
+        console.log(`✅ [DEBUG] Remote participant ${participantId} (${participantName}) added to UI`);
+    }
+
+    removeRemoteParticipant(participantId) {
+        console.log(`👋 [DEBUG] Removing remote participant ${participantId} from UI`);
+        
+        // Remove from participants map
+        this.participants.delete(participantId);
+        
+        // Remove participant element from voice view
+        const participantCard = document.querySelector(`[data-participant-id="${participantId}"].voice-participant-card`);
+        if (participantCard) {
+            participantCard.remove();
+            console.log(`🗑️ [DEBUG] Removed voice participant card for ${participantId}`);
+        }
+        
+        // Remove video participant card if exists
+        this.removeVideoParticipantCard(participantId);
+        
+        this.updateParticipantCount();
+        console.log(`✅ [DEBUG] Remote participant ${participantId} removed from UI`);
+    }
+
+    ensureParticipantInUI(participantId) {
+        if (!this.participants.has(participantId) && participantId !== this.localParticipantId) {
+            console.log(`⚠️ [DEBUG] Participant ${participantId} not in UI, adding them now`);
+            
+            // Try to get participant object from VideoSDK
+            let participantObj = null;
+            if (window.videoSDKManager?.meeting?.participants) {
+                participantObj = window.videoSDKManager.meeting.participants.get(participantId);
+            }
+            
+            this.addRemoteParticipant(participantId, participantObj);
+        }
     }
 
     addParticipant(id, name, isLocal = false) {
@@ -512,7 +604,9 @@ class VoiceCallManager {
             hasTrackProperty: !!stream?.track,
             streamTracks: stream instanceof MediaStream ? stream.getTracks().length : 'N/A',
             localParticipantId: this.localParticipantId,
-            isLocalParticipant: participantId === this.localParticipantId
+            isLocalParticipant: participantId === this.localParticipantId,
+            participantInMap: this.participants.has(participantId),
+            totalParticipants: this.participants.size
         });
         
         if (participantId === this.localParticipantId) {
@@ -572,6 +666,10 @@ class VoiceCallManager {
             console.log(`🎥 [DEBUG] Remote participant detected - ${participantId}!`);
             console.log(`🎥 [DEBUG] About to create video participant card...`);
             console.log(`🎥 [DEBUG] Current participants in Map:`, Array.from(this.participants.keys()));
+            
+            // Ensure participant is in the UI before handling their stream
+            this.ensureParticipantInUI(participantId);
+            
             this.createVideoParticipantCard(participantId, stream);
         }
         
@@ -1060,6 +1158,24 @@ class VoiceCallManager {
         if (sidebarCount) sidebarCount.textContent = count;
     }
 
+    displayMeetingId(meetingId) {
+        const meetingIdDisplay = document.getElementById('meetingIdDisplay');
+        if (meetingIdDisplay && meetingId) {
+            meetingIdDisplay.textContent = meetingId;
+            meetingIdDisplay.title = `Click to copy meeting ID: ${meetingId}`;
+            meetingIdDisplay.style.cursor = 'pointer';
+            
+            // Add click to copy functionality
+            meetingIdDisplay.onclick = () => {
+                navigator.clipboard.writeText(meetingId).then(() => {
+                    this.showToast('Meeting ID copied to clipboard', 'success');
+                }).catch(() => {
+                    this.showToast('Failed to copy meeting ID', 'error');
+                });
+            };
+        }
+    }
+
     getAvatarColor(username) {
         const colors = ['#5865f2', '#3ba55c', '#faa61a', '#ed4245', '#9b59b6', '#e91e63', '#00bcd4', '#607d8b'];
         const hash = username.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
@@ -1090,13 +1206,17 @@ class VoiceCallManager {
         const screenSection = document.getElementById('screenShareSection');
         const videoGrid = document.getElementById('videoGrid');
         const participantsList = document.getElementById('participantsList');
+        const voiceParticipantsGrid = document.getElementById('voiceParticipantsGrid');
 
         cameraSection?.classList.add('hidden');
         screenSection?.classList.add('hidden');
         if (videoGrid) videoGrid.innerHTML = '';
         if (participantsList) participantsList.innerHTML = '';
+        if (voiceParticipantsGrid) voiceParticipantsGrid.innerHTML = '';
 
+        // Clear all participants including remote ones
         this.participants.clear();
+        
         this.isVideoOn = false;
         this.isScreenSharing = false;
         this.currentView = 'voice-only';

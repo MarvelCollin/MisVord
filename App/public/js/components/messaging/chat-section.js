@@ -329,6 +329,18 @@ class ChatSection {
             });
         }
         
+        // File upload button
+        const fileUploadButton = document.getElementById('file-upload-button');
+        if (fileUploadButton && this.fileUploadInput) {
+            fileUploadButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('📎 File upload button clicked');
+                this.fileUploadInput.click();
+            });
+        } else {
+            console.warn('⚠️ [CHAT-SECTION] File upload button or input not found');
+        }
+        
         // Global event delegation for message actions (reply, edit, delete, etc.)
         document.addEventListener('click', (e) => {
             this.handleMessageActions(e);
@@ -607,14 +619,26 @@ class ChatSection {
     }
     
     updateSendButton() {
-        if (!this.messageInput || !this.sendButton) return;
+        if (!this.sendButton) {
+            console.warn('⚠️ [CHAT-SECTION] Send button not found');
+            return;
+        }
         
-        const hasContent = this.messageInput.value.trim().length > 0 || 
-                          (this.fileUploadHandler && this.fileUploadHandler.hasFiles());
+        const hasContent = this.messageInput && this.messageInput.value.trim().length > 0;
+        const hasFiles = this.fileUploadHandler && this.fileUploadHandler.hasFiles();
+        const canSend = hasContent || hasFiles;
         
-        this.sendButton.disabled = !hasContent;
-        this.sendButton.classList.toggle('opacity-50', !hasContent);
-        this.sendButton.classList.toggle('cursor-not-allowed', !hasContent);
+        this.sendButton.disabled = !canSend;
+        this.sendButton.classList.toggle('opacity-50', !canSend);
+        this.sendButton.classList.toggle('cursor-not-allowed', !canSend);
+        
+        if (canSend) {
+            this.sendButton.classList.add('hover:bg-[#5865f2]', 'text-[#dcddde]');
+            this.sendButton.classList.remove('text-[#b9bbbe]');
+        } else {
+            this.sendButton.classList.remove('hover:bg-[#5865f2]', 'text-[#dcddde]');
+            this.sendButton.classList.add('text-[#b9bbbe]');
+        }
     }
     
     resizeTextarea() {
@@ -1474,6 +1498,19 @@ class ChatSection {
         const remainingMessages = this.chatMessages.querySelectorAll('.bubble-message-group');
         if (remainingMessages.length === 0) {
             this.showEmptyState();
+        }
+    }
+
+    clearMessage() {
+        if (this.messageInput) {
+            this.messageInput.value = '';
+            this.updateSendButton();
+        }
+    }
+
+    clearReply() {
+        if (this.replyingTo) {
+            this.cancelReply();
         }
     }
 }

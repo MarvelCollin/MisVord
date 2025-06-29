@@ -71,6 +71,14 @@ class ChatBot {
                 this.handleMusicCommand(data);
             });
 
+            io.on('new-channel-message', (data) => {
+                this.handleBotMessage(data);
+            });
+
+            io.on('user-message-dm', (data) => {
+                this.handleBotMessage(data);
+            });
+
             this.socketListenersSetup = true;
             console.log('🔌 [CHAT-BOT] Socket listeners setup complete');
         };
@@ -349,6 +357,97 @@ class ChatBot {
 
             default:
                 console.warn('⚠️ [CHAT-BOT] Unknown music action:', action);
+        }
+    }
+
+    handleBotMessage(data) {
+        if (!data || !data.is_bot || !data.music_data) {
+            return;
+        }
+
+        console.log('🤖 [CHAT-BOT] Bot message with music data received:', {
+            content: data.content,
+            action: data.music_data.action,
+            query: data.music_data.query
+        });
+
+        this.executeMusicCommand(data.music_data);
+    }
+
+    async executeMusicCommand(musicData) {
+        if (!window.musicPlayer) {
+            console.error('❌ [CHAT-BOT] Music player not available');
+            if (window.showToast) {
+                window.showToast('❌ Music player not available', 'error');
+            }
+            return;
+        }
+
+        const { action, query, track } = musicData;
+
+        try {
+            switch (action) {
+                case 'play':
+                    if (query) {
+                        console.log('🎵 [CHAT-BOT] Searching and playing:', query);
+                        const searchResult = await window.musicPlayer.searchMusic(query);
+                        if (searchResult && searchResult.previewUrl) {
+                            const result = await window.musicPlayer.playTrack(searchResult);
+                            if (window.showToast) {
+                                window.showToast(`🎵 Playing: ${searchResult.title}`, 'success');
+                            }
+                        } else {
+                            if (window.showToast) {
+                                window.showToast(`❌ Could not find or play "${query}"`, 'error');
+                            }
+                        }
+                    }
+                    break;
+
+                case 'queue':
+                    if (query) {
+                        console.log('🎵 [CHAT-BOT] Searching and queueing:', query);
+                        const result = await window.musicPlayer.addToQueue(query);
+                        if (window.showToast) {
+                            const isError = result.includes('❌');
+                            window.showToast(result, isError ? 'error' : 'success');
+                        }
+                    }
+                    break;
+
+                case 'stop':
+                    console.log('🎵 [CHAT-BOT] Stopping music');
+                    await window.musicPlayer.stop();
+                    window.musicPlayer.hideNowPlaying();
+                    if (window.showToast) {
+                        window.showToast('⏹️ Music stopped', 'info');
+                    }
+                    break;
+
+                case 'next':
+                    console.log('🎵 [CHAT-BOT] Playing next song');
+                    const nextResult = await window.musicPlayer.playNext();
+                    if (window.showToast && nextResult) {
+                        window.showToast(nextResult, 'info');
+                    }
+                    break;
+
+                case 'prev':
+                    console.log('🎵 [CHAT-BOT] Playing previous song');
+                    const prevResult = await window.musicPlayer.playPrevious();
+                    if (window.showToast && prevResult) {
+                        window.showToast(prevResult, 'info');
+                    }
+                    break;
+
+                default:
+                    console.warn('⚠️ [CHAT-BOT] Unknown music action:', action);
+            }
+        } catch (error) {
+            console.error('❌ [CHAT-BOT] Error executing music command:', error);
+            if (window.showToast) {
+                window.showToast('❌ Music command failed', 'error');
+            }
         }
     }
 
