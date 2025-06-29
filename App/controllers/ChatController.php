@@ -1204,42 +1204,27 @@ class ChatController extends BaseController
 
     public function saveMessageFromSocket()
     {
-        // Debug: Log all server variables related to headers
-        error_log("Socket message save - all headers debug: " . json_encode([
+        header('Content-Type: application/json');
+        
+        error_log("Socket message save - all headers: " . json_encode([
             'HTTP_X_SOCKET_USER_ID' => $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? 'NOT_SET',
-            'HTTP_X_SOCKET_USERNAME' => $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? 'NOT_SET',
+            'HTTP_X_SOCKET_USERNAME' => $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? 'NOT_SET', 
             'HTTP_X_SOCKET_SESSION_ID' => $_SERVER['HTTP_X_SOCKET_SESSION_ID'] ?? 'NOT_SET',
             'HTTP_X_SOCKET_AVATAR_URL' => $_SERVER['HTTP_X_SOCKET_AVATAR_URL'] ?? 'NOT_SET',
-            'all_headers' => function_exists('getallheaders') ? getallheaders() : 'getallheaders not available',
-            'server_keys' => array_filter(array_keys($_SERVER), function($key) {
-                return strpos($key, 'HTTP_') === 0 || strpos($key, 'X_') !== false;
-            })
+            'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN',
+            'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'UNKNOWN',
+            'raw_input' => substr(file_get_contents('php://input'), 0, 200)
         ]));
         
-        // Check for socket authentication headers first (try multiple access methods)
-        $socketUserId = $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? 
-                       $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? 
-                       (function_exists('getallheaders') ? (getallheaders()['X-Socket-User-ID'] ?? null) : null);
-        $socketUsername = $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? 
-                         (function_exists('getallheaders') ? (getallheaders()['X-Socket-Username'] ?? null) : null);
-        $socketSessionId = $_SERVER['HTTP_X_SOCKET_SESSION_ID'] ?? 
-                          (function_exists('getallheaders') ? (getallheaders()['X-Socket-Session-ID'] ?? null) : null);
-        $socketAvatarUrl = $_SERVER['HTTP_X_SOCKET_AVATAR_URL'] ?? 
-                          (function_exists('getallheaders') ? (getallheaders()['X-Socket-Avatar-URL'] ?? null) : null);
+        $socketUserId = $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? null;
+        $socketUsername = $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? null;
+        $socketSessionId = $_SERVER['HTTP_X_SOCKET_SESSION_ID'] ?? null;
+        $socketAvatarUrl = $_SERVER['HTTP_X_SOCKET_AVATAR_URL'] ?? null;
         
-        error_log("Socket message save - headers check: " . json_encode([
-            'has_socket_user_id' => !empty($socketUserId),
-            'socket_user_id' => $socketUserId,
-            'socket_username' => $socketUsername,
-            'socket_session_id' => $socketSessionId ? '[PRESENT]' : '[MISSING]'
-        ]));
-        
-        // Authenticate via socket headers if available
         if ($socketUserId && $socketUsername) {
             $userId = $socketUserId;
             $username = $socketUsername;
             
-            // Verify user exists in database
             $user = $this->userRepository->find($userId);
             if (!$user) {
                 error_log("Socket message save failed: User not found in database - ID: $userId");
@@ -1248,14 +1233,8 @@ class ChatController extends BaseController
             
             error_log("Socket authentication successful: User $userId ($username) authenticated via headers");
         } else {
-            error_log("Socket headers not found, trying session authentication. Headers found: " . json_encode([
-                'HTTP_X_SOCKET_USER_ID' => $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? 'MISSING',
-                'HTTP_X_SOCKET_USERNAME' => $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? 'MISSING',
-                'socketUserId_var' => $socketUserId,
-                'socketUsername_var' => $socketUsername
-            ]));
+            error_log("Socket headers not found, trying session authentication");
             
-            // Fallback to session authentication
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
@@ -1268,14 +1247,12 @@ class ChatController extends BaseController
             $userId = $_SESSION['user_id'];
             $username = $_SESSION['username'] ?? null;
             
-            // Verify user exists
             $user = $this->userRepository->find($userId);
             if (!$user) {
                 error_log("Socket message save failed: User not found - ID: $userId");
                 return $this->unauthorized('Invalid user');
             }
             
-            // Use username from user record if not in session
             if (!$username) {
                 $username = $user->username;
             }
@@ -1288,7 +1265,6 @@ class ChatController extends BaseController
 
         error_log("Socket message save request from user $userId ($username): " . json_encode($input));
 
-        // Validate required fields
         $validationErrors = [];
         if (empty($input['target_type'])) {
             $validationErrors['target_type'] = 'Target type is required (channel or dm)';
@@ -1306,12 +1282,10 @@ class ChatController extends BaseController
         $mentions = $input['mentions'] ?? [];
         $replyMessageId = $input['reply_message_id'] ?? null;
 
-        // Only validate content if no attachments present
         if (empty($content) && empty($attachments)) {
             $validationErrors['content'] = 'Message must have either content or an attachment';
         }
 
-        // Return all validation errors if any
         if (!empty($validationErrors)) {
             error_log("Socket message validation failed: " . json_encode($validationErrors));
             return $this->validationError($validationErrors);

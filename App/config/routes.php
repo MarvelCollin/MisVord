@@ -1463,6 +1463,47 @@ Route::get('/api/debug/socket-input', function() {
 
 // Chat message routes using ChatController
 
+Route::post('/api/debug/test-socket-save', function() {
+    header('Content-Type: application/json');
+    
+    $input = json_decode(file_get_contents('php://input'), true);
+    
+    echo json_encode([
+        'success' => true,
+        'message' => 'Debug endpoint working',
+        'received_headers' => [
+            'HTTP_X_SOCKET_USER_ID' => $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? 'NOT_SET',
+            'HTTP_X_SOCKET_USERNAME' => $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? 'NOT_SET',
+            'HTTP_X_SOCKET_SESSION_ID' => $_SERVER['HTTP_X_SOCKET_SESSION_ID'] ?? 'NOT_SET',
+            'HTTP_X_SOCKET_AVATAR_URL' => $_SERVER['HTTP_X_SOCKET_AVATAR_URL'] ?? 'NOT_SET'
+        ],
+        'received_data' => $input,
+        'request_method' => $_SERVER['REQUEST_METHOD'],
+        'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'NOT_SET'
+    ]);
+});
+
+Route::get('/api/debug/test-dm-session', function() {
+    header('Content-Type: application/json');
+    
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'session_data' => [
+            'active_dm' => $_SESSION['active_dm'] ?? 'NOT_SET',
+            'user_id' => $_SESSION['user_id'] ?? 'NOT_SET',
+            'username' => $_SESSION['username'] ?? 'NOT_SET'
+        ],
+        'globals_check' => [
+            'chatType' => $GLOBALS['chatType'] ?? 'NOT_SET',
+            'targetId' => $GLOBALS['targetId'] ?? 'NOT_SET'
+        ]
+    ]);
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

@@ -80,6 +80,11 @@ class SocketHandler {
                 String(data.channel_id) === String(this.chatSection.targetId);
             
             if (!isForThisChannel) {
+                console.log('🔄 Channel message not for this channel, ignoring:', {
+                    messageChannelId: data.channel_id,
+                    currentChannelId: this.chatSection.targetId,
+                    currentChatType: this.chatSection.chatType
+                });
                 return;
             }
             
@@ -146,6 +151,11 @@ class SocketHandler {
                 String(data.room_id) === String(this.chatSection.targetId);
             
             if (!isForThisDM) {
+                console.log('🔄 DM message not for this room, ignoring:', {
+                    messageRoomId: data.room_id,
+                    currentRoomId: this.chatSection.targetId,
+                    currentChatType: this.chatSection.chatType
+                });
                 return;
             }
             

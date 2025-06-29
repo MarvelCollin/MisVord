@@ -21,9 +21,79 @@ $contentType = 'home';
 
 $currentUri = $_SERVER['REQUEST_URI'] ?? '';
 $isFriendsPage = strpos($currentUri, '/home/friends') === 0;
+$isDMPage = strpos($currentUri, '/home/channels/dm/') === 0;
 $isHomePage = $currentUri === '/home' || $currentUri === '/home/';
 
-if ($isFriendsPage || $isHomePage) {
+error_log("Home.php: URI analysis - current: $currentUri, isFriends: " . ($isFriendsPage ? 'yes' : 'no') . ", isDM: " . ($isDMPage ? 'yes' : 'no'));
+
+if ($isDMPage) {
+    $contentType = 'dm';
+    
+    preg_match('/\/home\/channels\/dm\/(\d+)/', $currentUri, $matches);
+    $activeDmId = $matches[1] ?? $_SESSION['active_dm'] ?? null;
+    
+    if ($activeDmId) {
+        $_SESSION['active_dm'] = $activeDmId;
+        
+        error_log("Home.php: Processing DM from URL - DM ID: $activeDmId");
+        
+        require_once dirname(__DIR__) . '/../controllers/ChatController.php';
+        $chatController = new ChatController();
+        
+        $GLOBALS['chatType'] = 'direct';
+        $GLOBALS['targetId'] = $activeDmId;
+        
+        error_log("Home.php: Set globals for DM - chatType: direct, targetId: $activeDmId");
+        
+        require_once dirname(__DIR__) . '/../database/repositories/ChatRoomRepository.php';
+        $chatRoomRepository = new ChatRoomRepository();
+        
+        $chatRoom = $chatRoomRepository->find($activeDmId);
+        if ($chatRoom) {
+            $participants = $chatRoomRepository->getParticipants($activeDmId);
+            $friend = null;
+            
+            foreach ($participants as $participant) {
+                if ($participant['user_id'] != $currentUserId) {
+                    $friend = [
+                        'id' => $participant['user_id'],
+                        'username' => $participant['username'],
+                        'avatar_url' => $participant['avatar_url']
+                    ];
+                    break;
+                }
+            }
+            
+            $chatData = [
+                'friend_username' => $friend['username'] ?? 'Unknown User',
+                'friend_id' => $friend['id'] ?? null,
+                'friend_avatar_url' => $friend['avatar_url'] ?? null
+            ];
+            
+            $GLOBALS['chatData'] = $chatData;
+            
+            error_log("Home.php: Chat data set for DM with friend: " . ($friend['username'] ?? 'Unknown'));
+            
+            require_once __DIR__ . '/../../database/repositories/ChatRoomMessageRepository.php';
+            $chatRoomMessageRepository = new ChatRoomMessageRepository();
+            $rawMessages = $chatRoomMessageRepository->getMessagesByRoomId($activeDmId, 20, 0);
+            
+            $formattedMessages = [];
+            foreach ($rawMessages as $rawMessage) {
+                $reflection = new ReflectionClass($chatController);
+                $formatMethod = $reflection->getMethod('formatMessage');
+                $formatMethod->setAccessible(true);
+                $formattedMessages[] = $formatMethod->invoke($chatController, $rawMessage);
+            }
+            
+            $GLOBALS['messages'] = $formattedMessages;
+            
+            error_log("Home.php: Loaded " . count($formattedMessages) . " messages for DM room $activeDmId");
+        } else {
+            error_log("Home.php: Chat room not found for ID: $activeDmId");
+        }
+    }
+} elseif ($isFriendsPage || $isHomePage) {
     $contentType = 'home';
     
     if (!isset($GLOBALS['activeTab'])) {
@@ -41,11 +111,15 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
     $contentType = 'dm';
     $activeDmId = $_SESSION['active_dm'];
     
+    error_log("Home.php: Processing active DM session - DM ID: $activeDmId");
+    
     require_once dirname(__DIR__) . '/../controllers/ChatController.php';
     $chatController = new ChatController();
     
     $GLOBALS['chatType'] = 'direct';
     $GLOBALS['targetId'] = $activeDmId;
+    
+    error_log("Home.php: Set globals - chatType: direct, targetId: $activeDmId");
     
     require_once dirname(__DIR__) . '/../database/repositories/ChatRoomRepository.php';
     $chatRoomRepository = new ChatRoomRepository();
@@ -74,6 +148,8 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
         
         $GLOBALS['chatData'] = $chatData;
         
+        error_log("Home.php: Chat data set for DM with friend: " . ($friend['username'] ?? 'Unknown'));
+        
         require_once __DIR__ . '/../../database/repositories/ChatRoomMessageRepository.php';
         $chatRoomMessageRepository = new ChatRoomMessageRepository();
         $rawMessages = $chatRoomMessageRepository->getMessagesByRoomId($activeDmId, 20, 0);
@@ -87,6 +163,10 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
         }
         
         $GLOBALS['messages'] = $formattedMessages;
+        
+        error_log("Home.php: Loaded " . count($formattedMessages) . " messages for DM room $activeDmId");
+    } else {
+        error_log("Home.php: Chat room not found for ID: $activeDmId");
     }
 }
 

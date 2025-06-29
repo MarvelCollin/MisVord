@@ -139,6 +139,29 @@ class ChatSection {
             username: this.username
         });
         
+        // Additional debug logging for chat type detection
+        const currentUrl = window.location.pathname;
+        const isDMUrl = currentUrl.includes('/home/channels/dm/');
+        const isChannelUrl = currentUrl.includes('/server/') && currentUrl.includes('channel=');
+        
+        console.log('🔍 [CHAT-SECTION] URL analysis:', {
+            currentUrl: currentUrl,
+            isDMUrl: isDMUrl,
+            isChannelUrl: isChannelUrl,
+            detectedChatType: this.chatType
+        });
+        
+        // Validate chat type matches URL context
+        if (isDMUrl && this.chatType !== 'direct' && this.chatType !== 'dm') {
+            console.warn('⚠️ [CHAT-SECTION] Chat type mismatch! URL suggests DM but chat type is:', this.chatType);
+            this.chatType = 'direct';
+        } else if (isChannelUrl && this.chatType !== 'channel') {
+            console.warn('⚠️ [CHAT-SECTION] Chat type mismatch! URL suggests channel but chat type is:', this.chatType);
+            this.chatType = 'channel';
+        }
+        
+        console.log('✅ [CHAT-SECTION] Final chat type after validation:', this.chatType);
+        
         if (!this.chatMessages) {
             console.error('❌ [CHAT-SECTION] Required DOM element chat-messages not found');
                     return;

@@ -351,6 +351,33 @@ class MessageHandler {
             console.log(`💾 [SAVE-AND-SEND] Saving message to database via HTTP call...`);
             
             try {
+                // First test the debug endpoint
+                console.log(`🧪 [SAVE-AND-SEND] Testing debug endpoint first...`);
+                const debugResponse = await fetch('http://app:1001/api/debug/test-socket-save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Socket-User-ID': client.data.user_id.toString(),
+                        'X-Socket-Username': client.data.username,
+                        'X-Socket-Session-ID': client.data.session_id || '',
+                        'X-Socket-Avatar-URL': client.data.avatar_url || '/public/assets/common/default-profile-picture.png',
+                        'User-Agent': 'SocketServer/1.0'
+                    },
+                    body: JSON.stringify({
+                        test: 'debug_test',
+                        target_type: data.target_type,
+                        target_id: data.target_id
+                    })
+                });
+                
+                if (debugResponse.ok) {
+                    const debugResult = await debugResponse.json();
+                    console.log(`✅ [SAVE-AND-SEND] Debug endpoint working:`, debugResult);
+                } else {
+                    console.error(`❌ [SAVE-AND-SEND] Debug endpoint failed: ${debugResponse.status} ${debugResponse.statusText}`);
+                }
+                
+                // Now try the actual save endpoint
                 const response = await fetch('http://app:1001/api/chat/save-message', {
                     method: 'POST',
                     headers: {

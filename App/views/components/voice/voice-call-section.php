@@ -178,8 +178,14 @@ function updateGridLayout() {
     if (!videoGrid || !voiceOnlyView) return;
     
     const videoParticipants = videoGrid.querySelectorAll('video:not(.hidden)').length;
+    const voiceParticipants = voiceOnlyView.querySelectorAll('.participant-container').length;
     const hasScreenShare = videoGrid.querySelector('.screen-share-container');
     
+    console.log('🔍 Grid Layout Update:', {
+        videoParticipants,
+        voiceParticipants,
+        hasScreenShare: !!hasScreenShare
+    });
     
     if (videoParticipants > 0) {
         videoGrid.classList.remove('hidden');
@@ -202,14 +208,16 @@ function updateGridLayout() {
         videoGrid.classList.remove('has-screen-share');
     }
 }
+
 function createParticipantElement(participant, isVideo = false) {
     const container = document.createElement('div');
     container.className = `participant-container ${isVideo ? 'video-participant' : 'voice-participant'}`;
+    container.dataset.participantId = participant.id || participant.name || 'unknown';
     
-    const nameInitial = participant.name.charAt(0).toUpperCase();
-    const displayName = participant.name.length > 15 
-        ? participant.name.substring(0, 12) + '...' 
-        : participant.name;
+    const nameInitial = (participant.name || participant.id || 'U').charAt(0).toUpperCase();
+    const displayName = (participant.name || participant.id || 'User').length > 15 
+        ? (participant.name || participant.id || 'User').substring(0, 12) + '...' 
+        : (participant.name || participant.id || 'User');
     
     container.innerHTML = `
         ${isVideo ? `
@@ -243,6 +251,119 @@ function createParticipantElement(participant, isVideo = false) {
     
     return container;
 }
+
+function addLocalParticipant() {
+    const voiceOnlyView = document.getElementById('voiceOnlyView');
+    const voiceGrid = voiceOnlyView?.querySelector('.grid');
+    
+    if (!voiceGrid) {
+        console.error('❌ Voice grid not found');
+        return;
+    }
+    
+    const existingLocal = voiceGrid.querySelector('[data-participant-id="local"]');
+    if (existingLocal) {
+        console.log('✅ Local participant already exists');
+        return;
+    }
+    
+    const username = document.querySelector('meta[name="username"]')?.content || 'You';
+    const localParticipant = createParticipantElement({ 
+        id: 'local', 
+        name: username 
+    }, false);
+    
+    voiceGrid.appendChild(localParticipant);
+    console.log('✅ Local participant added to voice grid');
+    
+    updateGridLayout();
+}
+
+function addRemoteParticipant(participantId, participantName) {
+    const voiceOnlyView = document.getElementById('voiceOnlyView');
+    const voiceGrid = voiceOnlyView?.querySelector('.grid');
+    
+    if (!voiceGrid) {
+        console.error('❌ Voice grid not found');
+        return;
+    }
+    
+    const existingParticipant = voiceGrid.querySelector(`[data-participant-id="${participantId}"]`);
+    if (existingParticipant) {
+        console.log(`✅ Participant ${participantId} already exists`);
+        return;
+    }
+    
+    const remoteParticipant = createParticipantElement({ 
+        id: participantId, 
+        name: participantName || participantId 
+    }, false);
+    
+    voiceGrid.appendChild(remoteParticipant);
+    console.log(`✅ Remote participant ${participantId} added to voice grid`);
+    
+    updateGridLayout();
+}
+
+function removeParticipant(participantId) {
+    const voiceOnlyView = document.getElementById('voiceOnlyView');
+    const voiceGrid = voiceOnlyView?.querySelector('.grid');
+    
+    if (!voiceGrid) return;
+    
+    const participant = voiceGrid.querySelector(`[data-participant-id="${participantId}"]`);
+    if (participant) {
+        participant.remove();
+        console.log(`✅ Participant ${participantId} removed from voice grid`);
+        updateGridLayout();
+    }
+}
+
+function setupVoiceEventHandlers() {
+    console.log('🔧 Setting up voice event handlers');
+    
+    window.addEventListener('voiceConnect', (event) => {
+        console.log('🎤 Voice connected event received:', event.detail);
+        
+        setTimeout(() => {
+            addLocalParticipant();
+            
+            if (window.videosdkMeeting) {
+                console.log('🔍 VideoSDK meeting found, setting up participant handlers');
+                
+                if (window.videosdkMeeting.participants) {
+                    window.videosdkMeeting.participants.forEach((participant, participantId) => {
+                        if (participantId !== 'local') {
+                            addRemoteParticipant(participantId, participant.displayName || participantId);
+                        }
+                    });
+                }
+                
+                window.videosdkMeeting.on('participant-joined', (participant) => {
+                    console.log('👤 Participant joined:', participant.id);
+                    addRemoteParticipant(participant.id, participant.displayName || participant.id);
+                });
+                
+                window.videosdkMeeting.on('participant-left', (participant) => {
+                    console.log('👋 Participant left:', participant.id);
+                    removeParticipant(participant.id);
+                });
+            }
+        }, 500);
+    });
+    
+    window.addEventListener('voiceDisconnect', () => {
+        console.log('🔇 Voice disconnected, clearing participants');
+        const voiceOnlyView = document.getElementById('voiceOnlyView');
+        const voiceGrid = voiceOnlyView?.querySelector('.grid');
+        
+        if (voiceGrid) {
+            voiceGrid.innerHTML = '';
+            updateGridLayout();
+        }
+    });
+}
+
 function toggleLoading(show) {
     const loadingState = document.getElementById('loadingState');
     if (loadingState) {
@@ -252,28 +373,38 @@ function toggleLoading(show) {
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log("🔊 Voice call section loaded");
+    
+    setupVoiceEventHandlers();
     updateGridLayout();
     
     setTimeout(function() {
-        console.log("🔍 Voice components check:", {
+        const components = {
             videoGrid: !!document.getElementById('videoGrid'),
             voiceOnlyView: !!document.getElementById('voiceOnlyView'),
             voiceControls: !!document.getElementById('voiceControls'),
             voiceSection: !!window.voiceSection,
             voiceManager: !!window.voiceManager,
-            videoSDKManager: !!window.videoSDKManager
-        });
+            videoSDKManager: !!window.videoSDKManager,
+            videosdkMeeting: !!window.videosdkMeeting
+        };
+        
+        console.log("🔍 Voice components check:", components);
+        
+        if (window.voiceState?.isConnected && !document.querySelector('.participant-container')) {
+            console.log('🔧 Voice is connected but no participants showing, adding local participant');
+            addLocalParticipant();
+        }
     }, 1000);
 });
 
-// Listen for grid updates
 window.addEventListener('videoGridUpdate', updateGridLayout);
-
-    
 window.addEventListener('voiceConnect', () => toggleLoading(false));
 window.addEventListener('voiceDisconnect', () => toggleLoading(false));
 
 window.updateGridLayout = updateGridLayout;
 window.createParticipantElement = createParticipantElement;
 window.toggleLoading = toggleLoading;
+window.addLocalParticipant = addLocalParticipant;
+window.addRemoteParticipant = addRemoteParticipant;
+window.removeParticipant = removeParticipant;
 </script>
