@@ -1,9 +1,7 @@
 export function loadExplorePage() {
     console.log('[Explore Loader] Starting loadExplorePage');
     
-    const mainContent = document.querySelector('.flex-1') ||
-        document.querySelector('[class*="server-content"]') ||
-        document.querySelector('main');
+    const mainContent = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
 
     console.log('[Explore Loader] Found main content:', !!mainContent);
     if (mainContent) {
@@ -86,20 +84,32 @@ export function loadExplorePage() {
                 window.location.href = '/explore-servers';
             }
         });
+    } else {
+        console.error('[Explore Loader] Main content element not found');
+        window.location.href = '/explore-servers';
     }
 }
 
 function updateExploreLayout(html) {
     console.log('[Explore Layout] Updating explore layout');
+    console.log('[Explore Layout] Input HTML length:', html.length);
+    console.log('[Explore Layout] HTML preview:', html.substring(0, 200) + '...');
     
-    const mainContent = document.querySelector('.flex-1') ||
-        document.querySelector('[class*="server-content"]') ||
-        document.querySelector('main');
+    const currentLayout = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    console.log('[Explore Layout] Current layout container found:', !!currentLayout);
 
-    if (mainContent) {
-        console.log('[Explore Layout] Updating main content');
-        mainContent.innerHTML = html;
+    if (currentLayout) {
+        console.log('[Explore Layout] Before replacement - current layout children:', currentLayout.children.length);
         
+        console.log('[Explore Layout] Hiding server channel section');
+        hideServerChannelSection();
+        
+        console.log('[Explore Layout] Replacing layout innerHTML with explore content');
+        currentLayout.innerHTML = html;
+        
+        console.log('[Explore Layout] After replacement - new layout children:', currentLayout.children.length);
+        
+        console.log('[Explore Layout] Updating browser history');
         window.history.pushState(
             { page: 'explore' }, 
             'Explore Servers - misvord', 
@@ -117,8 +127,38 @@ function updateExploreLayout(html) {
                 console.log('[Explore Layout] Active server state updated for explore');
             }
         }, 100);
+        
+        console.log('[Explore Layout] SUCCESS - Explore layout replacement completed');
     } else {
-        console.error('[Explore Layout] Main content element not found');
+        console.error('[Explore Layout] FAILED - Layout container not found');
+        console.error('[Explore Layout] Available containers:', {
+            'app-container': !!document.querySelector('#app-container'),
+            'flex.flex-1': !!document.querySelector('.flex.flex-1'),
+            'overflow-hidden': !!document.querySelector('.overflow-hidden'),
+            'all-flex-elements': document.querySelectorAll('.flex').length
+        });
+    }
+}
+
+function hideServerChannelSection() {
+    const serverChannelSelectors = [
+        '.w-60.bg-discord-dark.flex.flex-col',
+        'div[class*="w-60"][class*="bg-discord-dark"]',  
+        'div[class*="w-60 bg-discord-dark"]'
+    ];
+    
+    let found = false;
+    serverChannelSelectors.forEach(selector => {
+        const element = document.querySelector(selector);
+        if (element) {
+            console.log('[Explore Layout] Found server channel section with selector:', selector);
+            element.style.display = 'none';
+            found = true;
+        }
+    });
+    
+    if (!found) {
+        console.log('[Explore Layout] No server channel section found to hide');
     }
 }
 

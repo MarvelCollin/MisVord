@@ -289,7 +289,7 @@ class MessageHandler {
         
         // Reaction button
         const reactionButton = document.createElement('button');
-        reactionButton.className = 'p-2 text-[#b9bbbe] hover:text-[#dcddde] hover:bg-[#32353b] transition-colors duration-200';
+        reactionButton.className = 'message-action-reaction p-2 text-[#b9bbbe] hover:text-[#dcddde] hover:bg-[#32353b] transition-colors duration-200';
         reactionButton.innerHTML = '<i class="fas fa-smile"></i>';
         reactionButton.title = 'Add Reaction';
         reactionButton.dataset.action = 'react';
@@ -595,7 +595,8 @@ class MessageHandler {
                         this.chatSection.confirmDeleteMessage(messageId);
                         break;
                     case 'react':
-                        this.chatSection.openEmojiPicker(button, messageId, 'reaction');
+                        // This is now handled by the emoji system's click listener
+                        // on the 'message-action-reaction' class
                         break;
                     case 'more':
                         this.chatSection.uiHandler.showContextMenu(

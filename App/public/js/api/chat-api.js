@@ -241,9 +241,12 @@ class ChatAPI {
             throw new Error('Message ID and emoji are required');
         }
         
-        const url = `/api/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`;
+        const url = `/api/messages/${messageId}/reactions`;
         
-        return await this.makeRequest(url, { method: 'DELETE' });
+        return await this.makeRequest(url, { 
+            method: 'DELETE',
+            body: JSON.stringify({ emoji: emoji })
+        });
     }
 
     async searchMessages(targetId, chatType, query) {

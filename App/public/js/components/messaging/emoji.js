@@ -288,14 +288,39 @@ class EmojiReactions {
     async addReaction(messageId, emoji) {
         try {
             const response = await window.ChatAPI.addReaction(messageId, emoji);
-            const currentUserId = document.querySelector('meta[name="user-id"]')?.content || window.globalSocketManager?.userId;
-            const currentUsername = window.globalSocketManager?.username || 'You';
-            this.handleReactionAdded({
-                message_id: messageId,
-                emoji: emoji,
-                user_id: currentUserId,
-                username: currentUsername
-            });
+            console.log('🎉 Reaction API response:', response);
+            
+            if (response.success && response.data) {
+                const currentUserId = document.querySelector('meta[name="user-id"]')?.content || window.globalSocketManager?.userId;
+                const currentUsername = window.globalSocketManager?.username || 'You';
+                
+                // Handle local reaction addition first
+                this.handleReactionAdded({
+                    message_id: messageId,
+                    emoji: emoji,
+                    user_id: currentUserId,
+                    username: currentUsername
+                });
+                
+                // Emit socket event to notify other users
+                if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                    const socketData = {
+                        message_id: messageId,
+                        emoji: emoji,
+                        user_id: currentUserId,
+                        username: currentUsername,
+                        action: 'added'
+                    };
+                    
+                    const targetType = response.data.target_type || 'channel';
+                    const targetId = response.data.target_id;
+                    
+                    if (targetId) {
+                        console.log(`📡 Emitting reaction-added event for ${targetType}:${targetId}`);
+                        window.globalSocketManager.emitToRoom('reaction-added', socketData, targetType, targetId);
+                    }
+                }
+            }
         } catch (error) {
             console.error('Error adding reaction:', error);
         }
@@ -304,12 +329,37 @@ class EmojiReactions {
     async removeReaction(messageId, emoji) {
         try {
             const response = await window.ChatAPI.removeReaction(messageId, emoji);
-            const currentUserId = document.querySelector('meta[name="user-id"]')?.content || window.globalSocketManager?.userId;
-            this.handleReactionRemoved({
-                message_id: messageId,
-                emoji: emoji,
-                user_id: currentUserId
-            });
+            console.log('🗑️ Remove reaction API response:', response);
+            
+            if (response.success && response.data) {
+                const currentUserId = document.querySelector('meta[name="user-id"]')?.content || window.globalSocketManager?.userId;
+                
+                // Handle local reaction removal first
+                this.handleReactionRemoved({
+                    message_id: messageId,
+                    emoji: emoji,
+                    user_id: currentUserId
+                });
+                
+                // Emit socket event to notify other users
+                if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                    const socketData = {
+                        message_id: messageId,
+                        emoji: emoji,
+                        user_id: currentUserId,
+                        username: window.globalSocketManager?.username || 'You',
+                        action: 'removed'
+                    };
+                    
+                    const targetType = response.data.target_type || 'channel';
+                    const targetId = response.data.target_id;
+                    
+                    if (targetId) {
+                        console.log(`📡 Emitting reaction-removed event for ${targetType}:${targetId}`);
+                        window.globalSocketManager.emitToRoom('reaction-removed', socketData, targetType, targetId);
+                    }
+                }
+            }
         } catch (error) {
             console.error('Error removing reaction:', error);
         }
