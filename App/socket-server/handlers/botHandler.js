@@ -50,46 +50,31 @@ class BotHandler {
     static setupBotListeners(io, botId, username) {
         console.log(`👂 [BOT-HANDLER] Setting up message listeners for bot ${username}`);
 
-        // Remove any existing listeners for this bot
-        io.removeAllListeners('new-channel-message');
-        io.removeAllListeners('user-message-dm');
-
-        // Add new listeners
-        io.on('connection', (client) => {
-            // Remove any existing listeners on this client
-            client.removeAllListeners('new-channel-message');
-            client.removeAllListeners('user-message-dm');
-
-            // Add new listeners
-            client.on('new-channel-message', (data) => {
-                this.handleMessage(io, data, 'channel', botId, username);
-            });
-
-            client.on('user-message-dm', (data) => {
-                this.handleMessage(io, data, 'dm', botId, username);
-            });
+        // Remove any existing bot listeners
+        const existingListeners = io.listeners('bot-message-intercept');
+        existingListeners.forEach(listener => {
+            if (listener.toString().includes('BOT-HANDLER') || listener.toString().includes('handleMessage')) {
+                io.removeListener('bot-message-intercept', listener);
+            }
         });
 
-        // Increase max listeners to prevent warnings
-        io.setMaxListeners(20);
-        
-        // Only set up listeners if they don't already exist
-        if (io.listenerCount('new-channel-message') === 0) {
-            io.on('connection', (client) => {
-                // Remove all existing listeners to prevent memory leaks
-                client.removeAllListeners('new-channel-message');
-                client.removeAllListeners('user-message-dm');
-
-                // Add new listeners
-                client.on('new-channel-message', (data) => {
-                    this.handleMessage(io, data, 'channel', botId, username);
-                });
-
-                client.on('user-message-dm', (data) => {
-                    this.handleMessage(io, data, 'dm', botId, username);
-                });
+        // Listen for the global bot message intercept event
+        io.on('bot-message-intercept', (data) => {
+            console.log(`🔍 [BOT-HANDLER] Bot ${username} intercepted message:`, {
+                messageId: data.id,
+                content: data.content?.substring(0, 50) + '...',
+                userId: data.user_id,
+                channelId: data.channel_id,
+                roomId: data.room_id,
+                source: data.source
             });
-        }
+            
+            // Determine message type based on data
+            const messageType = data.channel_id ? 'channel' : 'dm';
+            this.handleMessage(io, data, messageType, botId, username);
+        });
+
+        console.log(`✅ [BOT-HANDLER] Bot ${username} is now listening for all messages via bot-message-intercept`);
     }
 
     static handleMessage(io, data, messageType, botId, username) {

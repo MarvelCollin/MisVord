@@ -983,8 +983,24 @@ class ChatController extends BaseController
 
     public function getMessage($messageId)
     {
-        $this->requireAuth();
-        $userId = $this->getCurrentUserId();
+        $socketUserId = $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? null;
+        $socketUsername = $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? null;
+        
+        if ($socketUserId && $socketUsername) {
+            $userId = $socketUserId;
+            
+            $user = $this->userRepository->find($userId);
+            if (!$user) {
+                return $this->unauthorized('Invalid user');
+            }
+            
+            error_log("Socket get message: User $userId authenticated via headers");
+        } else {
+            $this->requireAuth();
+            $userId = $this->getCurrentUserId();
+            
+            error_log("Web get message: User $userId authenticated via session");
+        }
 
         $message = $this->messageRepository->find($messageId);
         if (!$message) {

@@ -177,6 +177,11 @@ Route::get('/logout', function() {
     $controller->logout();
 });
 
+Route::get('/api/videosdk/token', function() {
+    $controller = new AuthenticationController();
+    $controller->generateVideoSDKToken();
+});
+
 Route::get('/server/([0-9]+)', function($id) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
@@ -456,6 +461,11 @@ Route::post('/api/messages/([0-9]+)/reactions', function($messageId) {
 Route::delete('/api/messages/([0-9]+)/reactions', function($messageId) {
     $controller = new MessageController();
     $controller->removeReaction($messageId);
+});
+
+Route::get('/api/messages/([0-9]+)', function($messageId) {
+    $controller = new ChatController();
+    $controller->getMessage($messageId);
 });
 
 Route::post('/api/messages/([0-9]+)/pin', function($messageId) {

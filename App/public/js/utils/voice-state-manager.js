@@ -119,6 +119,11 @@ class VoiceStateManager {
             return;
         }
 
+        if (!window.videoSDKManager.isReady()) {
+            this.showToast('Please wait for voice connection to complete', 'error');
+            return;
+        }
+
         const videoButton = document.getElementById('voiceVideoBtn');
         if (videoButton) videoButton.disabled = true;
 
@@ -144,6 +149,11 @@ class VoiceStateManager {
     toggleScreenShare() {
         if (!window.videoSDKManager || !window.videosdkMeeting) {
             this.showToast('Voice not connected', 'error');
+            return;
+        }
+        
+        if (!window.videoSDKManager.isReady()) {
+            this.showToast('Please wait for voice connection to complete', 'error');
             return;
         }
         

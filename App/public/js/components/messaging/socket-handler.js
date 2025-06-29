@@ -351,6 +351,32 @@ class SocketHandler {
                     if (this.chatSection.messageHandler.temporaryMessages) {
                         this.chatSection.messageHandler.temporaryMessages.delete(data.temp_message_id);
                     }
+                    
+                    // Update message with complete data from database (including reply_data)
+                    if (data.message_data && data.message_data.reply_data) {
+                        console.log('🔄 [SOCKET-HANDLER] Updating message with reply data from database:', data.message_data.reply_data);
+                        
+                        // Check if reply container already exists
+                        let replyContainer = tempElement.querySelector('.bubble-reply-container');
+                        
+                        if (!replyContainer && data.message_data.reply_data) {
+                            // Create reply container
+                            const messageContent = tempElement.querySelector('.bubble-message-content');
+                            if (messageContent) {
+                                replyContainer = this.chatSection.messageHandler.createReplyContainer(data.message_data);
+                                
+                                // Insert reply container as the first child
+                                const firstChild = messageContent.firstChild;
+                                if (firstChild) {
+                                    messageContent.insertBefore(replyContainer, firstChild);
+                                } else {
+                                    messageContent.appendChild(replyContainer);
+                                }
+                                
+                                console.log('✅ [SOCKET-HANDLER] Added reply container to permanent message');
+                            }
+                        }
+                    }
                 }
                 
                 // Re-enable reaction button now that we have a real message ID

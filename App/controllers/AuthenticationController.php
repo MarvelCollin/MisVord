@@ -2,6 +2,9 @@
 
 require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../exceptions/AuthenticationException.php';
+require_once __DIR__ . '/../exceptions/ValidationException.php';
+require_once __DIR__ . '/../config/helpers.php';
 
 class AuthenticationController extends BaseController
 {
@@ -1126,7 +1129,46 @@ class AuthenticationController extends BaseController
         ]);
     }
 
-
-    
-
+    public function generateVideoSDKToken() {
+        header('Content-Type: application/json');
+        
+        try {
+            $apiKey = "8ad2dbcd-638d-4fbb-999c-9a48a83caa15";
+            $secretKey = "2894abac68603be19aa80b781cad6683eebfb922f496c22cc46b19ad91647d4e";
+            
+            $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
+            $payload = json_encode([
+                'apikey' => $apiKey,
+                'permissions' => ['allow_join'],
+                'iat' => time(),
+                'exp' => time() + (30 * 24 * 60 * 60)
+            ]);
+            
+            function base64UrlEncode($data) {
+                return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+            }
+            
+            $base64Header = base64UrlEncode($header);
+            $base64Payload = base64UrlEncode($payload);
+            
+            $signature = hash_hmac('sha256', $base64Header . "." . $base64Payload, $secretKey, true);
+            $base64Signature = base64UrlEncode($signature);
+            
+            $jwt = $base64Header . "." . $base64Payload . "." . $base64Signature;
+            
+            echo json_encode([
+                'success' => true,
+                'token' => $jwt,
+                'expires_at' => time() + (30 * 24 * 60 * 60)
+            ]);
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to generate VideoSDK token',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
 }

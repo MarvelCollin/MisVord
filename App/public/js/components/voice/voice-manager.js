@@ -90,7 +90,7 @@ class VoiceManager {
         try {
             this.videoSDKManager = window.videoSDKManager;
             const config = this.videoSDKManager.getMetaConfig();
-            await this.videoSDKManager.init(config.authToken || this.videoSDKManager.defaultToken);
+            await this.videoSDKManager.init(config.authToken);
             console.log('✅ VideoSDK initialized');
             return true;
         } catch (error) {
@@ -208,6 +208,34 @@ class VoiceManager {
             
             await this.videoSDKManager.joinMeeting();
             
+            await new Promise((resolve) => {
+                const checkReady = () => {
+                    if (this.videoSDKManager.isReady()) {
+                        resolve();
+                    } else {
+                        setTimeout(checkReady, 200);
+                    }
+                };
+                
+                if (this.videoSDKManager.isReady()) {
+                    resolve();
+                } else {
+                    const onMeetingReady = () => {
+                        window.removeEventListener('videosdkMeetingFullyJoined', onMeetingReady);
+                        setTimeout(() => {
+                            if (this.videoSDKManager.isReady()) {
+                                resolve();
+                            } else {
+                                checkReady();
+                            }
+                        }, 300);
+                    };
+                    
+                    window.addEventListener('videosdkMeetingFullyJoined', onMeetingReady);
+                    checkReady();
+                }
+            });
+            
             this.currentMeetingId = meeting;
             this.isConnected = true;
             
@@ -282,7 +310,6 @@ class VoiceManager {
         this.currentChannelName = null;
         this.currentMeetingId = null;
         
-        // Leave any existing meeting
         if (this.videoSDKManager && this.videoSDKManager.meeting) {
             this.videoSDKManager.leaveMeeting();
         }

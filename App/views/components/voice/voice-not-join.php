@@ -151,10 +151,12 @@ async function ensureVoiceScriptsLoaded() {
         
         await new Promise(resolve => {
             if (window.voiceManager && window.videoSDKManager && window.VoiceSection) {
+                console.log('[voice-not-join.php] All components loaded, ensuring VideoSDK is initialized...');
                 resolve();
             } else {
                 const checkReady = () => {
                     if (window.voiceManager && window.videoSDKManager && window.VoiceSection) {
+                        console.log('[voice-not-join.php] All components loaded, ensuring VideoSDK is initialized...');
                         resolve();
                     } else {
                         setTimeout(checkReady, 100);
@@ -164,11 +166,59 @@ async function ensureVoiceScriptsLoaded() {
             }
         });
         
+        if (window.videoSDKManager && !window.videoSDKManager.initialized) {
+            console.log('[voice-not-join.php] Initializing VideoSDK...');
+            try {
+                await window.videoSDKManager.init();
+                console.log('[voice-not-join.php] VideoSDK initialized successfully');
+            } catch (error) {
+                console.error('[voice-not-join.php] Failed to initialize VideoSDK:', error);
+                throw error;
+            }
+        }
+        
         return true;
     } catch (error) {
         console.error('[voice-not-join.php] Error loading voice scripts:', error);
         throw error;
     }
+}
+
+async function waitForVideoSDKReady(timeout = 15000) {
+    return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+            reject(new Error('Timeout waiting for VideoSDK to be fully ready'));
+        }, timeout);
+        
+        const checkReady = () => {
+            if (window.videoSDKManager && window.videoSDKManager.isReady()) {
+                clearTimeout(timeoutId);
+                resolve();
+            } else {
+                setTimeout(checkReady, 200);
+            }
+        };
+        
+        if (window.videoSDKManager && window.videoSDKManager.isReady()) {
+            clearTimeout(timeoutId);
+            resolve();
+        } else {
+            const onMeetingReady = () => {
+                clearTimeout(timeoutId);
+                window.removeEventListener('videosdkMeetingFullyJoined', onMeetingReady);
+                setTimeout(() => {
+                    if (window.videoSDKManager && window.videoSDKManager.isReady()) {
+                        resolve();
+                    } else {
+                        checkReady();
+                    }
+                }, 500);
+            };
+            
+            window.addEventListener('videosdkMeetingFullyJoined', onMeetingReady);
+            checkReady();
+        }
+    });
 }
 
 function resetJoinState() {
@@ -203,22 +253,34 @@ async function joinVoiceChannel() {
             
             await window.voiceManager.joinVoice();
             
+            console.log('[voice-not-join.php] Waiting for VideoSDK to be fully ready...');
+            await waitForVideoSDKReady();
+            
             const channelName = document.querySelector('meta[name="channel-name"]')?.content ||
                                document.querySelector('.channel-name')?.textContent?.trim() ||
                                'Voice Channel';
             const channelId = document.querySelector('meta[name="channel-id"]')?.content;
             
-            console.log('[voice-not-join.php] Voice joined successfully');
+            console.log('[voice-not-join.php] Voice joined and VideoSDK is fully ready');
             
         } else if (window.voiceSection && window.voiceSection.autoJoin) {
             console.log('[voice-not-join.php] Using voiceSection.autoJoin()');
             window.voiceSection.autoJoin();
+            
+            console.log('[voice-not-join.php] Waiting for VideoSDK to be fully ready...');
+            await waitForVideoSDKReady();
         } else if (window.triggerVoiceAutoJoin) {
             console.log('[voice-not-join.php] Using triggerVoiceAutoJoin()');
             window.triggerVoiceAutoJoin();
+            
+            console.log('[voice-not-join.php] Waiting for VideoSDK to be fully ready...');
+            await waitForVideoSDKReady();
         } else if (window.handleAutoJoin) {
             console.log('[voice-not-join.php] Using handleAutoJoin()');
             window.handleAutoJoin();
+            
+            console.log('[voice-not-join.php] Waiting for VideoSDK to be fully ready...');
+            await waitForVideoSDKReady();
         } else {
             throw new Error('No voice join method available');
         }

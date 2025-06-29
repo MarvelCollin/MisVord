@@ -33,16 +33,23 @@ function loadJS(jsFiles) {
             const src = `/public/js/${jsFile}.js`;
             
             if (document.querySelector(`script[src="${src}"]`)) {
+                console.log(`[Explore Loader] Script already loaded: ${src}`);
                 resolve();
                 return;
             }
             
             const script = document.createElement('script');
-            script.type = 'text/javascript';
+            script.type = 'module';
             script.src = src;
             
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error(`Failed to load JS: ${src}`));
+            script.onload = () => {
+                console.log(`[Explore Loader] Script loaded successfully: ${src}`);
+                resolve();
+            };
+            script.onerror = () => {
+                console.error(`[Explore Loader] Failed to load script: ${src}`);
+                reject(new Error(`Failed to load JS: ${src}`));
+            };
             
             document.head.appendChild(script);
         });
@@ -51,19 +58,65 @@ function loadJS(jsFiles) {
     return Promise.all(promises);
 }
 
+function ensureServerAPI() {
+    return new Promise((resolve) => {
+        if (typeof window.serverAPI !== 'undefined') {
+            console.log('[Explore Loader] Server API already available');
+            resolve();
+            return;
+        }
+        
+        const serverApiScript = document.querySelector('script[src*="server-api.js"]');
+        if (serverApiScript) {
+            const checkAPI = () => {
+                if (typeof window.serverAPI !== 'undefined') {
+                    console.log('[Explore Loader] Server API ready');
+                    resolve();
+                } else {
+                    setTimeout(checkAPI, 100);
+                }
+            };
+            checkAPI();
+        } else {
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = '/public/js/api/server-api.js';
+            script.onload = () => {
+                const checkAPI = () => {
+                    if (typeof window.serverAPI !== 'undefined') {
+                        console.log('[Explore Loader] Server API loaded and ready');
+                        resolve();
+                    } else {
+                        setTimeout(checkAPI, 100);
+                    }
+                };
+                checkAPI();
+            };
+            document.head.appendChild(script);
+        }
+    });
+}
+
 export function loadExplorePage() {
     const requiredCSS = ['explore-servers', 'server-detail'];
     const requiredJS = ['components/servers/server-detail'];
     
+    console.log('[Explore Loader] Starting to load required assets...');
+    
     Promise.all([
         loadCSS(requiredCSS),
-        loadJS(requiredJS)
+        loadJS(requiredJS),
+        ensureServerAPI()
     ]).then(() => {
-        console.log('[Explore Loader] All assets loaded successfully');
+        console.log('[Explore Loader] All assets loaded successfully, starting AJAX call...');
+        startExploreAjaxLoad();
     }).catch(error => {
         console.error('[Explore Loader] Failed to load assets:', error);
+        startExploreAjaxLoad();
     });
-    
+}
+
+function startExploreAjaxLoad() {
     const mainContent = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
 
     if (mainContent) {
@@ -98,7 +151,9 @@ export function loadExplorePage() {
                         window.handleSkeletonLoading(false);
                     }
                     
-                    initializeExploreComponents();
+                    setTimeout(() => {
+                        initializeExploreComponents();
+                    }, 200);
                     
                     const event = new CustomEvent('ExplorePageChanged', { 
                         detail: { pageType: 'explore' } 
@@ -112,6 +167,7 @@ export function loadExplorePage() {
                 }
             },
             error: function(xhr, status, error) {
+                console.error('[Explore Loader] AJAX error:', error);
                 if (typeof window.handleSkeletonLoading === 'function') {
                     window.handleSkeletonLoading(false);
                 }
@@ -119,6 +175,7 @@ export function loadExplorePage() {
             }
         });
     } else {
+        console.error('[Explore Loader] Main content container not found');
         window.location.href = '/explore-servers';
     }
 }
@@ -138,28 +195,67 @@ function updateExploreLayout(html) {
         if (typeof window.updateActiveServer === 'function') {
             window.updateActiveServer('explore');
         }
+        
+        console.log('[Explore Loader] Layout updated successfully');
     }
 }
 
 function initializeExploreComponents() {
+    console.log('[Explore Loader] Initializing explore components...');
+    
     if (typeof window.initExplorePage === 'function') {
         window.initExplorePage();
+        console.log('[Explore Loader] Explore page initialized');
     }
     
-    setTimeout(() => {
+    let attempts = 0;
+    const maxAttempts = 20;
+    
+    const initServerDetail = () => {
+        attempts++;
+        console.log(`[Explore Loader] Attempt ${attempts} to initialize server detail modal...`);
+        
         if (typeof window.ServerDetailModal !== 'undefined') {
             if (!window.serverDetailModal) {
                 window.serverDetailModal = new window.ServerDetailModal();
+                console.log('[Explore Loader] Server detail modal created');
             }
             
             window.showServerDetail = (serverId, serverData) => {
+                console.log('[Explore Loader] showServerDetail called with:', serverId, serverData);
                 if (window.serverDetailModal) {
                     window.serverDetailModal.showServerDetail(serverId, serverData);
+                } else {
+                    console.error('[Explore Loader] Server detail modal not available');
                 }
             };
+            
+            console.log('[Explore Loader] Server detail functionality ready');
+            
+        } else if (attempts < maxAttempts) {
+            console.log(`[Explore Loader] ServerDetailModal not ready, retrying in 200ms... (${attempts}/${maxAttempts})`);
+            setTimeout(initServerDetail, 200);
+        } else {
+            console.error('[Explore Loader] Failed to initialize server detail modal after maximum attempts');
         }
-    }, 100);
+    };
+    
+    initServerDetail();
 }
+
+function debugExploreState() {
+    console.log('=== EXPLORE DEBUG STATE ===');
+    console.log('ServerDetailModal available:', typeof window.ServerDetailModal !== 'undefined');
+    console.log('serverDetailModal instance:', !!window.serverDetailModal);
+    console.log('showServerDetail function:', typeof window.showServerDetail === 'function');
+    console.log('Server API available:', typeof window.serverAPI !== 'undefined');
+    console.log('Modal element exists:', !!document.getElementById('server-detail-modal'));
+    console.log('Server cards count:', document.querySelectorAll('.explore-server-card').length);
+    console.log('Scripts loaded:', Array.from(document.querySelectorAll('script')).map(s => s.src).filter(s => s.includes('server-detail')));
+    console.log('=== END EXPLORE DEBUG ===');
+}
+
+window.debugExploreState = debugExploreState;
 
 function showPageLoading(container) {
     container.innerHTML = `

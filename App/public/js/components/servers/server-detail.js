@@ -110,40 +110,50 @@ class ServerDetailModal {
         const onlineCountElement = document.querySelector('.online-count');
         const iconElement = document.getElementById('server-modal-icon');
         const iconFallback = document.getElementById('server-modal-icon-fallback');
-        const iconFallbackText = iconFallback.querySelector('span');
+        const iconFallbackText = iconFallback ? iconFallback.querySelector('span') : null;
         const bannerElement = document.getElementById('server-modal-banner');
         
-        nameElement.textContent = server.name || 'Unknown Server';
+        if (nameElement) nameElement.textContent = server.name || 'Unknown Server';
         
-        if (server.description && server.description.trim()) {
-            descriptionElement.textContent = server.description;
-        } else {
-            descriptionElement.textContent = 'No description available';
+        if (descriptionElement) {
+            if (server.description && server.description.trim()) {
+                descriptionElement.textContent = server.description;
+            } else {
+                descriptionElement.textContent = 'No description available';
+            }
         }
         
-        membersCountElement.textContent = (server.member_count || 0).toLocaleString();
-        
-        const onlineCount = Math.min(
-            Math.floor(Math.random() * (server.member_count || 10)) + 1,
-            server.member_count || 1
-        );
-        onlineCountElement.textContent = onlineCount;
-        
-        if (server.image_url) {
-            iconElement.src = server.image_url;
-            iconElement.classList.remove('hidden');
-            iconFallback.classList.add('hidden');
-        } else {
-            iconElement.src = '/assets/common/default-profile-picture.png';
-            iconElement.classList.remove('hidden');
-            iconFallback.classList.add('hidden');
+        if (membersCountElement) {
+            membersCountElement.textContent = (server.member_count || 0).toLocaleString();
         }
         
-        if (server.banner_url) {
-            bannerElement.src = server.banner_url;
-            bannerElement.classList.remove('hidden');
-        } else {
-            bannerElement.classList.add('hidden');
+        if (onlineCountElement) {
+            const onlineCount = Math.min(
+                Math.floor(Math.random() * (server.member_count || 10)) + 1,
+                server.member_count || 1
+            );
+            onlineCountElement.textContent = onlineCount;
+        }
+        
+        if (iconElement) {
+            if (server.image_url) {
+                iconElement.src = server.image_url;
+                iconElement.classList.remove('hidden');
+                if (iconFallback) iconFallback.classList.add('hidden');
+            } else {
+                iconElement.src = '/assets/common/default-profile-picture.png';
+                iconElement.classList.remove('hidden');
+                if (iconFallback) iconFallback.classList.add('hidden');
+            }
+        }
+        
+        if (bannerElement) {
+            if (server.banner_url) {
+                bannerElement.src = server.banner_url;
+                bannerElement.classList.remove('hidden');
+            } else {
+                bannerElement.classList.add('hidden');
+            }
         }
         
         this.updateJoinButton(server);
@@ -158,22 +168,22 @@ class ServerDetailModal {
             this.modal.querySelector('.member-stats'),
             this.modal.querySelector('.server-info-section'),
             this.modal.querySelector('#server-modal-join-container')
-        ];
+        ].filter(el => el);
         
         elements.forEach((el, index) => {
-            if (el) {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    el.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-                    el.style.opacity = '1';
-                    el.style.transform = 'translateY(0)';
-                }, 200 + (index * 100));
-            }
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                el.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            }, 200 + (index * 100));
         });
     }
     
     updateJoinButton(server) {
+        if (!this.joinButton) return;
+        
         const isJoined = server.is_member || false;
         
         if (isJoined) {
@@ -188,7 +198,7 @@ class ServerDetailModal {
     }
     
     async handleJoinServer() {
-        if (!this.currentServerId) return;
+        if (!this.currentServerId || !this.joinButton) return;
         
         if (this.joinButton.classList.contains('joined')) {
             this.animateButtonPress();
@@ -252,6 +262,7 @@ class ServerDetailModal {
     }
     
     animateButtonPress() {
+        if (!this.joinButton) return;
         this.joinButton.style.transform = 'scale(0.95)';
         setTimeout(() => {
             this.joinButton.style.transform = 'scale(1)';
@@ -259,6 +270,7 @@ class ServerDetailModal {
     }
     
     animateSuccess() {
+        if (!this.joinButton) return;
         this.joinButton.style.transform = 'scale(1.05)';
         setTimeout(() => {
             this.joinButton.style.transform = 'scale(1)';
@@ -287,6 +299,7 @@ class ServerDetailModal {
     }
     
     animateError() {
+        if (!this.joinButton) return;
         this.joinButton.style.animation = 'shake 0.5s ease-in-out';
         setTimeout(() => {
             this.joinButton.style.animation = '';
@@ -294,6 +307,8 @@ class ServerDetailModal {
     }
     
     hideModal() {
+        if (!this.modal) return;
+        
         this.modal.classList.remove('active');
         document.body.style.overflow = '';
         
@@ -315,6 +330,8 @@ class ServerDetailModal {
     }
     
     showModalWithAnimation() {
+        if (!this.modal) return;
+        
         this.modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
         
@@ -390,7 +407,8 @@ function initServerDetailModal() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initServerDetailModal);
 } else {
-    initServerDetailModal();
+    setTimeout(initServerDetailModal, 100);
 }
 
+export { ServerDetailModal };
 export default ServerDetailModal;

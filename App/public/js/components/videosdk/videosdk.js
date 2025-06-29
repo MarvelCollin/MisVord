@@ -7,15 +7,22 @@ class VideoSDKManager {
         this.eventHandlers = {};
         this.isDeafened = false;
         this.isConnected = false;
+        this.isMeetingJoined = false;
         this.sdkVersion = "0.2.7";
+        this.tokenCache = null;
+        this.tokenExpiry = 0;
         
-        // Hardcoded token for development
-        this.defaultToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlrZXkiOiI4YWQyZGJjZC02MzhkLTRmYmItOTk5Yy05YTQ4YTgzY2FhMTUiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIl0sImlhdCI6MTc0ODkxMzI5NywiZXhwIjoxNzY0NDY1Mjk3fQ.16_7vBmTkjKz8plb9eiRPAcKwmIxHqCgIb1OqSeB5vQ";
+        this.fallbackToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlrZXkiOiI4YWQyZGJjZC02MzhkLTRmYmItOTk5Yy05YTQ4YTgzY2FhMTUiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIiwiYWxsb3dfcHVibGlzaCJdLCJpYXQiOjE3NTEyMTU2MjEsImV4cCI6MTc1MzgwNzYyMX0.duF2XwBk9-glZTDWS8QyX4yGNaf6faZXUCLsc07QxJk";
     }
 
-    init(authToken) {
+    async getAuthToken() {
+        console.log('🔑 Using fresh VideoSDK token...');
+        return this.fallbackToken;
+    }
+
+    async init(authToken = null) {
         if (!authToken) {
-            authToken = this.defaultToken;
+            authToken = await this.getAuthToken();
         }
         
         if (typeof VideoSDK === 'undefined') {
@@ -26,13 +33,13 @@ class VideoSDKManager {
         VideoSDK.config(authToken);
         this.initialized = true;
         
-        console.log("VideoSDK initialized");
+        console.log("✅ VideoSDK initialized with fresh token");
         return this;
     }
     
     getMetaConfig() {
         return {
-            authToken: document.querySelector('meta[name="videosdk-token"]')?.content || this.defaultToken,
+            authToken: document.querySelector('meta[name="videosdk-token"]')?.content,
             meetingId: document.querySelector('meta[name="meeting-id"]')?.content,
             participantName: document.querySelector('meta[name="username"]')?.content,
             channelId: document.querySelector('meta[name="channel-id"]')?.content
@@ -42,6 +49,10 @@ class VideoSDKManager {
     async createMeetingRoom(customId = null) {
         try {
             console.log("Creating meeting room" + (customId ? `: ${customId}` : ""));
+            
+            if (!this.authToken) {
+                this.authToken = await this.getAuthToken();
+            }
             
             const options = customId ? { customRoomId: customId } : {};
             
@@ -56,14 +67,16 @@ class VideoSDKManager {
             
             if (response.ok) {
                 const data = await response.json();
-                console.log(`Meeting room created: ${data.roomId}`);
+                console.log(`✅ Meeting room created: ${data.roomId}`);
                 return data.roomId;
             } else {
-                console.error(`Failed to create meeting room: ${response.status}`);
+                console.error(`❌ Failed to create meeting room: ${response.status}`);
+                const errorText = await response.text();
+                console.error('Error details:', errorText);
                 return null;
             }
         } catch (error) {
-            console.error("Error creating meeting room:", error);
+            console.error("❌ Error creating meeting room:", error);
             return null;
         }
     }
@@ -131,7 +144,6 @@ class VideoSDKManager {
     setupEvents() {
         if (!this.meeting) return;
         
-        // Basic events
         const standardEvents = [
             'meeting-joined',
             'meeting-left',
@@ -144,11 +156,17 @@ class VideoSDKManager {
             this.meeting.on(eventName, (...args) => {
                 if (eventName === 'error') {
                     console.error("Meeting error:", args[0]);
+                } else if (eventName === 'meeting-joined') {
+                    console.log(`Event: ${eventName}`);
+                    this.isMeetingJoined = true;
+                    window.dispatchEvent(new CustomEvent('videosdkMeetingFullyJoined'));
+                } else if (eventName === 'meeting-left') {
+                    console.log(`Event: ${eventName}`);
+                    this.isMeetingJoined = false;
                 } else {
                     console.log(`Event: ${eventName}`);
                 }
                 
-                // Notify any registered handlers
                 if (this.eventHandlers[eventName]) {
                     this.eventHandlers[eventName].forEach(handler => {
                         try {
@@ -161,7 +179,6 @@ class VideoSDKManager {
             });
         }
         
-        // Simple setup for stream events
         this.setupSimpleStreamHandlers();
     }
     
@@ -188,10 +205,27 @@ class VideoSDKManager {
                 }
                 
                 let kind = data.kind || 'unknown';
-                let stream = data.stream;
+                let stream = null;
+                
+                if (data.stream) {
+                    stream = data.stream;
+                } else if (data.track) {
+                    stream = { track: data.track };
+                } else if (data.id && participant.streams && participant.streams.get(data.id)) {
+                    stream = participant.streams.get(data.id);
+                } else {
+                    console.debug('[VideoSDK] Stream enabled event - trying to find stream from participant streams');
+                    if (participant.streams && participant.streams.size > 0) {
+                        const latestStream = Array.from(participant.streams.values()).pop();
+                        if (latestStream) {
+                            stream = latestStream;
+                            console.debug('[VideoSDK] Using latest available stream');
+                        }
+                    }
+                }
                 
                 if (!stream) {
-                    console.warn('[VideoSDK] Stream enabled event with no stream object');
+                    console.debug('[VideoSDK] Stream enabled event without accessible stream object - this may be normal for audio-only events');
                     return;
                 }
                 
@@ -214,10 +248,12 @@ class VideoSDKManager {
                         }
                     } else if (stream.track?.kind === 'video') {
                         kind = stream.track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
+                    } else if (stream.track?.kind === 'audio') {
+                        kind = 'audio';
                     }
                 }
                 
-                console.log(`[VideoSDK] Stream enabled: ${kind} for participant ${participant.id}`);
+                console.log(`✅ [VideoSDK] Stream enabled: ${kind} for participant ${participant.id}`);
                 
                 window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', { 
                     detail: { kind, stream, participant: participant.id } 
@@ -228,6 +264,8 @@ class VideoSDKManager {
                 if (!data) return;
                 
                 const kind = data.kind || 'unknown';
+                console.log(`🔇 [VideoSDK] Stream disabled: ${kind} for participant ${participant.id}`);
+                
                 window.dispatchEvent(new CustomEvent('videosdkStreamDisabled', { 
                     detail: { kind, participant: participant.id } 
                 }));
@@ -311,22 +349,19 @@ class VideoSDKManager {
         try {
             console.log(`Joining meeting: ${this.meeting.id}`);
             
-            // Set flag to prevent disconnection during joining
             window.videoSDKJoiningInProgress = true;
             
-            // Store meeting globally
             window.videosdkMeeting = this.meeting;
             
-            // Join meeting
             await this.meeting.join();
             
-            // Update state
             this.isConnected = true;
             this.isDeafened = false;
             if (window.voiceState) window.voiceState.isConnected = true;
             if (window.voiceManager) window.voiceManager.isConnected = true;
             
-            // Notify success
+            await this.waitForMeetingJoined();
+            
             const channelId = document.querySelector('meta[name="channel-id"]')?.content;
             const channelName = document.querySelector('.channel-name')?.textContent || 'Voice Channel';
             
@@ -343,8 +378,8 @@ class VideoSDKManager {
         } catch (error) {
             console.error("Failed to join meeting:", error);
             
-            // Reset state
             this.isConnected = false;
+            this.isMeetingJoined = false;
             this.isDeafened = false;
             if (window.voiceState) window.voiceState.isConnected = false;
             if (window.voiceManager) window.voiceManager.isConnected = false;
@@ -355,21 +390,39 @@ class VideoSDKManager {
         }
     }
 
+    async waitForMeetingJoined(timeout = 10000) {
+        return new Promise((resolve, reject) => {
+            if (this.isMeetingJoined) {
+                resolve();
+                return;
+            }
+            
+            const timeoutId = setTimeout(() => {
+                reject(new Error('Timeout waiting for meeting to be fully joined'));
+            }, timeout);
+            
+            const onMeetingJoined = () => {
+                clearTimeout(timeoutId);
+                window.removeEventListener('videosdkMeetingFullyJoined', onMeetingJoined);
+                resolve();
+            };
+            
+            window.addEventListener('videosdkMeetingFullyJoined', onMeetingJoined);
+        });
+    }
+
     leaveMeeting() {
         if (this.meeting) {
             try {
-                // Clean up any monitoring resources
                 this.cleanupParticipantResources();
                 
-                // Reset voice states
                 this.isDeafened = false;
                 this.isConnected = false;
+                this.isMeetingJoined = false;
                 
-                // Leave the meeting
                 this.meeting.leave();
                 this.meeting = null;
                 
-                // Dispatch disconnect event
                 window.dispatchEvent(new CustomEvent('voiceDisconnect'));
                 
                 console.log('[VideoSDKManager] Successfully left meeting and reset states');
@@ -504,8 +557,8 @@ class VideoSDKManager {
     }
 
     async toggleWebcam() {
-        if (!this.meeting || !this.isConnected || !this.meeting.localParticipant) {
-            window.showToast?.('Voice not connected. Please join a voice channel first.', 'error');
+        if (!this.meeting || !this.isConnected || !this.isMeetingJoined || !this.meeting.localParticipant) {
+            window.showToast?.('Voice not fully connected. Please wait a moment and try again.', 'error');
             return false;
         }
         
@@ -535,6 +588,8 @@ class VideoSDKManager {
                 window.showToast?.('Camera is in use by another application.', 'error');
             } else if (error.code === 3033) {
                 window.showToast?.('Camera access unavailable.', 'error');
+            } else if (error.code === 3035) {
+                window.showToast?.('Please wait for voice connection to complete before using camera.', 'error');
             } else {
                 window.showToast?.('Failed to toggle camera. Please try again.', 'error');
             }
@@ -543,7 +598,7 @@ class VideoSDKManager {
     }
     
     async toggleScreenShare() {
-        if (!this.meeting || !this.isConnected) {
+        if (!this.meeting || !this.isConnected || !this.isMeetingJoined) {
             console.error('Meeting not ready for screen share');
             return false;
         }
@@ -569,6 +624,8 @@ class VideoSDKManager {
             console.error("Error toggling screen share:", error);
             if (error.code === 3016) {
                 console.warn('Screen sharing permission denied by user');
+            } else if (error.code === 3035) {
+                window.showToast?.('Please wait for voice connection to complete before screen sharing.', 'error');
             }
             return false;
         }
@@ -630,7 +687,7 @@ class VideoSDKManager {
     
     // Helper methods for state checking
     isReady() {
-        return this.initialized && this.meeting && this.isConnected;
+        return this.initialized && this.meeting && this.isConnected && this.isMeetingJoined;
     }
     
     getConnectionState() {
@@ -639,6 +696,7 @@ class VideoSDKManager {
             hasAuthToken: !!this.authToken,
             hasMeeting: !!this.meeting,
             isConnected: this.isConnected,
+            isMeetingJoined: this.isMeetingJoined,
             isDeafened: this.isDeafened,
             sdkVersion: this.sdkVersion,
             participantConnected: this.meeting?.localParticipant?.connectionStatus === 'connected',

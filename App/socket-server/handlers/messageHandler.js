@@ -415,12 +415,46 @@ class MessageHandler {
                 message_type: data.message_type || 'text',
                 attachments: data.attachments || [],
                 reply_message_id: data.reply_message_id,
-                reply_data: data.reply_data,
+                reply_data: null,
                 timestamp: currentTimestamp,
                 temp_message_id: temp_message_id,
                 source: 'websocket-originated',
                 is_temporary: true
             };
+            
+            // IMPORTANT: Fetch reply data BEFORE broadcasting temporary message
+            if (data.reply_message_id) {
+                console.log(`📝 [SAVE-AND-SEND] Fetching reply data for temporary broadcast: ${data.reply_message_id}`);
+                try {
+                    const replyResponse = await fetch(`http://app:1001/api/messages/${data.reply_message_id}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Socket-User-ID': client.data.user_id.toString(),
+                            'X-Socket-Username': client.data.username,
+                            'User-Agent': 'SocketServer/1.0'
+                        }
+                    });
+                    
+                    if (replyResponse.ok) {
+                        const replyResult = await replyResponse.json();
+                        if (replyResult.success && replyResult.data) {
+                            broadcastData.reply_data = {
+                                message_id: data.reply_message_id,
+                                content: replyResult.data.content,
+                                user_id: replyResult.data.user_id,
+                                username: replyResult.data.username,
+                                avatar_url: replyResult.data.avatar_url || '/public/assets/common/default-profile-picture.png'
+                            };
+                            console.log(`✅ [SAVE-AND-SEND] Reply data fetched for temporary broadcast: ${data.reply_message_id}`);
+                        }
+                    } else {
+                        console.warn(`⚠️ [SAVE-AND-SEND] Failed to fetch reply data for temp broadcast: ${replyResponse.status}`);
+                    }
+                } catch (replyError) {
+                    console.error(`❌ [SAVE-AND-SEND] Error fetching reply data for temp broadcast:`, replyError);
+                }
+            }
                     
             if (data.target_type === 'channel') {
                 broadcastData.channel_id = data.target_id;
@@ -437,13 +471,27 @@ class MessageHandler {
                 ? roomManager.getChannelRoom(data.target_id)
                 : roomManager.getDMRoom(data.target_id);
             
-            // Broadcast temporary message immediately
+            // Broadcast temporary message immediately (now with reply data if applicable)
             if (targetRoom) {
+                // First emit to bot for processing (before room broadcast)
+                io.emit('bot-message-intercept', broadcastData);
+                
                 io.to(targetRoom).emit(eventName, broadcastData);
-                console.log(`✅ [SAVE-AND-SEND] Temporary message broadcasted to room ${targetRoom}`);
+                console.log(`✅ [SAVE-AND-SEND] Temporary message broadcasted to room ${targetRoom}`, {
+                    messageId: broadcastData.id,
+                    hasReplyData: !!broadcastData.reply_data,
+                    replyMessageId: broadcastData.reply_message_id
+                });
             } else {
+                // First emit to bot for processing
+                io.emit('bot-message-intercept', broadcastData);
+                
                 io.emit(eventName, broadcastData);
-                console.log(`⚠️ [SAVE-AND-SEND] No room found, broadcasted to all clients`);
+                console.log(`⚠️ [SAVE-AND-SEND] No room found, broadcasted to all clients`, {
+                    messageId: broadcastData.id,
+                    hasReplyData: !!broadcastData.reply_data,
+                    replyMessageId: broadcastData.reply_message_id
+                });
             }
             
             // Now save to database via direct HTTP call to PHP
@@ -529,11 +577,27 @@ class MessageHandler {
                         throw new Error('No message_id found in server response');
                     }
                     
-                    // Broadcast the permanent ID update using underscores
+                    // Extract complete message data with reply_data from database response
+                    let completeMessageData = null;
+                    if (saveResult.data && saveResult.data.data && saveResult.data.data.message) {
+                        completeMessageData = saveResult.data.data.message;
+                    } else if (saveResult.data && saveResult.data.message) {
+                        completeMessageData = saveResult.data.message;
+                    } else if (saveResult.message) {
+                        completeMessageData = saveResult.message;
+                    }
+                    
+                    console.log(`🔍 [SAVE-AND-SEND] Extracted complete message data:`, {
+                        hasCompleteData: !!completeMessageData,
+                        hasReplyData: !!(completeMessageData?.reply_data),
+                        replyMessageId: completeMessageData?.reply_message_id
+                    });
+                    
+                    // Broadcast the permanent ID update with complete message data from database
                     const updateData = {
                         temp_message_id: temp_message_id,
                         real_message_id: realMessageId,
-                        message_data: saveResult,
+                        message_data: completeMessageData || saveResult,
                         timestamp: Date.now()
                     };
                     
