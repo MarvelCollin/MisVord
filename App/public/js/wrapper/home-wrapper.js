@@ -164,16 +164,16 @@ class HomeWrapper {
         this.clearMessages(errorDiv, successDiv);
         
         try {
-            const response = await $.ajax({
-                url: '/ajax/friends/send',
-                method: 'POST',
-                dataType: 'json',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                data: JSON.stringify({ username })
-            });
+                    const response = await $.ajax({
+            url: '/api/friends',
+            method: 'POST',
+            dataType: 'json',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: JSON.stringify({ username })
+        });
             
             if (response.success) {
                 this.showSuccess(successDiv, 'Friend request sent successfully!');
@@ -191,16 +191,16 @@ class HomeWrapper {
 
     async acceptFriendRequest(requestId) {
         try {
-            const response = await $.ajax({
-                url: '/ajax/friends/accept',
-                method: 'POST',
-                dataType: 'json',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                data: JSON.stringify({ id: requestId })
-            });
+                    const response = await $.ajax({
+            url: '/api/friends/accept',
+            method: 'POST',
+            dataType: 'json',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: JSON.stringify({ id: requestId })
+        });
             
             if (response.success) {
                 this.showToast('Friend request accepted!', 'success');
@@ -216,16 +216,16 @@ class HomeWrapper {
 
     async declineFriendRequest(requestId) {
         try {
-            const response = await $.ajax({
-                url: '/ajax/friends/decline',
-                method: 'POST',
-                dataType: 'json',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                data: JSON.stringify({ id: requestId })
-            });
+                    const response = await $.ajax({
+            url: '/api/friends/decline',
+            method: 'POST',
+            dataType: 'json',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: JSON.stringify({ id: requestId })
+        });
             
             if (response.success) {
                 this.showToast('Friend request declined', 'info');
@@ -241,16 +241,16 @@ class HomeWrapper {
 
     async cancelFriendRequest(userId) {
         try {
-            const response = await $.ajax({
-                url: '/ajax/friends/cancel',
-                method: 'POST',
-                dataType: 'json',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                data: JSON.stringify({ user_id: userId })
-            });
+                    const response = await $.ajax({
+            url: '/api/friends/cancel',
+            method: 'POST',
+            dataType: 'json',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: JSON.stringify({ user_id: userId })
+        });
             
             if (response.success) {
                 this.showToast('Friend request cancelled', 'info');
@@ -266,16 +266,16 @@ class HomeWrapper {
 
     async createDirectMessage(friendId) {
         try {
-            const response = await $.ajax({
-                url: '/ajax/chat/create-dm',
-                method: 'POST',
-                dataType: 'json',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                data: JSON.stringify({ friend_id: friendId })
-            });
+                    const response = await $.ajax({
+            url: '/api/chat/create-dm',
+            method: 'POST',
+            dataType: 'json',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: JSON.stringify({ friend_id: friendId })
+        });
             
             if (response.success && response.data) {
                 const roomId = response.data.room_id || response.data.channel_id;

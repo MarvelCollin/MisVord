@@ -15,6 +15,9 @@ class GlobalVoiceIndicator {
   init() {
     if (this.initialized) return;
 
+    // Clean up any existing voice indicators on init
+    this.cleanupExistingIndicators();
+
     this.setupEventListeners();
     this.initialized = true;
 
@@ -22,6 +25,14 @@ class GlobalVoiceIndicator {
     this.setupNavigationObserver();
 
     this.startConnectionVerification();
+  }
+
+  cleanupExistingIndicators() {
+    const existingIndicators = document.querySelectorAll('#voice-indicator');
+    if (existingIndicators.length > 0) {
+      console.log(`🧹 Cleaning up ${existingIndicators.length} existing voice indicators on init`);
+      existingIndicators.forEach(indicator => indicator.remove());
+    }
   }
 
   checkIfOnVoiceChannelPage() {
@@ -73,77 +84,9 @@ class GlobalVoiceIndicator {
     this.stopTimer();
   }
 
-  async loadIndicatorComponent(shouldShow = false) {
-    if (!this.isConnected && !window.videosdkMeeting) return;
-    
-    if (this.indicator) {
-      if (shouldShow) {
-        this.showIndicator();
-      }
-      return;
-    }
 
-    try {
-      const response = await fetch('/views/components/common/voice-indicator.php');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const html = await response.text();
-      
-      if (!this.isConnected && !window.videosdkMeeting) return;
-      
-      const container = document.createElement('div');
-      container.innerHTML = html.trim();
-      this.indicator = container.firstChild;
-      
-      if (!this.indicator) {
-        console.error("Voice indicator component not found in response");
-        return;
-      }
-      
-      document.body.appendChild(this.indicator);
-      
-      this.setupIndicatorElements();
-      this.startTimer();
-      
-      if (shouldShow) {
-        this.forceShowIndicator();
-      }
-    } catch (error) {
-      console.error("Error loading voice indicator component:", error);
-    }
-  }
   
-  forceShowIndicator() {
-    if (!this.indicator) {
-      console.warn('⚠️ Cannot show indicator - indicator element not found');
-      return;
-    }
-    
-    console.log('✅ Showing voice indicator');
-    
-    // Force display the indicator
-    this.indicator.style.display = "flex";
-    this.indicator.style.visibility = "visible";
-    this.indicator.classList.remove("scale-0", "opacity-0", "hidden");
-    this.indicator.classList.add("scale-100", "opacity-100");
-    
-    // Force CSS properties
-    this.indicator.style.opacity = "1";
-    this.indicator.style.transform = "scale(1)";
-    this.indicator.style.pointerEvents = "auto";
-    
-    // Update channel name if available
-    this.updateChannelInfo();
-    
-    console.log('🎨 Voice indicator shown with styles:', {
-      display: this.indicator.style.display,
-      opacity: this.indicator.style.opacity,
-      transform: this.indicator.style.transform,
-      classes: this.indicator.className
-    });
-  }
+
 
   makeDraggable() {
     if (!this.indicator) return;
@@ -301,18 +244,40 @@ class GlobalVoiceIndicator {
     });
     
     this.checkIfOnVoiceChannelPage();
+    
+    console.log('📍 Page detection result:', {
+      onVoiceChannelPage: this.onVoiceChannelPage,
+      currentPath: window.location.pathname,
+      voiceContainer: !!document.getElementById('voice-container'),
+      joinView: !!document.getElementById('joinView'),
+      meetingIdMeta: !!document.querySelector('meta[name="meeting-id"]')
+    });
 
-    // Always load the indicator component for now (for debugging)
+    // Clean up any existing indicators first
+    const existingIndicators = document.querySelectorAll('#voice-indicator');
+    if (existingIndicators.length > 0) {
+      console.log(`🗑️ Found ${existingIndicators.length} existing indicators, removing them`);
+      existingIndicators.forEach(indicator => indicator.remove());
+      this.indicator = null;
+    }
+
+    // Always load the indicator component for debugging (temporary)
+    console.log('🔄 Loading voice indicator component...');
     this.loadIndicatorComponent(true);
     
     setTimeout(() => {
+      console.log('⏰ Timeout check:', {
+        indicatorExists: !!this.indicator,
+        isConnected: this.isConnected,
+        onVoiceChannelPage: this.onVoiceChannelPage,
+        indicatorInDOM: !!document.getElementById('voice-indicator')
+      });
+      
       if (this.indicator && this.isConnected) {
-        console.log('🔍 Forcing indicator to show', {
-          indicatorExists: !!this.indicator,
-          isConnected: this.isConnected,
-          onVoiceChannelPage: this.onVoiceChannelPage
-        });
+        console.log('🔍 Forcing indicator to show');
         this.forceShowIndicator();
+      } else {
+        console.warn('⚠️ Cannot show indicator - missing requirements');
       }
     }, 500);
   }
@@ -604,8 +569,13 @@ class GlobalVoiceIndicator {
   }
 }
 
-const globalVoiceIndicator = new GlobalVoiceIndicator();
-
-window.globalVoiceIndicator = globalVoiceIndicator;
+// Prevent multiple instances
+if (!window.globalVoiceIndicator) {
+  const globalVoiceIndicator = new GlobalVoiceIndicator();
+  window.globalVoiceIndicator = globalVoiceIndicator;
+  console.log('✅ GlobalVoiceIndicator instance created');
+} else {
+  console.log('⚠️ GlobalVoiceIndicator already exists, skipping creation');
+}
 
 // No automatic connection on page load

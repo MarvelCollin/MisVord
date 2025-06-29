@@ -88,25 +88,29 @@ class SocketHandler {
                 return;
             }
             
+            const alreadyProcessed = this.chatSection.messageHandler.processedMessageIds.has(data.id);
+            
+            if (alreadyProcessed) {
+                console.log('🔄 Skipping duplicate channel message (already processed):', data.id);
+                return;
+            }
+            
             const isTemporaryMessage = data.is_temporary || data.id.toString().startsWith('temp-');
             
-            if (isSender) {
-                if (data.source === 'client-originated') {
-                    console.log('🔄 Skipping own client-originated message:', data.id);
-                    return;
-                }
-                
-                if (data.source === 'websocket-originated' && !isTemporaryMessage) {
-                    console.log('🔄 Skipping own websocket message (not temporary):', data.id);
+            if (isSender && !isTemporaryMessage) {
+                if (data.source === 'client-originated' || data.source === 'websocket-originated') {
+                    console.log('🔄 Skipping own non-temporary message:', {
+                        id: data.id,
+                        source: data.source,
+                        isTemporary: isTemporaryMessage
+                    });
                     return;
                 }
             }
             
             const alreadySent = window._sentMessageIds && window._sentMessageIds.has(data.id);
-            const alreadyProcessed = this.chatSection.messageHandler.processedMessageIds.has(data.id);
-            
-            if (alreadySent || alreadyProcessed) {
-                console.log('🔄 Skipping duplicate channel message:', data.id);
+            if (alreadySent && !isTemporaryMessage) {
+                console.log('🔄 Skipping already sent message:', data.id);
                 return;
             }
             
@@ -118,7 +122,7 @@ class SocketHandler {
                 isTemporary: isTemporaryMessage
             });
             
-            this.chatSection.messageHandler.addMessage({...data, source: 'server-originated'});
+            this.chatSection.messageHandler.addMessage({...data, source: 'socket-originated'});
             
             if (!isSender) {
                 this.chatSection.playMessageSound();
@@ -159,25 +163,29 @@ class SocketHandler {
                 return;
             }
             
+            const alreadyProcessed = this.chatSection.messageHandler.processedMessageIds.has(data.id);
+            
+            if (alreadyProcessed) {
+                console.log('🔄 Skipping duplicate DM message (already processed):', data.id);
+                return;
+            }
+            
             const isTemporaryMessage = data.is_temporary || data.id.toString().startsWith('temp-');
             
-            if (isSender) {
-                if (data.source === 'client-originated') {
-                    console.log('🔄 Skipping own client-originated DM message:', data.id);
-                    return;
-                }
-                
-                if (data.source === 'websocket-originated' && !isTemporaryMessage) {
-                    console.log('🔄 Skipping own websocket DM message (not temporary):', data.id);
+            if (isSender && !isTemporaryMessage) {
+                if (data.source === 'client-originated' || data.source === 'websocket-originated') {
+                    console.log('🔄 Skipping own non-temporary DM message:', {
+                        id: data.id,
+                        source: data.source,
+                        isTemporary: isTemporaryMessage
+                    });
                     return;
                 }
             }
             
             const alreadySent = window._sentMessageIds && window._sentMessageIds.has(data.id);
-            const alreadyProcessed = this.chatSection.messageHandler.processedMessageIds.has(data.id);
-            
-            if (alreadySent || alreadyProcessed) {
-                console.log('🔄 Skipping duplicate DM message:', data.id);
+            if (alreadySent && !isTemporaryMessage) {
+                console.log('🔄 Skipping already sent DM message:', data.id);
                 return;
             }
             
@@ -189,7 +197,7 @@ class SocketHandler {
                 isTemporary: isTemporaryMessage
             });
             
-            this.chatSection.messageHandler.addMessage({...data, source: 'server-originated'});
+            this.chatSection.messageHandler.addMessage({...data, source: 'socket-originated'});
             
             if (!isSender) {
                 this.chatSection.playMessageSound();

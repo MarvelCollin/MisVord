@@ -27,10 +27,10 @@ export function loadExplorePage() {
 
         console.log('[Explore AJAX] Starting request to:', url);
 
-        window.ajax({
+        $.ajax({
             url: url,
             method: 'GET',
-            dataType: 'text',
+            dataType: 'html',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             },

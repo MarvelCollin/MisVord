@@ -1,96 +1,77 @@
 const serverAPI = {
     createServer: function(formData) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: '/api/servers/create',
+        return $.ajax({
+            url: '/api/servers/create',
             method: 'POST',
-                data: formData,
+            data: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+            }
         });
     },
 
     getServerPageHTML: function(serverId) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: `/server/${serverId}?render_html=1`,
+        return $.ajax({
+            url: `/server/${serverId}?render_html=1`,
             method: 'GET',
+            dataType: 'html',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+            }
         });
     },
     
     getStats: function() {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: '/api/admin/servers/stats',
+        return $.ajax({
+            url: '/api/admin/servers/stats',
             method: 'GET',
+            dataType: 'json',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+            }
         });
     },
     
     listServers: function(page = 1, limit = 10, search = '') {
-        return new Promise((resolve, reject) => {
         const params = new URLSearchParams({
             page,
             limit,
             q: search
         });
         
-            ajax({
-                url: `/api/admin/servers?${params.toString()}`,
+        return $.ajax({
+            url: `/api/admin/servers?${params.toString()}`,
             method: 'GET',
+            dataType: 'json',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+            }
         });
     },
     
     getServerDetails: function(serverId) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: `/api/admin/servers/${serverId}`,
+        return $.ajax({
+            url: `/api/admin/servers/${serverId}`,
             method: 'GET',
+            dataType: 'json',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+            }
         });
     },
 
     deleteServer: function(serverId) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: `/api/admin/servers/${serverId}`,
+        return $.ajax({
+            url: `/api/admin/servers/${serverId}`,
             method: 'DELETE',
+            dataType: 'json',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+            }
         });
     },
     
@@ -385,17 +366,14 @@ const serverAPI = {
     },
 
     searchServers: function(query) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: `/api/explore/servers/search?q=${encodeURIComponent(query)}`,
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+        return $.ajax({
+            url: `/api/explore/servers/search?q=${encodeURIComponent(query)}`,
+            method: 'GET',
+            dataType: 'json',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
     },
 
@@ -407,77 +385,62 @@ const serverAPI = {
             formData.append('server_id', data);
         }
 
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: '/api/servers/join',
-                method: 'POST',
-                data: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+        return $.ajax({
+            url: '/api/servers/join',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
     },
 
     getExploreLayout: function() {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: '/explore-servers/layout',
-                method: 'GET',
-                dataType: 'text',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+        return $.ajax({
+            url: '/explore-servers/layout',
+            method: 'GET',
+            dataType: 'html',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
     },
 
     getExploreContent: function() {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: '/api/explore/content',
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+        return $.ajax({
+            url: '/api/explore/content',
+            method: 'GET',
+            dataType: 'json',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
     },
 
     getServersByCategory: function(category) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: `/api/explore/servers/category?category=${encodeURIComponent(category)}`,
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+        return $.ajax({
+            url: `/api/explore/servers/category?category=${encodeURIComponent(category)}`,
+            method: 'GET',
+            dataType: 'json',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
     },
 
     getFeaturedServers: function(limit = 3) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: `/api/explore/servers/featured?limit=${limit}`,
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+        return $.ajax({
+            url: `/api/explore/servers/featured?limit=${limit}`,
+            method: 'GET',
+            dataType: 'json',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
     }
 };

@@ -181,6 +181,43 @@ class HomeController extends BaseController
 
                 <?php include __DIR__ . '/../views/components/app-sections/active-now-section.php'; ?>
             </div>
+            
+            <?php if ($this->isAjaxRequest()): ?>
+            <script type="module">
+                console.log('[Home Layout] Initializing home page scripts via AJAX');
+                
+                // Initialize friends tab manager
+                if (typeof window.initFriendsTabManager === 'function') {
+                    window.initFriendsTabManager();
+                } else {
+                    // Import and initialize if not available
+                    import('/public/js/components/home/friends-tabs.js').then(module => {
+                        if (module.initFriendsTabManager) {
+                            module.initFriendsTabManager();
+                        }
+                    });
+                }
+                
+                // Initialize direct message navigation
+                if (typeof window.initDirectMessageNavigation === 'function') {
+                    window.initDirectMessageNavigation();
+                } else {
+                    // Import and initialize if not available
+                    import('/public/js/components/home/direct-message-nav.js').then(module => {
+                        if (module.initDirectMessageNavigation) {
+                            module.initDirectMessageNavigation();
+                        }
+                    });
+                }
+                
+                // Initialize any other home page components
+                if (typeof window.initializeHomeComponents === 'function') {
+                    window.initializeHomeComponents();
+                }
+                
+                console.log('[Home Layout] Home page scripts initialized successfully');
+            </script>
+            <?php endif; ?>
             <?php
             $html = ob_get_clean();
 

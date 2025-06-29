@@ -1,7 +1,12 @@
 <?php
+// Start output buffering immediately to prevent header issues
+ob_start();
+
+// Now include session handling
 require_once dirname(dirname(__DIR__)) . '/config/session.php';
 
-if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
@@ -24,8 +29,6 @@ $isFriendsPage = strpos($currentUri, '/home/friends') === 0;
 $isDMPage = strpos($currentUri, '/home/channels/dm/') === 0;
 $isHomePage = $currentUri === '/home' || $currentUri === '/home/';
 
-error_log("Home.php: URI analysis - current: $currentUri, isFriends: " . ($isFriendsPage ? 'yes' : 'no') . ", isDM: " . ($isDMPage ? 'yes' : 'no'));
-
 if ($isDMPage) {
     $contentType = 'dm';
     
@@ -35,15 +38,11 @@ if ($isDMPage) {
     if ($activeDmId) {
         $_SESSION['active_dm'] = $activeDmId;
         
-        error_log("Home.php: Processing DM from URL - DM ID: $activeDmId");
-        
         require_once dirname(__DIR__) . '/../controllers/ChatController.php';
         $chatController = new ChatController();
         
         $GLOBALS['chatType'] = 'direct';
         $GLOBALS['targetId'] = $activeDmId;
-        
-        error_log("Home.php: Set globals for DM - chatType: direct, targetId: $activeDmId");
         
         require_once dirname(__DIR__) . '/../database/repositories/ChatRoomRepository.php';
         $chatRoomRepository = new ChatRoomRepository();
@@ -72,8 +71,6 @@ if ($isDMPage) {
             
             $GLOBALS['chatData'] = $chatData;
             
-            error_log("Home.php: Chat data set for DM with friend: " . ($friend['username'] ?? 'Unknown'));
-            
             require_once __DIR__ . '/../../database/repositories/ChatRoomMessageRepository.php';
             $chatRoomMessageRepository = new ChatRoomMessageRepository();
             $rawMessages = $chatRoomMessageRepository->getMessagesByRoomId($activeDmId, 20, 0);
@@ -87,10 +84,6 @@ if ($isDMPage) {
             }
             
             $GLOBALS['messages'] = $formattedMessages;
-            
-            error_log("Home.php: Loaded " . count($formattedMessages) . " messages for DM room $activeDmId");
-        } else {
-            error_log("Home.php: Chat room not found for ID: $activeDmId");
         }
     }
 } elseif ($isFriendsPage || $isHomePage) {
@@ -111,15 +104,11 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
     $contentType = 'dm';
     $activeDmId = $_SESSION['active_dm'];
     
-    error_log("Home.php: Processing active DM session - DM ID: $activeDmId");
-    
     require_once dirname(__DIR__) . '/../controllers/ChatController.php';
     $chatController = new ChatController();
     
     $GLOBALS['chatType'] = 'direct';
     $GLOBALS['targetId'] = $activeDmId;
-    
-    error_log("Home.php: Set globals - chatType: direct, targetId: $activeDmId");
     
     require_once dirname(__DIR__) . '/../database/repositories/ChatRoomRepository.php';
     $chatRoomRepository = new ChatRoomRepository();
@@ -148,8 +137,6 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
         
         $GLOBALS['chatData'] = $chatData;
         
-        error_log("Home.php: Chat data set for DM with friend: " . ($friend['username'] ?? 'Unknown'));
-        
         require_once __DIR__ . '/../../database/repositories/ChatRoomMessageRepository.php';
         $chatRoomMessageRepository = new ChatRoomMessageRepository();
         $rawMessages = $chatRoomMessageRepository->getMessagesByRoomId($activeDmId, 20, 0);
@@ -163,10 +150,6 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
         }
         
         $GLOBALS['messages'] = $formattedMessages;
-        
-        error_log("Home.php: Loaded " . count($formattedMessages) . " messages for DM room $activeDmId");
-    } else {
-        error_log("Home.php: Chat room not found for ID: $activeDmId");
     }
 }
 
@@ -183,7 +166,11 @@ $additional_js = [
 $head_scripts = ['logger-init'];
 ?>
 
-<?php ob_start(); ?>
+<?php 
+if (!ob_get_level()) {
+    ob_start();
+}
+?>
 
 <?php if (isset($_GET['debug'])): ?>
 <div style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 1000; color: white; max-width: 500px; overflow: auto; max-height: 80%;">
@@ -213,6 +200,17 @@ window.currentUsername = <?php echo json_encode($_SESSION['username'] ?? $GLOBAL
 <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/app-layout.php'; ?>
 
 <?php 
-$content = ob_get_clean(); 
-include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
+$content = ob_get_clean();
+
+// Check if this is an AJAX request
+$isAjaxRequest = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                 strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+
+if ($isAjaxRequest) {
+    // For AJAX requests, output only the content
+    echo $content;
+} else {
+    // For regular requests, include the full layout
+    include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
+}
 ?>

@@ -17,6 +17,7 @@ $is_auth_page = isset($data_page) && $data_page === 'auth';
 $core_scripts = ['core/ui/toast'];
 if (!$is_auth_page) {
     $core_scripts[] = 'core/socket/global-socket-manager';
+    $core_scripts[] = 'components/messaging/bubble-chat-component';
 }
 
 $auth_scripts = [];
@@ -87,4 +88,3 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Voice components -->
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
-<script src="<?php echo asset('/js/components/voice/voice-indicator.js'); ?>"></script>

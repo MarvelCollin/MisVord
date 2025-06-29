@@ -819,7 +819,7 @@ export async function handleHomeClick(event) {
 
         console.log('[Home Navigation] Loading home page with AJAX');
         const response = await $.ajax({
-            url: '/home',
+            url: '/home/layout',
             method: 'GET',
             dataType: 'html',
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -836,6 +836,28 @@ export async function handleHomeClick(event) {
             console.log('[Home Navigation] Found main content container:', mainContent.className || mainContent.id);
             mainContent.innerHTML = response;
             console.log('[Home Navigation] Home page content loaded successfully');
+            
+            // Find and execute any embedded scripts
+            const scriptTags = mainContent.querySelectorAll('script');
+            scriptTags.forEach(script => {
+                if (script.type === 'module' || script.type === 'text/javascript' || !script.type) {
+                    try {
+                        if (script.src) {
+                            // External script
+                            const newScript = document.createElement('script');
+                            newScript.src = script.src;
+                            newScript.type = script.type || 'text/javascript';
+                            document.head.appendChild(newScript);
+                        } else {
+                            // Inline script
+                            eval(script.textContent);
+                        }
+                        console.log('[Home Navigation] Executed script:', script.type || 'inline');
+                    } catch (error) {
+                        console.error('[Home Navigation] Error executing script:', error);
+                    }
+                }
+            });
         } else {
             console.error('[Home Navigation] Could not find main content container or no response');
             console.log('[Home Navigation] Available containers:', {

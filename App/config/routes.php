@@ -19,20 +19,7 @@ require_once __DIR__ . '/../controllers/BotController.php';
 require_once __DIR__ . '/../controllers/DebugController.php';
 require_once __DIR__ . '/env.php';
 
-function handleAjaxRequest() {
-    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    
-    if (strpos($uri, '/ajax/') === 0) {
-        require_once __DIR__ . '/ajax_routes.php';
-        return true;
-    }
-    
-    return false;
-}
 
-if (php_sapi_name() !== 'cli' && handleAjaxRequest()) {
-    exit;
-}
 
 class Route {
     private static $routes = [];
@@ -508,36 +495,7 @@ Route::get('/api/auth/check', function() {
 
 
 
-Route::get('/api/debug-simple', function() {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => true, 'message' => 'Simple debug route working', 'uri' => $_SERVER['REQUEST_URI']]);
-});
 
-Route::get('/api/debug-pattern/([0-9]+)', function($id) {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => true, 'message' => 'Pattern debug route working', 'id' => $id, 'uri' => $_SERVER['REQUEST_URI']]);
-});
-
-Route::get('/api/debug/database', function() {
-    header('Content-Type: application/json');
-    try {
-        $db = require_once __DIR__ . '/db.php';
-        $stmt = $db->prepare("SELECT 1 as test");
-        $stmt->execute();
-        $result = $stmt->fetch();
-        
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Database connection successful',
-            'test_query' => $result ? 'passed' : 'failed'
-        ]);
-    } catch (Exception $e) {
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Database connection failed: ' . $e->getMessage()
-        ]);
-    }
-});
 
 Route::post('/api/servers/([0-9]+)/settings', function($serverId) {
     $controller = new ServerController();
@@ -689,34 +647,7 @@ Route::get('/api/users/([0-9]+)', function($userId) {
     $controller->getUserData($userId);
 });
 
-Route::get('/api/debug/user-profile/([0-9]+)', function($userId) {
-    header('Content-Type: application/json');
-    
-    try {
-        require_once __DIR__ . '/../controllers/UserController.php';
-        $controller = new UserController();
-        
-        $profile = $controller->getUserProfile($userId);
-        
-        
-        
-        if ($profile !== null) {
-            echo json_encode([
-                'success' => true,
-                'debug_info' => 'UserController::getUserProfile returned a value instead of sending a response directly',
-                'profile_data' => $profile
-            ], JSON_PRETTY_PRINT);
-        }
-    } catch (Exception $e) {
-        echo json_encode([
-            'success' => false,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], JSON_PRETTY_PRINT);
-    }
-    
-    exit;
-});
+
 
 
 Route::post('/user/avatar/update', function() {
@@ -751,91 +682,7 @@ Route::get('/api/user/security-question', function() {
     $controller->getCurrentUserSecurityQuestion();
 });
 
-Route::get('/api/debug/user-security', function() {
-    header('Content-Type: application/json');
-    
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-    
-    $debugInfo = [
-        'session_status' => session_status(),
-        'session_id' => session_id(),
-        'session_data' => $_SESSION ?? [],
-        'user_id_from_session' => $_SESSION['user_id'] ?? 'NOT_SET',
-        'authenticated' => isset($_SESSION['user_id']),
-    ];
-    
-    if (!isset($_SESSION['user_id'])) {
-        echo json_encode([
-            'success' => false,
-            'error' => 'Not authenticated', 
-            'debug' => $debugInfo
-        ], JSON_PRETTY_PRINT);
-        exit;
-    }
-    
-    try {
-        require_once __DIR__ . '/../database/repositories/UserRepository.php';
-        require_once __DIR__ . '/../database/models/User.php';
-        require_once __DIR__ . '/../database/query.php';
-        
-        $userRepository = new UserRepository();
-        $userId = $_SESSION['user_id'];
-        
-        $debugInfo['trying_to_find_user_id'] = $userId;
-        
-        $user = $userRepository->find($userId);
-        
-        $debugInfo['user_found'] = $user ? true : false;
-        
-        if (!$user) {
-            $query = new Query();
-            $directResult = $query->table('users')->where('id', $userId)->first();
-            
-            $debugInfo['direct_query_result'] = $directResult ? 'FOUND' : 'NOT_FOUND';
-            $debugInfo['direct_query_data'] = $directResult;
-            
-            echo json_encode([
-                'success' => false,
-                'error' => 'User not found in repository',
-                'debug' => $debugInfo
-            ], JSON_PRETTY_PRINT);
-            exit;
-        }
-        
-        $userAttributes = $user->toArray();
-        
-        echo json_encode([
-            'success' => true,
-            'user_data' => [
-                'id' => $user->id ?? 'NULL',
-                'username' => $user->username ?? 'NULL',
-                'email' => $user->email ?? 'NULL',
-                'security_question' => $user->security_question ?? 'NULL',
-                'security_answer_set' => !empty($user->security_answer),
-                'created_at' => $user->created_at ?? 'NULL'
-            ],
-            'raw_attributes' => $userAttributes,
-            'security_question_status' => [
-                'exists' => isset($user->security_question),
-                'not_empty' => !empty($user->security_question),
-                'value' => $user->security_question ?? 'NULL',
-                'length' => isset($user->security_question) ? strlen($user->security_question) : 0
-            ],
-            'debug' => $debugInfo
-        ], JSON_PRETTY_PRINT);
-        
-    } catch (Exception $e) {
-        echo json_encode([
-            'success' => false,
-            'error' => 'Exception: ' . $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'debug' => $debugInfo
-        ], JSON_PRETTY_PRINT);
-    }
-    exit;
-});
+
 
 Route::post('/api/user/verify-security-answer', function() {
     $controller = new UserController();
@@ -1041,9 +888,7 @@ Route::get('/api/admin/stats/servers/growth', function() {
     return $controller->getServerGrowthStats();
 });
 
-Route::get('/components/common/voice-indicator', function() {
-    require_once __DIR__ . '/../views/components/common/voice-indicator.php';
-});
+
 
 Route::get('/api/health/ping', function() {
     $controller = new HealthController();

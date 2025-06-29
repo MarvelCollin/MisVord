@@ -5,8 +5,7 @@ class VoiceSection {
             joinView: null,
             connectingView: null,
             videoGrid: null,
-            voiceControls: null,
-            voiceIndicator: null
+            voiceControls: null
         };
         
         this.durationInterval = null;
@@ -27,8 +26,7 @@ class VoiceSection {
             joinView: document.getElementById('joinView'),
             connectingView: document.getElementById('connectingView'),
             videoGrid: document.getElementById('videoGrid'),
-            voiceControls: document.getElementById('voiceControls'),
-            voiceIndicator: document.getElementById('voice-indicator')
+            voiceControls: document.getElementById('voiceControls')
         };
         
         // Log which elements were found/not found for debugging
@@ -186,38 +184,7 @@ class VoiceSection {
                 this.updateChannelNames(details.channelName);
             }
             
-            // Show and update the voice indicator
-            if (this.elements.voiceIndicator) {
-                this.elements.voiceIndicator.style.display = 'block';
-                this.elements.voiceIndicator.classList.remove('scale-0', 'opacity-0');
-                
-                // Update channel name in voice indicator if applicable
-                const channelNameEl = this.elements.voiceIndicator.querySelector('.channel-name');
-                if (channelNameEl && details.channelName) {
-                    channelNameEl.textContent = details.channelName.length > 10 
-                        ? details.channelName.substring(0, 8) + '...' 
-                        : details.channelName;
-                }
-                
-                // Initialize duration timer if it exists
-                const durationEl = this.elements.voiceIndicator.querySelector('.connection-duration');
-                if (durationEl) {
-                    this.connectionStartTime = Date.now();
-                    if (this.durationInterval) {
-                        clearInterval(this.durationInterval);
-                    }
-                    
-                    this.durationInterval = setInterval(() => {
-                        if (!this.connectionStartTime || !durationEl) return;
-                        
-                        const duration = Math.floor((Date.now() - this.connectionStartTime) / 1000);
-                        const minutes = Math.floor(duration / 60);
-                        const seconds = duration % 60;
-                        
-                        durationEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                    }, 1000);
-                }
-            }
+
             
             if (details.meetingId && details.channelName) {
                 localStorage.setItem("voiceConnectionState", JSON.stringify({
@@ -254,22 +221,7 @@ class VoiceSection {
                 this.elements.joinBtn.textContent = 'Join Voice';
             }
             
-            // Hide voice indicator
-            if (this.elements.voiceIndicator) {
-                this.elements.voiceIndicator.classList.add('scale-0', 'opacity-0');
-                setTimeout(() => {
-                    if (this.elements.voiceIndicator) {
-                        this.elements.voiceIndicator.style.display = 'none';
-                    }
-                }, 300);
-                
-                // Clear duration timer
-                if (this.durationInterval) {
-                    clearInterval(this.durationInterval);
-                    this.durationInterval = null;
-                }
-                this.connectionStartTime = null;
-            }
+
             
             window.voiceState.isConnected = false;
             localStorage.removeItem("voiceConnectionState");
@@ -367,15 +319,7 @@ class VoiceSection {
                     if (state.channelName) {
                         this.updateChannelNames(state.channelName);
                         
-                        if (this.elements.voiceIndicator) {
-                            const durationEl = this.elements.voiceIndicator.querySelector('.connection-duration');
-                            if (durationEl && state.connectionTime) {
-                                const duration = Math.floor((Date.now() - state.connectionTime) / 1000);
-                                const minutes = Math.floor(duration / 60);
-                                const seconds = duration % 60;
-                                durationEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                            }
-                        }
+
                     }
                     
                     this.waitForVoiceManager().then(() => {
@@ -457,8 +401,7 @@ class VoiceSection {
             joinView: null,
             connectingView: null,
             videoGrid: null,
-            voiceControls: null,
-            voiceIndicator: null
+            voiceControls: null
         };
         
         // Re-initialize after a short delay to let the DOM update

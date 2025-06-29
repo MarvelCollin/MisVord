@@ -229,14 +229,15 @@ class ChannelSwitchManager {
         });
         
         try {
-            const response = await ajax({
-                url: `/api/channels/content?server_id=${serverId}&channel_id=${channelId}&type=${channelType}&render_html=true`,
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
+                    const response = await $.ajax({
+            url: `/api/channels/content?server_id=${serverId}&channel_id=${channelId}&type=${channelType}&render_html=true`,
+            method: 'GET',
+            dataType: 'json',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
 
             console.log('[ChannelSwitchManager] Channel content response:', response);
 

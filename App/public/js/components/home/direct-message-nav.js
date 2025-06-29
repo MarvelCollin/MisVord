@@ -102,7 +102,10 @@ class DirectMessageNavigation {
         
         this.activeDmId = dmId;
         this.updateActiveDmDisplay();
-        this.loadDirectMessageContent(dmId, username);
+        
+        // Simple DOM manipulation instead of AJAX
+        this.hideFriendsContent();
+        this.showDirectMessageContent(dmId, username);
         
         history.pushState(
             { pageType: 'home', contentType: 'dm', dmId: dmId }, 
@@ -113,13 +116,8 @@ class DirectMessageNavigation {
 
     createAndSwitchToDirectMessage(friendId, username) {
         console.log('[DM Navigation] Creating new DM with friend:', { friendId, username });
-        
-        if (!window.ajax) {
-            console.error('[DM Navigation] Ajax function not available');
-            return;
-        }
 
-        window.ajax({
+        $.ajax({
             url: '/api/chat/create',
             method: 'POST',
             dataType: 'json',
@@ -148,9 +146,9 @@ class DirectMessageNavigation {
             }
         });
     }
-
-    loadDirectMessageContent(dmId, username) {
-        console.log('[DM Navigation] Loading DM content for:', dmId);
+    
+    showDirectMessageContent(dmId, username) {
+        console.log('[DM Navigation] Showing DM content for:', dmId);
         
         const mainContent = document.querySelector('#main-content');
         if (!mainContent) {
@@ -158,46 +156,17 @@ class DirectMessageNavigation {
             return;
         }
         
-        this.showLoadingState(mainContent);
-        
-        if (!window.ajax) {
-            console.error('[DM Navigation] Ajax function not available');
-            return;
-        }
-
-        window.ajax({
-            url: `/api/chat/render/dm/${dmId}`,
-            method: 'GET',
-            dataType: 'text',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            success: (response) => {
-                console.log('[DM Navigation] DM content loaded successfully');
-                this.updateMainContentForDm(response, username);
-            },
-            error: (xhr, status, error) => {
-                console.error('[DM Navigation] Error loading DM content:', error);
-                this.showErrorState(mainContent, 'Failed to load conversation');
-            }
-        });
-    }
-
-    updateMainContentForDm(html, username) {
-        const mainContent = document.querySelector('#main-content');
-        if (!mainContent) return;
-        
-        console.log('[DM Navigation] Updating main content for DM');
-        
+        // Show a simple placeholder for now
         mainContent.innerHTML = `
-            <div class="chat-section">
-                ${html}
+            <div class="flex-1 flex flex-col bg-discord-background">
+                <div class="h-12 bg-discord-dark border-b border-gray-800 flex items-center px-4">
+                    <span class="text-white font-semibold">@ ${username}</span>
+                </div>
+                <div class="flex-1 flex items-center justify-center text-gray-400">
+                    <p>Direct message conversation with ${username}</p>
+                </div>
             </div>
         `;
-        
-        this.hideFriendsContent();
-        
-        if (typeof window.initializeChatSection === 'function') {
-            window.initializeChatSection();
-        }
     }
 
     showFriendsContent() {
@@ -242,23 +211,6 @@ class DirectMessageNavigation {
         console.log('[DM Navigation] Clearing active DM');
         this.activeDmId = null;
         this.updateActiveDmDisplay();
-    }
-
-    showLoadingState(container) {
-        container.innerHTML = `
-            <div class="flex items-center justify-center h-full">
-                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-        `;
-    }
-
-    showErrorState(container, message) {
-        container.innerHTML = `
-            <div class="flex flex-col items-center justify-center h-full text-gray-400">
-                <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
-                <p>${message}</p>
-            </div>
-        `;
     }
 
     openNewDirectMessageModal() {

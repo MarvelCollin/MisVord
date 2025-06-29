@@ -82,7 +82,7 @@ $include_socket_io = true;
 <link rel="stylesheet" href="<?php echo css('message-context-menu'); ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?= asset('/css/friends-mobile-menu.css') ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?= asset('/css/user-detail.css') ?>">
-<link rel="stylesheet" href="<?= asset('/css/voice-indicator.css') ?>">
+
 <link rel="stylesheet" href="<?= asset('/css/server-dropdown.css') ?>?v=<?php echo $cache_version; ?>">
 
 <?php if (isset($page_css)): ?>

@@ -103,6 +103,11 @@ class ChatSection {
             username: this.username
         });
         
+        // Clear any existing processed messages when initializing
+        if (this.messageHandler) {
+            this.messageHandler.clearProcessedMessages();
+        }
+        
         // Load chat parameters from meta tags if not provided
         if (!this.chatType || this.chatType === '') {
             const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
@@ -181,9 +186,11 @@ class ChatSection {
             console.warn('⚠️ [CHAT-SECTION] Socket handler not initialized');
         }
         
-        // Load initial messages if we have a target ID
+        // Load initial messages if we have a target ID (with small delay to prevent race conditions)
         if (this.targetId) {
-            this.loadMessages();
+            setTimeout(() => {
+                this.loadMessages();
+            }, 100);
         }
         
         // Initialize event listeners for existing server-rendered messages
@@ -391,9 +398,9 @@ class ChatSection {
                         this.lastLoadedMessageId = messages[0].id;
                     }
                     
-                    // Render messages
+                    // Render messages with API source tag
                     messages.forEach(message => {
-                        this.messageHandler.addMessage(message);
+                        this.messageHandler.addMessage({...message, source: 'api-loaded'});
                     });
                     
                     // Scroll to bottom if this is the initial load
@@ -993,6 +1000,85 @@ class ChatSection {
         });
         
         console.log('✅ [CHAT-SECTION] Existing message initialization complete');
+    }
+    
+    switchTarget(newChatType, newTargetId) {
+        console.log(`🔄 [CHAT-SECTION] Switching target from ${this.chatType}:${this.targetId} to ${newChatType}:${newTargetId}`);
+        
+        // Clear existing state
+        if (this.messageHandler) {
+            this.messageHandler.clearProcessedMessages();
+        }
+        
+        // Clear UI
+        if (this.chatMessages) {
+            this.chatMessages.innerHTML = '';
+        }
+        
+        // Update properties
+        this.chatType = newChatType;
+        this.targetId = newTargetId;
+        this.hasMoreMessages = true;
+        this.lastLoadedMessageId = null;
+        this.replyingTo = null;
+        this.currentEditingMessage = null;
+        
+        // Leave old socket room and join new one
+        if (window.globalSocketManager?.isReady()) {
+            this.joinSocketRoom();
+        }
+        
+        // Load messages for new target
+        if (this.targetId) {
+            this.loadMessages();
+        }
+        
+        console.log(`✅ [CHAT-SECTION] Successfully switched to ${newChatType}:${newTargetId}`);
+    }
+    
+    clearChatMessages() {
+        console.log('🧹 [CHAT-SECTION] Clearing chat messages');
+        
+        if (this.chatMessages) {
+            this.chatMessages.innerHTML = '';
+        }
+        
+        if (this.messageHandler) {
+            this.messageHandler.clearProcessedMessages();
+        }
+        
+        this.hasMoreMessages = true;
+        this.lastLoadedMessageId = null;
+    }
+    
+    debugMessageSystem() {
+        console.log('🔍 [CHAT-SECTION] Message System Debug Info:', {
+            chatType: this.chatType,
+            targetId: this.targetId,
+            processedMessageCount: this.messageHandler?.processedMessageIds?.size || 0,
+            temporaryMessageCount: this.messageHandler?.temporaryMessages?.size || 0,
+            socketReady: window.globalSocketManager?.isReady() || false,
+            socketAuthenticated: window.globalSocketManager?.authenticated || false,
+            messagesInDOM: document.querySelectorAll('[data-message-id]').length,
+            sentMessageIds: window._sentMessageIds?.size || 0
+        });
+        
+        // List all processed message IDs
+        if (this.messageHandler?.processedMessageIds?.size > 0) {
+            console.log('📝 Processed Message IDs:', Array.from(this.messageHandler.processedMessageIds));
+        }
+        
+        // List all DOM message elements
+        const domMessages = Array.from(document.querySelectorAll('[data-message-id]')).map(el => el.dataset.messageId);
+        if (domMessages.length > 0) {
+            console.log('🏠 Messages in DOM:', domMessages);
+        }
+        
+        return {
+            processedCount: this.messageHandler?.processedMessageIds?.size || 0,
+            domCount: domMessages.length,
+            tempCount: this.messageHandler?.temporaryMessages?.size || 0
+        };
     }
 }
 

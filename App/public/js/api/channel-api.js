@@ -1,66 +1,55 @@
 const channelAPI = {
     createChannel: function(formData) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: '/api/channels/create',
+        return $.ajax({
+            url: '/api/channels/create',
             method: 'POST',
-                data: formData,
+            data: formData,
+            processData: false,
+            contentType: false,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+            }
         });
     },
 
     updateChannel: function(channelId, data) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: `/api/channels/${channelId}`,
+        return $.ajax({
+            url: `/api/channels/${channelId}`,
             method: 'PUT',
+            dataType: 'json',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-                data: data,
-                success: resolve,
-                error: reject
-            });
+            data: JSON.stringify(data)
         });
     },
 
     deleteChannel: function(channelId) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: `/api/channels/${channelId}`,
+        return $.ajax({
+            url: `/api/channels/${channelId}`,
             method: 'DELETE',
+            dataType: 'json',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-            },
-                success: resolve,
-                error: reject
-            });
+            }
         });
     },
 
     getChannelMessages: function(channelId, offset = 0, limit = 50) {
-        return new Promise((resolve, reject) => {
         const params = new URLSearchParams({
             offset: offset,
             limit: limit
         });
         
-            ajax({
-                url: `/api/chat/channel/${channelId}/messages?${params.toString()}`,
+        return $.ajax({
+            url: `/api/chat/channel/${channelId}/messages?${params.toString()}`,
             method: 'GET',
+            dataType: 'json',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+            }
         });
     },
 
@@ -77,80 +66,66 @@ const channelAPI = {
     },
 
     joinVoiceChannel: function(channelId) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: '/api/voice/join',
+        return $.ajax({
+            url: '/api/voice/join',
             method: 'POST',
+            dataType: 'json',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-                data: { channel_id: channelId },
-                success: resolve,
-                error: reject
-            });
+            data: JSON.stringify({ channel_id: channelId })
         });
     },
 
     leaveVoiceChannel: function(channelId) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: '/api/voice/leave',
+        return $.ajax({
+            url: '/api/voice/leave',
             method: 'POST',
+            dataType: 'json',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-                data: { channel_id: channelId },
-                success: resolve,
-                error: reject
-            });
+            data: JSON.stringify({ channel_id: channelId })
         });
     },
 
     createCategory: function(formData) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: '/api/categories/create',
+        return $.ajax({
+            url: '/api/categories/create',
             method: 'POST',
-                data: formData,
+            data: formData,
+            processData: false,
+            contentType: false,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+            }
         });
     },
 
     updateChannelOrder: function(channelId, newPosition) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: `/api/channels/${channelId}/order`,
+        return $.ajax({
+            url: `/api/channels/${channelId}/order`,
             method: 'PUT',
+            dataType: 'json',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-                data: { position: newPosition },
-                success: resolve,
-                error: reject
-            });
+            data: JSON.stringify({ position: newPosition })
         });
     },
 
     getChannelDetails: function(channelId) {
-        return new Promise((resolve, reject) => {
-            ajax({
-                url: `/api/channels/${channelId}`,
+        return $.ajax({
+            url: `/api/channels/${channelId}`,
             method: 'GET',
+            dataType: 'json',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: resolve,
-                error: reject
-            });
+            }
         });
     }
 };

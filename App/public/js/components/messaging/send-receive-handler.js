@@ -75,7 +75,12 @@ class SendReceiveHandler {
             // Send message via WebSocket - this handles everything (display + database)
             window.globalSocketManager.io.emit('save-and-send-message', messageData);
             
-            console.log('✅ Message sent via WebSocket-only flow');
+            // Track that we sent this message (using temporary ID initially)
+            const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            if (!window._sentMessageIds) window._sentMessageIds = new Set();
+            window._sentMessageIds.add(tempId);
+            
+            console.log('✅ Message sent via WebSocket-only flow with temp ID:', tempId);
             
         } catch (error) {
             console.error('❌ Error sending message via WebSocket:', error);

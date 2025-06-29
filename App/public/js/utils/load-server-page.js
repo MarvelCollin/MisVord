@@ -41,10 +41,10 @@ export function loadServerPage(serverId, channelId = null) {
             'X-Requested-With': 'XMLHttpRequest'
         });
 
-        window.ajax({
+        $.ajax({
             url: url,
             method: 'GET',
-            dataType: 'text',
+            dataType: 'html',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             },

@@ -37,10 +37,10 @@ export function loadHomePage(pageType = 'friends') {
             'dataType': 'text'
         });
 
-        window.ajax({
+        $.ajax({
             url: url,
             method: 'GET',
-            dataType: 'text',
+            dataType: 'html',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             },
