@@ -822,6 +822,67 @@ window.debugVideoSDK = function() {
     console.log('=========================');
 };
 
+window.debugCamera = function() {
+    console.log('=== Camera Debug Info ===');
+    console.log('VideoSDK Manager:', !!window.videoSDKManager);
+    console.log('VideoSDK Meeting:', !!window.videosdkMeeting);
+    
+    if (window.videoSDKManager) {
+        const state = window.videoSDKManager.getConnectionState();
+        console.log('Connection State:', state);
+        console.log('Current Webcam State:', window.videoSDKManager.getWebcamState());
+        
+        if (window.videosdkMeeting && window.videosdkMeeting.localParticipant) {
+            const participant = window.videosdkMeeting.localParticipant;
+            console.log('Local Participant:', {
+                id: participant.id,
+                connectionStatus: participant.connectionStatus,
+                isWebcamEnabled: participant.isWebcamEnabled,
+                streams: participant.streams ? Array.from(participant.streams.keys()) : 'No streams'
+            });
+        }
+    }
+    
+    console.log('Voice State Manager:', !!window.voiceStateManager);
+    if (window.voiceStateManager) {
+        const voiceState = window.voiceStateManager.getState();
+        console.log('Voice State:', voiceState);
+    }
+    
+    const videoButton = document.getElementById('voiceVideoBtn');
+    console.log('Video Button:', {
+        exists: !!videoButton,
+        disabled: videoButton?.disabled,
+        classList: videoButton?.classList.toString()
+    });
+    
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            console.log('✅ Camera permission: GRANTED');
+            console.log('Camera stream:', {
+                id: stream.id,
+                active: stream.active,
+                videoTracks: stream.getVideoTracks().length
+            });
+            if (stream.getVideoTracks().length > 0) {
+                const track = stream.getVideoTracks()[0];
+                console.log('Video track:', {
+                    kind: track.kind,
+                    enabled: track.enabled,
+                    readyState: track.readyState,
+                    label: track.label
+                });
+            }
+            stream.getTracks().forEach(track => track.stop());
+        })
+        .catch(error => {
+            console.error('❌ Camera permission: DENIED or ERROR');
+            console.error('Error:', error.name, error.message);
+        });
+    
+    console.log('========================');
+};
+
 // Helper function to wait for SDK to load
 window.waitForVideoSDK = function(callback, maxAttempts = 20) {
     let attempts = 0;

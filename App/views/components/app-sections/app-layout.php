@@ -39,6 +39,8 @@ $additional_js[] = 'components/app-layout';
         <div class="flex flex-col flex-1" id="main-content">
             <?php if ($contentType === 'home'): ?>
                 <?php include dirname(__DIR__) . '/app-sections/home-main-content.php'; ?>
+            <?php elseif ($contentType === 'explore'): ?>
+                <?php include dirname(__DIR__) . '/app-sections/explore-main-content.php'; ?>
             <?php elseif ($contentType === 'server'): ?>
                 <div class="main-content-area flex-1">
                     <?php

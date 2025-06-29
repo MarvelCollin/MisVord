@@ -208,8 +208,6 @@ class MessageHandler {
                     'Content-Type': 'application/json',
                     'X-Socket-User-ID': data.user_id.toString(),
                     'X-Socket-Username': data.username,
-                    'X-Socket-Session-ID': client.data?.session_id || '',
-                    'X-Socket-Avatar-URL': client.data?.avatar_url || '/public/assets/common/default-profile-picture.png',
                     'User-Agent': 'SocketServer/1.0'
                 },
                 body: JSON.stringify({

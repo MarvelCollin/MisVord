@@ -65,7 +65,7 @@ class MessageHandler {
             tempDiv.innerHTML = bubbleHtml;
             
             const messageGroup = tempDiv.querySelector('.bubble-message-group');
-            
+        
             if (messageGroup) {
                 this.ensureBubbleStyles(tempDiv);
                 
@@ -73,7 +73,7 @@ class MessageHandler {
                 this.lastMessageGroup = messageGroup;
                 const messageElement = messageGroup.querySelector('[data-message-id]');
                 
-                if (isTemporary) {
+            if (isTemporary) {
                     this.markAsTemporary(messageElement);
                     this.temporaryMessages.set(messageData.id, messageElement);
                 }
@@ -176,17 +176,17 @@ class MessageHandler {
         this.ensureFallbackStyles();
         
         const messageGroup = this.createMessageGroup(formattedMessage);
-        if (!messageGroup) {
-            console.error('❌ [MESSAGE-HANDLER] Failed to create message group for:', formattedMessage);
-            return;
-        }
+            if (!messageGroup) {
+                console.error('❌ [MESSAGE-HANDLER] Failed to create message group for:', formattedMessage);
+                return;
+            }
         
-        messagesContainer.appendChild(messageGroup);
-        this.lastMessageGroup = messageGroup;
+            messagesContainer.appendChild(messageGroup);
+            this.lastMessageGroup = messageGroup;
         const messageElement = messageGroup.querySelector('[data-message-id]');
         
-        if (isTemporary) {
-            this.markAsTemporary(messageElement);
+            if (isTemporary) {
+                this.markAsTemporary(messageElement);
             this.temporaryMessages.set(formattedMessage.id, messageElement);
         }
         

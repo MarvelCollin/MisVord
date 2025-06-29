@@ -270,9 +270,26 @@ class MessageController extends BaseController
 
     public function addReaction($messageId)
     {
-        $this->requireAuth();
-        $userId = $this->getCurrentUserId();
-        $username = $_SESSION['username'] ?? 'Unknown User';
+        $socketUserId = $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? null;
+        $socketUsername = $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? null;
+        
+        if ($socketUserId && $socketUsername) {
+            $userId = $socketUserId;
+            $username = $socketUsername;
+            
+            $user = $this->getUserRepository()->find($userId);
+            if (!$user) {
+                return $this->unauthorized('Invalid user');
+            }
+            
+            error_log("Socket reaction: User $userId ($username) authenticated via headers");
+        } else {
+            $this->requireAuth();
+            $userId = $this->getCurrentUserId();
+            $username = $_SESSION['username'] ?? 'Unknown User';
+            
+            error_log("Web reaction: User $userId ($username) authenticated via session");
+        }
 
         $input = $this->getInput();
         $input = $this->sanitize($input);
@@ -360,9 +377,26 @@ class MessageController extends BaseController
 
     public function removeReaction($messageId)
     {
-        $this->requireAuth();
-        $userId = $this->getCurrentUserId();
-        $username = $_SESSION['username'] ?? 'Unknown User';
+        $socketUserId = $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? null;
+        $socketUsername = $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? null;
+        
+        if ($socketUserId && $socketUsername) {
+            $userId = $socketUserId;
+            $username = $socketUsername;
+            
+            $user = $this->getUserRepository()->find($userId);
+            if (!$user) {
+                return $this->unauthorized('Invalid user');
+            }
+            
+            error_log("Socket reaction removal: User $userId ($username) authenticated via headers");
+        } else {
+            $this->requireAuth();
+            $userId = $this->getCurrentUserId();
+            $username = $_SESSION['username'] ?? 'Unknown User';
+            
+            error_log("Web reaction removal: User $userId ($username) authenticated via session");
+        }
 
         $input = $this->getInput();
         $input = $this->sanitize($input);
@@ -425,7 +459,19 @@ class MessageController extends BaseController
 
     public function getReactions($messageId)
     {
-        $this->requireAuth();
+        $socketUserId = $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? null;
+        $socketUsername = $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? null;
+        
+        if ($socketUserId && $socketUsername) {
+            $user = $this->getUserRepository()->find($socketUserId);
+            if (!$user) {
+                return $this->unauthorized('Invalid user');
+            }
+            error_log("Socket get reactions: User $socketUserId authenticated via headers");
+        } else {
+            $this->requireAuth();
+            error_log("Web get reactions: User authenticated via session");
+        }
 
         $message = $this->messageRepository->find($messageId);
         if (!$message) {

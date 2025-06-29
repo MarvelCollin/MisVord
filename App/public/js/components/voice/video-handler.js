@@ -118,26 +118,82 @@ document.addEventListener('DOMContentLoaded', () => {
     function getMediaStream(stream) {
         try {
             if (!stream) {
+                console.warn('[VideoHandler] getMediaStream: No stream provided');
                 return null;
             }
+
+            console.log('[VideoHandler] getMediaStream: Analyzing stream object:', {
+                isMediaStream: stream instanceof MediaStream,
+                hasStream: !!stream.stream,
+                hasMediaStream: !!stream.mediaStream,
+                hasTrack: !!stream.track,
+                keys: Object.keys(stream),
+                streamType: typeof stream,
+                constructor: stream.constructor?.name
+            });
             
             if (stream instanceof MediaStream) {
+                console.log('[VideoHandler] getMediaStream: Direct MediaStream found');
                 return stream;
-            } else if (stream.track && typeof stream.track !== 'undefined') {
+            }
+            
+            if (stream.track && typeof stream.track !== 'undefined') {
+                console.log('[VideoHandler] getMediaStream: Creating MediaStream from track');
                 return new MediaStream([stream.track]);
-            } else if (stream.mediaStream instanceof MediaStream) {
+            }
+            
+            if (stream.mediaStream instanceof MediaStream) {
+                console.log('[VideoHandler] getMediaStream: Found MediaStream in .mediaStream property');
                 return stream.mediaStream;
-            } else if (stream.stream instanceof MediaStream) {
+            }
+            
+            if (stream.stream instanceof MediaStream) {
+                console.log('[VideoHandler] getMediaStream: Found MediaStream in .stream property');
                 return stream.stream;
             }
-            
+
+            if (stream.stream && stream.stream.stream instanceof MediaStream) {
+                console.log('[VideoHandler] getMediaStream: Found nested MediaStream in .stream.stream');
+                return stream.stream.stream;
+            }
+
             if (stream.getVideoTracks && typeof stream.getVideoTracks === 'function') {
+                console.log('[VideoHandler] getMediaStream: Stream has MediaStream methods');
                 return stream;
             }
+
+            if (stream.stream && stream.stream.getVideoTracks && typeof stream.stream.getVideoTracks === 'function') {
+                console.log('[VideoHandler] getMediaStream: Nested stream has MediaStream methods');
+                return stream.stream;
+            }
+
+            if (stream.track && stream.track.kind) {
+                console.log('[VideoHandler] getMediaStream: Creating MediaStream from track object');
+                return new MediaStream([stream.track]);
+            }
+
+            if (typeof stream === 'object' && stream.srcObject) {
+                console.log('[VideoHandler] getMediaStream: Found srcObject property');
+                return stream.srcObject;
+            }
+
+            console.warn('[VideoHandler] getMediaStream: Could not extract MediaStream, trying all properties:', stream);
             
+            for (const [key, value] of Object.entries(stream)) {
+                if (value instanceof MediaStream) {
+                    console.log(`[VideoHandler] getMediaStream: Found MediaStream in property '${key}'`);
+                    return value;
+                }
+                if (value && typeof value === 'object' && value.getVideoTracks) {
+                    console.log(`[VideoHandler] getMediaStream: Found MediaStream-like object in property '${key}'`);
+                    return value;
+                }
+            }
+            
+            console.warn('[VideoHandler] getMediaStream: No MediaStream found in any property');
             return null;
         } catch (error) {
-            console.warn('Error extracting MediaStream:', error);
+            console.error('[VideoHandler] getMediaStream: Error extracting MediaStream:', error);
             return null;
         }
     }
