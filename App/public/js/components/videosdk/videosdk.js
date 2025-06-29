@@ -210,7 +210,8 @@ class VideoSDKManager {
                 if (data.stream) {
                     stream = data.stream;
                 } else if (data.track) {
-                    stream = { track: data.track };
+                    stream = new MediaStream([data.track]);
+                    kind = data.track.kind === 'video' ? 'video' : 'audio';
                 } else if (data.id && participant.streams && participant.streams.get(data.id)) {
                     stream = participant.streams.get(data.id);
                 } else {
@@ -224,9 +225,10 @@ class VideoSDKManager {
                     }
                 }
                 
-                if (!stream) {
-                    console.debug('[VideoSDK] Stream enabled event without accessible stream object - this may be normal for audio-only events');
-                    return;
+                if (!stream && data.track) {
+                    console.log('[VideoSDK] Creating MediaStream from track for', data.track.kind);
+                    stream = new MediaStream([data.track]);
+                    kind = data.track.kind === 'video' ? 'video' : 'audio';
                 }
                 
                 if (kind === 'unknown' && stream) {
@@ -253,10 +255,15 @@ class VideoSDKManager {
                     }
                 }
                 
-                console.log(`✅ [VideoSDK] Stream enabled: ${kind} for participant ${participant.id}`);
+                console.log(`✅ [VideoSDK] Stream enabled: ${kind} for participant ${participant.id}`, {
+                    hasStream: !!stream,
+                    streamType: typeof stream,
+                    isMediaStream: stream instanceof MediaStream,
+                    trackCount: stream instanceof MediaStream ? stream.getTracks().length : 'N/A'
+                });
                 
                 window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', { 
-                    detail: { kind, stream, participant: participant.id } 
+                    detail: { kind, stream, participant: participant.id, data } 
                 }));
             });
 

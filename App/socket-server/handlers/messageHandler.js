@@ -438,15 +438,19 @@ class MessageHandler {
                     
                     if (replyResponse.ok) {
                         const replyResult = await replyResponse.json();
-                        if (replyResult.success && replyResult.data) {
+                        if (replyResult.success && replyResult.data && replyResult.data.message) {
+                            const messageData = replyResult.data.message;
                             broadcastData.reply_data = {
                                 message_id: data.reply_message_id,
-                                content: replyResult.data.content,
-                                user_id: replyResult.data.user_id,
-                                username: replyResult.data.username,
-                                avatar_url: replyResult.data.avatar_url || '/public/assets/common/default-profile-picture.png'
+                                content: messageData.content,
+                                user_id: messageData.user_id,
+                                username: messageData.username,
+                                avatar_url: messageData.avatar_url || '/public/assets/common/default-profile-picture.png'
                             };
-                            console.log(`✅ [SAVE-AND-SEND] Reply data fetched for temporary broadcast: ${data.reply_message_id}`);
+                            console.log(`✅ [SAVE-AND-SEND] Reply data fetched for temporary broadcast: ${data.reply_message_id}`, {
+                                username: messageData.username,
+                                content: messageData.content?.substring(0, 50)
+                            });
                         }
                     } else {
                         console.warn(`⚠️ [SAVE-AND-SEND] Failed to fetch reply data for temp broadcast: ${replyResponse.status}`);

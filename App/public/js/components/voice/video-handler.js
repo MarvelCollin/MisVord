@@ -67,11 +67,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getMediaStream(stream) {
         if (!stream) return null;
-        if (stream instanceof MediaStream) return stream;
-        if (stream.stream instanceof MediaStream) return stream.stream;
-        if (stream.track) return new MediaStream([stream.track]);
-        if (stream.mediaStream instanceof MediaStream) return stream.mediaStream;
-                return null;
+        
+        if (stream instanceof MediaStream) {
+            console.log('[VideoHandler] Using direct MediaStream:', stream.getTracks().length, 'tracks');
+            return stream;
+        }
+        
+        if (stream.stream instanceof MediaStream) {
+            console.log('[VideoHandler] Using nested MediaStream:', stream.stream.getTracks().length, 'tracks');
+            return stream.stream;
+        }
+        
+        if (stream.track && stream.track instanceof MediaStreamTrack) {
+            console.log('[VideoHandler] Creating MediaStream from track:', stream.track.kind);
+            return new MediaStream([stream.track]);
+        }
+        
+        if (stream.mediaStream instanceof MediaStream) {
+            console.log('[VideoHandler] Using mediaStream property:', stream.mediaStream.getTracks().length, 'tracks');
+            return stream.mediaStream;
+        }
+        
+        if (stream.kind && stream.track) {
+            console.log('[VideoHandler] Creating MediaStream from kind+track:', stream.kind);
+            return new MediaStream([stream.track]);
+        }
+        
+        console.warn('[VideoHandler] Unable to extract MediaStream from:', stream);
+        return null;
     }
 
     async function safeVideoPlay(videoEl, participantId) {
