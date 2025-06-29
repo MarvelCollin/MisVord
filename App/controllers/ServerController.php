@@ -1119,8 +1119,7 @@ class ServerController extends BaseController
         if (!isset($input['name']) || empty($input['name'])) {
             return $this->validationError(['name' => 'Server name is required']);
         }
-
-        // Add name validation (between 2 and 50 characters)
+        
         if (strlen($input['name']) < 2 || strlen($input['name']) > 50) {
             return $this->validationError(['name' => 'Server name must be between 2 and 50 characters']);
         }
@@ -1151,7 +1150,6 @@ class ServerController extends BaseController
                 'error' => $e->getMessage()
             ]);
             
-            // Better error reporting
             return $this->serverError('Failed to update server name: ' . $e->getMessage());
         }
     }
@@ -1962,8 +1960,7 @@ class ServerController extends BaseController
                 error_log("[Channel Section] User not a member of server: " . $serverId);
                 return $this->forbidden('You do not have access to this server');
             }
-
-            // Get channel data from request if available
+        
             $input = $this->getInput();
             error_log("[Channel Section] Input data: " . json_encode($input));
             
@@ -1971,7 +1968,7 @@ class ServerController extends BaseController
             $categories = $input['categories'] ?? null;
             $activeChannelId = $input['activeChannelId'] ?? null;
 
-            // If not provided in request, fetch from database
+            
             if (!$channels) {
                 error_log("[Channel Section] Fetching channels from database");
                 $channels = $this->channelRepository->getByServerId($serverId);
@@ -1981,9 +1978,8 @@ class ServerController extends BaseController
                 error_log("[Channel Section] Fetching categories from database");
                 $categories = $this->categoryRepository->getForServer($serverId);
                 error_log("[Channel Section] Found " . count($categories) . " categories in database");
-            }
-
-            // Convert server array to object if needed
+                    }
+        
             if (is_array($server)) {
                 $serverObj = (object) [
                     'id' => $server['id'],
@@ -1995,9 +1991,8 @@ class ServerController extends BaseController
                 ];
             } else {
                 $serverObj = $server;
-            }
-
-            // Set globals for the view
+                    }
+        
             $currentServer = $serverObj;
             $GLOBALS['serverChannels'] = $channels;
             $GLOBALS['serverCategories'] = $categories;
@@ -2008,9 +2003,9 @@ class ServerController extends BaseController
                      ", Categories: " . count($GLOBALS['serverCategories']) . 
                      ", Active Channel: " . ($GLOBALS['activeChannelId'] ?? 'none'));
 
-            // Render the channel section
+            
             ob_start();
-            require __DIR__ . '/../views/components/app-sections/channel-section.php';
+            include __DIR__ . '/../views/components/app-sections/channel-section.php';
             $html = ob_get_clean();
 
             error_log("[Channel Section] Generated HTML length: " . strlen($html));
@@ -2036,19 +2031,27 @@ class ServerController extends BaseController
         $this->requireAuth();
 
         try {
+            error_log("[Server Layout] Starting getServerLayout for server: " . $serverId);
+            
             $server = $this->serverRepository->find($serverId);
             if (!$server) {
+                error_log("[Server Layout] Server not found: " . $serverId);
                 return $this->notFound('Server not found');
             }
+            error_log("[Server Layout] Server found: " . $server->name);
 
             $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $serverId);
             if (!$membership) {
+                error_log("[Server Layout] User not member of server: " . $serverId);
                 return $this->forbidden('You are not a member of this server');
             }
+            error_log("[Server Layout] User is member of server");
 
             $channels = $this->channelRepository->getByServerId($serverId);
             $categories = $this->categoryRepository->getForServer($serverId);
             $serverMembers = $this->userServerMembershipRepository->getServerMembers($serverId);
+            
+            error_log("[Server Layout] Data fetched - Channels: " . count($channels) . ", Categories: " . count($categories) . ", Members: " . count($serverMembers));
 
             $activeChannelId = $_GET['channel'] ?? null;
             $activeChannel = null;
@@ -2085,12 +2088,14 @@ class ServerController extends BaseController
             $GLOBALS['channelMessages'] = $channelMessages;
             $GLOBALS['serverMembers'] = $serverMembers;
             $GLOBALS['contentType'] = 'server';
+            
+            error_log("[Server Layout] GLOBALS set - serverChannels: " . count($GLOBALS['serverChannels']) . 
+                     ", activeChannelId: " . ($activeChannelId ?? 'none') . 
+                     ", channelMessages: " . count($channelMessages));
 
             ob_start();
             ?>
             <div class="flex flex-1 overflow-hidden">
-                <?php include __DIR__ . '/../views/components/app-sections/channel-section.php'; ?>
-                
                 <div class="flex flex-col flex-1" id="main-content">
                     <div class="main-content-area flex-1">
                         <?php
@@ -2124,8 +2129,13 @@ class ServerController extends BaseController
             </div>
             <?php
             $html = ob_get_clean();
+            
+            error_log("[Server Layout] HTML generated - Length: " . strlen($html) . 
+                     ", Contains channel-wrapper: " . (strpos($html, 'channel-wrapper') !== false ? 'YES' : 'NO') . 
+                     ", Contains channel-item: " . (strpos($html, 'channel-item') !== false ? 'YES' : 'NO'));
 
             if ($this->isAjaxRequest()) {
+                error_log("[Server Layout] Sending AJAX response");
                 echo $html;
                 exit;
             }

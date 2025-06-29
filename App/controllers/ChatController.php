@@ -1248,6 +1248,13 @@ class ChatController extends BaseController
             
             error_log("Socket authentication successful: User $userId ($username) authenticated via headers");
         } else {
+            error_log("Socket headers not found, trying session authentication. Headers found: " . json_encode([
+                'HTTP_X_SOCKET_USER_ID' => $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? 'MISSING',
+                'HTTP_X_SOCKET_USERNAME' => $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? 'MISSING',
+                'socketUserId_var' => $socketUserId,
+                'socketUsername_var' => $socketUsername
+            ]));
+            
             // Fallback to session authentication
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();

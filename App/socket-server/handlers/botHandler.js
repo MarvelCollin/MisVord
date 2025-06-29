@@ -209,7 +209,7 @@ class BotHandler {
             message_type: 'text',
             timestamp: Date.now(),
             source: 'bot-response',
-            avatar_url: '/assets/common/default-profile-picture.png',
+            avatar_url: '/public/assets/common/default-profile-picture.png',
             reply_message_id: originalMessage.id,
             reply_data: {
                 messageId: originalMessage.id,
@@ -336,7 +336,7 @@ class BotHandler {
             message_type: 'text',
             timestamp: Date.now(),
             source: 'bot-response',
-            avatar_url: '/assets/common/default-profile-picture.png',
+            avatar_url: '/public/assets/common/default-profile-picture.png',
             reply_message_id: originalMessage.id,
             reply_data: {
                 messageId: originalMessage.id,
@@ -480,9 +480,9 @@ class BotHandler {
              // Use bot-specific endpoint
              let endpoint;
              if (messageType === 'channel') {
-                 endpoint = `http://misvord_php:1001/api/bots/send-channel-message`;
+                 endpoint = `http://app:1001/api/bots/send-channel-message`;
              } else {
-                 endpoint = `http://misvord_php:1001/api/chat/send`;
+                 endpoint = `http://app:1001/api/chat/send`;
                  payload.chat_type = 'direct';
              }
 
@@ -510,7 +510,7 @@ class BotHandler {
                      'Content-Type': 'application/x-www-form-urlencoded',
                      'Accept': 'application/json',
                      'X-Requested-With': 'XMLHttpRequest',
-                     'Origin': 'http://misvord_php:1001',
+                     'Origin': 'http://app:1001',
                  },
                  body: formData.toString()
              });

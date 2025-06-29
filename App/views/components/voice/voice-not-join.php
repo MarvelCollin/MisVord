@@ -78,8 +78,7 @@ $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name
 <script>
 console.log('[voice-not-join.php] File loaded');
 
-// Remove the ES6 import that might not work in inline script
-// import { playCallSound } from '/public/js/utils/music-loader-static.js';
+
 
 function handleMouseMove(event) {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -119,12 +118,10 @@ function joinVoiceChannel() {
     if (joinView) joinView.classList.add('hidden');
     if (connectingView) connectingView.classList.remove('hidden');
     
-    // Try to trigger voice join through various methods
     if (window.voiceManager) {
         console.log('[voice-not-join.php] Using voiceManager.joinVoice()');
         window.voiceManager.joinVoice()
             .then(() => {
-                // Ensure UI switches to call section
                 const channelName = document.querySelector('meta[name="channel-id"]')?.content || 'Voice Channel';
                 const meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
                 const channelId = document.querySelector('meta[name="channel-id"]')?.content;
@@ -152,7 +149,6 @@ function joinVoiceChannel() {
                 console.log('[voice-not-join.php] voiceManager loaded, joining voice');
                 window.voiceManager.joinVoice()
                     .then(() => {
-                        // Ensure UI switches to call section
                         const channelName = document.querySelector('meta[name="channel-id"]')?.content || 'Voice Channel';
                         const meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
                         const channelId = document.querySelector('meta[name="channel-id"]')?.content;
@@ -172,18 +168,14 @@ function joinVoiceChannel() {
     } else if (window.voiceSection && window.voiceSection.autoJoin) {
         console.log('[voice-not-join.php] Using voiceSection.autoJoin()');
         window.voiceSection.autoJoin();
-        // The voiceSection.autoJoin will trigger the voiceConnect event
     } else if (window.triggerVoiceAutoJoin) {
         console.log('[voice-not-join.php] Using triggerVoiceAutoJoin()');
         window.triggerVoiceAutoJoin();
-        // These functions should trigger the voiceConnect event
     } else if (window.handleAutoJoin) {
         console.log('[voice-not-join.php] Using handleAutoJoin()');
         window.handleAutoJoin();
-        // These functions should trigger the voiceConnect event
     } else {
         console.log('[voice-not-join.php] No voice join method found');
-        // Reset UI if no method is available
         if (joinBtn) joinBtn.disabled = false;
         if (joinView) joinView.classList.remove('hidden');
         if (connectingView) connectingView.classList.add('hidden');
@@ -207,7 +199,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Ensure join button is clickable
     const joinBtn = document.getElementById('joinBtn');
     console.log('[voice-not-join.php] Join button found:', !!joinBtn);
     if (joinBtn) {
@@ -218,11 +209,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Add global click handler
     document.body.addEventListener('click', function(e) {
         console.log('[voice-not-join.php] Document body click detected on:', e.target.tagName, e.target.id, e.target.className);
         
-        // Check if click was on or inside join button
         const clickedJoinBtn = e.target.id === 'joinBtn' || e.target.closest('#joinBtn');
         if (clickedJoinBtn) {
             console.log('[voice-not-join.php] Join button clicked via document body handler');
@@ -231,7 +220,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, true);
     
-    // Dispatch event to start preloading VideoSDK resources
     console.log('[voice-not-join.php] Dispatching voiceUIReady event to start preloading');
     window.dispatchEvent(new CustomEvent('voiceUIReady'));
 });

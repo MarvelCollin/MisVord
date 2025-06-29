@@ -19,8 +19,7 @@ class MediaController extends BaseController
     {
         parent::__construct();
         
-        // Always store uploads inside the project public/storage directory so
-        // files are accessible during local development and testing.
+        
         $this->uploadPath = dirname(__DIR__) . '/public/storage/';
         
         $this->ensureUploadDirectories();
@@ -196,9 +195,8 @@ class MediaController extends BaseController
             return $this->validationError(['query' => 'Search query is required']);
         }
 
-        try {
-            // Using Tenor API (free tier)
-            $apiKey = 'AIzaSyAyimkuYQYF-FzifhRdMndB8AYrLlNVTNY'; // Tenor API key (you should use your own)
+        try {        
+        $apiKey = 'AIzaSyAyimkuYQYF-FzifhRdMndB8AYrLlNVTNY';
             $url = "https://tenor.googleapis.com/v2/search?" . http_build_query([
                 'q' => $query,
                 'key' => $apiKey,
@@ -217,7 +215,7 @@ class MediaController extends BaseController
             $response = file_get_contents($url, false, $context);
             
             if ($response === false) {
-                // Fallback: return some demo GIFs
+                
                 return $this->success([
                     'results' => [
                         [

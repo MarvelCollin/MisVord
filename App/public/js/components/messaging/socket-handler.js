@@ -79,18 +79,24 @@ class SocketHandler {
                 this.chatSection.chatType === 'channel' && 
                 String(data.channel_id) === String(this.chatSection.targetId);
             
-            // Skip if not for current channel
             if (!isForThisChannel) {
                 return;
             }
             
-            // Skip if this is the sender's own message from any client-originated or websocket-originated source
-            if (isSender && (data.source === 'client-originated' || data.source === 'websocket-originated')) {
-                console.log('🔄 Skipping own message from sender:', data.id, 'source:', data.source);
-                return;
+            const isTemporaryMessage = data.is_temporary || data.id.toString().startsWith('temp-');
+            
+            if (isSender) {
+                if (data.source === 'client-originated') {
+                    console.log('🔄 Skipping own client-originated message:', data.id);
+                    return;
+                }
+                
+                if (data.source === 'websocket-originated' && !isTemporaryMessage) {
+                    console.log('🔄 Skipping own websocket message (not temporary):', data.id);
+                    return;
+                }
             }
             
-            // Check for duplicates
             const alreadySent = window._sentMessageIds && window._sentMessageIds.has(data.id);
             const alreadyProcessed = this.chatSection.messageHandler.processedMessageIds.has(data.id);
             
@@ -103,18 +109,16 @@ class SocketHandler {
                 id: data.id,
                 channelId: data.channel_id,
                 fromSelf: isSender,
-                source: data.source
+                source: data.source,
+                isTemporary: isTemporaryMessage
             });
             
-            // Add the message to UI
             this.chatSection.messageHandler.addMessage({...data, source: 'server-originated'});
             
-            // Play sound if message is from someone else
             if (!isSender) {
                 this.chatSection.playMessageSound();
             }
             
-            // Notify other components
             window.dispatchEvent(new CustomEvent('messageReceived', {
                 detail: {
                     messageId: data.id,
@@ -141,18 +145,24 @@ class SocketHandler {
                 (this.chatSection.chatType === 'direct' || this.chatSection.chatType === 'dm') && 
                 String(data.room_id) === String(this.chatSection.targetId);
             
-            // Skip if not for current DM
             if (!isForThisDM) {
                 return;
             }
             
-            // Skip if this is the sender's own message from any client-originated or websocket-originated source
-            if (isSender && (data.source === 'client-originated' || data.source === 'websocket-originated')) {
-                console.log('🔄 Skipping own message from sender:', data.id, 'source:', data.source);
-                return;
+            const isTemporaryMessage = data.is_temporary || data.id.toString().startsWith('temp-');
+            
+            if (isSender) {
+                if (data.source === 'client-originated') {
+                    console.log('🔄 Skipping own client-originated DM message:', data.id);
+                    return;
+                }
+                
+                if (data.source === 'websocket-originated' && !isTemporaryMessage) {
+                    console.log('🔄 Skipping own websocket DM message (not temporary):', data.id);
+                    return;
+                }
             }
             
-            // Check for duplicates
             const alreadySent = window._sentMessageIds && window._sentMessageIds.has(data.id);
             const alreadyProcessed = this.chatSection.messageHandler.processedMessageIds.has(data.id);
             
@@ -165,18 +175,16 @@ class SocketHandler {
                 id: data.id,
                 roomId: data.room_id,
                 fromSelf: isSender,
-                source: data.source
+                source: data.source,
+                isTemporary: isTemporaryMessage
             });
             
-            // Add the message to UI
             this.chatSection.messageHandler.addMessage({...data, source: 'server-originated'});
             
-            // Play sound if message is from someone else
             if (!isSender) {
                 this.chatSection.playMessageSound();
             }
             
-            // Notify other components
             window.dispatchEvent(new CustomEvent('messageReceived', {
                 detail: {
                     messageId: data.id,

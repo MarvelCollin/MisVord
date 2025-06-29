@@ -41,15 +41,13 @@ class ChatRoomMessageRepository extends Repository {
         $start_time = microtime(true);
         $results = $query->query($sql, [$roomId, $limit, $offset]);
         $end_time = microtime(true);
-        $execution_time = ($end_time - $start_time) * 1000; // in milliseconds
+        $execution_time = ($end_time - $start_time) * 1000;
         
         error_log("DEBUG: Query completed in {$execution_time}ms, found " . count($results) . " messages");
-        if (count($results) === 0) {
-            // Check if room exists
+        if (count($results) === 0) {        
             $room_exists = $query->table('chat_rooms')->where('id', $roomId)->first();
             error_log("DEBUG: Room exists check: " . ($room_exists ? "YES" : "NO"));
             
-            // Check if there are any chat_room_messages entries
             $message_count = $query->table('chat_room_messages')->where('room_id', $roomId)->count();
             error_log("DEBUG: Room has $message_count message associations");
         }

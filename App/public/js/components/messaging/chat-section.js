@@ -879,7 +879,7 @@ class ChatSection {
             }
             
             // Create and play the sound
-            const audio = new Audio('/assets/sound/message_sound.mp3');
+            const audio = new Audio('/public/assets/sound/message_sound.mp3');
             audio.volume = 0.5; // Set to 50% volume
             audio.play().catch(error => {
                 // This often fails due to browser autoplay restrictions

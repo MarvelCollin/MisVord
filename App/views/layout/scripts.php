@@ -41,7 +41,7 @@ if ($is_auth_page) {
 <?php if (!$is_auth_page): ?>
 <script src="<?php echo js('api/chat-api'); ?>?v=<?php echo time(); ?>"></script>
 <script>
-// Initialize ChatAPI immediately to ensure it's available
+
 document.addEventListener('DOMContentLoaded', function() {
     if (!window.ChatAPI) {
         window.ChatAPI = new ChatAPI();
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endforeach; ?>
 
 <?php foreach($additional_js as $script): ?>
-    <script src="<?php echo js(rtrim($script, '.js')); ?>?v=<?php echo time(); ?>" type="module"></script>
+    <script src="<?php echo js($script); ?>?v=<?php echo time(); ?>" type="module"></script>
 <?php endforeach; ?>
 
 <script type="module" src="/public/js/utils/channel-switch-manager.js"></script>

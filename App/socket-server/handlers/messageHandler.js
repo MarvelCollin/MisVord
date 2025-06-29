@@ -20,7 +20,7 @@ class MessageHandler {
             targetId: data.target_id,
             channelId: data.channel_id,
             roomId: data.room_id,
-            content: data.content // Log full content
+            content: data.content
         });
         
         console.log(`📦 [MESSAGE-FORWARD] Complete incoming message data:`, JSON.stringify(data, null, 2));
@@ -68,31 +68,27 @@ class MessageHandler {
                 room: targetRoom,
                 messageId: broadcastData.id,
                 userId: broadcastData.user_id,
-                content: broadcastData.content, // Log full content
+                content: broadcastData.content,
                 timestamp: broadcastData.timestamp,
                 source: broadcastData.source
             });
             
             console.log(`📦 [MESSAGE-FORWARD] Complete broadcast data:`, JSON.stringify(broadcastData, null, 2));
-            
-            // Make sure the client is in the room before broadcasting
+                    
             if (!client.rooms.has(targetRoom)) {
                 console.log(`🔄 [MESSAGE-FORWARD] Client not in room, joining: ${targetRoom}`);
-                client.join(targetRoom);
-            }
-            
-            // Send to all clients in the room (this is the most reliable method)
+                            client.join(targetRoom);
+        }
+        
             io.to(targetRoom).emit(eventName, broadcastData);
-            console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to room ${targetRoom}`);
-            
-            // Log room statistics for debugging
+                    console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to room ${targetRoom}`);
+        
             const roomClients = io.sockets.adapter.rooms.get(targetRoom);
             if (roomClients) {
                 console.log(`👥 [MESSAGE-FORWARD] Message delivered to ${roomClients.size} clients in room ${targetRoom}`);
             } else {
                 console.warn(`⚠️ [MESSAGE-FORWARD] No clients found in room ${targetRoom}`);
                 
-                // As fallback, send to all authenticated clients
                 console.log(`🔄 [MESSAGE-FORWARD] Fallback: Broadcasting to all authenticated clients`);
                 io.emit(eventName, broadcastData);
             }
@@ -104,7 +100,6 @@ class MessageHandler {
                 targetId: data.target_id
             });
             
-            // If no room found, broadcast to all clients as fallback
             console.log(`🔄 [MESSAGE-FORWARD] Fallback: Broadcasting to all clients`);
             const fallbackData = {
                 id: data.id || data.message_id,
@@ -291,8 +286,7 @@ class MessageHandler {
             client.emit('message_error', { error: 'Authentication required' });
             return;
         }
-        
-        // Validate required fields
+            
         if (!data.content || !data.target_type || !data.target_id) {
             console.error(`❌ [SAVE-AND-SEND] Missing required fields:`, data);
             client.emit('message_error', { error: 'Missing required fields: content, target_type, target_id' });
@@ -308,12 +302,10 @@ class MessageHandler {
             messageType: data.message_type || 'text'
         });
         
-        try {
-            // Generate a temporary ID for immediate display
+        try {    
             const temp_message_id = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-            const currentTimestamp = Date.now();
-            
-            // Prepare data for immediate broadcast with underscores
+                    const currentTimestamp = Date.now();
+        
             const broadcastData = {
                 id: temp_message_id,
                 content: data.content,
@@ -330,8 +322,7 @@ class MessageHandler {
                 source: 'websocket-originated',
                 is_temporary: true
             };
-            
-            // Add target-specific fields using underscores
+                    
             if (data.target_type === 'channel') {
                 broadcastData.channel_id = data.target_id;
                 broadcastData.target_type = 'channel';
@@ -340,9 +331,8 @@ class MessageHandler {
                 broadcastData.room_id = data.target_id;
                 broadcastData.target_type = 'dm';
                 broadcastData.target_id = data.target_id;
-            }
-            
-            // Determine event name and room
+                    }
+        
             const eventName = data.target_type === 'channel' ? 'new-channel-message' : 'user-message-dm';
             const targetRoom = data.target_type === 'channel' 
                 ? roomManager.getChannelRoom(data.target_id)
@@ -361,7 +351,7 @@ class MessageHandler {
             console.log(`💾 [SAVE-AND-SEND] Saving message to database via HTTP call...`);
             
             try {
-                const response = await fetch('http://localhost:1001/api/chat/save-message', {
+                const response = await fetch('http://app:1001/api/chat/save-message', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -470,7 +460,6 @@ class MessageHandler {
         }
         
         if (targetRoom) {
-            // Broadcast the ID update to all clients in the room
             const updateData = {
                 temp_message_id: data.temp_message_id,
                 real_message_id: data.real_message_id,
@@ -478,4 +467,20 @@ class MessageHandler {
                 timestamp: Date.now()
             };
             
-            console.log(`
+            console.log(`📡 [DATABASE-SAVED] Broadcasting message ID update to room: ${targetRoom}`);
+            io.to(targetRoom).emit('message_id_updated', updateData);
+            
+            console.log(`✅ [DATABASE-SAVED] Message ID update broadcasted successfully`);
+        } else {
+            console.warn(`⚠️ [DATABASE-SAVED] No target room found, broadcasting to all clients`);
+            io.emit('message_id_updated', {
+                temp_message_id: data.temp_message_id,
+                real_message_id: data.real_message_id,
+                message_data: messageData,
+                timestamp: Date.now()
+            });
+        }
+    }
+}
+
+module.exports = MessageHandler;

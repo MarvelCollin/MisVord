@@ -25,7 +25,7 @@ const io = new Server(server, socketConfig.options);
 eventController.setIO(io);
 socketController.setup(io);
 
-// Auto-initialize TitiBot
+
 const BotHandler = require('./handlers/botHandler');
 console.log('🤖 Initializing TitiBot...');
 BotHandler.registerBot('4', 'titibot');

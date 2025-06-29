@@ -180,7 +180,7 @@ function updateGridLayout() {
     const videoParticipants = videoGrid.querySelectorAll('video:not(.hidden)').length;
     const hasScreenShare = videoGrid.querySelector('.screen-share-container');
     
-    // Show/hide appropriate view with fade transition
+    
     if (videoParticipants > 0) {
         videoGrid.classList.remove('hidden');
         videoGrid.classList.add('fade-in');
@@ -191,21 +191,17 @@ function updateGridLayout() {
         voiceOnlyView.classList.add('fade-in');
     }
     
-    // Update video grid layout
     for (let i = 1; i <= 9; i++) {
         videoGrid.classList.remove(`videoGrid-${i}`);
     }
     videoGrid.classList.add(`videoGrid-${videoParticipants}`);
     
-    // Handle screen share layout
     if (hasScreenShare) {
         videoGrid.classList.add('has-screen-share');
     } else {
         videoGrid.classList.remove('has-screen-share');
     }
 }
-
-// Create participant element template
 function createParticipantElement(participant, isVideo = false) {
     const container = document.createElement('div');
     container.className = `participant-container ${isVideo ? 'video-participant' : 'voice-participant'}`;
@@ -247,8 +243,6 @@ function createParticipantElement(participant, isVideo = false) {
     
     return container;
 }
-
-// Show/hide loading state
 function toggleLoading(show) {
     const loadingState = document.getElementById('loadingState');
     if (loadingState) {
@@ -260,7 +254,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("🔊 Voice call section loaded");
     updateGridLayout();
     
-    // Initialize voice components check
     setTimeout(function() {
         console.log("🔍 Voice components check:", {
             videoGrid: !!document.getElementById('videoGrid'),
@@ -276,11 +269,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // Listen for grid updates
 window.addEventListener('videoGridUpdate', updateGridLayout);
 
-// Listen for connection state changes
+    
 window.addEventListener('voiceConnect', () => toggleLoading(false));
 window.addEventListener('voiceDisconnect', () => toggleLoading(false));
 
-// Expose functions
 window.updateGridLayout = updateGridLayout;
 window.createParticipantElement = createParticipantElement;
 window.toggleLoading = toggleLoading;

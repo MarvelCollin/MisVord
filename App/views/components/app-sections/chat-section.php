@@ -199,7 +199,7 @@ function renderMessageContent($message) {
     }
     echo '</div>';
     
-    // Handle attachments (both new array format and legacy single URL)
+            
     $attachments = $message['attachments'] ?? [];
     if (empty($attachments) && !empty($message['attachment_url'])) {
         $attachments = [$message['attachment_url']];
@@ -642,17 +642,15 @@ function renderMessageContent($message) {
 <script src="<?php echo js('components/messaging/chat-section'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('components/messaging/emoji'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-resize message input
+document.addEventListener('DOMContentLoaded', function() {    
     const messageInput = document.getElementById('message-input');
     if (messageInput) {
         messageInput.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
-    }
-    
-    // Dispatch event to notify that channel content is loaded
+          }
+      
     document.dispatchEvent(new CustomEvent('channelContentLoaded', {
         detail: {
             type: 'chat',

@@ -1,5 +1,9 @@
 <?php
+$currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
+
 if (!isset($currentServer) || empty($currentServer)) {
+    error_log("[Channel Section] ERROR - No server loaded. currentServer: " . var_export($currentServer, true));
+    error_log("[Channel Section] GLOBALS currentServer: " . var_export($GLOBALS['currentServer'] ?? 'not set', true));
     echo '<div class="p-4 text-gray-400 text-center">No server loaded</div>';
     return;
 }
@@ -8,6 +12,11 @@ $currentServerId = $currentServer->id ?? 0;
 $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
 $channels = $GLOBALS['serverChannels'] ?? [];
 $categories = $GLOBALS['serverCategories'] ?? [];
+
+error_log("[Channel Section] Data received - Server ID: " . $currentServerId . 
+         ", Active Channel: " . ($activeChannelId ?? 'none') . 
+         ", Channels: " . count($channels) . 
+         ", Categories: " . count($categories));
 
 if (!function_exists('getChannelIcon')) {
     function getChannelIcon($type) {
@@ -22,15 +31,19 @@ if (!function_exists('getChannelIcon')) {
 
 if (!function_exists('renderChannel')) {
     function renderChannel($channel, $activeChannelId) {
+    error_log("[Channel Section] Rendering channel: " . ($channel['name'] ?? 'unnamed') . " (ID: " . ($channel['id'] ?? 'no-id') . ")");
+    
     $type = $channel['type'] ?? 'text';
     $icon = getChannelIcon($type);
     $isActive = $activeChannelId == $channel['id'];
     $activeClass = $isActive ? 'bg-discord-lighten text-white active-channel' : '';
     
+    $serverId = $GLOBALS['currentServer']->id ?? ($GLOBALS['server']->id ?? '');
+    
     echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-discord-lighten ' . $activeClass . '" 
               data-channel-id="' . $channel['id'] . '" 
               data-channel-type="' . htmlspecialchars($type) . '"
-              data-server-id="' . htmlspecialchars($GLOBALS['currentServer']->id ?? '') . '">';
+              data-server-id="' . htmlspecialchars($serverId) . '">';
     echo '  <i class="fas fa-' . $icon . ' text-xs mr-3 text-gray-500"></i>';
     echo '  <span class="text-sm">' . htmlspecialchars($channel['name']) . '</span>';
     if ($type === 'voice') {
@@ -66,20 +79,80 @@ if (!function_exists('renderCategorySkeleton')) {
 }
 ?>
 
-<div class="channel-wrapper h-full w-full overflow-y-auto">
+<div class="w-60 bg-discord-dark flex flex-col h-full border-r border-gray-800">
+    <div class="h-12 border-b border-black flex items-center px-4 shadow-sm relative">
+        <h2 class="font-bold text-white truncate flex-1"><?php echo htmlspecialchars(is_array($currentServer) ? ($currentServer['name'] ?? 'Server') : ($currentServer->name ?? 'Server')); ?></h2>
+        <button id="server-dropdown-btn" class="text-gray-400 hover:text-white focus:outline-none w-5 h-5 flex items-center justify-center">
+            <i class="fas fa-chevron-down text-sm"></i>
+        </button>
+        
+        <div id="server-dropdown" class="hidden absolute right-2 top-12 w-56 bg-[#18191c] rounded-md shadow-lg z-50 py-2 text-gray-100 text-sm overflow-hidden">
+            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                <i class="fas fa-user-plus w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
+                <span>Invite People</span>
+            </div>
+            
+            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                <i class="fas fa-cog w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
+                <span>Server Settings</span>
+            </div>
+            
+            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                <i class="fas fa-plus-circle w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
+                <span>Create Channel</span>
+            </div>
+            
+            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                <i class="fas fa-folder-plus w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
+                <span>Create Category</span>
+            </div>
+            
+            <div class="border-t border-gray-700 my-1"></div>
+            
+            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                <i class="fas fa-bell w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
+                <span>Notification Settings</span>
+            </div>
+            
+            <div class="border-t border-gray-700 my-1"></div>
+            
+            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                <i class="fas fa-edit w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
+                <span>Edit Per-server Profile</span>
+            </div>
+            
+            <div class="border-t border-gray-700 my-1"></div>
+            
+            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-red-400 hover:text-white">
+                <i class="fas fa-sign-out-alt w-5 text-center mr-2.5 text-red-400 group-hover:text-white"></i>
+                <span>Leave Server</span>
+            </div>
+        </div>
+    </div>
+
+<div class="channel-wrapper flex-1 overflow-y-auto">
     <div class="channel-list p-2" data-server-id="<?php echo $currentServerId; ?>">
         <input type="hidden" id="current-server-id" value="<?php echo $currentServerId; ?>">
         <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">
         
         <?php
+        error_log("[Channel Section] Processing channels - Total: " . count($channels));
+        
         $uncategorizedChannels = array_filter($channels, function($ch) {
             return !isset($ch['category_id']) || $ch['category_id'] === null || $ch['category_id'] === '';
         });
+        
+        error_log("[Channel Section] Uncategorized channels: " . count($uncategorizedChannels));
 
         if (!empty($uncategorizedChannels)):
             $textChannels = array_filter($uncategorizedChannels, function($ch) {
                 return ($ch['type'] ?? 'text') === 'text';
             });
+            
+            error_log("[Channel Section] Text channels: " . count($textChannels));
+            if (!empty($textChannels)) {
+                error_log("[Channel Section] Rendering text channels: " . json_encode(array_column($textChannels, 'name')));
+            }
             
             if (!empty($textChannels)):
         ?>
@@ -129,9 +202,18 @@ if (!function_exists('renderCategorySkeleton')) {
         <?php endif; ?>
 
         <?php if (empty($channels)): ?>
+        <?php error_log("[Channel Section] No channels found - showing 'No channels available' message"); ?>
         <div class="p-4 text-gray-400 text-center text-sm">No channels available</div>
         <?php endif; ?>
     </div>
+</div>
+
+    <?php 
+    $userProfilePath = dirname(__DIR__) . '/common/user-profile.php';
+    if (file_exists($userProfilePath)) {
+        include $userProfilePath;
+    }
+    ?>
 </div>
 
 <?php if (isset($_GET['debug'])): ?>

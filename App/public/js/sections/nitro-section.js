@@ -26,6 +26,12 @@ class NitroSection {
             hexagon.addEventListener('mouseleave', () => this.resetHexagonHover(hexagon));
         });
         
+        const crownCenter = document.querySelector('.crown-center');
+        if (crownCenter) {
+            crownCenter.addEventListener('mouseenter', () => this.onCrownHover());
+            crownCenter.addEventListener('mouseleave', () => this.onCrownLeave());
+        }
+        
         this.setupParticleEffects();
     }
     
@@ -188,6 +194,95 @@ class NitroSection {
         }
     }
     
+    onCrownHover() {
+        this.createCrownExpansionEffect();
+        this.hexagons.forEach((hexagon, index) => {
+            setTimeout(() => {
+                this.addHexagonExpandSparkles(hexagon);
+            }, index * 100);
+        });
+    }
+    
+    onCrownLeave() {
+        this.hexagons.forEach(hexagon => {
+            const sparkles = hexagon.querySelectorAll('.expand-sparkle');
+            sparkles.forEach(sparkle => {
+                if (sparkle.parentNode) {
+                    sparkle.parentNode.removeChild(sparkle);
+                }
+            });
+        });
+    }
+    
+    createCrownExpansionEffect() {
+        const crownCenter = document.querySelector('.crown-center');
+        if (!crownCenter) return;
+        
+        for (let i = 0; i < 8; i++) {
+            setTimeout(() => {
+                const ripple = document.createElement('div');
+                ripple.style.cssText = `
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    width: 4px;
+                    height: 4px;
+                    background: radial-gradient(circle, #ffd700, transparent);
+                    border-radius: 50%;
+                    transform: translate(-50%, -50%) scale(0);
+                    animation: crownRipple 1s ease-out forwards;
+                    pointer-events: none;
+                    z-index: 5;
+                `;
+                
+                crownCenter.appendChild(ripple);
+                
+                setTimeout(() => {
+                    if (ripple.parentNode) {
+                        ripple.parentNode.removeChild(ripple);
+                    }
+                }, 1000);
+            }, i * 50);
+        }
+    }
+    
+    addHexagonExpandSparkles(hexagon) {
+        for (let i = 0; i < 6; i++) {
+            setTimeout(() => {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'expand-sparkle';
+                sparkle.style.cssText = `
+                    position: absolute;
+                    width: 5px;
+                    height: 5px;
+                    background: linear-gradient(45deg, #ffd700, #ff69b4);
+                    border-radius: 50%;
+                    box-shadow: 0 0 10px #ffd700;
+                    top: ${Math.random() * 100}%;
+                    left: ${Math.random() * 100}%;
+                    opacity: 1;
+                    transform: scale(0);
+                    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    pointer-events: none;
+                    z-index: 10;
+                `;
+                
+                hexagon.appendChild(sparkle);
+                
+                setTimeout(() => {
+                    sparkle.style.opacity = '0';
+                    sparkle.style.transform = 'scale(2) translateY(-40px)';
+                }, 10);
+                
+                setTimeout(() => {
+                    if (sparkle.parentNode) {
+                        sparkle.parentNode.removeChild(sparkle);
+                    }
+                }, 800);
+            }, i * 80);
+        }
+    }
+    
     pulseConnectedHexagons(hexagon) {
         const index = Array.from(this.hexagons).indexOf(hexagon);
         const connectedIndexes = [];
@@ -290,6 +385,20 @@ class NitroSection {
             @keyframes ripple {
                 to {
                     transform: scale(15);
+                    opacity: 0;
+                }
+            }
+            
+            @keyframes crownRipple {
+                0% {
+                    transform: translate(-50%, -50%) scale(0);
+                    opacity: 0.8;
+                }
+                50% {
+                    opacity: 0.4;
+                }
+                100% {
+                    transform: translate(-50%, -50%) scale(20);
                     opacity: 0;
                 }
             }

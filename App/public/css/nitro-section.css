@@ -423,34 +423,34 @@
     animation-play-state: paused;
 }
 
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 0deg"] {
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature:nth-child(1) {
     transition-delay: 0s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
+    transform: translate(-50%, -50%) rotate(0deg) translateY(-320px) scale(1.2);
 }
 
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 60deg"] {
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature:nth-child(2) {
     transition-delay: 0.1s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
+    transform: translate(-50%, -50%) rotate(0deg) translateY(-320px) scale(1.2);
 }
 
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 120deg"] {
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature:nth-child(3) {
     transition-delay: 0.2s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
+    transform: translate(-50%, -50%) rotate(0deg) translateY(-320px) scale(1.2);
 }
 
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 180deg"] {
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature:nth-child(4) {
     transition-delay: 0.3s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
+    transform: translate(-50%, -50%) rotate(0deg) translateY(-320px) scale(1.2);
 }
 
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 240deg"] {
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature:nth-child(5) {
     transition-delay: 0.4s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
+    transform: translate(-50%, -50%) rotate(0deg) translateY(-320px) scale(1.2);
 }
 
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 300deg"] {
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature:nth-child(6) {
     transition-delay: 0.5s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
+    transform: translate(-50%, -50%) rotate(0deg) translateY(-320px) scale(1.2);
 }
 
 .rotating-hexagons .hexagon-feature {
@@ -533,7 +533,9 @@
 }
 
 .crown-center:hover ~ .rotating-hexagons .hexagon-feature .hexagon-content {
-    transform: rotate(0deg);
+    transform: rotate(0deg) scale(1.1);
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 215, 0, 0.4);
 }
 
 .hexagon-border {
@@ -551,7 +553,9 @@
 }
 
 .crown-center:hover ~ .rotating-hexagons .hexagon-feature .hexagon-border {
-    transform: rotate(0deg);
+    transform: rotate(0deg) scale(1.1);
+    opacity: 0.6;
+    animation: borderExpandGlow 0.5s ease-out;
 }
 
 .feature-icon {
@@ -593,6 +597,21 @@
     }
 }
 
+@keyframes borderExpandGlow {
+    0% {
+        opacity: 0.3;
+        transform: rotate(0deg) scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: rotate(0deg) scale(1.15);
+    }
+    100% {
+        opacity: 0.6;
+        transform: rotate(0deg) scale(1.1);
+    }
+}
+
 @media screen and (max-width: 1024px) {
     .nitro-content {
         flex-direction: column;
@@ -625,7 +644,7 @@
     }
 
     .crown-center:hover ~ .rotating-hexagons .hexagon-feature {
-        transform: translate(-50%, -50%) rotate(0deg) translateY(-200px) !important;
+        transform: translate(-50%, -50%) rotate(0deg) translateY(-280px) scale(1.2) !important;
     }
 }
 
@@ -655,7 +674,7 @@
     }
 
     .crown-center:hover ~ .rotating-hexagons .hexagon-feature {
-        transform: translate(-50%, -50%) rotate(0deg) translateY(-170px) !important;
+        transform: translate(-50%, -50%) rotate(0deg) translateY(-240px) scale(1.2) !important;
     }
 }
 
@@ -685,6 +704,6 @@
     }
 
     .crown-center:hover ~ .rotating-hexagons .hexagon-feature {
-        transform: translate(-50%, -50%) rotate(0deg) translateY(-140px) !important;
+        transform: translate(-50%, -50%) rotate(0deg) translateY(-180px) scale(1.2) !important;
     }
 }

@@ -13,12 +13,14 @@ class MessageHandler {
             return;
         }
         
-        if (this.processedMessageIds.has(messageData.id) && !messageData.is_temporary) {
+        const isTemporary = messageData.is_temporary || messageData.id.toString().startsWith('temp-');
+        
+        if (this.processedMessageIds.has(messageData.id) && !isTemporary) {
             console.log(`🔄 [MESSAGE-HANDLER] Message ${messageData.id} already processed, skipping`);
             return;
         }
         
-        console.log(`📥 [MESSAGE-HANDLER] Adding message ${messageData.id} to UI`);
+        console.log(`📥 [MESSAGE-HANDLER] Adding message ${messageData.id} to UI (temporary: ${isTemporary})`);
         
         const messagesContainer = this.chatSection.getMessagesContainer();
         if (!messagesContainer) {
@@ -52,7 +54,7 @@ class MessageHandler {
         }
         
         // Add temporary message styling if needed
-        if (messageData.is_temporary) {
+        if (isTemporary) {
             messageContent.classList.add('temporary-message');
             messageContent.style.opacity = '0.7';
             this.temporaryMessages.set(messageData.id, messageContent);

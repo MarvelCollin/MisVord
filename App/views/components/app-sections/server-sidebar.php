@@ -121,73 +121,7 @@ if (file_exists($tooltipPath)) {
     ]);
     ?>
     
-    <?php if (isset($contentType) && $contentType === 'server' && isset($currentServer)): ?>
-    <div class="w-60 bg-discord-dark flex flex-col">
-        <div class="h-12 border-b border-black flex items-center px-4 shadow-sm relative">
-            <h2 class="font-bold text-white truncate flex-1"><?php echo htmlspecialchars(is_array($currentServer) ? ($currentServer['name'] ?? 'Server') : ($currentServer->name ?? 'Server')); ?></h2>
-            <button id="server-dropdown-btn" class="text-gray-400 hover:text-white focus:outline-none w-5 h-5 flex items-center justify-center">
-                <i class="fas fa-chevron-down text-sm"></i>
-            </button>
-            
-            <div id="server-dropdown" class="hidden absolute right-2 top-12 w-56 bg-[#18191c] rounded-md shadow-lg z-50 py-2 text-gray-100 text-sm overflow-hidden">
-                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
-                    <i class="fas fa-user-plus w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
-                    <span>Invite People</span>
-                </div>
-                
-                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
-                    <i class="fas fa-cog w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
-                    <span>Server Settings</span>
-                </div>
-                
-                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
-                    <i class="fas fa-plus-circle w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
-                    <span>Create Channel</span>
-                </div>
-                
-                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
-                    <i class="fas fa-folder-plus w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
-                    <span>Create Category</span>
-                </div>
-                
-                <div class="border-t border-gray-700 my-1"></div>
-                
-                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
-                    <i class="fas fa-bell w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
-                    <span>Notification Settings</span>
-                </div>
-                
-                <div class="border-t border-gray-700 my-1"></div>
-                
-                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
-                    <i class="fas fa-edit w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
-                    <span>Edit Per-server Profile</span>
-                </div>
-                
-                <div class="border-t border-gray-700 my-1"></div>
-                
-                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-red-400 hover:text-white">
-                    <i class="fas fa-sign-out-alt w-5 text-center mr-2.5 text-red-400 group-hover:text-white"></i>
-                    <span>Leave Server</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="flex-1 overflow-y-auto py-2 px-1">
-            <?php include dirname(__DIR__) . '/app-sections/channel-section.php'; ?>
-        </div>
-        
-        <?php include dirname(__DIR__) . '/common/user-profile.php'; ?>
-    </div>
-    <?php else: ?>
-    <script>
-        console.log('DEBUG: Not in server context', {
-            contentType: '<?php echo $contentType ?? 'undefined'; ?>',
-            currentServer: <?php echo isset($currentServer) ? 'true' : 'false'; ?>,
-            currentPath: '<?php echo $_SERVER['REQUEST_URI'] ?? ''; ?>'
-        });
-    </script>
-    <?php endif; ?>
+
 </div>
 
 <script>
@@ -214,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php
-// Add server-sidebar.js to additional_js array for proper loading
+
 $additional_js = isset($additional_js) ? $additional_js : [];
 $additional_js[] = 'components/servers/server-sidebar';
 ?>

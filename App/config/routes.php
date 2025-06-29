@@ -16,6 +16,7 @@ require_once __DIR__ . '/../controllers/MediaController.php';
 require_once __DIR__ . '/../controllers/UserController.php';
 require_once __DIR__ . '/../controllers/AdminController.php';
 require_once __DIR__ . '/../controllers/BotController.php';
+require_once __DIR__ . '/../controllers/DebugController.php';
 require_once __DIR__ . '/env.php';
 
 class Route {
@@ -1413,6 +1414,17 @@ Route::post('/api/chat/dm/([0-9]+)/messages', function($roomId) {
 Route::post('/api/chat/save-message', function() {
     $controller = new ChatController();
     $controller->saveMessageFromSocket();
+});
+
+// Debug routes for testing socket input
+Route::post('/api/debug/socket-input', function() {
+    $controller = new DebugController();
+    return $controller->testSocketInput();
+});
+
+Route::get('/api/debug/socket-input', function() {
+    $controller = new DebugController();
+    return $controller->testSocketInput();
 });
 
 // Chat message routes using ChatController

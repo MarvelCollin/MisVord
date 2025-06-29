@@ -412,8 +412,7 @@ class UserRepository extends Repository {
     }
 
     public function getMutualServers($userId1, $userId2)
-    {
-        // Get servers for user 1
+    {        
         $query1 = new Query();
         $servers1 = $query1->table('user_server_memberships')
             ->where('user_id', $userId1)

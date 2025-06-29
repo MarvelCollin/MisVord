@@ -112,4 +112,30 @@ class DebugController extends BaseController
             return false;
         }
     }
+    public function testSocketInput()
+    {
+        error_log("=== DEBUG SOCKET INPUT TEST ===");
+        error_log("Request Method: " . ($_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'));
+        error_log("Content Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'UNKNOWN'));
+        error_log("Raw Input: " . file_get_contents('php://input'));
+        
+        $input = $this->getInput();
+        error_log("Parsed Input: " . json_encode($input));
+        
+        $headers = [];
+        foreach ($_SERVER as $key => $value) {
+            if (strpos($key, 'HTTP_') === 0 || strpos($key, 'X_') !== false) {
+                $headers[$key] = $value;
+            }
+        }
+        error_log("Headers: " . json_encode($headers));
+        
+        return $this->success([
+            'raw_input' => file_get_contents('php://input'),
+            'parsed_input' => $input,
+            'headers' => $headers,
+            'method' => $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN',
+            'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'UNKNOWN'
+        ]);
+    }
 }
