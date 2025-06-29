@@ -76,6 +76,11 @@ export function loadServerPage(serverId, channelId = null) {
                         console.log('[Server AJAX] Channel click handlers initialized');
                     }
                     
+                    if (typeof window.updateActiveServer === 'function') {
+                        window.updateActiveServer('server', serverId);
+                        console.log('[Server AJAX] Active server state updated');
+                    }
+                    
                     const event = new CustomEvent('ServerChanged', { 
                         detail: { 
                             serverId,

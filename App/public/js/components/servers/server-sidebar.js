@@ -770,23 +770,84 @@ async function getServerData() {
     return serverDataCache || {};
 }
 
-export function updateActiveServer() {
+export function updateActiveServer(pageType = null, serverId = null) {
+    console.log('[Update Active Server] Called with:', { pageType, serverId });
+    
+    // Clear all active states from server icons
     document.querySelectorAll('.server-icon.active').forEach(icon => {
         icon.classList.remove('active');
+        console.log('[Update Active Server] Removed active from server icon');
     });
-
-    const currentPath = window.location.pathname;
-    if (currentPath.includes('/server/')) {
-        const serverId = currentPath.split('/server/')[1].split('/')[0];
-        const activeIcon = document.querySelector(`.server-icon[data-server-id="${serverId}"]`);
-        if (activeIcon) {
-            activeIcon.classList.add('active');
+    
+    // Clear explore button active state
+    document.querySelectorAll('.discord-explore-server-button.active').forEach(btn => {
+        btn.classList.remove('active');
+        console.log('[Update Active Server] Removed active from explore button');
+    });
+    
+    // If no parameters provided, try to detect from URL
+    if (!pageType) {
+        const currentPath = window.location.pathname;
+        console.log('[Update Active Server] Detecting from URL:', currentPath);
+        
+        if (currentPath.includes('/server/')) {
+            pageType = 'server';
+            serverId = currentPath.split('/server/')[1].split('/')[0];
+        } else if (currentPath === '/home' || currentPath === '/home/' || currentPath === '/') {
+            pageType = 'home';
+        } else if (currentPath.includes('/explore')) {
+            pageType = 'explore';
         }
-    } else if (currentPath === '/home' || currentPath === '/home/' || currentPath === '/') {
-        const homeIcon = document.querySelector('.server-icon:first-child');
-        if (homeIcon) {
-            homeIcon.classList.add('active');
-        }
+    }
+    
+    console.log('[Update Active Server] Final state:', { pageType, serverId });
+    
+    // Apply active state based on page type
+    switch (pageType) {
+        case 'server':
+            if (serverId) {
+                // Convert serverId to string for consistent comparison
+                const serverIdStr = String(serverId);
+                console.log('[Update Active Server] Looking for server ID:', serverIdStr);
+                
+                // Find the server icon by looking for the anchor with data-server-id, then get its parent
+                const serverLink = document.querySelector(`a[data-server-id="${serverIdStr}"]`);
+                const activeIcon = serverLink ? serverLink.closest('.server-icon') : null;
+                if (activeIcon) {
+                    activeIcon.classList.add('active');
+                    console.log('[Update Active Server] Activated server icon for ID:', serverIdStr);
+                } else {
+                    console.warn('[Update Active Server] Server icon not found for ID:', serverIdStr);
+                    // Debug: Let's see what server links we have
+                    const allServerLinks = document.querySelectorAll('a[data-server-id]');
+                    console.log('[Update Active Server] Available server IDs:', 
+                        Array.from(allServerLinks).map(link => link.getAttribute('data-server-id')));
+                }
+            }
+            break;
+            
+        case 'home':
+            const homeIcon = document.querySelector('.server-icon:first-child');
+            if (homeIcon) {
+                homeIcon.classList.add('active');
+                console.log('[Update Active Server] Activated home icon');
+            } else {
+                console.warn('[Update Active Server] Home icon not found');
+            }
+            break;
+            
+        case 'explore':
+            const exploreButton = document.querySelector('.discord-explore-server-button');
+            if (exploreButton) {
+                exploreButton.classList.add('active');
+                console.log('[Update Active Server] Activated explore button');
+            } else {
+                console.warn('[Update Active Server] Explore button not found');
+            }
+            break;
+            
+        default:
+            console.log('[Update Active Server] No active state applied for pageType:', pageType);
     }
 }
 
@@ -843,7 +904,7 @@ export async function handleHomeClick(event) {
         }
 
         console.log('[Home Navigation] Updating active server state');
-        updateActiveServer();
+        updateActiveServer('home');
 
         console.log('[Home Navigation] Dispatching HomePageChanged event');
         window.dispatchEvent(new CustomEvent('HomePageChanged', { 
@@ -921,7 +982,7 @@ export async function handleServerClick(serverId, event) {
         }
         
         console.log('[Server Navigation] Updating active server state');
-    updateActiveServer();
+        updateActiveServer('server', serverId);
 
         console.log('[Server Navigation] Dispatching ServerChanged event');
         window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
@@ -992,7 +1053,7 @@ export async function handleExploreClick(event) {
         }
 
         console.log('[Explore Navigation] Updating active server state');
-        updateActiveServer();
+        updateActiveServer('explore');
 
         console.log('[Explore Navigation] Dispatching ExplorePageChanged event');
         window.dispatchEvent(new CustomEvent('ExplorePageChanged', { 
@@ -1039,6 +1100,9 @@ function showServerChannelSection() {
 export function refreshServerGroups() {
     performCompleteRender();
 }
+
+// Make updateActiveServer globally available
+window.updateActiveServer = updateActiveServer;
 
 export const ServerSidebar = {
     updateActiveServer,

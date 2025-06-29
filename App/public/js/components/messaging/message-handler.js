@@ -5,6 +5,54 @@ class MessageHandler {
         this.lastMessageGroup = null;
         this.messageGroupTimeThreshold = 5 * 60 * 1000; // 5 minutes in milliseconds
         this.temporaryMessages = new Map(); // Track temporary messages
+        
+        // Add CSS to ensure message actions don't get clipped
+        this.addMessageActionsCSS();
+    }
+    
+    addMessageActionsCSS() {
+        // Only add CSS once
+        if (document.getElementById('message-actions-css')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'message-actions-css';
+        style.textContent = `
+            .message-actions-js {
+                display: flex !important;
+                position: absolute !important;
+                z-index: 999 !important;
+                pointer-events: auto !important;
+                right: -4px !important;
+                top: -4px !important;
+            }
+            
+            #chat-messages {
+                overflow-y: auto !important;
+                overflow-x: visible !important;
+            }
+            
+            .message-group, 
+            .message-content, 
+            .message-content-wrapper, 
+            .message-contents {
+                overflow: visible !important;
+                position: relative !important;
+            }
+            
+            .message-actions-js button {
+                pointer-events: auto !important;
+                cursor: pointer !important;
+                z-index: 999 !important;
+                border: none !important;
+                background: inherit !important;
+                color: inherit !important;
+            }
+            
+            .message-actions-js button:hover {
+                background-color: rgba(79, 84, 92, 0.6) !important;
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     addMessage(messageData) {
@@ -123,9 +171,10 @@ class MessageHandler {
     
     createMessageGroup(messageData) {
         const messageGroup = document.createElement('div');
-        messageGroup.className = 'message-group flex p-2 hover:bg-[#32353b] rounded transition-colors duration-200';
+        messageGroup.className = 'message-group flex p-2 hover:bg-[#32353b] rounded transition-colors duration-200 relative';
         messageGroup.dataset.userId = messageData.userId;
         messageGroup.dataset.timestamp = messageData.timestamp.getTime();
+        messageGroup.style.cssText = 'position: relative !important; overflow: visible !important;';
         
         // Avatar
         const avatarContainer = document.createElement('div');
@@ -139,7 +188,8 @@ class MessageHandler {
         
         // Message content container
         const messageContentContainer = document.createElement('div');
-        messageContentContainer.className = 'flex-grow overflow-hidden';
+        messageContentContainer.className = 'flex-grow overflow-visible relative';
+        messageContentContainer.style.cssText = 'position: relative !important; overflow: visible !important;';
         
         // Message header
         const messageHeader = document.createElement('div');
@@ -177,8 +227,9 @@ class MessageHandler {
     
     createMessageContent(messageData) {
         const messageContent = document.createElement('div');
-        messageContent.className = 'message-content relative group';
+        messageContent.className = 'message-content relative group overflow-visible';
         messageContent.dataset.messageId = messageData.id;
+        messageContent.style.cssText = 'position: relative !important; overflow: visible !important;';
         
         // Handle reply if present
         if (messageData.hasReply) {
@@ -199,9 +250,10 @@ class MessageHandler {
             messageContent.appendChild(attachmentsContainer);
         }
         
-        // Message actions (visible on hover)
+        // Message actions (visible on hover with delay)
         const messageActions = document.createElement('div');
-        messageActions.className = 'message-actions absolute right-0 top-0 opacity-0 group-hover:opacity-100 flex items-center bg-[#36393f] shadow-lg rounded-md transition-opacity duration-200';
+        messageActions.className = 'message-actions-js absolute -right-1 -top-1 opacity-0 flex items-center bg-[#36393f] shadow-lg rounded-md transition-opacity duration-200 z-50';
+        messageActions.style.cssText = 'display: flex !important; position: absolute !important; z-index: 999 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;';
         
         // Reply button
         const replyButton = document.createElement('button');
@@ -487,6 +539,39 @@ class MessageHandler {
     addMessageEventListeners(messageId) {
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) return;
+        
+        const messageActions = messageElement.querySelector('.message-actions-js');
+        
+        // Setup hover behavior for message actions if they exist
+        if (messageActions) {
+            let hideTimeout;
+            
+            // Function to show actions
+            const showActions = () => {
+                clearTimeout(hideTimeout);
+                messageActions.style.opacity = '1';
+            };
+            
+            // Function to hide actions with delay
+            const hideActions = () => {
+                clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(() => {
+                    messageActions.style.opacity = '0';
+                }, 300); // 300ms delay before hiding
+            };
+            
+            // Show actions when hovering over message
+            messageElement.addEventListener('mouseenter', showActions);
+            
+            // Hide actions when leaving message (with delay)
+            messageElement.addEventListener('mouseleave', hideActions);
+            
+            // Keep actions visible when hovering over them
+            messageActions.addEventListener('mouseenter', showActions);
+            
+            // Hide actions when leaving the actions area (with delay)
+            messageActions.addEventListener('mouseleave', hideActions);
+        }
         
         // Add event listeners to action buttons
         const actionButtons = messageElement.querySelectorAll('[data-action]');

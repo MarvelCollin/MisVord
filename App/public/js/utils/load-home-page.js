@@ -175,6 +175,12 @@ function updateHomeLayout(html) {
                 'misvord - Home', 
                 '/home'
             );
+            
+            if (typeof window.updateActiveServer === 'function') {
+                window.updateActiveServer('home');
+                console.log('[Home Layout] Active server state updated for home');
+            }
+            
             console.log('[Home Layout] SUCCESS - Home layout replacement completed');
         } else {
             console.error('[Home Layout] FAILED - Layout container not found');

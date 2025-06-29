@@ -111,6 +111,11 @@ function updateExploreLayout(html) {
             if (typeof window.initExplorePage === 'function') {
                 window.initExplorePage();
             }
+            
+            if (typeof window.updateActiveServer === 'function') {
+                window.updateActiveServer('explore');
+                console.log('[Explore Layout] Active server state updated for explore');
+            }
         }, 100);
     } else {
         console.error('[Explore Layout] Main content element not found');
