@@ -231,9 +231,7 @@ function showMasterDebugModal() {
                             <button onclick="switchMasterTab('position')" id="position-master-tab" class="w-full text-left px-3 py-2 text-sm rounded text-gray-400 hover:bg-gray-700 hover:text-white">
                                 <i class="fas fa-sort mr-2"></i>Position Sync
                             </button>
-                            <button onclick="switchMasterTab('music')" id="music-master-tab" class="w-full text-left px-3 py-2 text-sm rounded text-gray-400 hover:bg-gray-700 hover:text-white">
-                                <i class="fas fa-music mr-2"></i>Music Player
-                            </button>
+
                             <button onclick="switchMasterTab('auth')" id="auth-master-tab" class="w-full text-left px-3 py-2 text-sm rounded text-gray-400 hover:bg-gray-700 hover:text-white">
                                 <i class="fas fa-key mr-2"></i>Auth Reset
                             </button>
@@ -254,10 +252,7 @@ function showMasterDebugModal() {
                                 <span class="text-gray-400">Bot:</span>
                                 <span id="bot-status-master" class="text-red-400">❌ No</span>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Music:</span>
-                                <span id="music-status-master" class="text-red-400">❌ No</span>
-                            </div>
+
                     </div>
                 </div>
                 
@@ -381,22 +376,7 @@ function showMasterDebugModal() {
                         </div>
                     </div>
                     
-                    <div id="music-master-content" class="flex-1 p-4 master-tab-content hidden">
-                        <h3 class="text-lg font-semibold text-white mb-4">Music Player</h3>
-                        <div class="space-y-4">
-                            <div class="bg-gray-800 rounded-lg p-4">
-                                <h4 class="text-md font-semibold text-gray-300 mb-3">Music Controls</h4>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <button onclick="showMusicDebug()" class="bg-pink-600 hover:bg-pink-700 text-white py-2 px-3 rounded">
-                                        <i class="fas fa-music mr-1"></i>Music Debug
-                                    </button>
-                                    <button onclick="showMusicSearch()" class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded">
-                                        <i class="fas fa-search mr-1"></i>Search Music
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
                     
                     <div id="auth-master-content" class="flex-1 p-4 master-tab-content hidden">
                         <h3 class="text-lg font-semibold text-white mb-4">Authentication Reset</h3>
@@ -640,7 +620,7 @@ async function initializeTitiBot() {
 }
 
 function switchMasterTab(tabName) {
-    const tabs = ['bot', 'debug', 'position', 'music', 'auth', 'logs'];
+    const tabs = ['bot', 'debug', 'position', 'auth', 'logs'];
     
     tabs.forEach(tab => {
         const tabButton = document.getElementById(`${tab}-master-tab`);
@@ -778,16 +758,12 @@ function initializeMasterDebugPanel() {
 function refreshMasterStatus() {
     const socketConnected = window.globalSocketManager?.connected;
     const botReady = window.titiBotData?.id;
-    const musicReady = window.musicPlayer && typeof MusicPlayerSystem !== 'undefined';
     
     document.getElementById('socket-status-master').innerHTML = socketConnected ? '✅ Yes' : '❌ No';
     document.getElementById('socket-status-master').className = socketConnected ? 'text-green-400' : 'text-red-400';
     
     document.getElementById('bot-status-master').innerHTML = botReady ? '✅ Yes' : '❌ No';
     document.getElementById('bot-status-master').className = botReady ? 'text-green-400' : 'text-red-400';
-    
-    document.getElementById('music-status-master').innerHTML = musicReady ? '✅ Yes' : '❌ No';
-    document.getElementById('music-status-master').className = musicReady ? 'text-green-400' : 'text-red-400';
     
     const socketId = window.globalSocketManager?.io?.id;
     const userId = document.querySelector('meta[name="user-id"]')?.content;
@@ -910,27 +886,7 @@ async function checkBotServerMemberships() {
     }
 }
 
-function showMusicDebug() {
-    if (window.musicPlayer) {
-        window.musicPlayer.showMusicDebugPanel();
-    } else if (typeof MusicPlayerSystem !== 'undefined') {
-        window.musicPlayer = new MusicPlayerSystem();
-        setTimeout(() => window.musicPlayer.showMusicDebugPanel(), 100);
-    } else {
-        addDebugLogMaster('🎵 Music player not available', 'warning');
-    }
-}
 
-function showMusicSearch() {
-    if (window.musicPlayer) {
-        window.musicPlayer.showSearchModal();
-    } else if (typeof MusicPlayerSystem !== 'undefined') {
-        window.musicPlayer = new MusicPlayerSystem();
-        setTimeout(() => window.musicPlayer.showSearchModal(), 100);
-    } else {
-        addDebugLogMaster('🎵 Music search not available', 'warning');
-    }
-}
 
 function testSocketConnection() {
     addDebugLogMaster('🔍 Testing socket connection...', 'info');
@@ -2273,12 +2229,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    setTimeout(() => {
-        if (typeof MusicPlayerSystem !== 'undefined' && !window.musicPlayer) {
-            console.log('🎵 Initializing music player system...');
-            window.musicPlayer = new MusicPlayerSystem();
-        }
-    }, 500);
+
 });
 </script>
 

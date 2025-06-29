@@ -995,14 +995,21 @@ class DiscordVoiceManager {
         const videoGrid = document.getElementById('videoGrid');
         const voiceGrid = document.querySelector('#voiceOnlyGrid .grid');
         
-        if (participant.hasVideo) {
+        if (participant.hasVideo && videoGrid) {
             this.createVideoParticipantCard(participant, videoGrid);
-        } else {
+        } else if (!participant.hasVideo && voiceGrid) {
             this.createVoiceParticipantCard(participant, voiceGrid);
+        } else {
+            console.warn('DiscordVoiceManager: Required container element not found for participant');
         }
     }
 
     createVideoParticipantCard(participant, container) {
+        if (!container) {
+            console.warn('DiscordVoiceManager: No container provided for video participant card');
+            return null;
+        }
+
         const card = document.createElement('div');
         card.className = 'discord-video-card bg-[#1e1f22] rounded-lg overflow-hidden shadow-lg border border-[#40444b]/30 hover:border-[#40444b]/60 transition-all duration-200 relative group video-card-enter';
         card.dataset.participantId = participant.id;
@@ -1038,6 +1045,11 @@ class DiscordVoiceManager {
     }
 
     createVoiceParticipantCard(participant, container) {
+        if (!container) {
+            console.warn('DiscordVoiceManager: No container provided for voice participant card');
+            return null;
+        }
+
         const card = document.createElement('div');
         card.className = 'discord-voice-card flex flex-col items-center space-y-2 p-4 transition-all duration-200 hover:scale-105 participant-enter';
         card.dataset.participantId = participant.id;
@@ -1073,11 +1085,18 @@ class DiscordVoiceManager {
         this.removeExistingParticipantElement(participantId);
         
         const videoGrid = document.getElementById('videoGrid');
+        if (!videoGrid) {
+            console.warn('DiscordVoiceManager: videoGrid not found for video enabled');
+            return;
+        }
+
         const card = this.createVideoParticipantCard(participant, videoGrid);
         
-        const video = card.querySelector('video');
-        if (video && stream) {
-            this.attachStreamToVideo(video, stream);
+        if (card) {
+            const video = card.querySelector('video');
+            if (video && stream) {
+                this.attachStreamToVideo(video, stream);
+            }
         }
 
         this.updateLayout();
@@ -1094,6 +1113,11 @@ class DiscordVoiceManager {
         this.removeExistingParticipantElement(participantId);
         
         const voiceGrid = document.querySelector('#voiceOnlyGrid .grid');
+        if (!voiceGrid) {
+            console.warn('DiscordVoiceManager: voiceGrid not found for video disabled');
+            return;
+        }
+
         this.createVoiceParticipantCard(participant, voiceGrid);
 
         this.updateLayout();
@@ -1104,6 +1128,11 @@ class DiscordVoiceManager {
         const screenContainer = document.getElementById('screenShareContainer');
         const screenVideo = document.getElementById('screenShareVideo');
         const screenUsername = document.getElementById('screenShareUsername');
+
+        if (!screenContainer || !screenVideo || !screenUsername) {
+            console.warn('DiscordVoiceManager: Screen share elements not found');
+            return;
+        }
 
         if (isSharing && stream) {
             this.screenShareActive = true;
@@ -1163,6 +1192,12 @@ class DiscordVoiceManager {
         const voiceGrid = document.getElementById('voiceOnlyGrid');
         const participantGrid = document.getElementById('participantGrid');
 
+        // Add null checks to prevent errors
+        if (!videoGrid || !voiceGrid || !participantGrid) {
+            console.warn('DiscordVoiceManager: Required layout elements not found');
+            return;
+        }
+
         if (hasScreenShare) {
             this.currentLayout = 'screen-share';
             participantGrid.classList.add('hidden');
@@ -1184,6 +1219,11 @@ class DiscordVoiceManager {
 
     updateGridColumns() {
         const videoGrid = document.getElementById('videoGrid');
+        if (!videoGrid) {
+            console.warn('DiscordVoiceManager: videoGrid element not found');
+            return;
+        }
+
         const participantCount = this.videoParticipants.size;
 
         if (participantCount <= 1) {
@@ -1218,9 +1258,13 @@ class DiscordVoiceManager {
         this.videoParticipants.clear();
         this.screenShareActive = false;
         
-        document.getElementById('videoGrid').innerHTML = '';
-        document.querySelector('#voiceOnlyGrid .grid').innerHTML = '';
-        document.getElementById('screenShareContainer').classList.add('hidden');
+        const videoGrid = document.getElementById('videoGrid');
+        const voiceGrid = document.querySelector('#voiceOnlyGrid .grid');
+        const screenContainer = document.getElementById('screenShareContainer');
+        
+        if (videoGrid) videoGrid.innerHTML = '';
+        if (voiceGrid) voiceGrid.innerHTML = '';
+        if (screenContainer) screenContainer.classList.add('hidden');
         
         this.updateParticipantCount();
         this.updateLayout();
@@ -1237,46 +1281,45 @@ function closeScreenShare() {
 }
 
 function updateDiscordLayout() {
+    // This function is now handled by DiscordVoiceManager class
+    // Keeping it for compatibility but using the new system
+    if (window.discordVoiceManager) {
+        window.discordVoiceManager.updateLayout();
+        return;
+    }
+
+    // Fallback with null checks for legacy compatibility
     const screenShareContainer = document.getElementById('screenShareContainer');
-    const speakerView = document.getElementById('speakerView');
     const voiceOnlyGrid = document.getElementById('voiceOnlyGrid');
     const videoSidebar = document.getElementById('videoSidebar');
     const voiceParticipantsBar = document.getElementById('voiceParticipantsBar');
     
     const hasScreenShare = document.querySelector('[data-stream-type="share"]');
     const videoParticipants = document.querySelectorAll('[data-stream-type="video"]');
-    const hasActiveSpeaker = document.querySelector('.video-participant-card.active-speaker');
+    const discordVideoCards = document.querySelectorAll('.discord-video-card');
     
     if (hasScreenShare) {
-        screenShareContainer.classList.remove('hidden');
-        speakerView.classList.add('hidden');
-        voiceOnlyGrid.classList.add('hidden');
-    } else if (hasActiveSpeaker || videoParticipants.length > 0) {
-        screenShareContainer.classList.add('hidden');
-        if (hasActiveSpeaker) {
-            speakerView.classList.remove('hidden');
-            voiceOnlyGrid.classList.add('hidden');
-        } else {
-            speakerView.classList.add('hidden');
-            voiceOnlyGrid.classList.remove('hidden');
-        }
+        if (screenShareContainer) screenShareContainer.classList.remove('hidden');
+        if (voiceOnlyGrid) voiceOnlyGrid.classList.add('hidden');
+    } else if (discordVideoCards.length > 0 || videoParticipants.length > 0) {
+        if (screenShareContainer) screenShareContainer.classList.add('hidden');
+        if (voiceOnlyGrid) voiceOnlyGrid.classList.add('hidden');
     } else {
-        screenShareContainer.classList.add('hidden');
-        speakerView.classList.add('hidden');
-        voiceOnlyGrid.classList.remove('hidden');
+        if (screenShareContainer) screenShareContainer.classList.add('hidden');
+        if (voiceOnlyGrid) voiceOnlyGrid.classList.remove('hidden');
     }
     
-    if (videoParticipants.length > 0) {
-        videoSidebar.classList.remove('hidden');
+    if (discordVideoCards.length > 0 || videoParticipants.length > 0) {
+        if (videoSidebar) videoSidebar.classList.remove('hidden');
     } else {
-        videoSidebar.classList.add('hidden');
+        if (videoSidebar) videoSidebar.classList.add('hidden');
     }
     
-    const voiceParticipants = document.querySelectorAll('.voice-participant-avatar');
+    const voiceParticipants = document.querySelectorAll('.voice-participant-avatar, .discord-voice-card');
     if (voiceParticipants.length > 0) {
-        voiceParticipantsBar.classList.remove('hidden');
+        if (voiceParticipantsBar) voiceParticipantsBar.classList.remove('hidden');
     } else {
-        voiceParticipantsBar.classList.add('hidden');
+        if (voiceParticipantsBar) voiceParticipantsBar.classList.add('hidden');
     }
 }
 
