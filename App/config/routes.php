@@ -610,38 +610,6 @@ Route::post('/api/servers/([0-9]+)/profile', function($serverId) {
     $controller->updatePerServerProfile($serverId);
 });
 
-Route::get('/api/explore/servers/search', function() {
-    $query = $_GET['q'] ?? '';
-    $controller = new ExploreController();
-    $result = $controller->searchServers($query);
-    header('Content-Type: application/json');
-    echo json_encode($result);
-    exit;
-});
-
-Route::get('/api/explore/content', function() {
-    $controller = new ExploreController();
-    $controller->getExploreContent();
-});
-
-Route::get('/api/explore/servers/category', function() {
-    $category = $_GET['category'] ?? '';
-    $controller = new ExploreController();
-    $result = $controller->getServersByCategory($category);
-    header('Content-Type: application/json');
-    echo json_encode($result);
-    exit;
-});
-
-Route::get('/api/explore/servers/featured', function() {
-    $limit = $_GET['limit'] ?? 3;
-    $controller = new ExploreController();
-    $result = $controller->getFeaturedServers($limit);
-    header('Content-Type: application/json');
-    echo json_encode($result);
-    exit;
-});
-
 Route::get('/explore-servers/layout', function() {
     $controller = new ExploreController();
     $controller->getExploreLayout();

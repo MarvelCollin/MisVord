@@ -17,32 +17,6 @@ class ExploreController extends BaseController
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
     }
     
-    public function searchServers($query)
-    {
-        $currentUserId = $_SESSION['user_id'] ?? 0;
-        $servers = [];
-        $userServerId = [];
-        
-        try {
-            $servers = $this->serverRepository->searchServers($query);
-            
-            $servers = array_map(function($server) {
-                return is_array($server) ? $server : (array) $server;
-            }, $servers);
-            
-            $userServerId = $this->userServerMembershipRepository->getServerIdsForUser($currentUserId);
-        } catch (Exception $e) {
-            log_error("Error searching servers", ['error' => $e->getMessage()]);
-            $servers = [];
-            $userServerId = [];
-        }
-
-        return [
-            'servers' => $servers,
-            'userServerIds' => $userServerId
-        ];
-    }
-
     public function getPublicServers()
     {
         $currentUserId = $_SESSION['user_id'] ?? 0;
@@ -69,11 +43,14 @@ class ExploreController extends BaseController
             'userServerIds' => $userServerId
         ];
     }
-    public function getFeaturedServers($limit = 3)
+
+    private function getFeaturedServers($limit = 3)
     {
         $currentUserId = $_SESSION['user_id'] ?? 0;
         $featuredServers = [];
-        $userServerId = [];        try {
+        $userServerId = [];        
+        
+        try {
             $featuredServers = $this->serverRepository->getFeaturedServersWithMemberCount($limit);
             
             $featuredServers = array_map(function($server) {
@@ -91,31 +68,9 @@ class ExploreController extends BaseController
             'featuredServers' => $featuredServers,
             'userServerIds' => $userServerId
         ];
-    }    public function getServersByCategory($category)
-    {
-        $currentUserId = $_SESSION['user_id'] ?? 0;
-        $servers = [];
-        $userServerId = [];
+    }
 
-        try {
-            $servers = $this->serverRepository->getServersByCategoryWithMemberCount($category);
-            
-            $servers = array_map(function($server) {
-                return is_array($server) ? $server : (array) $server;
-            }, $servers);
-            
-            $userServerId = $this->userServerMembershipRepository->getServerIdsForUser($currentUserId);
-        } catch (Exception $e) {
-            log_error("Error fetching servers by category", ['error' => $e->getMessage()]);
-            $servers = [];
-            $userServerId = [];
-        }
-
-        return [
-            'servers' => $servers,
-            'userServerIds' => $userServerId
-        ];
-    }    public function prepareExploreData()
+    public function prepareExploreData()
     {
 
         $currentUserId = $_SESSION['user_id'] ?? 0;
@@ -148,31 +103,16 @@ class ExploreController extends BaseController
         ];
     }
 
-    public function getExploreContent()
-    {
-        $this->requireAuth();
-
-        try {
-            $exploreData = $this->prepareExploreData();
-
-            if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                return $this->success($exploreData);
-            }
-
-            return $exploreData;
-        } catch (Exception $e) {
-            if ($this->isAjaxRequest()) {
-                return $this->serverError('Failed to load explore content');
-            }
-            throw $e;
-        }
-    }
-
     public function getExploreLayout()
     {
         $this->requireAuth();
 
         try {
+            if (!$this->isAjaxRequest()) {
+                header('HTTP/1.1 400 Bad Request');
+                exit('AJAX request required');
+            }
+
             $exploreData = $this->prepareExploreData();
             
             $userServers = $exploreData['userServers'];
@@ -180,12 +120,6 @@ class ExploreController extends BaseController
             $userServerId = $exploreData['userServerIds'];
             $featuredServers = $exploreData['featuredServers'];
             $categories = $exploreData['categories'];
-
-            $GLOBALS['userServers'] = $userServers;
-            $GLOBALS['servers'] = $servers;
-            $GLOBALS['userServerIds'] = $userServerId;
-            $GLOBALS['featuredServers'] = $featuredServers;
-            $GLOBALS['categories'] = $categories;
 
             ob_start();
             ?>
@@ -378,7 +312,7 @@ class ExploreController extends BaseController
                                     </div>
                                     <h3 class="text-xl font-bold mb-2">No Servers Found</h3>
                                     <p class="text-discord-lighter mb-6">There are no public servers available right now.</p>
-                                    <a href="#" onclick="event.preventDefault(); showCreateServerModal();" class="inline-flex items-center gap-2 bg-discord-primary text-white px-6 py-3 rounded-lg hover:bg-discord-primary/90 transition-colors font-semibold">
+                                    <a href="#" onclick="event.preventDefault(); if(window.showCreateServerModal) window.showCreateServerModal();" class="inline-flex items-center gap-2 bg-discord-primary text-white px-6 py-3 rounded-lg hover:bg-discord-primary/90 transition-colors font-semibold">
                                         <i class="fas fa-plus"></i>
                                         Create Your Own Server
                                     </a>
@@ -404,21 +338,28 @@ class ExploreController extends BaseController
                         </div>
                     </div>
                 </div>
+
+                <script>
+                if (typeof window.initExplorePage === 'function') {
+                    window.initExplorePage();
+                } else {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        if (typeof window.initExplorePage === 'function') {
+                            window.initExplorePage();
+                        }
+                    });
+                }
+                </script>
             </div>
             <?php
             $html = ob_get_clean();
+            echo $html;
+            exit;
 
-            if ($this->isAjaxRequest()) {
-                echo $html;
-                exit;
-            }
-
-            return $html;
         } catch (Exception $e) {
-            if ($this->isAjaxRequest()) {
-                return $this->serverError('Failed to load explore layout');
-            }
-            throw $e;
+            header('HTTP/1.1 500 Internal Server Error');
+            echo 'Failed to load explore layout: ' . $e->getMessage();
+            exit;
         }
     }
 }

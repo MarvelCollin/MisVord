@@ -221,7 +221,7 @@ $additional_js = ['components/servers/server-dropdown'];
                             </div>
                             <h3 class="text-xl font-bold mb-2">No Servers Found</h3>
                             <p class="text-discord-lighter mb-6">There are no public servers available right now.</p>
-                            <a href="/create-server" class="inline-flex items-center gap-2 bg-discord-primary text-white px-6 py-3 rounded-lg hover:bg-discord-primary/90 transition-colors font-semibold">
+                            <a href="#" onclick="event.preventDefault(); if(window.showCreateServerModal) window.showCreateServerModal();" class="inline-flex items-center gap-2 bg-discord-primary text-white px-6 py-3 rounded-lg hover:bg-discord-primary/90 transition-colors font-semibold">
                                 <i class="fas fa-plus"></i>
                                 Create Your Own Server
                             </a>

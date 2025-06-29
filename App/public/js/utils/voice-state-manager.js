@@ -12,7 +12,6 @@ class VoiceStateManager {
     init() {
         this.loadState();
         this.setupStorageListener();
-        this.setupVoiceControlListeners();
         this.setupVideoSDKListeners();
     }
 
@@ -62,15 +61,9 @@ class VoiceStateManager {
             try {
                 const participant = window.videosdkMeeting.localParticipant;
                 
-                if (window.videoSDKManager.sdkVersion === "0.2.x") {
-                    this.state.isMuted = !participant.isMicEnabled;
-                    this.state.isVideoOn = participant.isWebcamEnabled;
-                    this.state.isScreenSharing = participant.isScreenShareEnabled;
-                } else {
-                    this.state.isMuted = !participant.streams.has("audio");
-                    this.state.isVideoOn = participant.streams.has("video");
-                    this.state.isScreenSharing = participant.streams.has("share");
-                }
+                this.state.isMuted = !window.videoSDKManager.getMicState();
+                this.state.isVideoOn = window.videoSDKManager.getWebcamState();
+                this.state.isScreenSharing = window.videoSDKManager.getScreenShareState();
                 
                 this.saveState();
                 this.updateAllControls();
@@ -81,16 +74,12 @@ class VoiceStateManager {
         }
     }
 
-    setupVoiceControlListeners() {
-        console.log('VoiceStateManager: Skipping duplicate control listeners - handled by voice-tool.php');
-    }
-
     toggleMic() {
         let newMutedState;
         
         if (window.videoSDKManager && window.videosdkMeeting) {
             try {
-                newMutedState = window.videoSDKManager.toggleMic();
+                newMutedState = !window.videoSDKManager.toggleMic();
             } catch (error) {
                 console.error('Error toggling VideoSDK mic:', error);
                 newMutedState = !this.state.isMuted;
@@ -124,7 +113,7 @@ class VoiceStateManager {
         this.showToast(newDeafenState ? 'Deafened' : 'Undeafened');
     }
 
-    async toggleVideo() {
+    toggleVideo() {
         if (!window.videoSDKManager || !window.videosdkMeeting) {
             this.showToast('Voice not connected', 'error');
             return;
@@ -134,27 +123,26 @@ class VoiceStateManager {
         if (videoButton) videoButton.disabled = true;
 
         try {
-            const localParticipant = window.videosdkMeeting.localParticipant;
-            if (!localParticipant || localParticipant.connectionStatus !== 'connected') {
-                throw new Error('Please wait for connection to establish');
-            }
-
-            const isVideoOn = await window.videoSDKManager.toggleWebcam();
-            
-            console.log(`[VoiceManager] Video toggled. New SDK state: ${isVideoOn}`);
-            this.storageManager.setVoiceState({ isVideoOn });
-            this.showToast(isVideoOn ? 'Camera enabled' : 'Camera disabled');
+            window.videoSDKManager.toggleWebcam().then(isVideoOn => {
+                console.log(`Video toggled. New state: ${isVideoOn}`);
+                this.storageManager.setVoiceState({ isVideoOn });
+                this.showToast(isVideoOn ? 'Camera enabled' : 'Camera disabled');
+            }).catch(error => {
+                console.error('Error toggling webcam:', error);
+                this.showToast('Failed to toggle camera', 'error');
+                const currentVideoState = window.videoSDKManager.getWebcamState();
+                this.storageManager.setVoiceState({ isVideoOn: currentVideoState });
+            }).finally(() => {
+                if (videoButton) videoButton.disabled = false;
+            });
         } catch (error) {
             console.error('Error toggling VideoSDK webcam:', error);
-            this.showToast(error.message || 'Failed to toggle camera', 'error');
-            const currentVideoState = window.videoSDKManager.getWebcamState();
-            this.storageManager.setVoiceState({ isVideoOn: currentVideoState });
-        } finally {
+            this.showToast('Failed to toggle camera', 'error');
             if (videoButton) videoButton.disabled = false;
         }
     }
 
-    async toggleScreenShare() {
+    toggleScreenShare() {
         if (!window.videoSDKManager || !window.videosdkMeeting) {
             this.showToast('Voice not connected', 'error');
             return;
@@ -164,22 +152,21 @@ class VoiceStateManager {
         if (screenButton) screenButton.disabled = true;
 
         try {
-            const localParticipant = window.videosdkMeeting.localParticipant;
-            if (!localParticipant || localParticipant.connectionStatus !== 'connected') {
-                throw new Error('Please wait for connection to establish');
-            }
-
-            const isScreenSharing = await window.videoSDKManager.toggleScreenShare();
-
-            console.log(`[VoiceManager] Screen share toggled. New SDK state: ${isScreenSharing}`);
-            this.storageManager.setVoiceState({ isScreenSharing });
-            this.showToast(isScreenSharing ? 'Screen sharing started' : 'Screen sharing stopped');
+            window.videoSDKManager.toggleScreenShare().then(isScreenSharing => {
+                console.log(`Screen share toggled. New state: ${isScreenSharing}`);
+                this.storageManager.setVoiceState({ isScreenSharing });
+                this.showToast(isScreenSharing ? 'Screen sharing started' : 'Screen sharing stopped');
+            }).catch(error => {
+                console.error('Error toggling screen share:', error);
+                this.showToast('Failed to start screen share', 'error');
+                const currentScreenState = window.videoSDKManager.getScreenShareState();
+                this.storageManager.setVoiceState({ isScreenSharing: currentScreenState });
+            }).finally(() => {
+                if (screenButton) screenButton.disabled = false;
+            });
         } catch (error) {
             console.error('Error toggling screen share:', error);
-            this.showToast(error.message || 'Failed to start screen share', 'error');
-            const currentScreenState = window.videoSDKManager.getScreenShareState();
-            this.storageManager.setVoiceState({ isScreenSharing: currentScreenState });
-        } finally {
+            this.showToast('Failed to start screen share', 'error');
             if (screenButton) screenButton.disabled = false;
         }
     }
@@ -233,7 +220,6 @@ class VoiceStateManager {
 
     updateVideoControls() {
         const videoButtons = document.querySelectorAll('#joinVideoBtn, .video-btn, button[title*="Camera"], button[title*="camera"]');
-        console.log('VoiceStateManager: Updating video controls, found buttons:', videoButtons.length, 'isVideoOn:', this.state.isVideoOn);
         
         videoButtons.forEach(btn => {
             const icon = btn.querySelector('i');
@@ -244,20 +230,17 @@ class VoiceStateManager {
                 btn.classList.add('bg-[#3ba55c]', 'text-white');
                 btn.classList.remove('bg-[#2f3136]', 'text-gray-300', 'bg-transparent');
                 btn.title = 'Turn Off Camera';
-                console.log('VoiceStateManager: Video button set to ON state');
             } else {
                 icon.className = 'fas fa-video-slash text-lg';
                 btn.classList.remove('bg-[#3ba55c]', 'text-white');
                 btn.classList.add('bg-[#2f3136]', 'text-gray-300');
                 btn.title = 'Turn On Camera';
-                console.log('VoiceStateManager: Video button set to OFF state');
             }
         });
     }
 
     updateScreenControls() {
         const screenButtons = document.querySelectorAll('#screenBtn, .screen-btn, button[title*="Screen"], button[title*="screen"]');
-        console.log('VoiceStateManager: Updating screen controls, found buttons:', screenButtons.length, 'isScreenSharing:', this.state.isScreenSharing);
         
         screenButtons.forEach(btn => {
             const icon = btn.querySelector('i');
@@ -267,12 +250,10 @@ class VoiceStateManager {
                 btn.classList.add('bg-[#5865F2]', 'text-white');
                 btn.classList.remove('bg-[#2f3136]', 'text-gray-300', 'bg-transparent');
                 btn.title = 'Stop Sharing';
-                console.log('VoiceStateManager: Screen button set to SHARING state');
             } else {
                 btn.classList.remove('bg-[#5865F2]', 'text-white');
                 btn.classList.add('bg-[#2f3136]', 'text-gray-300');
                 btn.title = 'Share Your Screen';
-                console.log('VoiceStateManager: Screen button set to NOT SHARING state');
             }
         });
     }
@@ -294,8 +275,6 @@ class VoiceStateManager {
                 console.error('Error disconnecting from VideoSDK:', error);
             }
         }
-        
-
         
         window.dispatchEvent(new CustomEvent('voiceDisconnect'));
         this.showToast('Disconnected from voice channel');

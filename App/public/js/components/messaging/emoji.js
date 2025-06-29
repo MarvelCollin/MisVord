@@ -192,16 +192,40 @@ class EmojiReactions {
 
     setupExistingReactionButtons() {
         document.addEventListener('click', (e) => {
+            let triggerElement = null;
+            let messageElement = null;
+            let messageId = null;
+            
             if (e.target.classList.contains('message-action-reaction') || 
                 e.target.closest('.message-action-reaction')) {
                 e.stopPropagation();
-                const messageElement = e.target.closest('.message-content') || 
-                                    e.target.closest('[data-message-id]');
+                triggerElement = e.target.classList.contains('message-action-reaction') ? e.target : e.target.closest('.message-action-reaction');
+                messageElement = triggerElement.closest('.message-content') || triggerElement.closest('[data-message-id]');
                 if (messageElement) {
-                    const messageId = messageElement.dataset.messageId;
+                    messageId = messageElement.dataset.messageId;
                     if (messageId) {
-                        this.showEmojiPicker(messageId, e.target);
+                        this.showEmojiPicker(messageId, triggerElement);
                     }
+                }
+            }
+            
+            else if (e.target.classList.contains('bubble-action-button') && e.target.dataset.action === 'react') {
+                e.stopPropagation();
+                triggerElement = e.target;
+                messageId = e.target.dataset.messageId;
+                if (messageId) {
+                    console.log('🎯 [EMOJI-REACTIONS] Bubble action button clicked for message:', messageId);
+                    this.showEmojiPicker(messageId, triggerElement);
+                }
+            }
+            
+            else if (e.target.closest('.bubble-action-button[data-action="react"]')) {
+                e.stopPropagation();
+                triggerElement = e.target.closest('.bubble-action-button[data-action="react"]');
+                messageId = triggerElement.dataset.messageId;
+                if (messageId) {
+                    console.log('🎯 [EMOJI-REACTIONS] Bubble action button (child) clicked for message:', messageId);
+                    this.showEmojiPicker(messageId, triggerElement);
                 }
             }
         });
@@ -405,7 +429,10 @@ class EmojiReactions {
             return;
         }
 
-        let reactionsContainer = messageElement.querySelector('.message-reactions-container');
+        const isBubbleMessage = messageElement.closest('.bubble-message-group');
+        let reactionsContainer = isBubbleMessage ? 
+            messageElement.querySelector('.bubble-reactions') : 
+            messageElement.querySelector('.message-reactions-container');
         
         if (!reactions || reactions.length === 0) {
             if (reactionsContainer) {
@@ -417,16 +444,20 @@ class EmojiReactions {
 
         if (!reactionsContainer) {
             reactionsContainer = document.createElement('div');
-            reactionsContainer.className = 'message-reactions-container';
+            reactionsContainer.className = isBubbleMessage ? 'bubble-reactions' : 'message-reactions-container';
             
-            const messageContent = messageElement.querySelector('.message-main-text') || 
-                                 messageElement.querySelector('.message-content') ||
-                                 messageElement;
-            
-            if (messageContent.parentElement) {
-                messageContent.parentElement.appendChild(reactionsContainer);
-            } else {
+            if (isBubbleMessage) {
                 messageElement.appendChild(reactionsContainer);
+            } else {
+                const messageContent = messageElement.querySelector('.message-main-text') || 
+                                     messageElement.querySelector('.message-content') ||
+                                     messageElement;
+                
+                if (messageContent.parentElement) {
+                    messageContent.parentElement.appendChild(reactionsContainer);
+                } else {
+                    messageElement.appendChild(reactionsContainer);
+                }
             }
         }
 
@@ -447,7 +478,7 @@ class EmojiReactions {
 
         Object.entries(emojiCounts).forEach(([emoji, count]) => {
             const reactionPill = document.createElement('div');
-            reactionPill.className = 'message-reaction-pill';
+            reactionPill.className = isBubbleMessage ? 'bubble-reaction' : 'message-reaction-pill';
             reactionPill.dataset.emoji = emoji;
             reactionPill.dataset.messageId = messageId;
             reactionPill.title = `${count} reaction${count > 1 ? 's' : ''}`;
@@ -456,10 +487,17 @@ class EmojiReactions {
                 reactionPill.classList.add('user-reacted');
             }
 
-            reactionPill.innerHTML = `
-                <span class="reaction-emoji">${emoji}</span>
-                <span class="reaction-count">${count}</span>
-            `;
+            if (isBubbleMessage) {
+                reactionPill.innerHTML = `
+                    <span class="bubble-reaction-emoji">${emoji}</span>
+                    <span class="bubble-reaction-count">${count}</span>
+                `;
+            } else {
+                reactionPill.innerHTML = `
+                    <span class="reaction-emoji">${emoji}</span>
+                    <span class="reaction-count">${count}</span>
+                `;
+            }
             
             reactionPill.classList.add('reaction-fade-in');
             setTimeout(() => {
@@ -475,6 +513,7 @@ class EmojiReactions {
         });
 
         this.currentReactions[messageId] = reactions;
+        console.log(`✅ [EMOJI-REACTIONS] Updated reactions display for message ${messageId} (${isBubbleMessage ? 'bubble' : 'regular'} style)`);
     }
 
     setupSocketListeners() {

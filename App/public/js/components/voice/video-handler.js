@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Video grid element not found');
         return;
     }
+
+    const pendingPlayPromises = new Map();
     
     window.addEventListener('voiceConnect', () => {
         initializeView();
@@ -35,32 +37,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getStreamType(stream) {
         try {
-            // Case 1: Direct MediaStream object
             if (stream instanceof MediaStream) {
                 return stream.getVideoTracks().length > 0 ? 'video' : 'audio';
             }
             
-            // Case 2: Stream object with kind property
             if (stream && typeof stream.kind === 'string') {
                 return stream.kind;
             }
             
-            // Case 3: Stream object with track property
             if (stream && stream.track) {
                 return stream.track.kind;
             }
             
-            // Case 4: Stream object with mediaStream property
             if (stream && stream.mediaStream instanceof MediaStream) {
                 return stream.mediaStream.getVideoTracks().length > 0 ? 'video' : 'audio';
             }
             
-            // Case 5: Stream object with stream property
             if (stream && stream.stream instanceof MediaStream) {
                 return stream.stream.getVideoTracks().length > 0 ? 'video' : 'audio';
             }
             
-            // Default case: unknown/audio
             return 'audio';
         } catch (error) {
             console.warn('Error determining stream type:', error);
@@ -70,12 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getMediaStream(stream) {
         try {
-            // Check if stream is null or undefined first
             if (!stream) {
                 return null;
             }
             
-            // Handle different stream formats
             if (stream instanceof MediaStream) {
                 return stream;
             } else if (stream.track && typeof stream.track !== 'undefined') {
@@ -86,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return stream.stream;
             }
             
-            // Try to handle other potential formats
             if (stream.getVideoTracks && typeof stream.getVideoTracks === 'function') {
                 return stream;
             }
@@ -98,10 +91,91 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function attachStream(participantId, stream = null) {
+    async function safeVideoPlay(videoEl, participantId) {
+        if (!videoEl || !participantId) return false;
+
+        try {
+            const existingPromise = pendingPlayPromises.get(participantId);
+            if (existingPromise) {
+                try {
+                    await existingPromise;
+                } catch (e) {}
+            }
+
+            if (!videoEl.srcObject) {
+                return false;
+            }
+
+            const playPromise = new Promise(async (resolve, reject) => {
+                try {
+                    if (videoEl.readyState >= 2) {
+                        await videoEl.play();
+                        resolve(true);
+                    } else {
+                        const onLoadedData = async () => {
+                            try {
+                                videoEl.removeEventListener('loadeddata', onLoadedData);
+                                await videoEl.play();
+                                resolve(true);
+                            } catch (error) {
+                                reject(error);
+                            }
+                        };
+                        
+                        videoEl.addEventListener('loadeddata', onLoadedData);
+                        
+                        setTimeout(() => {
+                            videoEl.removeEventListener('loadeddata', onLoadedData);
+                            reject(new Error('Video load timeout'));
+                        }, 5000);
+                    }
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            pendingPlayPromises.set(participantId, playPromise);
+            
+            const result = await playPromise;
+            pendingPlayPromises.delete(participantId);
+            return result;
+            
+        } catch (error) {
+            pendingPlayPromises.delete(participantId);
+            console.warn(`Error playing video for ${participantId}:`, error);
+            
+            if (error.name === 'NotAllowedError') {
+                window.showToast?.('Please allow camera access to enable video', 'error');
+            }
+            return false;
+        }
+    }
+
+    function stopVideoSafely(videoEl) {
+        if (!videoEl) return;
+        
+        try {
+            videoEl.pause();
+            
+            if (videoEl.srcObject) {
+                const tracks = videoEl.srcObject.getTracks();
+                tracks.forEach(track => {
+                    try {
+                        track.stop();
+                    } catch (e) {
+                        console.warn('Error stopping track:', e);
+                    }
+                });
+                videoEl.srcObject = null;
+            }
+        } catch (error) {
+            console.warn('Error stopping video safely:', error);
+        }
+    }
+
+    async function attachStream(participantId, stream = null) {
         if (!videoGrid) return;
         
-        // Safety check for participantId
         if (!participantId) {
             console.warn('Cannot attach stream without participant ID');
             return;
@@ -111,14 +185,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let videoEl = document.querySelector(`video[data-participant-id="${participantId}"]`);
         let avatarContainer = document.querySelector(`.participant-container[data-participant-id="${participantId}"]`);
         
-        // Create elements if they don't exist
         if (!videoEl && !avatarContainer) {
             avatarContainer = createAvatarElement(participantId, username);
             videoGrid.appendChild(avatarContainer);
             
             videoEl = document.createElement('video');
             videoEl.dataset.participantId = participantId;
-            videoEl.autoplay = true;
+            videoEl.autoplay = false;
             videoEl.playsInline = true;
             videoEl.muted = (participantId === 'local');
             videoEl.className = 'w-full h-full object-cover bg-black rounded-xl hidden';
@@ -130,42 +203,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const streamType = getStreamType(stream);
             const mediaStream = getMediaStream(stream);
 
-            // Show/hide appropriate elements based on stream type
             if (streamType === 'video' && mediaStream) {
                 try {
+                    stopVideoSafely(videoEl);
+                    
                     videoEl.srcObject = mediaStream;
                     videoEl.classList.remove('hidden');
                     if (avatarContainer) avatarContainer.classList.add('hidden');
                     
-                    videoEl.play().catch(e => {
-                        console.warn('Error playing video:', e);
-                        if (e.name === 'NotAllowedError') {
-                            window.showToast?.('Please allow camera access to enable video', 'error');
-                        }
-                        // Fallback to avatar on error
+                    const playSuccess = await safeVideoPlay(videoEl, participantId);
+                    if (!playSuccess) {
                         videoEl.classList.add('hidden');
                         if (avatarContainer) avatarContainer.classList.remove('hidden');
-                    });
+                    }
                 } catch (error) {
                     console.error('Error attaching video stream:', error);
-                    // Fallback to avatar on error
                     videoEl.classList.add('hidden');
                     if (avatarContainer) avatarContainer.classList.remove('hidden');
                 }
             } else {
-                // Audio only or no stream - show avatar
                 if (avatarContainer) avatarContainer.classList.remove('hidden');
                 if (videoEl) {
                     videoEl.classList.add('hidden');
-                    if (videoEl.srcObject) {
-                        try {
-                            const tracks = videoEl.srcObject.getTracks();
-                            tracks.forEach(track => track.stop());
-                        } catch (e) {
-                            console.warn('Error stopping tracks:', e);
-                        }
-                        videoEl.srcObject = null;
-                    }
+                    stopVideoSafely(videoEl);
                 }
             }
 
@@ -174,12 +234,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Error in attachStream:', error);
-            // Ensure avatar is shown on error
             if (avatarContainer) avatarContainer.classList.remove('hidden');
             if (videoEl) videoEl.classList.add('hidden');
         }
 
-        // Update grid layout
         try {
             window.dispatchEvent(new Event('videoGridUpdate'));
         } catch (e) {
@@ -193,26 +251,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const videoEl = document.querySelector(`video[data-participant-id="${participantId}"]`);
         const avatarContainer = document.querySelector(`.participant-container[data-participant-id="${participantId}"]`);
         
-        // Clean up video element
         if (videoEl) {
             try {
-                if (videoEl.srcObject) {
-                    const tracks = videoEl.srcObject.getTracks();
-                    tracks.forEach(track => track.stop());
-                }
-                videoEl.srcObject = null;
+                stopVideoSafely(videoEl);
                 videoEl.remove();
             } catch (error) {
                 console.warn('Error cleaning up video element:', error);
             }
         }
         
-        // Remove avatar container
         if (avatarContainer) {
             avatarContainer.remove();
         }
         
-        // Check if there are any participants left
+        pendingPlayPromises.delete(participantId);
+        
         const remainingElements = videoGrid.querySelectorAll('video:not(.hidden), .participant-container:not(.hidden)');
         if (!remainingElements.length) {
             videoGrid.classList.add('hidden');
@@ -222,7 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
             localAvatarWrapper.style.display = 'block';
         }
 
-        // Update grid layout
         window.dispatchEvent(new Event('videoGridUpdate'));
     }
 
@@ -230,7 +282,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!meeting) return;
         
         try {
-            // Add current participants
             meeting.participants.forEach(participant => {
                 attachStream(participant.id);
                 
@@ -241,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            // Handle local participant
             if (!document.querySelector(`[data-participant-id="local"]`)) {
                 attachStream('local');
                 
@@ -252,7 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // Stream events
             meeting.on('stream-enabled', (participant, stream) => {
                 if (stream) attachStream(participant.id, stream);
             });
@@ -264,13 +313,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         const videoEl = document.querySelector(`video[data-participant-id="${participant.id}"]`);
                         const avatarContainer = document.querySelector(`.participant-container[data-participant-id="${participant.id}"]`);
                         
-                        if (videoEl) videoEl.classList.add('hidden');
+                        if (videoEl) {
+                            stopVideoSafely(videoEl);
+                            videoEl.classList.add('hidden');
+                        }
                         if (avatarContainer) avatarContainer.classList.remove('hidden');
                     }
                 }
             });
             
-            // Participant events
             meeting.on('participant-joined', participant => {
                 attachStream(participant.id);
             });
@@ -279,7 +330,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 detachStream(participant.id);
             });
 
-            // Local participant events
             meeting.localParticipant.on('stream-enabled', stream => {
                 if (stream) attachStream('local', stream);
             });
@@ -291,7 +341,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const videoEl = document.querySelector(`video[data-participant-id="local"]`);
                         const avatarContainer = document.querySelector(`.participant-container[data-participant-id="local"]`);
                         
-                        if (videoEl) videoEl.classList.add('hidden');
+                        if (videoEl) {
+                            stopVideoSafely(videoEl);
+                            videoEl.classList.add('hidden');
+                        }
                         if (avatarContainer) avatarContainer.classList.remove('hidden');
                     }
                 }
