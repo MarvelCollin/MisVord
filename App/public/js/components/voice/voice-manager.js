@@ -255,11 +255,7 @@ class VoiceManager {
                 meetingId: meeting
             });
             
-            // Also dispatch for global voice indicator
-            if (window.globalVoiceIndicator) {
-                console.log('🔗 Notifying global voice indicator');
-                window.globalVoiceIndicator.handleConnect(channelName, meeting, this.currentChannelId);
-            }
+
 
             console.log('✅ Successfully joined voice channel');
             return Promise.resolve();

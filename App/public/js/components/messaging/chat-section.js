@@ -210,6 +210,8 @@ class ChatSection {
                 } else {
             window.addEventListener('globalSocketReady', () => this.joinSocketRoom());
         }
+        
+        this.cleanupEmptyMessages(); // Clean up any existing empty messages
     }
     
     joinSocketRoom() {
@@ -1079,6 +1081,36 @@ class ChatSection {
             domCount: domMessages.length,
             tempCount: this.messageHandler?.temporaryMessages?.size || 0
         };
+    }
+    
+    cleanupEmptyMessages() {
+        if (!this.chatMessages) return;
+        
+        // Remove empty message groups
+        const emptyGroups = this.chatMessages.querySelectorAll('.bubble-message-group[data-user-id="0"][data-timestamp="0"]');
+        emptyGroups.forEach(group => {
+            const messageId = group.querySelector('[data-message-id]')?.dataset.messageId;
+            if (!messageId || messageId === '' || messageId === '0') {
+                console.log('🧹 [CHAT-SECTION] Removing empty message group:', group);
+                group.remove();
+            }
+        });
+        
+        // Remove messages with empty IDs
+        const emptyMessages = this.chatMessages.querySelectorAll('[data-message-id=""], [data-message-id="0"]');
+        emptyMessages.forEach(msg => {
+            const messageGroup = msg.closest('.bubble-message-group');
+            if (messageGroup) {
+                console.log('🧹 [CHAT-SECTION] Removing empty message:', messageGroup);
+                messageGroup.remove();
+            }
+        });
+        
+        // Check if we need to show empty state after cleanup
+        const remainingMessages = this.chatMessages.querySelectorAll('.bubble-message-group');
+        if (remainingMessages.length === 0) {
+            this.showEmptyState();
+        }
     }
 }
 

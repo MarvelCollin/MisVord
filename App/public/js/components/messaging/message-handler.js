@@ -88,6 +88,10 @@ class MessageHandler {
         } else {
             // Create new message group using bubble component
             messageGroup = this.bubbleComponent.createMessageGroup(formattedMessage);
+            if (!messageGroup) {
+                console.error('❌ [MESSAGE-HANDLER] Failed to create message group for:', formattedMessage);
+                return;
+            }
             messagesContainer.appendChild(messageGroup);
             this.lastMessageGroup = messageGroup;
             messageElement = messageGroup.querySelector('[data-message-id]');

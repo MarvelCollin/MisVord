@@ -1,6 +1,7 @@
 ﻿class BubbleChatComponent {
     constructor() {
         this.addBubbleChatCSS();
+        this.cleanupEmptyMessages();
         console.log(' BubbleChatComponent initialized');
     }
     
@@ -315,6 +316,28 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }
+    
+    cleanupEmptyMessages() {
+        // Remove any existing empty message groups
+        const emptyGroups = document.querySelectorAll('.bubble-message-group[data-user-id="0"][data-timestamp="0"]');
+        emptyGroups.forEach(group => {
+            const messageId = group.querySelector('[data-message-id]')?.dataset.messageId;
+            if (!messageId || messageId === '' || messageId === '0') {
+                console.log('🧹 [BUBBLE-COMPONENT] Removing empty message group:', group);
+                group.remove();
+            }
+        });
+        
+        // Also remove any message content with empty IDs
+        const emptyMessages = document.querySelectorAll('[data-message-id=""], [data-message-id="0"]');
+        emptyMessages.forEach(msg => {
+            const messageGroup = msg.closest('.bubble-message-group');
+            if (messageGroup) {
+                console.log('🧹 [BUBBLE-COMPONENT] Removing empty message:', messageGroup);
+                messageGroup.remove();
+            }
+        });
     }
 }
 

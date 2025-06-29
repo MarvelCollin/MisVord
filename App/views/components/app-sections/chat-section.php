@@ -215,6 +215,12 @@ if (!function_exists('renderBubbleMessageContent')) {
     $replyMessageId = is_array($message) ? ($message['reply_message_id'] ?? null) : ($message->reply_message_id ?? null);
     $replyData = is_array($message) ? ($message['reply_data'] ?? null) : ($message->reply_data ?? null);
     
+    // Prevent rendering empty/invalid message content
+    if (empty($messageId) || $messageId === '0' || (empty($content) && empty($attachments))) {
+        error_log("❌ [RENDER-BUBBLE] Skipping invalid message content - ID: '$messageId', Content: '$content', Attachments: " . count($attachments));
+        return; // Don't render empty message content
+    }
+    
     $currentUserId = $_SESSION['user_id'] ?? 0;
     $isOwnMessage = ($userId == $currentUserId);
     

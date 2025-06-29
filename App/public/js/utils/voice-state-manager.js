@@ -319,9 +319,7 @@ class VoiceStateManager {
             }
         }
         
-        if (window.globalVoiceIndicator) {
-            window.globalVoiceIndicator.handleDisconnect();
-        }
+
         
         window.dispatchEvent(new CustomEvent('voiceDisconnect'));
         this.showToast('Disconnected from voice channel');

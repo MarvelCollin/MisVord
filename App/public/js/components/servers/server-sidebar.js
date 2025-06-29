@@ -825,20 +825,22 @@ export async function handleHomeClick(event) {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
 
-        const mainContent = document.getElementById('main-content') || 
-                           document.querySelector('.main-content') || 
-                           document.querySelector('#app-content') ||
-                           document.querySelector('.app-content') ||
-                           document.querySelector('main') ||
-                           document.querySelector('.content-wrapper');
+        // Target the entire layout container, not just main-content
+        const layoutContainer = document.querySelector('.flex.flex-1.overflow-hidden') || 
+                              document.querySelector('#main-content') || 
+                              document.querySelector('.main-content') || 
+                              document.querySelector('#app-content') ||
+                              document.querySelector('.app-content') ||
+                              document.querySelector('main') ||
+                              document.querySelector('.content-wrapper');
         
-        if (mainContent && response) {
-            console.log('[Home Navigation] Found main content container:', mainContent.className || mainContent.id);
-            mainContent.innerHTML = response;
+        if (layoutContainer && response) {
+            console.log('[Home Navigation] Found layout container:', layoutContainer.className || layoutContainer.id);
+            layoutContainer.innerHTML = response;
             console.log('[Home Navigation] Home page content loaded successfully');
             
             // Find and execute any embedded scripts
-            const scriptTags = mainContent.querySelectorAll('script');
+            const scriptTags = layoutContainer.querySelectorAll('script');
             scriptTags.forEach(script => {
                 if (script.type === 'module' || script.type === 'text/javascript' || !script.type) {
                     try {
@@ -859,8 +861,9 @@ export async function handleHomeClick(event) {
                 }
             });
         } else {
-            console.error('[Home Navigation] Could not find main content container or no response');
+            console.error('[Home Navigation] Could not find layout container or no response');
             console.log('[Home Navigation] Available containers:', {
+                'flex-container': !!document.querySelector('.flex.flex-1.overflow-hidden'),
                 'main-content': !!document.getElementById('main-content'),
                 'main': !!document.querySelector('main'),
                 'body': !!document.body
@@ -908,25 +911,27 @@ export async function handleServerClick(serverId, event) {
         
         console.log('[Server Navigation] Loading server page with AJAX');
         const response = await $.ajax({
-            url: `/server/${serverId}`,
+            url: `/server/${serverId}/layout`,
             method: 'GET',
             dataType: 'html',
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
 
-        const mainContent = document.getElementById('main-content') || 
-                           document.querySelector('.main-content') || 
-                           document.querySelector('#app-content') ||
-                           document.querySelector('.app-content') ||
-                           document.querySelector('main') ||
-                           document.querySelector('.content-wrapper');
+        // Target the entire layout container, same as home navigation
+        const layoutContainer = document.querySelector('.flex.flex-1.overflow-hidden') || 
+                              document.querySelector('#main-content') || 
+                              document.querySelector('.main-content') || 
+                              document.querySelector('#app-content') ||
+                              document.querySelector('.app-content') ||
+                              document.querySelector('main') ||
+                              document.querySelector('.content-wrapper');
         
-        if (mainContent && response) {
-            console.log('[Server Navigation] Found main content container:', mainContent.className || mainContent.id);
-            mainContent.innerHTML = response;
+        if (layoutContainer && response) {
+            console.log('[Server Navigation] Found layout container:', layoutContainer.className || layoutContainer.id);
+            layoutContainer.innerHTML = response;
             console.log('[Server Navigation] Server page content loaded successfully');
         } else {
-            console.error('[Server Navigation] Could not find main content container or no response');
+            console.error('[Server Navigation] Could not find layout container or no response');
         }
 
         window.history.pushState({ pageType: 'server', serverId: serverId }, `Server ${serverId}`, `/server/${serverId}`);
