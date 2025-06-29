@@ -340,7 +340,12 @@ class ChatAPI {
             return false;
         }
         
-        console.log('✅ Calling chatSection.sendMessage with test content');
+        if (!window.chatSection.sendReceiveHandler) {
+            console.error('❌ SendReceiveHandler not available');
+            return false;
+        }
+        
+        console.log('✅ Calling sendReceiveHandler.sendMessage with test content');
         
         const originalValue = window.chatSection.messageInput?.value || '';
         if (window.chatSection.messageInput) {
@@ -348,7 +353,7 @@ class ChatAPI {
         }
         
         try {
-            window.chatSection.sendMessage();
+            window.chatSection.sendReceiveHandler.sendMessage();
             return true;
         } catch (error) {
             console.error('❌ Test message send failed:', error);

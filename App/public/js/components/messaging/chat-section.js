@@ -77,24 +77,10 @@ class ChatSection {
         this.messageForm = document.getElementById('message-form');
         this.messageInput = document.getElementById('message-input');
         
-        // Find send button or create one if it doesn't exist
+        // Find send button (should now exist in HTML)
         this.sendButton = document.getElementById('send-button');
-        if (!this.sendButton && this.messageForm) {
-            console.log('Creating send button as it does not exist');
-            this.sendButton = document.createElement('button');
-            this.sendButton.id = 'send-button';
-            this.sendButton.type = 'submit';
-            this.sendButton.className = 'hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1';
-            this.sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
-            
-            // Find the last div in the form to append the button
-            const lastDiv = this.messageForm.querySelector('.flex.items-center.pr-\\[2px\\].gap-1:last-child');
-            if (lastDiv) {
-                lastDiv.appendChild(this.sendButton);
-         } else {
-                // If we can't find the expected div, append to the form
-                this.messageForm.appendChild(this.sendButton);
-            }
+        if (!this.sendButton) {
+            console.warn('⚠️ [CHAT-SECTION] Send button not found in HTML');
         }
         
         this.loadMoreButton = document.getElementById('load-more-messages');

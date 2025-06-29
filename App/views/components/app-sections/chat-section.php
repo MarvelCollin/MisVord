@@ -581,6 +581,14 @@ function renderMessageContent($message) {
                 >
                     <i class="fas fa-face-smile text-[20px]"></i>
                 </button>
+                <button
+                    id="send-button"
+                    type="submit"
+                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1 opacity-50 cursor-not-allowed"
+                    disabled
+                >
+                    <i class="fas fa-paper-plane"></i>
+                </button>
             </div>
         </form>
     </div>
@@ -635,75 +643,21 @@ function renderMessageContent($message) {
 <script src="<?php echo js('components/messaging/emoji'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    initializeChatUI();
-});
-
-function initializeChatUI() {
-    
-    const chatMessages = document.getElementById('chat-messages');
-    if (chatMessages && !chatMessages.hasChildNodes()) {
-    }
-    
+    // Auto-resize message input
     const messageInput = document.getElementById('message-input');
-    const sendButton = document.getElementById('send-button');
-    const messageForm = document.getElementById('message-form');
-    
-    if (!messageInput || !sendButton) {
-        setTimeout(initializeChatUI, 200);
-        return;
+    if (messageInput) {
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
     }
     
-    function updateSendButton() {
-        const hasContent = messageInput.value.trim().length > 0;
-        sendButton.disabled = !hasContent;
-        sendButton.classList.toggle('opacity-50', !hasContent);
-        sendButton.classList.toggle('cursor-not-allowed', !hasContent);
-    }
-    
-    function sendMessage() {
-        if (messageInput.value.trim().length === 0) {
-            return;
-        }
-        if (window.chatSection && window.chatSection.sendMessage) {
-            window.chatSection.sendMessage();
-        } else {
-            console.warn('ChatSection not initialized yet, will retry shortly');
-            setTimeout(() => {
-                if (window.chatSection && window.chatSection.sendMessage) {
-                    window.chatSection.sendMessage();
-                } else {
-                    console.error('ChatSection still not ready; message not sent');
-                }
-            }, 300);
-        }
-    }
-    
-    messageInput.addEventListener('input', updateSendButton);
-    
-    messageInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-    
-    messageForm.addEventListener('submit', function(e) {
-        e.preventDefault(); 
-        sendMessage();
-    });
-
-    messageInput.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-    });
-    
-    updateSendButton();
-    
+    // Dispatch event to notify that channel content is loaded
     document.dispatchEvent(new CustomEvent('channelContentLoaded', {
         detail: {
             type: 'chat',
             channelId: document.querySelector('meta[name="channel-id"]')?.getAttribute('content')
         }
     }));
-}
+});
 </script>

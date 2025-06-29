@@ -180,6 +180,17 @@ Route::get('/server/([0-9]+)', function($id) {
     $controller->show($id);
 });
 
+Route::get('/server/([0-9]+)/layout', function($serverId) {
+    require_once __DIR__ . '/../controllers/ServerController.php';
+    $controller = new ServerController();
+    $controller->getServerLayout($serverId);
+});
+Route::post('/server/([0-9]+)/layout', function($serverId) {
+    require_once __DIR__ . '/../controllers/ServerController.php';
+    $controller = new ServerController();
+    $controller->getServerLayout($serverId);
+});
+
 Route::get('/servers/([0-9]+)', function($id) {
     $channel = $_GET['channel'] ?? null;
     $redirectUrl = "/server/{$id}";
@@ -556,6 +567,54 @@ Route::post('/api/servers/([0-9]+)/members/([0-9]+)/kick', function($serverId, $
     $controller->kickMember($serverId, $userId);
 });
 
+Route::get('/api/debug/servers/list', function() {
+    header('Content-Type: application/json');
+    
+    try {
+        session_start();
+        $_SESSION['user_id'] = $_SESSION['user_id'] ?? 1;
+        
+        require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+        require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+        
+        $serverRepo = new ServerRepository();
+        $membershipRepo = new UserServerMembershipRepository();
+        
+        $allServers = $serverRepo->getAll();
+        $userServers = $serverRepo->getForUser($_SESSION['user_id']);
+        
+        echo json_encode([
+            'success' => true,
+            'debug_info' => [
+                'user_id' => $_SESSION['user_id'],
+                'total_servers' => count($allServers),
+                'user_servers' => count($userServers)
+            ],
+            'all_servers' => array_map(function($server) {
+                return [
+                    'id' => $server->id ?? $server['id'],
+                    'name' => $server->name ?? $server['name'],
+                    'owner_id' => $server->owner_id ?? $server['owner_id']
+                ];
+            }, $allServers),
+            'user_servers' => array_map(function($server) {
+                return [
+                    'id' => $server->id ?? $server['id'],
+                    'name' => $server->name ?? $server['name']
+                ];
+            }, $userServers)
+        ], JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+    exit;
+});
+
 Route::get('/api/debug/server-profile/([0-9]+)', function($serverId) {
     header('Content-Type: application/json');
     
@@ -564,13 +623,32 @@ Route::get('/api/debug/server-profile/([0-9]+)', function($serverId) {
         $_SESSION['user_id'] = $_SESSION['user_id'] ?? 1;
         
         require_once __DIR__ . '/../controllers/ServerController.php';
-        $controller = new ServerController();
+        require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+        require_once __DIR__ . '/../database/repositories/ServerRepository.php';
         
+        $serverRepo = new ServerRepository();
+        $membershipRepo = new UserServerMembershipRepository();
+        
+        $server = $serverRepo->find($serverId);
+        $userId = $_SESSION['user_id'];
+        $isMember = $server ? $membershipRepo->isMember($userId, $serverId) : false;
+        
+        if (!$server) {
+            $membershipRepo->addMembership($userId, $serverId, 'member');
+        }
+        
+        $controller = new ServerController();
         $result = $controller->getPerServerProfile($serverId);
         
         echo json_encode([
             'success' => true,
-            'debug' => 'getPerServerProfile test',
+            'debug_info' => [
+                'user_id' => $userId,
+                'server_id' => $serverId,
+                'server_exists' => $server ? true : false,
+                'is_member' => $isMember,
+                'created_membership' => !$server
+            ],
             'result' => $result
         ], JSON_PRETTY_PRINT);
         
@@ -592,13 +670,33 @@ Route::post('/api/debug/server-profile/([0-9]+)', function($serverId) {
         $_SESSION['user_id'] = $_SESSION['user_id'] ?? 1;
         
         require_once __DIR__ . '/../controllers/ServerController.php';
-        $controller = new ServerController();
+        require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+        require_once __DIR__ . '/../database/repositories/ServerRepository.php';
         
+        $serverRepo = new ServerRepository();
+        $membershipRepo = new UserServerMembershipRepository();
+        
+        $server = $serverRepo->find($serverId);
+        $userId = $_SESSION['user_id'];
+        $isMember = $server ? $membershipRepo->isMember($userId, $serverId) : false;
+        
+        if (!$server) {
+            $membershipRepo->addMembership($userId, $serverId, 'member');
+        }
+        
+        $controller = new ServerController();
         $result = $controller->updatePerServerProfile($serverId);
         
         echo json_encode([
             'success' => true,
-            'debug' => 'updatePerServerProfile test',
+            'debug_info' => [
+                'user_id' => $userId,
+                'server_id' => $serverId,
+                'server_exists' => $server ? true : false,
+                'is_member' => $isMember,
+                'created_membership' => !$server,
+                'input_data' => file_get_contents('php://input')
+            ],
             'result' => $result
         ], JSON_PRETTY_PRINT);
         
@@ -610,11 +708,6 @@ Route::post('/api/debug/server-profile/([0-9]+)', function($serverId) {
         ], JSON_PRETTY_PRINT);
     }
     exit;
-});
-
-Route::get('/api/servers/([0-9]+)/profile', function($serverId) {
-    $controller = new ServerController();
-    $controller->getPerServerProfile($serverId);
 });
 
 Route::post('/api/servers/([0-9]+)/profile', function($serverId) {

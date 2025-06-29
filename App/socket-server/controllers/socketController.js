@@ -211,6 +211,17 @@ function setup(io) {
             await MessageHandler.saveAndSendMessage(io, client, data);
         });
         
+        // Handle database save confirmation and broadcast permanent ID
+        client.on('message-database-saved', (data) => {
+            console.log(`💾 [DATABASE-SAVED] Database save confirmation from ${client.id}:`, {
+                tempMessageId: data.temp_message_id,
+                realMessageId: data.real_message_id
+            });
+            
+            // Broadcast the permanent ID to all clients
+            MessageHandler.handleMessageDatabaseSaved(io, client, data);
+        });
+        
         client.on('message-updated', (data) => {
             console.log(`✏️ [MESSAGE-EDIT] Message update from ${client.id}:`, {
                 messageId: data.message_id,

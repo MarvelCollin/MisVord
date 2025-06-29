@@ -1,60 +1,51 @@
-export function loadServerPage(serverId) {
+export function loadServerPage(serverId, channelId = null) {
+    console.log('[Server Loader] Starting loadServerPage with serverId:', serverId, 'channelId:', channelId);
+    
     const mainContent = document.querySelector('.flex-1') ||
         document.querySelector('[class*="server-content"]') ||
         document.querySelector('main');
 
+    console.log('[Server Loader] Found main content:', !!mainContent);
     if (mainContent) {
         if (typeof window.handleSkeletonLoading === 'function') {
             window.handleSkeletonLoading(true);
         } else {
-            if (typeof window.toggleChannelLoading === 'function') {
-                window.toggleChannelLoading(true);
-            }
-
-            if (typeof window.toggleParticipantLoading === 'function') {
-                window.toggleParticipantLoading(true);
-            }
-
             showPageLoading(mainContent);
         }
 
         const currentChannelId = getCurrentChannelId();
         if (currentChannelId && window.globalSocketManager) {
-            console.log('Cleaning up current channel socket: ' + currentChannelId);
+            console.log('[Server Loader] Cleaning up current channel socket: ' + currentChannelId);
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
-            console.log('Cleaning up voice manager');
+            console.log('[Server Loader] Cleaning up voice manager');
             window.voiceManager.leaveVoice();
             window.voiceManager = null;
         }
 
-        if (!window.serverAPI || typeof window.serverAPI.getServerPageHTML !== 'function') {
-            console.error('serverAPI not available, falling back to full page load');
-            window.location.href = `/server/${serverId}`;
-            return;
+        let url = `/server/${serverId}/layout`;
+        if (channelId) {
+            url += `?channel=${channelId}`;
         }
 
-        window.serverAPI.getServerPageHTML(serverId)
-            .then(response => {
+        console.log('[Server Loader] Fetching server layout from:', url);
+
+        window.ajax({
+            url: url,
+            method: 'GET',
+            dataType: 'text',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                console.log('[Server Loader] Received response, length:', response.length);
                 if (typeof response === 'string') {
-                    if (window.pageUtils) {
-                        window.pageUtils.updatePageContent(mainContent, response);
-                    } else {
-                        updatePageContent(mainContent, response);
-                    }
+                    updateServerLayout(response, serverId, channelId);
                     
                     if (typeof window.handleSkeletonLoading === 'function') {
                         window.handleSkeletonLoading(false);
-                    } else {
-                        if (typeof window.toggleChannelLoading === 'function') {
-                            window.toggleChannelLoading(false);
-                        }
-
-                        if (typeof window.toggleParticipantLoading === 'function') {
-                            window.toggleParticipantLoading(false);
-                        }
                     }
                     
                     if (typeof window.initServerPage === 'function') {
@@ -68,41 +59,29 @@ export function loadServerPage(serverId) {
                     const event = new CustomEvent('ServerChanged', { 
                         detail: { 
                             serverId,
+                            channelId,
                             previousChannelId: currentChannelId 
                         } 
                     });
                     document.dispatchEvent(event);
                     
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const targetChannelId = urlParams.get('channel');
-                    
-                    if (!targetChannelId) {
-                        console.log('No channel specified, loading default channel');
-                        loadDefaultChannel(serverId);
-                    }
-                    
                 } else if (response && response.data && response.data.redirect) {
                     window.location.href = response.data.redirect;
                 } else {
+                    console.error('[Server Loader] Invalid response format');
                     window.location.href = `/server/${serverId}`;
                 }
-            })
-            .catch(error => {
-                console.error('Error loading server page:', error);
+            },
+            error: function(error) {
+                console.error('[Server Loader] Error loading server page:', error);
                 if (typeof window.handleSkeletonLoading === 'function') {
                     window.handleSkeletonLoading(false);
-                } else {
-                    if (typeof window.toggleChannelLoading === 'function') {
-                        window.toggleChannelLoading(false);
-                    }
-
-                    if (typeof window.toggleParticipantLoading === 'function') {
-                        window.toggleParticipantLoading(false);
-                    }
                 }
                 window.location.href = `/server/${serverId}`;
-            });
+            }
+        });
     } else {
+        console.error('[Server Loader] No main content container found');
         window.location.href = `/server/${serverId}`;
     }
 }
@@ -121,34 +100,66 @@ function showPageLoading(container) {
     `;
 }
 
-async function loadDefaultChannel(serverId) {
-    try {
-        const response = await fetch(`/api/servers/${serverId}/channels`);
-        const data = await response.json();
-        
-        if (data.success && data.data && data.data.channels && data.data.channels.length > 0) {
-            const firstChannel = data.data.channels[0];
+
+
+function updateServerLayout(html, serverId, channelId) {
+    console.log('[Server Loader] Starting server layout update');
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const newLayout = doc.querySelector('.flex.flex-1.overflow-hidden');
+    
+    if (newLayout) {
+        const currentLayout = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+        if (currentLayout) {
+            console.log('[Server Loader] Replacing entire server layout structure');
+            showServerChannelSection();
+            currentLayout.innerHTML = newLayout.innerHTML;
+            executeInlineScripts(doc);
             
-            if (window.channelSwitchManager) {
-                const channelElement = document.querySelector(`[data-channel-id="${firstChannel.id}"]`);
-                await window.channelSwitchManager.switchToChannel(serverId, firstChannel.id, channelElement);
+            let url = `/server/${serverId}`;
+            if (channelId) {
+                url += `?channel=${channelId}`;
             }
+            
+            history.pushState(
+                { pageType: 'server', serverId, channelId }, 
+                `misvord - Server`, 
+                url
+            );
+            console.log('[Server Loader] Server layout update completed successfully');
+        } else {
+            console.error('[Server Loader] Could not find layout container to update');
+            console.log('[Server Loader] Available containers:', {
+                'app-container': !!document.querySelector('#app-container'),
+                'flex.flex-1': !!document.querySelector('.flex.flex-1'),
+                'overflow-hidden': !!document.querySelector('.overflow-hidden')
+            });
         }
-    } catch (error) {
-        console.error('Failed to load default channel:', error);
+    } else {
+        console.error('[Server Loader] Could not find new layout in response');
+        console.log('[Server Loader] Response preview:', html.substring(0, 200));
     }
 }
 
-function updatePageContent(container, html) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const newContent = doc.querySelector('.flex-1') || 
-                      doc.querySelector('[class*="server-content"]') ||
-                      doc.body;
+function showServerChannelSection() {
+    const serverChannelSelectors = [
+        '.w-60.bg-discord-dark.flex.flex-col',
+        'div[class*="w-60"][class*="bg-discord-dark"]',  
+        'div[class*="w-60 bg-discord-dark"]'
+    ];
     
-    if (newContent) {
-        container.innerHTML = newContent.innerHTML;
-        executeInlineScripts(doc);
+    let found = false;
+    serverChannelSelectors.forEach(selector => {
+        const element = document.querySelector(selector);
+        if (element) {
+            console.log('[Server Loader] Showing server channel section with selector:', selector);
+            element.style.display = 'flex';
+            found = true;
+        }
+    });
+    
+    if (!found) {
+        console.log('[Server Loader] No server channel section found to show');
     }
 }
 

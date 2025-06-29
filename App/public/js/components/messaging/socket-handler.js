@@ -50,6 +50,9 @@ class SocketHandler {
         io.on('message-pinned', this.handleMessagePinned.bind(this));
         io.on('message-unpinned', this.handleMessageUnpinned.bind(this));
         
+        // Message ID update handler (for converting temporary IDs to permanent)
+        io.on('message-id-updated', this.handleMessageIdUpdated.bind(this));
+        
         // Typing indicators
         io.on('typing', this.handleTyping.bind(this));
         io.on('stop-typing', this.handleStopTyping.bind(this));
@@ -270,6 +273,54 @@ class SocketHandler {
             }
         } catch (error) {
             console.error('❌ Error handling message unpin:', error);
+        }
+    }
+    
+    handleMessageIdUpdated(data) {
+        try {
+            if (!data || !data.temp_message_id || !data.real_message_id) {
+                console.warn('⚠️ Invalid message ID update data received');
+                return;
+            }
+            
+            console.log('🔄 Message ID update received:', {
+                tempId: data.temp_message_id,
+                realId: data.real_message_id
+            });
+            
+            // Find the temporary message element
+            const tempElement = document.querySelector(`[data-message-id="${data.temp_message_id}"]`);
+            if (tempElement) {
+                console.log(`✅ Updating message ID from ${data.temp_message_id} to ${data.real_message_id}`);
+                
+                // Update the message ID to the real server ID
+                tempElement.dataset.messageId = data.real_message_id;
+                
+                // Remove temporary styling
+                tempElement.classList.remove('temporary-message');
+                tempElement.style.opacity = '1';
+                
+                // Remove any error indicators
+                tempElement.classList.remove('message-error');
+                tempElement.style.borderLeft = '';
+                
+                const errorIndicator = tempElement.querySelector('.error-indicator');
+                if (errorIndicator) {
+                    errorIndicator.remove();
+                }
+                
+                // Update processed IDs if handler exists
+                if (this.chatSection.messageHandler) {
+                    this.chatSection.messageHandler.processedMessageIds.delete(data.temp_message_id);
+                    this.chatSection.messageHandler.processedMessageIds.add(data.real_message_id);
+                }
+                
+                console.log(`✅ Successfully updated message ID from ${data.temp_message_id} to ${data.real_message_id}`);
+            } else {
+                console.log(`⚠️ Temporary message element not found for ID: ${data.temp_message_id}`);
+            }
+        } catch (error) {
+            console.error('❌ Error handling message ID update:', error);
         }
     }
     
