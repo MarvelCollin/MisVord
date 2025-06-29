@@ -1441,4 +1441,41 @@ class ChatController extends BaseController
             return $this->serverError('Failed to save bot message: ' . $e->getMessage());
         }
     }
+
+    public function getDMParticipants($roomId = null)
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+
+        if (!$roomId) {
+            $input = $this->getInput();
+            $roomId = $input['room_id'] ?? null;
+        }
+
+        if (!$roomId) {
+            return $this->validationError(['room_id' => 'Room ID is required']);
+        }
+
+        try {
+            $chatRoom = $this->chatRoomRepository->find($roomId);
+            if (!$chatRoom) {
+                return $this->notFound('Chat room not found');
+            }
+
+            if (!$this->chatRoomRepository->isParticipant($roomId, $userId)) {
+                return $this->forbidden('You are not a participant in this chat');
+            }
+
+            $participants = $this->chatRoomRepository->getParticipants($roomId);
+
+            return $this->success([
+                'participants' => $participants,
+                'room_id' => $roomId,
+                'total' => count($participants)
+            ]);
+        } catch (Exception $e) {
+            error_log("Error getting DM participants: " . $e->getMessage());
+            return $this->serverError('Failed to get chat participants');
+        }
+    }
 }

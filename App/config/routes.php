@@ -299,6 +299,11 @@ Route::get('/api/channels/([0-9]+)/participants', function($channelId) {
     $controller->getChannelParticipants($channelId);
 });
 
+Route::get('/api/chat/dm/([0-9]+)/participants', function($roomId) {
+    $controller = new ChatController();
+    $controller->getDMParticipants($roomId);
+});
+
 Route::get('/api/servers/([0-9]+)', function($serverId) {
     $controller = new ServerController();
     $controller->getServerDetails($serverId);

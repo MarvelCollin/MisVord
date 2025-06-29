@@ -18,211 +18,161 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
 <meta name="server-id" content="<?php echo htmlspecialchars($currentServer->id ?? ''); ?>">
 
-<div class="voice-call-app w-full h-screen bg-gradient-to-br from-[#313338] via-[#2b2d31] to-[#1e1f22] flex flex-col relative overflow-hidden">
-    <div class="voice-header bg-[#2b2d31]/90 backdrop-blur-sm border-b border-[#1a1b1e] p-4 flex items-center justify-between">
+<div class="voice-call-app w-full h-screen bg-[#2f3136] flex flex-col relative overflow-hidden">
+    <!-- Discord-style Header -->
+    <div class="voice-header bg-[#36393f] border-b border-[#202225] px-4 py-3 flex items-center justify-between shadow-md">
         <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 bg-[#5865f2] rounded-full flex items-center justify-center">
-                <i class="fas fa-volume-up text-white text-lg"></i>
+            <div class="w-6 h-6 text-[#72767d]">
+                <i class="fas fa-volume-up"></i>
             </div>
-            <div>
-                <h1 class="text-white font-semibold text-lg"><?php echo htmlspecialchars($channelName); ?></h1>
-                <p class="text-[#b5bac1] text-sm">Voice Channel</p>
+            <div class="flex items-center space-x-2">
+                <h1 class="text-white font-semibold text-base"><?php echo htmlspecialchars($channelName); ?></h1>
+                <div class="flex items-center space-x-1 text-[#b9bbbe] text-xs">
+                    <div class="w-2 h-2 bg-[#3ba55c] rounded-full"></div>
+                    <span id="voiceParticipantCount">1</span>
+                </div>
             </div>
         </div>
-        <div class="flex items-center space-x-2 text-[#b5bac1] text-sm">
-            <div class="flex items-center space-x-1">
-                <div class="w-2 h-2 bg-[#3ba55c] rounded-full animate-pulse"></div>
-                <span>Connected</span>
+        <div class="flex items-center space-x-4 text-[#b9bbbe] text-xs">
+            <span>Meeting: <span id="meetingIdDisplay" class="font-mono text-[#7289da]">-</span></span>
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-cog hover:text-white cursor-pointer transition-colors"></i>
+                <i class="fas fa-users hover:text-white cursor-pointer transition-colors"></i>
             </div>
-            <span>•</span>
-            <span id="voiceParticipantCount">1</span>
-            <span>participants</span>
-            <span>•</span>
-            <span>Meeting ID: <span id="meetingIdDisplay" class="font-mono text-[#7289da]">-</span></span>
         </div>
     </div>
 
-    <div class="voice-content flex-1 flex relative">
-        <div id="cameraSection" class="hidden w-96 bg-[#1a1b1e] border-r border-[#40444b]/30 flex flex-col">
-            <div class="bg-[#2b2d31] p-4 border-b border-[#40444b]/30">
-                <div class="flex items-center space-x-2 mb-3">
-                    <div class="w-8 h-8 bg-[#3ba55c] rounded-full flex items-center justify-center">
-                        <i class="fas fa-video text-white text-sm"></i>
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col relative overflow-hidden">
+        
+        <!-- VOICE ONLY VIEW (Default Discord Style) -->
+        <div id="voiceOnlyView" class="flex-1 flex items-center justify-center p-8">
+            <div class="text-center max-w-2xl">
+                <!-- Main Voice Indicator -->
+                <div class="relative mb-8">
+                    <div class="w-24 h-24 bg-[#5865f2] rounded-full flex items-center justify-center text-white shadow-lg mx-auto">
+                        <i class="fas fa-volume-up text-2xl"></i>
                     </div>
-                    <h3 class="text-white font-semibold">Camera Feed</h3>
+                    <div class="absolute -top-1 -left-1 w-26 h-26 border-2 border-[#3ba55c] rounded-full animate-pulse opacity-75"></div>
                 </div>
-                <div class="relative bg-black rounded-lg overflow-hidden shadow-lg" style="aspect-ratio: 16/9;">
-                    <video id="localCameraVideo" class="w-full h-full object-cover" autoplay playsinline muted></video>
-                    <div id="cameraPlaceholder" class="absolute inset-0 bg-gradient-to-br from-[#313338] to-[#1a1b1e] flex items-center justify-center">
-                        <div class="text-center">
-                            <div class="w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xl mx-auto mb-3 shadow-lg">
-                                <?php echo strtoupper(substr($userName, 0, 1)); ?>
-                            </div>
-                            <span class="text-[#b5bac1] text-sm font-medium">Camera Off</span>
-                            <p class="text-[#72767d] text-xs mt-1">Click camera button to enable</p>
-                        </div>
+                
+                <h2 class="text-white text-2xl font-semibold mb-2">Voice Connected</h2>
+                <p class="text-[#b9bbbe] mb-8">Connected to <?php echo htmlspecialchars($channelName); ?></p>
+                
+                <!-- Participants Grid (Discord Style) -->
+                <div id="voiceParticipantsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
+                    <!-- Participants will be added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- VIDEO GRID VIEW (When cameras active) -->
+        <div id="videoGridView" class="hidden flex-1 flex flex-col p-4">
+            <!-- Video Controls Bar -->
+            <div class="flex items-center justify-between mb-4 px-2">
+                <div class="flex items-center space-x-2 text-[#b9bbbe] text-sm">
+                    <i class="fas fa-video text-[#3ba55c]"></i>
+                    <span id="videoParticipantCount">1 participant with video</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="gridViewBtn" class="px-3 py-1 bg-[#4f545c] hover:bg-[#5865f2] text-white text-xs rounded transition-colors">
+                        <i class="fas fa-th mr-1"></i>Grid
+                    </button>
+                    <button id="speakerViewBtn" class="px-3 py-1 bg-[#36393f] hover:bg-[#5865f2] text-white text-xs rounded transition-colors">
+                        <i class="fas fa-user mr-1"></i>Speaker
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Video Grid Container -->
+            <div id="videoGrid" class="flex-1 grid gap-2 auto-rows-fr">
+                <!-- Video tiles will be added here -->
+            </div>
+            
+            <!-- Voice-only participants strip (when videos are active) -->
+            <div id="voiceOnlyStrip" class="hidden mt-4 p-3 bg-[#36393f] rounded-lg">
+                <div class="flex items-center space-x-2 mb-2">
+                    <i class="fas fa-microphone text-[#72767d] text-xs"></i>
+                    <span class="text-[#b9bbbe] text-xs font-medium">Voice Participants</span>
+                </div>
+                <div id="voiceOnlyParticipants" class="flex flex-wrap gap-2">
+                    <!-- Voice-only participants will be added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN SHARE VIEW (Full priority like Discord) -->
+        <div id="screenShareView" class="hidden flex-1 flex flex-col">
+            <!-- Screen Share Main Area -->
+            <div class="flex-1 relative bg-black">
+                <video id="screenShareVideo" class="w-full h-full object-contain" autoplay playsinline></video>
+                
+                <!-- Screen Share Controls Overlay -->
+                <div class="absolute top-4 left-4 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center space-x-3">
+                    <div class="w-6 h-6 bg-[#ed4245] rounded-full flex items-center justify-center">
+                        <i class="fas fa-desktop text-white text-xs"></i>
                     </div>
-                    <div class="absolute top-3 left-3 bg-[#1e1f22]/90 backdrop-blur-sm rounded-lg px-2 py-1">
+                    <div>
+                        <span class="text-white text-sm font-medium" id="screenShareUsername">Your Screen</span>
+                        <div class="text-[#b9bbbe] text-xs">Screen sharing</div>
+                    </div>
+                </div>
+
+                <!-- Picture-in-Picture Camera (when same user has both) -->
+                <div id="pipCamera" class="hidden absolute bottom-4 right-4 w-48 h-32 bg-[#36393f] rounded-lg overflow-hidden border-2 border-[#5865f2] shadow-xl">
+                    <video id="pipCameraVideo" class="w-full h-full object-cover" autoplay playsinline muted></video>
+                    <div class="absolute bottom-1 left-1 bg-black/80 rounded px-2 py-1">
                         <span class="text-white text-xs font-medium">You</span>
-                    </div>
-                    <div id="cameraControls" class="absolute bottom-3 right-3 flex space-x-2 opacity-0 hover:opacity-100 transition-opacity duration-200">
-                        <button onclick="toggleCameraSettings()" class="bg-black/60 hover:bg-black/80 p-2 rounded-full transition-all duration-200" title="Camera Settings">
-                            <i class="fas fa-cog text-white text-xs"></i>
-                        </button>
                     </div>
                 </div>
             </div>
             
-            <div class="flex-1 p-4 overflow-y-auto">
-                <div class="flex items-center space-x-2 mb-3">
-                    <div class="w-6 h-6 bg-[#5865f2] rounded-full flex items-center justify-center">
-                        <i class="fas fa-users text-white text-xs"></i>
-                    </div>
-                    <h3 class="text-white font-medium">Participants</h3>
-                    <span class="bg-[#5865f2] text-white text-xs px-2 py-1 rounded-full" id="sidebarParticipantCount">1</span>
+            <!-- Participants Strip (Discord style bottom strip) -->
+            <div class="bg-[#36393f] border-t border-[#202225] p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[#b9bbbe] text-xs font-medium">Participants</span>
+                    <button onclick="stopScreenShare()" class="bg-[#ed4245] hover:bg-[#da373c] px-3 py-1 rounded text-white text-xs transition-colors">
+                        <i class="fas fa-stop mr-1"></i>Stop Sharing
+                    </button>
                 </div>
-                <div id="participantsList" class="space-y-3">
-                </div>
-            </div>
-        </div>
-
-        <div class="main-content flex-1 flex flex-col relative">
-            <div id="screenShareSection" class="hidden flex-1 bg-black relative border border-[#40444b]/30 rounded-lg m-4 overflow-hidden shadow-2xl">
-                <div class="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent p-4 z-10">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 bg-[#ed4245] rounded-full flex items-center justify-center animate-pulse">
-                                <i class="fas fa-desktop text-white"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-white font-semibold" id="screenShareTitle">Screen Share Active</h3>
-                                <p class="text-[#b5bac1] text-sm" id="screenShareUsername">Your Screen</p>
-                            </div>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button onclick="minimizeScreenShare()" class="bg-black/60 hover:bg-black/80 p-2 rounded-full transition-all duration-200" title="Minimize">
-                                <i class="fas fa-compress text-white"></i>
-                            </button>
-                            <button onclick="stopScreenShare()" class="bg-[#ed4245] hover:bg-[#fc5054] p-2 rounded-full transition-all duration-200" title="Stop Sharing">
-                                <i class="fas fa-times text-white"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <video id="screenShareVideo" class="w-full h-full object-contain bg-black" autoplay playsinline></video>
-                
-                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                    <div class="flex items-center justify-center space-x-4">
-                        <div class="flex items-center space-x-2 bg-black/60 rounded-lg px-3 py-2">
-                            <div class="w-2 h-2 bg-[#3ba55c] rounded-full animate-pulse"></div>
-                            <span class="text-white text-sm">Live</span>
-                        </div>
-                        <div class="flex items-center space-x-2 bg-black/60 rounded-lg px-3 py-2">
-                            <i class="fas fa-eye text-[#b5bac1]"></i>
-                            <span class="text-white text-sm" id="screenViewerCount">1 viewer</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="voiceOnlySection" class="flex-1 flex items-center justify-center">
-                <div class="text-center max-w-lg">
-                    <div class="relative mb-8">
-                        <div class="w-32 h-32 bg-gradient-to-br from-[#5865f2] to-[#4752c4] rounded-full flex items-center justify-center text-white font-bold text-4xl mx-auto shadow-2xl">
-                            <i class="fas fa-microphone"></i>
-                        </div>
-                        <div class="absolute -bottom-2 -right-2 w-12 h-12 bg-[#3ba55c] rounded-full flex items-center justify-center animate-pulse">
-                            <i class="fas fa-check text-white"></i>
-                        </div>
-                    </div>
-                    <h2 class="text-white text-3xl font-bold mb-3">Voice Connected</h2>
-                    <p class="text-[#b5bac1] text-lg mb-8">You're connected to <span class="text-white font-medium"><?php echo htmlspecialchars($channelName); ?></span></p>
-                    
-                    <div class="bg-[#2b2d31]/50 backdrop-blur-sm rounded-xl p-6 border border-[#40444b]/30">
-                        <h3 class="text-white font-semibold mb-4 flex items-center justify-center space-x-2">
-                            <i class="fas fa-users text-[#5865f2]"></i>
-                            <span>In this channel</span>
-                        </h3>
-                        <div id="voiceParticipantsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="videoGridSection" class="hidden flex-1 p-6">
-                <div class="mb-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-8 h-8 bg-[#3ba55c] rounded-full flex items-center justify-center">
-                                <i class="fas fa-video text-white text-sm"></i>
-                            </div>
-                            <h3 class="text-white font-semibold text-lg">Video Participants</h3>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <button onclick="toggleVideoLayout()" class="bg-[#2f3136] hover:bg-[#3c3f47] px-3 py-2 rounded-lg text-white text-sm transition-all duration-200">
-                                <i class="fas fa-th-large mr-2"></i>Grid View
-                            </button>
-                            <button onclick="toggleVideoSidebar()" class="bg-[#2f3136] hover:bg-[#3c3f47] px-3 py-2 rounded-lg text-white text-sm transition-all duration-200">
-                                <i class="fas fa-sidebar mr-2"></i>Sidebar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div id="videoGrid" class="grid gap-4 h-full auto-rows-fr bg-[#1a1b1e]/30 rounded-xl p-4 border border-[#40444b]/30">
+                <div id="screenShareParticipants" class="flex space-x-3 overflow-x-auto">
+                    <!-- Participants during screen share will be added here -->
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="voice-controls bg-[#1e1f22]/95 backdrop-blur-xl border-t border-[#40444b]/50 p-6">
-        <div class="flex items-center justify-center space-x-6">
-            <div class="relative group">
-                <button id="micBtn" class="w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
-                    <i class="fas fa-microphone text-xl"></i>
-                </button>
-                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                    <span class="mic-tooltip">Mute</span>
-                </div>
-            </div>
+    <!-- Discord-style Voice Controls -->
+    <div class="voice-controls bg-[#36393f] border-t border-[#202225] p-4">
+        <div class="flex items-center justify-center space-x-4">
+            <!-- Primary Controls -->
+            <button id="micBtn" class="voice-control-btn mic-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#ed4245] text-white transition-all duration-150 flex items-center justify-center group">
+                <i class="fas fa-microphone text-sm"></i>
+                <div class="voice-tooltip">Mute</div>
+            </button>
 
-            <div class="relative group">
-                <button id="deafenBtn" class="w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
-                    <i class="fas fa-headphones text-xl"></i>
-                </button>
-                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                    <span class="deafen-tooltip">Deafen</span>
-                </div>
-            </div>
+            <button id="deafenBtn" class="voice-control-btn deafen-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#ed4245] text-white transition-all duration-150 flex items-center justify-center group">
+                <i class="fas fa-headphones text-sm"></i>
+                <div class="voice-tooltip">Deafen</div>
+            </button>
 
-            <div class="relative group">
-                <button id="videoBtn" class="w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
-                    <i class="fas fa-video-slash text-xl"></i>
-                </button>
-                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                    <span class="video-tooltip">Turn On Camera</span>
-                </div>
-            </div>
+            <button id="videoBtn" class="voice-control-btn video-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#3ba55c] text-white transition-all duration-150 flex items-center justify-center group">
+                <i class="fas fa-video-slash text-sm"></i>
+                <div class="voice-tooltip">Turn On Camera</div>
+            </button>
 
-            <div class="relative group">
-                <button id="screenBtn" class="w-14 h-14 rounded-full bg-[#2f3136] hover:bg-[#3c3f47] text-[#b9bbbe] hover:text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
-                    <i class="fas fa-desktop text-xl"></i>
-                </button>
-                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                    <span class="screen-tooltip">Share Screen</span>
-                </div>
-            </div>
+            <button id="screenBtn" class="voice-control-btn screen-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#5865f2] text-white transition-all duration-150 flex items-center justify-center group">
+                <i class="fas fa-desktop text-sm"></i>
+                <div class="voice-tooltip">Share Screen</div>
+            </button>
 
-            <div class="w-px h-8 bg-[#40444b]"></div>
+            <div class="w-px h-6 bg-[#4f545c]"></div>
 
-            <div class="relative group">
-                <button id="disconnectBtn" class="w-14 h-14 rounded-full bg-[#ed4245] hover:bg-[#fc5054] text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
-                    <i class="fas fa-phone-slash text-xl"></i>
-                </button>
-                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                    Leave Channel
-                </div>
-            </div>
+            <!-- Disconnect -->
+            <button id="disconnectBtn" class="voice-control-btn disconnect-btn w-10 h-10 rounded-full bg-[#ed4245] hover:bg-[#da373c] text-white transition-all duration-150 flex items-center justify-center group">
+                <i class="fas fa-phone-slash text-sm"></i>
+                <div class="voice-tooltip">Leave</div>
+            </button>
         </div>
     </div>
 

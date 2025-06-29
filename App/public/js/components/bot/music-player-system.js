@@ -550,12 +550,27 @@ class MusicPlayerSystem {
 
     handlePlaybackError() {
         this.isPlaying = false;
-        if (this.currentTrack) {
-            console.log('🎵 Attempting to recover from playback error...');
-            // Remove failed track from queue if it's there
-            this.queue = this.queue.filter(t => t.id !== this.currentTrack.id);
-            // Try to play next track if available
-            this.playNext();
+        this.hideNowPlaying();
+        
+        if (this.currentTrack || this.currentSong) {
+            const failedTrack = this.currentTrack || this.currentSong;
+            console.log('🎵 [MUSIC-PLAYER] Attempting to recover from playback error for:', failedTrack.title);
+            
+            if (window.showToast) {
+                window.showToast(`❌ Failed to play "${failedTrack.title}" - skipping`, 'error');
+            }
+            
+            this.queue = this.queue.filter(t => t.id !== failedTrack.id);
+            
+            if (this.queue.length > 0) {
+                console.log('🎵 [MUSIC-PLAYER] Trying to play next track...');
+                setTimeout(() => this.playNext(), 1000);
+            } else {
+                console.log('🎵 [MUSIC-PLAYER] No more tracks in queue');
+                if (window.showToast) {
+                    window.showToast('🎵 No more playable tracks', 'info');
+                }
+            }
         }
     }
 
@@ -582,43 +597,90 @@ class MusicPlayerSystem {
     }
 
     async playTrack(track) {
+        if (!track || !track.previewUrl) {
+            console.error('🎵 [MUSIC-PLAYER] Invalid track or missing preview URL:', track);
+            return `❌ No preview available for this track`;
+        }
+
         try {
+            console.log('🎵 [MUSIC-PLAYER] Attempting to play:', track.title, 'URL:', track.previewUrl);
+            
             await this.stop();
             
             this.currentSong = track;
             this.audio.volume = this.volume;
             this.audio.crossOrigin = "anonymous";
-            
-            this.initializeAudioEvents();
+            this.audio.preload = "metadata";
             
             return new Promise((resolve, reject) => {
-                this.audio.addEventListener('canplaythrough', async () => {
+                const timeoutId = setTimeout(() => {
+                    console.error('🎵 [MUSIC-PLAYER] Audio loading timeout for:', track.title);
+                    cleanup();
+                    reject(new Error('Audio loading timeout'));
+                }, 15000);
+
+                const cleanup = () => {
+                    clearTimeout(timeoutId);
+                    this.audio.removeEventListener('canplay', onCanPlay);
+                    this.audio.removeEventListener('canplaythrough', onCanPlayThrough);
+                    this.audio.removeEventListener('error', onError);
+                    this.audio.removeEventListener('loadeddata', onLoadedData);
+                };
+
+                const onCanPlay = async () => {
+                    cleanup();
                     try {
+                        console.log('🎵 [MUSIC-PLAYER] Audio ready, starting playback for:', track.title);
                         await this.audio.play();
                         this.isPlaying = true;
                         this.showNowPlaying(track);
+                        console.log('🎵 [MUSIC-PLAYER] Successfully playing:', track.title);
                         resolve(`🎵 Now playing: **${track.title}** by ${track.artist}`);
-                    } catch (error) {
-                        console.error('Play error:', error);
-                        reject(error);
+                    } catch (playError) {
+                        console.error('🎵 [MUSIC-PLAYER] Play error:', playError);
+                        reject(playError);
                     }
-                }, { once: true });
+                };
 
-                this.audio.addEventListener('error', (e) => {
-                    console.error('Audio load error:', e);
-                    reject(new Error('Failed to load audio'));
-                }, { once: true });
+                const onCanPlayThrough = onCanPlay;
+                const onLoadedData = onCanPlay;
 
+                const onError = (e) => {
+                    cleanup();
+                    console.error('🎵 [MUSIC-PLAYER] Audio load error for:', track.title);
+                    console.error('🎵 [MUSIC-PLAYER] Failed URL:', this.audio.src);
+                    console.error('🎵 [MUSIC-PLAYER] Audio error details:', {
+                        error: this.audio.error,
+                        networkState: this.audio.networkState,
+                        readyState: this.audio.readyState,
+                        currentSrc: this.audio.currentSrc
+                    });
+                    
+                    reject(new Error(`Failed to load "${track.title}". This might be due to CORS restrictions or the preview is no longer available.`));
+                };
+
+                this.audio.addEventListener('canplay', onCanPlay, { once: true });
+                this.audio.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
+                this.audio.addEventListener('loadeddata', onLoadedData, { once: true });
+                this.audio.addEventListener('error', onError, { once: true });
+
+                console.log('🎵 [MUSIC-PLAYER] Setting audio source and loading...');
                 this.audio.src = track.previewUrl;
                 this.audio.load();
             });
         } catch (error) {
-            console.error('Playback error:', error);
+            console.error('🎵 [MUSIC-PLAYER] Playback error:', error);
             this.isPlaying = false;
+            
             if (error.name === 'AbortError') {
                 return `⚠️ Playback interrupted, retrying "${track.title}"...`;
+            } else if (error.message.includes('CORS') || error.message.includes('network')) {
+                return `❌ Cannot play "${track.title}": Network or CORS restrictions`;
+            } else if (error.message.includes('timeout')) {
+                return `❌ "${track.title}" took too long to load`;
             }
-            return `❌ Failed to play "${track.title}": ${error.name}`;
+            
+            return `❌ Failed to play "${track.title}": ${error.message}`;
         }
     }
 
@@ -791,6 +853,31 @@ class MusicPlayerSystem {
         
         const status = this.isPlaying ? 'Playing' : 'Paused';
         return `🎵 ${status}: **${this.currentSong.title}** by ${this.currentSong.artist}`;
+    }
+
+    showMusicDebugPanel() {
+        console.log('🎵 [MUSIC-PLAYER] === DEBUG INFO ===');
+        console.log('🎵 Current Song:', this.currentSong);
+        console.log('🎵 Current Track:', this.currentTrack);
+        console.log('🎵 Is Playing:', this.isPlaying);
+        console.log('🎵 Queue Length:', this.queue.length);
+        console.log('🎵 Current Index:', this.currentIndex);
+        console.log('🎵 Audio State:', {
+            src: this.audio.src,
+            currentSrc: this.audio.currentSrc,
+            readyState: this.audio.readyState,
+            networkState: this.audio.networkState,
+            error: this.audio.error,
+            paused: this.audio.paused,
+            ended: this.audio.ended,
+            volume: this.audio.volume,
+            crossOrigin: this.audio.crossOrigin
+        });
+        console.log('🎵 === END DEBUG ===');
+        
+        if (window.showToast) {
+            window.showToast('🎛️ Debug info logged to console', 'info');
+        }
     }
 }
 
