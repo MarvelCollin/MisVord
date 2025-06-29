@@ -276,14 +276,44 @@ class GlobalSocketManager {
             return false;
         }
         
+        // Get session ID from PHP session cookie
+        const sessionId = this.getSessionId();
+        
+        // Get avatar URL from meta tag or session storage
+        const avatarUrl = document.querySelector('meta[name="user-avatar"]')?.content || 
+                         sessionStorage.getItem('user_avatar_url') ||
+                         '/public/assets/common/default-profile-picture.png';
+        
         const authData = {
             user_id: this.userId,
-            username: this.username
+            username: this.username,
+            session_id: sessionId,
+            avatar_url: avatarUrl
         };
         
-        this.log('Sending authentication to socket server:', authData);
+        this.log('Sending authentication to socket server:', {
+            ...authData,
+            session_id: sessionId ? '[PRESENT]' : '[MISSING]' // Don't log actual session ID for security
+        });
+        
         this.io.emit('authenticate', authData);
         return true;
+    }
+    
+    getSessionId() {
+        // Try to get session ID from cookie
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'PHPSESSID') {
+                return value;
+            }
+        }
+        
+        // Fallback: try to get from meta tag or other sources
+        return document.querySelector('meta[name="session-id"]')?.content || 
+               sessionStorage.getItem('session_id') || 
+               null;
     }
     
     authenticate() {

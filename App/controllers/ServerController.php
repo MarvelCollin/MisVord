@@ -2089,6 +2089,8 @@ class ServerController extends BaseController
             ob_start();
             ?>
             <div class="flex flex-1 overflow-hidden">
+                <?php include __DIR__ . '/../views/components/app-sections/channel-section.php'; ?>
+                
                 <div class="flex flex-col flex-1" id="main-content">
                     <div class="main-content-area flex-1">
                         <?php
@@ -2139,87 +2141,186 @@ class ServerController extends BaseController
 
     public function getPerServerProfile($serverId)
     {
-        $this->requireAuth();
-        $userId = $this->getCurrentUserId();
-
+        header('Content-Type: application/json');
+        
         try {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+                http_response_code(401);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Authentication required',
+                    'code' => 401,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]);
+                exit;
+            }
+            
+            $userId = $_SESSION['user_id'];
+
             $server = $this->serverRepository->find($serverId);
             if (!$server) {
-                return $this->notFound('Server not found');
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Server not found',
+                    'code' => 404,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]);
+                exit;
             }
 
             if (!$this->membershipRepository->isMember($userId, $serverId)) {
-                return $this->forbidden('You are not a member of this server');
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'You are not a member of this server',
+                    'code' => 403,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]);
+                exit;
             }
 
             $profile = $this->membershipRepository->getPerServerProfile($userId, $serverId);
             if (!$profile) {
-                return $this->notFound('User profile not found in this server');
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'User profile not found in this server',
+                    'code' => 404,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]);
+                exit;
             }
 
-            return $this->success([
-                'profile' => $profile
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'profile' => $profile
+                ],
+                'code' => 200,
+                'timestamp' => date('Y-m-d H:i:s')
             ]);
+            exit;
 
         } catch (Exception $e) {
-            $this->logActivity('per_server_profile_get_error', [
-                'server_id' => $serverId,
-                'user_id' => $userId,
-                'error' => $e->getMessage()
+            error_log("Error in getPerServerProfile: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Internal server error: ' . $e->getMessage(),
+                'code' => 500,
+                'timestamp' => date('Y-m-d H:i:s')
             ]);
-            return $this->serverError('Failed to get per-server profile: ' . $e->getMessage());
+            exit;
         }
     }
     
     public function updatePerServerProfile($serverId)
     {
-        $this->requireAuth();
-        $userId = $this->getCurrentUserId();
-
+        header('Content-Type: application/json');
+        
         try {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+                http_response_code(401);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Authentication required',
+                    'code' => 401,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]);
+                exit;
+            }
+            
+            $userId = $_SESSION['user_id'];
+            
             $server = $this->serverRepository->find($serverId);
             if (!$server) {
-                return $this->notFound('Server not found');
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Server not found',
+                    'code' => 404,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]);
+                exit;
             }
 
             if (!$this->membershipRepository->isMember($userId, $serverId)) {
-                return $this->forbidden('You are not a member of this server');
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'You are not a member of this server',
+                    'code' => 403,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]);
+                exit;
             }
 
             $input = $this->getInput();
-            $input = $this->sanitize($input);
-
-            $nickname = $input['nickname'] ?? null;
+            $nickname = isset($input['nickname']) ? $input['nickname'] : null;
             
             if ($nickname !== null && strlen($nickname) > 32) {
-                return $this->validationError(['nickname' => 'Nickname cannot exceed 32 characters']);
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Nickname cannot exceed 32 characters',
+                    'errors' => ['nickname' => 'Nickname cannot exceed 32 characters'],
+                    'code' => 400,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]);
+                exit;
             }
 
             $result = $this->membershipRepository->updateUserNickname($userId, $serverId, $nickname);
 
             if ($result) {
-                $this->logActivity('per_server_profile_updated', [
-                    'server_id' => $serverId,
-                    'user_id' => $userId,
-                    'nickname' => $nickname
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Per-server profile updated successfully',
+                    'data' => [
+                        'profile' => [
+                            'nickname' => $nickname
+                        ]
+                    ],
+                    'code' => 200,
+                    'timestamp' => date('Y-m-d H:i:s')
                 ]);
-
-                return $this->success([
-                    'profile' => [
-                        'nickname' => $nickname
-                    ]
-                ], 'Per-server profile updated successfully');
             } else {
-                throw new Exception('Failed to update per-server profile');
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to update per-server profile',
+                    'code' => 500,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]);
             }
+            
+            exit;
 
         } catch (Exception $e) {
-            $this->logActivity('per_server_profile_update_error', [
-                'server_id' => $serverId,
-                'user_id' => $userId,
-                'error' => $e->getMessage()
+            error_log("Error in updatePerServerProfile: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Internal server error: ' . $e->getMessage(),
+                'code' => 500,
+                'timestamp' => date('Y-m-d H:i:s')
             ]);
-            return $this->serverError('Failed to update per-server profile: ' . $e->getMessage());
+            exit;
         }
     }
 }

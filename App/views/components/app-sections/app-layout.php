@@ -32,6 +32,8 @@ $additional_js[] = 'components/app-layout';
     <div class="flex flex-1 overflow-hidden">
         <?php if ($contentType === 'home' || $contentType === 'dm'): ?>
             <?php include dirname(__DIR__) . '/app-sections/direct-messages-sidebar.php'; ?>
+        <?php elseif ($contentType === 'server'): ?>
+            <?php include dirname(__DIR__) . '/app-sections/channel-section.php'; ?>
         <?php endif; ?>
 
         <div class="flex flex-col flex-1" id="main-content">

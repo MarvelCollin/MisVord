@@ -67,6 +67,16 @@ export function loadHomePage(pageType = 'friends') {
                         console.log('[Home AJAX] Home page initialized');
                     }
                     
+                    console.log('[Home AJAX] Initializing home components');
+                    if (typeof window.initFriendsTabManager === 'function') {
+                        window.initFriendsTabManager();
+                        console.log('[Home AJAX] Friends tab manager initialized');
+                    }
+                    if (typeof window.initDirectMessageNavigation === 'function') {
+                        window.initDirectMessageNavigation();
+                        console.log('[Home AJAX] Direct message navigation initialized');
+                    }
+                    
                     const event = new CustomEvent('HomePageChanged', { 
                         detail: { 
                             pageType,

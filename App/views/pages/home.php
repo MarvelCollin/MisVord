@@ -78,7 +78,6 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
         $chatRoomMessageRepository = new ChatRoomMessageRepository();
         $rawMessages = $chatRoomMessageRepository->getMessagesByRoomId($activeDmId, 20, 0);
         
-        // Format messages through ChatController to include reply_data
         $formattedMessages = [];
         foreach ($rawMessages as $rawMessage) {
             $reflection = new ReflectionClass($chatController);
@@ -98,6 +97,8 @@ $page_js = 'pages/app';
 $additional_js = [
     'components/servers/server-dropdown', 
     'components/servers/server-sidebar',
+    'components/home/friends-tabs',
+    'components/home/direct-message-nav',
     'utils/load-home-page',
     'utils/load-server-page'
 ];

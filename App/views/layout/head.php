@@ -109,11 +109,10 @@ $include_socket_io = true;
 <?php if (isset($include_socket_io) && $include_socket_io): ?>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
     
-    <!-- Socket Initialization Diagnostic -->
     <script>
     console.log('🔍 SOCKET DIAGNOSTIC: Starting early diagnostic checks...');
     
-    // Early check for Socket.IO availability
+    
     window.addEventListener('DOMContentLoaded', function() {
         console.log('🔍 DOM Loaded - Socket.IO available:', typeof io !== 'undefined');
         
@@ -122,7 +121,6 @@ $include_socket_io = true;
             return;
         }
         
-        // Check user authentication status
         const isAuthenticated = document.querySelector('meta[name="user-authenticated"]')?.content === 'true';
         const userId = document.querySelector('meta[name="user-id"]')?.content;
         const username = document.querySelector('meta[name="username"]')?.content;
@@ -137,9 +135,8 @@ $include_socket_io = true;
             socketPort
         });
         
-        // Wait for global socket manager to load
         let checkCount = 0;
-        const maxChecks = 20; // 10 seconds max
+        const maxChecks = 20;
         
         const checkSocketManager = () => {
             checkCount++;
@@ -147,7 +144,6 @@ $include_socket_io = true;
             if (window.globalSocketManager) {
                 console.log('✅ GlobalSocketManager found after', checkCount * 500, 'ms');
                 
-                // Give it time to initialize
                 setTimeout(() => {
                     const status = window.globalSocketManager.getStatus();
                     console.log('🔍 Initial Socket Status:', status);
@@ -155,7 +151,6 @@ $include_socket_io = true;
                     if (!status.connected && !status.lastError) {
                         console.log('🔧 Socket not connected, attempting manual initialization...');
                         
-                        // Force initialization
                         if (isAuthenticated && userId && username) {
                             window.__SOCKET_INITIALISED__ = false;
                             const initResult = window.globalSocketManager.init({ user_id: userId, username: username });
@@ -175,11 +170,9 @@ $include_socket_io = true;
             setTimeout(checkSocketManager, 500);
         };
         
-        // Start checking after a brief delay
         setTimeout(checkSocketManager, 500);
     });
     
-    // Listen for socket events
     window.addEventListener('globalSocketReady', function(event) {
         console.log('🎉 SOCKET READY EVENT:', event.detail);
     });
@@ -188,7 +181,6 @@ $include_socket_io = true;
         console.log('🔐 SOCKET AUTHENTICATED EVENT:', event.detail);
     });
     
-    // Global error handler for socket issues
     window.addEventListener('error', function(event) {
         if (event.message && (event.message.includes('socket') || event.message.includes('Socket') || event.message.includes('io'))) {
             console.error('🚨 SOCKET-RELATED ERROR:', event.error);

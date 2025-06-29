@@ -107,4 +107,87 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
             </div>
         </div>
     </div>
-</div> 
+</div>
+
+<script>
+function acceptFriendRequest(requestId) {
+    console.log('[Friends] Accepting friend request:', requestId);
+    
+    if (!window.ajax) {
+        console.error('[Friends] Ajax function not available');
+        return;
+    }
+
+    window.ajax({
+        url: '/api/friends/accept?id=' + requestId,
+        method: 'POST',
+        dataType: 'json',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        success: (response) => {
+            console.log('[Friends] Friend request accepted:', response);
+            if (response.success) {
+                if (window.showToast) {
+                    window.showToast('Friend request accepted!', 'success');
+                }
+                if (window.friendsTabManager) {
+                    window.friendsTabManager.loadPendingRequests();
+                }
+            } else {
+                if (window.showToast) {
+                    window.showToast('Failed to accept friend request', 'error');
+                }
+            }
+        },
+        error: (xhr, status, error) => {
+            console.error('[Friends] Error accepting friend request:', error);
+            if (window.showToast) {
+                window.showToast('Error accepting friend request', 'error');
+            }
+        }
+    });
+}
+
+function declineFriendRequest(requestId) {
+    console.log('[Friends] Declining friend request:', requestId);
+    
+    if (!window.ajax) {
+        console.error('[Friends] Ajax function not available');
+        return;
+    }
+
+    window.ajax({
+        url: '/api/friends/decline?id=' + requestId,
+        method: 'POST',
+        dataType: 'json',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        success: (response) => {
+            console.log('[Friends] Friend request declined:', response);
+            if (response.success) {
+                if (window.showToast) {
+                    window.showToast('Friend request declined', 'info');
+                }
+                if (window.friendsTabManager) {
+                    window.friendsTabManager.loadPendingRequests();
+                }
+            } else {
+                if (window.showToast) {
+                    window.showToast('Failed to decline friend request', 'error');
+                }
+            }
+        },
+        error: (xhr, status, error) => {
+            console.error('[Friends] Error declining friend request:', error);
+            if (window.showToast) {
+                window.showToast('Error declining friend request', 'error');
+            }
+        }
+    });
+}
+
+if (typeof initFriendsTabManager === 'function') {
+    initFriendsTabManager();
+}
+if (typeof initDirectMessageNavigation === 'function') {
+    initDirectMessageNavigation();
+}
+</script> 

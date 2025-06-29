@@ -1204,30 +1204,76 @@ class ChatController extends BaseController
 
     public function saveMessageFromSocket()
     {
-        // Start session to get authentication data
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        // Debug: Log all server variables related to headers
+        error_log("Socket message save - all headers debug: " . json_encode([
+            'HTTP_X_SOCKET_USER_ID' => $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? 'NOT_SET',
+            'HTTP_X_SOCKET_USERNAME' => $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? 'NOT_SET',
+            'HTTP_X_SOCKET_SESSION_ID' => $_SERVER['HTTP_X_SOCKET_SESSION_ID'] ?? 'NOT_SET',
+            'HTTP_X_SOCKET_AVATAR_URL' => $_SERVER['HTTP_X_SOCKET_AVATAR_URL'] ?? 'NOT_SET',
+            'all_headers' => function_exists('getallheaders') ? getallheaders() : 'getallheaders not available',
+            'server_keys' => array_filter(array_keys($_SERVER), function($key) {
+                return strpos($key, 'HTTP_') === 0 || strpos($key, 'X_') !== false;
+            })
+        ]));
         
-        // Check if user is authenticated via session
-        if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-            error_log("Socket message save failed: No authentication in session");
-            return $this->unauthorized('User must be authenticated');
-        }
+        // Check for socket authentication headers first (try multiple access methods)
+        $socketUserId = $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? 
+                       $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? 
+                       (function_exists('getallheaders') ? (getallheaders()['X-Socket-User-ID'] ?? null) : null);
+        $socketUsername = $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? 
+                         (function_exists('getallheaders') ? (getallheaders()['X-Socket-Username'] ?? null) : null);
+        $socketSessionId = $_SERVER['HTTP_X_SOCKET_SESSION_ID'] ?? 
+                          (function_exists('getallheaders') ? (getallheaders()['X-Socket-Session-ID'] ?? null) : null);
+        $socketAvatarUrl = $_SERVER['HTTP_X_SOCKET_AVATAR_URL'] ?? 
+                          (function_exists('getallheaders') ? (getallheaders()['X-Socket-Avatar-URL'] ?? null) : null);
         
-        $userId = $_SESSION['user_id'];
-        $username = $_SESSION['username'] ?? null;
+        error_log("Socket message save - headers check: " . json_encode([
+            'has_socket_user_id' => !empty($socketUserId),
+            'socket_user_id' => $socketUserId,
+            'socket_username' => $socketUsername,
+            'socket_session_id' => $socketSessionId ? '[PRESENT]' : '[MISSING]'
+        ]));
         
-        // Verify user exists
-        $user = $this->userRepository->find($userId);
-        if (!$user) {
-            error_log("Socket message save failed: User not found - ID: $userId");
-            return $this->unauthorized('Invalid user');
-        }
-        
-        // Use username from user record if not in session
-        if (!$username) {
-            $username = $user->username;
+        // Authenticate via socket headers if available
+        if ($socketUserId && $socketUsername) {
+            $userId = $socketUserId;
+            $username = $socketUsername;
+            
+            // Verify user exists in database
+            $user = $this->userRepository->find($userId);
+            if (!$user) {
+                error_log("Socket message save failed: User not found in database - ID: $userId");
+                return $this->unauthorized('Invalid user');
+            }
+            
+            error_log("Socket authentication successful: User $userId ($username) authenticated via headers");
+        } else {
+            // Fallback to session authentication
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+                error_log("Socket message save failed: No authentication via headers or session");
+                return $this->unauthorized('User must be authenticated');
+            }
+            
+            $userId = $_SESSION['user_id'];
+            $username = $_SESSION['username'] ?? null;
+            
+            // Verify user exists
+            $user = $this->userRepository->find($userId);
+            if (!$user) {
+                error_log("Socket message save failed: User not found - ID: $userId");
+                return $this->unauthorized('Invalid user');
+            }
+            
+            // Use username from user record if not in session
+            if (!$username) {
+                $username = $user->username;
+            }
+            
+            error_log("Session authentication successful: User $userId ($username) authenticated via session");
         }
         
         $input = $this->getInput();
@@ -1279,7 +1325,7 @@ class ChatController extends BaseController
                     'message_id' => $message['id'],
                     'user_id' => $message['user_id'],
                     'username' => $message['username'],
-                    'avatar_url' => $message['avatar_url'] ?? '/public/assets/common/default-profile-picture.png',
+                    'avatar_url' => $socketAvatarUrl ?? $message['avatar_url'] ?? '/public/assets/common/default-profile-picture.png',
                     'target_type' => $input['target_type'],
                     'target_id' => $input['target_id'],
                     'content' => $message['content'],

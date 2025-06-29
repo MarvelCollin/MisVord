@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 element: serverLink.tagName,
                 parentClass: serverLink.parentElement?.className
             });
-            e.preventDefault();
+            e.preventDefault(); 
             
             const serverId = serverLink.getAttribute('data-server-id');
             if (serverId) {
@@ -128,20 +128,20 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function handleEasterEggLogic() {
-    const currentTime = Date.now();
-    
-    if (currentTime - lastClickTime > CLICK_TIMEOUT) {
-        homeIconClickCount = 1;
-    } else {
-        homeIconClickCount++;
-    }
-    
-    lastClickTime = currentTime;
-    
-    if (homeIconClickCount >= CLICKS_NEEDED) {
-        homeIconClickCount = 0;
-        playDiscordoSound();
-    }
+        const currentTime = Date.now();
+        
+        if (currentTime - lastClickTime > CLICK_TIMEOUT) {
+            homeIconClickCount = 1;
+        } else {
+            homeIconClickCount++;
+        }
+        
+        lastClickTime = currentTime;
+        
+        if (homeIconClickCount >= CLICKS_NEEDED) {
+            homeIconClickCount = 0;
+            playDiscordoSound();
+        }
 }
 
 function initializeHomeIconEasterEgg() {
@@ -869,7 +869,7 @@ export async function handleServerClick(serverId, event) {
         if (currentChannelId && window.globalSocketManager) {
             console.log('[Server Navigation] Cleaning up socket for channel:', currentChannelId);
             window.globalSocketManager.leaveChannel(currentChannelId);
-        } else {
+                        } else {
             console.log('[Server Navigation] No active channel to clean up');
         }
 
@@ -877,7 +877,7 @@ export async function handleServerClick(serverId, event) {
             console.log('[Server Navigation] Cleaning up voice manager');
             window.voiceManager.leaveVoice();
             window.voiceManager = null;
-        } else {
+                        } else {
             console.log('[Server Navigation] No voice manager to clean up');
         }
         
@@ -886,7 +886,7 @@ export async function handleServerClick(serverId, event) {
             console.log('[Server Navigation] Calling loadServerPage with serverId:', serverId);
             await window.loadServerPage(serverId);
             console.log('[Server Navigation] AJAX server page load completed successfully');
-        } else {
+                        } else {
             console.error('[Server Navigation] CRITICAL - loadServerPage function not available');
             console.error('[Server Navigation] Available window functions:', Object.keys(window).filter(k => k.includes('load')));
             console.error('[Server Navigation] Window.loadServerPage type:', typeof window.loadServerPage);
@@ -894,8 +894,8 @@ export async function handleServerClick(serverId, event) {
         }
         
         console.log('[Server Navigation] Updating active server state');
-        updateActiveServer();
-        
+    updateActiveServer();
+
         console.log('[Server Navigation] Dispatching ServerChanged event');
         window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
 

@@ -28,6 +28,8 @@ export * from './common/validation.js';
 export * from './common/wifi-strength.js';
 export * from './easteregg/logo-click-sidebar-server.js';
 export * from './settings/mic-video-check.js';
+export * from './home/friends-tabs.js';
+export * from './home/direct-message-nav.js';
 
 import './app-layout.js';
 import './settings/mic-video-check.js';

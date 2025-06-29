@@ -6,11 +6,13 @@ class AuthHandler {
         console.log(`📋 [AUTH-HANDLER] Auth data received:`, {
             userId: data.user_id,
             username: data.username,
+            sessionId: data.session_id,
             hasUserId: !!data.user_id,
-            hasUsername: !!data.username
+            hasUsername: !!data.username,
+            hasSessionId: !!data.session_id
         });
         
-        const { user_id, username } = data;
+        const { user_id, username, session_id, avatar_url } = data;
         
         if (!user_id) {
             console.error(`❌ [AUTH-HANDLER] Authentication failed - User ID is missing for client ${client.id}`);
@@ -23,16 +25,20 @@ class AuthHandler {
             console.warn(`⚠️ [AUTH-HANDLER] Username not provided for user ${user_id}, generating default`);
         }
         
-        // Set client data
+        // Set client data with all authentication info
         client.data = client.data || {};
         client.data.user_id = user_id;
         client.data.username = username || `User-${user_id}`;
+        client.data.session_id = session_id; // Store session ID for PHP authentication
+        client.data.avatar_url = avatar_url || '/public/assets/common/default-profile-picture.png';
         client.data.authenticated = true;
         
         console.log(`📝 [AUTH-HANDLER] Client data set:`, {
             clientId: client.id,
             userId: client.data.user_id,
             username: client.data.username,
+            sessionId: client.data.session_id,
+            avatarUrl: client.data.avatar_url,
             authenticated: client.data.authenticated
         });
         
@@ -44,12 +50,13 @@ class AuthHandler {
         console.log(`📝 [AUTH-HANDLER] Adding user socket to tracking`);
         roomManager.addUserSocket(user_id, client.id);
         
-        // Prepare authentication response
+        // Prepare authentication response with underscores
         const response = { 
             user_id, 
-            userId: user_id,
+            user_id: user_id, // Keep both for compatibility
             socket_id: client.id,
-            socketId: client.id,
+            socket_id: client.id, // Keep both for compatibility 
+            session_id: session_id,
             message: 'Authentication successful'
         };
         

@@ -111,7 +111,7 @@ export function loadServerPage(serverId, channelId = null) {
                 console.error('[Server AJAX] FALLBACK - Redirecting to /server/' + serverId);
                 window.location.href = `/server/${serverId}`;
             }
-        });
+            });
     } else {
         console.error('[Server Loader] No main content container found');
         window.location.href = `/server/${serverId}`;
@@ -149,17 +149,26 @@ function updateServerLayout(html, serverId, channelId) {
     
     if (newLayout) {
         console.log('[Server Layout] New layout innerHTML length:', newLayout.innerHTML.length);
+        console.log('[Server Layout] New layout structure preview:', {
+            'has-channel-wrapper': newLayout.innerHTML.includes('channel-wrapper'),
+            'has-main-content': newLayout.innerHTML.includes('main-content'),
+            'has-participant-section': newLayout.innerHTML.includes('participant')
+        });
         
         const currentLayout = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
         console.log('[Server Layout] Current layout container found:', !!currentLayout);
         
         if (currentLayout) {
             console.log('[Server Layout] Before replacement - current layout children:', currentLayout.children.length);
+            console.log('[Server Layout] Current layout has:', {
+                'dm-sidebar': !!currentLayout.querySelector('[class*="direct-message"]'),
+                'channel-wrapper': !!currentLayout.querySelector('.channel-wrapper'), 
+                'main-content': !!currentLayout.querySelector('#main-content'),
+                'active-now': !!currentLayout.querySelector('[class*="active-now"]'),
+                'participant': !!currentLayout.querySelector('[class*="participant"]')
+            });
             
-            console.log('[Server Layout] Showing server channel section');
-            showServerChannelSection();
-            
-            console.log('[Server Layout] Replacing layout innerHTML');
+            console.log('[Server Layout] Replacing layout innerHTML with server structure');
             currentLayout.innerHTML = newLayout.innerHTML;
             
             console.log('[Server Layout] After replacement - new layout children:', currentLayout.children.length);
@@ -173,9 +182,11 @@ function updateServerLayout(html, serverId, channelId) {
             
             console.log('[Server Layout] Checking for server-specific elements:', {
                 'channel-wrapper': !!document.querySelector('.channel-wrapper'),
+                'channel-items': document.querySelectorAll('.channel-item').length,
                 'chat-section': !!document.querySelector('.chat-section'),
                 'voice-section': !!document.querySelector('.voice-section'),
-                'channel-items': document.querySelectorAll('.channel-item').length
+                'main-content': !!document.querySelector('#main-content'),
+                'participant-section': !!document.querySelector('[class*="w-60"][class*="bg-discord-background"]')
             });
             
             console.log('[Server Layout] Executing inline scripts');
@@ -197,43 +208,25 @@ function updateServerLayout(html, serverId, channelId) {
             console.error('[Server Layout] FAILED - Layout container not found');
             console.error('[Server Layout] Available containers:', {
                 'app-container': !!document.querySelector('#app-container'),
-                'flex.flex-1': !!document.querySelector('.flex.flex-1'),
-                'overflow-hidden': !!document.querySelector('.overflow-hidden'),
-                'all-flex-elements': document.querySelectorAll('.flex').length
+                'flex-1-containers': document.querySelectorAll('.flex-1').length,
+                'overflow-hidden-containers': document.querySelectorAll('.overflow-hidden').length,
+                'combined-selector': document.querySelectorAll('.flex.flex-1.overflow-hidden').length
             });
         }
     } else {
         console.error('[Server Layout] FAILED - New layout element not found in response');
         console.error('[Server Layout] Available elements in response:', {
             'flex-elements': doc.querySelectorAll('.flex').length,
+            'flex-1-elements': doc.querySelectorAll('.flex-1').length,
             'overflow-elements': doc.querySelectorAll('.overflow-hidden').length,
+            'combined-elements': doc.querySelectorAll('.flex.flex-1.overflow-hidden').length,
             'body-children': doc.body ? doc.body.children.length : 0
         });
         console.error('[Server Layout] Response HTML structure preview:', html.substring(0, 500));
     }
 }
 
-function showServerChannelSection() {
-    const serverChannelSelectors = [
-        '.w-60.bg-discord-dark.flex.flex-col',
-        'div[class*="w-60"][class*="bg-discord-dark"]',  
-        'div[class*="w-60 bg-discord-dark"]'
-    ];
-    
-    let found = false;
-    serverChannelSelectors.forEach(selector => {
-        const element = document.querySelector(selector);
-        if (element) {
-            console.log('[Server Loader] Showing server channel section with selector:', selector);
-            element.style.display = 'flex';
-            found = true;
-        }
-    });
-    
-    if (!found) {
-        console.log('[Server Loader] No server channel section found to show');
-    }
-}
+
 
 function validateServerLayoutRendering(serverId, channelId) {
     console.log('[Server Validation] Starting server layout validation');

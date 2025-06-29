@@ -365,7 +365,10 @@ class MessageHandler {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cookie': `PHPSESSID=${client.data.session_id || ''}`, // Pass session for auth
+                        'X-Socket-User-ID': client.data.user_id.toString(),
+                        'X-Socket-Username': client.data.username,
+                        'X-Socket-Session-ID': client.data.session_id || '',
+                        'X-Socket-Avatar-URL': client.data.avatar_url || '/public/assets/common/default-profile-picture.png',
                         'User-Agent': 'SocketServer/1.0'
                     },
                     body: JSON.stringify({
@@ -475,20 +478,4 @@ class MessageHandler {
                 timestamp: Date.now()
             };
             
-            console.log(`📡 [DATABASE-SAVED] Broadcasting message ID update to room: ${targetRoom}`);
-            io.to(targetRoom).emit('message_id_updated', updateData);
-            
-            console.log(`✅ [DATABASE-SAVED] Message ID update broadcasted successfully`);
-        } else {
-            console.warn(`⚠️ [DATABASE-SAVED] No target room found, broadcasting to all clients`);
-            io.emit('message_id_updated', {
-                temp_message_id: data.temp_message_id,
-                real_message_id: data.real_message_id,
-                message_data: messageData,
-                timestamp: Date.now()
-            });
-        }
-    }
-}
-
-module.exports = MessageHandler; 
+            console.log(`
