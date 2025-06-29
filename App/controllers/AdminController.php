@@ -97,7 +97,9 @@ class AdminController extends BaseController
             
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->success([
-                    'users' => $normalizedUsers,
+                    'data' => [
+                        'users' => $normalizedUsers
+                    ],
                     'pagination' => [
                         'total' => $total,
                         'page' => $page,
@@ -166,7 +168,9 @@ class AdminController extends BaseController
         
         if (empty($query) || strlen($query) < 2) {
             return $this->success([
-                'users' => [],
+                'data' => [
+                    'users' => []
+                ],
                 'pagination' => [
                     'total' => 0,
                     'page' => $page,
@@ -194,7 +198,9 @@ class AdminController extends BaseController
             }
             
             return $this->success([
-                'users' => $normalizedUsers,
+                'data' => [
+                    'users' => $normalizedUsers
+                ],
                 'pagination' => [
                     'total' => count($normalizedUsers),
                     'page' => $page,

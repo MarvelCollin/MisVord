@@ -1,5 +1,6 @@
 import { showToast } from "../../core/ui/toast.js";
 import nitroAPI from "../../api/nitro-api.js";
+import { jaroWinkler } from "../../utils/jaro-winkler.js";
 
 export class NitroManager {
   constructor() {
@@ -9,6 +10,8 @@ export class NitroManager {
     this.searchController = null;
     this.searchCache = new Map();
     this.maxCacheSize = 50;
+    this.allUsersCache = null;
+    this.allUsersLoaded = false;
     
     this.init();
   }
@@ -22,7 +25,43 @@ export class NitroManager {
     setTimeout(() => {
       this.loadNitroCodes();
       this.loadNitroStats();
+      this.preloadAllUsers();
     }, 10);
+  }
+
+  preloadAllUsers() {
+    if (this.allUsersLoaded) return;
+    
+    this.loadAllUsersInBackground();
+  }
+
+  loadAllUsersInBackground() {
+    const ajaxConfig = {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      credentials: 'same-origin'
+    };
+    
+    fetch(`/api/admin/users?limit=100`, ajaxConfig)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
+          this.allUsersCache = data.data.users;
+          this.allUsersLoaded = true;
+        }
+      })
+      .catch(error => {
+        console.warn('Failed to preload users for fuzzy search:', error);
+      });
   }
 
   showInitialSkeletons() {
@@ -116,7 +155,10 @@ export class NitroManager {
     
     if (userSearchInput && userSearchResults && userIdInput) {
       userSearchInput.addEventListener('click', () => {
-        if (userSearchInput.value.trim().length >= 2) {
+        const currentValue = userSearchInput.value.trim();
+        if (currentValue.length === 0) {
+          this.loadAllUsers();
+        } else if (currentValue.length >= 2) {
           this.showDropdownWithAnimation(userSearchResults);
         }
       });
@@ -126,8 +168,7 @@ export class NitroManager {
         
         if (query.length === 0) {
           userIdInput.value = '';
-          userSearchResults.innerHTML = '<div class="p-2 text-sm text-gray-400 animate-fade-in">Type to search users...</div>';
-          this.hideDropdownWithAnimation(userSearchResults);
+          this.loadAllUsers();
           return;
         }
         
@@ -185,8 +226,26 @@ export class NitroManager {
     }
     
     if (this.searchCache.has(query)) {
-      this.renderSearchResults(this.searchCache.get(query), userSearchResults);
+      this.renderSearchResults(this.searchCache.get(query), userSearchResults, query);
       this.showDropdownWithAnimation(userSearchResults);
+      return;
+    }
+    
+    if (this.allUsersLoaded && this.allUsersCache) {
+      userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-pulse">Searching with fuzzy matching...</div>';
+      this.showDropdownWithAnimation(userSearchResults);
+      
+      setTimeout(() => {
+        const fuzzyResults = jaroWinkler.searchUsers(this.allUsersCache, query, {
+          threshold: 0.3,
+          maxResults: 8,
+          fields: ['username', 'display_name', 'email'],
+          weights: { username: 1.0, display_name: 0.8, email: 0.6 }
+        });
+        
+        this.cacheSearchResult(query, fuzzyResults);
+        this.renderSearchResults(fuzzyResults, userSearchResults, query);
+      }, 50);
       return;
     }
     
@@ -216,7 +275,7 @@ export class NitroManager {
       .then(data => {
         if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
           this.cacheSearchResult(query, data.data.users);
-          this.renderSearchResults(data.data.users, userSearchResults);
+          this.renderSearchResults(data.data.users, userSearchResults, query);
         } else {
           userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-shake">Invalid response format</div>';
         }
@@ -241,7 +300,7 @@ export class NitroManager {
     this.searchCache.set(query, users);
   }
   
-  renderSearchResults(users, userSearchResults) {
+  renderSearchResults(users, userSearchResults, query = '') {
     if (users.length === 0) {
       userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-fade-in">No users found</div>';
       return;
@@ -256,7 +315,13 @@ export class NitroManager {
       
       const username = user.username || 'Unknown';
       const discriminator = user.discriminator || '0000';
-      const displayName = `${username}#${discriminator}`;
+      let displayName = `${username}#${discriminator}`;
+      let email = user.email || 'No email';
+      
+      if (query) {
+        displayName = jaroWinkler.highlightMatches(displayName, query);
+        email = jaroWinkler.highlightMatches(email, query);
+      }
       
       resultItem.innerHTML = `
         <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2 flex-shrink-0">
@@ -264,7 +329,7 @@ export class NitroManager {
         </div>
         <div class="flex-1 min-w-0">
           <div class="text-sm font-medium text-white truncate">${displayName}</div>
-          <div class="text-xs text-discord-lighter truncate">${user.email || 'No email'}</div>
+          <div class="text-xs text-discord-lighter truncate">${email}</div>
         </div>
       `;
       
@@ -545,6 +610,65 @@ export class NitroManager {
       clearTimeout(timeout);
       timeout = setTimeout(() => func.apply(this, args), wait);
     };
+  }
+
+  loadAllUsers() {
+    const userSearchResults = document.getElementById('user-search-results');
+    
+    if (!userSearchResults) return;
+    
+    if (this.searchController) {
+      this.searchController.abort();
+    }
+    
+    const cacheKey = '__all_users__';
+    if (this.searchCache.has(cacheKey)) {
+      this.renderSearchResults(this.searchCache.get(cacheKey), userSearchResults);
+      this.showDropdownWithAnimation(userSearchResults);
+      return;
+    }
+    
+    userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-pulse">Loading users...</div>';
+    this.showDropdownWithAnimation(userSearchResults);
+    
+    this.searchController = new AbortController();
+    
+    const ajaxConfig = {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      credentials: 'same-origin',
+      signal: this.searchController.signal
+    };
+    
+    fetch(`/api/admin/users?limit=20`, ajaxConfig)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
+          this.cacheSearchResult(cacheKey, data.data.users);
+          this.renderSearchResults(data.data.users, userSearchResults);
+        } else {
+          userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-shake">Failed to load users</div>';
+        }
+      })
+      .catch(error => {
+        if (error.name === 'AbortError') {
+          return;
+        }
+        console.error('Error loading users:', error);
+        userSearchResults.innerHTML = `<div class="p-2 text-sm text-discord-lighter animate-shake">Failed to load users</div>`;
+      })
+      .finally(() => {
+        this.searchController = null;
+      });
   }
 }
 
