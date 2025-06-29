@@ -30,6 +30,13 @@ export function loadHomePage(pageType = 'friends') {
             url += '?type=' + pageType;
         }
 
+        console.log('[Home AJAX] Starting request to:', url);
+        console.log('[Home AJAX] Request headers:', {
+            'X-Requested-With': 'XMLHttpRequest',
+            'method': 'GET',
+            'dataType': 'text'
+        });
+
         window.ajax({
             url: url,
             method: 'GET',
@@ -38,15 +45,26 @@ export function loadHomePage(pageType = 'friends') {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             success: function(response) {
+                console.log('[Home AJAX] SUCCESS - Response received');
+                console.log('[Home AJAX] Response type:', typeof response);
+                console.log('[Home AJAX] Response length:', response ? response.length : 'null');
+                console.log('[Home AJAX] Response preview:', response ? response.substring(0, 150) + '...' : 'empty');
+                
                 if (typeof response === 'string') {
+                    console.log('[Home AJAX] Processing string response');
                     updateHomeLayout(response);
+                    
+                    console.log('[Home AJAX] Validating layout update');
+                    validateHomeLayoutRendering();
                     
                     if (typeof window.handleSkeletonLoading === 'function') {
                         window.handleSkeletonLoading(false);
+                        console.log('[Home AJAX] Skeleton loading disabled');
                     }
                     
                     if (typeof window.initHomePage === 'function') {
                         window.initHomePage();
+                        console.log('[Home AJAX] Home page initialized');
                     }
                     
                     const event = new CustomEvent('HomePageChanged', { 
@@ -56,18 +74,30 @@ export function loadHomePage(pageType = 'friends') {
                         } 
                     });
                     document.dispatchEvent(event);
+                    console.log('[Home AJAX] HomePageChanged event dispatched');
                     
                 } else if (response && response.data && response.data.redirect) {
+                    console.log('[Home AJAX] Redirect response:', response.data.redirect);
                     window.location.href = response.data.redirect;
                 } else {
+                    console.error('[Home AJAX] INVALID RESPONSE FORMAT');
+                    console.error('[Home AJAX] Expected string, got:', typeof response);
+                    console.error('[Home AJAX] Response content:', response);
                     window.location.href = '/home';
                 }
             },
-            error: function(error) {
-                console.error('Error loading home page:', error);
+            error: function(xhr, status, error) {
+                console.error('[Home AJAX] ERROR - Request failed');
+                console.error('[Home AJAX] XHR status:', xhr ? xhr.status : 'unknown');
+                console.error('[Home AJAX] XHR statusText:', xhr ? xhr.statusText : 'unknown');
+                console.error('[Home AJAX] Error status:', status);
+                console.error('[Home AJAX] Error message:', error);
+                console.error('[Home AJAX] XHR responseText:', xhr ? xhr.responseText : 'none');
+                
                 if (typeof window.handleSkeletonLoading === 'function') {
                     window.handleSkeletonLoading(false);
                 }
+                console.error('[Home AJAX] FALLBACK - Redirecting to /home');
                 window.location.href = '/home';
             }
         });
@@ -91,36 +121,68 @@ function showPageLoading(container) {
 }
 
 function updateHomeLayout(html) {
-    console.log('[Home Loader] Starting layout update');
+    console.log('[Home Layout] Starting home layout replacement');
+    console.log('[Home Layout] Input HTML length:', html.length);
+    console.log('[Home Layout] HTML preview:', html.substring(0, 200) + '...');
+    
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
+    console.log('[Home Layout] DOM parsed successfully');
+    
     const newLayout = doc.querySelector('.flex.flex-1.overflow-hidden');
+    console.log('[Home Layout] New layout element found:', !!newLayout);
     
     if (newLayout) {
+        console.log('[Home Layout] New layout innerHTML length:', newLayout.innerHTML.length);
+        
         const currentLayout = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+        console.log('[Home Layout] Current layout container found:', !!currentLayout);
+        
         if (currentLayout) {
-            console.log('[Home Loader] Replacing entire home layout structure');
+            console.log('[Home Layout] Before replacement - current layout children:', currentLayout.children.length);
+            
+            console.log('[Home Layout] Hiding server channel section');
             hideServerChannelSection();
+            
+            console.log('[Home Layout] Replacing layout innerHTML');
             currentLayout.innerHTML = newLayout.innerHTML;
+            
+            console.log('[Home Layout] After replacement - new layout children:', currentLayout.children.length);
+            console.log('[Home Layout] New layout structure:', {
+                directChildren: Array.from(currentLayout.children).map(child => ({
+                    tagName: child.tagName,
+                    className: child.className,
+                    id: child.id
+                }))
+            });
+            
+            console.log('[Home Layout] Executing inline scripts');
             executeInlineScripts(doc);
             
+            console.log('[Home Layout] Updating browser history');
             history.pushState(
                 { pageType: 'home', serverId: null }, 
                 'misvord - Home', 
                 '/home'
             );
-            console.log('[Home Loader] Layout update completed successfully');
+            console.log('[Home Layout] SUCCESS - Home layout replacement completed');
         } else {
-            console.error('[Home Loader] Could not find layout container to update');
-            console.log('[Home Loader] Available containers:', {
+            console.error('[Home Layout] FAILED - Layout container not found');
+            console.error('[Home Layout] Available containers:', {
                 'app-container': !!document.querySelector('#app-container'),
                 'flex.flex-1': !!document.querySelector('.flex.flex-1'),
-                'overflow-hidden': !!document.querySelector('.overflow-hidden')
+                'overflow-hidden': !!document.querySelector('.overflow-hidden'),
+                'all-flex-elements': document.querySelectorAll('.flex').length
             });
         }
     } else {
-        console.error('[Home Loader] Could not find new layout in response');
-        console.log('[Home Loader] Response preview:', html.substring(0, 200));
+        console.error('[Home Layout] FAILED - New layout element not found in response');
+        console.error('[Home Layout] Available elements in response:', {
+            'flex-elements': doc.querySelectorAll('.flex').length,
+            'overflow-elements': doc.querySelectorAll('.overflow-hidden').length,
+            'body-children': doc.body ? doc.body.children.length : 0
+        });
+        console.error('[Home Layout] Response HTML structure preview:', html.substring(0, 500));
     }
 }
 
@@ -151,14 +213,52 @@ function hideServerChannelSection() {
     }
 }
 
+function validateHomeLayoutRendering() {
+    console.log('[Home Validation] Starting layout validation');
+    
+    const validationChecks = {
+        'app-container': !!document.querySelector('#app-container'),
+        'main-content-layout': !!document.querySelector('.flex.flex-1.overflow-hidden'),
+        'dm-sidebar': !!document.querySelector('.w-60.bg-discord-darker'),
+        'friends-section': !!document.querySelector('[class*="Friends"]') || !!document.querySelector('.tab-content'),
+        'active-now-section': !!document.querySelector('.w-60.bg-discord-background'),
+        'home-layout-structure': !!document.querySelector('#main-content')
+    };
+    
+    console.log('[Home Validation] Layout validation results:', validationChecks);
+    
+    const failedChecks = Object.keys(validationChecks).filter(key => !validationChecks[key]);
+    if (failedChecks.length > 0) {
+        console.error('[Home Validation] FAILED VALIDATION - Missing elements:', failedChecks);
+        console.error('[Home Validation] Available containers:');
+        console.error('[Home Validation] - app-container:', document.querySelector('#app-container'));
+        console.error('[Home Validation] - flex containers:', document.querySelectorAll('.flex').length);
+        console.error('[Home Validation] - sidebar containers:', document.querySelectorAll('[class*="w-60"]').length);
+    } else {
+        console.log('[Home Validation] SUCCESS - All layout elements rendered correctly');
+    }
+    
+    const homeIndicators = {
+        'url-is-home': window.location.pathname === '/home' || window.location.pathname === '/home/' || window.location.pathname === '/',
+        'active-home-icon': !!document.querySelector('.server-icon.active:first-child'),
+        'no-server-channels': !document.querySelector('.channel-wrapper') || document.querySelector('.channel-wrapper').style.display === 'none'
+    };
+    
+    console.log('[Home Validation] Home state indicators:', homeIndicators);
+    
+    return failedChecks.length === 0;
+}
+
 function executeInlineScripts(doc) {
     const scripts = doc.querySelectorAll('script:not([src])');
-    scripts.forEach(script => {
+    console.log('[Home Scripts] Found', scripts.length, 'inline scripts to execute');
+    scripts.forEach((script, index) => {
         if (script.textContent.trim()) {
             try {
+                console.log('[Home Scripts] Executing script', index + 1);
                 eval(script.textContent);
             } catch (error) {
-                console.error('Script execution error:', error);
+                console.error('[Home Scripts] Script execution error for script', index + 1, ':', error);
             }
         }
     });

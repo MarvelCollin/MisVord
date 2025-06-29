@@ -288,14 +288,14 @@ class MessageHandler {
         
         if (!client.data?.authenticated || !client.data?.user_id) {
             console.error(`❌ [SAVE-AND-SEND] Unauthenticated client attempted to send message`);
-            client.emit('message-error', { error: 'Authentication required' });
+            client.emit('message_error', { error: 'Authentication required' });
             return;
         }
         
         // Validate required fields
         if (!data.content || !data.target_type || !data.target_id) {
             console.error(`❌ [SAVE-AND-SEND] Missing required fields:`, data);
-            client.emit('message-error', { error: 'Missing required fields: content, target_type, target_id' });
+            client.emit('message_error', { error: 'Missing required fields: content, target_type, target_id' });
             return;
         }
         
@@ -309,13 +309,13 @@ class MessageHandler {
         });
         
         try {
-            // Generate a temporary ID that will be replaced by database ID
-            const tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            // Generate a temporary ID for immediate display
+            const temp_message_id = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
             const currentTimestamp = Date.now();
             
-            // Prepare broadcast data for immediate display
+            // Prepare data for immediate broadcast with underscores
             const broadcastData = {
-                id: tempMessageId,
+                id: temp_message_id,
                 content: data.content,
                 user_id: client.data.user_id,
                 username: client.data.username,
@@ -326,12 +326,12 @@ class MessageHandler {
                 reply_message_id: data.reply_message_id,
                 reply_data: data.reply_data,
                 timestamp: currentTimestamp,
-                temp_message_id: tempMessageId,
+                temp_message_id: temp_message_id,
                 source: 'websocket-originated',
                 is_temporary: true
             };
             
-            // Add chat type specific fields for room targeting
+            // Add target-specific fields using underscores
             if (data.target_type === 'channel') {
                 broadcastData.channel_id = data.target_id;
                 broadcastData.target_type = 'channel';
@@ -342,47 +342,33 @@ class MessageHandler {
                 broadcastData.target_id = data.target_id;
             }
             
-            console.log(`📡 [SAVE-AND-SEND] Broadcasting temporary message immediately...`);
-            
-            // Determine the correct event name and room
+            // Determine event name and room
             const eventName = data.target_type === 'channel' ? 'new-channel-message' : 'user-message-dm';
             const targetRoom = data.target_type === 'channel' 
                 ? roomManager.getChannelRoom(data.target_id)
                 : roomManager.getDMRoom(data.target_id);
             
+            // Broadcast temporary message immediately
             if (targetRoom) {
-                // Broadcast temporary message immediately to all clients in the room (including sender)
                 io.to(targetRoom).emit(eventName, broadcastData);
                 console.log(`✅ [SAVE-AND-SEND] Temporary message broadcasted to room ${targetRoom}`);
-                
-                // Log room statistics
-                const roomClients = io.sockets.adapter.rooms.get(targetRoom);
-                if (roomClients) {
-                    console.log(`👥 [SAVE-AND-SEND] Temporary message delivered to ${roomClients.size} clients in room ${targetRoom}`);
-                }
             } else {
-                console.warn(`⚠️ [SAVE-AND-SEND] No target room found, broadcasting to all clients`);
                 io.emit(eventName, broadcastData);
+                console.log(`⚠️ [SAVE-AND-SEND] No room found, broadcasted to all clients`);
             }
             
-            // Send immediate success response to sender with temporary ID
-            client.emit('message-sent', {
-                success: true,
-                message_id: tempMessageId,
-                temp_message_id: tempMessageId,
-                timestamp: currentTimestamp,
-                is_temporary: true
-            });
+            // Now save to database via direct HTTP call to PHP
+            console.log(`💾 [SAVE-AND-SEND] Saving message to database via HTTP call...`);
             
-            // Now save to database asynchronously and update with real ID
-            setTimeout(async () => {
-                try {
-                    console.log(`💾 [SAVE-AND-SEND] Saving message to database asynchronously...`);
-                    
-                    // Since we can't easily access PHP database from Node.js, 
-                    // we'll emit an event to let the frontend handle database saving
-                    client.emit('save-to-database', {
-                        temp_message_id: tempMessageId,
+            try {
+                const response = await fetch('http://localhost:1001/api/chat/save-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cookie': `PHPSESSID=${client.data.session_id || ''}`, // Pass session for auth
+                        'User-Agent': 'SocketServer/1.0'
+                    },
+                    body: JSON.stringify({
                         content: data.content,
                         target_type: data.target_type,
                         target_id: data.target_id,
@@ -390,26 +376,70 @@ class MessageHandler {
                         attachments: data.attachments || [],
                         mentions: data.mentions || [],
                         reply_message_id: data.reply_message_id
-                    });
-                    
-                    console.log(`✅ [SAVE-AND-SEND] Database save request emitted to client`);
-                    
-                } catch (error) {
-                    console.error(`❌ [SAVE-AND-SEND] Error in database save:`, error);
-                    // If database save fails, we can still keep the temporary message
-                    // or emit an error to update the UI
-                    client.emit('database-save-error', {
-                        temp_message_id: tempMessageId,
-                        error: error.message || 'Failed to save to database'
-                    });
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-            }, 100); // Small delay to ensure immediate UI update happens first
+                
+                const saveResult = await response.json();
+                console.log(`✅ [SAVE-AND-SEND] Message saved to database:`, saveResult);
+                
+                if (saveResult.success) {
+                    // Broadcast the permanent ID update using underscores
+                    const updateData = {
+                        temp_message_id: temp_message_id,
+                        real_message_id: saveResult.message_id,
+                        message_data: saveResult,
+                        timestamp: Date.now()
+                    };
+                    
+                    if (targetRoom) {
+                        io.to(targetRoom).emit('message_id_updated', updateData);
+                    } else {
+                        io.emit('message_id_updated', updateData);
+                    }
+                    
+                    console.log(`✅ [SAVE-AND-SEND] Message ID update broadcasted: ${temp_message_id} → ${saveResult.message_id}`);
+                    
+                    // Send success response to sender
+                    client.emit('message_sent', {
+                        success: true,
+                        message_id: saveResult.message_id,
+                        temp_message_id: temp_message_id,
+                        timestamp: currentTimestamp
+                    });
+                } else {
+                    throw new Error(saveResult.message || 'Database save failed');
+                }
+                
+            } catch (error) {
+                console.error(`❌ [SAVE-AND-SEND] Database save failed:`, error);
+                
+                // Mark temporary message as failed
+                const errorData = {
+                    temp_message_id: temp_message_id,
+                    error: error.message || 'Failed to save to database'
+                };
+                
+                if (targetRoom) {
+                    io.to(targetRoom).emit('message_save_failed', errorData);
+                } else {
+                    io.emit('message_save_failed', errorData);
+                }
+                
+                client.emit('message_error', {
+                    error: error.message || 'Failed to save message',
+                    temp_message_id: temp_message_id,
+                    timestamp: Date.now()
+                });
+            }
             
         } catch (error) {
             console.error(`❌ [SAVE-AND-SEND] Error in save and send:`, error);
             
-            // Send error response to sender
-            client.emit('message-error', {
+            client.emit('message_error', {
                 error: error.message || 'Failed to send message',
                 timestamp: Date.now()
             });
@@ -446,12 +476,12 @@ class MessageHandler {
             };
             
             console.log(`📡 [DATABASE-SAVED] Broadcasting message ID update to room: ${targetRoom}`);
-            io.to(targetRoom).emit('message-id-updated', updateData);
+            io.to(targetRoom).emit('message_id_updated', updateData);
             
             console.log(`✅ [DATABASE-SAVED] Message ID update broadcasted successfully`);
         } else {
             console.warn(`⚠️ [DATABASE-SAVED] No target room found, broadcasting to all clients`);
-            io.emit('message-id-updated', {
+            io.emit('message_id_updated', {
                 temp_message_id: data.temp_message_id,
                 real_message_id: data.real_message_id,
                 message_data: messageData,

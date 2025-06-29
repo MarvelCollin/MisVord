@@ -55,7 +55,7 @@ class SendReceiveHandler {
             // Send stop typing event
             this.sendStopTypingEvent();
 
-            // Prepare WebSocket message data
+            // Prepare WebSocket message data with underscores
             const messageData = {
                 content: content,
                 target_type: this.chatSection.chatType === 'direct' ? 'dm' : this.chatSection.chatType,
@@ -66,19 +66,16 @@ class SendReceiveHandler {
                 reply_message_id: options.reply_message_id
             };
             
-            console.log('🔌 Sending message via WebSocket:', {
+            console.log('🔌 Sending message via WebSocket (pure WebSocket-only):', {
                 event: 'save-and-send-message',
                 targetType: messageData.target_type,
                 targetId: messageData.target_id
             });
 
-            // Set up listeners for the new WebSocket flow before sending
-            this.setupNewMessageFlowListeners(inputValue);
-
-            // Send message via WebSocket (this will show immediately and emit save-to-database)
+            // Send message via WebSocket - this handles everything (display + database)
             window.globalSocketManager.io.emit('save-and-send-message', messageData);
             
-            console.log('✅ Message sent via WebSocket');
+            console.log('✅ Message sent via WebSocket-only flow');
             
         } catch (error) {
             console.error('❌ Error sending message via WebSocket:', error);
@@ -92,189 +89,7 @@ class SendReceiveHandler {
         }
     }
 
-    setupNewMessageFlowListeners(originalInputValue) {
-        // Listen for database save request from socket server
-        const onSaveToDatabase = async (data) => {
-            console.log('💾 Database save request received:', data);
-            
-            try {
-                // Make AJAX call to save to database
-                const response = await this.saveMessageToDatabase(data);
-                
-                if (response.success) {
-                    console.log('✅ Message saved to database:', response.data);
-                    
-                    // Emit update with real message ID to replace temporary message
-                    window.globalSocketManager.io.emit('message-database-saved', {
-                        temp_message_id: data.temp_message_id,
-                        real_message_id: response.data.message_id,
-                        message_data: response.data
-                    });
-                    
-                    // Update the temporary message in UI with permanent ID
-                    this.updateTemporaryMessage(data.temp_message_id, response.data);
-                    
-                } else {
-                    console.error('❌ Failed to save message to database:', response.message);
-                    this.handleDatabaseSaveError(data.temp_message_id, response.message);
-                }
-                
-            } catch (error) {
-                console.error('❌ Error saving message to database:', error);
-                this.handleDatabaseSaveError(data.temp_message_id, error.message);
-            }
-            
-            // Remove this listener after handling
-            window.globalSocketManager.io.off('save-to-database', onSaveToDatabase);
-        };
-        
-        // Listen for database save errors from socket server
-        const onDatabaseSaveError = (data) => {
-            console.error('❌ Database save error received:', data);
-            this.handleDatabaseSaveError(data.temp_message_id, data.error);
-            
-            // Remove this listener
-            window.globalSocketManager.io.off('database-save-error', onDatabaseSaveError);
-        };
-        
-        // Listen for message sent confirmation (temporary message shown)
-        const onMessageSent = (data) => {
-            console.log('✅ Message sent confirmation received:', data);
-            // No need to do anything here since message is already shown
-            
-            // Remove this listener
-            window.globalSocketManager.io.off('message-sent', onMessageSent);
-        };
-        
-        // Listen for message sending errors
-        const onMessageError = (data) => {
-            console.error('❌ Message sending error received:', data);
-            
-            // Restore input value
-            this.chatSection.messageInput.value = originalInputValue;
-            this.chatSection.updateSendButton();
-            
-            // Show error notification
-            this.chatSection.showNotification(data.error || 'Failed to send message. Please try again.', 'error');
-            
-            // Remove this listener
-            window.globalSocketManager.io.off('message-error', onMessageError);
-        };
-        
-        // Attach listeners
-        window.globalSocketManager.io.on('save-to-database', onSaveToDatabase);
-        window.globalSocketManager.io.on('database-save-error', onDatabaseSaveError);
-        window.globalSocketManager.io.on('message-sent', onMessageSent);
-        window.globalSocketManager.io.on('message-error', onMessageError);
-        
-        // Set up timeout to remove listeners if no response received
-        setTimeout(() => {
-            window.globalSocketManager.io.off('save-to-database', onSaveToDatabase);
-            window.globalSocketManager.io.off('database-save-error', onDatabaseSaveError);
-            window.globalSocketManager.io.off('message-sent', onMessageSent);
-            window.globalSocketManager.io.off('message-error', onMessageError);
-        }, 30000); // 30 second timeout
-    }
 
-    async saveMessageToDatabase(messageData) {
-        try {
-            if (!window.ChatAPI) {
-                throw new Error('ChatAPI not initialized');
-            }
-            
-            console.log('💾 Saving message to database via AJAX:', messageData);
-            
-            // Use the existing ChatAPI to save the message
-            const response = await fetch('/api/chat/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    content: messageData.content,
-                    target_type: messageData.target_type,
-                    target_id: messageData.target_id,
-                    message_type: messageData.message_type,
-                    attachments: messageData.attachments,
-                    mentions: messageData.mentions,
-                    reply_message_id: messageData.reply_message_id
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const result = await response.json();
-            console.log('💾 Database save response:', result);
-            
-            return result;
-            
-        } catch (error) {
-            console.error('❌ Error in saveMessageToDatabase:', error);
-            throw error;
-        }
-    }
-
-    updateTemporaryMessage(tempMessageId, messageData) {
-        try {
-            const tempElement = document.querySelector(`[data-message-id="${tempMessageId}"]`);
-            if (tempElement && messageData.message_id) {
-                console.log(`🔄 Updating temporary message ${tempMessageId} to permanent ID ${messageData.message_id}`);
-                
-                // Update the message ID to the real server ID
-                tempElement.dataset.messageId = messageData.message_id;
-                
-                // Remove temporary styling
-                tempElement.classList.remove('temporary-message');
-                tempElement.style.opacity = '1';
-                
-                // Update processed IDs if handler exists
-                if (this.chatSection.messageHandler) {
-                    this.chatSection.messageHandler.processedMessageIds.delete(tempMessageId);
-                    this.chatSection.messageHandler.processedMessageIds.add(messageData.message_id);
-                }
-                
-                console.log(`✅ Updated temporary message ${tempMessageId} to permanent ID ${messageData.message_id}`);
-            } else {
-                console.warn(`⚠️ Could not find temporary message element for ID: ${tempMessageId}`);
-            }
-        } catch (error) {
-            console.error('❌ Error updating temporary message:', error);
-        }
-    }
-
-    handleDatabaseSaveError(tempMessageId, errorMessage) {
-        try {
-            console.error(`❌ Database save failed for message ${tempMessageId}:`, errorMessage);
-            
-            // Find the temporary message element
-            const tempElement = document.querySelector(`[data-message-id="${tempMessageId}"]`);
-            if (tempElement) {
-                // Add error styling
-                tempElement.classList.add('message-error');
-                tempElement.style.opacity = '0.5';
-                tempElement.style.borderLeft = '3px solid #ed4245';
-                
-                // Add retry button or error indicator
-                const errorIndicator = document.createElement('span');
-                errorIndicator.className = 'error-indicator text-red-500 text-xs ml-2';
-                errorIndicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed to save';
-                errorIndicator.title = errorMessage;
-                
-                const messageText = tempElement.querySelector('.message-main-text');
-                if (messageText && !messageText.querySelector('.error-indicator')) {
-                    messageText.appendChild(errorIndicator);
-                }
-            }
-            
-            // Show notification
-            this.chatSection.showNotification('Message failed to save to database: ' + errorMessage, 'error');
-            
-        } catch (error) {
-            console.error('❌ Error handling database save error:', error);
-        }
-    }
 
     sendStopTypingEvent() {
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {

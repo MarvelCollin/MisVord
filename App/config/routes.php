@@ -710,6 +710,11 @@ Route::post('/api/debug/server-profile/([0-9]+)', function($serverId) {
     exit;
 });
 
+Route::get('/api/servers/([0-9]+)/profile', function($serverId) {
+    $controller = new ServerController();
+    $controller->getPerServerProfile($serverId);
+});
+
 Route::post('/api/servers/([0-9]+)/profile', function($serverId) {
     $controller = new ServerController();
     $controller->updatePerServerProfile($serverId);
@@ -1377,6 +1382,8 @@ Route::get('/api/test-message-flow', function() {
 Route::post('/api/test-message-flow', function() {
     require_once __DIR__ . '/../public/api/test-message-flow.php';
 });
+
+
 
 Route::get('/api/debug/socket-status', function() {
     header('Content-Type: application/json');

@@ -50,8 +50,14 @@ class SocketHandler {
         io.on('message-pinned', this.handleMessagePinned.bind(this));
         io.on('message-unpinned', this.handleMessageUnpinned.bind(this));
         
-        // Message ID update handler (for converting temporary IDs to permanent)
-        io.on('message-id-updated', this.handleMessageIdUpdated.bind(this));
+        // Message ID update handler (for converting temporary IDs to permanent) - using underscores
+        io.on('message_id_updated', this.handleMessageIdUpdated.bind(this));
+        
+        // Message save failure handler - using underscores  
+        io.on('message_save_failed', this.handleMessageSaveFailed.bind(this));
+        
+        // Message error handler - using underscores
+        io.on('message_error', this.handleMessageError.bind(this));
         
         // Typing indicators
         io.on('typing', this.handleTyping.bind(this));
@@ -321,6 +327,62 @@ class SocketHandler {
             }
         } catch (error) {
             console.error('❌ Error handling message ID update:', error);
+        }
+    }
+    
+    handleMessageSaveFailed(data) {
+        try {
+            if (!data || !data.temp_message_id) {
+                console.warn('⚠️ Invalid message save failed data received');
+                return;
+            }
+            
+            console.error('❌ Message save failed:', data);
+            
+            // Find the temporary message element
+            const tempElement = document.querySelector(`[data-message-id="${data.temp_message_id}"]`);
+            if (tempElement) {
+                // Add error styling
+                tempElement.classList.add('message-error');
+                tempElement.style.opacity = '0.5';
+                tempElement.style.borderLeft = '3px solid #ed4245';
+                
+                // Add error indicator
+                const errorIndicator = document.createElement('span');
+                errorIndicator.className = 'error-indicator text-red-500 text-xs ml-2';
+                errorIndicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed to save';
+                errorIndicator.title = data.error || 'Message failed to save';
+                
+                const messageText = tempElement.querySelector('.message-main-text');
+                if (messageText && !messageText.querySelector('.error-indicator')) {
+                    messageText.appendChild(errorIndicator);
+                }
+            }
+            
+            // Show notification
+            if (this.chatSection && this.chatSection.showNotification) {
+                this.chatSection.showNotification('Message failed to save: ' + (data.error || 'Unknown error'), 'error');
+            }
+        } catch (error) {
+            console.error('❌ Error handling message save failure:', error);
+        }
+    }
+    
+    handleMessageError(data) {
+        try {
+            console.error('❌ Message error received:', data);
+            
+            // Show notification
+            if (this.chatSection && this.chatSection.showNotification) {
+                this.chatSection.showNotification(data.error || 'Message error occurred', 'error');
+            }
+            
+            // If there's a temp_message_id, mark that message as failed
+            if (data.temp_message_id) {
+                this.handleMessageSaveFailed(data);
+            }
+        } catch (error) {
+            console.error('❌ Error handling message error:', error);
         }
     }
     

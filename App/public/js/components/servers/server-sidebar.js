@@ -20,50 +20,92 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeHomeIconEasterEgg();
     
     document.addEventListener('click', async function(e) {
-        console.log('[Server Sidebar] Click detected on:', e.target);
+        console.log('[Click Handler] Click event detected');
+        console.log('[Click Handler] Target element:', {
+            tagName: e.target.tagName,
+            className: e.target.className,
+            id: e.target.id,
+            href: e.target.href,
+            dataset: e.target.dataset
+        });
+        console.log('[Click Handler] Currently handling click:', isHandlingClick);
         
         const homeLink = e.target.closest('a[href="/home"]') || 
                         e.target.closest('a[href="/"]') ||
                         e.target.closest('.server-icon:first-child a');
         if (homeLink && !isHandlingClick) {
-            console.log('[Server Sidebar] Home link clicked:', homeLink.getAttribute('href'));
-            console.log('[Server Sidebar] Home link element:', homeLink);
-            console.log('[Server Sidebar] Home link parent:', homeLink.parentElement);
+            console.log('[Click Handler] HOME NAVIGATION DETECTED');
+            console.log('[Click Handler] Home link found:', {
+                href: homeLink.getAttribute('href'),
+                element: homeLink.tagName,
+                parentClass: homeLink.parentElement?.className
+            });
             e.preventDefault();
             
+            console.log('[Click Handler] Executing easter egg logic');
             handleEasterEggLogic();
             
             isHandlingClick = true;
+            console.log('[Click Handler] Starting home navigation');
             try {
                 await handleHomeClick(e);
+                console.log('[Click Handler] Home navigation completed successfully');
             } catch (error) {
-                console.error('Error handling home click:', error);
+                console.error('[Click Handler] ERROR in home navigation:', error);
+                console.error('[Click Handler] Fallback to location.href');
                 window.location.href = homeLink.getAttribute('href') || '/home';
             } finally {
                 isHandlingClick = false;
+                console.log('[Click Handler] Home click handling finished');
             }
             return;
         }
 
         const serverLink = e.target.closest('.server-icon a[href^="/server/"]');
         if (serverLink && !isHandlingClick) {
-            console.log('[Server Sidebar] Server link clicked:', serverLink.getAttribute('href'));
-            e.preventDefault(); 
+            console.log('[Click Handler] SERVER NAVIGATION DETECTED');
+            console.log('[Click Handler] Server link found:', {
+                href: serverLink.getAttribute('href'),
+                serverId: serverLink.getAttribute('data-server-id'),
+                element: serverLink.tagName,
+                parentClass: serverLink.parentElement?.className
+            });
+            e.preventDefault();
+            
             const serverId = serverLink.getAttribute('data-server-id');
             if (serverId) {
                 isHandlingClick = true;
-                console.log('[Server Sidebar] Handling server click for ID:', serverId);
+                console.log('[Click Handler] Starting server navigation for ID:', serverId);
                 try {
                     await handleServerClick(serverId, e);
+                    console.log('[Click Handler] Server navigation completed successfully');
                 } catch (error) {
-                    console.error('Error handling server click:', error);
+                    console.error('[Click Handler] ERROR in server navigation:', error);
+                    console.error('[Click Handler] Server ID was:', serverId);
+                    console.error('[Click Handler] Error details:', {
+                        message: error.message,
+                        critical: error.critical,
+                        stack: error.stack
+                    });
                     if (error.critical) {
-                        window.location.href = serverLink.href;
+                        console.error('[Click Handler] Critical error - would fallback to page reload');
                     }
                 } finally {
                     isHandlingClick = false;
+                    console.log('[Click Handler] Server click handling finished');
                 }
+            } else {
+                console.error('[Click Handler] Server link found but no server ID available');
+                console.error('[Click Handler] Server link attributes:', {
+                    href: serverLink.href,
+                    dataset: serverLink.dataset,
+                    attributes: Array.from(serverLink.attributes).map(attr => ({ name: attr.name, value: attr.value }))
+                });
             }
+        } else if (serverLink) {
+            console.log('[Click Handler] Server link found but already handling click - skipping');
+        } else {
+            console.log('[Click Handler] No navigation target found - regular click');
         }
     });
     
@@ -722,46 +764,61 @@ export function updateActiveServer() {
 }
 
 export async function handleHomeClick(event) {
-    console.group('[Server Sidebar] Home Click Flow');
-    console.log('Starting handleHomeClick');
+    console.group('[Home Navigation] Home Click Flow Started');
+    console.log('[Home Navigation] Event details:', {
+        type: event ? event.type : 'no-event',
+        target: event ? event.target.tagName : 'no-target',
+        currentPath: window.location.pathname
+    });
     
     if (event) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
-        console.log('[Server Sidebar] Event prevented successfully');
+        console.log('[Home Navigation] Event prevented successfully');
     }
     
     if (window.location.pathname === '/home' || window.location.pathname === '/home/' || window.location.pathname === '/') {
-        console.log('[Server Sidebar] Already on home page, skipping navigation');
+        console.log('[Home Navigation] Already on home page, skipping navigation');
         console.groupEnd();
         return;
     }
     
+    console.log('[Home Navigation] Pre-navigation state check');
+    console.log('[Home Navigation] - Current URL:', window.location.href);
+    console.log('[Home Navigation] - Available functions:', {
+        loadHomePage: typeof window.loadHomePage,
+        globalSocketManager: typeof window.globalSocketManager,
+        voiceManager: typeof window.voiceManager
+    });
+    
     try {
         const currentChannelId = new URLSearchParams(window.location.search).get('channel');
         if (currentChannelId && window.globalSocketManager) {
-            console.log('Cleaning up socket for channel:', currentChannelId);
+            console.log('[Home Navigation] Cleaning up socket for channel:', currentChannelId);
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
-            console.log('Cleaning up voice manager');
+            console.log('[Home Navigation] Cleaning up voice manager');
             window.voiceManager.leaveVoice();
             window.voiceManager = null;
         }
 
-        console.log('Loading home page content via AJAX');
+        console.log('[Home Navigation] Starting AJAX home page load');
         if (window.loadHomePage && typeof window.loadHomePage === 'function') {
             await window.loadHomePage('friends');
+            console.log('[Home Navigation] AJAX home page load completed successfully');
         } else {
-            console.error('[Server Sidebar] loadHomePage function not available');
+            console.error('[Home Navigation] CRITICAL - loadHomePage function not available');
+            console.error('[Home Navigation] Available window functions:', Object.keys(window).filter(k => k.includes('load')));
             throw new Error('loadHomePage function not available');
         }
 
+        console.log('[Home Navigation] Updating active server state');
         updateActiveServer();
 
-        console.log('Dispatching HomePageChanged event');
+        console.log('[Home Navigation] Dispatching HomePageChanged event');
         window.dispatchEvent(new CustomEvent('HomePageChanged', { 
             detail: { 
                 pageType: 'friends',
@@ -769,9 +826,12 @@ export async function handleHomeClick(event) {
             } 
         }));
 
+        console.log('[Home Navigation] SUCCESS - Home navigation completed');
+
     } catch (error) {
-        console.error('Error in handleHomeClick:', error);
-        console.log('[Server Sidebar] CRITICAL: Using location.href as fallback (no reload)');
+        console.error('[Home Navigation] ERROR in handleHomeClick:', error);
+        console.error('[Home Navigation] Error stack:', error.stack);
+        console.log('[Home Navigation] FALLBACK - Using location.href (no reload)');
         window.location.href = '/home';
     } finally {
         console.groupEnd();
@@ -779,334 +839,74 @@ export async function handleHomeClick(event) {
 }
 
 export async function handleServerClick(serverId, event) {
-    console.group('[Server Sidebar] Server Click Flow');
-    console.log('Starting handleServerClick with:', { serverId, eventType: event?.type });
+    console.group('[Server Navigation] Server Click Flow Started');
+    console.log('[Server Navigation] Input params:', {
+        serverId: serverId,
+        eventType: event?.type,
+        eventTarget: event?.target?.tagName,
+        currentPath: window.location.pathname
+    });
     
     if (!serverId) {
-        console.error('No server ID provided');
+        console.error('[Server Navigation] CRITICAL - No server ID provided');
         console.groupEnd();
         throw new Error('No server ID provided');
     }
 
+    console.log('[Server Navigation] Pre-navigation state check');
+    console.log('[Server Navigation] - Current URL:', window.location.href);
+    console.log('[Server Navigation] - Target server ID:', serverId);
+    console.log('[Server Navigation] - Available functions:', {
+        loadServerPage: typeof window.loadServerPage,
+        globalSocketManager: typeof window.globalSocketManager,
+        voiceManager: typeof window.voiceManager
+    });
+
     try {
-        const currentPath = window.location.pathname;
-        const isOnHomePage = currentPath === '/home' || currentPath === '/home/' || currentPath === '/';
+        console.log('[Server Navigation] Using simplified server navigation approach');
         
-        if (isOnHomePage) {
-            console.log('Transitioning from home to server, loading full server page');
-            
-            if (window.loadServerPage && typeof window.loadServerPage === 'function') {
-                await window.loadServerPage(serverId);
-            } else {
-                console.error('loadServerPage function not available, using fallback');
-                window.location.href = `/server/${serverId}`;
-                return;
-            }
-            
-            updateActiveServer();
-            window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
-            return;
-        }
-        console.log('Fetching channels for server:', serverId);
-        const channelResponse = await new Promise((resolve, reject) => {
-            ajax({
-                url: `/api/servers/${serverId}/channels`,
-                method: 'GET',
-                dataType: 'json',
-                success: resolve,
-                error: (xhr, status, error) => {
-                    const err = new Error('Failed to fetch channels');
-                    err.critical = xhr.status >= 500;
-                    reject(err);
-                }
-            });
-        });
-
-        if (!channelResponse.success || !channelResponse.data) {
-            console.error('Failed to fetch channels:', channelResponse);
-            console.groupEnd();
-            const err = new Error('Failed to fetch channels');
-            err.critical = false;
-            throw err;
-        }
-
-        console.group('Channel Data');
-        console.log('Raw channel response:', channelResponse);
-        console.log('Channel count:', channelResponse.data.channels.length);
-        console.log('Categories:', channelResponse.data.categories);
-        console.log('Channels:', channelResponse.data.channels.map(ch => ({
-            id: ch.id,
-            name: ch.name,
-            type: ch.type,
-            categoryId: ch.category_id
-        })));
-        console.groupEnd();
-
-        const firstChannel = channelResponse.data.channels && channelResponse.data.channels.length > 0 
-            ? channelResponse.data.channels[0] 
-            : null;
-
-        console.log('Selected first channel:', firstChannel ? {
-            id: firstChannel.id,
-            name: firstChannel.name,
-            type: firstChannel.type,
-            categoryId: firstChannel.category_id
-        } : 'No channels available');
-
-        const newUrl = firstChannel 
-            ? `/server/${serverId}?channel=${firstChannel.id}` 
-            : `/server/${serverId}`;
-        console.log('Updating URL to:', newUrl);
-        window.history.pushState({ serverId }, '', newUrl);
-
         const currentChannelId = new URLSearchParams(window.location.search).get('channel');
         if (currentChannelId && window.globalSocketManager) {
-            console.log('Cleaning up socket for channel:', currentChannelId);
+            console.log('[Server Navigation] Cleaning up socket for channel:', currentChannelId);
             window.globalSocketManager.leaveChannel(currentChannelId);
+        } else {
+            console.log('[Server Navigation] No active channel to clean up');
         }
 
-        if (window.voiceManager) {
-            console.log('Cleaning up voice manager');
+        if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
+            console.log('[Server Navigation] Cleaning up voice manager');
             window.voiceManager.leaveVoice();
             window.voiceManager = null;
-        }
-        console.group('Channel Section Update');
-        const channelSectionData = {
-            channels: channelResponse.data.channels,
-            categories: channelResponse.data.categories,
-            activeChannelId: firstChannel ? firstChannel.id : null
-        };
-        console.log('Channel section data:', channelSectionData);
-
-        const channelHtml = await new Promise((resolve, reject) => {
-            console.log('Fetching channel section HTML');
-            ajax({
-                url: `/server/${serverId}/channel-section`,
-                method: 'POST',
-                dataType: 'text',
-                data: channelSectionData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json'
-                },
-                success: (response) => {
-                    console.log('Channel section HTML received, length:', response.length);
-                    console.log('Preview of HTML:', response.substring(0, 200));
-                    resolve(response);
-                },
-                error: (xhr, status, error) => {
-                    console.error('Channel section error:', error);
-                    const err = new Error('Failed to fetch channel section');
-                    err.critical = xhr.status >= 500;
-                    reject(err);
-                }
-            });
-        });
-
-        const channelWrapper = document.querySelector('.channel-wrapper');
-        if (channelWrapper) {
-            console.log('Found channel wrapper, updating HTML');
-            channelWrapper.innerHTML = channelHtml;
         } else {
-            console.error('Channel wrapper element not found! This suggests we need full server page load.');
-            console.log('Available elements:', {
-                'channel-section': !!document.querySelector('.channel-section'),
-                'server-content': !!document.querySelector('.server-content'),
-                'channel-wrapper': !!document.querySelector('.channel-wrapper')
-            });
-            
-            console.log('Falling back to full server page load');
-            if (window.loadServerPage && typeof window.loadServerPage === 'function') {
-                await window.loadServerPage(serverId);
-            } else {
-                window.location.href = `/server/${serverId}`;
-            }
-            return;
+            console.log('[Server Navigation] No voice manager to clean up');
         }
-        console.groupEnd();
-
-        if (firstChannel) {
-            console.group('Section Update');
-            const chatSection = document.querySelector('.chat-section');
-            const voiceSection = document.querySelector('.voice-section');
-            
-            if (chatSection) chatSection.classList.add('hidden');
-            if (voiceSection) voiceSection.classList.add('hidden');
-            
-            if (firstChannel.type === 'text') {
-                console.log('Updating chat section for channel:', firstChannel.id);
-                if (chatSection) {
-                    chatSection.classList.remove('hidden');
-                    try {
-                        const response = await new Promise((resolve, reject) => {
-                            ajax({
-                                url: `/api/chat/channel/${firstChannel.id}`,
-                                method: 'GET',
-                                dataType: 'json',
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                },
-                                success: resolve,
-                                error: (xhr, status, error) => {
-                                    const err = new Error('Failed to fetch chat data');
-                                    err.critical = xhr.status >= 500;
-                                    reject(err);
-                                }
-                            });
-                        });
-                        
-                        const messagesContainer = chatSection.querySelector('.messages-container');
-                        if (!messagesContainer) {
-                            const err = new Error('Messages container not found');
-                            err.critical = false;
-                            throw err;
-                        }
-                        
-                        messagesContainer.innerHTML = '';
-                        
-                        if (response.data?.data?.messages?.length > 0) {
-                            const messages = response.data.data.messages;
-                            const messageGroups = groupMessagesByUser(messages);
-                            
-                            messageGroups.forEach(group => {
-                                const messageGroup = document.createElement('div');
-                                messageGroup.className = 'message-group';
-                                messageGroup.dataset.userId = group.userId;
-                                
-                                messageGroup.innerHTML = `
-                                    <div class="message-avatar">
-                                        <img src="${group.avatarUrl || '/public/assets/common/default-profile-picture.png'}" 
-                                             alt="${group.username}'s avatar" 
-                                             onerror="this.src='/public/assets/common/default-profile-picture.png'">
-                                    </div>
-                                    <div class="message-content-wrapper">
-                                        <div class="message-header">
-                                            <span class="message-username">${group.username}</span>
-                                            <span class="message-timestamp">${formatTimestamp(group.messages[0].sent_at)}</span>
-                                        </div>
-                                        <div class="message-contents">
-                                            ${group.messages.map(message => `
-                                                <div class="message-content relative" data-message-id="${message.id}" data-user-id="${message.user_id}">
-                                                    ${message.reply_message_id && message.reply_data ? `
-                                                        <div class="reply-container">
-                                                            <div class="reply-line"></div>
-                                                            <div class="reply-content">
-                                                                <span class="reply-username">${message.reply_data.username}</span>
-                                                                <span class="reply-message-text">${message.reply_data.content ? 
-                                                                    message.reply_data.content.substring(0, 60) + (message.reply_data.content.length > 60 ? '...' : '') : 
-                                                                    '<span class="italic">Original message not found</span>'
-                                                                }</span>
-                                                            </div>
-                                                        </div>
-                                                    ` : ''}
-                                                    <div class="message-main-text text-[#dcddde]">
-                                                        ${formatMessageContent(message.content)}
-                                                        ${message.edited_at ? '<span class="edited-badge text-xs text-[#a3a6aa] ml-1">(edited)</span>' : ''}
-                                                    </div>
-                                                    ${message.attachments?.length > 0 ? `
-                                                        <div class="message-attachments">
-                                                            ${message.attachments.map(attachment => `
-                                                                <div class="message-attachment">
-                                                                    <a href="${attachment}" target="_blank" class="attachment-link">
-                                                                        <i class="fas fa-paperclip"></i> ${attachment.split('/').pop()}
-                                                                    </a>
-                                                                </div>
-                                                            `).join('')}
-                                                        </div>
-                                                    ` : ''}
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    </div>
-                                `;
-                                
-                                messagesContainer.appendChild(messageGroup);
-                            });
-                        } else {
-                            messagesContainer.innerHTML = `
-                                <div class="flex flex-col items-center justify-center h-full text-[#dcddde]">
-                                    <i class="fas fa-comments text-6xl mb-4 text-[#4f545c]"></i>
-                                    <p class="text-lg">No messages yet</p>
-                                    <p class="text-sm text-[#a3a6aa]">Be the first to send a message!</p>
-                                </div>
-                            `;
-                        }
-                    } catch (error) {
-                        console.error('Error updating chat section:', error);
-                    }
-                }
-            } else if (firstChannel.type === 'voice') {
-                console.log('Updating voice section for channel:', firstChannel.id);
-                if (voiceSection) {
-                    voiceSection.classList.remove('hidden');
-                    try {
-                        playCallSound();
-                        
-                        if (!window.voiceManager) {
-                            window.voiceManager = new VoiceManager();
-                        }
-                        window.voiceManager.setupVoice(firstChannel.id);
-                        const channelIdMeta = document.querySelector('meta[name="channel-id"]');
-                        if (channelIdMeta) {
-                            channelIdMeta.content = firstChannel.id;
-                        } else {
-                            const meta = document.createElement('meta');
-                            meta.name = 'channel-id';
-                            meta.content = firstChannel.id;
-                            document.head.appendChild(meta);
-                        }
-                        
-                        const meetingIdMeta = document.querySelector('meta[name="meeting-id"]');
-                        if (meetingIdMeta) {
-                            meetingIdMeta.content = `voice_channel_${firstChannel.id}`;
-                        } else {
-                            const meta = document.createElement('meta');
-                            meta.name = 'meeting-id';
-                            meta.content = `voice_channel_${firstChannel.id}`;
-                            document.head.appendChild(meta);
-                        }
-                    } catch (error) {
-                        console.error('Error updating voice section:', error);
-                    }
-                }
-            }
-            console.groupEnd();
+        
+        console.log('[Server Navigation] Starting AJAX server page load');
+        if (window.loadServerPage && typeof window.loadServerPage === 'function') {
+            console.log('[Server Navigation] Calling loadServerPage with serverId:', serverId);
+            await window.loadServerPage(serverId);
+            console.log('[Server Navigation] AJAX server page load completed successfully');
+        } else {
+            console.error('[Server Navigation] CRITICAL - loadServerPage function not available');
+            console.error('[Server Navigation] Available window functions:', Object.keys(window).filter(k => k.includes('load')));
+            console.error('[Server Navigation] Window.loadServerPage type:', typeof window.loadServerPage);
+            throw new Error('loadServerPage function not available');
         }
-
-        console.log('Updating active server state');
-    updateActiveServer();
-        console.group('Channel Handlers');
-        const channelItems = document.querySelectorAll('.channel-item');
-        console.log('Found channel items:', {
-            count: channelItems.length,
-            items: Array.from(channelItems).map(item => ({
-                id: item.dataset.channelId,
-                type: item.dataset.channelType,
-                name: item.textContent.trim()
-            }))
-        });
-
-        if (firstChannel) {
-            console.log('Looking for first channel element:', firstChannel.id);
-            const channelElement = document.querySelector(`.channel-item[data-channel-id="${firstChannel.id}"]`);
-            if (channelElement) {
-                console.log('Found first channel element:', {
-                    id: channelElement.dataset.channelId,
-                    type: channelElement.dataset.channelType,
-                    name: channelElement.textContent.trim()
-                });
-            } else {
-                console.error('Channel element not found for ID:', firstChannel.id);
-            }
-        }
-        console.groupEnd();
-        console.log('Dispatching ServerChanged event');
+        
+        console.log('[Server Navigation] Updating active server state');
+        updateActiveServer();
+        
+        console.log('[Server Navigation] Dispatching ServerChanged event');
         window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
 
+        console.log('[Server Navigation] SUCCESS - Server navigation completed');
+
     } catch (error) {
-        console.error('Error in handleServerClick:', error);
-        console.trace();
-        throw error;
+        console.error('[Server Navigation] ERROR in handleServerClick:', error);
+        console.error('[Server Navigation] Error stack:', error.stack);
+        console.error('[Server Navigation] Server ID was:', serverId);
+        console.error('[Server Navigation] Event was:', event);
+        console.log('[Server Navigation] ERROR: Cannot load server, no fallback allowed per user request');
     } finally {
         console.groupEnd();
     }

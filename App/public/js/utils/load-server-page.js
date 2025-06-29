@@ -30,7 +30,16 @@ export function loadServerPage(serverId, channelId = null) {
             url += `?channel=${channelId}`;
         }
 
-        console.log('[Server Loader] Fetching server layout from:', url);
+        console.log('[Server AJAX] Starting request to:', url);
+        console.log('[Server AJAX] Request params:', {
+            serverId: serverId,
+            channelId: channelId,
+            method: 'GET',
+            dataType: 'text'
+        });
+        console.log('[Server AJAX] Request headers:', {
+            'X-Requested-With': 'XMLHttpRequest'
+        });
 
         window.ajax({
             url: url,
@@ -40,20 +49,31 @@ export function loadServerPage(serverId, channelId = null) {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             success: function(response) {
-                console.log('[Server Loader] Received response, length:', response.length);
+                console.log('[Server AJAX] SUCCESS - Response received');
+                console.log('[Server AJAX] Response type:', typeof response);
+                console.log('[Server AJAX] Response length:', response ? response.length : 'null');
+                console.log('[Server AJAX] Response preview:', response ? response.substring(0, 150) + '...' : 'empty');
+                
                 if (typeof response === 'string') {
+                    console.log('[Server AJAX] Processing string response');
                     updateServerLayout(response, serverId, channelId);
+                    
+                    console.log('[Server AJAX] Validating server layout');
+                    validateServerLayoutRendering(serverId, channelId);
                     
                     if (typeof window.handleSkeletonLoading === 'function') {
                         window.handleSkeletonLoading(false);
+                        console.log('[Server AJAX] Skeleton loading disabled');
                     }
                     
                     if (typeof window.initServerPage === 'function') {
                         window.initServerPage();
+                        console.log('[Server AJAX] Server page initialized');
                     }
                     
                     if (typeof window.initializeChannelClickHandlers === 'function') {
                         window.initializeChannelClickHandlers();
+                        console.log('[Server AJAX] Channel click handlers initialized');
                     }
                     
                     const event = new CustomEvent('ServerChanged', { 
@@ -64,19 +84,31 @@ export function loadServerPage(serverId, channelId = null) {
                         } 
                     });
                     document.dispatchEvent(event);
+                    console.log('[Server AJAX] ServerChanged event dispatched');
                     
                 } else if (response && response.data && response.data.redirect) {
+                    console.log('[Server AJAX] Redirect response:', response.data.redirect);
                     window.location.href = response.data.redirect;
                 } else {
-                    console.error('[Server Loader] Invalid response format');
+                    console.error('[Server AJAX] INVALID RESPONSE FORMAT');
+                    console.error('[Server AJAX] Expected string, got:', typeof response);
+                    console.error('[Server AJAX] Response content:', response);
                     window.location.href = `/server/${serverId}`;
                 }
             },
-            error: function(error) {
-                console.error('[Server Loader] Error loading server page:', error);
+            error: function(xhr, status, error) {
+                console.error('[Server AJAX] ERROR - Request failed');
+                console.error('[Server AJAX] XHR status:', xhr ? xhr.status : 'unknown');
+                console.error('[Server AJAX] XHR statusText:', xhr ? xhr.statusText : 'unknown');
+                console.error('[Server AJAX] Error status:', status);
+                console.error('[Server AJAX] Error message:', error);
+                console.error('[Server AJAX] XHR responseText:', xhr ? xhr.responseText : 'none');
+                console.error('[Server AJAX] Target URL was:', url);
+                
                 if (typeof window.handleSkeletonLoading === 'function') {
                     window.handleSkeletonLoading(false);
                 }
+                console.error('[Server AJAX] FALLBACK - Redirecting to /server/' + serverId);
                 window.location.href = `/server/${serverId}`;
             }
         });
@@ -103,17 +135,50 @@ function showPageLoading(container) {
 
 
 function updateServerLayout(html, serverId, channelId) {
-    console.log('[Server Loader] Starting server layout update');
+    console.log('[Server Layout] Starting server layout replacement');
+    console.log('[Server Layout] Input params:', { serverId, channelId });
+    console.log('[Server Layout] Input HTML length:', html.length);
+    console.log('[Server Layout] HTML preview:', html.substring(0, 200) + '...');
+    
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
+    console.log('[Server Layout] DOM parsed successfully');
+    
     const newLayout = doc.querySelector('.flex.flex-1.overflow-hidden');
+    console.log('[Server Layout] New layout element found:', !!newLayout);
     
     if (newLayout) {
+        console.log('[Server Layout] New layout innerHTML length:', newLayout.innerHTML.length);
+        
         const currentLayout = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+        console.log('[Server Layout] Current layout container found:', !!currentLayout);
+        
         if (currentLayout) {
-            console.log('[Server Loader] Replacing entire server layout structure');
+            console.log('[Server Layout] Before replacement - current layout children:', currentLayout.children.length);
+            
+            console.log('[Server Layout] Showing server channel section');
             showServerChannelSection();
+            
+            console.log('[Server Layout] Replacing layout innerHTML');
             currentLayout.innerHTML = newLayout.innerHTML;
+            
+            console.log('[Server Layout] After replacement - new layout children:', currentLayout.children.length);
+            console.log('[Server Layout] New layout structure:', {
+                directChildren: Array.from(currentLayout.children).map(child => ({
+                    tagName: child.tagName,
+                    className: child.className,
+                    id: child.id
+                }))
+            });
+            
+            console.log('[Server Layout] Checking for server-specific elements:', {
+                'channel-wrapper': !!document.querySelector('.channel-wrapper'),
+                'chat-section': !!document.querySelector('.chat-section'),
+                'voice-section': !!document.querySelector('.voice-section'),
+                'channel-items': document.querySelectorAll('.channel-item').length
+            });
+            
+            console.log('[Server Layout] Executing inline scripts');
             executeInlineScripts(doc);
             
             let url = `/server/${serverId}`;
@@ -121,23 +186,30 @@ function updateServerLayout(html, serverId, channelId) {
                 url += `?channel=${channelId}`;
             }
             
+            console.log('[Server Layout] Updating browser history to:', url);
             history.pushState(
                 { pageType: 'server', serverId, channelId }, 
                 `misvord - Server`, 
                 url
             );
-            console.log('[Server Loader] Server layout update completed successfully');
+            console.log('[Server Layout] SUCCESS - Server layout replacement completed');
         } else {
-            console.error('[Server Loader] Could not find layout container to update');
-            console.log('[Server Loader] Available containers:', {
+            console.error('[Server Layout] FAILED - Layout container not found');
+            console.error('[Server Layout] Available containers:', {
                 'app-container': !!document.querySelector('#app-container'),
                 'flex.flex-1': !!document.querySelector('.flex.flex-1'),
-                'overflow-hidden': !!document.querySelector('.overflow-hidden')
+                'overflow-hidden': !!document.querySelector('.overflow-hidden'),
+                'all-flex-elements': document.querySelectorAll('.flex').length
             });
         }
     } else {
-        console.error('[Server Loader] Could not find new layout in response');
-        console.log('[Server Loader] Response preview:', html.substring(0, 200));
+        console.error('[Server Layout] FAILED - New layout element not found in response');
+        console.error('[Server Layout] Available elements in response:', {
+            'flex-elements': doc.querySelectorAll('.flex').length,
+            'overflow-elements': doc.querySelectorAll('.overflow-hidden').length,
+            'body-children': doc.body ? doc.body.children.length : 0
+        });
+        console.error('[Server Layout] Response HTML structure preview:', html.substring(0, 500));
     }
 }
 
@@ -163,14 +235,69 @@ function showServerChannelSection() {
     }
 }
 
+function validateServerLayoutRendering(serverId, channelId) {
+    console.log('[Server Validation] Starting server layout validation');
+    console.log('[Server Validation] Target server:', serverId, 'channel:', channelId);
+    
+    const validationChecks = {
+        'app-container': !!document.querySelector('#app-container'),
+        'main-content-layout': !!document.querySelector('.flex.flex-1.overflow-hidden'),
+        'server-channels-sidebar': !!document.querySelector('.w-60.bg-discord-dark'),
+        'channel-wrapper': !!document.querySelector('.channel-wrapper'),
+        'chat-section': !!document.querySelector('.chat-section'),
+        'voice-section': !!document.querySelector('.voice-section'),
+        'participant-section': !!document.querySelector('.w-60.bg-discord-background') || !!document.querySelector('[class*="participant"]'),
+        'main-content-area': !!document.querySelector('.main-content-area'),
+        'server-layout-structure': !!document.querySelector('#main-content')
+    };
+    
+    console.log('[Server Validation] Layout validation results:', validationChecks);
+    
+    const failedChecks = Object.keys(validationChecks).filter(key => !validationChecks[key]);
+    if (failedChecks.length > 0) {
+        console.error('[Server Validation] FAILED VALIDATION - Missing elements:', failedChecks);
+        console.error('[Server Validation] Available containers:');
+        console.error('[Server Validation] - app-container:', document.querySelector('#app-container'));
+        console.error('[Server Validation] - flex containers:', document.querySelectorAll('.flex').length);
+        console.error('[Server Validation] - w-60 containers:', document.querySelectorAll('.w-60').length);
+        console.error('[Server Validation] - channel items:', document.querySelectorAll('.channel-item').length);
+    } else {
+        console.log('[Server Validation] SUCCESS - All server layout elements rendered correctly');
+    }
+    
+    const serverIndicators = {
+        'url-is-server': window.location.pathname.includes('/server/'),
+        'correct-server-id': window.location.pathname.includes(`/server/${serverId}`),
+        'active-server-icon': !!document.querySelector(`.server-icon.active[data-server-id="${serverId}"]`),
+        'server-channels-visible': !!document.querySelector('.channel-wrapper') && document.querySelector('.channel-wrapper').style.display !== 'none',
+        'no-home-elements': !document.querySelector('.tab-content') || document.querySelector('.tab-content').style.display === 'none'
+    };
+    
+    console.log('[Server Validation] Server state indicators:', serverIndicators);
+    
+    const channelItems = document.querySelectorAll('.channel-item');
+    console.log('[Server Validation] Found', channelItems.length, 'channel items');
+    if (channelItems.length > 0) {
+        console.log('[Server Validation] Channel items:', Array.from(channelItems).map(item => ({
+            id: item.dataset.channelId,
+            name: item.textContent.trim(),
+            type: item.dataset.channelType
+        })));
+    }
+    
+    return failedChecks.length === 0;
+}
+
 function executeInlineScripts(doc) {
     const scripts = doc.querySelectorAll('script:not([src])');
-    scripts.forEach(script => {
+    console.log('[Server Scripts] Found', scripts.length, 'inline scripts to execute');
+    scripts.forEach((script, index) => {
         if (script.textContent.trim()) {
             try {
+                console.log('[Server Scripts] Executing script', index + 1);
                 eval(script.textContent);
             } catch (error) {
-                console.error('Script execution error:', error);
+                console.error('[Server Scripts] Script execution error for script', index + 1, ':', error);
             }
         }
     });

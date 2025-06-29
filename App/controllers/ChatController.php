@@ -1204,24 +1204,36 @@ class ChatController extends BaseController
 
     public function saveMessageFromSocket()
     {
-        // Authenticate using headers sent by socket server
-        $userId = $_SERVER['HTTP_X_USER_ID'] ?? null;
-        $username = $_SERVER['HTTP_X_USERNAME'] ?? null;
-        
-        if (!$userId || !$username) {
-            return $this->unauthorized('Authentication headers required');
+        // Start session to get authentication data
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
         }
+        
+        // Check if user is authenticated via session
+        if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+            error_log("Socket message save failed: No authentication in session");
+            return $this->unauthorized('User must be authenticated');
+        }
+        
+        $userId = $_SESSION['user_id'];
+        $username = $_SESSION['username'] ?? null;
         
         // Verify user exists
         $user = $this->userRepository->find($userId);
         if (!$user) {
+            error_log("Socket message save failed: User not found - ID: $userId");
             return $this->unauthorized('Invalid user');
+        }
+        
+        // Use username from user record if not in session
+        if (!$username) {
+            $username = $user->username;
         }
         
         $input = $this->getInput();
         $input = $this->sanitize($input);
 
-        error_log("Socket message save request: " . json_encode($input));
+        error_log("Socket message save request from user $userId ($username): " . json_encode($input));
 
         // Validate required fields
         $validationErrors = [];
@@ -1267,7 +1279,7 @@ class ChatController extends BaseController
                     'message_id' => $message['id'],
                     'user_id' => $message['user_id'],
                     'username' => $message['username'],
-                    'avatar_url' => $message['avatar_url'],
+                    'avatar_url' => $message['avatar_url'] ?? '/public/assets/common/default-profile-picture.png',
                     'target_type' => $input['target_type'],
                     'target_id' => $input['target_id'],
                     'content' => $message['content'],
