@@ -1357,6 +1357,32 @@ Route::get('/api/debug/test-dm-session', function() {
     ]);
 });
 
+Route::post('/api/channels/move', function() {
+    $controller = new ChannelController();
+    $controller->moveChannelToCategory();
+});
+
+Route::post('/api/channels/reorder', function() {
+    $controller = new ChannelController();
+    $controller->reorderChannels();
+});
+
+Route::post('/api/categories/reorder', function() {
+    $controller = new ChannelController();
+    $controller->reorderCategories();
+});
+
+Route::post('/api/positions/batch', function() {
+    $controller = new ChannelController();
+    $controller->batchUpdatePositions();
+});
+
+Route::post('/api/servers/([0-9]+)/sync-positions', function($serverId) {
+    $controller = new ChannelController();
+    $_POST['server_id'] = $serverId;
+    $controller->syncServerPositions();
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

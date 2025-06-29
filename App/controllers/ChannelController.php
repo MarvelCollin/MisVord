@@ -146,7 +146,7 @@ class ChannelController extends BaseController
                 'created_at' => date('Y-m-d H:i:s')
             ];
 
-            $channel = $this->channelRepository->create($channelData);
+            $channel = $this->channelRepository->createWithPosition($channelData);
 
             if ($channel) {
                 $this->logActivity('channel_created', [
@@ -443,15 +443,16 @@ class ChannelController extends BaseController
             $accessCheck = $this->validateServerAccess($input['server_id'], true);
             if ($accessCheck) return $accessCheck;
 
+            require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
+            $categoryRepository = new CategoryRepository();
+
             $categoryData = [
                 'name' => $input['name'],
                 'server_id' => $input['server_id'],
-                'type' => 'category',
-                'description' => $input['description'] ?? null,
-                'created_by' => $this->getCurrentUserId(),
                 'created_at' => date('Y-m-d H:i:s')
             ];
-            $category = $this->channelRepository->create($categoryData);
+
+            $category = $categoryRepository->createWithPosition($categoryData);
 
             if ($category) {
                 $this->logActivity('category_created', [
@@ -857,6 +858,318 @@ class ChannelController extends BaseController
                 'error' => $e->getMessage()
             ]);
             return $this->serverError('Failed to load channel content');
+        }
+    }
+
+    public function moveChannelToCategory()
+    {
+        $this->requireAuth();
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        $this->validate($input, [
+            'channel_id' => 'required',
+            'server_id' => 'required',
+            'new_position' => 'required'
+        ]);
+
+        try {
+            $accessCheck = $this->validateServerAccess($input['server_id'], true);
+            if ($accessCheck) return $accessCheck;
+
+            $channelId = $input['channel_id'];
+            $newCategoryId = $input['category_id'] ?? null;
+            $newPosition = (int)$input['new_position'];
+            $serverId = $input['server_id'];
+
+            $channel = $this->channelRepository->find($channelId);
+            if (!$channel || $channel->server_id != $serverId) {
+                return $this->notFound('Channel not found');
+            }
+
+            $query = new Query();
+            $query->beginTransaction();
+
+            if ($newCategoryId) {
+                $query->table('channels')
+                    ->where('category_id', $newCategoryId)
+                    ->where('position', '>=', $newPosition)
+                    ->where('id', '!=', $channelId)
+                    ->increment('position');
+            } else {
+                $query->table('channels')
+                    ->where('server_id', $serverId)
+                    ->whereNull('category_id')
+                    ->where('position', '>=', $newPosition)
+                    ->where('id', '!=', $channelId)
+                    ->increment('position');
+            }
+
+            $channel->category_id = $newCategoryId;
+            $channel->position = $newPosition;
+            $channel->updated_at = date('Y-m-d H:i:s');
+
+            if ($channel->save()) {
+                $query->commit();
+
+                $this->logActivity('channel_moved', [
+                    'channel_id' => $channelId,
+                    'old_category_id' => $input['old_category_id'] ?? null,
+                    'new_category_id' => $newCategoryId,
+                    'new_position' => $newPosition,
+                    'server_id' => $serverId
+                ]);
+
+                return $this->success([
+                    'message' => 'Channel moved successfully',
+                    'channel' => [
+                        'id' => $channel->id,
+                        'category_id' => $channel->category_id,
+                        'position' => $channel->position
+                    ]
+                ]);
+            } else {
+                $query->rollback();
+                return $this->serverError('Failed to move channel');
+            }
+        } catch (Exception $e) {
+            if (isset($query)) {
+                $query->rollback();
+            }
+            $this->logActivity('channel_move_error', [
+                'channel_id' => $input['channel_id'],
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to move channel');
+        }
+    }
+
+    public function reorderChannels()
+    {
+        $this->requireAuth();
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        $this->validate($input, [
+            'server_id' => 'required',
+            'channel_orders' => 'required'
+        ]);
+
+        try {
+            $accessCheck = $this->validateServerAccess($input['server_id'], true);
+            if ($accessCheck) return $accessCheck;
+
+            $serverId = $input['server_id'];
+            $channelOrders = $input['channel_orders'];
+
+            $query = new Query();
+            $query->beginTransaction();
+
+            $successCount = 0;
+            foreach ($channelOrders as $order) {
+                if (isset($order['id']) && isset($order['position'])) {
+                    $channelId = $order['id'];
+                    $position = (int)$order['position'];
+                    $categoryId = $order['category_id'] ?? null;
+
+                    $updated = $query->table('channels')
+                        ->where('id', $channelId)
+                        ->where('server_id', $serverId)
+                        ->update([
+                            'position' => $position,
+                            'category_id' => $categoryId,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
+
+                    if ($updated) {
+                        $successCount++;
+                    }
+                }
+            }
+
+            $query->commit();
+
+            $this->logActivity('channels_reordered', [
+                'server_id' => $serverId,
+                'success_count' => $successCount,
+                'total_updates' => count($channelOrders)
+            ]);
+
+            return $this->success([
+                'message' => 'Channels reordered successfully',
+                'updated_count' => $successCount
+            ]);
+        } catch (Exception $e) {
+            if (isset($query)) {
+                $query->rollback();
+            }
+            $this->logActivity('channels_reorder_error', [
+                'server_id' => $input['server_id'],
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to reorder channels');
+        }
+    }
+
+    public function reorderCategories()
+    {
+        $this->requireAuth();
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        $this->validate($input, [
+            'server_id' => 'required',
+            'category_orders' => 'required'
+        ]);
+
+        try {
+            $accessCheck = $this->validateServerAccess($input['server_id'], true);
+            if ($accessCheck) return $accessCheck;
+
+            $serverId = $input['server_id'];
+            $categoryOrders = $input['category_orders'];
+
+            $query = new Query();
+            $query->beginTransaction();
+
+            $successCount = 0;
+            foreach ($categoryOrders as $order) {
+                if (isset($order['id']) && isset($order['position'])) {
+                    $categoryId = $order['id'];
+                    $position = (int)$order['position'];
+
+                    $updated = $query->table('categories')
+                        ->where('id', $categoryId)
+                        ->where('server_id', $serverId)
+                        ->update([
+                            'position' => $position,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
+
+                    if ($updated) {
+                        $successCount++;
+                    }
+                }
+            }
+
+            $query->commit();
+
+            $this->logActivity('categories_reordered', [
+                'server_id' => $serverId,
+                'success_count' => $successCount,
+                'total_updates' => count($categoryOrders)
+            ]);
+
+            return $this->success([
+                'message' => 'Categories reordered successfully',
+                'updated_count' => $successCount
+            ]);
+        } catch (Exception $e) {
+            if (isset($query)) {
+                $query->rollback();
+            }
+            $this->logActivity('categories_reorder_error', [
+                'server_id' => $input['server_id'],
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to reorder categories');
+        }
+    }
+
+    public function syncServerPositions()
+    {
+        $this->requireAuth();
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        $this->validate($input, [
+            'server_id' => 'required'
+        ]);
+        
+        try {
+            $accessCheck = $this->validateServerAccess($input['server_id'], true);
+            if ($accessCheck) return $accessCheck;
+
+            require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
+            $categoryRepository = new CategoryRepository();
+            
+            $serverId = $input['server_id'];
+            $query = new Query();
+            $query->beginTransaction();
+
+            $categories = $categoryRepository->getForServer($serverId);
+            usort($categories, function($a, $b) {
+                return $a->id <=> $b->id;
+            });
+            
+            $categoryPosition = 1;
+            foreach ($categories as $category) {
+                $query->table('categories')
+                    ->where('id', $category->id)
+                    ->update(['position' => $categoryPosition]);
+                $categoryPosition++;
+            }
+
+            $channels = $this->channelRepository->getForServer($serverId);
+            
+            $uncategorizedChannels = array_filter($channels, function($channel) {
+                return is_null($channel->category_id) || $channel->category_id == 0;
+            });
+            usort($uncategorizedChannels, function($a, $b) {
+                return $a->id <=> $b->id;
+            });
+            
+            $channelPosition = 1;
+            foreach ($uncategorizedChannels as $channel) {
+                $query->table('channels')
+                    ->where('id', $channel->id)
+                    ->update(['position' => $channelPosition]);
+                $channelPosition++;
+            }
+
+            foreach ($categories as $category) {
+                $categoryChannels = array_filter($channels, function($channel) use ($category) {
+                    return $channel->category_id == $category->id;
+                });
+                usort($categoryChannels, function($a, $b) {
+                    return $a->id <=> $b->id;
+                });
+                
+                $categoryChannelPosition = 1;
+                foreach ($categoryChannels as $channel) {
+                    $query->table('channels')
+                        ->where('id', $channel->id)
+                        ->update(['position' => $categoryChannelPosition]);
+                    $categoryChannelPosition++;
+                }
+            }
+
+            $query->commit();
+
+            $this->logActivity('server_positions_synced', [
+                'server_id' => $serverId,
+                'categories_synced' => count($categories),
+                'channels_synced' => count($channels)
+            ]);
+
+            return $this->success([
+                'message' => 'Server positions synchronized successfully',
+                'categories_synced' => count($categories),
+                'channels_synced' => count($channels)
+            ]);
+        } catch (Exception $e) {
+            if (isset($query)) {
+                $query->rollback();
+            }
+            $this->logActivity('server_positions_sync_error', [
+                'server_id' => $input['server_id'] ?? null,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to sync server positions: ' . $e->getMessage());
         }
     }
 }

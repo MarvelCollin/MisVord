@@ -283,18 +283,19 @@ class LocalStorageManager {
 
     toggleVoiceMute() {
         const state = this.getVoiceState();
-        const newMutedState = !state.isMuted;
+        let newMutedState = !state.isMuted;
         
-        if (window.videoSDKManager && window.videosdkMeeting) {
+        if (window.videoSDKManager && window.videosdkMeeting && window.videoSDKManager.isReady()) {
             try {
-                if (newMutedState) {
-                    window.videoSDKManager.muteMic();
-                } else {
-                    window.videoSDKManager.unmuteMic();
-                }
+                const micEnabled = window.videoSDKManager.toggleMic();
+                newMutedState = !micEnabled;
+                console.log('[LocalStorageManager] Synced mic state with VideoSDK:', newMutedState);
             } catch (error) {
                 console.error('Error syncing mic with VideoSDK:', error);
+                console.log('[LocalStorageManager] Falling back to local state management');
             }
+        } else {
+            console.log('[LocalStorageManager] VideoSDK not ready, using local state only');
         }
         
         this.showToast(newMutedState ? 'Muted' : 'Unmuted');
@@ -303,21 +304,18 @@ class LocalStorageManager {
 
     toggleVoiceDeafen() {
         const state = this.getVoiceState();
-        const newDeafenState = !state.isDeafened;
+        let newDeafenState = !state.isDeafened;
         
-        if (window.videoSDKManager && window.videosdkMeeting) {
+        if (window.videoSDKManager && window.videosdkMeeting && window.videoSDKManager.isReady()) {
             try {
-                if (newDeafenState) {
-                    window.videoSDKManager.muteMic();
-                } else {
-                    const shouldUnmute = !state.isMuted;
-                    if (shouldUnmute) {
-                        window.videoSDKManager.unmuteMic();
-                    }
-                }
+                newDeafenState = window.videoSDKManager.toggleDeafen();
+                console.log('[LocalStorageManager] Synced deafen state with VideoSDK:', newDeafenState);
             } catch (error) {
                 console.error('Error syncing deafen with VideoSDK:', error);
+                console.log('[LocalStorageManager] Falling back to local state management');
             }
+        } else {
+            console.log('[LocalStorageManager] VideoSDK not ready, using local state only');
         }
         
         this.showToast(newDeafenState ? 'Deafened' : 'Undeafened');
@@ -327,9 +325,29 @@ class LocalStorageManager {
         });
     }
 
-    toggleVoiceVideo() {
-        const state = this.getVoiceState();
-        return this.setVoiceState({ isVideoOn: !state.isVideoOn });
+    async toggleVoiceVideo() {
+        if (!window.videoSDKManager || !window.videosdkMeeting) {
+            this.showToast('Voice not connected', 'error');
+            return false;
+        }
+
+        if (!window.videoSDKManager.isReady()) {
+            this.showToast('Please wait for voice connection to complete', 'error');
+            return false;
+        }
+
+        try {
+            const newVideoState = await window.videoSDKManager.toggleWebcam();
+            console.log('[LocalStorageManager] Video state toggled:', newVideoState);
+            this.showToast(newVideoState ? 'Camera enabled' : 'Camera disabled');
+            this.setVoiceState({ isVideoOn: newVideoState });
+            return newVideoState;
+        } catch (error) {
+            console.error('Error toggling camera:', error);
+            this.showToast('Failed to toggle camera', 'error');
+            const currentState = this.getVoiceState();
+            return currentState.isVideoOn;
+        }
     }
 
     async toggleVoiceScreenShare() {
@@ -343,21 +361,10 @@ class LocalStorageManager {
             return false;
         }
 
-        const state = this.getVoiceState();
-        const isCurrentlySharing = state.isScreenSharing;
-        
         try {
-            let newScreenShareState;
-            if (isCurrentlySharing) {
-                await window.videoSDKManager.meeting.disableScreenShare();
-                newScreenShareState = false;
-                this.showToast('Screen sharing stopped');
-            } else {
-                await window.videoSDKManager.meeting.enableScreenShare();
-                newScreenShareState = true;
-                this.showToast('Screen sharing started');
-            }
-            
+            const newScreenShareState = await window.videoSDKManager.toggleScreenShare();
+            console.log('[LocalStorageManager] Screen share state toggled:', newScreenShareState);
+            this.showToast(newScreenShareState ? 'Screen sharing started' : 'Screen sharing stopped');
             this.setVoiceState({ isScreenSharing: newScreenShareState });
             return newScreenShareState;
         } catch (error) {
@@ -367,7 +374,8 @@ class LocalStorageManager {
             } else {
                 this.showToast('Failed to toggle screen share', 'error');
             }
-            return isCurrentlySharing;
+            const currentState = this.getVoiceState();
+            return currentState.isScreenSharing;
         }
     }
 

@@ -27,11 +27,14 @@ $additional_css = ['tic-tac-toe'];
 $page_js = 'pages/app';
 $head_scripts = ['logger-init'];
 $additional_js = [
+    'components/messaging/chat-section',
     'components/servers/server-dropdown',
+    'components/channels/channel-manager',
+    'components/channels/channel-drag',
+    'components/voice/voice-manager',
+    'components/voice/global-voice-indicator',
     'components/servers/server-sidebar',
     'components/servers/channel-redirect',
-    'components/channels/channel-manager',
-    'components/messaging/chat-section',
     'components/activity/activity',
     'components/activity/tic-tac-toe',
     'utils/channel-switch-manager',

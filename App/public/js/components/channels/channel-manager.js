@@ -296,6 +296,12 @@ function renderChannelList(rawData) {
     }
 
     console.log('✅ Channel rendering complete');
+    
+    if (window.channelDragDropManager) {
+        window.channelDragDropManager.initializeDragElements();
+    }
+    
+    window.dispatchEvent(new CustomEvent('channelManagerUpdated'));
 }
 
 function createChannelElementPHP(channel) {

@@ -127,6 +127,57 @@ const channelAPI = {
                 'X-Requested-With': 'XMLHttpRequest'
             }
         });
+    },
+
+    moveChannelToCategory: function(channelId, serverId, categoryId, newPosition, oldCategoryId = null) {
+        return $.ajax({
+            url: '/api/channels/move',
+            method: 'POST',
+            dataType: 'json',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: JSON.stringify({
+                channel_id: channelId,
+                server_id: serverId,
+                category_id: categoryId,
+                old_category_id: oldCategoryId,
+                new_position: newPosition
+            })
+        });
+    },
+
+    reorderChannels: function(serverId, channelOrders) {
+        return $.ajax({
+            url: '/api/channels/reorder',
+            method: 'POST',
+            dataType: 'json',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: JSON.stringify({
+                server_id: serverId,
+                channel_orders: channelOrders
+            })
+        });
+    },
+
+    reorderCategories: function(serverId, categoryOrders) {
+        return $.ajax({
+            url: '/api/categories/reorder',
+            method: 'POST',
+            dataType: 'json',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: JSON.stringify({
+                server_id: serverId,
+                category_orders: categoryOrders
+            })
+        });
     }
 };
 

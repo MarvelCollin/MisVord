@@ -985,7 +985,7 @@ function createChannel(e, serverId) {
     channelAPI.createChannel(formData)
         .then(data => {
             if (data.data) {
-                showToast('Channel created successfully!', 'success');
+                showToast('Channel created at the bottom of the list!', 'success');
                 closeModal('create-channel-modal');
                 resetForm('create-channel-form');
 
@@ -1016,7 +1016,7 @@ function createCategory(e, serverId) {
     channelAPI.createCategory(formData)
         .then(data => {
             if (data.data) {
-                showToast('Category created successfully!', 'success');
+                showToast('Category created at the bottom of the list!', 'success');
                 closeModal('create-category-modal');
 
                 setTimeout(() => window.location.reload(), 1000);

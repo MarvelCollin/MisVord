@@ -32,6 +32,12 @@ class GlobalVoiceIndicator {
         window.addEventListener('beforeunload', () => {
             this.cleanup();
         });
+        
+        if (window.localStorageManager) {
+            window.localStorageManager.addVoiceStateListener(() => {
+                this.updateControls();
+            });
+        }
     }
 
     handleConnect(detail) {
@@ -228,51 +234,69 @@ class GlobalVoiceIndicator {
 
         const micBtn = this.indicator.querySelector('.mic-btn');
         if (micBtn) {
-            micBtn.addEventListener('click', () => {
-                if (window.voiceStateManager) {
-                    window.voiceStateManager.toggleMic();
-                } else if (window.localStorageManager) {
+            micBtn.removeEventListener('click', this.handleMicClick);
+            this.handleMicClick = () => {
+                if (window.localStorageManager) {
                     window.localStorageManager.toggleVoiceMute();
                 }
-            });
+            };
+            micBtn.addEventListener('click', this.handleMicClick);
         }
 
         const deafenBtn = this.indicator.querySelector('.deafen-btn');
         if (deafenBtn) {
-            deafenBtn.addEventListener('click', () => {
-                if (window.voiceStateManager) {
-                    window.voiceStateManager.toggleDeafen();
-                } else if (window.localStorageManager) {
+            deafenBtn.removeEventListener('click', this.handleDeafenClick);
+            this.handleDeafenClick = () => {
+                if (window.localStorageManager) {
                     window.localStorageManager.toggleVoiceDeafen();
                 }
-            });
+            };
+            deafenBtn.addEventListener('click', this.handleDeafenClick);
         }
 
         const screenBtn = this.indicator.querySelector('.screen-btn');
         if (screenBtn) {
-            screenBtn.addEventListener('click', () => {
-                window.voiceStateManager.toggleScreenShare();
-            });
+            screenBtn.removeEventListener('click', this.handleScreenClick);
+            this.handleScreenClick = async () => {
+                if (screenBtn.disabled) return;
+                
+                screenBtn.disabled = true;
+                screenBtn.style.opacity = '0.6';
+                
+                try {
+                    if (window.localStorageManager) {
+                        await window.localStorageManager.toggleVoiceScreenShare();
+                    }
+                } finally {
+                    setTimeout(() => {
+                        screenBtn.disabled = false;
+                        screenBtn.style.opacity = '1';
+                    }, 1000);
+                }
+            };
+            screenBtn.addEventListener('click', this.handleScreenClick);
         }
 
-        // Info/Settings
         const infoBtn = this.indicator.querySelector('.info-btn');
         if (infoBtn) {
-            infoBtn.addEventListener('click', () => {
+            infoBtn.removeEventListener('click', this.handleInfoClick);
+            this.handleInfoClick = () => {
                 this.showConnectionInfo();
-            });
+            };
+            infoBtn.addEventListener('click', this.handleInfoClick);
         }
 
-        // Disconnect button
         const disconnectBtn = this.indicator.querySelector('.disconnect-btn');
         if (disconnectBtn) {
-            disconnectBtn.addEventListener('click', () => {
+            disconnectBtn.removeEventListener('click', this.handleDisconnectClick);
+            this.handleDisconnectClick = () => {
                 if (window.voiceStateManager) {
                     window.voiceStateManager.disconnectVoice();
                 } else if (window.voiceManager) {
                     window.voiceManager.leaveVoice();
                 }
-            });
+            };
+            disconnectBtn.addEventListener('click', this.handleDisconnectClick);
         }
     }
 
@@ -281,16 +305,9 @@ class GlobalVoiceIndicator {
 
         this.updateIndicatorVisibility();
 
-        let state;
-        if (window.localStorageManager) {
-            state = window.localStorageManager.getVoiceState();
-        } else if (window.voiceStateManager) {
-            state = window.voiceStateManager.getState();
-        } else {
-            return;
-        }
+        const state = this.getVoiceState();
+        if (!state) return;
         
-        // Update mic button
         const micBtn = this.indicator.querySelector('.mic-btn');
         const micIcon = micBtn?.querySelector('i');
         if (micBtn && micIcon) {
@@ -305,7 +322,6 @@ class GlobalVoiceIndicator {
             }
         }
 
-        // Update deafen button
         const deafenBtn = this.indicator.querySelector('.deafen-btn');
         const deafenIcon = deafenBtn?.querySelector('i');
         if (deafenBtn && deafenIcon) {
@@ -320,7 +336,6 @@ class GlobalVoiceIndicator {
             }
         }
 
-        // Update screen share button
         const screenBtn = this.indicator.querySelector('.screen-btn');
         const screenIcon = screenBtn?.querySelector('i');
         if (screenBtn && screenIcon) {
@@ -504,12 +519,16 @@ class GlobalVoiceIndicator {
     }
 
     getVoiceState() {
-        if (window.voiceStateManager) {
-            return window.voiceStateManager.getState();
-        } else if (window.localStorageManager) {
+        if (window.localStorageManager) {
             return window.localStorageManager.getVoiceState();
         }
-        return null;
+        return {
+            isMuted: false,
+            isDeafened: false,
+            isVideoOn: false,
+            isScreenSharing: false,
+            volume: 100
+        };
     }
 
     updateIndicatorVisibility() {

@@ -92,5 +92,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <script type="module" src="/public/js/utils/load-explore-page.js"></script>
 
 <!-- Voice components -->
+<script type="module" src="<?php echo asset('/js/utils/voice-state-manager.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/components/voice/global-voice-indicator.js'); ?>"></script>

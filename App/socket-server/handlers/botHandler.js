@@ -66,6 +66,15 @@ class BotHandler {
             // Normalize field names so detection works consistently
             if (data.channelId && !data.channel_id) data.channel_id = data.channelId;
             if (data.roomId && !data.room_id) data.room_id = data.roomId;
+            
+            // NEW: Handle target_type/target_id mapping from frontend
+            if (data.target_type && data.target_id) {
+                if (data.target_type === 'channel' && !data.channel_id) {
+                    data.channel_id = data.target_id;
+                } else if (data.target_type === 'dm' && !data.room_id) {
+                    data.room_id = data.target_id;
+                }
+            }
 
             console.log(`🔍 [BOT-HANDLER] Bot ${username} intercepted message:`, {
                 messageId: data.id,
@@ -73,6 +82,8 @@ class BotHandler {
                 userId: data.user_id,
                 channelId: data.channel_id,
                 roomId: data.room_id,
+                targetType: data.target_type,
+                targetId: data.target_id,
                 source: data.source
             });
             

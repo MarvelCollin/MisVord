@@ -142,11 +142,19 @@ if (!function_exists('renderCategorySkeleton')) {
             return !isset($ch['category_id']) || $ch['category_id'] === null || $ch['category_id'] === '';
         });
         
+        usort($uncategorizedChannels, function($a, $b) {
+            return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
+        });
+        
         error_log("[Channel Section] Uncategorized channels: " . count($uncategorizedChannels));
 
         if (!empty($uncategorizedChannels)):
             $textChannels = array_filter($uncategorizedChannels, function($ch) {
                 return ($ch['type'] ?? 'text') === 'text';
+            });
+            
+            usort($textChannels, function($a, $b) {
+                return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
             });
             
             error_log("[Channel Section] Text channels: " . count($textChannels));
@@ -168,6 +176,10 @@ if (!function_exists('renderCategorySkeleton')) {
                 return ($ch['type'] ?? 'text') === 'voice';
             });
             
+            usort($voiceChannels, function($a, $b) {
+                return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
+            });
+            
             if (!empty($voiceChannels)):
         ?>
         <div class="voice-channels-section group">
@@ -179,16 +191,25 @@ if (!function_exists('renderCategorySkeleton')) {
         <?php endif; ?>
 
         <?php if (!empty($categories)): ?>
+            <?php 
+            usort($categories, function($a, $b) {
+                return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
+            });
+            ?>
             <?php foreach ($categories as $category): ?>
                 <?php
                 $categoryChannels = array_filter($channels, function($ch) use ($category) {
                     return isset($ch['category_id']) && $ch['category_id'] == $category['id'];
                 });
                 
+                usort($categoryChannels, function($a, $b) {
+                    return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
+                });
+                
                 if (empty($categoryChannels)) continue;
                 ?>
-                <div class="category-section mb-4">
-                    <div class="category-header flex items-center px-3 py-1 mb-1 cursor-pointer">
+                <div class="category-section mb-4" data-category-id="<?php echo $category['id']; ?>">
+                    <div class="category-header flex items-center px-3 py-1 mb-1 cursor-pointer group">
                         <i class="fas fa-chevron-down text-xs mr-1 text-gray-500"></i>
                         <span class="text-xs font-semibold uppercase text-gray-400"><?php echo htmlspecialchars($category['name']); ?></span>
                     </div>
@@ -277,5 +298,95 @@ if (!function_exists('renderCategorySkeleton')) {
 .category-channels.hidden {
     max-height: 0;
     overflow: hidden;
+}
+
+.channel-item.dragging {
+    opacity: 0.5 !important;
+    transform: rotate(2deg);
+    z-index: 1000;
+}
+
+.category-section.drag-over {
+    background-color: rgba(88, 101, 242, 0.1);
+    border: 2px dashed rgba(88, 101, 242, 0.3);
+    border-radius: 8px;
+}
+
+.category-section.drop-zone-active {
+    background-color: rgba(88, 101, 242, 0.05);
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.channel-list.uncategorized-drop-zone-active {
+    background-color: rgba(88, 101, 242, 0.02);
+    border-radius: 8px;
+}
+
+.drop-indicator {
+    height: 2px;
+    margin: 2px 0;
+    pointer-events: none;
+}
+
+.drop-line {
+    height: 100%;
+    background: linear-gradient(90deg, #5865f2, #7983f5);
+    border-radius: 1px;
+    opacity: 0.8;
+    animation: dropPulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes dropPulse {
+    from { opacity: 0.5; transform: scaleY(0.8); }
+    to { opacity: 1; transform: scaleY(1.2); }
+}
+
+.drag-handle {
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+}
+
+.drag-handle:hover {
+    background-color: rgba(79, 84, 92, 0.3);
+}
+
+.category-drag-handle {
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+}
+
+.category-drag-handle:hover {
+    background-color: rgba(79, 84, 92, 0.3);
+}
+
+.group:hover .drag-handle,
+.group:hover .category-drag-handle {
+    opacity: 1;
+}
+
+.channel-item:hover .drag-handle {
+    opacity: 1;
+}
+
+.cursor-grab {
+    cursor: grab;
+}
+
+.cursor-grabbing {
+    cursor: grabbing;
+}
+
+@media (max-width: 768px) {
+    .drag-handle,
+    .category-drag-handle {
+        opacity: 1;
+    }
 }
 </style>
