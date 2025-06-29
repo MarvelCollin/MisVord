@@ -7,15 +7,15 @@ class BotComponent {
     init() {
         if (this.initialized) return;
         
-        console.log('🤖 [BOT-COMPONENT] Initializing bot component...');
+        console.log('🤖 Initializing bot component...');
         this.setupSocketListeners();
         this.initialized = true;
-        console.log('✅ [BOT-COMPONENT] Bot component initialized');
+        console.log('✅ Bot component initialized');
     }
 
     setupSocketListeners() {
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.log('⏳ [BOT-COMPONENT] Socket not ready, retrying in 1s...');
+            console.log('⏳ Socket not ready, retrying in 1s...');
             setTimeout(() => this.setupSocketListeners(), 1000);
             return;
         }
@@ -23,7 +23,7 @@ class BotComponent {
         const io = window.globalSocketManager.io;
 
         io.on('bot-init-success', (data) => {
-            console.log('🎉 [BOT-COMPONENT] Bot initialized successfully:', data);
+            console.log('🎉 Bot initialized successfully:', data);
             this.activeBots.set(data.bot_id, {
                 id: data.bot_id,
                 username: data.username,
@@ -37,14 +37,14 @@ class BotComponent {
         });
 
         io.on('bot-init-error', (data) => {
-            console.error('❌ [BOT-COMPONENT] Bot initialization failed:', data);
+            console.error('❌ Bot initialization failed:', data);
             if (window.showToast) {
                 window.showToast(`❌ Bot initialization failed: ${data.message}`, 'error');
             }
         });
 
         io.on('bot-join-success', (data) => {
-            console.log('🚪 [BOT-COMPONENT] Bot joined channel successfully:', data);
+            console.log('🚪 Bot joined channel successfully:', data);
             const bot = this.activeBots.get(data.bot_id);
             if (bot) {
                 if (!bot.channels) bot.channels = new Set();
@@ -52,18 +52,18 @@ class BotComponent {
             }
 
             if (window.showToast) {
-                window.showToast(`🤖 Bot joined channel successfully!`, 'success');
+                window.showToast('🤖 Bot joined channel successfully!', 'success');
             }
         });
 
         io.on('bot-join-error', (data) => {
-            console.error('❌ [BOT-COMPONENT] Bot join channel failed:', data);
+            console.error('❌ Bot join channel failed:', data);
             if (window.showToast) {
                 window.showToast(`❌ Bot join failed: ${data.message}`, 'error');
             }
         });
 
-        console.log('🔌 [BOT-COMPONENT] Socket listeners set up successfully');
+        console.log('🔌 Socket listeners set up successfully');
     }
 
     getBotStatus(botId) {
@@ -91,4 +91,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-console.log('🤖 [BOT-COMPONENT] Bot component loaded');
+console.log('🤖 Bot component loaded');

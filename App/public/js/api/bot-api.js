@@ -6,13 +6,13 @@ class BotAPI {
     async parseResponse(response) {
         const text = await response.text();
 
-        if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
-            console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
+        if (text.trim().startsWith('<') || text.includes('<!DOCTYPE')) {
+            console.error('Server returned HTML instead of JSON');
             throw new Error('Server error occurred. Please try again.');
         }
 
-        if (text.includes('Fatal error') || text.includes('Parse error') || text.includes('Warning:') || text.includes('Notice:')) {
-            console.error('Server returned PHP error:', text.substring(0, 200));
+        if (text.includes('Fatal error') || text.includes('Parse error')) {
+            console.error('Server returned PHP error');
             throw new Error('Server configuration error. Please contact support.');
         }
 
@@ -50,39 +50,23 @@ class BotAPI {
             const response = await fetch(url, mergedOptions);
 
             if (response.status === 404) {
-                console.error(`API endpoint not found or resource does not exist: ${url}`);
-                const responseText = await response.text();
-                console.log('404 Response:', responseText.substring(0, 500));
-
-                try {
-                    const data = JSON.parse(responseText);
-                    return {
-                        success: false,
-                        error: {
-                            code: 404,
-                            message: data.message || data.error || `API endpoint not found: ${url}`
-                        }
-                    };
-                } catch (e) {
-                    return {
-                        success: false,
-                        error: {
-                            code: 404,
-                            message: `API endpoint not found: ${url}`
-                        }
-                    };
-                }
+                console.error(`API endpoint not found: ${url}`);
+                return {
+                    success: false,
+                    error: {
+                        code: 404,
+                        message: `API endpoint not found: ${url}`
+                    }
+                };
             }
 
             if (response.status === 500) {
                 console.error('Server error occurred:', url);
-                const responseText = await response.text();
-                console.log('500 Response:', responseText.substring(0, 500));
                 return {
                     success: false,
                     error: {
                         code: 500,
-                        message: `Internal server error occurred. Please try again later.`
+                        message: 'Internal server error occurred. Please try again later.'
                     }
                 };
             }

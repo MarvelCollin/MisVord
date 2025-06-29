@@ -25,11 +25,11 @@ class BotController extends BaseController
         try {
             $errors = [];
             
-            if (!isset($input['username']) || empty($input['username'])) {
+            if (empty($input['username'])) {
                 $errors['username'] = 'Bot username is required';
             }
             
-            if (!isset($input['email']) || empty($input['email'])) {
+            if (empty($input['email'])) {
                 $errors['email'] = 'Bot email is required';
             }
             
@@ -53,13 +53,11 @@ class BotController extends BaseController
                 return $this->error('Invalid email format', 400);
             }
             
-            $existingUser = $this->userRepository->findByUsername($username);
-            if ($existingUser) {
+            if ($this->userRepository->findByUsername($username)) {
                 return $this->error('Username already exists', 400);
             }
             
-            $existingEmail = $this->userRepository->findByEmail($email);
-            if ($existingEmail) {
+            if ($this->userRepository->findByEmail($email)) {
                 return $this->error('Email already exists', 400);
             }
             

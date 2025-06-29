@@ -15,7 +15,6 @@ export * from './voice/global-voice-indicator.js';
 export * from './videosdk/videosdk.js';
 
 export * from './bot/bot.js';
-export * from './bot/bot-debug.js';
 export * from './admin/admin.js';
 export * from './admin/admin-overview.js';
 export * from './admin/admin-server.js';

@@ -86,6 +86,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function showStatus(message, type = 'info') {
+        const statusDiv = document.getElementById('bot-dev-status');
+        const colors = {
+            success: 'text-green-400',
+            error: 'text-red-400',
+            warning: 'text-orange-400',
+            loading: 'text-yellow-400',
+            info: 'text-blue-400'
+        };
+        statusDiv.innerHTML = `<div class="${colors[type]}">${message}</div>`;
+    }
+
     window.openBotDevModal = function() {
         document.getElementById('bot-dev-modal').classList.remove('hidden');
         loadUserServersDev();
@@ -100,19 +112,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const username = document.getElementById('bot-dev-username').value.trim();
         const email = document.getElementById('bot-dev-email').value.trim();
         const serverId = document.getElementById('bot-dev-server').value;
-        const statusDiv = document.getElementById('bot-dev-status');
         
         if (!username) {
-            statusDiv.innerHTML = '<div class="text-red-400">❌ Bot username is required</div>';
+            showStatus('❌ Bot username is required', 'error');
             return;
         }
         
         if (!email) {
-            statusDiv.innerHTML = '<div class="text-red-400">❌ Bot email is required</div>';
+            showStatus('❌ Bot email is required', 'error');
             return;
         }
         
-        statusDiv.innerHTML = '<div class="text-yellow-400">⏳ Creating bot...</div>';
+        showStatus('⏳ Creating bot...', 'loading');
         
         try {
             const response = await fetch('/api/bots/create', {
@@ -132,32 +143,32 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (data.success) {
-                statusDiv.innerHTML = `<div class="text-green-400">✅ Bot created successfully! ID: ${data.bot.id}, Discriminator: ${data.bot.discriminator}</div>`;
+                let message = `✅ Bot created successfully! ID: ${data.bot.id}, Discriminator: ${data.bot.discriminator}`;
                 if (data.server_joined) {
-                    statusDiv.innerHTML += `<div class="text-blue-400">🎉 Bot joined server successfully!</div>`;
+                    message += '<br>🎉 Bot joined server successfully!';
                 }
                 if (data.server_join_error) {
-                    statusDiv.innerHTML += `<div class="text-orange-400">⚠️ Server join error: ${data.server_join_error}</div>`;
+                    message += `<br>⚠️ Server join error: ${data.server_join_error}`;
                 }
+                showStatus(message, 'success');
             } else {
-                statusDiv.innerHTML = `<div class="text-red-400">❌ ${data.message || 'Failed to create bot'}</div>`;
+                showStatus(`❌ ${data.message || 'Failed to create bot'}`, 'error');
             }
         } catch (error) {
             console.error('Bot creation error:', error);
-            statusDiv.innerHTML = '<div class="text-red-400">❌ Network error occurred</div>';
+            showStatus('❌ Network error occurred', 'error');
         }
     };
 
     window.checkBotDev = async function() {
         const username = document.getElementById('bot-dev-username').value.trim();
-        const statusDiv = document.getElementById('bot-dev-status');
         
         if (!username) {
-            statusDiv.innerHTML = '<div class="text-red-400">❌ Bot username is required</div>';
+            showStatus('❌ Bot username is required', 'error');
             return;
         }
         
-        statusDiv.innerHTML = '<div class="text-yellow-400">⏳ Checking bot...</div>';
+        showStatus('⏳ Checking bot...', 'loading');
         
         try {
             const response = await fetch(`/api/bots/check/${encodeURIComponent(username)}`, {
@@ -171,25 +182,24 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.success && data.exists) {
                 if (data.is_bot) {
-                    statusDiv.innerHTML = `<div class="text-green-400">✅ Bot exists! ID: ${data.bot.id}, Status: ${data.bot.status}, Discriminator: ${data.bot.discriminator}</div>`;
+                    showStatus(`✅ Bot exists! ID: ${data.bot.id}, Status: ${data.bot.status}, Discriminator: ${data.bot.discriminator}`, 'success');
                 } else {
-                    statusDiv.innerHTML = '<div class="text-orange-400">⚠️ User exists but is not a bot</div>';
+                    showStatus('⚠️ User exists but is not a bot', 'warning');
                 }
             } else {
-                statusDiv.innerHTML = '<div class="text-orange-400">⚠️ Bot does not exist</div>';
+                showStatus('⚠️ Bot does not exist', 'warning');
             }
         } catch (error) {
             console.error('Bot check error:', error);
-            statusDiv.innerHTML = '<div class="text-red-400">❌ Network error occurred</div>';
+            showStatus('❌ Network error occurred', 'error');
         }
     };
 
     window.listBotsDev = async function() {
-        const statusDiv = document.getElementById('bot-dev-status');
         const listDiv = document.getElementById('bot-dev-list');
         const listContent = document.getElementById('bot-dev-list-content');
         
-        statusDiv.innerHTML = '<div class="text-yellow-400">⏳ Loading bots...</div>';
+        showStatus('⏳ Loading bots...', 'loading');
         
         try {
             const response = await fetch('/api/bots', {
@@ -202,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (data.success) {
-                statusDiv.innerHTML = `<div class="text-green-400">✅ Found ${data.total} bots</div>`;
+                showStatus(`✅ Found ${data.total} bots`, 'success');
                 
                 if (data.bots.length > 0) {
                     listContent.innerHTML = data.bots.map(bot => `
@@ -217,12 +227,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     listDiv.classList.add('hidden');
                 }
             } else {
-                statusDiv.innerHTML = `<div class="text-red-400">❌ ${data.message || 'Failed to load bots'}</div>`;
+                showStatus(`❌ ${data.message || 'Failed to load bots'}`, 'error');
                 listDiv.classList.add('hidden');
             }
         } catch (error) {
             console.error('Bot list error:', error);
-            statusDiv.innerHTML = '<div class="text-red-400">❌ Network error occurred</div>';
+            showStatus('❌ Network error occurred', 'error');
             listDiv.classList.add('hidden');
         }
     };

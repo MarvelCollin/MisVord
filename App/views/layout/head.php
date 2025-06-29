@@ -812,8 +812,16 @@ function showBotDebugPanel() {
                                     <button onclick="syncServerPositions()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs flex-1">
                                         <i class="fas fa-sort mr-1"></i>Sync Positions
                                     </button>
+                                    <button onclick="verifyPositions()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs flex-1">
+                                        <i class="fas fa-search mr-1"></i>Check Positions
+                                    </button>
+                                </div>
+                                <div class="flex space-x-2 mb-2">
                                     <button onclick="reloadChannelList()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs flex-1">
                                         <i class="fas fa-refresh mr-1"></i>Reload Channels
+                                    </button>
+                                    <button onclick="showPositionDetails()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs flex-1">
+                                        <i class="fas fa-list mr-1"></i>Show Details
                                     </button>
                                 </div>
                                 <div id="sync-status" class="text-xs text-gray-400 text-center">Ready to sync positions</div>

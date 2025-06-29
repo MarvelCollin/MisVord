@@ -275,13 +275,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     @apply absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white text-xs font-medium;
 }
 
-.video-participant-controls {
-    @apply absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200;
-}
 
-.video-participant-controls button {
-    @apply w-6 h-6 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white text-xs transition-all duration-200;
-}
 
 @keyframes pulse-voice {
     0%, 100% { 
@@ -545,14 +539,6 @@ function createVideoParticipantCard(participant) {
     card.innerHTML = `
         <video autoplay playsinline muted class="w-full h-40 object-cover bg-black"></video>
         <div class="video-participant-name">${displayName}</div>
-        <div class="video-participant-controls">
-            <button onclick="pinParticipant('${participant.id}')" title="Pin">
-                <i class="fas fa-thumbtack"></i>
-            </button>
-            <button onclick="muteParticipant('${participant.id}')" title="Mute">
-                <i class="fas fa-microphone-slash"></i>
-            </button>
-        </div>
     `;
     
     return card;
@@ -692,31 +678,7 @@ function updateParticipantMuted(participantId, isMuted) {
     }
 }
 
-function pinParticipant(participantId) {
-    const speakerView = document.getElementById('speakerView');
-    const speakerVideo = document.getElementById('speakerVideo');
-    const speakerUsername = document.getElementById('speakerUsername');
-    
-    const videoCard = document.querySelector(`.video-participant-card[data-participant-id="${participantId}"]`);
-    if (videoCard) {
-        const sourceVideo = videoCard.querySelector('video');
-        if (sourceVideo && sourceVideo.srcObject) {
-            speakerVideo.srcObject = sourceVideo.srcObject;
-            speakerUsername.textContent = participantId;
-            
-            document.querySelectorAll('.video-participant-card').forEach(card => {
-                card.classList.remove('active-speaker');
-            });
-            videoCard.classList.add('active-speaker');
-            
-            updateDiscordLayout();
-        }
-    }
-}
 
-function muteParticipant(participantId) {
-    console.log(`Mute participant ${participantId} - This would require admin permissions`);
-}
 
 function addLocalParticipant() {
     const username = document.querySelector('meta[name="username"]')?.content || 'You';
@@ -842,7 +804,6 @@ window.addVoiceParticipant = addVoiceParticipant;
 window.removeVoiceParticipant = removeVoiceParticipant;
 window.updateParticipantSpeaking = updateParticipantSpeaking;
 window.updateParticipantMuted = updateParticipantMuted;
-window.pinParticipant = pinParticipant;
 window.addLocalParticipant = addLocalParticipant;
 window.addRemoteParticipant = addRemoteParticipant;
 window.removeParticipant = removeParticipant;
