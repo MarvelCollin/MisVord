@@ -382,6 +382,103 @@ const serverAPI = {
             }
             return response.json();
         });
+    },
+
+    searchServers: function(query) {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: `/api/explore/servers/search?q=${encodeURIComponent(query)}`,
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: resolve,
+                error: reject
+            });
+        });
+    },
+
+    joinServer: function(data) {
+        const formData = new FormData();
+        if (typeof data === 'object' && data.server_id) {
+            formData.append('server_id', data.server_id);
+        } else {
+            formData.append('server_id', data);
+        }
+
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: '/api/servers/join',
+                method: 'POST',
+                data: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: resolve,
+                error: reject
+            });
+        });
+    },
+
+    getExploreLayout: function() {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: '/explore-servers/layout',
+                method: 'GET',
+                dataType: 'text',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: resolve,
+                error: reject
+            });
+        });
+    },
+
+    getExploreContent: function() {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: '/api/explore/content',
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: resolve,
+                error: reject
+            });
+        });
+    },
+
+    getServersByCategory: function(category) {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: `/api/explore/servers/category?category=${encodeURIComponent(category)}`,
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: resolve,
+                error: reject
+            });
+        });
+    },
+
+    getFeaturedServers: function(limit = 3) {
+        return new Promise((resolve, reject) => {
+            ajax({
+                url: `/api/explore/servers/featured?limit=${limit}`,
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: resolve,
+                error: reject
+            });
+        });
     }
 };
 

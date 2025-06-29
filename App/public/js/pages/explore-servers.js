@@ -4,6 +4,12 @@ document.addEventListener('DOMContentLoaded', function () {
         window.logger.info('explore', 'Explore servers page initialized');
     }
 
+    initExplorePage();
+});
+
+function initExplorePage() {
+    console.log('Initializing explore page components');
+
     initServerCards();
     initCategoryFilter();
     initSearchFilter();
@@ -14,7 +20,9 @@ document.addEventListener('DOMContentLoaded', function () {
     initScrollAnimations();
 
     console.log('showServerDetail function available:', typeof window.showServerDetail);
-});
+}
+
+window.initExplorePage = initExplorePage;
 
 function initScrollAnimations() {
     const animatedElements = document.querySelectorAll('.slide-up, .fade-in');
@@ -396,7 +404,13 @@ function joinServer(serverId, button) {
                 }
 
                 setTimeout(() => {
-                    window.location.href = `/server/${serverId}`;
+                    if (window.loadServerPage && typeof window.loadServerPage === 'function') {
+                        console.log('[Explore] Using AJAX navigation to server:', serverId);
+                        window.loadServerPage(serverId);
+                    } else {
+                        console.log('[Explore] Falling back to full page navigation');
+                        window.location.href = `/server/${serverId}`;
+                    }
                 }, 1500);
             } else {
                 button.innerHTML = originalText;

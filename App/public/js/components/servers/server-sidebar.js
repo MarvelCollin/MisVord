@@ -61,6 +61,33 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        const exploreLink = e.target.closest('a[href="/explore-servers"]') ||
+                           e.target.closest('a[href="/explore"]');
+        if (exploreLink && !isHandlingClick) {
+            console.log('[Click Handler] EXPLORE NAVIGATION DETECTED');
+            console.log('[Click Handler] Explore link found:', {
+                href: exploreLink.getAttribute('href'),
+                element: exploreLink.tagName,
+                parentClass: exploreLink.parentElement?.className
+            });
+            e.preventDefault();
+            
+            isHandlingClick = true;
+            console.log('[Click Handler] Starting explore navigation');
+            try {
+                await handleExploreClick(e);
+                console.log('[Click Handler] Explore navigation completed successfully');
+            } catch (error) {
+                console.error('[Click Handler] ERROR in explore navigation:', error);
+                console.error('[Click Handler] Fallback to location.href');
+                window.location.href = exploreLink.getAttribute('href') || '/explore-servers';
+            } finally {
+                isHandlingClick = false;
+                console.log('[Click Handler] Explore click handling finished');
+            }
+            return;
+        }
+
         const serverLink = e.target.closest('.server-icon a[href^="/server/"]');
         if (serverLink && !isHandlingClick) {
             console.log('[Click Handler] SERVER NAVIGATION DETECTED');
@@ -907,6 +934,81 @@ export async function handleServerClick(serverId, event) {
         console.error('[Server Navigation] Server ID was:', serverId);
         console.error('[Server Navigation] Event was:', event);
         console.log('[Server Navigation] ERROR: Cannot load server, no fallback allowed per user request');
+    } finally {
+        console.groupEnd();
+    }
+}
+
+export async function handleExploreClick(event) {
+    console.group('[Explore Navigation] Explore Click Flow Started');
+    console.log('[Explore Navigation] Event details:', {
+        type: event ? event.type : 'no-event',
+        target: event ? event.target.tagName : 'no-target',
+        currentPath: window.location.pathname
+    });
+    
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        console.log('[Explore Navigation] Event prevented successfully');
+    }
+    
+    if (window.location.pathname === '/explore-servers' || window.location.pathname === '/explore') {
+        console.log('[Explore Navigation] Already on explore page, skipping navigation');
+        console.groupEnd();
+        return;
+    }
+    
+    console.log('[Explore Navigation] Pre-navigation state check');
+    console.log('[Explore Navigation] - Current URL:', window.location.href);
+    console.log('[Explore Navigation] - Available functions:', {
+        loadExplorePage: typeof window.loadExplorePage,
+        globalSocketManager: typeof window.globalSocketManager,
+        voiceManager: typeof window.voiceManager
+    });
+    
+    try {
+        const currentChannelId = new URLSearchParams(window.location.search).get('channel');
+        if (currentChannelId && window.globalSocketManager) {
+            console.log('[Explore Navigation] Cleaning up socket for channel:', currentChannelId);
+            window.globalSocketManager.leaveChannel(currentChannelId);
+        }
+
+        if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
+            console.log('[Explore Navigation] Cleaning up voice manager');
+            window.voiceManager.leaveVoice();
+            window.voiceManager = null;
+        }
+
+        console.log('[Explore Navigation] Starting AJAX explore page load');
+        if (window.loadExplorePage && typeof window.loadExplorePage === 'function') {
+            await window.loadExplorePage();
+            console.log('[Explore Navigation] AJAX explore page load completed successfully');
+        } else {
+            console.error('[Explore Navigation] CRITICAL - loadExplorePage function not available');
+            console.error('[Explore Navigation] Available window functions:', Object.keys(window).filter(k => k.includes('load')));
+            throw new Error('loadExplorePage function not available');
+        }
+
+        console.log('[Explore Navigation] Updating active server state');
+        updateActiveServer();
+
+        console.log('[Explore Navigation] Dispatching ExplorePageChanged event');
+        window.dispatchEvent(new CustomEvent('ExplorePageChanged', { 
+            detail: { 
+                pageType: 'explore',
+                previousChannelId: currentChannelId 
+            } 
+        }));
+
+        console.log('[Explore Navigation] SUCCESS - Explore navigation completed');
+
+    } catch (error) {
+        console.error('[Explore Navigation] ERROR in handleExploreClick:', error);
+        console.error('[Explore Navigation] Error stack:', error.stack);
+        console.log('[Explore Navigation] FALLBACK - Using location.href');
+        window.location.href = '/explore-servers';
     } finally {
         console.groupEnd();
     }

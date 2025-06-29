@@ -590,6 +590,79 @@ class ServerController extends BaseController
             return $this->serverError('Failed to leave server');
         }
     }
+
+    public function joinServerById()
+    {
+        header('Content-Type: application/json');
+        
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+            return $this->unauthorized('Authentication required to join a server');
+        }
+
+        $userId = $_SESSION['user_id'];
+        $input = $this->getInput();
+        $serverId = $input['server_id'] ?? null;
+
+        if (empty($serverId)) {
+            return $this->badRequest('Server ID is required');
+        }
+
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            if (!$server->is_public) {
+                return $this->forbidden('This server is not open for public joining');
+            }
+
+            $existingMembership = $this->userServerMembershipRepository->getUserServerMembership($userId, $serverId);
+            if ($existingMembership) {
+                return $this->success([
+                    'message' => 'You are already a member of this server',
+                    'server_id' => $serverId,
+                    'redirect' => '/server/' . $serverId
+                ]);
+            }
+
+            $result = $this->userServerMembershipRepository->create([
+                'user_id' => $userId,
+                'server_id' => $serverId,
+                'role' => 'member',
+                'joined_at' => date('Y-m-d H:i:s')
+            ]);
+
+            if (!$result) {
+                return $this->serverError('Failed to join server');
+            }
+
+            $this->logActivity('server_joined_by_id', [
+                'server_id' => $serverId,
+                'user_id' => $userId
+            ]);
+
+            return $this->success([
+                'message' => 'Successfully joined server',
+                'server_id' => $serverId,
+                'redirect' => '/server/' . $serverId
+            ]);
+
+        } catch (Exception $e) {
+            logger()->error("Error joining server by ID", [
+                'user_id' => $userId,
+                'server_id' => $serverId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->serverError('Failed to join server: ' . $e->getMessage());
+        }
+    }
     public function getUserServers()
     {
         $this->requireAuth();

@@ -9,6 +9,7 @@ class NitroSection {
     init() {
         this.section = document.querySelector('.nitro-section');
         this.hexagons = document.querySelectorAll('.hexagon-feature');
+        this.crownCenter = document.querySelector('.crown-center');
         
         if (!this.section) return;
         
@@ -26,7 +27,30 @@ class NitroSection {
             hexagon.addEventListener('mouseleave', () => this.resetHexagonHover(hexagon));
         });
         
+        if (this.crownCenter) {
+            this.crownCenter.addEventListener('mouseenter', () => this.onCrownHoverStart());
+            this.crownCenter.addEventListener('mouseleave', () => this.onCrownHoverEnd());
+        }
+        
         this.setupParticleEffects();
+    }
+    
+    onCrownHoverStart() {
+        this.hexagons.forEach(hexagon => {
+            const icon = hexagon.querySelector('.feature-icon');
+            if (icon) {
+                icon.style.transform = 'scale(1.2)';
+            }
+        });
+    }
+    
+    onCrownHoverEnd() {
+        this.hexagons.forEach(hexagon => {
+            const icon = hexagon.querySelector('.feature-icon');
+            if (icon) {
+                icon.style.transform = '';
+            }
+        });
     }
     
     setupConnectingLines() {
@@ -63,19 +87,26 @@ class NitroSection {
         `;
         svg.appendChild(gradient);
         
-        this.section.querySelector('.hexagon-grid').appendChild(svg);
-        this.updateConnectingLines();
+        const hexagonGrid = this.section.querySelector('.hexagon-grid');
+        if (hexagonGrid) {
+            hexagonGrid.appendChild(svg);
+            this.updateConnectingLines();
+        }
         
         window.addEventListener('resize', () => this.updateConnectingLines());
     }
     
     updateConnectingLines() {
         const lines = document.querySelectorAll('.connecting-line');
+        const hexagonGrid = this.section.querySelector('.hexagon-grid');
+        
+        if (!hexagonGrid) return;
+        
         this.hexagons.forEach((hexagon, i) => {
             if (i < this.hexagons.length - 1) {
                 const rect1 = hexagon.getBoundingClientRect();
                 const rect2 = this.hexagons[i + 1].getBoundingClientRect();
-                const gridRect = this.section.querySelector('.hexagon-grid').getBoundingClientRect();
+                const gridRect = hexagonGrid.getBoundingClientRect();
                 
                 const x1 = rect1.left + rect1.width / 2 - gridRect.left;
                 const y1 = rect1.top + rect1.height / 2 - gridRect.top;
@@ -184,7 +215,7 @@ class NitroSection {
     resetHexagonHover(hexagon) {
         const icon = hexagon.querySelector('.feature-icon');
         if (icon) {
-            icon.style.transform = 'scale(1) rotate(0deg)';
+            icon.style.transform = '';
         }
     }
     

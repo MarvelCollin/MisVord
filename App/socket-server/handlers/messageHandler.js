@@ -377,13 +377,29 @@ class MessageHandler {
                 }
                 
                 const saveResult = await response.json();
-                console.log(`✅ [SAVE-AND-SEND] Message saved to database:`, saveResult);
+                console.log(`✅ [SAVE-AND-SEND] Message saved to database:`, JSON.stringify(saveResult, null, 2));
                 
                 if (saveResult.success) {
-                    // Extract message_id from the correct location in response
-                    const realMessageId = saveResult.data ? saveResult.data.message_id : saveResult.message_id;
+                    // Extract message_id from the correct nested location in response
+                    let realMessageId = null;
+                    
+                    if (saveResult.data && saveResult.data.data && saveResult.data.data.message && saveResult.data.data.message.id) {
+                        realMessageId = saveResult.data.data.message.id;
+                    } else if (saveResult.data && saveResult.data.message_id) {
+                        realMessageId = saveResult.data.message_id;
+                    } else if (saveResult.message_id) {
+                        realMessageId = saveResult.message_id;
+                    }
+                    
+                    console.log(`🔍 [SAVE-AND-SEND] Debug message ID extraction:`, {
+                        deepNested: saveResult.data?.data?.message?.id || 'NO_DEEP_NESTED',
+                        dataLevel: saveResult.data?.message_id || 'NO_DATA_LEVEL',
+                        topLevel: saveResult.message_id || 'NO_TOP_LEVEL',
+                        finalMessageId: realMessageId
+                    });
                     
                     if (!realMessageId) {
+                        console.error(`❌ [SAVE-AND-SEND] No message_id found. Full response:`, JSON.stringify(saveResult, null, 2));
                         throw new Error('No message_id found in server response');
                     }
                     

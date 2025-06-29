@@ -423,38 +423,8 @@
     animation-play-state: paused;
 }
 
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 0deg"] {
-    transition-delay: 0s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
-}
-
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 60deg"] {
-    transition-delay: 0.1s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
-}
-
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 120deg"] {
-    transition-delay: 0.2s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
-}
-
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 180deg"] {
-    transition-delay: 0.3s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
-}
-
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 240deg"] {
-    transition-delay: 0.4s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
-}
-
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 300deg"] {
-    transition-delay: 0.5s;
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-240px);
-}
-
 .rotating-hexagons .hexagon-feature {
-    transition-delay: 0s !important;
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .crown-icon {
@@ -489,12 +459,12 @@
 }
 
 .hexagon-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2rem;
-    justify-items: center;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
     align-items: center;
-    padding: 2rem;
 }
 
 .hexagon-feature {
@@ -505,7 +475,7 @@
     left: 50%;
     opacity: 0;
     transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-160px) rotate(calc(var(--rotation)));
-    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     will-change: transform;
 }
 
@@ -532,8 +502,53 @@
     transform: rotate(var(--rotation));
 }
 
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature {
+    transition-duration: 0.8s;
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 0deg"] {
+    transform: translate(-50%, 40%) scale(1.2) rotate(0deg);
+    transition-delay: 0s;
+    z-index: 10;
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 60deg"] {
+    transform: translate(-100%, 0%) scale(1.2) rotate(0deg);
+    transition-delay: 0.1s;
+    z-index: 9;
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 120deg"] {
+    transform: translate(-100%, -80%) scale(1.2) rotate(0deg);
+    transition-delay: 0.2s;
+    z-index: 8;
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 180deg"] {
+    transform: translate(-50%, -120%) scale(1.2) rotate(0deg);
+    transition-delay: 0.3s;
+    z-index: 7;
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 240deg"] {
+    transform: translate(0%, -80%) scale(1.2) rotate(0deg);
+    transition-delay: 0.4s;
+    z-index: 6;
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 300deg"] {
+    transform: translate(0%, 0%) scale(1.2) rotate(0deg);
+    transition-delay: 0.5s;
+    z-index: 5;
+}
+
 .crown-center:hover ~ .rotating-hexagons .hexagon-feature .hexagon-content {
     transform: rotate(0deg);
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature .hexagon-border {
+    transform: rotate(0deg);
+    opacity: 0.5;
 }
 
 .hexagon-border {
@@ -548,10 +563,6 @@
     z-index: 1;
     animation: borderGlow 2s linear infinite;
     transform: rotate(var(--rotation));
-}
-
-.crown-center:hover ~ .rotating-hexagons .hexagon-feature .hexagon-border {
-    transform: rotate(0deg);
 }
 
 .feature-icon {

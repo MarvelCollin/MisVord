@@ -39,64 +39,66 @@ if (!function_exists('asset')) {
                 </div>
 
                 <div class="rotating-hexagons">
-                    <div class="hexagon-feature" data-delay="0" style="--rotation: 0deg">
-                        <div class="hexagon-content">
-                            <div class="feature-icon">
-                                <i class="fas fa-palette"></i>
+                    <div class="hexagon-grid">
+                        <div class="hexagon-feature" data-delay="0" style="--rotation: 0deg">
+                            <div class="hexagon-content">
+                                <div class="feature-icon">
+                                    <i class="fas fa-palette"></i>
+                                </div>
+                                <h3 class="feature-title">Custom Themes</h3>
                             </div>
-                            <h3 class="feature-title">Custom Themes</h3>
+                            <div class="hexagon-border"></div>
                         </div>
-                        <div class="hexagon-border"></div>
-                    </div>
-                    
-                    <div class="hexagon-feature" data-delay="100" style="--rotation: 60deg">
-                        <div class="hexagon-content">
-                            <div class="feature-icon">
-                                <i class="fas fa-file-upload"></i>
+                        
+                        <div class="hexagon-feature" data-delay="100" style="--rotation: 60deg">
+                            <div class="hexagon-content">
+                                <div class="feature-icon">
+                                    <i class="fas fa-file-upload"></i>
+                                </div>
+                                <h3 class="feature-title">Larger Uploads</h3>
                             </div>
-                            <h3 class="feature-title">Larger Uploads</h3>
+                            <div class="hexagon-border"></div>
                         </div>
-                        <div class="hexagon-border"></div>
-                    </div>
 
-                    <div class="hexagon-feature" data-delay="200" style="--rotation: 120deg">
-                        <div class="hexagon-content">
-                            <div class="feature-icon">
-                                <i class="fas fa-crown"></i>
+                        <div class="hexagon-feature" data-delay="200" style="--rotation: 120deg">
+                            <div class="hexagon-content">
+                                <div class="feature-icon">
+                                    <i class="fas fa-crown"></i>
+                                </div>
+                                <h3 class="feature-title">Premium Badge</h3>
                             </div>
-                            <h3 class="feature-title">Premium Badge</h3>
+                            <div class="hexagon-border"></div>
                         </div>
-                        <div class="hexagon-border"></div>
-                    </div>
 
-                    <div class="hexagon-feature" data-delay="300" style="--rotation: 180deg">
-                        <div class="hexagon-content">
-                            <div class="feature-icon">
-                                <i class="fas fa-magic"></i>
+                        <div class="hexagon-feature" data-delay="300" style="--rotation: 180deg">
+                            <div class="hexagon-content">
+                                <div class="feature-icon">
+                                    <i class="fas fa-magic"></i>
+                                </div>
+                                <h3 class="feature-title">Exclusive Features</h3>
                             </div>
-                            <h3 class="feature-title">Exclusive Features</h3>
+                            <div class="hexagon-border"></div>
                         </div>
-                        <div class="hexagon-border"></div>
-                    </div>
 
-                    <div class="hexagon-feature" data-delay="400" style="--rotation: 240deg">
-                        <div class="hexagon-content">
-                            <div class="feature-icon">
-                                <i class="fas fa-headset"></i>
+                        <div class="hexagon-feature" data-delay="400" style="--rotation: 240deg">
+                            <div class="hexagon-content">
+                                <div class="feature-icon">
+                                    <i class="fas fa-headset"></i>
+                                </div>
+                                <h3 class="feature-title">Enhanced Audio</h3>
                             </div>
-                            <h3 class="feature-title">Enhanced Audio</h3>
+                            <div class="hexagon-border"></div>
                         </div>
-                        <div class="hexagon-border"></div>
-                    </div>
 
-                    <div class="hexagon-feature" data-delay="500" style="--rotation: 300deg">
-                        <div class="hexagon-content">
-                            <div class="feature-icon">
-                                <i class="fas fa-bolt"></i>
+                        <div class="hexagon-feature" data-delay="500" style="--rotation: 300deg">
+                            <div class="hexagon-content">
+                                <div class="feature-icon">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                                <h3 class="feature-title">Priority Support</h3>
                             </div>
-                            <h3 class="feature-title">Priority Support</h3>
+                            <div class="hexagon-border"></div>
                         </div>
-                        <div class="hexagon-border"></div>
                     </div>
                 </div>
             </div>

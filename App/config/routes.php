@@ -220,6 +220,12 @@ Route::post('/api/servers/join/([a-zA-Z0-9]+)', function($code) {
     $controller->join($code);
 });
 
+Route::post('/api/servers/join', function() {
+    require_once __DIR__ . '/../controllers/ServerController.php';
+    $controller = new ServerController();
+    $controller->joinServerById();
+});
+
 Route::get('/api/servers/([0-9]+)/channels', function($serverId) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
@@ -633,6 +639,34 @@ Route::get('/api/explore/servers/search', function() {
     header('Content-Type: application/json');
     echo json_encode($result);
     exit;
+});
+
+Route::get('/api/explore/content', function() {
+    $controller = new ExploreController();
+    $controller->getExploreContent();
+});
+
+Route::get('/api/explore/servers/category', function() {
+    $category = $_GET['category'] ?? '';
+    $controller = new ExploreController();
+    $result = $controller->getServersByCategory($category);
+    header('Content-Type: application/json');
+    echo json_encode($result);
+    exit;
+});
+
+Route::get('/api/explore/servers/featured', function() {
+    $limit = $_GET['limit'] ?? 3;
+    $controller = new ExploreController();
+    $result = $controller->getFeaturedServers($limit);
+    header('Content-Type: application/json');
+    echo json_encode($result);
+    exit;
+});
+
+Route::get('/explore-servers/layout', function() {
+    $controller = new ExploreController();
+    $controller->getExploreLayout();
 });
 
 Route::get('/api/users/([0-9]+)', function($userId) {
