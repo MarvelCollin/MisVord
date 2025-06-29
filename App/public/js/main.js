@@ -76,7 +76,7 @@ function initPageSpecificComponents() {
 
     }
 
-    else if (path === '/app' || path === '/home') {
+    else if (path === '/home') {
 
     }
 

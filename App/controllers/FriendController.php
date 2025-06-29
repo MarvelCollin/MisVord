@@ -164,8 +164,12 @@ class FriendController extends BaseController
             $outgoingRequests = $this->friendListRepository->getSentRequests($userId);            $this->logActivity('pending_requests_viewed');
 
             $this->jsonResponse([
-                'incoming' => $incomingRequests ?: [],
-                'outgoing' => $outgoingRequests ?: []
+                'success' => true,
+                'data' => [
+                    'incoming' => $incomingRequests ?: [],
+                    'outgoing' => $outgoingRequests ?: []
+                ],
+                'message' => 'Pending requests retrieved successfully'
             ]);
             return;
         } catch (Exception $e) {
@@ -255,7 +259,11 @@ class FriendController extends BaseController
             }
               $this->logActivity('friends_viewed');
             
-            $this->jsonResponse($friends);
+            $this->jsonResponse([
+                'success' => true,
+                'data' => ['friends' => $friends],
+                'message' => 'Friends retrieved successfully'
+            ]);
             return;
         } catch (Exception $e) {
             return $this->serverError('An error occurred while retrieving friends: ' . $e->getMessage());
@@ -271,10 +279,18 @@ class FriendController extends BaseController
             $friends = $this->friendListRepository->getUserFriends($userId);
             $onlineFriends = [];            
             foreach ($friends as $friend) {
+                $friend['status'] = 'offline';
+                if ($friend['status'] === 'online') {
+                    $onlineFriends[] = $friend;
+                }
             }
               $this->logActivity('online_friends_viewed');
             
-            $this->jsonResponse($onlineFriends);
+            $this->jsonResponse([
+                'success' => true,
+                'data' => ['friends' => $onlineFriends],
+                'message' => 'Online friends retrieved successfully'
+            ]);
             return;
         } catch (Exception $e) {
             return $this->serverError('An error occurred while retrieving online friends: ' . $e->getMessage());

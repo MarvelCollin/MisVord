@@ -36,12 +36,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             } else {
                 window.logger.debug('general', "No redirect URL found, going to app");
-                window.location.href = '/app';
+                window.location.href = '/home';
                 return;
             }
         } catch (e) {
             console.error("Error parsing JSON from body:", e);
-            window.location.href = '/app';
+            window.location.href = '/home';
             return;
         }
     }

@@ -229,10 +229,11 @@ class MessageHandler {
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content relative group overflow-visible';
         messageContent.dataset.messageId = messageData.id;
+        messageContent.dataset.userId = messageData.userId;
         messageContent.style.cssText = 'position: relative !important; overflow: visible !important;';
         
         // Handle reply if present
-        if (messageData.hasReply) {
+        if (messageData.hasReply && messageData.replyData) {
             const replyContainer = this.createReplyElement(messageData.replyData);
             messageContent.appendChild(replyContainer);
         }
@@ -240,7 +241,18 @@ class MessageHandler {
         // Main message text
         const messageText = document.createElement('div');
         messageText.className = 'message-main-text text-[#dcddde] break-words';
-        messageText.innerHTML = this.chatSection.formatMessageContent(messageData.content);
+        
+        if (messageData.content) {
+            messageText.innerHTML = this.chatSection.formatMessageContent(messageData.content);
+            
+            // Add edited badge if message was edited
+            if (messageData.editedAt) {
+                const editedBadge = document.createElement('span');
+                editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                editedBadge.textContent = '(edited)';
+                messageText.appendChild(editedBadge);
+            }
+        }
         
         messageContent.appendChild(messageText);
         
@@ -250,7 +262,7 @@ class MessageHandler {
             messageContent.appendChild(attachmentsContainer);
         }
         
-        // Message actions (visible on hover with delay)
+        // Message actions (identical to PHP structure)
         const messageActions = document.createElement('div');
         messageActions.className = 'message-actions-js absolute -right-1 -top-1 opacity-0 flex items-center bg-[#36393f] shadow-lg rounded-md transition-opacity duration-200 z-50';
         messageActions.style.cssText = 'display: flex !important; position: absolute !important; z-index: 999 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;';
@@ -263,30 +275,6 @@ class MessageHandler {
         replyButton.dataset.action = 'reply';
         replyButton.dataset.messageId = messageData.id;
         
-        // Edit button (only for own messages)
-        const editButton = document.createElement('button');
-        editButton.className = 'p-2 text-[#b9bbbe] hover:text-[#dcddde] hover:bg-[#32353b] transition-colors duration-200';
-        editButton.innerHTML = '<i class="fas fa-edit"></i>';
-        editButton.title = 'Edit';
-        editButton.dataset.action = 'edit';
-        editButton.dataset.messageId = messageData.id;
-        
-        if (messageData.userId != this.chatSection.userId) {
-            editButton.classList.add('hidden');
-        }
-        
-        // Delete button (only for own messages)
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'p-2 text-[#b9bbbe] hover:text-[#ed4245] hover:bg-[#32353b] rounded-r-md transition-colors duration-200';
-        deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
-        deleteButton.title = 'Delete';
-        deleteButton.dataset.action = 'delete';
-        deleteButton.dataset.messageId = messageData.id;
-        
-        if (messageData.userId != this.chatSection.userId) {
-            deleteButton.classList.add('hidden');
-        }
-        
         // Reaction button
         const reactionButton = document.createElement('button');
         reactionButton.className = 'message-action-reaction p-2 text-[#b9bbbe] hover:text-[#dcddde] hover:bg-[#32353b] transition-colors duration-200';
@@ -295,19 +283,37 @@ class MessageHandler {
         reactionButton.dataset.action = 'react';
         reactionButton.dataset.messageId = messageData.id;
         
+        // Add buttons to actions container
+        messageActions.appendChild(replyButton);
+        messageActions.appendChild(reactionButton);
+        
+        // Edit button (only for own messages)
+        if (messageData.userId == this.chatSection.userId) {
+            const editButton = document.createElement('button');
+            editButton.className = 'p-2 text-[#b9bbbe] hover:text-[#dcddde] hover:bg-[#32353b] transition-colors duration-200';
+            editButton.innerHTML = '<i class="fas fa-edit"></i>';
+            editButton.title = 'Edit';
+            editButton.dataset.action = 'edit';
+            editButton.dataset.messageId = messageData.id;
+            messageActions.appendChild(editButton);
+            
+            // Delete button (only for own messages)
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'p-2 text-[#b9bbbe] hover:text-[#ed4245] hover:bg-[#32353b] transition-colors duration-200';
+            deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteButton.title = 'Delete';
+            deleteButton.dataset.action = 'delete';
+            deleteButton.dataset.messageId = messageData.id;
+            messageActions.appendChild(deleteButton);
+        }
+        
         // More actions button
         const moreButton = document.createElement('button');
-        moreButton.className = 'p-2 text-[#b9bbbe] hover:text-[#dcddde] hover:bg-[#32353b] transition-colors duration-200';
+        moreButton.className = 'p-2 text-[#b9bbbe] hover:text-[#dcddde] hover:bg-[#32353b] rounded-r-md transition-colors duration-200';
         moreButton.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
         moreButton.title = 'More Actions';
         moreButton.dataset.action = 'more';
         moreButton.dataset.messageId = messageData.id;
-        
-        // Add buttons to actions container
-        messageActions.appendChild(replyButton);
-        messageActions.appendChild(reactionButton);
-        messageActions.appendChild(editButton);
-        messageActions.appendChild(deleteButton);
         messageActions.appendChild(moreButton);
         
         messageContent.appendChild(messageActions);
@@ -365,72 +371,79 @@ class MessageHandler {
     createAttachmentElement(attachment) {
         const attachmentElement = document.createElement('div');
         attachmentElement.className = 'attachment bg-[#2f3136] rounded-md overflow-hidden border border-[#202225]';
-        attachmentElement.dataset.attachmentId = attachment.id;
+        attachmentElement.dataset.attachmentUrl = attachment.url || attachment;
+        
+        const attachmentUrl = attachment.url || attachment;
+        const attachmentName = attachment.name || this.getFilenameFromUrl(attachmentUrl);
+        const attachmentType = attachment.type || 'file';
         
         // Handle different attachment types
-        if (attachment.type.startsWith('image/')) {
+        if (attachmentType.startsWith('image/') || this.isImageFile(attachmentUrl)) {
             // Image attachment
-            attachmentElement.className += ' image-attachment';
+            attachmentElement.classList.add('image-attachment');
             
             const imageContainer = document.createElement('div');
-            imageContainer.className = 'relative';
+            imageContainer.className = 'image-attachment cursor-pointer relative';
             
             const image = document.createElement('img');
-            image.className = 'max-w-full max-h-[300px] rounded-md cursor-pointer';
-            image.src = attachment.url;
-            image.alt = attachment.name;
+            image.className = 'max-w-md max-h-96 rounded-lg cursor-pointer';
+            image.src = attachmentUrl;
+            image.alt = attachmentName;
             image.loading = 'lazy';
             
             // Add click handler to open full image
             image.addEventListener('click', () => {
-                this.chatSection.openImageViewer(attachment);
+                window.open(attachmentUrl, '_blank');
+            });
+            
+            // Add error handler
+            image.addEventListener('error', () => {
+                image.onerror = null;
+                image.src = '/public/assets/common/default-profile-picture.png';
+                image.classList.add('w-16', 'h-16');
+                imageContainer.classList.add('bg-[#2b2d31]', 'p-3', 'rounded-lg');
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'text-sm text-[#b5bac1] mt-2';
+                errorDiv.textContent = 'Image failed to load';
+                imageContainer.appendChild(errorDiv);
             });
             
             imageContainer.appendChild(image);
             attachmentElement.appendChild(imageContainer);
             
-            // Add file info
-            const fileInfo = document.createElement('div');
-            fileInfo.className = 'p-2 text-xs text-[#b9bbbe]';
-            fileInfo.textContent = attachment.name;
-            
-            attachmentElement.appendChild(fileInfo);
-        } else if (attachment.type.startsWith('video/')) {
+        } else if (attachmentType.startsWith('video/') || this.isVideoFile(attachmentUrl)) {
             // Video attachment
-            attachmentElement.className += ' video-attachment';
+            attachmentElement.classList.add('video-attachment');
+            
+            const videoContainer = document.createElement('div');
+            videoContainer.className = 'video-attachment';
             
             const video = document.createElement('video');
-            video.className = 'max-w-full max-h-[300px] rounded-md';
-            video.src = attachment.url;
+            video.className = 'max-w-md max-h-96 rounded-lg';
+            video.src = attachmentUrl;
             video.controls = true;
+            video.preload = 'metadata';
             
-            attachmentElement.appendChild(video);
+            // Add error handler
+            video.addEventListener('error', () => {
+                videoContainer.innerHTML = '<div class="bg-[#2b2d31] p-3 rounded-lg flex items-center"><i class="fas fa-file-video text-2xl mr-2"></i><span>Video failed to load</span></div>';
+            });
             
-            // Add file info
-            const fileInfo = document.createElement('div');
-            fileInfo.className = 'p-2 text-xs text-[#b9bbbe]';
-            fileInfo.textContent = attachment.name;
+            videoContainer.appendChild(video);
+            attachmentElement.appendChild(videoContainer);
             
-            attachmentElement.appendChild(fileInfo);
         } else {
             // Generic file attachment
-            attachmentElement.className += ' file-attachment p-3 flex items-center';
+            attachmentElement.classList.add('file-attachment');
             
-            // File icon based on type
+            const fileContainer = document.createElement('div');
+            fileContainer.className = 'file-attachment p-3 flex items-center';
+            
+            // File icon based on extension
             const fileIcon = document.createElement('div');
             fileIcon.className = 'mr-3 text-xl';
-            
-            if (attachment.type.includes('pdf')) {
-                fileIcon.innerHTML = '<i class="fas fa-file-pdf text-red-500"></i>';
-            } else if (attachment.type.includes('word') || attachment.type.includes('document')) {
-                fileIcon.innerHTML = '<i class="fas fa-file-word text-blue-500"></i>';
-            } else if (attachment.type.includes('excel') || attachment.type.includes('spreadsheet')) {
-                fileIcon.innerHTML = '<i class="fas fa-file-excel text-green-500"></i>';
-            } else if (attachment.type.includes('zip') || attachment.type.includes('compressed')) {
-                fileIcon.innerHTML = '<i class="fas fa-file-archive text-yellow-500"></i>';
-            } else {
-                fileIcon.innerHTML = '<i class="fas fa-file text-gray-500"></i>';
-            }
+            fileIcon.innerHTML = this.getFileIcon(attachmentName);
             
             // File info
             const fileInfo = document.createElement('div');
@@ -438,14 +451,16 @@ class MessageHandler {
             
             const fileName = document.createElement('div');
             fileName.className = 'text-sm text-[#dcddde] truncate';
-            fileName.textContent = attachment.name;
-            
-            const fileSize = document.createElement('div');
-            fileSize.className = 'text-xs text-[#b9bbbe]';
-            fileSize.textContent = this.formatFileSize(attachment.size);
+            fileName.textContent = attachmentName;
             
             fileInfo.appendChild(fileName);
-            fileInfo.appendChild(fileSize);
+            
+            if (attachment.size && attachment.size > 0) {
+                const fileSize = document.createElement('div');
+                fileSize.className = 'text-xs text-[#b9bbbe]';
+                fileSize.textContent = this.formatFileSize(attachment.size);
+                fileInfo.appendChild(fileSize);
+            }
             
             // Download button
             const downloadButton = document.createElement('button');
@@ -458,19 +473,51 @@ class MessageHandler {
                 e.stopPropagation();
                 
                 const link = document.createElement('a');
-                link.href = attachment.url;
-                link.download = attachment.name;
+                link.href = attachmentUrl;
+                link.download = attachmentName;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
             });
             
-            attachmentElement.appendChild(fileIcon);
-            attachmentElement.appendChild(fileInfo);
-            attachmentElement.appendChild(downloadButton);
+            fileContainer.appendChild(fileIcon);
+            fileContainer.appendChild(fileInfo);
+            fileContainer.appendChild(downloadButton);
+            attachmentElement.appendChild(fileContainer);
         }
         
         return attachmentElement;
+    }
+    
+    getFilenameFromUrl(url) {
+        try {
+            return decodeURIComponent(url.split('/').pop().split('?')[0]) || 'File';
+        } catch (e) {
+            return 'File';
+        }
+    }
+    
+    isImageFile(url) {
+        return /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
+    }
+    
+    isVideoFile(url) {
+        return /\.(mp4|webm|mov|avi|wmv)$/i.test(url);
+    }
+    
+    getFileIcon(filename) {
+        const extension = filename.toLowerCase().split('.').pop();
+        
+        if (['doc', 'docx'].includes(extension)) return '<i class="fas fa-file-word text-blue-500"></i>';
+        if (['xls', 'xlsx', 'csv'].includes(extension)) return '<i class="fas fa-file-excel text-green-500"></i>';
+        if (['ppt', 'pptx'].includes(extension)) return '<i class="fas fa-file-powerpoint text-orange-500"></i>';
+        if (extension === 'pdf') return '<i class="fas fa-file-pdf text-red-500"></i>';
+        if (['zip', 'rar', 'tar', 'gz'].includes(extension)) return '<i class="fas fa-file-archive text-yellow-500"></i>';
+        if (['txt', 'log', 'md'].includes(extension)) return '<i class="fas fa-file-alt text-gray-500"></i>';
+        if (['js', 'php', 'html', 'css', 'py', 'java', 'cpp', 'cs', 'rb'].includes(extension)) return '<i class="fas fa-file-code text-purple-500"></i>';
+        if (['mp3', 'wav', 'ogg'].includes(extension)) return '<i class="fas fa-file-audio text-green-400"></i>';
+        
+        return '<i class="fas fa-file"></i>';
     }
     
     createReactionsContainer(reactions) {
@@ -540,6 +587,11 @@ class MessageHandler {
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) return;
         
+        // Update reaction button state for this message
+        if (window.emojiReactions && typeof window.emojiReactions.updateReactionButtonState === 'function') {
+            window.emojiReactions.updateReactionButtonState(messageElement, messageId);
+        }
+
         const messageActions = messageElement.querySelector('.message-actions-js');
         
         // Setup hover behavior for message actions if they exist

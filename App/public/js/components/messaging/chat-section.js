@@ -186,6 +186,9 @@ class ChatSection {
             this.loadMessages();
         }
         
+        // Initialize event listeners for existing server-rendered messages
+        this.initializeExistingMessages();
+        
         // Set initialized flag
         this.isInitialized = true;
         
@@ -971,6 +974,25 @@ class ChatSection {
         
         console.log('🔍 [CHAT-SECTION] Socket Status:', status);
         return status;
+    }
+    
+    initializeExistingMessages() {
+        console.log('🔧 [CHAT-SECTION] Initializing event listeners for existing server-rendered messages');
+        
+        // Find all existing message elements
+        const existingMessages = document.querySelectorAll('.message-content[data-message-id]');
+        
+        console.log(`📝 [CHAT-SECTION] Found ${existingMessages.length} existing messages to initialize`);
+        
+        existingMessages.forEach(messageElement => {
+            const messageId = messageElement.dataset.messageId;
+            if (messageId && this.messageHandler) {
+                console.log(`🔧 [CHAT-SECTION] Setting up event listeners for message ${messageId}`);
+                this.messageHandler.addMessageEventListeners(messageId);
+            }
+        });
+        
+        console.log('✅ [CHAT-SECTION] Existing message initialization complete');
     }
 }
 

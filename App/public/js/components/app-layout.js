@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initResponsiveHandling();
     initMobileMenu();
             
-    if (window.location.pathname === '/app/friends' || window.location.pathname === '/home') {
+    if (window.location.pathname === '/home/friends' || window.location.pathname === '/home') {
         const urlParams = new URLSearchParams(window.location.search);
         const tab = urlParams.get('tab') || 'online';
         
@@ -278,12 +278,12 @@ function activateTab(tabName) {
     
     updateTabUI(tabName, tabs, tabContents);
     
-    if (window.location.pathname === '/app/friends' || window.location.pathname === '/home') {
+    if (window.location.pathname === '/home/friends' || window.location.pathname === '/home') {
         const url = new URL(window.location);
         url.searchParams.set('tab', tabName);
         window.history.pushState({}, '', url);
     } else {
-        window.location.href = '/app/friends?tab=' + tabName;
+        window.location.href = '/home/friends?tab=' + tabName;
     }
 }
 

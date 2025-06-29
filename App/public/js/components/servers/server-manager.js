@@ -161,7 +161,7 @@ async function leaveServer(serverId) {
 
         if (data.data) {
             showToast('Left server successfully', 'success');
-            window.location.href = '/app';
+            window.location.href = '/home';
         } else {
             showToast(data.message || 'Failed to leave server', 'error');
         }

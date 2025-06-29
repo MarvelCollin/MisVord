@@ -526,7 +526,7 @@ function escapeHtml(text) {
 }
 
 function initTabFromUrl() {
-    if (window.location.pathname !== '/app/friends') {
+    if (window.location.pathname !== '/home/friends') {
         return;
     }
     

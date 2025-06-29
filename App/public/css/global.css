@@ -653,6 +653,45 @@ button[type="submit"]:hover,
   animation: glow 2s ease-in-out infinite;
 }
 
+/* Skeleton loading animations */
+.skeleton {
+  background: linear-gradient(-90deg, #313338 0%, #383a40 50%, #313338 100%);
+  background-size: 400% 400%;
+  animation: skeleton-loading 1.2s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.skeleton-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.skeleton-text {
+  height: 16px;
+  width: 120px;
+  margin-bottom: 4px;
+}
+
+.skeleton-text-sm {
+  height: 12px;
+  width: 80px;
+}
+
+.skeleton-item {
+  padding: 8px 0;
+  opacity: 0.7;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 /* Dropdown transition effects */
 .dropdown-transition {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

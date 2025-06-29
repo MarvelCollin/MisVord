@@ -235,12 +235,31 @@ class VoiceManager {
             this.currentMeetingId = meeting;
             this.isConnected = true;
             
-            // Dispatch event
-            this.dispatchEvent('voiceConnect', {
+            // Get channel name from multiple sources
+            const channelName = this.currentChannelName || 
+                               document.querySelector('meta[name="channel-name"]')?.content ||
+                               document.querySelector('.channel-name')?.textContent?.trim() ||
+                               document.querySelector('h2')?.textContent?.trim() ||
+                               'Voice Channel';
+            
+            console.log('🎤 Dispatching voiceConnect event with details:', {
                 channelId: this.currentChannelId,
-                channelName: this.currentChannelName,
+                channelName: channelName,
                 meetingId: meeting
             });
+            
+            // Dispatch event for voice indicator
+            this.dispatchEvent('voiceConnect', {
+                channelId: this.currentChannelId,
+                channelName: channelName,
+                meetingId: meeting
+            });
+            
+            // Also dispatch for global voice indicator
+            if (window.globalVoiceIndicator) {
+                console.log('🔗 Notifying global voice indicator');
+                window.globalVoiceIndicator.handleConnect(channelName, meeting, this.currentChannelId);
+            }
 
             console.log('✅ Successfully joined voice channel');
             return Promise.resolve();

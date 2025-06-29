@@ -116,15 +116,33 @@ class GlobalVoiceIndicator {
   }
   
   forceShowIndicator() {
-    if (!this.indicator) return;
-    if (this.onVoiceChannelPage) return;
+    if (!this.indicator) {
+      console.warn('⚠️ Cannot show indicator - indicator element not found');
+      return;
+    }
     
+    console.log('✅ Showing voice indicator');
+    
+    // Force display the indicator
     this.indicator.style.display = "flex";
-    this.indicator.classList.remove("scale-0", "opacity-0");
+    this.indicator.style.visibility = "visible";
+    this.indicator.classList.remove("scale-0", "opacity-0", "hidden");
+    this.indicator.classList.add("scale-100", "opacity-100");
     
-    
+    // Force CSS properties
     this.indicator.style.opacity = "1";
     this.indicator.style.transform = "scale(1)";
+    this.indicator.style.pointerEvents = "auto";
+    
+    // Update channel name if available
+    this.updateChannelInfo();
+    
+    console.log('🎨 Voice indicator shown with styles:', {
+      display: this.indicator.style.display,
+      opacity: this.indicator.style.opacity,
+      transform: this.indicator.style.transform,
+      classes: this.indicator.className
+    });
   }
 
   makeDraggable() {
@@ -275,17 +293,28 @@ class GlobalVoiceIndicator {
     this.currentChannelId = channelId;
     this.connectionTime = Date.now();
     
+    console.log('🎤 Voice connected, handling indicator display', {
+      channelName,
+      meetingId,
+      channelId,
+      onVoiceChannelPage: this.onVoiceChannelPage
+    });
+    
     this.checkIfOnVoiceChannelPage();
 
-    if (!this.onVoiceChannelPage) {
-      this.loadIndicatorComponent(true);
-      
-      setTimeout(() => {
-        if (this.indicator && this.isConnected && !this.onVoiceChannelPage) {
-          this.forceShowIndicator();
-        }
-      }, 200);
-    }
+    // Always load the indicator component for now (for debugging)
+    this.loadIndicatorComponent(true);
+    
+    setTimeout(() => {
+      if (this.indicator && this.isConnected) {
+        console.log('🔍 Forcing indicator to show', {
+          indicatorExists: !!this.indicator,
+          isConnected: this.isConnected,
+          onVoiceChannelPage: this.onVoiceChannelPage
+        });
+        this.forceShowIndicator();
+      }
+    }, 500);
   }
 
   handleDisconnect() {

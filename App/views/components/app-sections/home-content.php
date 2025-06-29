@@ -55,8 +55,8 @@ $onlineFriends = $GLOBALS['onlineFriends'] ?? [];
                         <div class="flex items-center">
                             <div class="relative mr-3">
                                 <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                    <img src="<?php echo getUserAvatar($friend['avatar'] ?? '', $friend['username'] ?? 'User'); ?>" 
-                                         alt="Avatar" class="w-full h-full object-cover">
+                                                                <img src="<?php echo $friend['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'; ?>" 
+                                 alt="Avatar" class="w-full h-full object-cover">
                                 </div>
                                 <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background <?php echo $statusColor; ?> friend-status-indicator" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"></span>
                             </div>
@@ -80,115 +80,3 @@ $onlineFriends = $GLOBALS['onlineFriends'] ?? [];
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-        if (window.LazyLoader && typeof window.LazyLoader.triggerDataLoaded === 'function') {
-            window.LazyLoader.triggerDataLoaded('friend-list', <?php echo empty($friends) ? 'true' : 'false'; ?>);
-            
-            document.querySelector('.skeleton-content').classList.add('hidden');
-            document.querySelector('.friend-content').classList.remove('hidden');
-        } else {
-            console.warn('LazyLoader.triggerDataLoaded not available yet');
-        }
-        
-        updateFriendStatus();
-    }, 750);
-    
-    function updateFriendStatus() {
-        if (!window.ChatAPI || typeof window.ChatAPI.getOnlineUsers !== 'function') {
-            console.warn('ChatAPI not available for status updates');
-            setTimeout(updateFriendStatus, 2000);
-            return;
-        }
-
-        window.ChatAPI.getOnlineUsers().then(onlineUsers => {
-            const statusIndicators = document.querySelectorAll('.friend-status-indicator');
-            const statusTexts = document.querySelectorAll('.friend-status-text');
-            let onlineCount = 0;
-            
-            const allFriendItems = document.querySelectorAll('.friend-item');
-            
-            allFriendItems.forEach(item => {
-                item.style.display = 'flex';
-            });
-            
-            statusIndicators.forEach(indicator => {
-                const userId = indicator.getAttribute('data-user-id');
-                let isOnline = false;
-                
-                if (onlineUsers[userId]) {
-                    isOnline = true;
-                    onlineCount++;
-                    const status = onlineUsers[userId].status || 'online';
-                    
-                    indicator.classList.remove('bg-gray-500', 'bg-discord-green', 'bg-discord-yellow', 'bg-discord-red');
-                    
-                    if (status === 'online' || status === 'appear') {
-                        indicator.classList.add('bg-discord-green');
-                    } else if (status === 'away' || status === 'idle') {
-                        indicator.classList.add('bg-discord-yellow');
-                    } else if (status === 'dnd' || status === 'do_not_disturb') {
-                        indicator.classList.add('bg-discord-red');
-                    } else {
-                        indicator.classList.add('bg-gray-500');
-                    }
-                    
-                    const statusText = document.querySelector(`.friend-status-text[data-user-id="${userId}"]`);
-                    if (statusText) {
-                        if (status === 'online' || status === 'appear') {
-                            statusText.textContent = 'Online';
-                        } else if (status === 'away' || status === 'idle') {
-                            statusText.textContent = 'Away';
-                        } else if (status === 'dnd' || status === 'do_not_disturb') {
-                            statusText.textContent = 'Do Not Disturb';
-                        } else {
-                            statusText.textContent = 'Online';
-                        }
-                    }
-                } else {
-                    indicator.classList.remove('bg-discord-green', 'bg-discord-yellow', 'bg-discord-red');
-                    indicator.classList.add('bg-gray-500');
-                    
-                    const statusText = document.querySelector(`.friend-status-text[data-user-id="${userId}"]`);
-                    if (statusText) {
-                        statusText.textContent = 'Offline';
-                    }
-                    
-                    const friendItem = document.querySelector(`.friend-item[data-user-id="${userId}"]`);
-                    if (friendItem) {
-                        const currentPath = window.location.pathname;
-                        const isOnFriendsPage = currentPath === '/home/friends' || currentPath === '/home';
-                        const isOnlineTab = !window.location.search.includes('tab=all');
-                        
-                        if (isOnFriendsPage && isOnlineTab) {
-                            friendItem.style.display = 'none';
-                        }
-                    }
-                }
-            });
-            
-            const onlineCountEl = document.getElementById('online-count');
-            if (onlineCountEl) {
-                onlineCountEl.textContent = onlineCount;
-            }
-        }).catch(error => {
-            console.error('Error updating friend status:', error);
-        });
-    }
-
-    setInterval(updateFriendStatus, 30000);
-
-    if (window.globalSocketManager) {
-        window.globalSocketManager.onReady = function() {
-            updateFriendStatus();
-        };
-    }
-
-    if (window.globalSocketManager && window.globalSocketManager.io) {
-        window.globalSocketManager.io.on('user-presence-update', function() {
-            updateFriendStatus();
-        });
-    }
-});
-</script>

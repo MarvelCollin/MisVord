@@ -173,13 +173,11 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
 $page_title = 'misvord - Home';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';
-$page_js = 'pages/app';
+$page_js = 'pages/home-page';
 $additional_js = [
     'components/servers/server-dropdown', 
     'components/servers/server-sidebar',
-    'components/home/friends-tabs',
-    'components/home/direct-message-nav',
-    'utils/load-home-page',
+    'wrapper/home-wrapper',
     'utils/load-server-page'
 ];
 $head_scripts = ['logger-init'];

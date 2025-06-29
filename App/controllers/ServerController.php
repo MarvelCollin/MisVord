@@ -1621,7 +1621,7 @@ class ServerController extends BaseController
 
         if (!$code) {
             if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
-                header('Location: /app');
+                header('Location: /home');
                 exit;
             }
             return $this->notFound('Invalid invite code');

@@ -88,6 +88,10 @@ function renderFilePreviewCard($file, $index = 0) {
 }
 
 function formatFileSize($bytes) {
+    if (!$bytes || $bytes === 0) {
+        return '0 B';
+    }
+    
     if ($bytes >= 1073741824) {
         return number_format($bytes / 1073741824, 2) . ' GB';
     } elseif ($bytes >= 1048576) {
@@ -95,7 +99,7 @@ function formatFileSize($bytes) {
     } elseif ($bytes >= 1024) {
         return number_format($bytes / 1024, 2) . ' KB';
     } else {
-        return $bytes . ' bytes';
+        return $bytes . ' B';
     }
 }
 

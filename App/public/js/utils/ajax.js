@@ -114,42 +114,36 @@ export function ajax(options = {}) {
 
     return fetch(url, { method, headers: fetchHeaders, body })
         .then(async (response) => {
-            
-            const responseClone = response.clone();
-            
             let parsed;
+            
             try {
-                if (dataType === 'text') {
-                    parsed = await response.text();
-                } else if (dataType === 'blob') {
+                if (dataType === 'blob') {
                     parsed = await response.blob();
                 } else {
                     
-                    try {
-                        parsed = await response.json();
-                    } catch (jsonError) {
-                        const text = await response.text();
-                        // Check if response contains voice channel content
-                        if (text.includes('voice-container') || 
-                            text.includes('voice-section') || 
-                            text.includes('voice-indicator') ||
-                            text.includes('voice-tool')) {
-                            parsed = handleVoiceChannelContent(text);
+                    const responseText = await response.text();
+                    
+                    if (dataType === 'text') {
+                        parsed = responseText;
+                    } else {
+                        
+                        try {
+                            parsed = JSON.parse(responseText);
+                        } catch (jsonError) {
+                            
+                            if (responseText.includes('voice-container') || 
+                                responseText.includes('voice-section') || 
+                                responseText.includes('voice-indicator') ||
+                                responseText.includes('voice-tool')) {
+                                parsed = handleVoiceChannelContent(responseText);
+                            } else {
+                                parsed = responseText;
+                            }
                         }
-                        parsed = text;
                     }
                 }
             } catch (error) {
-                
-                const text = await responseClone.text();
-                if (text.includes('voice-container') || 
-                    text.includes('voice-section') || 
-                    text.includes('voice-indicator') ||
-                    text.includes('voice-tool')) {
-                    parsed = handleVoiceChannelContent(text);
-                } else {
-                    throw new Error('Failed to parse response: ' + error.message);
-                }
+                throw new Error('Failed to parse response: ' + error.message);
             }
 
             if (!response.ok) {

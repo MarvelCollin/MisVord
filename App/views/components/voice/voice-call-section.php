@@ -28,73 +28,60 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+    <div class="flex-1 flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#313338] via-[#2b2d31] to-[#1e1f22]">
         <!-- Video Grid -->
-        <div id="videoGrid" class="hidden w-full max-w-7xl mx-auto p-4 grid gap-4 overflow-auto">
+        <div id="videoGrid" class="hidden w-full max-w-7xl mx-auto p-6 grid gap-6 overflow-auto">
             <!-- Video grid items will be dynamically added here -->
         </div>
 
         <!-- Voice Only View -->
-        <div id="voiceOnlyView" class="flex-1 w-full flex items-center justify-center p-8 max-w-6xl mx-auto">
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full">
+        <div id="voiceOnlyView" class="flex-1 w-full flex items-center justify-center p-12 max-w-6xl mx-auto">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8 w-full justify-items-center">
                 <!-- Voice only participants will be added here -->
             </div>
         </div>
 
         <!-- Loading State -->
-        <div id="loadingState" class="hidden absolute inset-0 bg-[#313338] bg-opacity-90 flex items-center justify-center">
-            <div class="flex flex-col items-center space-y-4">
-                <div class="animate-spin rounded-full h-12 w-12 border-4 border-[#5865f2] border-t-transparent"></div>
-                <span class="text-[#b5bac1]">Connecting to voice...</span>
+        <div id="loadingState" class="hidden absolute inset-0 bg-gradient-to-br from-[#313338]/95 via-[#2b2d31]/95 to-[#1e1f22]/95 backdrop-blur-sm flex items-center justify-center">
+            <div class="flex flex-col items-center space-y-6 p-8 bg-[#2f3136]/80 rounded-2xl border border-[#40444b]/30 shadow-2xl backdrop-blur-md">
+                <div class="relative">
+                    <div class="animate-spin rounded-full h-16 w-16 border-4 border-[#5865f2]/30 border-t-[#5865f2] shadow-lg"></div>
+                    <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-[#5865f2]/20 to-transparent animate-pulse"></div>
+                </div>
+                <div class="text-center space-y-2">
+                    <span class="text-[#dcddde] text-lg font-semibold">Connecting to voice...</span>
+                    <span class="text-[#72767d] text-sm">Please wait while we set up your connection</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-/* Base styles for participant containers */
+/* Discord-style speaking animation */
+@keyframes discord-speaking {
+    0%, 100% { 
+        box-shadow: 0 0 0 0 rgba(59, 165, 93, 0.7);
+    }
+    50% { 
+        box-shadow: 0 0 0 8px rgba(59, 165, 93, 0);
+    }
+}
+
+/* Simple hover effect */
+.participant-container:hover {
+    transform: translateY(-2px);
+}
+
+/* Speaking indicator styles */
+.speaking-ring {
+    animation: discord-speaking 2s infinite;
+}
+
+/* Responsive participant sizing */
 .participant-container {
-    @apply relative bg-[#2f3136] rounded-xl overflow-hidden transition-all duration-300 shadow-md hover:shadow-lg hover:transform hover:scale-[1.02];
-}
-
-/* Video participant styles */
-.video-participant {
-    @apply aspect-video relative bg-[#1e1f22];
-}
-
-.video-participant video {
-    @apply w-full h-full object-cover;
-}
-
-/* Voice only participant styles */
-.voice-participant {
-    @apply flex flex-col items-center justify-center p-6 space-y-4 bg-[#2f3136] rounded-xl hover:bg-[#34363c] transition-colors duration-200;
-}
-
-.voice-participant .avatar {
-    @apply w-20 h-20 rounded-full bg-[#1a1b1e] flex items-center justify-center text-3xl font-medium text-white relative shadow-inner;
-}
-
-.voice-participant .name {
-    @apply text-[#b5bac1] text-sm font-medium truncate max-w-full;
-}
-
-/* Status indicators */
-.status-indicator {
-    @apply absolute bottom-2 right-2 w-4 h-4 rounded-full border-[3px] border-[#2f3136] shadow-sm;
-}
-
-.status-speaking {
-    @apply bg-[#3ba55d];
-    animation: pulse-voice 2s infinite;
-}
-
-.status-muted {
-    @apply bg-[#ED4245];
-}
-
-.status-idle {
-    @apply bg-[#b5bac1];
+    min-width: 100px;
+    max-width: 140px;
 }
 
 /* Screen share styles */
@@ -114,28 +101,44 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     }
 }
 
-/* Grid layouts */
+/* Enhanced Grid layouts */
 @media (min-width: 768px) {
     .videoGrid-1 { 
-        grid-template-columns: minmax(0, 800px);
-        max-width: 800px;
+        grid-template-columns: minmax(0, 600px);
+        max-width: 600px;
         margin: 0 auto;
     }
     .videoGrid-2 { 
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        max-width: 1200px;
+        max-width: 1000px;
     }
     .videoGrid-3, .videoGrid-4 { 
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        max-width: 1400px;
+        max-width: 1200px;
     }
     .videoGrid-5, .videoGrid-6 { 
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        max-width: 1600px;
+        max-width: 1400px;
     }
     .videoGrid-7, .videoGrid-8, .videoGrid-9 { 
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        max-width: 1800px;
+        max-width: 1600px;
+    }
+}
+
+/* Fade in animation */
+.fade-in {
+    animation: fadeInUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
@@ -164,6 +167,28 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 @keyframes loading-dot {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1); }
+}
+
+/* Ensure Discord-style responsive layout */
+@media (max-width: 640px) {
+    .participant-container {
+        min-width: 90px;
+        max-width: 110px;
+    }
+    
+    #voiceOnlyView {
+        padding: 8px;
+    }
+    
+    .grid {
+        gap: 1rem;
+    }
+}
+
+/* Debug styles */
+.debug-highlight {
+    border: 2px solid #ff0000 !important;
+    background-color: rgba(255, 0, 0, 0.1) !important;
 }
 </style>
 
@@ -211,7 +236,9 @@ function updateGridLayout() {
 
 function createParticipantElement(participant, isVideo = false) {
     const container = document.createElement('div');
-    container.className = `participant-container ${isVideo ? 'video-participant' : 'voice-participant'}`;
+    
+    // Discord-style participant container
+    container.className = 'participant-container flex flex-col items-center space-y-2 p-4 hover:bg-[#393c43]/30 rounded-lg transition-all duration-200 group';
     container.dataset.participantId = participant.id || participant.name || 'unknown';
     
     const nameInitial = (participant.name || participant.id || 'U').charAt(0).toUpperCase();
@@ -219,45 +246,64 @@ function createParticipantElement(participant, isVideo = false) {
         ? (participant.name || participant.id || 'User').substring(0, 12) + '...' 
         : (participant.name || participant.id || 'User');
     
-    container.innerHTML = `
-        ${isVideo ? `
-            <video autoplay playsinline class="peer"></video>
-            <div class="participant-controls">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-8 h-8 rounded-full bg-[#1a1b1e] flex items-center justify-center text-white">
-                            ${nameInitial}
+    // Determine if speaking (for demo, we'll make it random initially)
+    const isSpeaking = Math.random() > 0.7; // Random for demo
+    const isMuted = Math.random() > 0.8; // Random for demo
+    
+    if (isVideo) {
+        container.innerHTML = `
+            <div class="relative">
+                <video autoplay playsinline class="w-32 h-24 object-cover rounded-lg bg-[#1e1f22] border-2 ${isSpeaking ? 'border-[#3ba55d] shadow-lg shadow-[#3ba55d]/30' : 'border-transparent'}"></video>
+                <div class="absolute bottom-1 left-1 bg-[#1e1f22]/80 backdrop-blur-sm rounded px-1.5 py-0.5">
+                    <span class="text-white text-xs font-medium">${displayName}</span>
+                </div>
+                ${isMuted ? '<div class="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"><i class="fas fa-microphone-slash text-white text-xs"></i></div>' : ''}
+            </div>
+        `;
+    } else {
+        // Discord-style voice participant
+        container.innerHTML = `
+            <div class="relative">
+                <!-- Avatar with speaking indicator -->
+                <div class="relative">
+                    <div class="w-20 h-20 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-semibold text-xl relative transition-all duration-200 ${isSpeaking ? 'ring-4 ring-[#3ba55d] ring-opacity-60 shadow-lg shadow-[#3ba55d]/30' : ''}">
+                        ${nameInitial}
+                    </div>
+                    
+                    <!-- Speaking indicator ring -->
+                    ${isSpeaking ? `
+                        <div class="absolute inset-0 rounded-full border-3 border-[#3ba55d] animate-pulse"></div>
+                        <div class="absolute inset-0 rounded-full border border-[#3ba55d] animate-ping"></div>
+                    ` : ''}
+                    
+                    <!-- Muted indicator -->
+                    ${isMuted ? `
+                        <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-red-500 rounded-full border-2 border-[#313338] flex items-center justify-center">
+                            <i class="fas fa-microphone-slash text-white text-xs"></i>
                         </div>
-                        <span class="text-white text-sm font-medium">${displayName}</span>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button class="mute-user" title="Mute User">
-                            <i class="fas fa-microphone-slash"></i>
-                        </button>
-                        <button class="volume-control" title="Adjust Volume">
-                            <i class="fas fa-volume-up"></i>
-                        </button>
-                    </div>
+                    ` : ''}
                 </div>
             </div>
-        ` : `
-            <div class="avatar">
-                ${nameInitial}
-                <div class="status-indicator status-idle"></div>
+            
+            <!-- Username -->
+            <div class="text-center">
+                <span class="text-[#dbdee1] text-sm font-medium ${isSpeaking ? 'text-[#3ba55d]' : ''} transition-colors duration-200">${displayName}</span>
             </div>
-            <span class="name">${displayName}</span>
-        `}
-    `;
+        `;
+    }
     
     return container;
 }
 
 function addLocalParticipant() {
     const voiceOnlyView = document.getElementById('voiceOnlyView');
-    const voiceGrid = voiceOnlyView?.querySelector('.grid');
+    const voiceGrid = voiceOnlyView?.querySelector('.grid') || voiceOnlyView?.querySelector('div') || voiceOnlyView?.children[0];
     
     if (!voiceGrid) {
-        console.error('❌ Voice grid not found');
+        console.error('❌ Voice grid not found. VoiceOnlyView:', !!voiceOnlyView);
+        if (voiceOnlyView) {
+            console.log('VoiceOnlyView HTML:', voiceOnlyView.outerHTML.substring(0, 200));
+        }
         return;
     }
     
@@ -281,7 +327,7 @@ function addLocalParticipant() {
 
 function addRemoteParticipant(participantId, participantName) {
     const voiceOnlyView = document.getElementById('voiceOnlyView');
-    const voiceGrid = voiceOnlyView?.querySelector('.grid');
+    const voiceGrid = voiceOnlyView?.querySelector('.grid') || voiceOnlyView?.querySelector('div') || voiceOnlyView?.children[0];
     
     if (!voiceGrid) {
         console.error('❌ Voice grid not found');
@@ -307,7 +353,7 @@ function addRemoteParticipant(participantId, participantName) {
 
 function removeParticipant(participantId) {
     const voiceOnlyView = document.getElementById('voiceOnlyView');
-    const voiceGrid = voiceOnlyView?.querySelector('.grid');
+    const voiceGrid = voiceOnlyView?.querySelector('.grid') || voiceOnlyView?.querySelector('div') || voiceOnlyView?.children[0];
     
     if (!voiceGrid) return;
     
@@ -325,12 +371,20 @@ function setupVoiceEventHandlers() {
     window.addEventListener('voiceConnect', (event) => {
         console.log('🎤 Voice connected event received:', event.detail);
         
+        // Add local participant immediately
+        addLocalParticipant();
+        
         setTimeout(() => {
-            addLocalParticipant();
+            // Backup: ensure local participant is added even if first attempt failed
+            if (!document.querySelector('[data-participant-id="local"]')) {
+                console.log('🔧 Backup: Adding local participant');
+                addLocalParticipant();
+            }
             
             if (window.videosdkMeeting) {
                 console.log('🔍 VideoSDK meeting found, setting up participant handlers');
                 
+                // Add existing participants
                 if (window.videosdkMeeting.participants) {
                     window.videosdkMeeting.participants.forEach((participant, participantId) => {
                         if (participantId !== 'local') {
@@ -339,15 +393,35 @@ function setupVoiceEventHandlers() {
                     });
                 }
                 
-                window.videosdkMeeting.on('participant-joined', (participant) => {
-                    console.log('👤 Participant joined:', participant.id);
-                    addRemoteParticipant(participant.id, participant.displayName || participant.id);
-                });
-                
-                window.videosdkMeeting.on('participant-left', (participant) => {
-                    console.log('👋 Participant left:', participant.id);
-                    removeParticipant(participant.id);
-                });
+                // Set up event handlers for future participants
+                try {
+                    window.videosdkMeeting.on('participant-joined', (participant) => {
+                        console.log('👤 Participant joined:', participant.id);
+                        addRemoteParticipant(participant.id, participant.displayName || participant.id);
+                    });
+                    
+                    window.videosdkMeeting.on('participant-left', (participant) => {
+                        console.log('👋 Participant left:', participant.id);
+                        removeParticipant(participant.id);
+                    });
+                } catch (error) {
+                    console.warn('⚠️ Error setting up VideoSDK event handlers:', error);
+                }
+            } else {
+                console.log('⚠️ VideoSDK meeting not found, will retry...');
+                // Retry in another 2 seconds
+                setTimeout(() => {
+                    if (window.videosdkMeeting && !document.querySelector('[data-participant-id="remote"]')) {
+                        console.log('🔧 Retry: Setting up VideoSDK participants');
+                        if (window.videosdkMeeting.participants) {
+                            window.videosdkMeeting.participants.forEach((participant, participantId) => {
+                                if (participantId !== 'local') {
+                                    addRemoteParticipant(participantId, participant.displayName || participantId);
+                                }
+                            });
+                        }
+                    }
+                }, 2000);
             }
         }, 500);
     });
@@ -355,7 +429,7 @@ function setupVoiceEventHandlers() {
     window.addEventListener('voiceDisconnect', () => {
         console.log('🔇 Voice disconnected, clearing participants');
         const voiceOnlyView = document.getElementById('voiceOnlyView');
-        const voiceGrid = voiceOnlyView?.querySelector('.grid');
+        const voiceGrid = voiceOnlyView?.querySelector('.grid') || voiceOnlyView?.querySelector('div') || voiceOnlyView?.children[0];
         
         if (voiceGrid) {
             voiceGrid.innerHTML = '';
@@ -377,6 +451,32 @@ document.addEventListener('DOMContentLoaded', function() {
     setupVoiceEventHandlers();
     updateGridLayout();
     
+    // Add debug button in development
+    if (window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1') || window.location.search.includes('debug=1')) {
+        const debugContainer = document.createElement('div');
+        debugContainer.className = 'fixed top-4 right-4 z-50 flex flex-col gap-2';
+        
+        const debugBtn = document.createElement('button');
+        debugBtn.innerHTML = '🔧 Debug';
+        debugBtn.className = 'bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors';
+        debugBtn.onclick = window.debugVoiceSystem;
+        
+        const refreshBtn = document.createElement('button');
+        refreshBtn.innerHTML = '🎨 Refresh';
+        refreshBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors';
+        refreshBtn.onclick = window.refreshParticipantStyling;
+        
+        const indicatorBtn = document.createElement('button');
+        indicatorBtn.innerHTML = '🔊 Indicator';
+        indicatorBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors';
+        indicatorBtn.onclick = window.testVoiceIndicator;
+        
+        debugContainer.appendChild(debugBtn);
+        debugContainer.appendChild(refreshBtn);
+        debugContainer.appendChild(indicatorBtn);
+        document.body.appendChild(debugContainer);
+    }
+    
     setTimeout(function() {
         const components = {
             videoGrid: !!document.getElementById('videoGrid'),
@@ -394,6 +494,29 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('🔧 Voice is connected but no participants showing, adding local participant');
             addLocalParticipant();
         }
+        
+        // Force refresh participants with new styling if they exist
+        const existingParticipants = document.querySelectorAll('.participant-container');
+        if (existingParticipants.length > 0) {
+            console.log('🎨 Refreshing participant styling...');
+            existingParticipants.forEach(participant => {
+                const participantId = participant.dataset.participantId;
+                const isLocal = participantId === 'local';
+                const name = isLocal ? 
+                    (document.querySelector('meta[name="username"]')?.content || 'You') : 
+                    participantId;
+                
+                // Remove old participant
+                participant.remove();
+                
+                // Add with new styling
+                if (isLocal) {
+                    addLocalParticipant();
+                } else {
+                    addRemoteParticipant(participantId, name);
+                }
+            });
+        }
     }, 1000);
 });
 
@@ -407,4 +530,127 @@ window.toggleLoading = toggleLoading;
 window.addLocalParticipant = addLocalParticipant;
 window.addRemoteParticipant = addRemoteParticipant;
 window.removeParticipant = removeParticipant;
+
+// Function to refresh all participant styling
+window.refreshParticipantStyling = function() {
+    console.log('🎨 Manually refreshing participant styling...');
+    const existingParticipants = document.querySelectorAll('.participant-container');
+    const participantData = [];
+    
+    // Collect participant data
+    existingParticipants.forEach(participant => {
+        const participantId = participant.dataset.participantId;
+        const isLocal = participantId === 'local';
+        const name = isLocal ? 
+            (document.querySelector('meta[name="username"]')?.content || 'You') : 
+            participantId;
+        
+        participantData.push({ id: participantId, name, isLocal });
+        participant.remove();
+    });
+    
+    // Re-add with new styling
+    participantData.forEach(data => {
+        if (data.isLocal) {
+            addLocalParticipant();
+        } else {
+            addRemoteParticipant(data.id, data.name);
+        }
+    });
+    
+    console.log('✅ Participant styling refreshed');
+};
+
+// Function to test voice indicator
+window.testVoiceIndicator = function() {
+    console.log('🔧 Testing voice indicator...');
+    
+    // Check if global voice indicator exists
+    if (window.globalVoiceIndicator) {
+        console.log('✅ Global voice indicator found');
+        
+        // Force load and show indicator
+        window.globalVoiceIndicator.handleConnect('Test Channel', 'test-meeting-123', 'test-channel-456');
+        
+        setTimeout(() => {
+            const indicator = document.getElementById('voice-indicator');
+            console.log('🔍 Voice indicator element:', {
+                exists: !!indicator,
+                visible: indicator?.style.display !== 'none',
+                opacity: indicator?.style.opacity,
+                transform: indicator?.style.transform,
+                classes: indicator?.className
+            });
+        }, 1000);
+    } else {
+        console.warn('⚠️ Global voice indicator not found');
+        
+        // Try to create one manually
+        console.log('🔧 Attempting to create global voice indicator...');
+        if (window.GlobalVoiceIndicator) {
+            window.globalVoiceIndicator = new GlobalVoiceIndicator();
+            setTimeout(() => window.testVoiceIndicator(), 1000);
+        }
+    }
+};
+
+// Debug function to test participant system
+window.debugVoiceSystem = function() {
+    console.log('🔧 =================================');
+    console.log('🔧 Debug Voice System');
+    console.log('🔧 =================================');
+    
+    const voiceOnlyView = document.getElementById('voiceOnlyView');
+    const grid = voiceOnlyView?.querySelector('.grid') || voiceOnlyView?.querySelector('div') || voiceOnlyView?.children[0];
+    
+    console.log('🔍 DOM Elements:');
+    console.log('  - VoiceOnlyView:', !!voiceOnlyView);
+    console.log('  - VoiceOnlyView HTML:', voiceOnlyView?.outerHTML.substring(0, 200));
+    console.log('  - Grid element:', !!grid);
+    console.log('  - Grid classes:', grid?.className);
+    console.log('  - Current participants:', document.querySelectorAll('.participant-container').length);
+    
+    console.log('🔍 Voice State:');
+    console.log('  - voiceState.isConnected:', window.voiceState?.isConnected);
+    console.log('  - voiceManager exists:', !!window.voiceManager);
+    console.log('  - videosdkMeeting exists:', !!window.videosdkMeeting);
+    
+    console.log('🔍 Container visibility:');
+    console.log('  - voice-not-join-container hidden:', document.getElementById('voice-not-join-container')?.classList.contains('hidden'));
+    console.log('  - voice-call-container hidden:', document.getElementById('voice-call-container')?.classList.contains('hidden'));
+    
+    // Highlight the grid for visual debugging
+    if (grid) {
+        grid.classList.add('debug-highlight');
+        setTimeout(() => grid.classList.remove('debug-highlight'), 3000);
+        console.log('✅ Grid highlighted with red border for 3 seconds');
+    }
+    
+    // Try to add test participant
+    console.log('🔧 Adding test local participant...');
+    try {
+        addLocalParticipant();
+        console.log('✅ Local participant addition attempted');
+    } catch (error) {
+        console.error('❌ Error adding local participant:', error);
+    }
+    
+    // Check results
+    setTimeout(() => {
+        const participantCount = document.querySelectorAll('.participant-container').length;
+        console.log(`🔍 Result: ${participantCount} participants found after addition attempt`);
+        
+        if (participantCount === 0) {
+            console.log('🔧 Trying alternative method...');
+            // Try adding directly to the first child
+            if (voiceOnlyView && voiceOnlyView.children[0]) {
+                const testParticipant = createParticipantElement({ id: 'debug-test', name: 'Debug Test' });
+                voiceOnlyView.children[0].appendChild(testParticipant);
+                console.log('🔧 Debug participant added directly');
+            }
+        }
+    }, 100);
+    
+    console.log('🔧 =================================');
+};
 </script>

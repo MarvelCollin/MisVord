@@ -37,7 +37,7 @@ import './settings/mic-video-check.js';
 
 if (!document.body.classList.contains('settings-page') &&
     !document.location.pathname.includes('/settings') && 
-    !document.location.pathname.includes('/app/friends') && 
+    !document.location.pathname.includes('/home/friends') && 
     !document.location.pathname.includes('/home')) {
     import('./messaging/chat-section.js').catch(err => {
         console.debug('Chat section not loaded: ', err.message);

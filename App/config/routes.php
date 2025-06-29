@@ -19,6 +19,21 @@ require_once __DIR__ . '/../controllers/BotController.php';
 require_once __DIR__ . '/../controllers/DebugController.php';
 require_once __DIR__ . '/env.php';
 
+function handleAjaxRequest() {
+    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    
+    if (strpos($uri, '/ajax/') === 0) {
+        require_once __DIR__ . '/ajax_routes.php';
+        return true;
+    }
+    
+    return false;
+}
+
+if (php_sapi_name() !== 'cli' && handleAjaxRequest()) {
+    exit;
+}
+
 class Route {
     private static $routes = [];
 

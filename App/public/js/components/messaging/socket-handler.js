@@ -339,6 +339,12 @@ class SocketHandler {
                     this.chatSection.messageHandler.processedMessageIds.add(data.real_message_id);
                 }
                 
+                // Re-enable reaction button now that we have a real message ID
+                if (window.emojiReactions && typeof window.emojiReactions.updateReactionButtonState === 'function') {
+                    console.log('🔄 Updating reaction button state for permanent message ID');
+                    window.emojiReactions.updateReactionButtonState(tempElement, data.real_message_id);
+                }
+                
                 console.log(`✅ Successfully updated message ID from ${data.temp_message_id} to ${data.real_message_id}`);
             } else {
                 console.log(`⚠️ Temporary message element not found for ID: ${data.temp_message_id}`);

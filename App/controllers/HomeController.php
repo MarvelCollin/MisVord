@@ -23,7 +23,7 @@ class HomeController extends BaseController
     {
         $this->requireAuth();
         
-        header('Location: /app/friends');
+        header('Location: /home/friends');
         exit;
     }
     
@@ -41,7 +41,7 @@ class HomeController extends BaseController
         $this->requireAuth();
 
         
-        if (strpos($_SERVER['REQUEST_URI'] ?? '', '/app/friends') === 0) {
+        if (strpos($_SERVER['REQUEST_URI'] ?? '', '/home/friends') === 0) {
             $GLOBALS['contentType'] = 'home';
             
             

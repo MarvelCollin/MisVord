@@ -2,13 +2,14 @@
 
 .voice-ind-container {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45);
-  opacity: 0 !important;
-  transform: scale(0) !important;
-  transition: all 0.2s ease;
-  width: 220px;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.3s ease;
+  width: 240px;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(79, 84, 92, 0.2);
-  display: none !important;
+  border: 1px solid rgba(79, 84, 92, 0.3);
+  display: none;
+  z-index: 9999;
 }
 
 .voice-ind-container.scale-100,
@@ -16,6 +17,14 @@
   opacity: 1 !important;
   transform: scale(1) !important;
   display: flex !important;
+}
+
+/* Force show when active */
+#voice-indicator[style*="opacity: 1"] {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+  display: flex !important;
+  visibility: visible !important;
 }
 
 .voice-ind-signal div {

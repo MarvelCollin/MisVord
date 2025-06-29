@@ -624,7 +624,7 @@ function initCloseButton() {
         } else if (window.history.length > 1) {
             window.history.back();
         } else {
-            window.location.href = '/app';
+            window.location.href = '/home';
         }
     };
 
