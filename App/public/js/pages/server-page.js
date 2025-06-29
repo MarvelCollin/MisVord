@@ -1,5 +1,4 @@
 import { pageUtils } from '../utils/page-utils.js';
-import ChannelSwitchManager from '../utils/channel-switch-manager.js';
 
 function loadScript(src, type = '', async = false) {
   return new Promise((resolve, reject) => {
@@ -42,14 +41,23 @@ async function loadServerContent() {
     console.log('[Server Page] Loading server content');
     
     try {
-        // Initialize channel switching
-        if (!window.channelSwitchManager) {
-            window.channelSwitchManager = new ChannelSwitchManager();
+        // Initialize channel switching - use the globally available ChannelSwitchManager
+        if (!window.channelSwitchManager && window.ChannelSwitchManager) {
+            window.channelSwitchManager = new window.ChannelSwitchManager();
             console.log('[Server Page] Channel switch manager created');
-        } else {
+        } else if (window.channelSwitchManager) {
             console.log('[Server Page] Using existing channel switch manager');
             // Reinitialize current channel if manager already exists
             window.channelSwitchManager.initializeCurrentChannel();
+        } else {
+            console.warn('[Server Page] ChannelSwitchManager not available yet, will retry');
+            // Retry after a short delay
+            setTimeout(() => {
+                if (window.ChannelSwitchManager && !window.channelSwitchManager) {
+                    window.channelSwitchManager = new window.ChannelSwitchManager();
+                    console.log('[Server Page] Channel switch manager created (delayed)');
+                }
+            }, 500);
         }
         
         console.log('[Server Page] Server content initialization completed');
@@ -99,8 +107,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeChannelManager() {
-    if (!window.channelSwitchManager) {
-        window.channelSwitchManager = new ChannelSwitchManager();
+    if (!window.channelSwitchManager && window.ChannelSwitchManager) {
+        window.channelSwitchManager = new window.ChannelSwitchManager();
         console.log('[Server Page] Channel switch manager initialized');
     }
 }
@@ -372,7 +380,7 @@ function initVoicePage() {
   const channelItems = document.querySelectorAll('.channel-item');
   if (channelItems.length > 0) {
     console.log(`Found ${channelItems.length} channel items in voice page`);
-    initializeChannelClickHandlers();
+    // Channel click handling is now managed by ChannelSwitchManager
   } else {
     console.log("No channel items found in voice page");
   }
@@ -421,14 +429,11 @@ function initVoicePage() {
   }
 }
 
-window.fetchVoiceSection = fetchVoiceSection;
-window.fetchChatSection = fetchChatSection;
-window.initializeChannelClickHandlers = initializeChannelClickHandlers;
+// These functions are now handled by ChannelSwitchManager
 window.getServerIdFromUrl = getServerIdFromUrl;
 
 window.isServerPageReady = function() {
-  return typeof window.fetchVoiceSection === 'function' && 
-         typeof window.fetchChatSection === 'function';
+  return typeof window.ChannelSwitchManager === 'function';
 };
 
 window.ensureServerPageLoaded = function() {

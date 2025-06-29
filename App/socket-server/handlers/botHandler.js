@@ -29,7 +29,9 @@ class BotHandler {
             data: {
                 user_id: botId,
                 username: username,
-                isBot: true
+                isBot: true,
+                authenticated: true,
+                avatar_url: '/public/assets/common/default-profile-picture.png'
             },
             emit: (event, data) => {
                 console.log(`🤖 Bot ${username} emitting ${event}`);
@@ -99,116 +101,42 @@ class BotHandler {
         console.log(`📨 Bot ${username} received message: "${content.substring(0, 50)}..." in ${messageType}`);
 
         if (content === '/titibot ping') {
-            this.respondToPing(io, data, messageType, botId, username);
+            this.sendBotResponse(io, data, messageType, botId, username, 'ping');
         } else if (content.startsWith('/titibot play ')) {
             const songName = content.replace('/titibot play ', '').trim();
-            this.respondToMusicCommand(io, data, messageType, botId, username, 'play', songName);
+            this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
         } else if (content === '/titibot stop') {
-            this.respondToMusicCommand(io, data, messageType, botId, username, 'stop');
+            this.sendBotResponse(io, data, messageType, botId, username, 'stop');
         } else if (content === '/titibot next') {
-            this.respondToMusicCommand(io, data, messageType, botId, username, 'next');
+            this.sendBotResponse(io, data, messageType, botId, username, 'next');
         } else if (content === '/titibot prev') {
-            this.respondToMusicCommand(io, data, messageType, botId, username, 'prev');
+            this.sendBotResponse(io, data, messageType, botId, username, 'prev');
         } else if (content.startsWith('/titibot queue ')) {
             const songName = content.replace('/titibot queue ', '').trim();
-            this.respondToMusicCommand(io, data, messageType, botId, username, 'queue', songName);
+            this.sendBotResponse(io, data, messageType, botId, username, 'queue', songName);
         }
     }
 
-    static handleCommand(io, commandData) {
-        const { command, channel_id, user_id, username } = commandData;
-
-        const titiBotId = this.getTitiBotId();
-        if (!titiBotId) {
-            console.warn('⚠️ TitiBot not found in active bots');
-            return;
-        }
-
-        const bot = this.bots.get(titiBotId);
-        if (!bot) {
-            console.warn('⚠️ TitiBot not registered in handler');
-            return;
-        }
-
-        if (command === 'ping') {
-            const simulatedMessage = {
-                channel_id: channel_id,
-                user_id: user_id,
-                username: username
-            };
-            
-            this.respondToPing(io, simulatedMessage, 'channel', titiBotId, 'titibot');
-        }
-    }
-
-    static getTitiBotId() {
-        for (const [botId, botData] of this.bots.entries()) {
-            if (botData.username === 'titibot') {
-                return botId;
-            }
-        }
-        return null;
-    }
-
-    static async respondToPing(io, originalMessage, messageType, botId, username) {
-        const channelId = originalMessage.channel_id || (originalMessage.target_type === 'channel' ? originalMessage.target_id : null);
-        const roomId = originalMessage.room_id || (originalMessage.target_type === 'dm' ? originalMessage.target_id : null);
-
-        const responseContent = `🏓 Pong! Hi ${originalMessage.username}, I'm TitiBot and I'm online!`;
+    static async sendBotResponse(io, originalMessage, messageType, botId, username, command, parameter = null) {
+        console.log(`🤖 Bot ${username} preparing response for command: ${command}`);
         
-        const responseData = {
-            id: `bot-msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            content: responseContent,
-            user_id: botId,
-            username: username,
-            message_type: 'text',
-            timestamp: Date.now(),
-            source: 'bot-response',
-            avatar_url: '/public/assets/common/default-profile-picture.png',
-            sent_at: new Date().toISOString()
-        };
-
-        let targetRoom;
-        let eventName;
-
-        if (messageType === 'channel' && channelId) {
-            targetRoom = roomManager.getChannelRoom(channelId);
-            eventName = 'new-channel-message';
-            responseData.channel_id = channelId;
-        } else if (messageType === 'dm' && roomId) {
-            targetRoom = roomManager.getDMRoom(roomId);
-            eventName = 'user-message-dm';
-            responseData.room_id = roomId;
-        }
-
-        if (targetRoom && eventName) {
-            console.log(`🚀 Bot ${username} sending ping reply to ${targetRoom}`);
-            
-            io.to(targetRoom).emit(eventName, responseData);
-            
-            io.emit('bot-response', {
-                content: responseContent,
-                channel_id: responseData.channel_id,
-                room_id: responseData.room_id,
-                username: username
-            });
-        }
-    }
-
-    static async respondToMusicCommand(io, originalMessage, messageType, botId, username, command, songName = null) {
         let responseContent;
         let musicData = null;
 
         switch (command) {
+            case 'ping':
+                responseContent = `🏓 Pong! Hi ${originalMessage.username}, I'm TitiBot and I'm online!`;
+                break;
+
             case 'play':
-                if (!songName) {
+                if (!parameter) {
                     responseContent = '❌ Please specify a song name. Usage: `/titibot play {song name}`';
                 } else {
-                    responseContent = `🎵 Playing: "${songName}" (simulated - no external API)`;
+                    responseContent = `🎵 Playing: "${parameter}" (simulated - no external API)`;
                     musicData = {
                         action: 'play',
                         track: {
-                            title: songName,
+                            title: parameter,
                             artist: 'Unknown Artist',
                             previewUrl: null
                         }
@@ -232,14 +160,14 @@ class BotHandler {
                 break;
 
             case 'queue':
-                if (!songName) {
+                if (!parameter) {
                     responseContent = '❌ Please specify a song name. Usage: `/titibot queue {song name}`';
                 } else {
-                    responseContent = `➕ Added to queue: "${songName}"`;
+                    responseContent = `➕ Added to queue: "${parameter}"`;
                     musicData = {
                         action: 'queue',
                         track: {
-                            title: songName,
+                            title: parameter,
                             artist: 'Unknown Artist'
                         }
                     };
@@ -247,13 +175,78 @@ class BotHandler {
                 break;
 
             default:
-                responseContent = '❌ Unknown music command';
+                responseContent = '❌ Unknown command';
         }
+
+        const targetType = messageType === 'channel' ? 'channel' : 'dm';
+        const targetId = messageType === 'channel' 
+            ? (originalMessage.channel_id || originalMessage.target_id)
+            : (originalMessage.room_id || originalMessage.target_id);
+
+        const botMessageData = {
+            content: responseContent,
+            target_type: targetType,
+            target_id: targetId,
+            message_type: 'text',
+            attachments: [],
+            mentions: [],
+            music_data: musicData
+        };
+
+        console.log(`🚀 Bot ${username} sending response using user message flow:`, {
+            content: responseContent.substring(0, 50) + '...',
+            targetType: targetType,
+            targetId: targetId,
+            hasMusic: !!musicData
+        });
+
+        try {
+            const MessageHandler = require('./messageHandler');
+            
+            const botClient = {
+                id: `bot-${botId}`,
+                data: {
+                    user_id: parseInt(botId),
+                    username: username,
+                    authenticated: true,
+                    avatar_url: '/public/assets/common/default-profile-picture.png'
+                }
+            };
+
+            await MessageHandler.saveAndSendMessage(io, botClient, botMessageData);
+            
+            if (musicData) {
+                const targetRoom = messageType === 'channel' 
+                    ? roomManager.getChannelRoom(targetId)
+                    : roomManager.getDMRoom(targetId);
+                
+                if (targetRoom) {
+                    io.to(targetRoom).emit('bot-music-command', {
+                        channel_id: originalMessage.channel_id,
+                        music_data: musicData
+                    });
+                }
+            }
+            
+            console.log(`✅ Bot ${username} response sent successfully through user message flow`);
+            
+        } catch (error) {
+            console.error(`❌ Bot ${username} failed to send response:`, error);
+            
+            this.fallbackDirectResponse(io, originalMessage, messageType, botId, username, responseContent, musicData);
+        }
+    }
+
+    static fallbackDirectResponse(io, originalMessage, messageType, botId, username, responseContent, musicData) {
+        console.log(`🔄 Bot ${username} using fallback direct response`);
+        
+        const channelId = originalMessage.channel_id || (originalMessage.target_type === 'channel' ? originalMessage.target_id : null);
+        const roomId = originalMessage.room_id || (originalMessage.target_type === 'dm' ? originalMessage.target_id : null);
 
         const responseData = {
             id: `bot-msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             content: responseContent,
-            user_id: botId,
+            user_id: parseInt(botId),
             username: username,
             message_type: 'text',
             timestamp: Date.now(),
@@ -262,15 +255,8 @@ class BotHandler {
             sent_at: new Date().toISOString()
         };
 
-        if (musicData) {
-            responseData.music_data = musicData;
-        }
-
         let targetRoom;
         let eventName;
-
-        const channelId = originalMessage.channel_id || (originalMessage.target_type === 'channel' ? originalMessage.target_id : null);
-        const roomId = originalMessage.room_id || (originalMessage.target_type === 'dm' ? originalMessage.target_id : null);
 
         if (messageType === 'channel' && channelId) {
             targetRoom = roomManager.getChannelRoom(channelId);
@@ -283,8 +269,6 @@ class BotHandler {
         }
 
         if (targetRoom && eventName) {
-            console.log(`🎵 Bot ${username} sending music response for ${command}`);
-            
             io.to(targetRoom).emit(eventName, responseData);
             
             if (musicData) {
@@ -294,6 +278,43 @@ class BotHandler {
                 });
             }
         }
+    }
+
+    static handleCommand(io, commandData) {
+        const { command, channel_id, user_id, username } = commandData;
+
+        const titiBotId = this.getTitiBotId();
+        if (!titiBotId) {
+            console.warn('⚠️ TitiBot not found in active bots');
+            return;
+        }
+
+        const bot = this.bots.get(titiBotId);
+        if (!bot) {
+            console.warn('⚠️ TitiBot not registered in handler');
+            return;
+        }
+
+        if (command === 'ping') {
+            const simulatedMessage = {
+                channel_id: channel_id,
+                user_id: user_id,
+                username: username,
+                target_type: 'channel',
+                target_id: channel_id
+            };
+            
+            this.sendBotResponse(io, simulatedMessage, 'channel', titiBotId, 'titibot', 'ping');
+        }
+    }
+
+    static getTitiBotId() {
+        for (const [botId, botData] of this.bots.entries()) {
+            if (botData.username === 'titibot') {
+                return botId;
+            }
+        }
+        return null;
     }
 
     static joinBotToRoom(botId, roomType, roomId) {

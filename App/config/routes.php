@@ -1383,6 +1383,10 @@ Route::post('/api/servers/([0-9]+)/sync-positions', function($serverId) {
     $controller->syncServerPositions();
 });
 
+Route::get('/api/test-position-verify', function() {
+    require_once __DIR__ . '/../public/api/test-position-verify.php';
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

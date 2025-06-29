@@ -1094,82 +1094,179 @@ class ChannelController extends BaseController
             $accessCheck = $this->validateServerAccess($input['server_id'], true);
             if ($accessCheck) return $accessCheck;
 
-            require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
-            $categoryRepository = new CategoryRepository();
-            
-            $serverId = $input['server_id'];
-            $query = new Query();
-            $query->beginTransaction();
+            $globalSequence = $input['global_sequence'] ?? false;
 
-            $categories = $categoryRepository->getForServer($serverId);
-            usort($categories, function($a, $b) {
-                return $a->id <=> $b->id;
-            });
-            
-            $categoryPosition = 1;
-            foreach ($categories as $category) {
-                $query->table('categories')
-                    ->where('id', $category->id)
-                    ->update(['position' => $categoryPosition]);
-                $categoryPosition++;
+            if ($globalSequence) {
+                return $this->syncServerPositionsGlobal($input['server_id']);
+            } else {
+                return $this->syncServerPositionsTraditional($input['server_id']);
             }
-
-            $channels = $this->channelRepository->getForServer($serverId);
-            
-            $uncategorizedChannels = array_filter($channels, function($channel) {
-                return is_null($channel->category_id) || $channel->category_id == 0;
-            });
-            usort($uncategorizedChannels, function($a, $b) {
-                return $a->id <=> $b->id;
-            });
-            
-            $channelPosition = 1;
-            foreach ($uncategorizedChannels as $channel) {
-                $query->table('channels')
-                    ->where('id', $channel->id)
-                    ->update(['position' => $channelPosition]);
-                $channelPosition++;
-            }
-
-            foreach ($categories as $category) {
-                $categoryChannels = array_filter($channels, function($channel) use ($category) {
-                    return $channel->category_id == $category->id;
-                });
-                usort($categoryChannels, function($a, $b) {
-                    return $a->id <=> $b->id;
-                });
-                
-                $categoryChannelPosition = 1;
-                foreach ($categoryChannels as $channel) {
-                    $query->table('channels')
-                        ->where('id', $channel->id)
-                        ->update(['position' => $categoryChannelPosition]);
-                    $categoryChannelPosition++;
-                }
-            }
-
-            $query->commit();
-
-            $this->logActivity('server_positions_synced', [
-                'server_id' => $serverId,
-                'categories_synced' => count($categories),
-                'channels_synced' => count($channels)
-            ]);
-
-            return $this->success([
-                'message' => 'Server positions synchronized successfully',
-                'categories_synced' => count($categories),
-                'channels_synced' => count($channels)
-            ]);
         } catch (Exception $e) {
-            if (isset($query)) {
-                $query->rollback();
-            }
             $this->logActivity('server_positions_sync_error', [
                 'server_id' => $input['server_id'] ?? null,
                 'error' => $e->getMessage()
             ]);
             return $this->serverError('Failed to sync server positions: ' . $e->getMessage());
         }
+    }
+
+    private function syncServerPositionsGlobal($serverId)
+    {
+        require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
+        $categoryRepository = new CategoryRepository();
+        
+        $query = new Query();
+        $query->beginTransaction();
+
+        $categories = $categoryRepository->getForServer($serverId);
+        $channels = $this->channelRepository->getForServer($serverId);
+
+        $allItems = [];
+
+        foreach ($categories as $category) {
+            $allItems[] = [
+                'type' => 'category',
+                'id' => $category->id,
+                'name' => $category->name,
+                'creation_id' => $category->id
+            ];
+        }
+
+        $uncategorizedChannels = array_filter($channels, function($channel) {
+            return is_null($channel->category_id) || $channel->category_id == 0;
+        });
+
+        foreach ($uncategorizedChannels as $channel) {
+            $allItems[] = [
+                'type' => 'channel',
+                'id' => $channel->id,
+                'name' => $channel->name,
+                'category_id' => null,
+                'creation_id' => $channel->id
+            ];
+        }
+
+        usort($allItems, function($a, $b) {
+            return $a['creation_id'] <=> $b['creation_id'];
+        });
+
+        $globalPosition = 1;
+        foreach ($allItems as $item) {
+            if ($item['type'] === 'category') {
+                $query->table('categories')
+                    ->where('id', $item['id'])
+                    ->update(['position' => $globalPosition]);
+            } else {
+                $query->table('channels')
+                    ->where('id', $item['id'])
+                    ->update(['position' => $globalPosition]);
+            }
+            $globalPosition++;
+        }
+
+        foreach ($categories as $category) {
+            $categoryChannels = array_filter($channels, function($channel) use ($category) {
+                return $channel->category_id == $category->id;
+            });
+            usort($categoryChannels, function($a, $b) {
+                return $a->id <=> $b->id;
+            });
+            
+            $categoryChannelPosition = 1;
+            foreach ($categoryChannels as $channel) {
+                $query->table('channels')
+                    ->where('id', $channel->id)
+                    ->update(['position' => $categoryChannelPosition]);
+                $categoryChannelPosition++;
+            }
+        }
+
+        $query->commit();
+
+        $this->logActivity('server_positions_synced_global', [
+            'server_id' => $serverId,
+            'categories_synced' => count($categories),
+            'channels_synced' => count($channels),
+            'global_items_synced' => count($allItems)
+        ]);
+
+        return $this->success([
+            'message' => 'Server positions synchronized with global sequence',
+            'categories_synced' => count($categories),
+            'channels_synced' => count($channels),
+            'global_items_synced' => count($allItems),
+            'sync_type' => 'global'
+        ]);
+    }
+
+    private function syncServerPositionsTraditional($serverId)
+    {
+        require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
+        $categoryRepository = new CategoryRepository();
+        
+        $query = new Query();
+        $query->beginTransaction();
+
+        $categories = $categoryRepository->getForServer($serverId);
+        usort($categories, function($a, $b) {
+            return $a->id <=> $b->id;
+        });
+        
+        $categoryPosition = 1;
+        foreach ($categories as $category) {
+            $query->table('categories')
+                ->where('id', $category->id)
+                ->update(['position' => $categoryPosition]);
+            $categoryPosition++;
+        }
+
+        $channels = $this->channelRepository->getForServer($serverId);
+        
+        $uncategorizedChannels = array_filter($channels, function($channel) {
+            return is_null($channel->category_id) || $channel->category_id == 0;
+        });
+        usort($uncategorizedChannels, function($a, $b) {
+            return $a->id <=> $b->id;
+        });
+        
+        $channelPosition = 1;
+        foreach ($uncategorizedChannels as $channel) {
+            $query->table('channels')
+                ->where('id', $channel->id)
+                ->update(['position' => $channelPosition]);
+            $channelPosition++;
+        }
+
+        foreach ($categories as $category) {
+            $categoryChannels = array_filter($channels, function($channel) use ($category) {
+                return $channel->category_id == $category->id;
+            });
+            usort($categoryChannels, function($a, $b) {
+                return $a->id <=> $b->id;
+            });
+            
+            $categoryChannelPosition = 1;
+            foreach ($categoryChannels as $channel) {
+                $query->table('channels')
+                    ->where('id', $channel->id)
+                    ->update(['position' => $categoryChannelPosition]);
+                $categoryChannelPosition++;
+            }
+        }
+
+        $query->commit();
+
+        $this->logActivity('server_positions_synced_traditional', [
+            'server_id' => $serverId,
+            'categories_synced' => count($categories),
+            'channels_synced' => count($channels)
+        ]);
+
+        return $this->success([
+            'message' => 'Server positions synchronized with traditional sequence',
+            'categories_synced' => count($categories),
+            'channels_synced' => count($channels),
+            'sync_type' => 'traditional'
+        ]);
     }
 }

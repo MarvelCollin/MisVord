@@ -656,10 +656,8 @@ class MusicPlayerSystem {
         }
 
         try {
-            // Stop current playback if any
             await this.stop();
             
-            // Set new track
             this.currentTrack = track;
             this.audio.src = track.previewUrl;
             

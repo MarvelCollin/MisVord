@@ -194,108 +194,234 @@ $include_socket_io = true;
 <?php endif; ?>
 
 <script>
-async function showTitiBotModal() {
+function showMasterDebugModal() {
+    const existingModal = document.getElementById('master-debug-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
     const modal = document.createElement('div');
-    modal.id = 'titibot-modal';
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-    
-    let userServers = [];
-    try {
-        const response = await fetch('/api/user/servers');
-        if (response.ok) {
-            const data = await response.json();
-            userServers = (data.data && data.data.servers) ? data.data.servers : (data.servers || []);
-        }
-    } catch (error) {
-        console.error('Failed to fetch user servers:', error);
-    }
-    
-    let botExists = false;
-    let botData = null;
-    try {
-        const response = await fetch('/api/bots/check/titibot');
-        if (response.ok) {
-            const data = await response.json();
-            const botInfo = data.data ? data.data.bot : data.bot;
-            window.titiBotData = botInfo;
-            botExists = data.data ? (data.data.exists && data.data.is_bot) : (data.exists && data.is_bot);
-            botData = data.data ? data.data.bot : data.bot;
-        }
-    } catch (error) {
-        console.error('Failed to check bot status:', error);
-    }
-    
-    const serverOptions = userServers.map(server => 
-        `<option value="${server.id}">${server.name}</option>`
-    ).join('');
+    modal.id = 'master-debug-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4';
     
     modal.innerHTML = `
-        <div class="bg-discord-dark rounded-lg p-6 max-w-lg w-full mx-4 border border-gray-700">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-white flex items-center">
-                    <i class="fas fa-robot mr-2 text-blue-400"></i>
-                    TitiBot Management
-                </h3>
-                <button class="text-gray-400 hover:text-white" onclick="document.getElementById('titibot-modal').remove()">
+        <div class="bg-discord-dark rounded-lg border border-blue-500 max-w-7xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b border-gray-700">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-tools mr-2 text-blue-400"></i>
+                    Master Debug Panel
+                    <span id="debug-status-indicator" class="ml-2 px-2 py-1 text-xs rounded bg-green-700 text-green-300">Ready</span>
+                </h2>
+                <button onclick="document.getElementById('master-debug-modal').remove()" class="text-gray-400 hover:text-white text-xl">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             
-            <div class="mb-6">
-                <div class="p-3 bg-blue-900/20 border border-blue-700/30 rounded mb-4">
-                    <p class="text-blue-300 text-sm">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        TitiBot responds to "/titibot ping" in channels where it's active.
-                    </p>
+            <div class="flex-1 flex overflow-hidden">
+                <div class="w-1/4 border-r border-gray-700 flex flex-col">
+                    <div class="p-3 border-b border-gray-700">
+                        <h3 class="text-sm font-semibold text-gray-300 mb-2">Navigation</h3>
+                        <div class="space-y-1">
+                            <button onclick="switchMasterTab('bot')" id="bot-master-tab" class="w-full text-left px-3 py-2 text-sm rounded bg-blue-600 text-white">
+                                <i class="fas fa-robot mr-2"></i>Bot Management
+                            </button>
+                            <button onclick="switchMasterTab('debug')" id="debug-master-tab" class="w-full text-left px-3 py-2 text-sm rounded text-gray-400 hover:bg-gray-700 hover:text-white">
+                                <i class="fas fa-bug mr-2"></i>Socket Debug
+                            </button>
+                            <button onclick="switchMasterTab('position')" id="position-master-tab" class="w-full text-left px-3 py-2 text-sm rounded text-gray-400 hover:bg-gray-700 hover:text-white">
+                                <i class="fas fa-sort mr-2"></i>Position Sync
+                            </button>
+                            <button onclick="switchMasterTab('music')" id="music-master-tab" class="w-full text-left px-3 py-2 text-sm rounded text-gray-400 hover:bg-gray-700 hover:text-white">
+                                <i class="fas fa-music mr-2"></i>Music Player
+                            </button>
+                            <button onclick="switchMasterTab('auth')" id="auth-master-tab" class="w-full text-left px-3 py-2 text-sm rounded text-gray-400 hover:bg-gray-700 hover:text-white">
+                                <i class="fas fa-key mr-2"></i>Auth Reset
+                            </button>
+                            <button onclick="switchMasterTab('logs')" id="logs-master-tab" class="w-full text-left px-3 py-2 text-sm rounded text-gray-400 hover:bg-gray-700 hover:text-white">
+                                <i class="fas fa-list mr-2"></i>Live Logs
+                            </button>
+                        </div>
                 </div>
                 
-                <div class="mb-4">
-                    <p class="text-gray-300 mb-2">Status:</p>
-                    <div id="bot-status" class="text-sm">
-                        ${botExists ? 
-                            `<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot exists and is ready</span>` :
-                            `<span class="text-yellow-400"><i class="fas fa-exclamation-circle mr-1"></i>TitiBot needs to be created</span>`
-                        }
+                    <div class="p-3 border-b border-gray-700">
+                        <h3 class="text-sm font-semibold text-gray-300 mb-2">System Status</h3>
+                        <div id="system-status-grid" class="space-y-1 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Socket:</span>
+                                <span id="socket-status-master" class="text-red-400">❌ No</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Bot:</span>
+                                <span id="bot-status-master" class="text-red-400">❌ No</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Music:</span>
+                                <span id="music-status-master" class="text-red-400">❌ No</span>
+                            </div>
                     </div>
                 </div>
                 
-                ${!botExists ? `
-                <div class="mb-4">
-                    <button 
-                        id="create-bot-btn"
-                        onclick="createTitiBot()" 
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors flex items-center justify-center"
-                    >
-                        <i class="fas fa-plus mr-2"></i>
-                        Create TitiBot
+                    <div class="p-3 flex-1 overflow-y-auto">
+                        <h3 class="text-sm font-semibold text-gray-300 mb-2">Quick Actions</h3>
+                        <div class="space-y-1 text-xs">
+                            <button onclick="testBotMessage()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded">
+                                <i class="fas fa-paper-plane mr-1"></i>Test Bot
+                            </button>
+                            <button onclick="debugSocketConnection()" class="w-full bg-green-600 hover:bg-green-700 text-white py-1 px-2 rounded">
+                                <i class="fas fa-plug mr-1"></i>Debug Socket
+                            </button>
+                            <button onclick="refreshMasterStatus()" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-1 px-2 rounded">
+                                <i class="fas fa-sync mr-1"></i>Refresh All
                     </button>
                 </div>
-                ` : ''}
+                    </div>
+                </div>
                 
-                <div class="mb-4" ${!botExists ? 'style="opacity: 0.5; pointer-events: none;"' : ''}>
-                    <label class="block text-gray-300 text-sm mb-2">Select Server to Add Bot:</label>
-                    <select id="server-select" class="w-full bg-discord-lighter text-white p-2 rounded border border-gray-600">
-                        <option value="">Choose a server...</option>
-                        ${serverOptions}
+                <div class="flex-1 flex flex-col">
+                    <div id="bot-master-content" class="flex-1 p-4 master-tab-content">
+                        <h3 class="text-lg font-semibold text-white mb-4">Bot Management</h3>
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 rounded-lg p-4">
+                                <h4 class="text-md font-semibold text-gray-300 mb-3">TitiBot Control</h4>
+                                <div class="mb-3">
+                                    <label class="block text-gray-400 text-sm mb-2">Select Server:</label>
+                                    <select id="server-select-master" class="w-full bg-discord-lighter text-white p-2 rounded">
+                                        <option value="">Loading servers...</option>
                     </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button id="create-bot-master" onclick="createTitiBot()" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded">
+                                        <i class="fas fa-plus mr-1"></i>Create Bot
+                                    </button>
+                                    <button id="init-bot-master" onclick="initializeTitiBot()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
+                                        <i class="fas fa-play mr-1"></i>Initialize
+                                    </button>
+                                </div>
+                                <div id="bot-status-info" class="mt-3 p-3 bg-gray-700 rounded text-sm text-gray-300">
+                                    Checking bot status...
+                                </div>
                 </div>
                 
-                <div class="flex space-x-3">
-                    <button 
-                        onclick="document.getElementById('titibot-modal').remove()" 
-                        class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition-colors"
-                    >
-                        Cancel
+                            <div class="bg-gray-800 rounded-lg p-4">
+                                <h4 class="text-md font-semibold text-gray-300 mb-3">Bot Testing</h4>
+                                <div class="flex space-x-2 mb-3">
+                                    <input type="text" id="test-command-master" value="/titibot ping" 
+                                           class="flex-1 bg-discord-lighter text-white px-3 py-2 rounded">
+                                    <button onclick="sendTestCommand()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded">
+                                        Send
                     </button>
-                    <button 
-                        id="init-bot-btn"
-                        onclick="initializeTitiBot()" 
-                        class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors flex items-center justify-center"
-                        ${!botExists ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
-                    >
-                        <i class="fas fa-play mr-2"></i>
-                        Initialize Bot
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    Common commands: /titibot ping, /titibot help, /titibot time
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="debug-master-content" class="flex-1 p-4 master-tab-content hidden">
+                        <h3 class="text-lg font-semibold text-white mb-4">Socket Debug</h3>
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 rounded-lg p-4">
+                                <h4 class="text-md font-semibold text-gray-300 mb-3">Connection Status</h4>
+                                <div id="socket-debug-info" class="space-y-2 text-sm">
+                                    <div>Socket ID: <span id="socket-id-master" class="text-blue-400">-</span></div>
+                                    <div>User ID: <span id="user-id-master" class="text-green-400">-</span></div>
+                                    <div>Username: <span id="username-master" class="text-yellow-400">-</span></div>
+                                    <div>Current Room: <span id="current-room-master" class="text-purple-400">-</span></div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-800 rounded-lg p-4">
+                                <h4 class="text-md font-semibold text-gray-300 mb-3">Debug Actions</h4>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button onclick="forceBotInit()" class="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded text-sm">
+                                        Force Bot Init
+                                    </button>
+                                    <button onclick="testSocketConnection()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded text-sm">
+                                        Test Connection
                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="position-master-content" class="flex-1 p-4 master-tab-content hidden">
+                        <h3 class="text-lg font-semibold text-white mb-4">Position Sync Management</h3>
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 rounded-lg p-4">
+                                <h4 class="text-md font-semibold text-gray-300 mb-3">Sync Options</h4>
+                                <div class="grid grid-cols-2 gap-3 mb-3">
+                                    <button onclick="syncServerPositions(false)" class="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded">
+                                        <i class="fas fa-sort mr-1"></i>Traditional Sync
+                                    </button>
+                                    <button onclick="syncServerPositions(true)" class="bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded">
+                                        <i class="fas fa-sort-numeric-down mr-1"></i>Global Sync
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button onclick="verifyPositions()" class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded">
+                                        <i class="fas fa-search mr-1"></i>Check Positions
+                                    </button>
+                                    <button onclick="showPositionDetails()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded">
+                                        <i class="fas fa-list mr-1"></i>Show Details
+                                    </button>
+                                </div>
+                                <div id="sync-status-master" class="mt-3 p-3 bg-gray-700 rounded text-sm text-center">
+                                    Ready for position sync
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="music-master-content" class="flex-1 p-4 master-tab-content hidden">
+                        <h3 class="text-lg font-semibold text-white mb-4">Music Player</h3>
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 rounded-lg p-4">
+                                <h4 class="text-md font-semibold text-gray-300 mb-3">Music Controls</h4>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button onclick="showMusicDebug()" class="bg-pink-600 hover:bg-pink-700 text-white py-2 px-3 rounded">
+                                        <i class="fas fa-music mr-1"></i>Music Debug
+                                    </button>
+                                    <button onclick="showMusicSearch()" class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded">
+                                        <i class="fas fa-search mr-1"></i>Search Music
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="auth-master-content" class="flex-1 p-4 master-tab-content hidden">
+                        <h3 class="text-lg font-semibold text-white mb-4">Authentication Reset</h3>
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 rounded-lg p-4">
+                                <h4 class="text-md font-semibold text-gray-300 mb-3">Reset Authentication</h4>
+                                <div class="mb-3 p-3 bg-red-900/20 border border-red-700/30 rounded">
+                                    <p class="text-red-300 text-sm">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        This will log you out and clear all session data.
+                                    </p>
+                                </div>
+                                <button onclick="resetAuthSession()" class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded">
+                                    <i class="fas fa-sign-out-alt mr-1"></i>Reset & Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="logs-master-content" class="flex-1 p-4 master-tab-content hidden">
+                        <h3 class="text-lg font-semibold text-white mb-4">Live Debug Logs</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-300">Real-time system logs</span>
+                                <button onclick="clearDebugLogs()" class="text-red-400 hover:text-red-300 text-sm">
+                                    <i class="fas fa-trash mr-1"></i>Clear Logs
+                                </button>
+                            </div>
+                            <div id="debug-logs-master" class="bg-black rounded p-3 h-96 overflow-y-auto font-mono text-xs text-green-400">
+                                <div class="text-gray-500">Debug logs will appear here...</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -303,23 +429,23 @@ async function showTitiBotModal() {
     
     document.body.appendChild(modal);
     
-    modal.addEventListener('click', function(e) {
+    modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.remove();
         }
     });
     
-    if (window.showToast) {
-        window.showToast('🤖 TitiBot management opened', 'info');
-    }
+    initializeMasterDebugPanel();
 }
 
 async function createTitiBot() {
-    const button = document.getElementById('create-bot-btn');
+    const button = document.getElementById('create-bot-master') || document.getElementById('create-bot-btn');
     if (!button) return;
     
     button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
     button.disabled = true;
+    
+    addDebugLogMaster('🤖 Creating TitiBot...', 'info');
     
     try {
         const response = await fetch('/api/bots/create', {
@@ -335,7 +461,7 @@ async function createTitiBot() {
         
         if (response.ok) {
             const data = await response.json();
-            console.log('Bot created successfully:', data);
+            addDebugLogMaster('✅ TitiBot created successfully!', 'success');
             
             if (window.showToast) {
                 window.showToast('✅ TitiBot created successfully!', 'success');
@@ -343,43 +469,35 @@ async function createTitiBot() {
             
             window.titiBotData = (data.data && data.data.bot) ? data.data.bot : (data.bot || null);
             
-            document.getElementById('bot-status').innerHTML = 
-                '<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot created and ready</span>';
-            
-            const initButton = document.getElementById('init-bot-btn');
-            const serverSelect = document.getElementById('server-select');
-            
-            if (initButton) {
-                initButton.disabled = false;
-                initButton.style.opacity = '1';
-                initButton.style.cursor = 'pointer';
+            const statusInfo = document.getElementById('bot-status-info') || document.getElementById('bot-status');
+            if (statusInfo) {
+                statusInfo.innerHTML = '<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot created and ready</span>';
             }
             
-            if (serverSelect) {
-                serverSelect.parentElement.style.opacity = '1';
-                serverSelect.parentElement.style.pointerEvents = 'auto';
-            }
+            button.innerHTML = '<i class="fas fa-plus mr-2"></i>Create Bot';
+            button.disabled = false;
             
-            button.remove();
+            refreshMasterStatus();
             
         } else {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to create bot');
         }
     } catch (error) {
-        console.error('Error creating TitiBot:', error);
+        addDebugLogMaster(`❌ Failed to create TitiBot: ${error.message}`, 'error');
+        
         if (window.showToast) {
             window.showToast('❌ Failed to create TitiBot: ' + error.message, 'error');
         }
         
-        button.innerHTML = '<i class="fas fa-plus mr-2"></i>Create TitiBot';
+        button.innerHTML = '<i class="fas fa-plus mr-2"></i>Create Bot';
         button.disabled = false;
     }
 }
 
 async function initializeTitiBot() {
-    const serverSelect = document.getElementById('server-select');
-    const initButton = document.getElementById('init-bot-btn');
+    const serverSelect = document.getElementById('server-select-master') || document.getElementById('server-select');
+    const initButton = document.getElementById('init-bot-master') || document.getElementById('init-bot-btn');
     
     if (!serverSelect || !serverSelect.value) {
         if (window.showToast) {
@@ -463,138 +581,82 @@ async function initializeTitiBot() {
     }
 }
 
-function showTitiBotModal() {
-    const existingModal = document.getElementById('titibot-modal');
-    if (existingModal) {
-        existingModal.remove();
-    }
+function switchMasterTab(tabName) {
+    const tabs = ['bot', 'debug', 'position', 'music', 'auth', 'logs'];
     
-    const modal = document.createElement('div');
-    modal.id = 'titibot-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
-    `;
-    
-    modal.innerHTML = `
-        <div style="
-            background: linear-gradient(135deg, #2c2f36 0%, #1e2124 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 500px;
-            border: 1px solid #5865f2;
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin: 0; color: #5865f2;">
-                    <i class="fas fa-robot" style="margin-right: 8px;"></i>TitiBot Management
-                </h2>
-                <button onclick="document.getElementById('titibot-modal').remove()" style="
-                    background: #ed4245; border: none; color: white; width: 30px; height: 30px;
-                    border-radius: 50%; cursor: pointer; font-size: 16px;
-                ">×</button>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; color: #b9bbbe; margin-bottom: 8px;">Select Server:</label>
-                <select id="server-select" style="
-                    width: 100%; background: #36393f; border: 1px solid #5865f2; color: white;
-                    padding: 10px; border-radius: 6px; font-size: 14px;
-                ">
-                    <option value="">Loading servers...</option>
-                </select>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-                <button id="create-bot-btn" onclick="createTitiBot()" style="
-                    background: #00d166; border: none; color: white; padding: 12px;
-                    border-radius: 6px; cursor: pointer; font-weight: bold;
-                ">
-                    <i class="fas fa-plus mr-2"></i>Create TitiBot
-                </button>
-                <button id="init-bot-btn" onclick="initializeTitiBot()" style="
-                    background: #5865f2; border: none; color: white; padding: 12px;
-                    border-radius: 6px; cursor: pointer; font-weight: bold;
-                ">
-                    <i class="fas fa-play mr-2"></i>Initialize Bot
-                </button>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-                <button onclick="
-                    if (window.musicPlayer) {
-                        window.musicPlayer.showMusicDebugPanel();
-                    } else if (typeof MusicPlayerSystem !== 'undefined') {
-                        window.musicPlayer = new MusicPlayerSystem();
-                        setTimeout(() => window.musicPlayer.showMusicDebugPanel(), 100);
-                    } else {
-                        if (window.showToast) window.showToast('🎵 Music player loading...', 'info');
-                        console.log('Music player not available');
-                    }
-                " style="
-                    background: #eb459e; border: none; color: white; padding: 12px;
-                    border-radius: 6px; cursor: pointer; font-weight: bold;
-                ">
-                    <i class="fas fa-music mr-2"></i>Music Debug
-                </button>
-                <button onclick="
-                    if (window.musicPlayer) {
-                        window.musicPlayer.showSearchModal();
-                    } else if (typeof MusicPlayerSystem !== 'undefined') {
-                        window.musicPlayer = new MusicPlayerSystem();
-                        setTimeout(() => window.musicPlayer.showSearchModal(), 100);
-                    } else {
-                        if (window.showToast) window.showToast('🎵 Music player loading...', 'info');
-                        console.log('Music player not available');
-                    }
-                " style="
-                    background: #fee75c; border: none; color: #2c2f36; padding: 12px;
-                    border-radius: 6px; cursor: pointer; font-weight: bold;
-                ">
-                    <i class="fas fa-search mr-2"></i>Search Music
-                </button>
-            </div>
-            
-            <div id="titibot-status" style="
-                background: #36393f; padding: 15px; border-radius: 8px;
-                min-height: 40px; color: #b9bbbe; font-size: 14px;
-            ">
-                Ready to manage TitiBot. Select a server and create or initialize the bot.
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    loadUserServers();
-    
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.remove();
+    tabs.forEach(tab => {
+        const tabButton = document.getElementById(`${tab}-master-tab`);
+        const tabContent = document.getElementById(`${tab}-master-content`);
+        
+        if (tab === tabName) {
+            tabButton.className = 'w-full text-left px-3 py-2 text-sm rounded bg-blue-600 text-white';
+            tabContent.classList.remove('hidden');
+        } else {
+            tabButton.className = 'w-full text-left px-3 py-2 text-sm rounded text-gray-400 hover:bg-gray-700 hover:text-white';
+            tabContent.classList.add('hidden');
         }
     });
 }
 
-async function loadUserServers() {
-    try {
-        const response = await fetch('/api/user/servers', {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+function initializeMasterDebugPanel() {
+    refreshMasterStatus();
+    loadUserServersForMaster();
+    checkBotStatusForMaster();
+    
+    addDebugLogMaster('🚀 Master Debug Panel initialized', 'success');
+    addDebugLogMaster('All debugging tools consolidated in one interface', 'info');
+    
+    if (window.globalSocketManager?.io) {
+        const originalEmit = window.globalSocketManager.io.emit;
+        window.globalSocketManager.io.emit = function(event, data) {
+            if (event === 'save-and-send-message') {
+                addDebugLogMaster(`📤 Message: "${data.content?.substring(0, 30)}..."`, 'info');
             }
+            return originalEmit.call(this, event, data);
+        };
+        
+        window.globalSocketManager.io.on('bot-initialized', (data) => {
+            addDebugLogMaster(`✅ Bot initialized: ${data.username}`, 'success');
+            refreshMasterStatus();
         });
         
+        window.globalSocketManager.io.on('bot-response', (data) => {
+            addDebugLogMaster(`🎤 Bot response: "${data.content?.substring(0, 30)}..."`, 'success');
+        });
+    }
+}
+
+function refreshMasterStatus() {
+    const socketConnected = window.globalSocketManager?.connected;
+    const botReady = window.titiBotData?.id;
+    const musicReady = window.musicPlayer && typeof MusicPlayerSystem !== 'undefined';
+    
+    document.getElementById('socket-status-master').innerHTML = socketConnected ? '✅ Yes' : '❌ No';
+    document.getElementById('socket-status-master').className = socketConnected ? 'text-green-400' : 'text-red-400';
+    
+    document.getElementById('bot-status-master').innerHTML = botReady ? '✅ Yes' : '❌ No';
+    document.getElementById('bot-status-master').className = botReady ? 'text-green-400' : 'text-red-400';
+    
+    document.getElementById('music-status-master').innerHTML = musicReady ? '✅ Yes' : '❌ No';
+    document.getElementById('music-status-master').className = musicReady ? 'text-green-400' : 'text-red-400';
+    
+    const socketId = window.globalSocketManager?.io?.id;
+    const userId = document.querySelector('meta[name="user-id"]')?.content;
+    const username = document.querySelector('meta[name="username"]')?.content;
+    
+    if (document.getElementById('socket-id-master')) {
+        document.getElementById('socket-id-master').textContent = socketId || '-';
+        document.getElementById('user-id-master').textContent = userId || '-';
+        document.getElementById('username-master').textContent = username || '-';
+        document.getElementById('current-room-master').textContent = getCurrentChannelId() || 'Not in channel';
+    }
+}
+
+async function loadUserServersForMaster() {
+    try {
+        const response = await fetch('/api/user/servers');
         const data = await response.json();
-        const serverSelect = document.getElementById('server-select');
+        const serverSelect = document.getElementById('server-select-master');
         
         if (data.success && data.servers) {
             serverSelect.innerHTML = '<option value="">Select a server...</option>';
@@ -609,7 +671,82 @@ async function loadUserServers() {
         }
     } catch (error) {
         console.error('Failed to load servers:', error);
-        document.getElementById('server-select').innerHTML = '<option value="">Error loading servers</option>';
+    }
+}
+
+async function checkBotStatusForMaster() {
+    try {
+        const response = await fetch('/api/bots/check/titibot');
+        if (response.ok) {
+            const data = await response.json();
+            const botExists = data.exists && data.is_bot;
+            const statusInfo = document.getElementById('bot-status-info');
+            
+            if (botExists) {
+                window.titiBotData = data.bot;
+                statusInfo.innerHTML = '<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot exists and ready</span>';
+            } else {
+                statusInfo.innerHTML = '<span class="text-yellow-400"><i class="fas fa-exclamation-circle mr-1"></i>TitiBot needs to be created</span>';
+            }
+            
+            refreshMasterStatus();
+        }
+    } catch (error) {
+        console.error('Failed to check bot status:', error);
+    }
+}
+
+function showMusicDebug() {
+    if (window.musicPlayer) {
+        window.musicPlayer.showMusicDebugPanel();
+    } else if (typeof MusicPlayerSystem !== 'undefined') {
+        window.musicPlayer = new MusicPlayerSystem();
+        setTimeout(() => window.musicPlayer.showMusicDebugPanel(), 100);
+    } else {
+        addDebugLogMaster('🎵 Music player not available', 'warning');
+    }
+}
+
+function showMusicSearch() {
+    if (window.musicPlayer) {
+        window.musicPlayer.showSearchModal();
+    } else if (typeof MusicPlayerSystem !== 'undefined') {
+        window.musicPlayer = new MusicPlayerSystem();
+        setTimeout(() => window.musicPlayer.showSearchModal(), 100);
+    } else {
+        addDebugLogMaster('🎵 Music search not available', 'warning');
+    }
+}
+
+function testSocketConnection() {
+    addDebugLogMaster('🔍 Testing socket connection...', 'info');
+    debugSocketConnection();
+}
+
+let debugLogCountMaster = 0;
+function addDebugLogMaster(message, type = 'info') {
+    const logsContainer = document.getElementById('debug-logs-master');
+    if (!logsContainer) return;
+    
+    debugLogCountMaster++;
+    const timestamp = new Date().toLocaleTimeString();
+    const colors = {
+        info: 'text-green-400',
+        warning: 'text-yellow-400',
+        error: 'text-red-400',
+        success: 'text-blue-400'
+    };
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = `${colors[type] || 'text-green-400'} mb-1`;
+    logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+    
+    logsContainer.appendChild(logEntry);
+    logsContainer.scrollTop = logsContainer.scrollHeight;
+    
+    if (debugLogCountMaster > 100) {
+        logsContainer.removeChild(logsContainer.firstChild);
+        debugLogCountMaster--;
     }
 }
 
@@ -685,199 +822,167 @@ function resetAuthSession() {
     }
 }
 
-function showBotDebugPanel() {
-    const existingModal = document.getElementById('bot-debug-modal');
-    if (existingModal) {
-        existingModal.remove();
+function clearDebugLogs() {
+    const logsContainer = document.getElementById('debug-logs-master') || document.getElementById('debug-logs');
+    if (logsContainer) {
+        logsContainer.innerHTML = '<div class="text-gray-500">Logs cleared...</div>';
+        debugLogCountMaster = 0;
+        debugLogCount = 0;
+    }
+}
+    
+function sendTestCommand() {
+    const command = document.getElementById('test-command-master')?.value || document.getElementById('test-command')?.value;
+    const roomId = document.getElementById('test-room-id')?.value || getCurrentChannelId();
+    
+    if (!command) {
+        addDebugLogMaster('❌ No test command specified', 'error');
+        return;
     }
     
-    const modal = document.createElement('div');
-    modal.id = 'bot-debug-modal';
-    modal.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4';
+    addDebugLogMaster(`🎯 Sending test command: "${command}" to room: ${roomId}`, 'info');
     
-    modal.innerHTML = `
-        <div class="bg-discord-dark rounded-lg border border-blue-500 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div class="flex items-center justify-between p-4 border-b border-gray-700">
-                <h2 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-robot mr-2 text-blue-400"></i>
-                    Bot Debug Panel
-                    <span id="debug-status-indicator" class="ml-2 px-2 py-1 text-xs rounded bg-gray-700 text-gray-300">Initializing...</span>
-                </h2>
-                <button onclick="document.getElementById('bot-debug-modal').remove()" class="text-gray-400 hover:text-white text-xl">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
+    const testMessage = {
+        content: command,
+        target_type: window.location.pathname.includes('/server/') ? 'channel' : 'dm',
+        target_id: roomId,
+        message_type: 'text',
+        attachments: [],
+        timestamp: new Date().toISOString()
+    };
+    
+    if (window.globalSocketManager?.io) {
+        window.globalSocketManager.io.emit('save-and-send-message', testMessage);
+        addDebugLogMaster('📤 Test command sent via WebSocket', 'success');
+    } else {
+        addDebugLogMaster('❌ No socket connection to send test command', 'error');
+    }
+}
             
-            <div class="flex-1 flex overflow-hidden">
-                <div class="w-1/3 border-r border-gray-700 flex flex-col">
-                    <div class="p-3 border-b border-gray-700">
-                        <h3 class="text-sm font-semibold text-gray-300 mb-2">Quick Actions</h3>
-                        <div class="space-y-2">
-                            <button onclick="testBotMessage()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded text-xs">
-                                <i class="fas fa-paper-plane mr-1"></i>Test Bot Message
-                            </button>
-                            <button onclick="debugSocketConnection()" class="w-full bg-green-600 hover:bg-green-700 text-white py-1 px-2 rounded text-xs">
-                                <i class="fas fa-plug mr-1"></i>Debug Socket
-                            </button>
-                            <button onclick="refreshBotStatus()" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-1 px-2 rounded text-xs">
-                                <i class="fas fa-sync mr-1"></i>Refresh Status
-                            </button>
-                            <button onclick="forceBotInit()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-1 px-2 rounded text-xs">
-                                <i class="fas fa-power-off mr-1"></i>Force Bot Init
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="p-3 border-b border-gray-700">
-                        <h3 class="text-sm font-semibold text-gray-300 mb-2">Bot Status</h3>
-                        <div id="bot-status-grid" class="space-y-1 text-xs">
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Socket Connected:</span>
-                                <span id="socket-status" class="text-red-400">❌ No</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Bot Initialized:</span>
-                                <span id="bot-init-status" class="text-red-400">❌ No</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Message Listener:</span>
-                                <span id="listener-status" class="text-red-400">❌ No</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Intercept Active:</span>
-                                <span id="intercept-status" class="text-red-400">❌ No</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="p-3 flex-1 overflow-y-auto">
-                        <h3 class="text-sm font-semibold text-gray-300 mb-2">System Info</h3>
-                        <div id="system-info" class="text-xs text-gray-400 space-y-1">
-                            <div>Socket ID: <span id="socket-id">-</span></div>
-                            <div>User ID: <span id="user-id-info">-</span></div>
-                            <div>Username: <span id="username-info">-</span></div>
-                            <div>Room: <span id="current-room">-</span></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex-1 flex flex-col">
-                    <div class="flex border-b border-gray-700">
-                        <button id="logs-tab" onclick="switchDebugTab('logs')" class="px-4 py-2 text-sm text-blue-400 border-b-2 border-blue-400">
-                            <i class="fas fa-list mr-1"></i>Logs
-                        </button>
-                        <button id="test-tab" onclick="switchDebugTab('test')" class="px-4 py-2 text-sm text-gray-400 hover:text-white">
-                            <i class="fas fa-vial mr-1"></i>Test
-                        </button>
-                        <button id="monitor-tab" onclick="switchDebugTab('monitor')" class="px-4 py-2 text-sm text-gray-400 hover:text-white">
-                            <i class="fas fa-eye mr-1"></i>Monitor
-                        </button>
-                    </div>
-                    
-                    <div id="logs-content" class="flex-1 p-3 overflow-y-auto debug-tab-content">
-                        <div class="flex items-center justify-between mb-2">
-                            <h4 class="text-sm font-semibold text-gray-300">Real-time Logs</h4>
-                            <button onclick="clearDebugLogs()" class="text-xs text-red-400 hover:text-red-300">
-                                <i class="fas fa-trash mr-1"></i>Clear
-                            </button>
-                        </div>
-                        <div id="debug-logs" class="bg-black rounded p-2 h-full overflow-y-auto font-mono text-xs text-green-400">
-                            <div class="text-gray-500">Waiting for logs...</div>
-                        </div>
-                    </div>
-                    
-                    <div id="test-content" class="flex-1 p-3 overflow-y-auto debug-tab-content hidden">
-                        <h4 class="text-sm font-semibold text-gray-300 mb-3">Bot Command Testing</h4>
-                        <div class="space-y-3">
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Test Command:</label>
-                                <div class="flex space-x-2">
-                                    <input type="text" id="test-command" value="/titibot ping" 
-                                           class="flex-1 bg-discord-lighter text-white px-2 py-1 rounded text-xs">
-                                    <button onclick="sendTestCommand()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">
-                                        Send
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Channel/Room ID:</label>
-                                <input type="text" id="test-room-id" placeholder="Auto-detect current room" 
-                                       class="w-full bg-discord-lighter text-white px-2 py-1 rounded text-xs">
-                            </div>
-                            
-                            <div class="bg-gray-800 rounded p-2">
-                                <h5 class="text-xs font-semibold text-gray-300 mb-2">Server Management:</h5>
-                                <div class="flex space-x-2 mb-2">
-                                    <button onclick="syncServerPositions()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs flex-1">
-                                        <i class="fas fa-sort mr-1"></i>Sync Positions
-                                    </button>
-                                    <button onclick="verifyPositions()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs flex-1">
-                                        <i class="fas fa-search mr-1"></i>Check Positions
-                                    </button>
-                                </div>
-                                <div class="flex space-x-2 mb-2">
-                                    <button onclick="reloadChannelList()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs flex-1">
-                                        <i class="fas fa-refresh mr-1"></i>Reload Channels
-                                    </button>
-                                    <button onclick="showPositionDetails()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs flex-1">
-                                        <i class="fas fa-list mr-1"></i>Show Details
-                                    </button>
-                                </div>
-                                <div id="sync-status" class="text-xs text-gray-400 text-center">Ready to sync positions</div>
-                            </div>
-                            
-                            <div class="bg-gray-800 rounded p-2">
-                                <h5 class="text-xs font-semibold text-gray-300 mb-2">Common Bot Commands:</h5>
-                                <div class="grid grid-cols-2 gap-1 text-xs">
-                                    <button onclick="setTestCommand('/titibot ping')" class="text-left text-blue-400 hover:text-blue-300">/titibot ping</button>
-                                    <button onclick="setTestCommand('/titibot help')" class="text-left text-blue-400 hover:text-blue-300">/titibot help</button>
-                                    <button onclick="setTestCommand('/titibot time')" class="text-left text-blue-400 hover:text-blue-300">/titibot time</button>
-                                    <button onclick="setTestCommand('/titibot status')" class="text-left text-blue-400 hover:text-blue-300">/titibot status</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="monitor-content" class="flex-1 p-3 overflow-y-auto debug-tab-content hidden">
-                        <h4 class="text-sm font-semibold text-gray-300 mb-3">Message Flow Monitor</h4>
-                        <div class="space-y-3">
-                            <div class="bg-gray-800 rounded p-2">
-                                <h5 class="text-xs font-semibold text-gray-300 mb-2">Message Intercept Status:</h5>
-                                <div id="intercept-monitor" class="text-xs text-gray-400">
-                                    Monitoring message flow...
-                                </div>
-                            </div>
-                            
-                            <div class="bg-gray-800 rounded p-2">
-                                <h5 class="text-xs font-semibold text-gray-300 mb-2">Last Messages:</h5>
-                                <div id="message-history" class="text-xs text-gray-400 space-y-1 max-h-32 overflow-y-auto">
-                                    No messages intercepted yet...
-                                </div>
-                            </div>
-                            
-                            <div class="bg-gray-800 rounded p-2">
-                                <h5 class="text-xs font-semibold text-gray-300 mb-2">Bot Responses:</h5>
-                                <div id="bot-responses" class="text-xs text-gray-400 space-y-1 max-h-32 overflow-y-auto">
-                                    No bot responses yet...
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+            function testBotMessage() {
+    addDebugLogMaster('🧪 Testing bot message flow...', 'info');
     
-    document.body.appendChild(modal);
+    if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+        addDebugLogMaster('❌ Socket not ready for testing', 'error');
+        return;
+    }
     
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.remove();
+    const currentChannelId = getCurrentChannelId();
+    const userId = document.querySelector('meta[name="user-id"]')?.content;
+    const username = document.querySelector('meta[name="username"]')?.content;
+    
+    addDebugLogMaster(`🔍 Current context: channelId=${currentChannelId}, userId=${userId}, username=${username}`, 'info');
+    
+    let targetType, targetId;
+    if (window.location.pathname.includes('/server/') && currentChannelId) {
+        targetType = 'channel';
+        targetId = currentChannelId;
+    } else if (window.location.pathname.includes('/home/channels/dm/')) {
+        targetType = 'dm';
+        const dmMatch = window.location.pathname.match(/\/dm\/([^\/]+)/);
+        targetId = dmMatch ? dmMatch[1] : currentChannelId;
+    } else {
+        targetType = 'channel';
+        targetId = currentChannelId || '1';
+    }
+    
+    const testMessage = {
+        content: '/titibot ping',
+        target_type: targetType,
+        target_id: targetId,
+        message_type: 'text',
+        attachments: [],
+        timestamp: new Date().toISOString()
+    };
+    
+    addDebugLogMaster(`🎯 Sending test message with correct fields:`, 'info');
+    addDebugLogMaster(`   content: "${testMessage.content}"`, 'info');
+    addDebugLogMaster(`   target_type: "${testMessage.target_type}"`, 'info');
+    addDebugLogMaster(`   target_id: "${testMessage.target_id}"`, 'info');
+    
+    window.globalSocketManager.io.emit('save-and-send-message', testMessage);
+}
+
+function debugSocketConnection() {
+    addDebugLogMaster('🔍 Debugging socket connection...', 'info');
+    
+    const socketStatus = {
+        socketIOAvailable: typeof io !== 'undefined',
+        globalSocketManager: !!window.globalSocketManager,
+        socketConnected: window.globalSocketManager?.connected,
+        socketId: window.globalSocketManager?.io?.id,
+        rooms: Array.from(window.globalSocketManager?.io?.rooms || [])
+    };
+    
+    addDebugLogMaster(`Socket.IO Available: ${socketStatus.socketIOAvailable}`, socketStatus.socketIOAvailable ? 'success' : 'error');
+    addDebugLogMaster(`Global Manager Ready: ${socketStatus.globalSocketManager}`, socketStatus.globalSocketManager ? 'success' : 'error');
+    addDebugLogMaster(`Socket Connected: ${socketStatus.socketConnected}`, socketStatus.socketConnected ? 'success' : 'error');
+    addDebugLogMaster(`Socket ID: ${socketStatus.socketId || 'N/A'}`, 'info');
+    addDebugLogMaster(`Joined Rooms: ${socketStatus.rooms.join(', ') || 'None'}`, 'info');
+    
+    if (window.globalSocketManager?.io) {
+        window.globalSocketManager.io.emit('debug-test', 'Master Debug Panel Test');
+        addDebugLogMaster('📡 Debug test signal sent to server', 'info');
+    }
+}
+
+function forceBotInit() {
+    addDebugLogMaster('⚡ Forcing bot initialization...', 'warning');
+    
+    if (!window.globalSocketManager?.io) {
+        addDebugLogMaster('❌ No socket connection for bot initialization', 'error');
+        return;
+    }
+    
+    const initData = {
+        bot_id: 'titibot',
+        username: 'titibot',
+        force: true
+    };
+    
+    window.globalSocketManager.io.emit('bot-init', initData);
+    addDebugLogMaster('🤖 Bot initialization signal sent', 'success');
+}
+                    
+function getCurrentChannelId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let channelId = urlParams.get('channel');
+    
+    if (!channelId) {
+        const serverMatch = window.location.pathname.match(/\/server\/(\d+)/);
+        if (serverMatch) {
+            channelId = urlParams.get('channel');
         }
-    });
+    }
     
-    initializeBotDebugPanel();
+    if (!channelId) {
+        const dmMatch = window.location.pathname.match(/\/dm\/([^\/]+)/);
+        if (dmMatch) {
+            channelId = dmMatch[1];
+        }
+    }
+    
+    if (!channelId) {
+        if (window.chatSection && window.chatSection.targetId) {
+            channelId = window.chatSection.targetId;
+        }
+    }
+    
+    if (!channelId) {
+        const chatIdMeta = document.querySelector('meta[name="chat-id"]');
+        if (chatIdMeta) {
+            channelId = chatIdMeta.getAttribute('content');
+        }
+    }
+    
+    addDebugLogMaster(`🔍 getCurrentChannelId result: ${channelId}`, 'info');
+    return channelId;
+}
+
+function getCurrentServerId() {
+    const path = window.location.pathname;
+    const serverMatch = path.match(/\/server\/(\d+)/);
+    return serverMatch ? serverMatch[1] : null;
 }
 
 function switchDebugTab(tabName) {
@@ -1126,12 +1231,14 @@ function getCurrentServerId() {
     return serverMatch ? serverMatch[1] : null;
 }
 
-function syncServerPositions() {
+function syncServerPositions(globalSequence = false) {
     const serverId = getCurrentServerId();
-    const statusEl = document.getElementById('sync-status');
+    let statusEl = document.getElementById('sync-status');
+    const syncType = globalSequence ? 'Global' : 'Traditional';
     
     if (!serverId) {
-        addDebugLog('❌ Not on a server page - cannot sync positions', 'error');
+        addDebugLogMaster('❌ Not on a server page - cannot sync positions', 'error');
+        statusEl = document.getElementById('sync-status-master') || document.getElementById('sync-status');
         if (statusEl) statusEl.textContent = 'Error: Not on a server page';
         if (window.showToast) {
             window.showToast('❌ Please open a server page to sync positions', 'error');
@@ -1139,8 +1246,11 @@ function syncServerPositions() {
         return;
     }
     
-    addDebugLog(`🔧 Starting position sync for server ${serverId}...`, 'info');
-    if (statusEl) statusEl.textContent = 'Syncing positions...';
+    addDebugLogMaster(`🔧 Starting ${syncType} position sync for server ${serverId}...`, 'info');
+    statusEl = document.getElementById('sync-status-master') || document.getElementById('sync-status');
+    if (statusEl) statusEl.textContent = `Syncing positions (${syncType})...`;
+    
+    const requestBody = globalSequence ? { global_sequence: true } : {};
     
     fetch(`/api/servers/${serverId}/sync-positions`, {
         method: 'POST',
@@ -1148,19 +1258,33 @@ function syncServerPositions() {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         },
-        body: JSON.stringify({})
+        body: JSON.stringify(requestBody)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            addDebugLog('✅ Position sync successful:', 'success');
+            addDebugLog(`✅ ${syncType} position sync successful:`, 'success');
+            addDebugLog(`   Sync type: ${data.sync_type}`, 'info');
             addDebugLog(`   Categories synced: ${data.categories_synced}`, 'info');
             addDebugLog(`   Channels synced: ${data.channels_synced}`, 'info');
             
-            if (statusEl) statusEl.textContent = `✅ Synced ${data.categories_synced} categories, ${data.channels_synced} channels`;
+            if (data.global_items_synced) {
+                addDebugLog(`   Global items synced: ${data.global_items_synced}`, 'info');
+            }
+            
+            if (statusEl) {
+                const syncedText = data.global_items_synced 
+                    ? `✅ ${syncType}: ${data.global_items_synced} items synced`
+                    : `✅ ${syncType}: ${data.categories_synced} categories, ${data.channels_synced} channels`;
+                statusEl.textContent = syncedText;
+            }
+            
+            const toastMessage = data.global_items_synced
+                ? `✅ ${syncType} sync complete! ${data.global_items_synced} items with sequential positions`
+                : `✅ ${syncType} sync complete! ${data.categories_synced} categories and ${data.channels_synced} channels`;
             
             if (window.showToast) {
-                window.showToast(`✅ Position sync complete! Synced ${data.categories_synced} categories and ${data.channels_synced} channels`, 'success');
+                window.showToast(toastMessage, 'success');
             }
             
             // Auto-reload after 2 seconds
@@ -1169,24 +1293,24 @@ function syncServerPositions() {
                 window.location.reload();
             }, 2000);
         } else {
-            addDebugLog('❌ Position sync failed:', 'error');
+            addDebugLog(`❌ ${syncType} position sync failed:`, 'error');
             addDebugLog(`   Error: ${data.message || 'Unknown error'}`, 'error');
             
-            if (statusEl) statusEl.textContent = `❌ Sync failed: ${data.message || 'Unknown error'}`;
+            if (statusEl) statusEl.textContent = `❌ ${syncType} sync failed: ${data.message || 'Unknown error'}`;
             
             if (window.showToast) {
-                window.showToast('❌ Failed to sync positions: ' + (data.message || 'Unknown error'), 'error');
+                window.showToast(`❌ Failed to sync positions (${syncType}): ` + (data.message || 'Unknown error'), 'error');
             }
         }
     })
     .catch(error => {
-        addDebugLog('❌ Position sync request failed:', 'error');
+        addDebugLog(`❌ ${syncType} position sync request failed:`, 'error');
         addDebugLog(`   Network error: ${error.message}`, 'error');
         
-        if (statusEl) statusEl.textContent = '❌ Network error during sync';
+        if (statusEl) statusEl.textContent = `❌ Network error during ${syncType} sync`;
         
         if (window.showToast) {
-            window.showToast('❌ Network error during position sync', 'error');
+            window.showToast(`❌ Network error during ${syncType} position sync`, 'error');
         }
     });
 }
@@ -1214,10 +1338,145 @@ function reloadChannelList() {
     }, 500);
 }
 
+function verifyPositions() {
+    const serverId = getCurrentServerId();
+    
+    if (!serverId) {
+        addDebugLog('❌ Not on a server page - cannot check positions', 'error');
+        if (window.showToast) {
+            window.showToast('❌ Please open a server page to check positions', 'error');
+        }
+        return;
+    }
+    
+    addDebugLog(`🔍 Checking positions for server ${serverId}...`, 'info');
+    
+    fetch(`/api/test-position-verify?server_id=${serverId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            addDebugLog('✅ Position check completed:', 'success');
+            addDebugLog(`   Total items: Categories=${data.analysis.total_categories}, Channels=${data.analysis.total_channels}`, 'info');
+            addDebugLog(`   Categories positions: ${data.position_ranges.categories.min}-${data.position_ranges.categories.max}`, 'info');
+            addDebugLog(`   Uncategorized channels: ${data.position_ranges.uncategorized_channels.min}-${data.position_ranges.uncategorized_channels.max}`, 'info');
+            
+            // Show detailed breakdown
+            const categories = data.current_state.categories;
+            const uncategorized = data.current_state.uncategorized_channels;
+            
+            addDebugLog('📋 Current positions:', 'info');
+            categories.forEach(cat => {
+                addDebugLog(`   Category "${cat.name}": position ${cat.position}`, 'info');
+            });
+            uncategorized.forEach(ch => {
+                addDebugLog(`   Channel "${ch.name}": position ${ch.position}`, 'info');
+            });
+            
+            if (window.showToast) {
+                window.showToast(`✅ Position check complete - see debug logs for details`, 'success');
+            }
+        } else {
+            addDebugLog('❌ Position check failed:', 'error');
+            addDebugLog(`   Error: ${data.error}`, 'error');
+            if (window.showToast) {
+                window.showToast('❌ Failed to check positions', 'error');
+            }
+        }
+    })
+    .catch(error => {
+        addDebugLog('❌ Position check request failed:', 'error');
+        addDebugLog(`   Network error: ${error.message}`, 'error');
+        if (window.showToast) {
+            window.showToast('❌ Network error during position check', 'error');
+        }
+    });
+}
+
+function showPositionDetails() {
+    const serverId = getCurrentServerId();
+    
+    if (!serverId) {
+        addDebugLog('❌ Not on a server page - cannot show position details', 'error');
+        return;
+    }
+    
+    addDebugLog('📊 Fetching detailed position information...', 'info');
+    
+    fetch(`/api/test-position-verify?server_id=${serverId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Create a detailed modal or section
+            let detailsHtml = '<div style="background: #2f3136; padding: 15px; border-radius: 8px; margin: 10px 0; font-family: monospace; font-size: 12px; line-height: 1.4;">';
+            detailsHtml += '<h3 style="color: #ffffff; margin: 0 0 10px 0;">Position Details for Server ' + serverId + '</h3>';
+            
+            // Categories section
+            detailsHtml += '<div style="color: #f1c40f; font-weight: bold; margin: 10px 0 5px 0;">Categories:</div>';
+            if (data.current_state.categories.length > 0) {
+                data.current_state.categories.forEach(cat => {
+                    detailsHtml += `<div style="color: #e74c3c;">  📁 "${cat.name}" → Position: ${cat.position} (ID: ${cat.id})</div>`;
+                });
+            } else {
+                detailsHtml += '<div style="color: #95a5a6;">  No categories found</div>';
+            }
+            
+            // Uncategorized channels section
+            detailsHtml += '<div style="color: #3498db; font-weight: bold; margin: 10px 0 5px 0;">Uncategorized Channels:</div>';
+            if (data.current_state.uncategorized_channels.length > 0) {
+                data.current_state.uncategorized_channels.forEach(ch => {
+                    detailsHtml += `<div style="color: #2ecc71;">  # "${ch.name}" → Position: ${ch.position} (ID: ${ch.id})</div>`;
+                });
+            } else {
+                detailsHtml += '<div style="color: #95a5a6;">  No uncategorized channels found</div>';
+            }
+            
+            // Categorized channels section
+            if (Object.keys(data.current_state.channels_by_category).length > 0) {
+                detailsHtml += '<div style="color: #9b59b6; font-weight: bold; margin: 10px 0 5px 0;">Channels by Category:</div>';
+                Object.entries(data.current_state.channels_by_category).forEach(([categoryId, channels]) => {
+                    const category = data.current_state.categories.find(cat => cat.id == categoryId);
+                    const categoryName = category ? category.name : `Category ${categoryId}`;
+                    detailsHtml += `<div style="color: #e67e22; margin: 5px 0;">  📁 ${categoryName}:</div>`;
+                    channels.forEach(ch => {
+                        detailsHtml += `<div style="color: #2ecc71; margin-left: 20px;">    # "${ch.name}" → Position: ${ch.position} (ID: ${ch.id})</div>`;
+                    });
+                });
+            }
+            
+            detailsHtml += '</div>';
+            
+            // Show in debug logs
+            addDebugLog('📊 Detailed position breakdown displayed below:', 'success');
+            
+            // Insert details into the logs container
+            const logsContainer = document.getElementById('debug-logs');
+            if (logsContainer) {
+                const detailsDiv = document.createElement('div');
+                detailsDiv.innerHTML = detailsHtml;
+                logsContainer.appendChild(detailsDiv);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+            
+            if (window.showToast) {
+                window.showToast('📊 Position details displayed in debug logs', 'success');
+            }
+        } else {
+            addDebugLog('❌ Failed to fetch position details:', 'error');
+            addDebugLog(`   Error: ${data.error}`, 'error');
+        }
+    })
+    .catch(error => {
+        addDebugLog('❌ Failed to fetch position details:', 'error');
+        addDebugLog(`   Network error: ${error.message}`, 'error');
+    });
+}
+
 function initializeBotDebugPanel() {
     addDebugLog('🚀 Bot Debug Panel initialized', 'success');
     addDebugLog('Use the tabs above to navigate different debug sections', 'info');
-    addDebugLog('💡 Use "Sync Positions" button to manually reorganize channels/categories', 'info');
+    addDebugLog('💡 Position Sync Options:', 'info');
+    addDebugLog('   Traditional: Categories 1,2,3... | Channels 1,2,3... (separate sequences)', 'info');
+    addDebugLog('   Global: All items get sequential positions 1,2,3,4,5... (single sequence)', 'info');
     
     refreshBotStatus();
     
@@ -1532,8 +1791,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey && e.key === '9') {
             e.preventDefault();
             
-            console.log('Bot Debug Panel triggered...');
-            showBotDebugPanel();
+            console.log('Master Debug Panel triggered...');
+            showMasterDebugModal();
         }
     });
     
@@ -1607,7 +1866,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return status;
     }
     
-    console.log('Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status), Ctrl+9 (Bot Debug Panel)');
+    console.log('Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status), Ctrl+9 (Master Debug Panel)');
     
     if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
         console.log('MisVordMessaging exists but not initialized, attempting manual initialization...');

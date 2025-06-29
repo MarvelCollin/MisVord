@@ -275,7 +275,13 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     @apply absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white text-xs font-medium;
 }
 
+.video-participant-controls {
+    @apply absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200;
+}
 
+.video-participant-controls button {
+    @apply w-6 h-6 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white text-xs transition-all duration-200;
+}
 
 @keyframes pulse-voice {
     0%, 100% { 
@@ -482,6 +488,218 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 <script src="/public/js/components/voice/video-handler.js"></script>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    initializeVoiceControls();
+});
+
+function initializeVoiceControls() {
+    const micBtn = document.getElementById('voiceMicBtn');
+    const deafenBtn = document.getElementById('voiceDeafenBtn');
+    const videoBtn = document.getElementById('voiceVideoBtn');
+    const screenBtn = document.getElementById('voiceScreenBtn');
+    const settingsBtn = document.getElementById('voiceSettingsBtn');
+    const disconnectBtn = document.getElementById('voiceDisconnectBtn');
+
+    if (micBtn) {
+        micBtn.addEventListener('click', function() {
+            toggleMicrophone();
+        });
+    }
+
+    if (deafenBtn) {
+        deafenBtn.addEventListener('click', function() {
+            toggleDeafen();
+        });
+    }
+
+    if (videoBtn) {
+        videoBtn.addEventListener('click', function() {
+            toggleCamera();
+        });
+    }
+
+    if (screenBtn) {
+        screenBtn.addEventListener('click', function() {
+            toggleScreenShare();
+        });
+    }
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', function() {
+            openVoiceSettings();
+        });
+    }
+
+    if (disconnectBtn) {
+        disconnectBtn.addEventListener('click', function() {
+            disconnectFromVoice();
+        });
+    }
+}
+
+function toggleMicrophone() {
+    if (!window.videoSDKManager || !window.videoSDKManager.isReady()) {
+        showToast('Voice not connected', 'error');
+        return;
+    }
+
+    try {
+        const newMicState = window.videoSDKManager.toggleMic();
+        const micBtn = document.getElementById('voiceMicBtn');
+        const micIcon = micBtn.querySelector('i');
+        const micTooltip = micBtn.querySelector('.mic-tooltip');
+
+        if (newMicState) {
+            micIcon.className = 'fas fa-microphone text-xl';
+            micTooltip.textContent = 'Mute';
+            micBtn.classList.remove('bg-red-500');
+            micBtn.classList.add('bg-[#2f3136]');
+            showToast('Microphone enabled', 'success');
+        } else {
+            micIcon.className = 'fas fa-microphone-slash text-xl';
+            micTooltip.textContent = 'Unmute';
+            micBtn.classList.remove('bg-[#2f3136]');
+            micBtn.classList.add('bg-red-500');
+            showToast('Microphone muted', 'info');
+        }
+    } catch (error) {
+        console.error('Error toggling microphone:', error);
+        showToast('Failed to toggle microphone', 'error');
+    }
+}
+
+function toggleDeafen() {
+    if (!window.videoSDKManager || !window.videoSDKManager.isReady()) {
+        showToast('Voice not connected', 'error');
+        return;
+    }
+
+    try {
+        const newDeafenState = window.videoSDKManager.toggleDeafen();
+        const deafenBtn = document.getElementById('voiceDeafenBtn');
+        const deafenIcon = deafenBtn.querySelector('i');
+        const deafenTooltip = deafenBtn.querySelector('.deafen-tooltip');
+
+        if (newDeafenState) {
+            deafenIcon.className = 'fas fa-volume-mute text-xl';
+            deafenTooltip.textContent = 'Undeafen';
+            deafenBtn.classList.remove('bg-[#2f3136]');
+            deafenBtn.classList.add('bg-red-500');
+            showToast('Audio deafened', 'info');
+        } else {
+            deafenIcon.className = 'fas fa-headphones text-xl';
+            deafenTooltip.textContent = 'Deafen';
+            deafenBtn.classList.remove('bg-red-500');
+            deafenBtn.classList.add('bg-[#2f3136]');
+            showToast('Audio undeafened', 'success');
+        }
+    } catch (error) {
+        console.error('Error toggling deafen:', error);
+        showToast('Failed to toggle deafen', 'error');
+    }
+}
+
+async function toggleCamera() {
+    if (!window.videoSDKManager || !window.videoSDKManager.isReady()) {
+        showToast('Voice not connected', 'error');
+        return;
+    }
+
+    const videoBtn = document.getElementById('voiceVideoBtn');
+    const videoIcon = videoBtn.querySelector('i');
+    const videoTooltip = videoBtn.querySelector('.video-tooltip');
+    
+    videoBtn.disabled = true;
+    videoBtn.style.opacity = '0.6';
+
+    try {
+        const newVideoState = await window.videoSDKManager.toggleWebcam();
+        
+        if (newVideoState) {
+            videoIcon.className = 'fas fa-video text-xl';
+            videoTooltip.textContent = 'Turn Off Camera';
+            videoBtn.classList.remove('bg-[#2f3136]');
+            videoBtn.classList.add('bg-green-600');
+            showToast('Camera enabled', 'success');
+        } else {
+            videoIcon.className = 'fas fa-video-slash text-xl';
+            videoTooltip.textContent = 'Turn On Camera';
+            videoBtn.classList.remove('bg-green-600');
+            videoBtn.classList.add('bg-[#2f3136]');
+            showToast('Camera disabled', 'info');
+        }
+    } catch (error) {
+        console.error('Error toggling camera:', error);
+        showToast('Failed to toggle camera', 'error');
+    } finally {
+        setTimeout(() => {
+            videoBtn.disabled = false;
+            videoBtn.style.opacity = '1';
+        }, 1000);
+    }
+}
+
+async function toggleScreenShare() {
+    if (!window.videoSDKManager || !window.videoSDKManager.isReady()) {
+        showToast('Voice not connected', 'error');
+        return;
+    }
+
+    const screenBtn = document.getElementById('voiceScreenBtn');
+    const screenIcon = screenBtn.querySelector('i');
+    const screenTooltip = screenBtn.querySelector('.screen-tooltip');
+    
+    screenBtn.disabled = true;
+    screenBtn.style.opacity = '0.6';
+
+    try {
+        const newScreenState = await window.videoSDKManager.toggleScreenShare();
+        
+        if (newScreenState) {
+            screenIcon.className = 'fas fa-stop-circle text-xl';
+            screenTooltip.textContent = 'Stop Sharing';
+            screenBtn.classList.remove('bg-[#2f3136]');
+            screenBtn.classList.add('bg-blue-600');
+            showToast('Screen share started', 'success');
+        } else {
+            screenIcon.className = 'fas fa-desktop text-xl';
+            screenTooltip.textContent = 'Share Screen';
+            screenBtn.classList.remove('bg-blue-600');
+            screenBtn.classList.add('bg-[#2f3136]');
+            showToast('Screen share stopped', 'info');
+        }
+    } catch (error) {
+        console.error('Error toggling screen share:', error);
+        showToast('Failed to toggle screen share', 'error');
+    } finally {
+        setTimeout(() => {
+            screenBtn.disabled = false;
+            screenBtn.style.opacity = '1';
+        }, 1000);
+    }
+}
+
+function openVoiceSettings() {
+    showToast('Voice settings feature coming soon', 'info');
+}
+
+function disconnectFromVoice() {
+    if (window.voiceManager && window.voiceManager.isConnected) {
+        window.voiceManager.leaveVoice();
+        showToast('Disconnected from voice channel', 'info');
+    } else {
+        showToast('Not connected to voice', 'error');
+    }
+}
+
+function showToast(message, type = 'info', duration = 3000) {
+    if (window.showToast) {
+        window.showToast(message, type, duration);
+    } else {
+        console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+}
+
 function updateDiscordLayout() {
     const screenShareContainer = document.getElementById('screenShareContainer');
     const speakerView = document.getElementById('speakerView');
@@ -539,7 +757,26 @@ function createVideoParticipantCard(participant) {
     card.innerHTML = `
         <video autoplay playsinline muted class="w-full h-40 object-cover bg-black"></video>
         <div class="video-participant-name">${displayName}</div>
+        <div class="video-participant-controls">
+            <button class="pin-btn" title="Pin">
+                <i class="fas fa-thumbtack"></i>
+            </button>
+            <button class="mute-btn" title="Mute">
+                <i class="fas fa-microphone-slash"></i>
+            </button>
+        </div>
     `;
+    
+    const pinBtn = card.querySelector('.pin-btn');
+    const muteBtn = card.querySelector('.mute-btn');
+    
+    if (pinBtn) {
+        pinBtn.addEventListener('click', () => pinParticipant(participant.id));
+    }
+    
+    if (muteBtn) {
+        muteBtn.addEventListener('click', () => muteParticipant(participant.id));
+    }
     
     return card;
 }
@@ -678,7 +915,31 @@ function updateParticipantMuted(participantId, isMuted) {
     }
 }
 
+function pinParticipant(participantId) {
+    const speakerView = document.getElementById('speakerView');
+    const speakerVideo = document.getElementById('speakerVideo');
+    const speakerUsername = document.getElementById('speakerUsername');
+    
+    const videoCard = document.querySelector(`.video-participant-card[data-participant-id="${participantId}"]`);
+    if (videoCard) {
+        const sourceVideo = videoCard.querySelector('video');
+        if (sourceVideo && sourceVideo.srcObject) {
+            speakerVideo.srcObject = sourceVideo.srcObject;
+            speakerUsername.textContent = participantId;
+            
+            document.querySelectorAll('.video-participant-card').forEach(card => {
+                card.classList.remove('active-speaker');
+            });
+            videoCard.classList.add('active-speaker');
+            
+            updateDiscordLayout();
+        }
+    }
+}
 
+function muteParticipant(participantId) {
+    console.log(`Mute participant ${participantId} - This would require admin permissions`);
+}
 
 function addLocalParticipant() {
     const username = document.querySelector('meta[name="username"]')?.content || 'You';
@@ -804,6 +1065,7 @@ window.addVoiceParticipant = addVoiceParticipant;
 window.removeVoiceParticipant = removeVoiceParticipant;
 window.updateParticipantSpeaking = updateParticipantSpeaking;
 window.updateParticipantMuted = updateParticipantMuted;
+window.pinParticipant = pinParticipant;
 window.addLocalParticipant = addLocalParticipant;
 window.addRemoteParticipant = addRemoteParticipant;
 window.removeParticipant = removeParticipant;

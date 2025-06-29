@@ -23,7 +23,7 @@
             <div>
                 <label class="block text-gray-300 text-sm mb-2">Select Server to Join</label>
                 <select id="bot-dev-server" class="w-full bg-discord-dark text-white px-3 py-2 rounded border border-gray-600 focus:border-discord-primary">
-                    <option value="">Loading servers...</option>
+                    <option value="">AJAX disabled - Use WebSocket instead</option>
                 </select>
             </div>
             
@@ -57,35 +57,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    async function loadUserServersDev() {
-        try {
-            const response = await fetch('/api/user/servers', {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            
-            const data = await response.json();
-            const serverSelect = document.getElementById('bot-dev-server');
-            
-            if (data.success && data.servers) {
-                serverSelect.innerHTML = '<option value="">Select a server...</option>';
-                data.servers.forEach(server => {
-                    const option = document.createElement('option');
-                    option.value = server.id;
-                    option.textContent = server.name;
-                    serverSelect.appendChild(option);
-                });
-            } else {
-                serverSelect.innerHTML = '<option value="">No servers available</option>';
-            }
-        } catch (error) {
-            console.error('Failed to load servers:', error);
-            document.getElementById('bot-dev-server').innerHTML = '<option value="">Error loading servers</option>';
-        }
-    }
-
     function showStatus(message, type = 'info') {
         const statusDiv = document.getElementById('bot-dev-status');
         const colors = {
@@ -100,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.openBotDevModal = function() {
         document.getElementById('bot-dev-modal').classList.remove('hidden');
-        loadUserServersDev();
+        showStatus('⚠️ Bot AJAX operations have been disabled. Use WebSocket-based bot commands instead.', 'warning');
     };
 
     window.closeBotDevModal = function() {
@@ -108,133 +79,18 @@ document.addEventListener('DOMContentLoaded', function() {
         clearBotDevForm();
     };
 
-    window.initBotDev = async function() {
-        const username = document.getElementById('bot-dev-username').value.trim();
-        const email = document.getElementById('bot-dev-email').value.trim();
-        const serverId = document.getElementById('bot-dev-server').value;
-        
-        if (!username) {
-            showStatus('❌ Bot username is required', 'error');
-            return;
-        }
-        
-        if (!email) {
-            showStatus('❌ Bot email is required', 'error');
-            return;
-        }
-        
-        showStatus('⏳ Creating bot...', 'loading');
-        
-        try {
-            const response = await fetch('/api/bots/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({
-                    username: username,
-                    email: email,
-                    server_id: serverId || null
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                let message = `✅ Bot created successfully! ID: ${data.bot.id}, Discriminator: ${data.bot.discriminator}`;
-                if (data.server_joined) {
-                    message += '<br>🎉 Bot joined server successfully!';
-                }
-                if (data.server_join_error) {
-                    message += `<br>⚠️ Server join error: ${data.server_join_error}`;
-                }
-                showStatus(message, 'success');
-            } else {
-                showStatus(`❌ ${data.message || 'Failed to create bot'}`, 'error');
-            }
-        } catch (error) {
-            console.error('Bot creation error:', error);
-            showStatus('❌ Network error occurred', 'error');
-        }
+    window.initBotDev = function() {
+        showStatus('❌ Bot creation via AJAX has been disabled. Use WebSocket methods instead.', 'error');
     };
 
-    window.checkBotDev = async function() {
-        const username = document.getElementById('bot-dev-username').value.trim();
-        
-        if (!username) {
-            showStatus('❌ Bot username is required', 'error');
-            return;
-        }
-        
-        showStatus('⏳ Checking bot...', 'loading');
-        
-        try {
-            const response = await fetch(`/api/bots/check/${encodeURIComponent(username)}`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success && data.exists) {
-                if (data.is_bot) {
-                    showStatus(`✅ Bot exists! ID: ${data.bot.id}, Status: ${data.bot.status}, Discriminator: ${data.bot.discriminator}`, 'success');
-                } else {
-                    showStatus('⚠️ User exists but is not a bot', 'warning');
-                }
-            } else {
-                showStatus('⚠️ Bot does not exist', 'warning');
-            }
-        } catch (error) {
-            console.error('Bot check error:', error);
-            showStatus('❌ Network error occurred', 'error');
-        }
+    window.checkBotDev = function() {
+        showStatus('❌ Bot check via AJAX has been disabled. Use WebSocket methods instead.', 'error');
     };
 
-    window.listBotsDev = async function() {
+    window.listBotsDev = function() {
         const listDiv = document.getElementById('bot-dev-list');
-        const listContent = document.getElementById('bot-dev-list-content');
-        
-        showStatus('⏳ Loading bots...', 'loading');
-        
-        try {
-            const response = await fetch('/api/bots', {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                showStatus(`✅ Found ${data.total} bots`, 'success');
-                
-                if (data.bots.length > 0) {
-                    listContent.innerHTML = data.bots.map(bot => `
-                        <div class="bg-discord-dark p-2 rounded mb-2 text-sm">
-                            <div class="text-white font-medium">${bot.username}#${bot.discriminator}</div>
-                            <div class="text-gray-400">ID: ${bot.id} | Status: ${bot.status}</div>
-                            <div class="text-gray-500 text-xs">${bot.email}</div>
-                        </div>
-                    `).join('');
-                    listDiv.classList.remove('hidden');
-                } else {
-                    listDiv.classList.add('hidden');
-                }
-            } else {
-                showStatus(`❌ ${data.message || 'Failed to load bots'}`, 'error');
-                listDiv.classList.add('hidden');
-            }
-        } catch (error) {
-            console.error('Bot list error:', error);
-            showStatus('❌ Network error occurred', 'error');
-            listDiv.classList.add('hidden');
-        }
+        showStatus('❌ Bot listing via AJAX has been disabled. Use WebSocket methods instead.', 'error');
+        listDiv.classList.add('hidden');
     };
 
     window.clearBotDevForm = function() {

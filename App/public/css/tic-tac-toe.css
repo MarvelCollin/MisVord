@@ -29,6 +29,70 @@
     }
 }
 
+#tic-tac-toe-container {
+    border: 1px solid #404249;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+#start-tic-tac-toe-game {
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 14px 0 rgba(88, 101, 242, 0.39);
+}
+
+#start-tic-tac-toe-game::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+#start-tic-tac-toe-game:hover::before {
+    left: 100%;
+}
+
+#start-tic-tac-toe-game:hover {
+    box-shadow: 0 6px 20px 0 rgba(88, 101, 242, 0.5);
+}
+
+#start-tic-tac-toe-game:disabled {
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+#start-tic-tac-toe-game:disabled::before {
+    display: none;
+}
+
+#tic-tac-toe-status {
+    border: 1px solid #404249;
+    transition: all 0.2s ease;
+}
+
+#tic-tac-toe-status:hover {
+    border-color: #5865f2;
+    box-shadow: 0 0 10px rgba(88, 101, 242, 0.3);
+}
+
+#connection-status {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
 #tic-tac-toe-button {
     transition: all 0.2s ease;
     position: relative;
@@ -154,10 +218,10 @@
 }
 
 #current-turn.text-green-400 {
-    animation: pulse 2s infinite;
+    animation: turnPulse 2s infinite;
 }
 
-@keyframes pulse {
+@keyframes turnPulse {
     0%, 100% {
         opacity: 1;
     }
@@ -268,8 +332,34 @@
     }
 }
 
+.tic-tac-toe-instructions {
+    background: linear-gradient(135deg, #2c2f36 0%, #1e2124 100%);
+    border: 1px solid #404249;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.tic-tac-toe-instructions ul li {
+    position: relative;
+    padding-left: 1rem;
+}
+
+.tic-tac-toe-instructions ul li::before {
+    content: '▶';
+    position: absolute;
+    left: 0;
+    color: #5865f2;
+    font-size: 0.8rem;
+}
+
 @media (max-width: 480px) {
     #tic-tac-toe-modal .bg-\[#313338\] {
+        margin: 1rem;
+        max-width: calc(100vw - 2rem);
+    }
+    
+    #tic-tac-toe-container {
         margin: 1rem;
         max-width: calc(100vw - 2rem);
     }
@@ -291,5 +381,10 @@
     
     #player-list .flex.items-center {
         padding: 0.75rem;
+    }
+    
+    #start-tic-tac-toe-game {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
     }
 }
