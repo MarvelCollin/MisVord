@@ -123,6 +123,8 @@ class ExploreController extends BaseController
 
             ob_start();
             ?>
+            <?php include __DIR__ . '/../views/components/app-sections/server-sidebar.php'; ?>
+
             <div class="flex-1 bg-discord-background overflow-y-auto">
                 <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
                     <div class="mb-8 slide-up">

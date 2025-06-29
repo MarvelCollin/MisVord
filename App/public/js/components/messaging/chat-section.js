@@ -89,7 +89,6 @@ class ChatSection {
         this.contextMenu = document.getElementById('message-context-menu') || document.getElementById('context-menu');
         this.fileUploadInput = document.getElementById('file-upload');
         this.filePreviewModal = document.getElementById('file-preview-modal');
-        this.emojiPickerContainer = document.getElementById('emoji-picker-container');
         
         // Initialize
         this.init();
@@ -802,76 +801,7 @@ class ChatSection {
         }
     }
     
-    openEmojiPicker(targetElement, messageId, mode = 'message') {
-        if (!this.emojiPickerContainer) return;
-        
-        // Position the emoji picker
-        const rect = targetElement.getBoundingClientRect();
-        this.emojiPickerContainer.style.top = `${rect.bottom + 5}px`;
-        this.emojiPickerContainer.style.left = `${rect.left}px`;
-        
-        // Show the emoji picker
-        this.emojiPickerContainer.classList.remove('hidden');
-        
-        // Set data attributes for the emoji picker
-        this.emojiPickerContainer.dataset.mode = mode;
-        this.emojiPickerContainer.dataset.messageId = messageId || '';
-        
-        // Add click outside listener
-        const clickOutsideHandler = (e) => {
-            if (!this.emojiPickerContainer.contains(e.target) && e.target !== targetElement) {
-                this.closeEmojiPicker();
-                document.removeEventListener('click', clickOutsideHandler);
-            }
-        };
-        
-        // Delay adding the event listener to prevent immediate closing
-        setTimeout(() => {
-            document.addEventListener('click', clickOutsideHandler);
-        }, 100);
-    }
-    
-    closeEmojiPicker() {
-        if (this.emojiPickerContainer) {
-            this.emojiPickerContainer.classList.add('hidden');
-        }
-    }
-    
-    async addReaction(messageId, emoji) {
-        if (!messageId || !emoji) return;
-        
-        try {
-            if (!window.ChatAPI) {
-                throw new Error('ChatAPI not initialized');
-            }
-            
-            const response = await window.ChatAPI.addReaction(messageId, emoji);
-            
-            if (!response.success) {
-                console.error('❌ [CHAT-SECTION] Failed to add reaction:', response.message);
-            }
-        } catch (error) {
-            console.error('❌ [CHAT-SECTION] Error adding reaction:', error);
-        }
-    }
-    
-    async removeReaction(messageId, emoji) {
-        if (!messageId || !emoji) return;
-        
-        try {
-            if (!window.ChatAPI) {
-                throw new Error('ChatAPI not initialized');
-            }
-            
-            const response = await window.ChatAPI.removeReaction(messageId, emoji);
-            
-            if (!response.success) {
-                console.error('❌ [CHAT-SECTION] Failed to remove reaction:', response.message);
-            }
-        } catch (error) {
-            console.error('❌ [CHAT-SECTION] Error removing reaction:', error);
-        }
-    }
+
     
     scrollToBottom() {
         if (this.chatMessages) {

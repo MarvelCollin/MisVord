@@ -1,6 +1,5 @@
 export * from './messaging/emoji.js';
 export * from './messaging/rich-text.js';
-export * from './messaging/chat-socket-handler.js';
 export * from './messaging/chat-section.js';
 export * from './messaging/chat-skeleton-loading.js';
 export * from './servers/server-dropdown.js';
@@ -42,9 +41,6 @@ if (!document.body.classList.contains('settings-page') &&
     !document.location.pathname.includes('/home')) {
     import('./messaging/chat-section.js').catch(err => {
         console.debug('Chat section not loaded: ', err.message);
-    });
-    import('./messaging/chat-socket-handler.js').catch(err => {
-        console.debug('Chat socket handler not loaded: ', err.message);
     });
     import('./messaging/emoji.js').catch(err => {
         console.debug('Emoji reactions not loaded: ', err.message);

@@ -288,16 +288,63 @@ class VideoSDKManager {
             if (!data) return;
             
             try {
-                const kind = data.kind || 
-                    (data.stream?.getVideoTracks?.().length > 0 ? 'video' : 
-                     data.stream?.getAudioTracks?.().length > 0 ? 'audio' : 'unknown');
+                let kind = data.kind || 'unknown';
+                let stream = data.stream;
+                
+                if (kind === 'unknown' && stream) {
+                    try {
+                        if (stream instanceof MediaStream) {
+                            const videoTracks = stream.getVideoTracks();
+                            const audioTracks = stream.getAudioTracks();
+                            
+                            if (videoTracks.length > 0) {
+                                const track = videoTracks[0];
+                                if (track.label && track.label.toLowerCase().includes('screen')) {
+                                    kind = 'share';
+                                } else {
+                                    kind = 'video';
+                                }
+                            } else if (audioTracks.length > 0) {
+                                kind = 'audio';
+                            }
+                        } else if (stream.stream instanceof MediaStream) {
+                            const mediaStream = stream.stream;
+                            const videoTracks = mediaStream.getVideoTracks();
+                            const audioTracks = mediaStream.getAudioTracks();
+                            
+                            if (videoTracks.length > 0) {
+                                const track = videoTracks[0];
+                                if (track.label && track.label.toLowerCase().includes('screen')) {
+                                    kind = 'share';
+                                } else {
+                                    kind = 'video';
+                                }
+                            } else if (audioTracks.length > 0) {
+                                kind = 'audio';
+                            }
+                        } else if (stream.track) {
+                            const track = stream.track;
+                            if (track.kind === 'video') {
+                                if (track.label && track.label.toLowerCase().includes('screen')) {
+                                    kind = 'share';
+                                } else {
+                                    kind = 'video';
+                                }
+                            } else if (track.kind === 'audio') {
+                                kind = 'audio';
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Error re-detecting stream kind:', error);
+                    }
+                }
                 
                 console.log(`Stream of kind ${kind} enabled`);
                 
                 window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', { 
                     detail: { 
                         kind, 
-                        stream: data.stream || null,
+                        stream: stream,
                         participant: participant.id
                     } 
                 }));
@@ -336,13 +383,10 @@ class VideoSDKManager {
     }
     
     startStreamMonitoring(participant) {
-        // Skip if no participant or already monitoring
         if (!participant || participant._streamMonitoringActive) return;
         
-        // Track previous stream state
         participant._previousStreams = new Map();
         
-        // Set up interval to monitor streams
         const interval = setInterval(() => {
             if (!participant || !participant.streams) {
                 clearInterval(interval);
@@ -350,41 +394,71 @@ class VideoSDKManager {
             }
             
             try {
-                // Check for new streams
                 participant.streams.forEach((stream, streamId) => {
                     if (!participant._previousStreams.has(streamId)) {
-                        // New stream found
-                        const kind = streamId.includes('video') ? 'video' : 
-                                    streamId.includes('audio') ? 'audio' : 
-                                    streamId.includes('share') ? 'share' : 'unknown';
-                                    
-                        console.log(`Stream monitor detected new ${kind} stream`);
+                        let kind = 'unknown';
                         
-                        // Manually trigger event
+                        try {
+                            if (streamId.includes('video') || streamId.includes('cam') || streamId.includes('webcam')) {
+                                kind = 'video';
+                            } else if (streamId.includes('audio') || streamId.includes('mic')) {
+                                kind = 'audio';
+                            } else if (streamId.includes('share') || streamId.includes('screen')) {
+                                kind = 'share';
+                            } else if (stream && stream.stream) {
+                                const mediaStream = stream.stream;
+                                if (mediaStream instanceof MediaStream) {
+                                    const videoTracks = mediaStream.getVideoTracks();
+                                    const audioTracks = mediaStream.getAudioTracks();
+                                    
+                                    if (videoTracks.length > 0) {
+                                        const track = videoTracks[0];
+                                        if (track.label && track.label.toLowerCase().includes('screen')) {
+                                            kind = 'share';
+                                        } else {
+                                            kind = 'video';
+                                        }
+                                    } else if (audioTracks.length > 0) {
+                                        kind = 'audio';
+                                    }
+                                }
+                            } else if (stream && stream.track) {
+                                const track = stream.track;
+                                if (track.kind === 'video') {
+                                    if (track.label && track.label.toLowerCase().includes('screen')) {
+                                        kind = 'share';
+                                    } else {
+                                        kind = 'video';
+                                    }
+                                } else if (track.kind === 'audio') {
+                                    kind = 'audio';
+                                }
+                            }
+                        } catch (error) {
+                            console.warn('Error determining stream kind:', error);
+                        }
+                                    
+                        console.log(`Stream monitor detected new ${kind} stream (ID: ${streamId})`);
+                        
                         participant.safeEmit('stream-enabled', { 
                             kind, 
-                            stream: stream.stream || stream
+                            stream: stream.stream || stream,
+                            streamId
                         });
                         
-                        // Update tracking
-                        participant._previousStreams.set(streamId, true);
+                        participant._previousStreams.set(streamId, kind);
                     }
                 });
                 
-                // Check for removed streams
-                participant._previousStreams.forEach((_, streamId) => {
+                participant._previousStreams.forEach((kind, streamId) => {
                     if (!participant.streams.has(streamId)) {
-                        // Stream was removed
-                        const kind = streamId.includes('video') ? 'video' : 
-                                    streamId.includes('audio') ? 'audio' : 
-                                    streamId.includes('share') ? 'share' : 'unknown';
-                                    
-                        console.log(`Stream monitor detected removed ${kind} stream`);
+                        console.log(`Stream monitor detected removed ${kind} stream (ID: ${streamId})`);
                         
-                        // Manually trigger event
-                        participant.safeEmit('stream-disabled', { kind });
+                        participant.safeEmit('stream-disabled', { 
+                            kind,
+                            streamId
+                        });
                         
-                        // Update tracking
                         participant._previousStreams.delete(streamId);
                     }
                 });
@@ -393,7 +467,6 @@ class VideoSDKManager {
             }
         }, 1000);
         
-        // Store interval for cleanup
         participant._streamMonitorInterval = interval;
         participant._streamMonitoringActive = true;
     }
@@ -602,20 +675,33 @@ class VideoSDKManager {
     }
     
     async toggleScreenShare() {
-        if (!this.meeting) return false;
+        if (!this.meeting || !this.isConnected) {
+            console.error('Meeting not ready for screen share');
+            return false;
+        }
+
+        if (!this.meeting.localParticipant) {
+            console.error('Local participant not available');
+            return false;
+        }
         
         try {
             const isScreenSharing = this.getScreenShareState();
             
             if (isScreenSharing) {
                 await this.meeting.disableScreenShare();
+                console.log('[VideoSDK] Screen sharing disabled');
                 return false;
             } else {
                 await this.meeting.enableScreenShare();
+                console.log('[VideoSDK] Screen sharing enabled');
                 return true;
             }
         } catch (error) {
             console.error("Error toggling screen share:", error);
+            if (error.code === 3016) {
+                console.warn('Screen sharing permission denied by user');
+            }
             return false;
         }
     }

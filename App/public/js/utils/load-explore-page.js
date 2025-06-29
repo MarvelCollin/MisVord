@@ -101,13 +101,30 @@ function updateExploreLayout(html) {
     if (currentLayout) {
         console.log('[Explore Layout] Before replacement - current layout children:', currentLayout.children.length);
         
-        console.log('[Explore Layout] Hiding server channel section');
-        hideServerChannelSection();
-        
         console.log('[Explore Layout] Replacing layout innerHTML with explore content');
         currentLayout.innerHTML = html;
         
         console.log('[Explore Layout] After replacement - new layout children:', currentLayout.children.length);
+        
+        // Execute any inline scripts
+        const scriptTags = currentLayout.querySelectorAll('script');
+        scriptTags.forEach(script => {
+            if (script.type === 'module' || script.type === 'text/javascript' || !script.type) {
+                try {
+                    if (script.src) {
+                        const newScript = document.createElement('script');
+                        newScript.src = script.src;
+                        newScript.type = script.type || 'text/javascript';
+                        document.head.appendChild(newScript);
+                    } else {
+                        eval(script.textContent);
+                    }
+                    console.log('[Explore Layout] Executed script:', script.type || 'inline');
+                } catch (error) {
+                    console.error('[Explore Layout] Error executing script:', error);
+                }
+            }
+        });
         
         console.log('[Explore Layout] Updating browser history');
         window.history.pushState(
@@ -116,17 +133,10 @@ function updateExploreLayout(html) {
             '/explore-servers'
         );
         
-        setTimeout(() => {
-            console.log('[Explore Layout] Re-initializing explore components');
-            if (typeof window.initExplorePage === 'function') {
-                window.initExplorePage();
-            }
-            
-            if (typeof window.updateActiveServer === 'function') {
-                window.updateActiveServer('explore');
-                console.log('[Explore Layout] Active server state updated for explore');
-            }
-        }, 100);
+        if (typeof window.updateActiveServer === 'function') {
+            window.updateActiveServer('explore');
+            console.log('[Explore Layout] Active server state updated for explore');
+        }
         
         console.log('[Explore Layout] SUCCESS - Explore layout replacement completed');
     } else {
@@ -140,27 +150,7 @@ function updateExploreLayout(html) {
     }
 }
 
-function hideServerChannelSection() {
-    const serverChannelSelectors = [
-        '.w-60.bg-discord-dark.flex.flex-col',
-        'div[class*="w-60"][class*="bg-discord-dark"]',  
-        'div[class*="w-60 bg-discord-dark"]'
-    ];
-    
-    let found = false;
-    serverChannelSelectors.forEach(selector => {
-        const element = document.querySelector(selector);
-        if (element) {
-            console.log('[Explore Layout] Found server channel section with selector:', selector);
-            element.style.display = 'none';
-            found = true;
-        }
-    });
-    
-    if (!found) {
-        console.log('[Explore Layout] No server channel section found to hide');
-    }
-}
+
 
 function showPageLoading(container) {
     container.innerHTML = `

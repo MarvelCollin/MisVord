@@ -122,19 +122,12 @@ class MessageHandler {
         }
     }
 
-    static async handleReaction(io, client, eventName, data) {
+    static handleReaction(io, client, eventName, data) {
         console.log(`😊 [REACTION-HANDLER] Starting reaction handling for ${eventName} from client ${client.id}`);
-        
-        if (!client.data?.authenticated || !client.data?.user_id) {
-            console.error(`❌ [REACTION-HANDLER] Unauthenticated client attempted to add reaction`);
-            client.emit('reaction_error', { error: 'Authentication required' });
-            return;
-        }
         
         const validation = eventValidator.validateAndLog(eventName, data, 'in handleReaction');
         if (!validation.valid) {
             console.error(`❌ [REACTION-HANDLER] Validation failed for ${eventName}:`, validation.errors);
-            client.emit('reaction_error', { error: 'Invalid reaction data' });
             return;
         }
         
@@ -157,20 +150,63 @@ class MessageHandler {
             console.log(`🏠 [REACTION-HANDLER] Using DM room: ${targetRoom} for DM ${data.target_id}`);
         }
         
+        if (targetRoom) {
+            console.log(`📡 [REACTION-HANDLER] Broadcasting ${eventName} to room: ${targetRoom}`);
+            
+            const reactionData = {
+                message_id: data.message_id,
+                emoji: data.emoji,
+                user_id: data.user_id,
+                username: data.username,
+                target_type: data.target_type,
+                target_id: data.target_id,
+                action: data.action,
+                timestamp: Date.now(),
+                source: data.source || 'server-originated'
+            };
+            
+            console.log(`📤 [REACTION-HANDLER] Reaction data prepared:`, {
+                event: eventName,
+                room: targetRoom,
+                messageId: reactionData.message_id,
+                emoji: reactionData.emoji,
+                userId: reactionData.user_id,
+                action: reactionData.action
+            });
+            
+            client.to(targetRoom).emit(eventName, reactionData);
+            console.log(`✅ [REACTION-HANDLER] Successfully broadcasted ${eventName} to ${targetRoom} (excluding sender)`);
+            
+            this.saveReactionToDatabase(data, eventName);
+        } else {
+            console.warn(`⚠️ [REACTION-HANDLER] No target room found for ${eventName}:`, {
+                targetType: data.target_type,
+                targetId: data.target_id
+            });
+        }
+    }
+
+    static async saveReactionToDatabase(data, eventName) {
         try {
-            console.log(`💾 [REACTION-HANDLER] Saving reaction to database via HTTP call...`);
+            console.log(`💾 [REACTION-SAVE] Saving reaction to database:`, {
+                messageId: data.message_id,
+                emoji: data.emoji,
+                userId: data.user_id,
+                action: data.action
+            });
             
             const apiEndpoint = eventName === 'reaction-added' 
                 ? `http://app:1001/api/messages/${data.message_id}/reactions`
                 : `http://app:1001/api/messages/${data.message_id}/reactions`;
-                
+            
+            const method = eventName === 'reaction-added' ? 'POST' : 'DELETE';
+            
             const response = await fetch(apiEndpoint, {
-                method: eventName === 'reaction-added' ? 'POST' : 'DELETE',
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Socket-User-ID': client.data.user_id.toString(),
-                    'X-Socket-Username': client.data.username,
-                    'X-Socket-Session-ID': client.data.session_id || '',
+                    'X-Socket-User-ID': data.user_id.toString(),
+                    'X-Socket-Username': data.username,
                     'User-Agent': 'SocketServer/1.0'
                 },
                 body: JSON.stringify({
@@ -182,69 +218,19 @@ class MessageHandler {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
-            const saveResult = await response.json();
-            console.log(`✅ [REACTION-HANDLER] Reaction saved to database:`, saveResult);
-            
-            if (saveResult.success) {
-                if (targetRoom) {
-                    console.log(`📡 [REACTION-HANDLER] Broadcasting ${eventName} to room: ${targetRoom}`);
-                    
-                    const reactionData = {
-                        message_id: data.message_id,
-                        emoji: data.emoji,
-                        user_id: data.user_id,
-                        username: data.username,
-                        target_type: data.target_type,
-                        target_id: data.target_id,
-                        action: data.action || (eventName === 'reaction-added' ? 'added' : 'removed'),
-                        timestamp: Date.now(),
-                        source: 'websocket-originated'
-                    };
-                    
-                    console.log(`📤 [REACTION-HANDLER] Reaction data prepared:`, {
-                        event: eventName,
-                        room: targetRoom,
-                        messageId: reactionData.message_id,
-                        emoji: reactionData.emoji,
-                        userId: reactionData.user_id,
-                        action: reactionData.action
-                    });
-                    
-                    io.to(targetRoom).emit(eventName, reactionData);
-                    console.log(`✅ [REACTION-HANDLER] Successfully broadcasted ${eventName} to ${targetRoom} (including sender)`);
-                } else {
-                    console.warn(`⚠️ [REACTION-HANDLER] No target room found, broadcasting to all clients`);
-                    io.emit(eventName, {
-                        message_id: data.message_id,
-                        emoji: data.emoji,
-                        user_id: data.user_id,
-                        username: data.username,
-                        target_type: data.target_type,
-                        target_id: data.target_id,
-                        action: data.action || (eventName === 'reaction-added' ? 'added' : 'removed'),
-                        timestamp: Date.now(),
-                        source: 'websocket-originated'
-                    });
-                }
-                
-                client.emit('reaction_success', {
-                    message_id: data.message_id,
-                    emoji: data.emoji,
-                    action: eventName === 'reaction-added' ? 'added' : 'removed'
-                });
-                
-            } else {
-                throw new Error(saveResult.message || 'Database save failed');
-            }
+            const result = await response.json();
+            console.log(`✅ [REACTION-SAVE] Reaction ${data.action} saved successfully:`, {
+                messageId: data.message_id,
+                emoji: data.emoji,
+                success: result.success
+            });
             
         } catch (error) {
-            console.error(`❌ [REACTION-HANDLER] Database save failed:`, error);
-            
-            client.emit('reaction_error', {
-                message_id: data.message_id,
+            console.error(`❌ [REACTION-SAVE] Failed to save reaction to database:`, {
+                error: error.message,
+                messageId: data.message_id,
                 emoji: data.emoji,
-                error: error.message || 'Failed to save reaction',
-                timestamp: Date.now()
+                action: data.action
             });
         }
     }

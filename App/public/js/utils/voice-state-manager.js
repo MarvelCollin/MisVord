@@ -148,7 +148,7 @@ class VoiceStateManager {
             return;
         }
         
-        const screenButton = document.getElementById('screenBtn');
+        const screenButton = document.getElementById('voiceScreenBtn');
         if (screenButton) screenButton.disabled = true;
 
         try {
@@ -240,7 +240,7 @@ class VoiceStateManager {
     }
 
     updateScreenControls() {
-        const screenButtons = document.querySelectorAll('#screenBtn, .screen-btn, button[title*="Screen"], button[title*="screen"]');
+        const screenButtons = document.querySelectorAll('#voiceScreenBtn, .screen-btn');
         
         screenButtons.forEach(btn => {
             const icon = btn.querySelector('i');

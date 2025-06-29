@@ -422,22 +422,20 @@ class SocketHandler {
         try {
             if (!data || !data.message_id || !data.emoji) return;
             
-            console.log('👍 Reaction added:', {
+            console.log('👍 [SOCKET-HANDLER] Reaction added:', {
                 messageId: data.message_id,
-                emoji: data.emoji
+                emoji: data.emoji,
+                userId: data.user_id,
+                username: data.username
             });
             
-            // Use the global emoji reaction handler if available
-            if (window.emojiReactions && typeof window.emojiReactions.addReactionToMessage === 'function') {
-                window.emojiReactions.addReactionToMessage(
-                    data.message_id, 
-                    data.emoji, 
-                    data.user_id, 
-                    data.username
-                );
+            if (window.emojiReactions && typeof window.emojiReactions.handleReactionAdded === 'function') {
+                window.emojiReactions.handleReactionAdded(data);
+            } else {
+                console.warn('⚠️ [SOCKET-HANDLER] emojiReactions.handleReactionAdded not available');
             }
         } catch (error) {
-            console.error('❌ Error handling reaction add:', error);
+            console.error('❌ [SOCKET-HANDLER] Error handling reaction add:', error);
         }
     }
     
@@ -445,21 +443,20 @@ class SocketHandler {
         try {
             if (!data || !data.message_id || !data.emoji) return;
             
-            console.log('👎 Reaction removed:', {
+            console.log('👎 [SOCKET-HANDLER] Reaction removed:', {
                 messageId: data.message_id,
-                emoji: data.emoji
+                emoji: data.emoji,
+                userId: data.user_id,
+                username: data.username
             });
             
-            // Use the global emoji reaction handler if available
-            if (window.emojiReactions && typeof window.emojiReactions.removeReactionFromMessage === 'function') {
-                window.emojiReactions.removeReactionFromMessage(
-                    data.message_id, 
-                    data.emoji, 
-                    data.user_id
-                );
+            if (window.emojiReactions && typeof window.emojiReactions.handleReactionRemoved === 'function') {
+                window.emojiReactions.handleReactionRemoved(data);
+            } else {
+                console.warn('⚠️ [SOCKET-HANDLER] emojiReactions.handleReactionRemoved not available');
             }
         } catch (error) {
-            console.error('❌ Error handling reaction removal:', error);
+            console.error('❌ [SOCKET-HANDLER] Error handling reaction removal:', error);
         }
     }
     

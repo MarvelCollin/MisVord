@@ -38,7 +38,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function getStreamType(stream) {
         try {
             if (stream instanceof MediaStream) {
-                return stream.getVideoTracks().length > 0 ? 'video' : 'audio';
+                const videoTracks = stream.getVideoTracks();
+                const audioTracks = stream.getAudioTracks();
+                
+                if (videoTracks.length > 0) {
+                    const track = videoTracks[0];
+                    if (track.label && track.label.toLowerCase().includes('screen')) {
+                        return 'share';
+                    } else {
+                        return 'video';
+                    }
+                } else if (audioTracks.length > 0) {
+                    return 'audio';
+                }
+                return 'audio';
             }
             
             if (stream && typeof stream.kind === 'string') {
@@ -46,15 +59,53 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (stream && stream.track) {
-                return stream.track.kind;
+                const track = stream.track;
+                if (track.kind === 'video') {
+                    if (track.label && track.label.toLowerCase().includes('screen')) {
+                        return 'share';
+                    } else {
+                        return 'video';
+                    }
+                } else if (track.kind === 'audio') {
+                    return 'audio';
+                }
+                return track.kind;
             }
             
             if (stream && stream.mediaStream instanceof MediaStream) {
-                return stream.mediaStream.getVideoTracks().length > 0 ? 'video' : 'audio';
+                const mediaStream = stream.mediaStream;
+                const videoTracks = mediaStream.getVideoTracks();
+                const audioTracks = mediaStream.getAudioTracks();
+                
+                if (videoTracks.length > 0) {
+                    const track = videoTracks[0];
+                    if (track.label && track.label.toLowerCase().includes('screen')) {
+                        return 'share';
+                    } else {
+                        return 'video';
+                    }
+                } else if (audioTracks.length > 0) {
+                    return 'audio';
+                }
+                return 'audio';
             }
             
             if (stream && stream.stream instanceof MediaStream) {
-                return stream.stream.getVideoTracks().length > 0 ? 'video' : 'audio';
+                const mediaStream = stream.stream;
+                const videoTracks = mediaStream.getVideoTracks();
+                const audioTracks = mediaStream.getAudioTracks();
+                
+                if (videoTracks.length > 0) {
+                    const track = videoTracks[0];
+                    if (track.label && track.label.toLowerCase().includes('screen')) {
+                        return 'share';
+                    } else {
+                        return 'video';
+                    }
+                } else if (audioTracks.length > 0) {
+                    return 'audio';
+                }
+                return 'audio';
             }
             
             return 'audio';
@@ -92,32 +143,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function safeVideoPlay(videoEl, participantId) {
-        if (!videoEl || !participantId) return false;
+        if (!videoEl || !participantId) {
+            console.warn(`[VideoHandler] safeVideoPlay: Missing videoEl or participantId`);
+            return false;
+        }
 
         try {
             const existingPromise = pendingPlayPromises.get(participantId);
             if (existingPromise) {
+                console.log(`[VideoHandler] Waiting for existing play promise for ${participantId}`);
                 try {
                     await existingPromise;
-                } catch (e) {}
+                } catch (e) {
+                    console.warn(`[VideoHandler] Previous play promise failed for ${participantId}:`, e);
+                }
             }
 
             if (!videoEl.srcObject) {
+                console.warn(`[VideoHandler] No srcObject for ${participantId}`);
                 return false;
             }
+
+            console.log(`[VideoHandler] Starting video play for ${participantId}, readyState: ${videoEl.readyState}`);
 
             const playPromise = new Promise(async (resolve, reject) => {
                 try {
                     if (videoEl.readyState >= 2) {
+                        console.log(`[VideoHandler] Video ready, playing immediately for ${participantId}`);
                         await videoEl.play();
                         resolve(true);
                     } else {
+                        console.log(`[VideoHandler] Video not ready, waiting for loadeddata event for ${participantId}`);
                         const onLoadedData = async () => {
                             try {
                                 videoEl.removeEventListener('loadeddata', onLoadedData);
+                                console.log(`[VideoHandler] Video loaded, playing for ${participantId}`);
                                 await videoEl.play();
                                 resolve(true);
                             } catch (error) {
+                                console.error(`[VideoHandler] Play error after loadeddata for ${participantId}:`, error);
                                 reject(error);
                             }
                         };
@@ -126,10 +190,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         setTimeout(() => {
                             videoEl.removeEventListener('loadeddata', onLoadedData);
+                            console.warn(`[VideoHandler] Video load timeout for ${participantId}`);
                             reject(new Error('Video load timeout'));
                         }, 5000);
                     }
                 } catch (error) {
+                    console.error(`[VideoHandler] Play promise error for ${participantId}:`, error);
                     reject(error);
                 }
             });
@@ -138,14 +204,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const result = await playPromise;
             pendingPlayPromises.delete(participantId);
+            console.log(`[VideoHandler] Video play successful for ${participantId}`);
             return result;
             
         } catch (error) {
             pendingPlayPromises.delete(participantId);
-            console.warn(`Error playing video for ${participantId}:`, error);
+            console.warn(`[VideoHandler] Error playing video for ${participantId}:`, error);
             
             if (error.name === 'NotAllowedError') {
+                console.error(`[VideoHandler] Camera permission denied for ${participantId}`);
                 window.showToast?.('Please allow camera access to enable video', 'error');
+            } else if (error.name === 'AbortError') {
+                console.warn(`[VideoHandler] Video play aborted for ${participantId} (likely due to new request)`);
             }
             return false;
         }
@@ -181,11 +251,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
+        console.log(`[VideoHandler] Attempting to attach stream for ${participantId}`, {
+            hasStream: !!stream,
+            streamType: stream ? getStreamType(stream) : 'no-stream'
+        });
+        
         const username = participantId === 'local' ? 'You' : participantId;
         let videoEl = document.querySelector(`video[data-participant-id="${participantId}"]`);
         let avatarContainer = document.querySelector(`.participant-container[data-participant-id="${participantId}"]`);
         
         if (!videoEl && !avatarContainer) {
+            console.log(`[VideoHandler] Creating new elements for ${participantId}`);
             avatarContainer = createAvatarElement(participantId, username);
             videoGrid.appendChild(avatarContainer);
             
@@ -203,7 +279,39 @@ document.addEventListener('DOMContentLoaded', () => {
             const streamType = getStreamType(stream);
             const mediaStream = getMediaStream(stream);
 
+            console.log(`[VideoHandler] Stream details for ${participantId}:`, {
+                streamType,
+                hasMediaStream: !!mediaStream,
+                videoTracks: mediaStream?.getVideoTracks?.()?.length || 0,
+                audioTracks: mediaStream?.getAudioTracks?.()?.length || 0
+            });
+
             if (streamType === 'video' && mediaStream) {
+                try {
+                    console.log(`[VideoHandler] Setting up video for ${participantId}`);
+                    stopVideoSafely(videoEl);
+                    
+                    videoEl.srcObject = mediaStream;
+                    videoEl.classList.remove('hidden');
+                    if (avatarContainer) avatarContainer.classList.add('hidden');
+                    
+                    const playSuccess = await safeVideoPlay(videoEl, participantId);
+                    console.log(`[VideoHandler] Video play result for ${participantId}:`, playSuccess);
+                    
+                    if (!playSuccess) {
+                        console.warn(`[VideoHandler] Video play failed for ${participantId}, falling back to avatar`);
+                        videoEl.classList.add('hidden');
+                        if (avatarContainer) avatarContainer.classList.remove('hidden');
+                    } else {
+                        console.log(`[VideoHandler] Video successfully playing for ${participantId}`);
+                    }
+                } catch (error) {
+                    console.error(`[VideoHandler] Error attaching video stream for ${participantId}:`, error);
+                    videoEl.classList.add('hidden');
+                    if (avatarContainer) avatarContainer.classList.remove('hidden');
+                }
+            } else if (streamType === 'share' && mediaStream) {
+                console.log(`[VideoHandler] Setting up screen share for ${participantId}`);
                 try {
                     stopVideoSafely(videoEl);
                     
@@ -212,16 +320,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (avatarContainer) avatarContainer.classList.add('hidden');
                     
                     const playSuccess = await safeVideoPlay(videoEl, participantId);
+                    console.log(`[VideoHandler] Screen share play result for ${participantId}:`, playSuccess);
+                    
                     if (!playSuccess) {
+                        console.warn(`[VideoHandler] Screen share play failed for ${participantId}, falling back to avatar`);
                         videoEl.classList.add('hidden');
                         if (avatarContainer) avatarContainer.classList.remove('hidden');
                     }
                 } catch (error) {
-                    console.error('Error attaching video stream:', error);
+                    console.error(`[VideoHandler] Error attaching screen share for ${participantId}:`, error);
                     videoEl.classList.add('hidden');
                     if (avatarContainer) avatarContainer.classList.remove('hidden');
                 }
             } else {
+                console.log(`[VideoHandler] Showing avatar for ${participantId} (streamType: ${streamType})`);
                 if (avatarContainer) avatarContainer.classList.remove('hidden');
                 if (videoEl) {
                     videoEl.classList.add('hidden');
@@ -233,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 localAvatarWrapper.style.display = 'none';
             }
         } catch (error) {
-            console.error('Error in attachStream:', error);
+            console.error(`[VideoHandler] Error in attachStream for ${participantId}:`, error);
             if (avatarContainer) avatarContainer.classList.remove('hidden');
             if (videoEl) videoEl.classList.add('hidden');
         }

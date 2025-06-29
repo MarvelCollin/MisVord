@@ -251,11 +251,7 @@ class GlobalVoiceIndicator {
         const screenBtn = this.indicator.querySelector('.screen-btn');
         if (screenBtn) {
             screenBtn.addEventListener('click', () => {
-                if (window.voiceStateManager) {
-                    window.voiceStateManager.toggleScreenShare();
-                } else if (window.localStorageManager) {
-                    window.localStorageManager.toggleVoiceScreenShare();
-                }
+                window.voiceStateManager.toggleScreenShare();
             });
         }
 
@@ -282,6 +278,8 @@ class GlobalVoiceIndicator {
 
     updateControls() {
         if (!this.indicator) return;
+
+        this.updateIndicatorVisibility();
 
         let state;
         if (window.localStorageManager) {
@@ -503,6 +501,40 @@ class GlobalVoiceIndicator {
         // Clean up any info modals
         const modals = document.querySelectorAll('.fixed.inset-0.bg-black\\/50');
         modals.forEach(modal => modal.remove());
+    }
+
+    getVoiceState() {
+        if (window.voiceStateManager) {
+            return window.voiceStateManager.getState();
+        } else if (window.localStorageManager) {
+            return window.localStorageManager.getVoiceState();
+        }
+        return null;
+    }
+
+    updateIndicatorVisibility() {
+        if (!this.indicator) return;
+
+        const voiceState = this.getVoiceState();
+        const isInVoiceChannel = voiceState && (this.isConnected || voiceState.channelId);
+        const voiceCallSection = document.querySelector('.voice-control-panel');
+        
+        if (isInVoiceChannel && voiceCallSection) {
+            this.indicator.style.display = 'none';
+        } else if (isInVoiceChannel) {
+            this.indicator.style.display = 'flex';
+        } else {
+            this.indicator.style.display = 'none';
+        }
+
+        if (this.indicator.style.display === 'flex') {
+            const screenBtn = this.indicator.querySelector('.screen-btn');
+            if (screenBtn && voiceCallSection) {
+                screenBtn.style.display = 'none';
+            } else if (screenBtn) {
+                screenBtn.style.display = 'flex';
+            }
+        }
     }
 }
 

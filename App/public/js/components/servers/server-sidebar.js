@@ -975,25 +975,48 @@ export async function handleExploreClick(event) {
 
         console.log('[Explore Navigation] Loading explore page with AJAX');
         const response = await $.ajax({
-            url: '/explore-servers',
+            url: '/explore-servers/layout',
             method: 'GET',
             dataType: 'html',
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
 
-        const mainContent = document.getElementById('main-content') || 
-                           document.querySelector('.main-content') || 
-                           document.querySelector('#app-content') ||
-                           document.querySelector('.app-content') ||
-                           document.querySelector('main') ||
-                           document.querySelector('.content-wrapper');
+        const layoutContainer = document.querySelector('.flex.flex-1.overflow-hidden') || 
+                              document.querySelector('#main-content') || 
+                              document.querySelector('.main-content') || 
+                              document.querySelector('#app-content') ||
+                              document.querySelector('.app-content') ||
+                              document.querySelector('main') ||
+                              document.querySelector('.content-wrapper');
         
-        if (mainContent && response) {
-            console.log('[Explore Navigation] Found main content container:', mainContent.className || mainContent.id);
-            mainContent.innerHTML = response;
+        if (layoutContainer && response) {
+            console.log('[Explore Navigation] Found layout container:', layoutContainer.className || layoutContainer.id);
+            layoutContainer.innerHTML = response;
             console.log('[Explore Navigation] Explore page content loaded successfully');
+            
+            // Find and execute any embedded scripts
+            const scriptTags = layoutContainer.querySelectorAll('script');
+            scriptTags.forEach(script => {
+                if (script.type === 'module' || script.type === 'text/javascript' || !script.type) {
+                    try {
+                        if (script.src) {
+                            // External script
+                            const newScript = document.createElement('script');
+                            newScript.src = script.src;
+                            newScript.type = script.type || 'text/javascript';
+                            document.head.appendChild(newScript);
+                        } else {
+                            // Inline script
+                            eval(script.textContent);
+                        }
+                        console.log('[Explore Navigation] Executed script:', script.type || 'inline');
+                    } catch (error) {
+                        console.error('[Explore Navigation] Error executing script:', error);
+                    }
+                }
+            });
         } else {
-            console.error('[Explore Navigation] Could not find main content container or no response');
+            console.error('[Explore Navigation] Could not find layout container or no response');
         }
 
         window.history.pushState({ pageType: 'explore' }, 'Explore Servers', '/explore-servers');

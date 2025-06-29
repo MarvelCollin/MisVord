@@ -25,10 +25,8 @@ $page_css = ['explore-servers', 'server-detail'];
 $page_js = 'pages/explore-servers';
 $head_scripts = ['logger-init', 'components/servers/server-detai'];
 $additional_js = ['components/servers/server-dropdown'];
-?>
 
-<?php ob_start(); ?>
-
+ob_start(); ?>
 <div class="flex min-h-screen">
     <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/server-sidebar.php'; ?>
 
