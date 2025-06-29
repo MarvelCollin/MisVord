@@ -42,33 +42,14 @@ async function loadServerContent() {
     console.log('[Server Page] Loading server content');
     
     try {
-        // Initialize channel switching instead of AJAX loading
+        // Initialize channel switching
         if (!window.channelSwitchManager) {
             window.channelSwitchManager = new ChannelSwitchManager();
-        }
-        
-        // Initialize current channel from URL if available
-        const urlParams = new URLSearchParams(window.location.search);
-        const channelId = urlParams.get('channel');
-        const channelType = urlParams.get('type') || 'text';
-        const serverId = getServerIdFromURL();
-        
-        if (channelId && serverId) {
-            console.log('[Server Page] Initializing channel from URL:', { channelId, channelType });
-            // Switch to the channel specified in URL
-            setTimeout(() => {
-                window.channelSwitchManager.switchToChannel(serverId, channelId, channelType, null, false);
-            }, 100);
+            console.log('[Server Page] Channel switch manager created');
         } else {
-            // No specific channel, initialize with first available text channel
-            const firstTextChannel = document.querySelector('.channel-item[data-channel-type="text"]');
-            if (firstTextChannel) {
-                const firstChannelId = firstTextChannel.getAttribute('data-channel-id');
-                console.log('[Server Page] No channel specified, switching to first text channel:', firstChannelId);
-                setTimeout(() => {
-                    window.channelSwitchManager.switchToChannel(serverId, firstChannelId, 'text', null, true);
-                }, 100);
-            }
+            console.log('[Server Page] Using existing channel switch manager');
+            // Reinitialize current channel if manager already exists
+            window.channelSwitchManager.initializeCurrentChannel();
         }
         
         console.log('[Server Page] Server content initialization completed');

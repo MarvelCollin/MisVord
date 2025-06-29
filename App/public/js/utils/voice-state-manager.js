@@ -1,14 +1,10 @@
+import { LocalStorageManager } from './local-storage-manager.js';
+
 class VoiceStateManager {
     constructor() {
-        this.storageKey = 'misvord_voice_state';
+        this.storageManager = new LocalStorageManager();
         this.listeners = new Set();
-        this.defaultState = {
-            isMuted: false,
-            isDeafened: false,
-            isVideoOn: false,
-            isScreenSharing: false,
-            volume: 100
-        };
+        this.state = null;
         
         this.init();
     }
@@ -21,28 +17,25 @@ class VoiceStateManager {
     }
 
     loadState() {
-        try {
-            const savedState = localStorage.getItem(this.storageKey);
-            this.state = savedState ? JSON.parse(savedState) : { ...this.defaultState };
-        } catch (error) {
-            console.error('Error loading voice state:', error);
-            this.state = { ...this.defaultState };
-        }
-        
+        this.state = this.storageManager.getVoiceState();
         this.updateAllControls();
     }
 
     saveState() {
-        try {
-            localStorage.setItem(this.storageKey, JSON.stringify(this.state));
-        } catch (error) {
-            console.error('Error saving voice state:', error);
+        if (this.state) {
+            this.storageManager.setVoiceState(this.state);
         }
     }
 
     setupStorageListener() {
+        window.addEventListener('voiceStateChanged', (e) => {
+            this.state = e.detail;
+            this.updateAllControls();
+            this.notifyListeners();
+        });
+
         window.addEventListener('storage', (e) => {
-            if (e.key === this.storageKey && e.newValue) {
+            if (e.key === 'misvord_voice_state' && e.newValue) {
                 try {
                     this.state = JSON.parse(e.newValue);
                     this.updateAllControls();
@@ -93,50 +86,42 @@ class VoiceStateManager {
     }
 
     toggleMic() {
+        let newMutedState;
+        
         if (window.videoSDKManager && window.videosdkMeeting) {
             try {
-                const newMutedState = window.videoSDKManager.toggleMic();
-                this.state.isMuted = newMutedState;
+                newMutedState = window.videoSDKManager.toggleMic();
             } catch (error) {
                 console.error('Error toggling VideoSDK mic:', error);
-                this.state.isMuted = !this.state.isMuted;
+                newMutedState = !this.state.isMuted;
             }
         } else {
-            this.state.isMuted = !this.state.isMuted;
+            newMutedState = !this.state.isMuted;
         }
         
-        this.saveState();
-        this.updateAllControls();
-        this.notifyListeners();
-        this.showToast(this.state.isMuted ? 'Muted' : 'Unmuted');
+        this.storageManager.setVoiceState({ isMuted: newMutedState });
+        this.showToast(newMutedState ? 'Muted' : 'Unmuted');
     }
 
     toggleDeafen() {
+        let newDeafenState;
+        
         if (window.videoSDKManager && window.videosdkMeeting) {
             try {
-                const newDeafenState = window.videoSDKManager.toggleDeafen();
-                this.state.isDeafened = newDeafenState;
-                if (newDeafenState) {
-                    this.state.isMuted = true;
-                }
+                newDeafenState = window.videoSDKManager.toggleDeafen();
             } catch (error) {
                 console.error('Error toggling VideoSDK deafen:', error);
-                this.state.isDeafened = !this.state.isDeafened;
-                if (this.state.isDeafened) {
-                    this.state.isMuted = true;
-                }
+                newDeafenState = !this.state.isDeafened;
             }
         } else {
-            this.state.isDeafened = !this.state.isDeafened;
-            if (this.state.isDeafened) {
-                this.state.isMuted = true;
-            }
+            newDeafenState = !this.state.isDeafened;
         }
         
-        this.saveState();
-        this.updateAllControls();
-        this.notifyListeners();
-        this.showToast(this.state.isDeafened ? 'Deafened' : 'Undeafened');
+        this.storageManager.setVoiceState({ 
+            isDeafened: newDeafenState,
+            isMuted: newDeafenState ? true : this.state.isMuted
+        });
+        this.showToast(newDeafenState ? 'Deafened' : 'Undeafened');
     }
 
     async toggleVideo() {
@@ -155,18 +140,15 @@ class VoiceStateManager {
             }
 
             const isVideoOn = await window.videoSDKManager.toggleWebcam();
-            this.state.isVideoOn = isVideoOn;
             
             console.log(`[VoiceManager] Video toggled. New SDK state: ${isVideoOn}`);
-            this.saveState();
-            this.updateVideoControls(); 
-            this.notifyListeners();
+            this.storageManager.setVoiceState({ isVideoOn });
             this.showToast(isVideoOn ? 'Camera enabled' : 'Camera disabled');
         } catch (error) {
             console.error('Error toggling VideoSDK webcam:', error);
             this.showToast(error.message || 'Failed to toggle camera', 'error');
-            this.state.isVideoOn = window.videoSDKManager.getWebcamState();
-            this.updateVideoControls();
+            const currentVideoState = window.videoSDKManager.getWebcamState();
+            this.storageManager.setVoiceState({ isVideoOn: currentVideoState });
         } finally {
             if (videoButton) videoButton.disabled = false;
         }
@@ -188,18 +170,15 @@ class VoiceStateManager {
             }
 
             const isScreenSharing = await window.videoSDKManager.toggleScreenShare();
-            this.state.isScreenSharing = isScreenSharing;
 
             console.log(`[VoiceManager] Screen share toggled. New SDK state: ${isScreenSharing}`);
-            this.saveState();
-            this.updateScreenControls();
-            this.notifyListeners();
+            this.storageManager.setVoiceState({ isScreenSharing });
             this.showToast(isScreenSharing ? 'Screen sharing started' : 'Screen sharing stopped');
         } catch (error) {
             console.error('Error toggling screen share:', error);
             this.showToast(error.message || 'Failed to start screen share', 'error');
-            this.state.isScreenSharing = window.videoSDKManager.getScreenShareState();
-            this.updateScreenControls();
+            const currentScreenState = window.videoSDKManager.getScreenShareState();
+            this.storageManager.setVoiceState({ isScreenSharing: currentScreenState });
         } finally {
             if (screenButton) screenButton.disabled = false;
         }
@@ -303,10 +282,7 @@ class VoiceStateManager {
     }
 
     setState(newState) {
-        this.state = { ...this.state, ...newState };
-        this.saveState();
-        this.updateAllControls();
-        this.notifyListeners();
+        this.storageManager.setVoiceState(newState);
     }
 
     disconnectVoice() {
@@ -352,10 +328,13 @@ class VoiceStateManager {
     }
 
     reset() {
-        this.state = { ...this.defaultState };
-        this.saveState();
-        this.updateAllControls();
-        this.notifyListeners();
+        this.storageManager.setVoiceState({
+            isMuted: false,
+            isDeafened: false,
+            isVideoOn: false,
+            isScreenSharing: false,
+            volume: 100
+        });
     }
 }
 

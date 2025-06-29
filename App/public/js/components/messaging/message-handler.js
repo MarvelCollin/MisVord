@@ -55,11 +55,20 @@ class MessageHandler {
         try {
             const bubbleHtml = await this.renderBubbleMessage(formattedMessage);
             
+            if (!bubbleHtml || typeof bubbleHtml !== 'string') {
+                console.error('❌ [MESSAGE-HANDLER] Invalid bubble HTML response:', bubbleHtml);
+                this.fallbackAddMessage(formattedMessage, messagesContainer, isTemporary);
+                return;
+            }
+            
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = bubbleHtml;
-            const messageGroup = tempDiv.firstElementChild;
+            
+            const messageGroup = tempDiv.querySelector('.bubble-message-group');
             
             if (messageGroup) {
+                this.ensureBubbleStyles(tempDiv);
+                
                 messagesContainer.appendChild(messageGroup);
                 this.lastMessageGroup = messageGroup;
                 const messageElement = messageGroup.querySelector('[data-message-id]');
@@ -74,7 +83,10 @@ class MessageHandler {
                 
                 console.log(`✅ [MESSAGE-HANDLER] Message ${messageData.id} successfully added to UI using bubble component`);
             } else {
-                console.error('❌ [MESSAGE-HANDLER] Failed to create message element from bubble HTML');
+                const htmlPreview = bubbleHtml ? bubbleHtml.substring(0, 200) : 'undefined';
+                console.error('❌ [MESSAGE-HANDLER] Failed to find bubble-message-group in HTML:', htmlPreview);
+                console.log('🔧 [MESSAGE-HANDLER] Falling back to manual creation');
+                this.fallbackAddMessage(formattedMessage, messagesContainer, isTemporary);
             }
             
         } catch (error) {
@@ -84,31 +96,84 @@ class MessageHandler {
     }
     
     async renderBubbleMessage(messageData) {
-        const response = await fetch('/api/messages/render-bubble', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                message_data: messageData
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        try {
+            console.log('🔄 [MESSAGE-HANDLER] Requesting bubble render for message:', messageData.id);
+            
+            const response = await fetch('/api/messages/render-bubble', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message_data: messageData
+                })
+            });
+            
+            if (!response.ok) {
+                console.error('❌ [MESSAGE-HANDLER] HTTP error in bubble render:', response.status, response.statusText);
+                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            const html = result.html || result.data?.html;
+            
+            console.log('📥 [MESSAGE-HANDLER] Bubble render response:', {
+                success: result.success,
+                hasHtml: !!html,
+                htmlLength: html ? html.length : 0,
+                error: result.error,
+                dataKeys: result.data ? Object.keys(result.data) : [],
+                resultKeys: Object.keys(result)
+            });
+            
+            if (!result.success) {
+                console.error('❌ [MESSAGE-HANDLER] Bubble render failed:', result.error);
+                throw new Error(result.error || 'Failed to render bubble message');
+            }
+            
+            if (!html || typeof html !== 'string') {
+                console.error('❌ [MESSAGE-HANDLER] Invalid HTML in response:', result);
+                throw new Error('No valid HTML returned from bubble render API');
+            }
+            
+            return html;
+            
+        } catch (error) {
+            console.error('❌ [MESSAGE-HANDLER] Exception in renderBubbleMessage:', error);
+            throw error;
         }
-        
-        const result = await response.json();
-        
-        if (!result.success) {
-            throw new Error(result.error || 'Failed to render bubble message');
-        }
-        
-        return result.html;
     }
     
+    ensureBubbleStyles(tempDiv) {
+        const styleElements = tempDiv.querySelectorAll('style');
+        
+        if (styleElements.length > 0) {
+            let existingBubbleStyles = document.querySelector('style[data-bubble-styles="websocket"]');
+            
+            if (!existingBubbleStyles) {
+                console.log('💄 [MESSAGE-HANDLER] Injecting bubble chat styles from WebSocket message');
+                
+                styleElements.forEach(style => {
+                    const bubbleStyleElement = document.createElement('style');
+                    bubbleStyleElement.setAttribute('data-bubble-styles', 'websocket');
+                    bubbleStyleElement.textContent = style.textContent;
+                    document.head.appendChild(bubbleStyleElement);
+                });
+                
+                console.log('✅ [MESSAGE-HANDLER] Bubble chat styles injected successfully');
+            } else {
+                console.log('🎨 [MESSAGE-HANDLER] Bubble chat styles already loaded');
+            }
+        } else {
+            console.warn('⚠️ [MESSAGE-HANDLER] No style elements found in bubble HTML');
+        }
+    }
+
     fallbackAddMessage(formattedMessage, messagesContainer, isTemporary) {
         console.log('🔧 [MESSAGE-HANDLER] Using fallback message rendering');
+        
+        this.ensureFallbackStyles();
         
         const messageGroup = this.createMessageGroup(formattedMessage);
         if (!messageGroup) {
@@ -129,6 +194,158 @@ class MessageHandler {
         this.chatSection.scrollToBottomIfNeeded();
         
         console.log(`✅ [MESSAGE-HANDLER] Message ${formattedMessage.id} successfully added to UI using fallback`);
+    }
+    
+    ensureFallbackStyles() {
+        if (!document.querySelector('style[data-bubble-styles="fallback"]')) {
+            console.log('💄 [MESSAGE-HANDLER] Injecting fallback bubble chat styles');
+            
+            const fallbackStyles = `
+.bubble-message-group {
+    position: relative;
+    display: flex;
+    padding: 2px 16px;
+    margin-top: 17px;
+    transition: background-color 0.1s ease;
+}
+
+.bubble-message-group:hover {
+    background-color: rgba(6, 6, 7, 0.02);
+}
+
+.bubble-avatar {
+    width: 40px;
+    height: 40px;
+    margin-right: 16px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.bubble-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bubble-content-wrapper {
+    flex: 1;
+    min-width: 0;
+}
+
+.bubble-header {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+
+.bubble-username {
+    font-weight: 600;
+    color: #f2f3f5;
+    margin-right: 8px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.bubble-username:hover {
+    text-decoration: underline;
+}
+
+.bubble-timestamp {
+    font-size: 12px;
+    color: #a3a6aa;
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+.bubble-contents {
+    position: relative;
+}
+
+.bubble-message-content {
+    position: relative;
+    padding: 4px 0;
+    border-radius: 4px;
+}
+
+.bubble-message-text {
+    color: #dcddde;
+    word-wrap: break-word;
+    font-size: 16px;
+    line-height: 1.375;
+    margin: 0;
+}
+
+.bubble-message-actions {
+    position: absolute;
+    top: -12px;
+    right: 16px;
+    display: flex;
+    gap: 4px;
+    background: #313338;
+    border: 1px solid #4f545c;
+    border-radius: 8px;
+    padding: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+    z-index: 10;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.bubble-message-content:hover .bubble-message-actions {
+    opacity: 1;
+    visibility: visible;
+}
+
+.bubble-action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #b9bbbe;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.bubble-action-button:hover {
+    background: #404249;
+    color: #dcddde;
+}
+
+.bubble-action-button.delete-button:hover {
+    background: #ed4245;
+    color: #ffffff;
+}
+
+.bubble-message-temporary {
+    opacity: 0.7;
+}
+
+.bubble-message-failed {
+    opacity: 0.5;
+    border-left: 3px solid #ed4245;
+    padding-left: 8px;
+}
+
+.bubble-error-text {
+    color: #ed4245;
+    font-size: 12px;
+    margin-top: 4px;
+}
+`;
+            
+            const styleElement = document.createElement('style');
+            styleElement.setAttribute('data-bubble-styles', 'fallback');
+            styleElement.textContent = fallbackStyles;
+            document.head.appendChild(styleElement);
+            
+            console.log('✅ [MESSAGE-HANDLER] Fallback bubble chat styles injected');
+        }
     }
     
     createMessageGroup(messageData) {

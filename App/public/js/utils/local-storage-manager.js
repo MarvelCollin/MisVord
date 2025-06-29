@@ -156,6 +156,52 @@ class LocalStorageManager {
         return this.setDraftMessage(channelId, '');
     }
 
+    getVoiceState() {
+        return this.get('misvord_voice_state', {
+            isMuted: false,
+            isDeafened: false,
+            isVideoOn: false,
+            isScreenSharing: false,
+            volume: 100
+        });
+    }
+
+    setVoiceState(state) {
+        const current = this.getVoiceState();
+        const updated = { ...current, ...state };
+        const success = this.set('misvord_voice_state', updated);
+        if (success) {
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', { 
+                detail: updated 
+            }));
+        }
+        return success;
+    }
+
+    toggleVoiceMute() {
+        const state = this.getVoiceState();
+        return this.setVoiceState({ isMuted: !state.isMuted });
+    }
+
+    toggleVoiceDeafen() {
+        const state = this.getVoiceState();
+        const newDeafenState = !state.isDeafened;
+        return this.setVoiceState({ 
+            isDeafened: newDeafenState,
+            isMuted: newDeafenState ? true : state.isMuted
+        });
+    }
+
+    toggleVoiceVideo() {
+        const state = this.getVoiceState();
+        return this.setVoiceState({ isVideoOn: !state.isVideoOn });
+    }
+
+    toggleVoiceScreenShare() {
+        const state = this.getVoiceState();
+        return this.setVoiceState({ isScreenSharing: !state.isScreenSharing });
+    }
+
     static getServerGroups() {
         const manager = new LocalStorageManager();
         return manager.get('misvord_server_groups_v2', []);

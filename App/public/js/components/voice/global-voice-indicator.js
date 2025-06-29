@@ -17,7 +17,6 @@ class GlobalVoiceIndicator {
     }
 
     setupEventListeners() {
-        // Listen for voice connection events
         window.addEventListener('voiceConnect', (e) => {
             this.handleConnect(e.detail);
         });
@@ -26,7 +25,10 @@ class GlobalVoiceIndicator {
             this.handleDisconnect();
         });
 
-        // Clean up on page unload
+        window.addEventListener('voiceStateChanged', (e) => {
+            this.updateControls();
+        });
+
         window.addEventListener('beforeunload', () => {
             this.cleanup();
         });
@@ -224,35 +226,35 @@ class GlobalVoiceIndicator {
     setupControlButtons() {
         if (!this.indicator) return;
 
-        // Microphone toggle
         const micBtn = this.indicator.querySelector('.mic-btn');
         if (micBtn) {
             micBtn.addEventListener('click', () => {
                 if (window.voiceStateManager) {
                     window.voiceStateManager.toggleMic();
-                    this.updateControls();
+                } else if (window.localStorageManager) {
+                    window.localStorageManager.toggleVoiceMute();
                 }
             });
         }
 
-        // Deafen toggle
         const deafenBtn = this.indicator.querySelector('.deafen-btn');
         if (deafenBtn) {
             deafenBtn.addEventListener('click', () => {
                 if (window.voiceStateManager) {
                     window.voiceStateManager.toggleDeafen();
-                    this.updateControls();
+                } else if (window.localStorageManager) {
+                    window.localStorageManager.toggleVoiceDeafen();
                 }
             });
         }
 
-        // Screen share toggle
         const screenBtn = this.indicator.querySelector('.screen-btn');
         if (screenBtn) {
             screenBtn.addEventListener('click', () => {
                 if (window.voiceStateManager) {
                     window.voiceStateManager.toggleScreenShare();
-                    this.updateControls();
+                } else if (window.localStorageManager) {
+                    window.localStorageManager.toggleVoiceScreenShare();
                 }
             });
         }
@@ -279,9 +281,16 @@ class GlobalVoiceIndicator {
     }
 
     updateControls() {
-        if (!this.indicator || !window.voiceStateManager) return;
+        if (!this.indicator) return;
 
-        const state = window.voiceStateManager.getState();
+        let state;
+        if (window.localStorageManager) {
+            state = window.localStorageManager.getVoiceState();
+        } else if (window.voiceStateManager) {
+            state = window.voiceStateManager.getState();
+        } else {
+            return;
+        }
         
         // Update mic button
         const micBtn = this.indicator.querySelector('.mic-btn');

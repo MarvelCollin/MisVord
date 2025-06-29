@@ -64,6 +64,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('utils/debug-logging'); ?>?v=<?php echo time(); ?>" type="module"></script>
+<script type="module">
+    import { LocalStorageManager } from '<?php echo js('utils/local-storage-manager'); ?>?v=<?php echo time(); ?>';
+    if (!window.localStorageManager) {
+        window.localStorageManager = new LocalStorageManager();
+    }
+</script>
 <script src="<?php echo js('main'); ?>?v=<?php echo time(); ?>" type="module"></script>
 
 <?php if (isset($page_js)): ?>

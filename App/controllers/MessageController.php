@@ -8,6 +8,7 @@ require_once __DIR__ . '/../database/models/MessageReaction.php';
 require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../exceptions/ValidationException.php';
 
 
 class MessageController extends BaseController
@@ -580,8 +581,8 @@ class MessageController extends BaseController
     public function renderBubbleMessage()
     {
         try {
-            $messageId = $this->request['message_id'] ?? null;
-            $messageData = $this->request['message_data'] ?? null;
+            $input = $this->getInput();
+            $messageData = $input['message_data'] ?? null;
             
             if (!$messageData) {
                 throw new ValidationException('Message data is required');

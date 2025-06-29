@@ -98,4 +98,76 @@ if ($hasTooltip) {
             </a>
         <?php endif; ?>
     </div>
-</div> 
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const micBtn = document.querySelector('.user-profile-section .mic-btn');
+    const deafenBtn = document.querySelector('.user-profile-section .deafen-btn');
+    
+    function updateUserProfileControls() {
+        let state;
+        if (window.localStorageManager) {
+            state = window.localStorageManager.getVoiceState();
+        } else if (window.voiceStateManager) {
+            state = window.voiceStateManager.getState();
+        } else {
+            return;
+        }
+        
+        if (micBtn) {
+            const micIcon = micBtn.querySelector('i');
+            if (state.isMuted || state.isDeafened) {
+                micIcon.className = 'fas fa-microphone-slash text-lg';
+                micBtn.classList.add('text-[#ed4245]');
+                micBtn.classList.remove('text-discord-lighter');
+            } else {
+                micIcon.className = 'fas fa-microphone text-lg';
+                micBtn.classList.remove('text-[#ed4245]');
+                micBtn.classList.add('text-discord-lighter');
+            }
+        }
+        
+        if (deafenBtn) {
+            const deafenIcon = deafenBtn.querySelector('i');
+            if (state.isDeafened) {
+                deafenIcon.className = 'fas fa-volume-xmark text-lg';
+                deafenBtn.classList.add('text-[#ed4245]');
+                deafenBtn.classList.remove('text-discord-lighter');
+            } else {
+                deafenIcon.className = 'fas fa-headphones text-lg';
+                deafenBtn.classList.remove('text-[#ed4245]');
+                deafenBtn.classList.add('text-discord-lighter');
+            }
+        }
+    }
+    
+    if (micBtn) {
+        micBtn.addEventListener('click', function() {
+            if (window.voiceStateManager) {
+                window.voiceStateManager.toggleMic();
+            } else if (window.localStorageManager) {
+                window.localStorageManager.toggleVoiceMute();
+            }
+        });
+    }
+    
+    if (deafenBtn) {
+        deafenBtn.addEventListener('click', function() {
+            if (window.voiceStateManager) {
+                window.voiceStateManager.toggleDeafen();
+            } else if (window.localStorageManager) {
+                window.localStorageManager.toggleVoiceDeafen();
+            }
+        });
+    }
+    
+    window.addEventListener('voiceStateChanged', updateUserProfileControls);
+    
+    if (window.voiceStateManager) {
+        window.voiceStateManager.addListener(updateUserProfileControls);
+    }
+    
+    setTimeout(updateUserProfileControls, 1000);
+});
+</script> 

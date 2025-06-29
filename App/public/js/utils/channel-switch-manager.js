@@ -6,6 +6,7 @@ class ChannelSwitchManager {
         this.currentChannelType = null;
         this.switchQueue = [];
         this.init();
+        this.injectSwitchingCSS();
     }
 
     init() {
@@ -13,6 +14,72 @@ class ChannelSwitchManager {
         this.currentServerId = this.getServerIdFromURL();
         this.bindChannelClickEvents();
         this.setupPopstateListener();
+        this.initializeCurrentChannel();
+    }
+
+    injectSwitchingCSS() {
+        if (document.getElementById('channel-switch-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'channel-switch-styles';
+        style.textContent = `
+            .channel-item.switching {
+                opacity: 0.7;
+                pointer-events: none;
+                position: relative;
+            }
+            
+            .channel-item.switching::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 12px;
+                height: 12px;
+                margin: -6px 0 0 -6px;
+                border: 2px solid transparent;
+                border-top: 2px solid #ffffff;
+                border-radius: 50%;
+                animation: channel-switch-spin 0.8s linear infinite;
+            }
+            
+            @keyframes channel-switch-spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            .chat-section, .voice-section {
+                transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            }
+            
+            .chat-section.hidden, .voice-section.hidden {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            
+            .section-loading {
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .section-loading::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 2px;
+                background: linear-gradient(90deg, transparent, #5865f2, transparent);
+                animation: loading-bar 1.5s linear infinite;
+                z-index: 1000;
+            }
+            
+            @keyframes loading-bar {
+                0% { left: -100%; }
+                100% { left: 100%; }
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     bindChannelClickEvents() {
@@ -60,7 +127,7 @@ class ChannelSwitchManager {
             channelType,
             currentChannelId: this.currentChannelId
         });
-
+        
         if (this.currentChannelId === channelId) {
             console.log('[ChannelSwitchManager] Already on this channel');
             return;
@@ -102,7 +169,7 @@ class ChannelSwitchManager {
             this.currentServerId = serverId;
             
             console.log('[ChannelSwitchManager] Channel switch completed successfully');
-            
+
         } catch (error) {
             console.error('[ChannelSwitchManager] Error switching channel:', error);
         } finally {
@@ -607,11 +674,76 @@ class ChannelSwitchManager {
         if (element) {
             element.classList.add('switching');
         }
+        
+        // Add loading state to current section
+        const currentSection = this.currentChannelType === 'voice' 
+            ? document.querySelector('.voice-section')
+            : document.querySelector('.chat-section');
+            
+        if (currentSection) {
+            currentSection.classList.add('section-loading');
+        }
+        
+        // Disable all channel items during switch
+        document.querySelectorAll('.channel-item').forEach(item => {
+            item.style.pointerEvents = 'none';
+        });
     }
 
     hideChannelSwitchingState(element) {
         if (element) {
             element.classList.remove('switching');
+        }
+        
+        // Remove loading state from all sections
+        document.querySelectorAll('.chat-section, .voice-section').forEach(section => {
+            section.classList.remove('section-loading');
+        });
+        
+        // Re-enable all channel items
+        document.querySelectorAll('.channel-item').forEach(item => {
+            item.style.pointerEvents = '';
+        });
+        
+        // Add a brief delay to ensure UI is properly updated
+        setTimeout(() => {
+            this.validateSectionState();
+        }, 100);
+    }
+    
+    validateSectionState() {
+        const chatSection = document.querySelector('.chat-section');
+        const voiceSection = document.querySelector('.voice-section');
+        
+        console.log('[ChannelSwitchManager] Validating section state:', {
+            currentChannelType: this.currentChannelType,
+            chatSectionVisible: chatSection && !chatSection.classList.contains('hidden'),
+            voiceSectionVisible: voiceSection && !voiceSection.classList.contains('hidden')
+        });
+        
+        // Ensure only the correct section is visible
+        if (this.currentChannelType === 'voice') {
+            if (chatSection && !chatSection.classList.contains('hidden')) {
+                console.warn('[ChannelSwitchManager] Chat section still visible, hiding it');
+                chatSection.classList.add('hidden');
+                chatSection.style.display = 'none';
+            }
+            if (voiceSection && voiceSection.classList.contains('hidden')) {
+                console.warn('[ChannelSwitchManager] Voice section hidden, showing it');
+                voiceSection.classList.remove('hidden');
+                voiceSection.style.display = 'flex';
+            }
+        } else {
+            if (voiceSection && !voiceSection.classList.contains('hidden')) {
+                console.warn('[ChannelSwitchManager] Voice section still visible, hiding it');
+                voiceSection.classList.add('hidden');
+                voiceSection.style.display = 'none';
+            }
+            if (chatSection && chatSection.classList.contains('hidden')) {
+                console.warn('[ChannelSwitchManager] Chat section hidden, showing it');
+                chatSection.classList.remove('hidden');
+                chatSection.style.display = 'flex';
+            }
         }
     }
 
@@ -649,6 +781,77 @@ class ChannelSwitchManager {
 
     getCurrentChannelType() {
         return this.currentChannelType;
+    }
+
+    initializeCurrentChannel() {
+        // Get current channel from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const channelId = urlParams.get('channel');
+        const channelType = urlParams.get('type') || 'text';
+        
+        if (channelId) {
+            console.log('[ChannelSwitchManager] Initializing current channel from URL:', { channelId, channelType });
+            
+            // Set current state without switching (since we're already on this channel)
+            this.currentChannelId = channelId;
+            this.currentChannelType = channelType;
+            
+            // Update UI to reflect current state
+            this.updateActiveChannelUI(channelId);
+            
+            // Initialize appropriate section
+            setTimeout(() => {
+                if (channelType === 'voice') {
+                    this.ensureVoiceSectionVisible();
+                    this.initializeVoiceSection(channelId);
+                } else {
+                    this.ensureChatSectionVisible();
+                    this.updateChatMetaTags(channelId, this.currentServerId);
+                    this.initializeChatSection(channelId);
+                }
+            }, 200);
+        } else {
+            // No channel specified, find and initialize first text channel
+            const firstTextChannel = document.querySelector('.channel-item[data-channel-type="text"]');
+            if (firstTextChannel) {
+                const firstChannelId = firstTextChannel.getAttribute('data-channel-id');
+                console.log('[ChannelSwitchManager] No channel in URL, initializing first text channel:', firstChannelId);
+                
+                setTimeout(() => {
+                    this.switchToChannel(this.currentServerId, firstChannelId, 'text', null, true);
+                }, 300);
+            }
+        }
+    }
+    
+    ensureChatSectionVisible() {
+        const chatSection = document.querySelector('.chat-section');
+        const voiceSection = document.querySelector('.voice-section');
+        
+        if (voiceSection) {
+            voiceSection.classList.add('hidden');
+            voiceSection.style.display = 'none';
+        }
+        
+        if (chatSection) {
+            chatSection.classList.remove('hidden');
+            chatSection.style.display = 'flex';
+        }
+    }
+    
+    ensureVoiceSectionVisible() {
+        const chatSection = document.querySelector('.chat-section');
+        const voiceSection = document.querySelector('.voice-section');
+        
+        if (chatSection) {
+            chatSection.classList.add('hidden');
+            chatSection.style.display = 'none';
+        }
+        
+        if (voiceSection) {
+            voiceSection.classList.remove('hidden');
+            voiceSection.style.display = 'flex';
+        }
     }
 }
 

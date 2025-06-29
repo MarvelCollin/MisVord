@@ -172,7 +172,7 @@ class DirectMessageNavigation {
             }
         });
     }
-    
+
     showDirectMessageContent(dmId, username) {
         console.log('[DM Navigation] Showing DM content for:', dmId, username);
         

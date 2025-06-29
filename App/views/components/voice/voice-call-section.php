@@ -834,9 +834,14 @@ function setupVoiceControlSync() {
     
     // Update controls based on voice state
     function updateVoiceControls() {
-        if (!window.voiceStateManager) return;
-        
-        const state = window.voiceStateManager.getState();
+        let state;
+        if (window.localStorageManager) {
+            state = window.localStorageManager.getVoiceState();
+        } else if (window.voiceStateManager) {
+            state = window.voiceStateManager.getState();
+        } else {
+            return;
+        }
         
         // Update microphone button
         if (voiceMicBtn) {
@@ -953,6 +958,8 @@ function setupVoiceControlSync() {
     if (window.voiceStateManager) {
         window.voiceStateManager.addListener(updateVoiceControls);
     }
+    
+    window.addEventListener('voiceStateChanged', updateVoiceControls);
     
     // Listen for voice events
     window.addEventListener('voiceConnect', (e) => {

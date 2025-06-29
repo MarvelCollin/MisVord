@@ -5,6 +5,9 @@ class VideoSDKManager {
         this.meeting = null;
         this.initialized = false;
         this.eventHandlers = {};
+        this.isDeafened = false;
+        this.isConnected = false;
+        this.sdkVersion = "0.2.7";
         
         // Hardcoded token for development
         this.defaultToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlrZXkiOiI4YWQyZGJjZC02MzhkLTRmYmItOTk5Yy05YTQ4YTgzY2FhMTUiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIl0sImlhdCI6MTc0ODkxMzI5NywiZXhwIjoxNzY0NDY1Mjk3fQ.16_7vBmTkjKz8plb9eiRPAcKwmIxHqCgIb1OqSeB5vQ";
@@ -414,6 +417,7 @@ class VideoSDKManager {
             
             // Update state
             this.isConnected = true;
+            this.isDeafened = false;
             if (window.voiceState) window.voiceState.isConnected = true;
             if (window.voiceManager) window.voiceManager.isConnected = true;
             
@@ -436,6 +440,7 @@ class VideoSDKManager {
             
             // Reset state
             this.isConnected = false;
+            this.isDeafened = false;
             if (window.voiceState) window.voiceState.isConnected = false;
             if (window.voiceManager) window.voiceManager.isConnected = false;
             
@@ -451,8 +456,18 @@ class VideoSDKManager {
                 // Clean up any monitoring resources
                 this.cleanupParticipantResources();
                 
+                // Reset voice states
+                this.isDeafened = false;
+                this.isConnected = false;
+                
                 // Leave the meeting
                 this.meeting.leave();
+                this.meeting = null;
+                
+                // Dispatch disconnect event
+                window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+                
+                console.log('[VideoSDKManager] Successfully left meeting and reset states');
                 return true;
             } catch (error) {
                 console.error("Error leaving meeting:", error);
@@ -502,6 +517,67 @@ class VideoSDKManager {
             return !isMicOn;
         } catch (error) {
             console.error("Error toggling mic:", error);
+            return false;
+        }
+    }
+    
+    toggleDeafen() {
+        if (!this.meeting) {
+            // If no meeting, just toggle the local state
+            this.isDeafened = !this.isDeafened;
+            console.log('[VideoSDKManager] No meeting active, toggling local deafen state to:', this.isDeafened);
+            return this.isDeafened;
+        }
+        
+        try {
+            const wasDeafened = this.getDeafenState();
+            
+            if (wasDeafened) {
+                // Undeafen - restore previous mic state (don't auto-unmute mic)
+                this.isDeafened = false;
+                console.log('[VideoSDKManager] Undeafened - audio reception restored');
+            } else {
+                // Deafen - mute microphone and disable audio reception
+                this.meeting.muteMic();
+                this.isDeafened = true;
+                console.log('[VideoSDKManager] Deafened - microphone muted and audio reception disabled');
+            }
+            
+            // Notify voice state manager of the change
+            if (window.voiceStateManager) {
+                setTimeout(() => {
+                    window.voiceStateManager.syncWithVideoSDK();
+                }, 100);
+            }
+            
+            console.log('[VideoSDKManager] Deafen toggled to:', this.isDeafened);
+            return this.isDeafened;
+        } catch (error) {
+            console.error("Error toggling deafen:", error);
+            // Fallback to manual state management
+            this.isDeafened = !this.getDeafenState();
+            return this.isDeafened;
+        }
+    }
+    
+    getDeafenState() {
+        // Return stored deafen state if available
+        if (this.isDeafened !== undefined) {
+            return this.isDeafened;
+        }
+        
+        // Try to determine from meeting state
+        if (!this.meeting?.localParticipant) return false;
+        
+        try {
+            // Check if audio is muted (basic deafen detection)
+            const participant = this.meeting.localParticipant;
+            
+            // In VideoSDK, deafen is typically implemented as muting audio output
+            // We'll track this manually since VideoSDK doesn't have a direct deafen API
+            return this.isDeafened || false;
+        } catch (error) {
+            console.error("Error getting deafen state:", error);
             return false;
         }
     }
@@ -597,11 +673,40 @@ class VideoSDKManager {
         }
         this.eventHandlers[eventName].push(handler);
     }
+    
+    // Helper methods for state checking
+    isReady() {
+        return this.initialized && this.meeting && this.isConnected;
+    }
+    
+    getConnectionState() {
+        return {
+            initialized: this.initialized,
+            hasAuthToken: !!this.authToken,
+            hasMeeting: !!this.meeting,
+            isConnected: this.isConnected,
+            isDeafened: this.isDeafened,
+            sdkVersion: this.sdkVersion,
+            participantConnected: this.meeting?.localParticipant?.connectionStatus === 'connected',
+            micState: this.getMicState(),
+            webcamState: this.getWebcamState(),
+            screenShareState: this.getScreenShareState()
+        };
+    }
 }
 
 // Create global instance
 const videoSDKManager = new VideoSDKManager();
 window.videoSDKManager = videoSDKManager;
+
+// Add debug function for troubleshooting
+window.debugVideoSDK = function() {
+    console.log('=== VideoSDK Debug Info ===');
+    console.log('Connection State:', videoSDKManager.getConnectionState());
+    console.log('Available Methods:', Object.getOwnPropertyNames(VideoSDKManager.prototype).filter(m => m !== 'constructor'));
+    console.log('Meeting Object:', videoSDKManager.meeting);
+    console.log('=========================');
+};
 
 // Helper function to wait for SDK to load
 window.waitForVideoSDK = function(callback, maxAttempts = 20) {

@@ -277,19 +277,14 @@ const serverAPI = {
     },
 
     getServerChannels: function(serverId) {
-        return fetch(`/api/servers/${serverId}/channels`, {
+        return $.ajax({
+            url: `/api/servers/${serverId}/channels`,
             method: 'GET',
-            credentials: 'include',
+            dataType: 'json',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
         });
     },
 
@@ -365,18 +360,6 @@ const serverAPI = {
         });
     },
 
-    searchServers: function(query) {
-        return $.ajax({
-            url: `/api/explore/servers/search?q=${encodeURIComponent(query)}`,
-            method: 'GET',
-            dataType: 'json',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-    },
-
     joinServer: function(data) {
         const formData = new FormData();
         if (typeof data === 'object' && data.server_id) {
@@ -408,11 +391,28 @@ const serverAPI = {
         });
     },
 
-    getExploreContent: function() {
+    leaveServer: function(serverId) {
+        return fetch(`/api/servers/leave`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                server_id: serverId
+            })
+        })
+        .then(response => response.json());
+    },
+
+    createChannel: function(serverId, channelData) {
         return $.ajax({
-            url: '/api/explore/content',
-            method: 'GET',
-            dataType: 'json',
+            url: `/api/servers/${serverId}/channels`,
+            method: 'POST',
+            data: JSON.stringify(channelData),
+            contentType: 'application/json',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
@@ -420,11 +420,12 @@ const serverAPI = {
         });
     },
 
-    getServersByCategory: function(category) {
+    updateChannel: function(serverId, channelId, channelData) {
         return $.ajax({
-            url: `/api/explore/servers/category?category=${encodeURIComponent(category)}`,
-            method: 'GET',
-            dataType: 'json',
+            url: `/api/servers/${serverId}/channels/${channelId}`,
+            method: 'PUT',
+            data: JSON.stringify(channelData),
+            contentType: 'application/json',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
@@ -432,9 +433,70 @@ const serverAPI = {
         });
     },
 
-    getFeaturedServers: function(limit = 3) {
+    deleteChannel: function(serverId, channelId) {
         return $.ajax({
-            url: `/api/explore/servers/featured?limit=${limit}`,
+            url: `/api/servers/${serverId}/channels/${channelId}`,
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+    },
+
+    createCategory: function(serverId, categoryData) {
+        return $.ajax({
+            url: `/api/servers/${serverId}/categories`,
+            method: 'POST',
+            data: JSON.stringify(categoryData),
+            contentType: 'application/json',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+    },
+
+    updateCategory: function(serverId, categoryId, categoryData) {
+        return $.ajax({
+            url: `/api/servers/${serverId}/categories/${categoryId}`,
+            method: 'PUT',
+            data: JSON.stringify(categoryData),
+            contentType: 'application/json',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+    },
+
+    deleteCategory: function(serverId, categoryId) {
+        return $.ajax({
+            url: `/api/servers/${serverId}/categories/${categoryId}`,
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+    },
+
+    generateInviteLink: function(serverId, options = {}) {
+        return $.ajax({
+            url: `/api/servers/${serverId}/invite`,
+            method: 'POST',
+            data: JSON.stringify(options),
+            contentType: 'application/json',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+    },
+
+    getInviteDetails: function(inviteCode) {
+        return $.ajax({
+            url: `/api/invites/${inviteCode}`,
             method: 'GET',
             dataType: 'json',
             headers: {

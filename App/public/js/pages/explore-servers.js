@@ -213,14 +213,13 @@ function initSearchFilter() {
         let debounceTimeout;
 
         searchInput.addEventListener('input', function () {
-            const query = this.value.toLowerCase();
+            const query = this.value.toLowerCase().trim();
 
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
                 if (query.length >= 2) {
-                    showLoadingSkeleton();
                     performServerSearch(query);
-                } else {
+                } else if (query.length === 0) {
                     resetServerSearch();
                 }
             }, 300);
@@ -237,35 +236,39 @@ function initSearchFilter() {
 }
 
 function performServerSearch(query) {
-    window.serverAPI.searchServers(query)
-        .then(data => {
+    const allServerCards = document.querySelectorAll('.server-card');
+    let visibleCount = 0;
+
+    allServerCards.forEach((card, index) => {
+        const serverName = card.querySelector('.server-name')?.textContent.toLowerCase() || '';
+        const serverDescription = card.querySelector('.server-description')?.textContent.toLowerCase() || '';
+        
+        const matches = serverName.includes(query) || serverDescription.includes(query);
+        
+        if (matches) {
+            card.style.display = 'block';
             setTimeout(() => {
-                renderSearchResults(data.servers, data.userServerIds);
-                hideLoadingSkeleton();
-            }, 800);
-        })
-        .catch(error => {
-            console.error('Error searching servers:', error);
-            hideLoadingSkeleton();
-            const serverGrid = document.querySelector('.server-grid');
-            if (serverGrid) {
-                serverGrid.innerHTML = `
-                    <div class="col-span-full text-center py-12">
-                        <div class="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <i class="fas fa-exclamation-triangle text-3xl text-red-400"></i>
-                        </div>
-                        <h3 class="text-xl font-bold mb-2 text-white">Search Error</h3>
-                        <p class="text-red-400">Unable to search servers. Please try again.</p>
-                    </div>
-                `;
-            }
-        });
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0) scale(1)';
+            }, visibleCount * 50);
+            visibleCount++;
+        } else {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(-10px) scale(0.95)';
+            setTimeout(() => {
+                card.style.display = 'none';
+            }, 300);
+        }
+    });
+
+    if (visibleCount === 0) {
+        showNoResults();
+    } else {
+        hideNoResults();
+    }
 }
 
 function resetServerSearch() {
-    const serverGrid = document.querySelector('.server-grid');
-    if (!serverGrid) return;
-
     const allServerCards = document.querySelectorAll('.server-card');
     allServerCards.forEach((card, index) => {
         card.style.display = 'block';
@@ -274,90 +277,37 @@ function resetServerSearch() {
             card.style.transform = 'translateY(0) scale(1)';
         }, index * 50);
     });
+    hideNoResults();
 }
 
-function renderSearchResults(servers, userServerIds) {
-    const serverGrid = document.querySelector('.server-grid');
-    if (!serverGrid) return;
-
-    serverGrid.innerHTML = '';
-
-    if (!servers || servers.length === 0) {
-        serverGrid.innerHTML = `
-            <div class="col-span-full text-center py-12">
+function showNoResults() {
+    let noResultsDiv = document.getElementById('no-results-message');
+    if (!noResultsDiv) {
+        const serverGrid = document.querySelector('.server-grid');
+        if (serverGrid) {
+            noResultsDiv = document.createElement('div');
+            noResultsDiv.id = 'no-results-message';
+            noResultsDiv.className = 'col-span-full text-center py-12';
+            noResultsDiv.innerHTML = `
                 <div class="w-20 h-20 bg-discord-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-search text-3xl text-discord-primary"></i>
                 </div>
                 <h3 class="text-xl font-bold mb-2 text-white">No Results Found</h3>
                 <p class="text-discord-lighter">No servers match your search criteria.</p>
-            </div>
-        `;
-        return;
+            `;
+            serverGrid.appendChild(noResultsDiv);
+        }
     }
-
-    servers.forEach((server, index) => {
-        const isJoined = userServerIds.includes(parseInt(server.id));
-        server.is_member = isJoined;
-        const serverCard = createServerCard(server, isJoined);
-        
-        serverCard.style.opacity = '0';
-        serverCard.style.transform = 'translateY(30px)';
-        serverGrid.appendChild(serverCard);
-        
-        setTimeout(() => {
-            serverCard.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-            serverCard.style.opacity = '1';
-            serverCard.style.transform = 'translateY(0)';
-        }, index * 100);
-    });
-
-    initServerCards();
-    initJoinServerHandlers();
-    initServerDetailTriggers();
+    if (noResultsDiv) {
+        noResultsDiv.style.display = 'block';
+    }
 }
 
-function createServerCard(server, isJoined) {
-    const card = document.createElement('div');
-    card.className = 'server-card bg-discord-dark rounded-xl overflow-hidden transition-all cursor-pointer group';
-    card.setAttribute('data-category', server.category || 'all');
-    card.setAttribute('data-server-id', server.id);
-
-    const memberCount = server.member_count || 0;
-    const onlineCount = Math.floor(Math.random() * Math.min(memberCount, 50)) + 1;
-
-    card.innerHTML = `
-        <div class="p-5">
-            <div class="flex items-start mb-4">
-                <div class="w-14 h-14 rounded-xl bg-discord-primary overflow-hidden mr-4 flex-shrink-0 shadow-lg">
-                    ${server.image_url ? 
-                        `<img src="${server.image_url}" class="w-full h-full object-cover" alt="${server.name} icon">` :
-                        `<div class="w-full h-full flex items-center justify-center">
-                            <span class="text-white font-bold text-lg">${server.name.charAt(0).toUpperCase()}</span>
-                        </div>`
-                    }
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="server-name font-bold text-lg mb-1 text-white transition-colors truncate">${server.name}</h3>
-                    <div class="server-stats flex items-center text-xs text-discord-lighter">
-                        <span class="font-medium">${memberCount.toLocaleString()} members</span>
-                        <span class="mx-2">•</span>
-                        <div class="flex items-center">
-                            <div class="online-dot"></div>
-                            <span class="font-medium">${onlineCount} online</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <p class="server-description text-discord-lighter text-sm mb-4 line-clamp-2 leading-relaxed">${server.description || 'No description available.'}</p>
-            <button onclick="event.preventDefault(); event.stopPropagation();" 
-                    class="join-server-btn w-full ${isJoined ? 'bg-discord-green/20 text-discord-green border border-discord-green/30' : 'bg-discord-primary text-white'} text-center py-2.5 text-sm rounded-lg transition-all font-semibold" 
-                    data-server-id="${server.id}" ${isJoined ? 'disabled' : ''}>
-                <i class="fas fa-${isJoined ? 'check' : 'plus'} mr-2"></i>${isJoined ? 'Joined' : 'Join'}
-            </button>
-        </div>
-    `;
-
-    return card;
+function hideNoResults() {
+    const noResultsDiv = document.getElementById('no-results-message');
+    if (noResultsDiv) {
+        noResultsDiv.style.display = 'none';
+    }
 }
 
 function initJoinServerHandlers() {
@@ -387,53 +337,73 @@ function joinServer(serverId, button) {
     button.disabled = true;
     button.style.opacity = '0.7';
 
-    window.serverAPI.joinServer({ server_id: serverId })
-        .then(data => {
-            if (data.success) {
-                button.innerHTML = '<i class="fas fa-check mr-2"></i>Joined!';
-                button.className = 'join-server-btn w-full bg-discord-green text-white text-center py-2.5 text-sm rounded-lg transition-all font-semibold';
-                button.style.opacity = '1';
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/api/servers/join';
+    form.style.display = 'none';
 
-                button.style.transform = 'scale(1.05)';
-                setTimeout(() => {
-                    button.style.transform = 'scale(1)';
-                }, 200);
+    const serverIdInput = document.createElement('input');
+    serverIdInput.type = 'hidden';
+    serverIdInput.name = 'server_id';
+    serverIdInput.value = serverId;
 
-                if (window.showToast) {
-                    window.showToast('Successfully joined server!', 'success');
-                }
+    form.appendChild(serverIdInput);
+    document.body.appendChild(form);
 
-                setTimeout(() => {
-                    if (window.loadServerPage && typeof window.loadServerPage === 'function') {
-                        console.log('[Explore] Using AJAX navigation to server:', serverId);
-                        window.loadServerPage(serverId);
-                    } else {
-                        console.log('[Explore] Falling back to full page navigation');
-                        window.location.href = `/server/${serverId}`;
-                    }
-                }, 1500);
-            } else {
-                button.innerHTML = originalText;
-                button.className = originalClasses;
-                button.disabled = false;
-                button.style.opacity = '1';
+    fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            button.innerHTML = '<i class="fas fa-check mr-2"></i>Joined!';
+            button.className = 'join-server-btn w-full bg-discord-green text-white text-center py-2.5 text-sm rounded-lg transition-all font-semibold';
+            button.style.opacity = '1';
 
-                if (window.showToast) {
-                    window.showToast(data.message || 'Failed to join server', 'error');
-                }
+            button.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                button.style.transform = 'scale(1)';
+            }, 200);
+
+            if (window.showToast) {
+                window.showToast('Successfully joined server!', 'success');
             }
-        })
-        .catch(error => {
-            console.error('Error joining server:', error);
+
+            setTimeout(() => {
+                if (window.loadServerPage && typeof window.loadServerPage === 'function') {
+                    window.loadServerPage(serverId);
+                } else {
+                    window.location.href = `/server/${serverId}`;
+                }
+            }, 1500);
+        } else {
             button.innerHTML = originalText;
             button.className = originalClasses;
             button.disabled = false;
             button.style.opacity = '1';
 
             if (window.showToast) {
-                window.showToast('Error joining server', 'error');
+                window.showToast(data.message || 'Failed to join server', 'error');
             }
-        });
+        }
+    })
+    .catch(error => {
+        button.innerHTML = originalText;
+        button.className = originalClasses;
+        button.disabled = false;
+        button.style.opacity = '1';
+
+        if (window.showToast) {
+            window.showToast('Error joining server', 'error');
+        }
+    })
+    .finally(() => {
+        document.body.removeChild(form);
+    });
 }
 
 function initServerDetailTriggers() {
