@@ -71,7 +71,7 @@ class BotHandler extends EventEmitter {
         this.botEventEmitter.removeAllListeners('bot-message-intercept');
         console.log(`🧹 [BOT-LISTENERS] Cleared all existing bot-message-intercept listeners`);
 
-        const messageHandler = (data) => {
+        const messageHandler = async (data) => {
             console.log(`🚨 [BOT-LISTENERS] === MESSAGE HANDLER TRIGGERED ===`);
             console.log(`📨 [BOT-LISTENERS] bot-message-intercept received by ${username}:`, {
                 messageId: data.id,
@@ -87,7 +87,7 @@ class BotHandler extends EventEmitter {
             
             const messageType = channelId ? 'channel' : 'dm';
             console.log(`🎯 [BOT-LISTENERS] Calling handleMessage for ${username} with messageType: ${messageType}`);
-            BotHandler.handleMessage(io, data, messageType, botId, username);
+            await BotHandler.handleMessage(io, data, messageType, botId, username);
         };
 
         this.botEventEmitter.on('bot-message-intercept', messageHandler);
@@ -137,7 +137,7 @@ class BotHandler extends EventEmitter {
         console.log(`✅ [BOT-EMIT] bot-message-intercept emitted successfully`);
     }
 
-    static handleMessage(io, data, messageType, botId, username) {
+    static async handleMessage(io, data, messageType, botId, username) {
         console.log(`🤖 [BOT-HANDLER] === PROCESSING MESSAGE ===`);
         console.log(`🤖 [BOT-HANDLER] Bot: ${username} (ID: ${botId})`);
         console.log(`🤖 [BOT-HANDLER] Message type: ${messageType}`);
@@ -182,26 +182,26 @@ class BotHandler extends EventEmitter {
 
         if (content.toLowerCase() === '/titibot ping') {
             console.log(`✅ [BOT-HANDLER] PING command detected!`);
-            this.sendBotResponse(io, data, messageType, botId, username, 'ping');
+            await this.sendBotResponse(io, data, messageType, botId, username, 'ping');
         } else if (content.toLowerCase().startsWith('/titibot play ')) {
             console.log(`✅ [BOT-HANDLER] PLAY command detected!`);
             const songName = content.substring('/titibot play '.length).trim();
             console.log(`🎵 [BOT-HANDLER] Song name: "${songName}"`);
-            this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
+            await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
         } else if (content.toLowerCase() === '/titibot stop') {
             console.log(`✅ [BOT-HANDLER] STOP command detected!`);
-            this.sendBotResponse(io, data, messageType, botId, username, 'stop');
+            await this.sendBotResponse(io, data, messageType, botId, username, 'stop');
         } else if (content.toLowerCase() === '/titibot next') {
             console.log(`✅ [BOT-HANDLER] NEXT command detected!`);
-            this.sendBotResponse(io, data, messageType, botId, username, 'next');
+            await this.sendBotResponse(io, data, messageType, botId, username, 'next');
         } else if (content.toLowerCase() === '/titibot prev') {
             console.log(`✅ [BOT-HANDLER] PREV command detected!`);
-            this.sendBotResponse(io, data, messageType, botId, username, 'prev');
+            await this.sendBotResponse(io, data, messageType, botId, username, 'prev');
         } else if (content.toLowerCase().startsWith('/titibot queue ')) {
             console.log(`✅ [BOT-HANDLER] QUEUE command detected!`);
             const songName = content.substring('/titibot queue '.length).trim();
             console.log(`🎵 [BOT-HANDLER] Queue song name: "${songName}"`);
-            this.sendBotResponse(io, data, messageType, botId, username, 'queue', songName);
+            await this.sendBotResponse(io, data, messageType, botId, username, 'queue', songName);
         } else {
             console.log(`❌ [BOT-HANDLER] No matching command found for: "${content}"`);
         }
@@ -274,10 +274,10 @@ class BotHandler extends EventEmitter {
 
         console.log(`🚀 [BOT-RESPONSE] Sending bot response using DIRECT message emission (same as normal users)`);
         
-        this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData);
+        await this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData);
     }
 
-    static sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData) {
+    static async sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData) {
         console.log(`📡 [BOT-DIRECT] Using direct bot message emission (same pattern as normal users)`);
         
         const channelId = originalMessage.channel_id || (originalMessage.target_type === 'channel' ? originalMessage.target_id : null);
@@ -334,14 +334,78 @@ class BotHandler extends EventEmitter {
             console.log(`📡 [BOT-DIRECT] Emitting bot response to room ${targetRoom}:`, {
                 event: eventName,
                 messageId: botResponseData.id,
-                content: botResponseData.content.substring(0, 50) + '...',
-                userId: botResponseData.user_id,
+                content: botResponseData.content?.substring(0, 50) + '...',
                 username: botResponseData.username
             });
             
             io.to(targetRoom).emit(eventName, botResponseData);
+            console.log(`✅ [BOT-DIRECT] Bot response sent to ${targetRoom} via ${eventName}`);
             
-            console.log(`✅ [BOT-DIRECT] Bot response emitted successfully using exact same pattern as normal messages`);
+            try {
+                console.log(`💾 [BOT-DATABASE] Saving bot message to database...`);
+                
+                const saveData = {
+                    user_id: botId.toString(),
+                    username: username,
+                    target_type: messageType,
+                    target_id: messageType === 'channel' ? channelId.toString() : roomId.toString(),
+                    content: responseContent,
+                    message_type: 'text',
+                    attachments: [],
+                    mentions: []
+                };
+                
+                console.log(`📤 [BOT-DATABASE] Save data:`, JSON.stringify(saveData, null, 2));
+                
+                const http = require('http');
+                const postData = JSON.stringify(saveData);
+                
+                const options = {
+                    hostname: 'app',
+                    port: 1001,
+                    path: '/api/chat/save-bot-message',
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Content-Length': Buffer.byteLength(postData)
+                    }
+                };
+                
+                const req = http.request(options, (res) => {
+                    let responseData = '';
+                    
+                    res.on('data', (chunk) => {
+                        responseData += chunk;
+                    });
+                    
+                    res.on('end', () => {
+                        try {
+                            const saveResult = JSON.parse(responseData);
+                            console.log(`💾 [BOT-DATABASE] Save result:`, JSON.stringify(saveResult, null, 2));
+                            
+                            if (saveResult.success) {
+                                console.log(`✅ [BOT-DATABASE] Bot message saved successfully with ID: ${saveResult.data.message_id}`);
+                            } else {
+                                console.error(`❌ [BOT-DATABASE] Failed to save bot message:`, saveResult);
+                            }
+                        } catch (parseError) {
+                            console.error(`❌ [BOT-DATABASE] Error parsing save response:`, parseError.message);
+                        }
+                    });
+                });
+                
+                req.on('error', (error) => {
+                    console.error(`❌ [BOT-DATABASE] Request error:`, error.message);
+                });
+                
+                req.write(postData);
+                req.end();
+                
+            } catch (saveError) {
+                console.error(`❌ [BOT-DATABASE] Error saving bot message:`, saveError.message);
+            }
+            
+            console.log(`🎯 [BOT-RESPONSE] === BOT RESPONSE COMPLETE ===`);
             
             if (musicData) {
                 console.log(`🎵 [BOT-DIRECT] Sending music command:`, musicData);
@@ -362,12 +426,12 @@ class BotHandler extends EventEmitter {
         }
     }
 
-    static fallbackDirectResponse(io, originalMessage, messageType, botId, username, responseContent, musicData) {
+    static async fallbackDirectResponse(io, originalMessage, messageType, botId, username, responseContent, musicData) {
         console.log(`🔄 [BOT-FALLBACK] Using fallback response (this should not be called anymore)`);
-        this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData);
+        await this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData);
     }
 
-    static handleCommand(io, commandData) {
+    static async handleCommand(io, commandData) {
         const { command, channel_id, user_id, username } = commandData;
 
         const titiBotId = this.getTitiBotId();
@@ -391,7 +455,7 @@ class BotHandler extends EventEmitter {
                 target_id: channel_id
             };
             
-            this.sendBotResponse(io, simulatedMessage, 'channel', titiBotId, 'titibot', 'ping');
+            await this.sendBotResponse(io, simulatedMessage, 'channel', titiBotId, 'titibot', 'ping');
         }
     }
 

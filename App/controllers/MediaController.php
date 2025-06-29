@@ -149,8 +149,6 @@ class MediaController extends BaseController
                     continue;
                 }
 
-
-
                 $extension = pathinfo($originalName, PATHINFO_EXTENSION);
                 $fileName = uniqid() . '_' . time() . '.' . $extension;
                 $absolutePath = $this->uploadPath . $fileName;
@@ -164,8 +162,7 @@ class MediaController extends BaseController
                     'file_url' => "/public/storage/{$fileName}",
                     'file_name' => $originalName,
                     'file_size' => $fileSize,
-                    'mime_type' => $mimeType,
-
+                    'mime_type' => $mimeType
                 ];
             }
 

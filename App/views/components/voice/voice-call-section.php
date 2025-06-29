@@ -37,6 +37,8 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
             <span>•</span>
             <span id="voiceParticipantCount">1</span>
             <span>participants</span>
+            <span>•</span>
+            <span>Meeting ID: <span id="meetingIdDisplay" class="font-mono text-[#7289da]">-</span></span>
         </div>
     </div>
 
@@ -433,6 +435,12 @@ class VoiceCallManager {
                 console.log(`🔗 [DEBUG] Local participant ID captured:`, this.localParticipantId);
             }
             
+            // Display the meeting ID
+            if (event.detail?.meetingId) {
+                this.displayMeetingId(event.detail.meetingId);
+                console.log(`🔗 [DEBUG] Meeting ID displayed:`, event.detail.meetingId);
+            }
+            
             this.updateView();
         });
 
@@ -502,7 +510,9 @@ class VoiceCallManager {
             isMediaStream: stream instanceof MediaStream,
             hasStreamProperty: !!stream?.stream,
             hasTrackProperty: !!stream?.track,
-            streamTracks: stream instanceof MediaStream ? stream.getTracks().length : 'N/A'
+            streamTracks: stream instanceof MediaStream ? stream.getTracks().length : 'N/A',
+            localParticipantId: this.localParticipantId,
+            isLocalParticipant: participantId === this.localParticipantId
         });
         
         if (participantId === this.localParticipantId) {
@@ -559,7 +569,9 @@ class VoiceCallManager {
                 });
             }
         } else {
-            console.log(`🎥 [DEBUG] Creating video participant card for ${participantId}`);
+            console.log(`🎥 [DEBUG] Remote participant detected - ${participantId}!`);
+            console.log(`🎥 [DEBUG] About to create video participant card...`);
+            console.log(`🎥 [DEBUG] Current participants in Map:`, Array.from(this.participants.keys()));
             this.createVideoParticipantCard(participantId, stream);
         }
         
@@ -639,18 +651,47 @@ class VoiceCallManager {
     }
 
     createVideoParticipantCard(participantId, stream) {
+        console.log(`👥 [DEBUG] Creating video card for participant: ${participantId}`);
+        
         const container = document.getElementById('videoGrid');
-        if (!container) return;
+        if (!container) {
+            console.error(`👥 [ERROR] videoGrid container not found`);
+            return;
+        }
 
-        const participant = this.participants.get(participantId);
-        if (!participant) return;
+        // Check if card already exists
+        let existingCard = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card`);
+        if (existingCard) {
+            console.log(`👥 [DEBUG] Video card already exists for ${participantId}, updating stream`);
+            const video = existingCard.querySelector('video');
+            if (video && stream) {
+                this.attachStreamToVideo(video, stream);
+            }
+            return;
+        }
+
+        // Get or create participant info
+        let participant = this.participants.get(participantId);
+        if (!participant) {
+            console.log(`👥 [DEBUG] Participant ${participantId} not in Map, creating entry`);
+            participant = {
+                id: participantId,
+                name: `User ${participantId.slice(-4)}`, // Use last 4 chars as fallback name
+                hasVideo: false
+            };
+            this.participants.set(participantId, participant);
+        }
+
+        console.log(`👥 [DEBUG] Creating video card with name: ${participant.name}`);
 
         const card = document.createElement('div');
-        card.className = 'video-participant-card';
+        card.className = 'video-participant-card bg-[#1a1b1e] rounded-lg relative overflow-hidden';
+        card.style.minHeight = '200px';
+        card.style.width = '100%';
         card.dataset.participantId = participantId;
 
         card.innerHTML = `
-            <video autoplay playsinline muted></video>
+            <video autoplay playsinline muted class="w-full h-full object-cover"></video>
             <div class="absolute top-3 left-3 bg-black/60 rounded px-2 py-1">
                 <span class="text-white text-sm">${participant.name}</span>
             </div>
@@ -658,11 +699,14 @@ class VoiceCallManager {
 
         const video = card.querySelector('video');
         if (video && stream) {
+            console.log(`👥 [DEBUG] Attaching stream to video element for ${participantId}`);
             this.attachStreamToVideo(video, stream);
         }
 
         container.appendChild(card);
         participant.hasVideo = true;
+        
+        console.log(`👥 [SUCCESS] Video card created for ${participantId}`);
         this.updateView();
     }
 
@@ -732,7 +776,17 @@ class VoiceCallManager {
     }
 
     hasOtherVideo() {
-        return Array.from(this.participants.values()).some(p => p.hasVideo && p.id !== this.localParticipantId);
+        const result = Array.from(this.participants.values()).some(p => p.hasVideo && p.id !== this.localParticipantId);
+        console.log(`🔍 [DEBUG] hasOtherVideo() check:`, {
+            participants: Array.from(this.participants.values()).map(p => ({
+                id: p.id,
+                hasVideo: p.hasVideo,
+                isLocalParticipant: p.id === this.localParticipantId
+            })),
+            localParticipantId: this.localParticipantId,
+            result: result
+        });
+        return result;
     }
 
     updateView() {
@@ -765,7 +819,11 @@ class VoiceCallManager {
         } else if (this.isVideoOn || this.hasOtherVideo()) {
             this.currentView = 'video';
             videoSection?.classList.remove('hidden');
-            console.log('🎥 [DEBUG] Showing video grid section');
+            console.log('🎥 [DEBUG] Showing video grid section - Condition met:', {
+                isVideoOn: this.isVideoOn,
+                hasOtherVideo: this.hasOtherVideo(),
+                videoSectionExists: !!videoSection
+            });
             
             if (this.isVideoOn) {
                 cameraSection?.classList.remove('hidden');

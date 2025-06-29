@@ -176,7 +176,7 @@ class VoiceManager {
                 console.log(`✅ [VOICE-MANAGER] Found existing meeting: ${existingMeeting.meeting_id}`);
                 meetingId = existingMeeting.meeting_id;
             } else {
-                // 🎯 STEP 3: Create new meeting and register with socket
+                // 🎯 STEP 3: Create new meeting
                 console.log(`🆕 [VOICE-MANAGER] No existing meeting, creating new one...`);
                 const customMeetingId = `voice_channel_${channelId}`;
                 meetingId = await this.videoSDKManager.createMeetingRoom(customMeetingId);
@@ -184,13 +184,14 @@ class VoiceManager {
                 if (!meetingId) {
                     throw new Error('Failed to create meeting room');
                 }
-                
-                console.log(`📝 [VOICE-MANAGER] Created new meeting: ${meetingId}, registering with socket...`);
-                await this.registerMeetingWithSocket(channelId, meetingId);
             }
             
-            // 🎯 STEP 4: Join the meeting (existing or new)
-            console.log(`🚪 [VOICE-MANAGER] Joining meeting: ${meetingId}`);
+            // 🎯 STEP 3b: ALWAYS register with socket (whether joining existing or created new)
+            console.log(`📝 [VOICE-MANAGER] Registering with socket for meeting: ${meetingId}...`);
+            await this.registerMeetingWithSocket(channelId, meetingId);
+            
+            // 🎯 STEP 4: Join the VideoSDK meeting (existing or new)
+            console.log(`🚪 [VOICE-MANAGER] Joining VideoSDK meeting: ${meetingId}`);
             await this.videoSDKManager.initMeeting({
                 meetingId: meetingId,
                 name: window.currentUsername || 'Anonymous',
@@ -243,7 +244,12 @@ class VoiceManager {
                 meetingId: meetingId
             });
 
-            console.log(`🎉 [VOICE-MANAGER] Successfully joined voice - Meeting: ${meetingId}, Channel: ${channelId}`);
+            console.log(`🎉 [VOICE-MANAGER] Successfully joined voice!`, {
+                meetingId: meetingId,
+                channelId: channelId,
+                wasExistingMeeting: !!existingMeeting,
+                action: existingMeeting ? 'JOINED_EXISTING' : 'CREATED_NEW'
+            });
             return Promise.resolve();
         } catch (error) {
             console.error('❌ [VOICE-MANAGER] Failed to join voice:', error);
@@ -262,7 +268,7 @@ class VoiceManager {
             // Set up one-time listener for response
             const handleResponse = (data) => {
                 if (data.channel_id === channelId) {
-                    window.globalSocketManager?.socket?.off('voice-meeting-status', handleResponse);
+                    window.globalSocketManager?.io?.off('voice-meeting-status', handleResponse);
                     
                     if (data.has_meeting) {
                         console.log(`✅ [VOICE-MANAGER] Existing meeting found:`, data);
@@ -298,30 +304,37 @@ class VoiceManager {
         return new Promise((resolve, reject) => {
             console.log(`📝 [VOICE-MANAGER] Registering meeting ${meetingId} for channel ${channelId} with socket`);
             
+            // Check if socket is ready
+            if (!window.globalSocketManager?.io || !window.globalSocketManager?.isReady()) {
+                console.warn(`⚠️ [VOICE-MANAGER] Socket not ready, proceeding without registration`);
+                resolve({ meeting_id: meetingId, channel_id: channelId });
+                return;
+            }
+            
             // Set up one-time listener for confirmation
             const handleUpdate = (data) => {
                 if (data.channel_id === channelId && data.action === 'join') {
-                    window.globalSocketManager?.socket?.off('voice-meeting-update', handleUpdate);
+                    window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
                     console.log(`✅ [VOICE-MANAGER] Meeting registration confirmed:`, data);
                     resolve(data);
                 }
             };
             
             // Listen for confirmation
-            window.globalSocketManager?.io?.on('voice-meeting-update', handleUpdate);
+            window.globalSocketManager.io.on('voice-meeting-update', handleUpdate);
             
             // Register meeting
-            window.globalSocketManager?.io?.emit('register-voice-meeting', {
+            window.globalSocketManager.io.emit('register-voice-meeting', {
                 channel_id: channelId,
                 meeting_id: meetingId
             });
             
-            // Timeout after 5 seconds
+            // Timeout after 3 seconds
             setTimeout(() => {
-                window.globalSocketManager?.io?.off('voice-meeting-update', handleUpdate);
+                window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
                 console.log(`✅ [VOICE-MANAGER] Meeting registration timeout, assuming success for ${meetingId}`);
                 resolve({ meeting_id: meetingId, channel_id: channelId });
-            }, 5000);
+            }, 3000);
         });
     }
 
@@ -336,7 +349,7 @@ class VoiceManager {
         // Unregister from socket meeting before leaving VideoSDK
         if (this.currentChannelId) {
             console.log(`📤 [VOICE-MANAGER] Unregistering from socket meeting for channel ${this.currentChannelId}`);
-            window.globalSocketManager?.socket?.emit('unregister-voice-meeting', {
+            window.globalSocketManager?.io?.emit('unregister-voice-meeting', {
                 channel_id: this.currentChannelId
             });
         }

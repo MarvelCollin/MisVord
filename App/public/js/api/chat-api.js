@@ -138,11 +138,9 @@ class ChatAPI {
         return response;
     }
 
-
-
     async uploadFiles(formData) {
         try {
-            const response = await fetch('/api/media/upload', {
+            const response = await fetch('/api/media/upload-multiple', {
                 method: 'POST',
                 body: formData,
                 credentials: 'same-origin'
@@ -426,31 +424,33 @@ class ChatAPI {
         }
     }
 
-
-
     async uploadFile(formData) {
         try {
-            if (!window.MediaAPI) {
-                throw new Error('MediaAPI not available');
+            const response = await fetch('/api/media/upload', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`File upload failed with status: ${response.status}`);
             }
             
-            const response = await window.MediaAPI.uploadFile(formData);
+            const result = await response.json();
             
-            if (!response || !response.success) {
-                const errorMessage = response?.error?.message || response?.message || 'Upload failed';
+            if (!result || !result.success) {
+                const errorMessage = result?.error?.message || result?.message || 'Upload failed';
                 if (errorMessage.includes('too large') || errorMessage.includes('413')) {
                     throw new Error('File is too large. Please choose a smaller file.');
                 }
                 throw new Error(errorMessage);
             }
             
-            const data = response.data || response;
-            
             return {
-                url: data.file_url,
-                name: data.file_name,
-                size: data.file_size,
-                type: data.mime_type
+                url: result.file_url,
+                name: result.file_name,
+                size: result.file_size,
+                type: result.mime_type
             };
         } catch (error) {
             console.error('Error uploading file:', error);
@@ -478,8 +478,6 @@ class ChatAPI {
         }
     }
 
-
-    
     emitSocketEventForMessage(chatType, targetId, eventName, data) {
         console.log(`🔌 [CHAT-API] emitSocketEvent called:`, {
             chatType,

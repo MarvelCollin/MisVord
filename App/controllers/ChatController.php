@@ -156,7 +156,6 @@ class ChatController extends BaseController
 
         error_log("Received input for message: " . json_encode($input));
 
-        // Validate required fields with detailed error messages
         $validationErrors = [];
         if (empty($input['target_type'])) {
             $validationErrors['target_type'] = 'Target type is required (channel or dm)';
@@ -170,23 +169,22 @@ class ChatController extends BaseController
 
         $content = trim($input['content'] ?? '');
         $messageType = $input['message_type'] ?? 'text';
-        $attachments = $input['attachments'] ?? $input['attachment_url'] ?? null;
+        $attachments = $input['attachments'] ?? [];
         $mentions = $input['mentions'] ?? [];
         $replyMessageId = $input['reply_message_id'] ?? null;
 
-        // Handle attachments
-        if (is_string($attachments) && !empty($attachments)) {
-            $attachments = [$attachments];
-        } elseif (!is_array($attachments)) {
+        if (is_array($attachments)) {
+            $attachments = array_filter($attachments, function($attachment) {
+                return is_string($attachment) && !empty($attachment);
+            });
+        } else {
             $attachments = [];
         }
 
-        // Only validate content if no attachments present
         if (empty($content) && empty($attachments)) {
             $validationErrors['content'] = 'Message must have either content or an attachment';
         }
 
-        // Return all validation errors if any
         if (!empty($validationErrors)) {
             error_log("Message validation failed: " . json_encode($validationErrors));
             return $this->validationError($validationErrors);
@@ -269,7 +267,6 @@ class ChatController extends BaseController
                 
                 $formattedMessage = $this->formatMessage($message);
                 
-                
                 if ($message->reply_message_id) {
                     $repliedMessage = $this->messageRepository->find($message->reply_message_id);
                     if ($repliedMessage) {
@@ -348,7 +345,6 @@ class ChatController extends BaseController
                 
                 $formattedMessage = $this->formatMessage($message);
 
-                
                 if ($message->reply_message_id) {
                     $repliedMessage = $this->messageRepository->find($message->reply_message_id);
                     if ($repliedMessage) {
@@ -1348,6 +1344,101 @@ class ChatController extends BaseController
             error_log("Error saving socket message: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
             return $this->serverError('Failed to save message: ' . $e->getMessage());
+        }
+    }
+
+    public function saveBotMessageFromSocket()
+    {
+        header('Content-Type: application/json');
+        
+        error_log("Bot message save - Request received");
+        
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        error_log("Bot message save request: " . json_encode($input));
+
+        $validationErrors = [];
+        
+        if (empty($input['user_id'])) {
+            $validationErrors['user_id'] = 'Bot user_id is required';
+        }
+        
+        if (empty($input['username'])) {
+            $validationErrors['username'] = 'Bot username is required';
+        }
+        
+        if (empty($input['target_type'])) {
+            $validationErrors['target_type'] = 'Target type is required (channel or dm)';
+        } elseif (!in_array($input['target_type'], ['channel', 'dm'])) {
+            $validationErrors['target_type'] = 'Invalid target type. Must be "channel" or "dm"';
+        }
+
+        if (empty($input['target_id'])) {
+            $validationErrors['target_id'] = 'Target ID is required';
+        }
+
+        $content = trim($input['content'] ?? '');
+        $messageType = $input['message_type'] ?? 'text';
+        $attachments = $input['attachments'] ?? [];
+        $mentions = $input['mentions'] ?? [];
+        $replyMessageId = $input['reply_message_id'] ?? null;
+
+        if (empty($content) && empty($attachments)) {
+            $validationErrors['content'] = 'Message must have either content or an attachment';
+        }
+
+        if (!empty($validationErrors)) {
+            error_log("Bot message validation failed: " . json_encode($validationErrors));
+            return $this->validationError($validationErrors);
+        }
+
+        $userId = $input['user_id'];
+        $username = $input['username'];
+        
+        $user = $this->userRepository->find($userId);
+        if (!$user) {
+            error_log("Bot message save failed: Bot user not found in database - ID: $userId");
+            return $this->notFound('Bot user not found');
+        }
+        
+        error_log("Bot message save: Bot $userId ($username) validated");
+
+        try {
+            if ($input['target_type'] === 'channel') {
+                $result = $this->sendChannelMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+            } else {
+                $result = $this->sendDirectMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+            }
+
+            error_log("Bot message save result: " . json_encode($result));
+
+            if ($result['success']) {
+                $message = $result['data']['message'];
+                return $this->success([
+                    'message_id' => $message['id'],
+                    'user_id' => $message['user_id'],
+                    'username' => $message['username'],
+                    'avatar_url' => $message['avatar_url'] ?? '/public/assets/common/default-profile-picture.png',
+                    'target_type' => $input['target_type'],
+                    'target_id' => $input['target_id'],
+                    'content' => $message['content'],
+                    'message_type' => $message['message_type'],
+                    'attachments' => $message['attachments'],
+                    'mentions' => $message['mentions'],
+                    'reply_message_id' => $message['reply_message_id'],
+                    'reply_data' => $message['reply_data'],
+                    'sent_at' => $message['sent_at'],
+                    'timestamp' => $message['timestamp']
+                ], 'Bot message saved successfully');
+            } else {
+                error_log("Failed to save bot message: " . json_encode($result));
+                return $result;
+            }
+        } catch (Exception $e) {
+            error_log("Error saving bot message: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return $this->serverError('Failed to save bot message: ' . $e->getMessage());
         }
     }
 }

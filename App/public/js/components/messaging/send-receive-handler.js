@@ -21,108 +21,36 @@ class SendReceiveHandler {
             const options = { message_type: 'text' };
             
             if (this.chatSection.replyingTo) {
-                options.reply_message_id = this.chatSection.replyingTo.messageId;
-            }
-
-            let attachmentUrls = [];
-            if (this.chatSection.fileUploadHandler && 
-                this.chatSection.fileUploadHandler.currentFileUploads && 
-                this.chatSection.fileUploadHandler.currentFileUploads.length > 0) {
-                
-                console.log('📁 Uploading files before sending message...');
-                this.chatSection.showNotification('Uploading files...', 'info');
-                
-                try {
-                    const files = this.chatSection.fileUploadHandler.currentFileUploads.map(upload => upload.file);
-                    const uploadResult = await this.uploadFiles(files);
-                    
-                    if (uploadResult.success && uploadResult.files && uploadResult.files.length > 0) {
-                        attachmentUrls = uploadResult.files.map(file => file.file_url);
-                        console.log('✅ Files uploaded successfully:', attachmentUrls.length, 'files');
-                    } else {
-                        throw new Error(uploadResult.error || 'File upload failed');
-                    }
-                } catch (uploadError) {
-                    console.error('❌ File upload failed:', uploadError);
-                    this.chatSection.showNotification('Failed to upload files: ' + uploadError.message, 'error');
-                    return;
-                }
-            }
-
-            const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-            
-            const tempMessageData = {
-                id: tempId,
-                content: content,
-                user_id: window.globalSocketManager?.userId,
-                username: window.globalSocketManager?.username,
-                avatar_url: window.globalSocketManager?.avatarUrl || '/public/assets/common/default-profile-picture.png',
-                sent_at: new Date().toISOString(),
-                message_type: options.message_type || 'text',
-                attachments: attachmentUrls,
-                mentions: options.mentions || [],
-                reply_message_id: options.reply_message_id,
-                reply_data: null,
-                timestamp: Date.now(),
-                is_temporary: true,
-                source: 'client-sent'
-            };
-            
-            if (this.chatSection.replyingTo) {
-                tempMessageData.reply_data = {
-                    message_id: this.chatSection.replyingTo.messageId,
-                    content: this.chatSection.replyingTo.content,
-                    username: this.chatSection.replyingTo.username
-                };
+                options.reply_message_id = this.chatSection.replyingTo.id;
             }
             
-            this.chatSection.messageHandler.addMessage(tempMessageData);
+            const attachmentUrls = this.chatSection.fileUploadHandler.hasFiles() 
+                ? this.chatSection.fileUploadHandler.getUploadedFileUrls() 
+                : [];
             
-            this.chatSection.messageInput.value = '';
-            this.chatSection.updateSendButton();
-            
-            if (this.chatSection.replyingTo) {
-                this.chatSection.cancelReply();
+            if (attachmentUrls.length > 0) {
+                options.attachments = attachmentUrls;
+                console.log('📎 Including attachments:', attachmentUrls.length, 'files');
             }
-
-            if (this.chatSection.fileUploadHandler && 
-                this.chatSection.fileUploadHandler.currentFileUploads && 
-                this.chatSection.fileUploadHandler.currentFileUploads.length > 0) {
+            
+            await this.sendDirectOrChannelMessage(content, options);
+            
+            if (this.chatSection.messageInput) {
+                this.chatSection.messageInput.value = '';
+            }
+            
+            if (this.chatSection.fileUploadHandler.hasFiles()) {
                 this.chatSection.fileUploadHandler.removeFileUpload();
             }
-
-            this.sendStopTypingEvent();
-
-            const messageData = {
-                content: content,
-                target_type: this.chatSection.chatType === 'direct' ? 'dm' : this.chatSection.chatType,
-                target_id: this.chatSection.targetId,
-                message_type: options.message_type || 'text',
-                attachments: attachmentUrls,
-                mentions: options.mentions || [],
-                reply_message_id: options.reply_message_id,
-                temp_message_id: tempId
-            };
             
-            console.log('🔌 Sending message via WebSocket:', {
-                event: 'save-and-send-message',
-                targetType: messageData.target_type,
-                targetId: messageData.target_id,
-                tempId: tempId,
-                hasAttachments: attachmentUrls.length > 0
-            });
-
-            window.globalSocketManager.io.emit('save-and-send-message', messageData);
+            if (this.chatSection.replyingTo) {
+                this.chatSection.clearReply();
+            }
             
-            console.log('✅ Message sent with temp ID:', tempId);
-            
+            console.log('✅ Message sent successfully');
         } catch (error) {
-            console.error('❌ Error sending message via WebSocket:', error);
-            
-            this.chatSection.messageInput.value = content;
-            this.chatSection.updateSendButton();
-            
-            this.chatSection.showNotification('Failed to send message. Please try again.', 'error');
+            console.error('❌ Error sending message:', error);
+            this.chatSection.showNotification('Failed to send message: ' + error.message, 'error');
         }
     }
 
@@ -144,6 +72,63 @@ class SendReceiveHandler {
                 username: this.chatSection.username
             }, 'dm', this.chatSection.targetId);
         }
+    }
+
+    async sendDirectOrChannelMessage(content, options = {}) {
+        const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        
+        const tempMessageData = {
+            id: tempId,
+            content: content,
+            user_id: window.globalSocketManager?.userId,
+            username: window.globalSocketManager?.username,
+            avatar_url: window.globalSocketManager?.avatarUrl || '/public/assets/common/default-profile-picture.png',
+            sent_at: new Date().toISOString(),
+            message_type: options.message_type || 'text',
+            attachments: options.attachments || [],
+            mentions: options.mentions || [],
+            reply_message_id: options.reply_message_id,
+            reply_data: null,
+            timestamp: Date.now(),
+            is_temporary: true,
+            source: 'client-sent'
+        };
+        
+        if (this.chatSection.replyingTo) {
+            tempMessageData.reply_data = {
+                message_id: this.chatSection.replyingTo.id,
+                content: this.chatSection.replyingTo.content,
+                username: this.chatSection.replyingTo.username
+            };
+        }
+        
+        this.chatSection.messageHandler.addMessage(tempMessageData);
+        
+        this.sendStopTypingEvent();
+
+        const messageData = {
+            content: content,
+            target_type: this.chatSection.chatType === 'direct' ? 'dm' : this.chatSection.chatType,
+            target_id: this.chatSection.targetId,
+            message_type: options.message_type || 'text',
+            attachments: options.attachments || [],
+            mentions: options.mentions || [],
+            reply_message_id: options.reply_message_id,
+            temp_message_id: tempId
+        };
+        
+        console.log('🔌 Sending message via WebSocket:', {
+            event: 'save-and-send-message',
+            targetType: messageData.target_type,
+            targetId: messageData.target_id,
+            tempId: tempId,
+            hasAttachments: (options.attachments || []).length > 0,
+            attachmentCount: (options.attachments || []).length
+        });
+
+        window.globalSocketManager.io.emit('save-and-send-message', messageData);
+        
+        console.log('✅ Message sent with temp ID:', tempId);
     }
 
     async fetchMessageHistory(options = {}) {

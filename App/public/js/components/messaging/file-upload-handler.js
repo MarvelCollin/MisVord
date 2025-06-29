@@ -4,9 +4,10 @@ class FileUploadHandler {
         this.currentFileUploads = [];
         this.currentFileUpload = null;
         this.currentModalFile = null;
+        this.isUploading = false;
     }
 
-    handleFileSelection(file) {
+    async handleFileSelection(file) {
         console.log('🔥 Handling file selection');
         
         if (!this.chatSection.fileUploadInput) {
@@ -31,39 +32,81 @@ class FileUploadHandler {
 
         fileUploadList.innerHTML = '';
         this.currentFileUploads = [];
+        this.isUploading = true;
 
+        let validFiles = [];
         Array.from(files).forEach((file, index) => {
             if (file.size > (50 * 1024 * 1024)) {
                 this.chatSection.showNotification(`File ${file.name} is too large. Maximum size is 50MB`, 'error');
                 return;
             }
-
-            const fileData = {
-                name: file.name,        
-                size: file.size,
-                type: file.type,
-                file: file,
-                url: null,
-                index: index
-            };
-
-            this.currentFileUploads.push(fileData);
-            this.createFileCard(fileData, index);
-
-            if (file.type.startsWith('image/')) {
-                this.loadImagePreview(file, index);
-            } else if (file.type.startsWith('text/') || this.isTextFile(file.name)) {
-                this.loadTextPreview(file, index);
-            }
+            validFiles.push(file);
         });
 
-        if (this.currentFileUploads.length > 0) {
-            fileUploadArea.classList.remove('hidden');
-            fileCount.textContent = `${this.currentFileUploads.length} file${this.currentFileUploads.length !== 1 ? 's' : ''}`;
+        if (validFiles.length === 0) {
+            this.isUploading = false;
+            return;
         }
 
-        this.chatSection.updateSendButton();
-        console.log('✅ File selection handled:', this.currentFileUploads.length, 'files');
+        console.log(`📁 Uploading ${validFiles.length} files...`);
+        this.chatSection.showNotification(`Uploading ${validFiles.length} file${validFiles.length !== 1 ? 's' : ''}...`, 'info');
+
+        try {
+            const uploadedFiles = await this.uploadFilesToServer(validFiles);
+            
+            uploadedFiles.forEach((fileData, index) => {
+                this.currentFileUploads.push(fileData);
+                this.createFileCard(fileData, index);
+            });
+
+            if (this.currentFileUploads.length > 0) {
+                fileUploadArea.classList.remove('hidden');
+                fileCount.textContent = `${this.currentFileUploads.length} file${this.currentFileUploads.length !== 1 ? 's' : ''}`;
+                this.chatSection.showNotification(`Successfully uploaded ${this.currentFileUploads.length} file${this.currentFileUploads.length !== 1 ? 's' : ''}`, 'success');
+            }
+
+            this.chatSection.updateSendButton();
+            console.log('✅ File selection and upload completed:', this.currentFileUploads.length, 'files');
+        } catch (error) {
+            console.error('❌ File upload failed:', error);
+            this.chatSection.showNotification('Failed to upload files: ' + error.message, 'error');
+        } finally {
+            this.isUploading = false;
+        }
+    }
+
+    async uploadFilesToServer(files) {
+        const formData = new FormData();
+        
+        files.forEach((file, index) => {
+            formData.append('files[]', file);
+        });
+
+        const response = await fetch('/api/media/upload-multiple', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Upload failed with status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.message || 'Upload failed');
+        }
+
+        return result.uploaded_files.map((uploadedFile, index) => ({
+            name: uploadedFile.file_name,
+            size: uploadedFile.file_size,
+            type: uploadedFile.mime_type,
+            url: uploadedFile.file_url,
+            originalFile: files[index],
+            index: index,
+            uploaded: true
+        }));
     }
 
     createFileCard(fileData, index) {
@@ -85,6 +128,7 @@ class FileUploadHandler {
         
         if (fileData.type.startsWith('image/')) {
             iconContainer.id = `file-icon-${index}`;
+            this.loadImagePreviewFromUrl(fileData.url, index);
         }
 
         const fileName = document.createElement('div');
@@ -103,7 +147,10 @@ class FileUploadHandler {
         fileSize.className = 'text-[#b5bac1] text-xs text-center';
         fileSize.textContent = this.formatFileSize(fileData.size);
 
-        // Action buttons (overlay)
+        const uploadStatus = document.createElement('div');
+        uploadStatus.className = 'text-[#23a55a] text-xs text-center flex items-center justify-center gap-1';
+        uploadStatus.innerHTML = '<i class="fas fa-check-circle text-xs"></i> Uploaded';
+
         const actionButtons = document.createElement('div');
         actionButtons.className = 'absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200';
 
@@ -127,10 +174,198 @@ class FileUploadHandler {
         card.appendChild(iconContainer);
         card.appendChild(fileName);
         card.appendChild(fileSize);
+        card.appendChild(uploadStatus);
         card.appendChild(actionButtons);
         fileUploadList.appendChild(card);
 
         this.addFileCardEventListeners(card, index);
+    }
+
+    loadImagePreviewFromUrl(url, index) {
+        const iconContainer = document.getElementById(`file-icon-${index}`);
+        if (!iconContainer) return;
+
+        iconContainer.style.backgroundImage = `url(${url})`;
+        iconContainer.style.backgroundSize = 'cover';
+        iconContainer.style.backgroundPosition = 'center';
+        iconContainer.innerHTML = '';
+    }
+
+    loadImagePreview(file, index) {
+        const iconContainer = document.getElementById(`file-icon-${index}`);
+        if (!iconContainer) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            iconContainer.style.backgroundImage = `url(${e.target.result})`;
+            iconContainer.style.backgroundSize = 'cover';
+            iconContainer.style.backgroundPosition = 'center';
+            iconContainer.innerHTML = '';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    openFilePreviewModal(fileData, fileIndex) {
+        console.log('🎭 Opening file preview modal for:', fileData.name);
+        
+        if (!this.chatSection.filePreviewModal) {
+            console.error('File preview modal not found');
+            return;
+        }
+
+        const modal = this.chatSection.filePreviewModal;
+        const modalContainer = modal.querySelector('#modal-container');
+        const modalTitle = modal.querySelector('#modal-title');
+        const modalContent = modal.querySelector('#modal-content');
+        const modalFileIcon = modal.querySelector('#modal-file-icon');
+        const modalFileInfo = modal.querySelector('#modal-file-info');
+        const modalFooter = modal.querySelector('#modal-footer');
+        
+        if (!modalTitle || !modalContent) {
+            console.error('Modal elements not found');
+            return;
+        }
+
+        modalTitle.textContent = fileData.name;
+        modalFileIcon.innerHTML = this.getFileIcon(fileData.type, fileData.name).replace('text-xl', 'text-lg');
+        
+        if (modalFileInfo) {
+            modalFileInfo.textContent = `${this.formatFileSize(fileData.size)} • ${fileData.type || 'Unknown type'}`;
+        }
+
+        modalContent.innerHTML = '<div class="flex items-center justify-center h-64 text-[#b5bac1]"><div class="text-center"><i class="fas fa-spinner fa-spin text-3xl mb-2"></i><div>Loading...</div></div></div>';
+
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            modal.classList.remove('opacity-0', 'invisible');
+            modal.classList.add('opacity-100', 'visible');
+            modalContainer.classList.remove('scale-95');
+            modalContainer.classList.add('scale-100');
+        }, 10);
+
+        this.loadModalContentFromUrl(fileData, modalContent, modalFooter);
+        
+        this.currentModalFile = fileData;
+        console.log('✅ Modal opened successfully');
+    }
+
+    loadModalContentFromUrl(fileData, modalContent, modalFooter) {
+        const isImage = fileData.type.startsWith('image/');
+        const isVideo = fileData.type.startsWith('video/');
+        const isAudio = fileData.type.startsWith('audio/');
+        const isPdf = fileData.type === 'application/pdf';
+        const isText = fileData.type.startsWith('text/') || this.isTextFile(fileData.name);
+
+        if (isImage) {
+            modalContent.innerHTML = `
+                <div class="flex items-center justify-center min-h-64">
+                    <img src="${fileData.url}" class="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" alt="${fileData.name}">
+                </div>
+            `;
+        } else if (isVideo) {
+            modalContent.innerHTML = `
+                <div class="flex items-center justify-center min-h-64">
+                    <video controls class="max-w-full max-h-[70vh] rounded-lg shadow-lg" src="${fileData.url}">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            `;
+        } else if (isAudio) {
+            modalContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center min-h-64 p-8">
+                    <div class="w-32 h-32 bg-gradient-to-br from-[#5865f2] to-[#7289da] rounded-full flex items-center justify-center mb-6 shadow-lg">
+                        <i class="fas fa-music text-white text-4xl"></i>
+                    </div>
+                    <div class="text-center mb-6">
+                        <h3 class="text-[#f2f3f5] font-semibold text-lg mb-2">${fileData.name}</h3>
+                        <p class="text-[#b5bac1] text-sm">${this.formatFileSize(fileData.size)}</p>
+                    </div>
+                    <audio controls class="w-full max-w-md" src="${fileData.url}">
+                        Your browser does not support the audio tag.
+                    </audio>
+                </div>
+            `;
+        } else if (isText && fileData.originalFile) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const lineCount = content.split('\n').length;
+                modalContent.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between text-sm text-[#b5bac1] border-b border-[#3f4147] pb-2">
+                            <span>${lineCount} lines</span>
+                            <span>${fileData.type || 'Plain text'}</span>
+                        </div>
+                        <pre class="bg-[#1e1f22] p-4 rounded-lg text-[#dcddde] text-sm font-mono whitespace-pre-wrap max-h-96 overflow-auto border border-[#3f4147]">${content}</pre>
+                    </div>
+                `;
+            };
+            reader.readAsText(fileData.originalFile);
+        } else {
+            const icon = this.getFileIcon(fileData.type, fileData.name);
+            modalContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center min-h-64 p-8 text-center">
+                    <div class="w-24 h-24 mb-6 flex items-center justify-center">
+                        ${icon.replace('text-xl', 'text-5xl')}
+                    </div>
+                    <h3 class="text-[#f2f3f5] font-semibold text-lg mb-2">${fileData.name}</h3>
+                    <p class="text-[#b5bac1] mb-4">${this.formatFileSize(fileData.size)}</p>
+                    <p class="text-[#b5bac1] text-sm mb-6">Preview not available for this file type</p>
+                    <a href="${fileData.url}" download="${fileData.name}" class="px-4 py-2 bg-[#5865f2] hover:bg-[#4752c4] text-white rounded transition-colors duration-200 inline-flex items-center gap-2">
+                        <i class="fas fa-download"></i>Download File
+                    </a>
+                </div>
+            `;
+            
+            if (modalFooter) {
+                modalFooter.classList.remove('hidden');
+            }
+        }
+    }
+
+    downloadCurrentFile() {
+        if (this.currentModalFile && this.currentModalFile.url) {
+            const a = document.createElement('a');
+            a.href = this.currentModalFile.url;
+            a.download = this.currentModalFile.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    }
+
+    removeFileUpload() {
+        console.log('🗑️ Removing all uploaded files');
+        
+        const fileUploadArea = document.getElementById('file-upload-area');
+        const fileUploadList = document.getElementById('file-upload-list');
+        
+        if (fileUploadList) {
+            fileUploadList.innerHTML = '';
+        }
+        
+        this.currentFileUploads = [];
+        this.currentFileUpload = null;
+        this.isUploading = false;
+        
+        if (fileUploadArea) {
+            fileUploadArea.classList.add('hidden');
+        }
+        
+        if (this.chatSection.fileUploadInput) {
+            this.chatSection.fileUploadInput.value = '';
+        }
+        
+        this.chatSection.updateSendButton();
+        console.log('✅ All uploaded files removed');
+    }
+
+    hasFiles() {
+        return this.currentFileUploads && this.currentFileUploads.length > 0;
+    }
+
+    getUploadedFileUrls() {
+        return this.currentFileUploads.filter(file => file.uploaded && file.url).map(file => file.url);
     }
 
     getFileIcon(mimeType, fileName) {
@@ -175,20 +410,6 @@ class FileUploadHandler {
         return ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(mimeType);
     }
 
-    loadImagePreview(file, index) {
-        const iconContainer = document.getElementById(`file-icon-${index}`);
-        if (!iconContainer) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            iconContainer.style.backgroundImage = `url(${e.target.result})`;
-            iconContainer.style.backgroundSize = 'cover';
-            iconContainer.style.backgroundPosition = 'center';
-            iconContainer.innerHTML = '';
-        };
-        reader.readAsDataURL(file);
-    }
-
     addFileCardEventListeners(card, index) {
         const actionButtons = card.querySelectorAll('[data-action]');
         actionButtons.forEach(btn => {
@@ -203,6 +424,77 @@ class FileUploadHandler {
                 this.handleFileAction(action, fileIndex);
             });
         });
+    }
+
+    handleFileAction(action, fileIndex) {
+        const fileData = this.currentFileUploads[fileIndex];
+        if (!fileData) {
+            console.error('File data not found for index:', fileIndex);
+            return;
+        }
+
+        console.log('🎯 Handling file action:', action, 'for file:', fileData.name);
+
+        switch (action) {
+            case 'preview':
+                this.openFilePreviewModal(fileData, fileIndex);
+                break;
+            case 'edit':
+                this.editFile(fileData, fileIndex);
+                break;
+            case 'remove':
+                this.removeFileFromUpload(fileIndex);
+                break;
+        }
+    }
+
+    editFile(fileData, fileIndex) {
+        console.log('Edit file:', fileData.name);
+    }
+
+    removeFileFromUpload(fileIndex) {
+        console.log('🗑️ Removing file at index:', fileIndex);
+        
+        const fileUploadList = document.getElementById('file-upload-list');
+        const fileUploadArea = document.getElementById('file-upload-area');
+        const fileCount = document.getElementById('file-count');
+        
+        if (fileUploadList) {
+            const card = fileUploadList.querySelector(`[data-file-index="${fileIndex}"]`);
+            if (card) {
+                card.remove();
+                console.log('File card removed from DOM');
+            }
+        }
+
+        this.currentFileUploads.splice(fileIndex, 1);
+        
+        const remainingCards = fileUploadList.querySelectorAll('.file-upload-card');
+        remainingCards.forEach((card, newIndex) => {
+            card.dataset.fileIndex = newIndex;
+            card.id = `file-card-${newIndex}`;
+            
+            card.querySelectorAll('[data-file-index]').forEach(btn => {
+                btn.dataset.fileIndex = newIndex;
+            });
+            
+            const iconContainer = card.querySelector('[id^="file-icon-"]');
+            if (iconContainer) {
+                iconContainer.id = `file-icon-${newIndex}`;
+            }
+        });
+
+        if (this.currentFileUploads.length === 0) {
+            fileUploadArea.classList.add('hidden');
+            if (this.chatSection.fileUploadInput) {
+                this.chatSection.fileUploadInput.value = '';
+            }
+        } else {
+            fileCount.textContent = `${this.currentFileUploads.length} file${this.currentFileUploads.length !== 1 ? 's' : ''}`;
+        }
+
+        this.chatSection.updateSendButton();
+        console.log('✅ File removed. Remaining files:', this.currentFileUploads.length);
     }
 
     loadTextPreview(file, index) {
@@ -222,7 +514,6 @@ class FileUploadHandler {
     setupFilePreviewEventListeners() {
         console.log('🔧 Setting up file preview event listeners');
         
-        // Clear all files button
         const clearAllBtn = document.getElementById('clear-all-files');
         if (clearAllBtn) {
             clearAllBtn.addEventListener('click', () => {
@@ -231,7 +522,6 @@ class FileUploadHandler {
             });
         }
 
-        // Modal event listeners
         if (this.chatSection.filePreviewModal) {
             console.log('Setting up modal event listeners');
             
@@ -252,7 +542,6 @@ class FileUploadHandler {
                 });
             }
 
-            // Close on background click
             this.chatSection.filePreviewModal.addEventListener('click', (e) => {
                 if (e.target === this.chatSection.filePreviewModal) {
                     console.log('Modal background clicked');
@@ -260,7 +549,6 @@ class FileUploadHandler {
                 }
             });
 
-            // Close on escape key
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && !this.chatSection.filePreviewModal.classList.contains('opacity-0')) {
                     console.log('Escape key pressed');
@@ -298,216 +586,6 @@ class FileUploadHandler {
         console.log('✅ All files removed');
     }
 
-    handleFileAction(action, fileIndex) {
-        const fileData = this.currentFileUploads[fileIndex];
-        if (!fileData) {
-            console.error('File data not found for index:', fileIndex);
-            return;
-        }
-
-        console.log('🎯 Handling file action:', action, 'for file:', fileData.name);
-
-        switch (action) {
-            case 'preview':
-                this.openFilePreviewModal(fileData, fileIndex);
-                break;
-            case 'edit':
-                this.editFile(fileData, fileIndex);
-                break;
-            case 'remove':
-                this.removeFileFromUpload(fileIndex);
-                break;
-        }
-    }
-
-    openFilePreviewModal(fileData, fileIndex) {
-        console.log('🎭 Opening file preview modal for:', fileData.name);
-        
-        if (!this.chatSection.filePreviewModal) {
-            console.error('File preview modal not found');
-            return;
-        }
-
-        const modal = this.chatSection.filePreviewModal;
-        const modalContainer = modal.querySelector('#modal-container');
-        const modalTitle = modal.querySelector('#modal-title');
-        const modalContent = modal.querySelector('#modal-content');
-        const modalFileIcon = modal.querySelector('#modal-file-icon');
-        const modalFileInfo = modal.querySelector('#modal-file-info');
-        const modalFooter = modal.querySelector('#modal-footer');
-        
-        if (!modalTitle || !modalContent) {
-            console.error('Modal elements not found');
-            return;
-        }
-
-        // Set file info
-        modalTitle.textContent = fileData.name;
-        modalFileIcon.innerHTML = this.getFileIcon(fileData.type, fileData.name).replace('text-xl', 'text-lg');
-        
-        if (modalFileInfo) {
-            modalFileInfo.textContent = `${this.formatFileSize(fileData.size)} • ${fileData.type || 'Unknown type'}`;
-        }
-
-        // Clear content
-        modalContent.innerHTML = '<div class="flex items-center justify-center h-64 text-[#b5bac1]"><div class="text-center"><i class="fas fa-spinner fa-spin text-3xl mb-2"></i><div>Loading...</div></div></div>';
-
-        // Show modal
-        modal.style.display = 'flex';
-        setTimeout(() => {
-            modal.classList.remove('opacity-0', 'invisible');
-            modal.classList.add('opacity-100', 'visible');
-            modalContainer.classList.remove('scale-95');
-            modalContainer.classList.add('scale-100');
-        }, 10);
-
-        // Load content based on file type
-        this.loadModalContent(fileData, modalContent, modalFooter);
-        
-        this.currentModalFile = fileData;
-        console.log('✅ Modal opened successfully');
-    }
-
-    loadModalContent(fileData, modalContent, modalFooter) {
-        const isImage = fileData.type.startsWith('image/');
-        const isVideo = fileData.type.startsWith('video/');
-        const isAudio = fileData.type.startsWith('audio/');
-        const isPdf = fileData.type === 'application/pdf';
-        const isText = fileData.type.startsWith('text/') || this.isTextFile(fileData.name);
-
-        if (isImage) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                modalContent.innerHTML = `
-                    <div class="flex items-center justify-center min-h-64">
-                        <img src="${e.target.result}" class="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" alt="${fileData.name}">
-                    </div>
-                `;
-            };
-            reader.readAsDataURL(fileData.file);
-        } else if (isVideo) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                modalContent.innerHTML = `
-                    <div class="flex items-center justify-center min-h-64">
-                        <video controls class="max-w-full max-h-[70vh] rounded-lg shadow-lg" src="${e.target.result}">
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                `;
-            };
-            reader.readAsDataURL(fileData.file);
-        } else if (isAudio) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                modalContent.innerHTML = `
-                    <div class="flex flex-col items-center justify-center min-h-64 p-8">
-                        <div class="w-32 h-32 bg-gradient-to-br from-[#5865f2] to-[#7289da] rounded-full flex items-center justify-center mb-6 shadow-lg">
-                            <i class="fas fa-music text-white text-4xl"></i>
-                        </div>
-                        <div class="text-center mb-6">
-                            <h3 class="text-[#f2f3f5] font-semibold text-lg mb-2">${fileData.name}</h3>
-                            <p class="text-[#b5bac1] text-sm">${this.formatFileSize(fileData.size)}</p>
-                        </div>
-                        <audio controls class="w-full max-w-md" src="${e.target.result}">
-                            Your browser does not support the audio tag.
-                        </audio>
-                    </div>
-                `;
-            };
-            reader.readAsDataURL(fileData.file);
-        } else if (isText) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const content = e.target.result;
-                const lineCount = content.split('\n').length;
-                modalContent.innerHTML = `
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between text-sm text-[#b5bac1] border-b border-[#3f4147] pb-2">
-                            <span>${lineCount} lines</span>
-                            <span>${fileData.type || 'Plain text'}</span>
-                        </div>
-                        <pre class="bg-[#1e1f22] p-4 rounded-lg text-[#dcddde] text-sm font-mono whitespace-pre-wrap max-h-96 overflow-auto border border-[#3f4147]">${content}</pre>
-                    </div>
-                `;
-            };
-            reader.readAsText(fileData.file);
-        } else {
-            const icon = this.getFileIcon(fileData.type, fileData.name);
-            modalContent.innerHTML = `
-                <div class="flex flex-col items-center justify-center min-h-64 p-8 text-center">
-                    <div class="w-24 h-24 mb-6 flex items-center justify-center">
-                        ${icon.replace('text-xl', 'text-5xl')}
-                    </div>
-                    <h3 class="text-[#f2f3f5] font-semibold text-lg mb-2">${fileData.name}</h3>
-                    <p class="text-[#b5bac1] mb-4">${this.formatFileSize(fileData.size)}</p>
-                    <p class="text-[#b5bac1] text-sm mb-6">Preview not available for this file type</p>
-                    <button class="px-4 py-2 bg-[#5865f2] hover:bg-[#4752c4] text-white rounded transition-colors duration-200" onclick="window.chatSection.downloadCurrentFile()">
-                        <i class="fas fa-download mr-2"></i>Download File
-                    </button>
-                </div>
-            `;
-            
-            if (modalFooter) {
-                modalFooter.classList.remove('hidden');
-            }
-        }
-    }
-
-    editFile(fileData, fileIndex) {
-        console.log('Edit file:', fileData.name);
-    }
-
-    removeFileFromUpload(fileIndex) {
-        console.log('🗑️ Removing file at index:', fileIndex);
-        
-        const fileUploadList = document.getElementById('file-upload-list');
-        const fileUploadArea = document.getElementById('file-upload-area');
-        const fileCount = document.getElementById('file-count');
-        
-        if (fileUploadList) {
-            const card = fileUploadList.querySelector(`[data-file-index="${fileIndex}"]`);
-            if (card) {
-                card.remove();
-                console.log('File card removed from DOM');
-            }
-        }
-
-        // Remove from array
-        this.currentFileUploads.splice(fileIndex, 1);
-        
-        // Update indices for remaining cards
-        const remainingCards = fileUploadList.querySelectorAll('.file-upload-card');
-        remainingCards.forEach((card, newIndex) => {
-            card.dataset.fileIndex = newIndex;
-            card.id = `file-card-${newIndex}`;
-            
-            // Update all buttons in this card
-            card.querySelectorAll('[data-file-index]').forEach(btn => {
-                btn.dataset.fileIndex = newIndex;
-            });
-            
-            // Update icon ID for images
-            const iconContainer = card.querySelector('[id^="file-icon-"]');
-            if (iconContainer) {
-                iconContainer.id = `file-icon-${newIndex}`;
-            }
-        });
-
-        // Update UI
-        if (this.currentFileUploads.length === 0) {
-            fileUploadArea.classList.add('hidden');
-            if (this.chatSection.fileUploadInput) {
-                this.chatSection.fileUploadInput.value = '';
-            }
-        } else {
-            fileCount.textContent = `${this.currentFileUploads.length} file${this.currentFileUploads.length !== 1 ? 's' : ''}`;
-        }
-
-        this.chatSection.updateSendButton();
-        console.log('✅ File removed. Remaining files:', this.currentFileUploads.length);
-    }
-
     closeFileModal() {
         console.log('🎭 Closing file modal');
         if (this.chatSection.filePreviewModal) {
@@ -530,32 +608,8 @@ class FileUploadHandler {
         }
     }
 
-    downloadCurrentFile() {
-        if (this.currentModalFile) {
-            const url = URL.createObjectURL(this.currentModalFile.file);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = this.currentModalFile.name;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-    }
-    
-    removeFileUpload() {
-        this.currentFileUpload = null;
-        this.currentFileUploads = [];
-        
-        const filePreview = document.getElementById('file-preview');
-        const fileUpload = document.getElementById('file-upload');
-        const previewsContainer = document.getElementById('file-previews-container');
-        
-        if (filePreview) filePreview.classList.add('hidden');
-        if (fileUpload) fileUpload.value = '';
-        if (previewsContainer) previewsContainer.innerHTML = '';
-        
-        this.chatSection.updateSendButton();
+    loadModalContent(fileData, modalContent, modalFooter) {
+        return this.loadModalContentFromUrl(fileData, modalContent, modalFooter);
     }
     
     formatFileSize(bytes) {
@@ -581,10 +635,6 @@ class FileUploadHandler {
         if (mimeType.includes('code') || mimeType.includes('javascript') || mimeType.includes('html') || mimeType.includes('css')) return 'fas fa-file-code';
         
         return 'fas fa-file';
-    }
-
-    hasFiles() {
-        return this.currentFileUploads && this.currentFileUploads.length > 0;
     }
 }
 

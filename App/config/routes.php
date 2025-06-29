@@ -538,7 +538,6 @@ Route::post('/api/servers/([0-9]+)/update/name', function($serverId) {
 });
 
 Route::post('/api/servers/([0-9]+)/update/description', function($serverId) {
-    $controller = new ServerController();
     $controller->updateServerDescription($serverId);
 });
 
@@ -1551,6 +1550,16 @@ Route::post('/api/servers/([0-9]+)/sync-positions', function($serverId) {
 
 Route::get('/api/test-position-verify', function() {
     require_once __DIR__ . '/../public/api/test-position-verify.php';
+});
+
+Route::post('/api/chat/save-bot-message', function() {
+    $controller = new ChatController();
+    $controller->saveBotMessageFromSocket();
+});
+
+Route::post('/api/debug/socket-input', function() {
+    $controller = new DebugController();
+    return $controller->testSocketInput();
 });
 
 return array_merge(Route::getRoutes(), [
