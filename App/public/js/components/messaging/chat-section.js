@@ -1362,6 +1362,11 @@ class ChatSection {
             this.messageHandler.clearProcessedMessages();
         }
         
+        // Reset socket handler setup flag
+        if (this.socketHandler) {
+            this.socketHandler.socketListenersSetup = false;
+        }
+        
         // Clear UI
         if (this.chatMessages) {
             this.chatMessages.innerHTML = '';

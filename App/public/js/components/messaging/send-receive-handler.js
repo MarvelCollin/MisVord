@@ -35,8 +35,40 @@ class SendReceiveHandler {
                 options.attachments = this.chatSection.fileUploadHandler.currentFileUploads;
             }
 
-            // Clear input first for better UX responsiveness
-            const inputValue = this.chatSection.messageInput.value;
+            // Generate temporary ID first
+            const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            
+            // Prepare message data for immediate display
+            const tempMessageData = {
+                id: tempId,
+                content: content,
+                user_id: window.globalSocketManager?.userId,
+                username: window.globalSocketManager?.username,
+                avatar_url: window.globalSocketManager?.avatarUrl || '/public/assets/common/default-profile-picture.png',
+                sent_at: new Date().toISOString(),
+                message_type: options.message_type || 'text',
+                attachments: options.attachments || [],
+                mentions: options.mentions || [],
+                reply_message_id: options.reply_message_id,
+                reply_data: null,
+                timestamp: Date.now(),
+                is_temporary: true,
+                source: 'client-sent'
+            };
+            
+            // Handle reply data for immediate display
+            if (this.chatSection.replyingTo) {
+                tempMessageData.reply_data = {
+                    message_id: this.chatSection.replyingTo.messageId,
+                    content: this.chatSection.replyingTo.content,
+                    username: this.chatSection.replyingTo.username
+                };
+            }
+            
+            // Add temporary message to UI immediately
+            this.chatSection.messageHandler.addMessage(tempMessageData);
+            
+            // Clear input after adding message
             this.chatSection.messageInput.value = '';
             this.chatSection.updateSendButton();
             
@@ -55,32 +87,29 @@ class SendReceiveHandler {
             // Send stop typing event
             this.sendStopTypingEvent();
 
-            // Prepare WebSocket message data with underscores
+            // Prepare WebSocket message data
             const messageData = {
                 content: content,
                 target_type: this.chatSection.chatType === 'direct' ? 'dm' : this.chatSection.chatType,
                 target_id: this.chatSection.targetId,
-                message_type: options.message_type,
+                message_type: options.message_type || 'text',
                 attachments: options.attachments || [],
                 mentions: options.mentions || [],
-                reply_message_id: options.reply_message_id
+                reply_message_id: options.reply_message_id,
+                temp_message_id: tempId
             };
             
-            console.log('🔌 Sending message via WebSocket (pure WebSocket-only):', {
+            console.log('🔌 Sending message via WebSocket:', {
                 event: 'save-and-send-message',
                 targetType: messageData.target_type,
-                targetId: messageData.target_id
+                targetId: messageData.target_id,
+                tempId: tempId
             });
 
-            // Send message via WebSocket - this handles everything (display + database)
+            // Send message via WebSocket for database save and broadcast to others
             window.globalSocketManager.io.emit('save-and-send-message', messageData);
             
-            // Track that we sent this message (using temporary ID initially)
-            const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-            if (!window._sentMessageIds) window._sentMessageIds = new Set();
-            window._sentMessageIds.add(tempId);
-            
-            console.log('✅ Message sent via WebSocket-only flow with temp ID:', tempId);
+            console.log('✅ Message sent with temp ID:', tempId);
             
         } catch (error) {
             console.error('❌ Error sending message via WebSocket:', error);

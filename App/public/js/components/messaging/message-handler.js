@@ -25,7 +25,7 @@ class MessageHandler {
         }
         
         const existingElement = document.querySelector(`[data-message-id="${messageData.id}"]`);
-        if (existingElement && !isTemporary) {
+        if (existingElement) {
             console.log(`🔄 [MESSAGE-HANDLER] Message ${messageData.id} already exists in DOM, skipping`);
             this.processedMessageIds.add(messageData.id);
             return;

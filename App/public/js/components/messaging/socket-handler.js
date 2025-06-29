@@ -36,35 +36,37 @@ class SocketHandler {
         
         console.log('🔌 Setting up socket handlers');
         
-        // Channel message handler
+        io.off('new-channel-message');
+        io.off('user-message-dm');
+        io.off('reaction-added');
+        io.off('reaction-removed');
+        io.off('message-updated');
+        io.off('message-deleted');
+        io.off('message-pinned');
+        io.off('message-unpinned');
+        io.off('message-edit-temp');
+        io.off('message-edit-confirmed');
+        io.off('message-edit-failed');
+        io.off('message_id_updated');
+        io.off('message_save_failed');
+        io.off('message_error');
+        io.off('typing');
+        io.off('stop-typing');
+        
         io.on('new-channel-message', this.handleChannelMessage.bind(this));
-        
-        // DM message handler
         io.on('user-message-dm', this.handleDMMessage.bind(this));
-        
-        // Standard message events
         io.on('reaction-added', this.handleReactionAdded.bind(this));
         io.on('reaction-removed', this.handleReactionRemoved.bind(this));
         io.on('message-updated', this.handleMessageUpdated.bind(this));
         io.on('message-deleted', this.handleMessageDeleted.bind(this));
         io.on('message-pinned', this.handleMessagePinned.bind(this));
         io.on('message-unpinned', this.handleMessageUnpinned.bind(this));
-        
-        // Edit temp system handlers
         io.on('message-edit-temp', this.handleMessageEditTemp.bind(this));
         io.on('message-edit-confirmed', this.handleMessageEditConfirmed.bind(this));
         io.on('message-edit-failed', this.handleMessageEditFailed.bind(this));
-        
-        // Message ID update handler (for converting temporary IDs to permanent) - using underscores
         io.on('message_id_updated', this.handleMessageIdUpdated.bind(this));
-        
-        // Message save failure handler - using underscores  
         io.on('message_save_failed', this.handleMessageSaveFailed.bind(this));
-        
-        // Message error handler - using underscores
         io.on('message_error', this.handleMessageError.bind(this));
-        
-        // Typing indicators
         io.on('typing', this.handleTyping.bind(this));
         io.on('stop-typing', this.handleStopTyping.bind(this));
         
@@ -100,22 +102,11 @@ class SocketHandler {
                 return;
             }
             
-            const isTemporaryMessage = data.is_temporary || data.id.toString().startsWith('temp-');
-            
-            if (isSender && !isTemporaryMessage) {
-                if (data.source === 'client-originated' || data.source === 'websocket-originated') {
-                    console.log('🔄 Skipping own non-temporary message:', {
-                        id: data.id,
-                        source: data.source,
-                        isTemporary: isTemporaryMessage
-                    });
-                    return;
-                }
-            }
-            
-            const alreadySent = window._sentMessageIds && window._sentMessageIds.has(data.id);
-            if (alreadySent && !isTemporaryMessage) {
-                console.log('🔄 Skipping already sent message:', data.id);
+            if (isSender && (data.source === 'client-originated' || data.source === 'websocket-originated')) {
+                console.log('🔄 Skipping own message from websocket source:', {
+                    id: data.id,
+                    source: data.source
+                });
                 return;
             }
             
@@ -175,22 +166,11 @@ class SocketHandler {
                 return;
             }
             
-            const isTemporaryMessage = data.is_temporary || data.id.toString().startsWith('temp-');
-            
-            if (isSender && !isTemporaryMessage) {
-                if (data.source === 'client-originated' || data.source === 'websocket-originated') {
-                    console.log('🔄 Skipping own non-temporary DM message:', {
-                        id: data.id,
-                        source: data.source,
-                        isTemporary: isTemporaryMessage
-                    });
-                    return;
-                }
-            }
-            
-            const alreadySent = window._sentMessageIds && window._sentMessageIds.has(data.id);
-            if (alreadySent && !isTemporaryMessage) {
-                console.log('🔄 Skipping already sent DM message:', data.id);
+            if (isSender && (data.source === 'client-originated' || data.source === 'websocket-originated')) {
+                console.log('🔄 Skipping own DM message from websocket source:', {
+                    id: data.id,
+                    source: data.source
+                });
                 return;
             }
             

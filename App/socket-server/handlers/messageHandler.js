@@ -402,7 +402,7 @@ class MessageHandler {
         });
         
         try {    
-            const temp_message_id = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            const temp_message_id = data.temp_message_id || `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
                     const currentTimestamp = Date.now();
         
             const broadcastData = {
@@ -475,7 +475,7 @@ class MessageHandler {
                 ? roomManager.getChannelRoom(data.target_id)
                 : roomManager.getDMRoom(data.target_id);
             
-            // Broadcast temporary message immediately (now with reply data if applicable)
+            // Broadcast temporary message to other users (excluding sender)
             if (targetRoom) {
                 // First emit to bot for processing (before room broadcast)
                 console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing:`, {
@@ -487,8 +487,8 @@ class MessageHandler {
                 });
                 io.emit('bot-message-intercept', broadcastData);
                 
-                io.to(targetRoom).emit(eventName, broadcastData);
-                console.log(`✅ [SAVE-AND-SEND] Temporary message broadcasted to room ${targetRoom}`, {
+                client.to(targetRoom).emit(eventName, broadcastData);
+                console.log(`✅ [SAVE-AND-SEND] Temporary message broadcasted to room ${targetRoom} (excluding sender)`, {
                     messageId: broadcastData.id,
                     hasReplyData: !!broadcastData.reply_data,
                     replyMessageId: broadcastData.reply_message_id
@@ -559,7 +559,8 @@ class MessageHandler {
                         message_type: data.message_type || 'text',
                         attachments: data.attachments || [],
                         mentions: data.mentions || [],
-                        reply_message_id: data.reply_message_id
+                        reply_message_id: data.reply_message_id,
+                        temp_message_id: data.temp_message_id || temp_message_id
                     })
                 });
                 
@@ -612,7 +613,7 @@ class MessageHandler {
                     
                     // Broadcast the permanent ID update with complete message data from database
                     const updateData = {
-                        temp_message_id: temp_message_id,
+                        temp_message_id: data.temp_message_id || temp_message_id,
                         real_message_id: realMessageId,
                         message_data: completeMessageData || saveResult,
                         timestamp: Date.now()
@@ -633,7 +634,7 @@ class MessageHandler {
                     client.emit('message_sent', {
                         success: true,
                         message_id: realMessageId,
-                        temp_message_id: temp_message_id,
+                        temp_message_id: data.temp_message_id || temp_message_id,
                         timestamp: currentTimestamp
                     });
                 } else {
@@ -645,7 +646,7 @@ class MessageHandler {
                 
                 // Mark temporary message as failed
                 const errorData = {
-                    temp_message_id: temp_message_id,
+                    temp_message_id: data.temp_message_id || temp_message_id,
                     error: error.message || 'Failed to save to database'
                 };
                 
@@ -657,7 +658,7 @@ class MessageHandler {
                 
                 client.emit('message_error', {
                     error: error.message || 'Failed to save message',
-                    temp_message_id: temp_message_id,
+                    temp_message_id: data.temp_message_id || temp_message_id,
                     timestamp: Date.now()
                 });
             }
