@@ -380,10 +380,17 @@ class MessageHandler {
                 console.log(`✅ [SAVE-AND-SEND] Message saved to database:`, saveResult);
                 
                 if (saveResult.success) {
+                    // Extract message_id from the correct location in response
+                    const realMessageId = saveResult.data ? saveResult.data.message_id : saveResult.message_id;
+                    
+                    if (!realMessageId) {
+                        throw new Error('No message_id found in server response');
+                    }
+                    
                     // Broadcast the permanent ID update using underscores
                     const updateData = {
                         temp_message_id: temp_message_id,
-                        real_message_id: saveResult.message_id,
+                        real_message_id: realMessageId,
                         message_data: saveResult,
                         timestamp: Date.now()
                     };
@@ -394,12 +401,12 @@ class MessageHandler {
                         io.emit('message_id_updated', updateData);
                     }
                     
-                    console.log(`✅ [SAVE-AND-SEND] Message ID update broadcasted: ${temp_message_id} → ${saveResult.message_id}`);
+                    console.log(`✅ [SAVE-AND-SEND] Message ID update broadcasted: ${temp_message_id} → ${realMessageId}`);
                     
                     // Send success response to sender
                     client.emit('message_sent', {
                         success: true,
-                        message_id: saveResult.message_id,
+                        message_id: realMessageId,
                         temp_message_id: temp_message_id,
                         timestamp: currentTimestamp
                     });

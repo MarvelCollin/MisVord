@@ -2096,6 +2096,8 @@ class ServerController extends BaseController
             ob_start();
             ?>
             <div class="flex flex-1 overflow-hidden">
+                <?php include __DIR__ . '/../views/components/app-sections/channel-section.php'; ?>
+                
                 <div class="flex flex-col flex-1" id="main-content">
                     <div class="main-content-area flex-1">
                         <?php
