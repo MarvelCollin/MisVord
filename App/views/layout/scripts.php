@@ -17,7 +17,6 @@ $is_auth_page = isset($data_page) && $data_page === 'auth';
 $core_scripts = ['core/ui/toast'];
 if (!$is_auth_page) {
     $core_scripts[] = 'core/socket/global-socket-manager';
-    $core_scripts[] = 'components/messaging/bubble-chat-component';
 }
 
 $auth_scripts = [];

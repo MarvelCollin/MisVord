@@ -283,28 +283,7 @@ if (!function_exists('renderBubbleMessageContent')) {
         echo '</div>';
     }
     
-    // Message actions
-    echo '<div class="bubble-message-actions">';
-    echo '<button class="bubble-action-button" data-action="reply" data-message-id="' . htmlspecialchars($messageId) . '" title="Reply">';
-    echo '<i class="fas fa-reply"></i>';
-    echo '</button>';
-    echo '<button class="bubble-action-button" data-action="react" data-message-id="' . htmlspecialchars($messageId) . '" title="Add Reaction">';
-    echo '<i class="fas fa-smile"></i>';
-    echo '</button>';
-    
-    if ($isOwnMessage) {
-        echo '<button class="bubble-action-button" data-action="edit" data-message-id="' . htmlspecialchars($messageId) . '" title="Edit">';
-        echo '<i class="fas fa-edit"></i>';
-        echo '</button>';
-        echo '<button class="bubble-action-button delete-button" data-action="delete" data-message-id="' . htmlspecialchars($messageId) . '" title="Delete">';
-        echo '<i class="fas fa-trash"></i>';
-        echo '</button>';
-    }
-    
-    echo '<button class="bubble-action-button" data-action="more" data-message-id="' . htmlspecialchars($messageId) . '" title="More Actions">';
-    echo '<i class="fas fa-ellipsis-v"></i>';
-    echo '</button>';
-    echo '</div>';
+
     
     // Reactions
     if (!empty($reactions)) {

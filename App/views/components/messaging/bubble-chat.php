@@ -107,6 +107,279 @@ if (!function_exists('isBubbleVideoFile')) {
 }
 ?>
 
+<style>
+.bubble-message-group {
+    position: relative;
+    display: flex;
+    padding: 2px 16px;
+    margin-top: 17px;
+    transition: background-color 0.1s ease;
+}
+
+.bubble-message-group:hover {
+    background-color: rgba(6, 6, 7, 0.02);
+}
+
+.bubble-avatar {
+    width: 40px;
+    height: 40px;
+    margin-right: 16px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.bubble-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bubble-content-wrapper {
+    flex: 1;
+    min-width: 0;
+}
+
+.bubble-header {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+
+.bubble-username {
+    font-weight: 600;
+    color: #f2f3f5;
+    margin-right: 8px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.bubble-username:hover {
+    text-decoration: underline;
+}
+
+.bubble-timestamp {
+    font-size: 12px;
+    color: #a3a6aa;
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+.bubble-contents {
+    position: relative;
+}
+
+.bubble-message-content {
+    position: relative;
+    padding: 4px 0;
+    border-radius: 4px;
+}
+
+.bubble-reply-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    padding: 2px 8px;
+    border-left: 2px solid #4f545c;
+    background-color: rgba(79, 84, 92, 0.16);
+    border-radius: 3px;
+    font-size: 13px;
+}
+
+.bubble-reply-username {
+    font-weight: 500;
+    color: #f2f3f5;
+    margin-right: 4px;
+}
+
+.bubble-reply-content {
+    color: #a3a6aa;
+}
+
+.bubble-message-text {
+    color: #dcddde;
+    word-wrap: break-word;
+    font-size: 16px;
+    line-height: 1.375;
+    margin: 0;
+}
+
+.bubble-edited-badge {
+    font-size: 10px;
+    color: #a3a6aa;
+    margin-left: 4px;
+    font-style: italic;
+}
+
+.bubble-attachments {
+    margin-top: 8px;
+}
+
+.bubble-attachment {
+    margin-bottom: 8px;
+    max-width: 400px;
+}
+
+.bubble-attachment img,
+.bubble-attachment video {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.bubble-file-attachment {
+    display: flex;
+    align-items: center;
+    background: #2f3136;
+    border: 1px solid #40444b;
+    border-radius: 6px;
+    padding: 12px;
+    max-width: 400px;
+}
+
+.bubble-file-icon {
+    margin-right: 12px;
+    font-size: 24px;
+}
+
+.bubble-file-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.bubble-file-name {
+    color: #dcddde;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bubble-file-size {
+    color: #a3a6aa;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.bubble-download-button {
+    background: #4f545c;
+    border: none;
+    border-radius: 4px;
+    padding: 8px;
+    color: #dcddde;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.bubble-download-button:hover {
+    background: #5865f2;
+}
+
+.bubble-message-actions {
+    position: absolute;
+    top: -12px;
+    right: 16px;
+    display: flex;
+    gap: 4px;
+    background: #313338;
+    border: 1px solid #4f545c;
+    border-radius: 8px;
+    padding: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+    z-index: 10;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.bubble-message-content:hover .bubble-message-actions {
+    opacity: 1;
+    visibility: visible;
+}
+
+.bubble-action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #b9bbbe;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.bubble-action-button:hover {
+    background: #404249;
+    color: #dcddde;
+}
+
+.bubble-action-button.delete-button:hover {
+    background: #ed4245;
+    color: #ffffff;
+}
+
+.bubble-reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.bubble-reaction {
+    display: flex;
+    align-items: center;
+    background: rgba(79, 84, 92, 0.16);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 2px 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.bubble-reaction:hover {
+    border-color: #4f545c;
+    background: rgba(79, 84, 92, 0.3);
+}
+
+.bubble-reaction.user-reacted {
+    background: rgba(88, 101, 242, 0.16);
+    border-color: rgba(88, 101, 242, 0.3);
+}
+
+.bubble-reaction.user-reacted:hover {
+    background: rgba(88, 101, 242, 0.3);
+}
+
+.bubble-reaction-emoji {
+    margin-right: 4px;
+}
+
+.bubble-reaction-count {
+    color: #dcddde;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .bubble-message-actions {
+        right: 8px;
+        gap: 2px;
+        padding: 2px;
+    }
+    
+    .bubble-action-button {
+        width: 28px;
+        height: 28px;
+    }
+}
+</style>
+
 <div class="bubble-message-group" data-user-id="<?= htmlspecialchars($userId) ?>" data-timestamp="<?= strtotime($sentAt) * 1000 ?>">
     <!-- Avatar -->
     <div class="bubble-avatar">

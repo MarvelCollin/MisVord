@@ -160,6 +160,9 @@ $page_js = 'pages/home-page';
 $additional_js = [
     'components/servers/server-dropdown', 
     'components/servers/server-sidebar',
+    'components/messaging/chat-section',
+    'components/home/direct-message-nav',
+    'components/home/friends-tabs',
     'wrapper/home-wrapper',
     'utils/load-server-page'
 ];

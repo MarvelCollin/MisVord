@@ -1114,4 +1114,15 @@ class ChatSection {
     }
 }
 
+// Make functions and classes globally available for dynamic initialization
+window.initializeChatSection = initializeChatSection;
+window.ChatSection = ChatSection;
+
+// Debug log to confirm availability
+console.log('✅ [CHAT-SECTION] Global functions exposed:', {
+    initializeChatSection: typeof window.initializeChatSection,
+    ChatSection: typeof window.ChatSection,
+    timestamp: new Date().toISOString()
+});
+
 export default ChatSection;

@@ -289,6 +289,7 @@ function fetchChatSection(channelId) {
                 this.chatType = null;
                 this.targetId = null;
                 this.chatMessages = null;
+                this.skeletonLoader = null;
               }
               
               init() {
@@ -296,8 +297,12 @@ function fetchChatSection(channelId) {
                 this.loadElements();
                 this.loadChatParams();
                 
-                if (this.chatMessages && this.targetId) {
-                  this.loadMessages();
+                if (this.chatMessages) {
+                  this.initSkeletonLoader();
+                  
+                  if (this.targetId) {
+                    this.loadMessages();
+                  }
                 }
               }
               
@@ -316,12 +321,49 @@ function fetchChatSection(channelId) {
                 console.log(`Chat parameters loaded: type=${this.chatType}, targetId=${this.targetId}, userId=${this.userId}`);
               }
               
+              initSkeletonLoader() {
+                if (typeof window.ChatSkeletonLoader !== 'undefined' && this.chatMessages) {
+                  this.skeletonLoader = new window.ChatSkeletonLoader(this.chatMessages);
+                } else if (this.chatMessages) {
+                  const script = document.createElement('script');
+                  script.src = '/public/js/components/messaging/chat-skeleton-loading.js';
+                  script.onload = () => {
+                    this.skeletonLoader = new window.ChatSkeletonLoader(this.chatMessages);
+                  };
+                  document.head.appendChild(script);
+                }
+              }
+              
               loadMessages() {
                 console.log("Loading messages for", this.targetId);
-                const chatMessagesEl = document.getElementById('chat-messages');
-                if (chatMessagesEl) {
-                  chatMessagesEl.innerHTML = '<div class="p-4 text-center text-gray-400">Loading messages...</div>';
+                
+                if (this.skeletonLoader) {
+                  this.skeletonLoader.show();
+                } else {
+                  const chatMessagesEl = document.getElementById('chat-messages');
+                  if (chatMessagesEl) {
+                    chatMessagesEl.innerHTML = '<div class="p-4 text-center text-gray-400">Loading messages...</div>';
+                  }
                 }
+                
+                setTimeout(() => {
+                  const existingMessages = this.chatMessages?.querySelectorAll('.bubble-message-group');
+                  
+                  if (existingMessages && existingMessages.length > 0) {
+                    if (this.skeletonLoader) {
+                      this.skeletonLoader.clear();
+                    }
+                  } else {
+                    if (this.skeletonLoader) {
+                      this.skeletonLoader.clear();
+                    }
+                    
+                    const chatMessagesEl = document.getElementById('chat-messages');
+                    if (chatMessagesEl) {
+                      chatMessagesEl.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-[#dcddde] p-4"><i class="fas fa-comments text-6xl mb-4 text-[#4f545c]"></i><p class="text-lg">No messages yet. Be the first to send a message!</p></div>';
+                    }
+                  }
+                }, 500);
               }
             };
             

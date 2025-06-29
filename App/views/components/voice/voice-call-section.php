@@ -466,14 +466,10 @@ document.addEventListener('DOMContentLoaded', function() {
         refreshBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors';
         refreshBtn.onclick = window.refreshParticipantStyling;
         
-        const indicatorBtn = document.createElement('button');
-        indicatorBtn.innerHTML = '🔊 Indicator';
-        indicatorBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors';
-        indicatorBtn.onclick = window.testVoiceIndicator;
+
         
         debugContainer.appendChild(debugBtn);
         debugContainer.appendChild(refreshBtn);
-        debugContainer.appendChild(indicatorBtn);
         document.body.appendChild(debugContainer);
     }
     
@@ -561,38 +557,7 @@ window.refreshParticipantStyling = function() {
     console.log('✅ Participant styling refreshed');
 };
 
-// Function to test voice indicator
-window.testVoiceIndicator = function() {
-    console.log('🔧 Testing voice indicator...');
-    
-    // Check if global voice indicator exists
-    if (window.globalVoiceIndicator) {
-        console.log('✅ Global voice indicator found');
-        
-        // Force load and show indicator
-        window.globalVoiceIndicator.handleConnect('Test Channel', 'test-meeting-123', 'test-channel-456');
-        
-        setTimeout(() => {
-            const indicator = document.getElementById('voice-indicator');
-            console.log('🔍 Voice indicator element:', {
-                exists: !!indicator,
-                visible: indicator?.style.display !== 'none',
-                opacity: indicator?.style.opacity,
-                transform: indicator?.style.transform,
-                classes: indicator?.className
-            });
-        }, 1000);
-    } else {
-        console.warn('⚠️ Global voice indicator not found');
-        
-        // Try to create one manually
-        console.log('🔧 Attempting to create global voice indicator...');
-        if (window.GlobalVoiceIndicator) {
-            window.globalVoiceIndicator = new GlobalVoiceIndicator();
-            setTimeout(() => window.testVoiceIndicator(), 1000);
-        }
-    }
-};
+
 
 // Debug function to test participant system
 window.debugVoiceSystem = function() {

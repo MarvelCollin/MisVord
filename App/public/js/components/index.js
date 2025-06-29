@@ -12,8 +12,9 @@ export * from './servers/channel-redirect.js';
 export * from './channels/channel-manager.js';
 export * from './channels/channel-drag.js';
 export * from './voice/voice-manager.js';
+export * from './voice/global-voice-indicator.js';
 export * from './videosdk/videosdk.js';
-export * from './videosdk/global-voice-connected.js';
+
 export * from './bot/bot.js';
 export * from './bot/bot-debug.js';
 export * from './admin/admin.js';
