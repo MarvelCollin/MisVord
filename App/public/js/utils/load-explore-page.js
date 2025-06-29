@@ -25,9 +25,43 @@ function loadCSS(cssFiles) {
     return Promise.all(promises);
 }
 
+function loadJS(jsFiles) {
+    if (!jsFiles || !Array.isArray(jsFiles)) return Promise.resolve();
+    
+    const promises = jsFiles.map(jsFile => {
+        return new Promise((resolve, reject) => {
+            const src = `/public/js/${jsFile}.js`;
+            
+            if (document.querySelector(`script[src="${src}"]`)) {
+                resolve();
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = src;
+            
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error(`Failed to load JS: ${src}`));
+            
+            document.head.appendChild(script);
+        });
+    });
+    
+    return Promise.all(promises);
+}
+
 export function loadExplorePage() {
-    loadCSS(['explore-servers', 'server-detail']).catch(error => {
-        console.error('[Explore Loader] Failed to load CSS:', error);
+    const requiredCSS = ['explore-servers', 'server-detail'];
+    const requiredJS = ['components/servers/server-detail'];
+    
+    Promise.all([
+        loadCSS(requiredCSS),
+        loadJS(requiredJS)
+    ]).then(() => {
+        console.log('[Explore Loader] All assets loaded successfully');
+    }).catch(error => {
+        console.error('[Explore Loader] Failed to load assets:', error);
     });
     
     const mainContent = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
@@ -64,9 +98,7 @@ export function loadExplorePage() {
                         window.handleSkeletonLoading(false);
                     }
                     
-                    if (typeof window.initExplorePage === 'function') {
-                        window.initExplorePage();
-                    }
+                    initializeExploreComponents();
                     
                     const event = new CustomEvent('ExplorePageChanged', { 
                         detail: { pageType: 'explore' } 
@@ -107,6 +139,26 @@ function updateExploreLayout(html) {
             window.updateActiveServer('explore');
         }
     }
+}
+
+function initializeExploreComponents() {
+    if (typeof window.initExplorePage === 'function') {
+        window.initExplorePage();
+    }
+    
+    setTimeout(() => {
+        if (typeof window.ServerDetailModal !== 'undefined') {
+            if (!window.serverDetailModal) {
+                window.serverDetailModal = new window.ServerDetailModal();
+            }
+            
+            window.showServerDetail = (serverId, serverData) => {
+                if (window.serverDetailModal) {
+                    window.serverDetailModal.showServerDetail(serverId, serverData);
+                }
+            };
+        }
+    }, 100);
 }
 
 function showPageLoading(container) {

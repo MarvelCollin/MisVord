@@ -554,102 +554,36 @@ class ChatUIHandler {
     }
     
     replyToMessage(messageId) {
-        const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"], [data-message-id="${messageId}"]`);
-        if (!messageElement) return;
+        console.log('📝 [CHAT-UI-HANDLER] Reply requested, delegating to ChatSection:', messageId);
         
-        const messageTextElement = messageElement.querySelector('.message-main-text, .bubble-message-text');
-        const messageText = messageTextElement ? messageTextElement.innerText : 'a message';
-        const userId = messageElement.dataset.userId;
-        const messageGroup = messageElement.closest('.message-group, .bubble-message-group');
-        const username = messageGroup ? 
-            (messageGroup.querySelector('.message-username, .bubble-username')?.textContent || 'Unknown User') :
-            messageElement.dataset.username || 'Unknown User';
-        
-        console.log(`📝 [CHAT] Replying to message:`, {
-            messageId,
-            userId,
-            username,
-            messageText: messageText.substring(0, 50) + (messageText.length > 50 ? '...' : '')
-        });
-        
-        this.chatSection.replyingTo = {
-            messageId,
-            content: messageText,
-            userId,
-            username
-        };
-        
-        this.showReplyingUI(username, messageText);
-        
-        if (this.chatSection.messageInput) {
-            this.chatSection.messageInput.focus();
+        // Delegate to the ChatSection's startReply method for consistency
+        if (this.chatSection && typeof this.chatSection.startReply === 'function') {
+            this.chatSection.startReply(messageId);
+        } else {
+            console.error('❌ [CHAT-UI-HANDLER] ChatSection startReply method not available');
         }
     }
     
-    showReplyingUI(username, messageText) {
-        let replyContainer = document.getElementById('reply-container');
-        if (!replyContainer) {
-            replyContainer = document.createElement('div');
-            replyContainer.id = 'reply-container';
-            replyContainer.className = 'bg-[#2b2d31] p-2 rounded-lg mb-2 flex items-center gap-2';
-            
-            if (this.chatSection.messageInput && this.chatSection.messageInput.parentNode) {
-                this.chatSection.messageInput.parentNode.insertBefore(replyContainer, this.chatSection.messageInput);
-            }
-        } else {
-            replyContainer.innerHTML = '';
-        }
-        
-        const replyInfo = document.createElement('div');
-        replyInfo.className = 'flex items-center gap-2 flex-1 min-w-0';
-        
-        const replyIcon = document.createElement('i');
-        replyIcon.className = 'fas fa-reply text-[#b5bac1]';
-        
-        const replyingTo = document.createElement('div');
-        replyingTo.className = 'text-[#b5bac1] text-sm flex items-center gap-1 min-w-0';
-        
-        const replyLabel = document.createElement('span');
-        replyLabel.className = 'text-[#dcddde] whitespace-nowrap';
-        replyLabel.textContent = 'Replying to';
-        
-        const replyUsername = document.createElement('span');
-        replyUsername.className = 'text-[#5865f2] font-medium truncate';
-        replyUsername.textContent = username;
-        
-        const replyPreview = document.createElement('div');
-        replyPreview.className = 'text-[#b5bac1] text-sm truncate';
-        replyPreview.textContent = messageText;
-        
-        const cancelButton = document.createElement('button');
-        cancelButton.className = 'text-[#b5bac1] hover:text-white transition-colors p-1';
-        cancelButton.innerHTML = '<i class="fas fa-times"></i>';
-        cancelButton.title = 'Cancel Reply';
-        cancelButton.addEventListener('click', () => this.cancelReply());
-        
-        replyingTo.appendChild(replyLabel);
-        replyingTo.appendChild(replyUsername);
-        
-        replyInfo.appendChild(replyIcon);
-        replyInfo.appendChild(replyingTo);
-        
-        replyContainer.appendChild(replyInfo);
-        replyContainer.appendChild(replyPreview);
-        replyContainer.appendChild(cancelButton);
-        
-        replyContainer.style.animation = 'replyInputSlideIn 0.2s ease-out forwards';
-    }
+
     
     cancelReply() {
-        this.chatSection.replyingTo = null;
-        const replyContainer = document.getElementById('reply-container');
-        if (replyContainer) {
-            replyContainer.style.animation = 'replyInputSlideOut 0.2s ease-in forwards';
-            setTimeout(() => {
-                if (replyContainer.parentNode) {
-                    replyContainer.remove();
-                }
-            }, 200);
+        console.log('❌ [CHAT-UI-HANDLER] Cancel reply requested, delegating to ChatSection');
+        
+        // Delegate to the ChatSection's cancelReply method for consistency
+        if (this.chatSection && typeof this.chatSection.cancelReply === 'function') {
+            this.chatSection.cancelReply();
+        } else {
+            // Fallback implementation
+            this.chatSection.replyingTo = null;
+            const replyContainer = document.getElementById('reply-container');
+            const replyPreview = document.getElementById('reply-preview');
+            
+            if (replyContainer) {
+                replyContainer.remove();
+            }
+            if (replyPreview) {
+                replyPreview.remove();
+            }
         }
     }
 }

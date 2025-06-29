@@ -103,17 +103,26 @@ function handleMouseMove(event) {
 
 async function loadScript(src) {
     return new Promise((resolve, reject) => {
-        const existingScript = document.querySelector(`script[src="${src}"]`);
+        const scriptPath = src.split('?')[0];
+        const existingScript = document.querySelector(`script[src*="${scriptPath.split('/').pop()}"]`);
         if (existingScript) {
+            console.log(`[voice-not-join.php] Script already loaded: ${scriptPath}`);
             resolve();
             return;
         }
         
+        console.log(`[voice-not-join.php] Loading script: ${src}`);
         const script = document.createElement('script');
         script.src = src;
         script.async = true;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        script.onload = () => {
+            console.log(`[voice-not-join.php] Script loaded successfully: ${src}`);
+            resolve();
+        };
+        script.onerror = () => {
+            console.error(`[voice-not-join.php] Failed to load script: ${src}`);
+            reject(new Error(`Failed to load ${src}`));
+        };
         document.head.appendChild(script);
     });
 }
@@ -125,27 +134,27 @@ async function ensureVoiceScriptsLoaded() {
             await loadScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
         }
         
-        if (!window.videoSDKManager) {
+        if (!window.videoSDKManager && !document.querySelector('script[src*="videosdk/videosdk.js"]')) {
             console.log('[voice-not-join.php] Loading VideoSDK manager...');
             await loadScript('/public/js/components/videosdk/videosdk.js?v=' + Date.now());
         }
         
-        if (!window.voiceManager) {
+        if (!window.voiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
             console.log('[voice-not-join.php] Loading voice manager...');
             await loadScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
         }
         
-        if (!window.VoiceSection) {
+        if (!window.VoiceSection && !document.querySelector('script[src*="voice-section.js"]')) {
             console.log('[voice-not-join.php] Loading voice section...');
             await loadScript('/public/js/components/voice/voice-section.js?v=' + Date.now());
         }
         
         await new Promise(resolve => {
-            if (window.voiceManager && window.videoSDKManager) {
+            if (window.voiceManager && window.videoSDKManager && window.VoiceSection) {
                 resolve();
             } else {
                 const checkReady = () => {
-                    if (window.voiceManager && window.videoSDKManager) {
+                    if (window.voiceManager && window.videoSDKManager && window.VoiceSection) {
                         resolve();
                     } else {
                         setTimeout(checkReady, 100);

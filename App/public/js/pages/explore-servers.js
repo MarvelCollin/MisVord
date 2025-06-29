@@ -14,9 +14,35 @@ function initExplorePage() {
     highlightExploreButton();
     initServerDetailTriggers();
     initScrollAnimations();
+    ensureServerDetailFunctionality();
 }
 
 window.initExplorePage = initExplorePage;
+
+function ensureServerDetailFunctionality() {
+    if (typeof window.serverAPI === 'undefined') {
+        console.log('[Explore] Loading server API...');
+        const script = document.createElement('script');
+        script.src = '/public/js/api/server-api.js';
+        script.onload = () => {
+            console.log('[Explore] Server API loaded successfully');
+        };
+        document.head.appendChild(script);
+    }
+    
+    setTimeout(() => {
+        if (typeof window.ServerDetailModal !== 'undefined' && !window.serverDetailModal) {
+            window.serverDetailModal = new window.ServerDetailModal();
+            
+            window.showServerDetail = (serverId, serverData) => {
+                if (window.serverDetailModal) {
+                    window.serverDetailModal.showServerDetail(serverId, serverData);
+                }
+            };
+            console.log('[Explore] Server detail modal initialized');
+        }
+    }, 200);
+}
 
 function initScrollAnimations() {
     const animatedElements = document.querySelectorAll('.slide-up, .fade-in');
@@ -388,8 +414,17 @@ function initServerDetailTriggers() {
 
             const serverData = extractServerDataFromCard(this);
 
-            if (window.showServerDetail) {
+            if (typeof window.showServerDetail === 'function') {
                 window.showServerDetail(serverId, serverData);
+            } else {
+                console.log('[Explore] Server detail function not available, will retry...');
+                setTimeout(() => {
+                    if (typeof window.showServerDetail === 'function') {
+                        window.showServerDetail(serverId, serverData);
+                    } else {
+                        console.error('[Explore] Server detail functionality not available');
+                    }
+                }, 500);
             }
         });
     });

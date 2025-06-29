@@ -114,11 +114,28 @@ class VoiceManager {
     
     setupErrorHandling() {
         window.addEventListener('videosdkStreamEnabled', (event) => {
-            console.log('Stream enabled:', event.detail);
+            const detail = event.detail;
+            if (!detail) {
+                console.warn('[VoiceManager] Stream enabled event with no detail');
+                return;
+            }
+            
+            if (!detail.stream) {
+                console.error('[VoiceManager] Stream enabled event with undefined stream:', detail);
+                return;
+            }
+            
+            console.log(`[VoiceManager] Stream enabled: ${detail.kind} stream for participant ${detail.participant}`);
         });
         
         window.addEventListener('videosdkStreamDisabled', (event) => {
-            console.log('Stream disabled:', event.detail);
+            const detail = event.detail;
+            if (!detail) {
+                console.warn('[VoiceManager] Stream disabled event with no detail');
+                return;
+            }
+            
+            console.log(`[VoiceManager] Stream disabled: ${detail.kind} stream for participant ${detail.participant}`);
         });
     }
     
@@ -270,14 +287,12 @@ class VoiceManager {
             this.videoSDKManager.leaveMeeting();
         }
         
-        // Reset VideoSDK state
         if (this.videoSDKManager) {
             this.videoSDKManager = null;
             this.initialized = false;
             this.initializationPromise = null;
         }
         
-        // Re-initialize after reset
         setTimeout(() => {
             this.init().catch(error => {
                 console.error('Failed to reinitialize voice manager:', error);

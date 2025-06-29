@@ -277,7 +277,7 @@ class ChatSection {
                     console.warn('⚠️ [CHAT-SECTION] Send/Receive handler not initialized');
                 }
             });
-            } else {
+        } else {
             console.warn('⚠️ [CHAT-SECTION] Message form not found');
         }
         
@@ -289,18 +289,16 @@ class ChatSection {
             });
             
             this.messageInput.addEventListener('keydown', (e) => {
-                // Handle keyboard shortcuts
-            if (e.key === 'Escape') {
+                if (e.key === 'Escape') {
                     if (this.replyingTo) {
                         this.cancelReply();
-                e.preventDefault();
+                        e.preventDefault();
                     } else if (this.currentEditingMessage) {
                         this.cancelEditing();
-                e.preventDefault();
+                        e.preventDefault();
                     }
                 }
                 
-                // Send on Enter (without Shift)
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     if (this.sendReceiveHandler) {
@@ -308,7 +306,7 @@ class ChatSection {
                     }
                 }
             });
-                } else {
+        } else {
             console.warn('⚠️ [CHAT-SECTION] Message input not found');
         }
         
@@ -328,6 +326,11 @@ class ChatSection {
             });
         }
         
+        // Global event delegation for message actions (reply, edit, delete, etc.)
+        document.addEventListener('click', (e) => {
+            this.handleMessageActions(e);
+        });
+        
         // Close context menu on outside click
         document.addEventListener('click', () => {
             if (this.uiHandler) {
@@ -341,6 +344,55 @@ class ChatSection {
         }
         
         console.log('✅ [CHAT-SECTION] Event listeners setup complete');
+    }
+    
+    handleMessageActions(e) {
+        let actionButton = null;
+        let messageId = null;
+        let action = null;
+        
+        // Check for bubble action buttons
+        if (e.target.classList.contains('bubble-action-button') || e.target.closest('.bubble-action-button')) {
+            actionButton = e.target.classList.contains('bubble-action-button') ? e.target : e.target.closest('.bubble-action-button');
+            action = actionButton.dataset.action;
+            messageId = actionButton.dataset.messageId;
+        }
+        // Check for regular message action buttons
+        else if (e.target.classList.contains('message-action-reply') || e.target.closest('.message-action-reply')) {
+            actionButton = e.target.classList.contains('message-action-reply') ? e.target : e.target.closest('.message-action-reply');
+            action = 'reply';
+            const messageElement = actionButton.closest('.message-content') || actionButton.closest('[data-message-id]');
+            messageId = messageElement?.dataset.messageId;
+        }
+        // Check for context menu actions
+        else if (e.target.closest('[data-action="reply"]')) {
+            actionButton = e.target.closest('[data-action="reply"]');
+            action = 'reply';
+            const contextMenu = actionButton.closest('#message-context-menu');
+            messageId = contextMenu?.dataset.messageId;
+        }
+        
+        if (action && messageId) {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            console.log('🎯 [CHAT-SECTION] Handling message action:', { action, messageId });
+            
+            switch (action) {
+                case 'reply':
+                    this.startReply(messageId);
+                    break;
+                case 'edit':
+                    this.startEditing(messageId);
+                    break;
+                case 'delete':
+                    this.confirmDeleteMessage(messageId);
+                    break;
+                default:
+                    console.log('🔄 [CHAT-SECTION] Unhandled action:', action);
+                    break;
+            }
+        }
     }
     
     async loadMessages(options = {}) {
@@ -544,14 +596,38 @@ class ChatSection {
     }
     
     startReply(messageId) {
+        console.log('📝 [CHAT-SECTION] Starting reply to message:', messageId);
+        
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (!messageElement) return;
+        if (!messageElement) {
+            console.warn('⚠️ [CHAT-SECTION] Message element not found:', messageId);
+            return;
+        }
         
-        const messageGroup = messageElement.closest('.message-group');
-        if (!messageGroup) return;
+        // Handle both bubble messages and regular messages
+        const isBubbleMessage = messageElement.closest('.bubble-message-group');
+        let username = 'Unknown User';
+        let content = 'a message';
         
-        const username = messageGroup.querySelector('.font-medium').textContent;
-        const content = messageElement.querySelector('.message-main-text').textContent;
+        if (isBubbleMessage) {
+            // Bubble message handling
+            const messageGroup = messageElement.closest('.bubble-message-group');
+            const usernameElement = messageGroup?.querySelector('.bubble-username');
+            const contentElement = messageElement.querySelector('.bubble-message-text');
+            
+            username = usernameElement?.textContent?.trim() || 'Unknown User';
+            content = contentElement?.textContent?.trim() || 'a message';
+        } else {
+            // Regular message handling
+            const messageGroup = messageElement.closest('.message-group');
+            const usernameElement = messageGroup?.querySelector('.font-medium, .message-username');
+            const contentElement = messageElement.querySelector('.message-main-text');
+            
+            username = usernameElement?.textContent?.trim() || 'Unknown User';
+            content = contentElement?.textContent?.trim() || 'a message';
+        }
+        
+        console.log('📝 [CHAT-SECTION] Reply data:', { messageId, username, content: content.substring(0, 50) });
         
         this.replyingTo = {
             messageId,
@@ -568,65 +644,144 @@ class ChatSection {
     }
     
     showReplyUI() {
-        if (!this.replyingTo) return;
+        if (!this.replyingTo) {
+            console.warn('⚠️ [CHAT-SECTION] Cannot show reply UI: no replyingTo data');
+            return;
+        }
         
-        // Create or update reply preview
-        let replyPreview = document.getElementById('reply-preview');
-        if (!replyPreview) {
-            replyPreview = document.createElement('div');
-            replyPreview.id = 'reply-preview';
-            replyPreview.className = 'reply-preview bg-[#2b2d31] p-2 mb-2 rounded flex items-start';
+        console.log('🎨 [CHAT-SECTION] Showing reply UI for:', this.replyingTo);
+        
+        // Validate required data
+        if (!this.replyingTo.messageId || !this.replyingTo.username) {
+            console.error('❌ [CHAT-SECTION] Invalid reply data:', this.replyingTo);
+            return;
+        }
+        
+        // Store reply data locally before clearing
+        const replyData = {
+            messageId: this.replyingTo.messageId,
+            username: this.replyingTo.username,
+            content: this.replyingTo.content || 'a message'
+        };
+        
+        // Remove any existing reply UI first (but keep replyingTo data)
+        this.clearExistingReplyUI();
+        
+        // Create reply preview
+        const replyPreview = document.createElement('div');
+        replyPreview.id = 'reply-preview';
+        replyPreview.className = 'bg-[#2b2d31] p-3 mb-2 rounded-lg border-l-4 border-[#5865f2] flex items-start gap-3';
+        
+        // Reply icon and content wrapper
+        const replyContent = document.createElement('div');
+        replyContent.className = 'flex-grow min-w-0';
+        
+        // Reply header with icon and "Replying to username"
+        const replyHeader = document.createElement('div');
+        replyHeader.className = 'flex items-center gap-2 text-xs text-[#b9bbbe] mb-1';
+        
+        const replyIcon = document.createElement('i');
+        replyIcon.className = 'fas fa-reply text-[#5865f2]';
+        
+        const replyLabel = document.createElement('span');
+        replyLabel.textContent = 'Replying to';
+        
+        const replyUsername = document.createElement('span');
+        replyUsername.className = 'font-medium text-[#5865f2]';
+        replyUsername.textContent = replyData.username;
+        
+        replyHeader.appendChild(replyIcon);
+        replyHeader.appendChild(replyLabel);
+        replyHeader.appendChild(replyUsername);
+        
+        // Reply message preview
+        const replyText = document.createElement('div');
+        replyText.className = 'text-sm text-[#dcddde] truncate';
+        
+        // Limit content length and clean it up
+        let displayContent = replyData.content || 'a message';
+        if (displayContent.length > 100) {
+            displayContent = displayContent.substring(0, 100) + '...';
+        }
+        replyText.textContent = displayContent;
+        
+        // Close button
+        const closeButton = document.createElement('button');
+        closeButton.className = 'text-[#b9bbbe] hover:text-white transition-colors p-1 rounded hover:bg-[#4f545c]';
+        closeButton.innerHTML = '<i class="fas fa-times"></i>';
+        closeButton.title = 'Cancel Reply';
+        closeButton.addEventListener('click', () => this.cancelReply());
+        
+        replyContent.appendChild(replyHeader);
+        replyContent.appendChild(replyText);
+        replyPreview.appendChild(replyContent);
+        replyPreview.appendChild(closeButton);
+        
+        // Find the best insertion point - try multiple selectors
+        let insertionPoint = this.messageForm || 
+                           document.querySelector('#message-form') ||
+                           document.querySelector('.message-form') ||
+                           this.messageInput?.parentNode ||
+                           document.querySelector('#message-input')?.parentNode;
+        
+        if (insertionPoint) {
+            insertionPoint.parentNode.insertBefore(replyPreview, insertionPoint);
+            console.log('✅ [CHAT-SECTION] Reply UI inserted before message form');
+        } else {
+            // Fallback: try to find the chat input container
+            const chatInputContainer = document.querySelector('#chat-input-container') || 
+                                     document.querySelector('.chat-input-container') ||
+                                     document.querySelector('[class*="chat-input"]') ||
+                                     document.querySelector('[class*="message-input"]')?.parentNode;
             
-            const replyContent = document.createElement('div');
-            replyContent.className = 'flex-grow';
-            
-            const replyHeader = document.createElement('div');
-            replyHeader.className = 'flex items-center text-xs text-[#b9bbbe] mb-1';
-            replyHeader.innerHTML = '<i class="fas fa-reply mr-1"></i><span>Replying to </span>';
-            
-            const replyUsername = document.createElement('span');
-            replyUsername.className = 'font-medium text-[#00a8fc] ml-1';
-            replyUsername.textContent = this.replyingTo.username;
-            
-            replyHeader.appendChild(replyUsername);
-            
-            const replyText = document.createElement('div');
-            replyText.className = 'text-sm text-[#dcddde] truncate';
-            replyText.textContent = this.replyingTo.content;
-            
-            const closeButton = document.createElement('button');
-            closeButton.className = 'ml-2 text-[#b9bbbe] hover:text-[#dcddde] p-1';
-            closeButton.innerHTML = '<i class="fas fa-times"></i>';
-            closeButton.addEventListener('click', () => this.cancelReply());
-            
-            replyContent.appendChild(replyHeader);
-            replyContent.appendChild(replyText);
-            
-            replyPreview.appendChild(replyContent);
-            replyPreview.appendChild(closeButton);
-            
-            // Insert before the message form
-            if (this.messageForm) {
-                this.messageForm.parentNode.insertBefore(replyPreview, this.messageForm);
+            if (chatInputContainer) {
+                chatInputContainer.insertBefore(replyPreview, chatInputContainer.firstChild);
+                console.log('✅ [CHAT-SECTION] Reply UI inserted in chat container (fallback)');
+            } else {
+                console.error('❌ [CHAT-SECTION] Could not find insertion point for reply UI');
+                return;
             }
-                } else {
-            // Update existing reply preview
-            const replyUsername = replyPreview.querySelector('.text-[#00a8fc]');
-            const replyText = replyPreview.querySelector('.text-[#dcddde]');
-            
-            if (replyUsername) replyUsername.textContent = this.replyingTo.username;
-            if (replyText) replyText.textContent = this.replyingTo.content;
-            
-            replyPreview.classList.remove('hidden');
+        }
+        
+        // Add slide-in animation
+        replyPreview.style.animation = 'replyInputSlideIn 0.2s ease-out forwards';
+    }
+    
+    clearExistingReplyUI() {
+        console.log('🧹 [CHAT-SECTION] Clearing existing reply UI elements');
+        
+        // Remove reply preview
+        const replyPreview = document.getElementById('reply-preview');
+        if (replyPreview) {
+            replyPreview.remove();
+        }
+        
+        // Remove legacy reply containers
+        const legacyReplyContainer = document.getElementById('reply-container');
+        if (legacyReplyContainer) {
+            legacyReplyContainer.remove();
         }
     }
     
     cancelReply() {
+        console.log('❌ [CHAT-SECTION] Canceling reply');
+        
         this.replyingTo = null;
         
         const replyPreview = document.getElementById('reply-preview');
         if (replyPreview) {
-            replyPreview.classList.add('hidden');
+            replyPreview.style.animation = 'replyInputSlideOut 0.2s ease-in forwards';
+            setTimeout(() => {
+                if (replyPreview.parentNode) {
+                    replyPreview.remove();
+                }
+            }, 200);
+        }
+        
+        // Also remove any legacy reply containers
+        const legacyReplyContainer = document.getElementById('reply-container');
+        if (legacyReplyContainer) {
+            legacyReplyContainer.remove();
         }
     }
     

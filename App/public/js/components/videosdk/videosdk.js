@@ -182,10 +182,18 @@ class VideoSDKManager {
         
         try {
             participant.on('stream-enabled', (data) => {
-                if (!data) return;
+                if (!data) {
+                    console.warn('[VideoSDK] Stream enabled event with no data');
+                    return;
+                }
                 
                 let kind = data.kind || 'unknown';
                 let stream = data.stream;
+                
+                if (!stream) {
+                    console.warn('[VideoSDK] Stream enabled event with no stream object');
+                    return;
+                }
                 
                 if (kind === 'unknown' && stream) {
                     if (stream instanceof MediaStream) {
@@ -208,6 +216,8 @@ class VideoSDKManager {
                         kind = stream.track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
                     }
                 }
+                
+                console.log(`[VideoSDK] Stream enabled: ${kind} for participant ${participant.id}`);
                 
                 window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', { 
                     detail: { kind, stream, participant: participant.id } 
@@ -264,16 +274,6 @@ class VideoSDKManager {
                             } else {
                                 kind = 'audio';
                             }
-                        }
-                                    
-                        if (kind === 'video' || kind === 'share') {
-                            window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', {
-                                detail: { 
-                                    kind, 
-                                    stream: stream,
-                                    participant: participant.id
-                                }
-                            }));
                         }
                         
                         participant._previousStreams.set(streamId, kind);

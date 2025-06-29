@@ -1,3 +1,5 @@
+if (typeof window.VoiceSection === 'undefined') {
+    
 class VoiceSection {
     constructor() {
         this.elements = {
@@ -390,6 +392,8 @@ class VoiceSection {
     }
 }
 
+window.VoiceSection = VoiceSection;
+
 document.addEventListener('DOMContentLoaded', function() {
     if (!window.voiceSection) {
         window.voiceSection = new VoiceSection();
@@ -423,4 +427,6 @@ window.handleAutoJoin = function() {
         return true;
     }
     return false;
-}; 
+};
+
+} 

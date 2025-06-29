@@ -1,17 +1,51 @@
 class ServerDetailModal {
     constructor() {
-        this.modal = document.getElementById('server-detail-modal');
-        this.modalContent = this.modal ? document.getElementById('server-modal-content') : null;
-        this.closeButton = this.modal ? document.getElementById('close-server-modal') : null;
-        this.joinButton = this.modal ? document.getElementById('server-modal-join') : null;
+        this.modal = null;
+        this.modalContent = null;
+        this.closeButton = null;
+        this.joinButton = null;
         this.currentServerId = null;
         this.currentInviteLink = null;
+        
+        this.initModal();
+    }
+    
+    initModal() {
+        this.findModalElements();
         
         if (this.modal) {
             this.init();
         } else {
-            console.warn('Server detail modal element not found, initialization skipped');
+            this.waitForModalElements();
         }
+    }
+    
+    findModalElements() {
+        this.modal = document.getElementById('server-detail-modal');
+        this.modalContent = this.modal ? document.getElementById('server-modal-content') : null;
+        this.closeButton = this.modal ? document.getElementById('close-server-modal') : null;
+        this.joinButton = this.modal ? document.getElementById('server-modal-join') : null;
+    }
+    
+    waitForModalElements() {
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        const checkForElements = () => {
+            attempts++;
+            this.findModalElements();
+            
+            if (this.modal) {
+                this.init();
+                console.log('[Server Detail] Modal elements found and initialized');
+            } else if (attempts < maxAttempts) {
+                setTimeout(checkForElements, 200);
+            } else {
+                console.warn('[Server Detail] Modal elements not found after maximum attempts');
+            }
+        };
+        
+        setTimeout(checkForElements, 100);
     }
     
     init() {
@@ -37,6 +71,12 @@ class ServerDetailModal {
     }
     
     async showServerDetail(serverId, serverData = null) {
+        if (!this.modal) {
+            console.log('[Server Detail] Modal not ready, waiting...');
+            setTimeout(() => this.showServerDetail(serverId, serverData), 200);
+            return;
+        }
+        
         this.currentServerId = serverId;
         
         if (serverData) {
@@ -46,6 +86,11 @@ class ServerDetailModal {
         }
         
         try {
+            if (typeof window.serverAPI === 'undefined') {
+                console.error('[Server Detail] Server API not available');
+                return;
+            }
+            
             const response = await window.serverAPI.getServer(serverId);
             const server = response.server;
             
@@ -54,7 +99,7 @@ class ServerDetailModal {
             this.updateModalContent(server);
             this.showModalWithAnimation();
         } catch (error) {
-            console.error('Error loading server details:', error);
+            console.error('[Server Detail] Error loading server details:', error);
         }
     }
     
@@ -160,6 +205,10 @@ class ServerDetailModal {
         this.joinButton.style.pointerEvents = 'none';
         
         try {
+            if (typeof window.serverAPI === 'undefined') {
+                throw new Error('Server API not available');
+            }
+            
             const response = await window.serverAPI.joinServer({ server_id: this.currentServerId });
             
             if (response.success) {
@@ -324,14 +373,24 @@ if (!window.customAnimationStyles) {
 
 window.ServerDetailModal = ServerDetailModal;
 
-document.addEventListener('DOMContentLoaded', () => {
-    window.serverDetailModal = new ServerDetailModal();
-    
-    window.showServerDetail = (serverId, serverData) => {
-        if (window.serverDetailModal) {
-            window.serverDetailModal.showServerDetail(serverId, serverData);
-        }
-    };
-});
+function initServerDetailModal() {
+    if (!window.serverDetailModal) {
+        window.serverDetailModal = new ServerDetailModal();
+        
+        window.showServerDetail = (serverId, serverData) => {
+            if (window.serverDetailModal) {
+                window.serverDetailModal.showServerDetail(serverId, serverData);
+            }
+        };
+        
+        console.log('[Server Detail] Modal initialized and ready');
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initServerDetailModal);
+} else {
+    initServerDetailModal();
+}
 
 export default ServerDetailModal;

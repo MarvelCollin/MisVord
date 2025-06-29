@@ -111,6 +111,8 @@ class ExploreController extends BaseController
                     <?php include __DIR__ . '/../views/components/app-sections/explore-main-content.php'; ?>
                 </div>
             </div>
+            
+            <?php include __DIR__ . '/../views/components/explore/server-detail.php'; ?>
             <?php
             $html = ob_get_clean();
             echo $html;
