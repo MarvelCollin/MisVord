@@ -303,7 +303,7 @@ function showMasterDebugModal() {
                 </div>
                 
                             <div class="bg-gray-800 rounded-lg p-4">
-                                <h4 class="text-md font-semibold text-gray-300 mb-3">Bot Testing</h4>
+                                <h4 class="text-md font-semibold text-gray-300 mb-3">Bot Testing & Diagnostics</h4>
                                 <div class="flex space-x-2 mb-3">
                                     <input type="text" id="test-command-master" value="/titibot ping" 
                                            class="flex-1 bg-discord-lighter text-white px-3 py-2 rounded">
@@ -311,8 +311,16 @@ function showMasterDebugModal() {
                                         Send
                     </button>
                                 </div>
+                                <div class="grid grid-cols-2 gap-2 mb-3">
+                                    <button onclick="runBotDiagnostics()" class="bg-cyan-600 hover:bg-cyan-700 text-white py-2 px-3 rounded text-sm">
+                                        <i class="fas fa-stethoscope mr-1"></i>Diagnostics
+                                    </button>
+                                    <button onclick="testBotMessage()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded text-sm">
+                                        <i class="fas fa-flask mr-1"></i>Full Test
+                                    </button>
+                                </div>
                                 <div class="text-xs text-gray-500">
-                                    Common commands: /titibot ping, /titibot help, /titibot time
+                                    Commands: /titibot ping, /titibot play [song], /titibot stop, /titibot help
                                 </div>
                             </div>
                         </div>
@@ -445,7 +453,8 @@ async function createTitiBot() {
     button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
     button.disabled = true;
     
-    addDebugLogMaster('🤖 Creating TitiBot...', 'info');
+    addDebugLogMaster('🤖 Initiating TitiBot creation process...', 'info');
+    addDebugLogMaster(`📋 Bot configuration: username=titibot, email=titibot@misvord.local`, 'info');
     
     try {
         const response = await fetch('/api/bots/create', {
@@ -459,32 +468,45 @@ async function createTitiBot() {
             })
         });
         
+        addDebugLogMaster(`📡 Bot creation API response: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+        
         if (response.ok) {
             const data = await response.json();
-            addDebugLogMaster('✅ TitiBot created successfully!', 'success');
+            addDebugLogMaster('✅ TitiBot creation API call successful', 'success');
+            addDebugLogMaster(`📊 Response data structure: ${JSON.stringify(Object.keys(data))}`, 'info');
+            
+            window.titiBotData = (data.data && data.data.bot) ? data.data.bot : (data.bot || null);
+            
+            if (window.titiBotData) {
+                addDebugLogMaster(`🔍 Bot data extracted: ID=${window.titiBotData.id}, Status=${window.titiBotData.status}`, 'success');
+                setupBotEventListeners();
+            } else {
+                addDebugLogMaster('⚠️ Bot data extraction failed - response structure unexpected', 'warning');
+            }
             
             if (window.showToast) {
                 window.showToast('✅ TitiBot created successfully!', 'success');
             }
             
-            window.titiBotData = (data.data && data.data.bot) ? data.data.bot : (data.bot || null);
-            
             const statusInfo = document.getElementById('bot-status-info') || document.getElementById('bot-status');
             if (statusInfo) {
-                statusInfo.innerHTML = '<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot created and ready</span>';
+                statusInfo.innerHTML = '<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot created and ready for initialization</span>';
             }
             
             button.innerHTML = '<i class="fas fa-plus mr-2"></i>Create Bot';
             button.disabled = false;
             
             refreshMasterStatus();
+            addDebugLogMaster('🎯 Next step: Select server and click Initialize to activate bot', 'info');
             
         } else {
             const errorData = await response.json();
+            addDebugLogMaster(`❌ API error response: ${JSON.stringify(errorData)}`, 'error');
             throw new Error(errorData.message || 'Failed to create bot');
         }
     } catch (error) {
-        addDebugLogMaster(`❌ Failed to create TitiBot: ${error.message}`, 'error');
+        addDebugLogMaster(`💥 Bot creation failed: ${error.message}`, 'error');
+        addDebugLogMaster(`🔍 Error details: ${error.stack?.substring(0, 200) || 'No stack trace'}`, 'error');
         
         if (window.showToast) {
             window.showToast('❌ Failed to create TitiBot: ' + error.message, 'error');
@@ -500,6 +522,7 @@ async function initializeTitiBot() {
     const initButton = document.getElementById('init-bot-master') || document.getElementById('init-bot-btn');
     
     if (!serverSelect || !serverSelect.value) {
+        addDebugLogMaster('❌ Server selection required for bot initialization', 'error');
         if (window.showToast) {
             window.showToast('⚠️ Please select a server first', 'warning');
         }
@@ -509,6 +532,9 @@ async function initializeTitiBot() {
     const serverId = serverSelect.value;
     const serverName = serverSelect.options[serverSelect.selectedIndex].text;
     
+    addDebugLogMaster(`🚀 Starting TitiBot initialization process...`, 'info');
+    addDebugLogMaster(`🎯 Target server: ${serverName} (ID: ${serverId})`, 'info');
+    
     initButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Initializing...';
     initButton.disabled = true;
     
@@ -516,20 +542,29 @@ async function initializeTitiBot() {
         let botId = window.titiBotData?.id;
         
         if (!botId) {
+            addDebugLogMaster('🔍 Bot ID not in memory, checking server...', 'info');
             const checkResponse = await fetch('/api/bots/check/titibot');
+            addDebugLogMaster(`📡 Bot check API response: ${checkResponse.status}`, checkResponse.ok ? 'success' : 'error');
+            
             if (checkResponse.ok) {
                 const checkData = await checkResponse.json();
+                addDebugLogMaster(`📊 Bot check result: exists=${checkData.exists}, is_bot=${checkData.is_bot}`, 'info');
                 if (checkData.exists && checkData.is_bot) {
                     botId = checkData.bot.id;
                     window.titiBotData = checkData.bot;
+                    addDebugLogMaster(`✅ Bot data retrieved: ID=${botId}`, 'success');
                 }
             }
+        } else {
+            addDebugLogMaster(`✅ Using cached bot ID: ${botId}`, 'success');
         }
         
         if (!botId) {
-            throw new Error('TitiBot not found');
+            addDebugLogMaster('❌ TitiBot not found - create bot first', 'error');
+            throw new Error('TitiBot not found - please create the bot first');
         }
         
+        addDebugLogMaster(`🔗 Adding bot to server via API...`, 'info');
         const addResponse = await fetch('/api/bots/add-to-server', {
             method: 'POST',
             headers: {
@@ -541,42 +576,65 @@ async function initializeTitiBot() {
             })
         });
         
+        addDebugLogMaster(`📡 Add-to-server API response: ${addResponse.status}`, addResponse.ok ? 'success' : 'error');
+        
         if (addResponse.ok) {
-            console.log('Bot added to server successfully');
+            const addData = await addResponse.json();
+            addDebugLogMaster(`✅ Bot successfully added to server`, 'success');
+            addDebugLogMaster(`📊 Add response: ${JSON.stringify(addData)}`, 'info');
             
             if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                addDebugLogMaster(`🔌 Socket connection available, sending initialization events...`, 'info');
                 
                 window.globalSocketManager.io.emit('bot-init', {
                     bot_id: botId,
                     username: 'titibot'
                 });
+                addDebugLogMaster(`📤 bot-init event sent`, 'success');
                 
                 window.globalSocketManager.io.emit('bot-join-channel', {
                     bot_id: botId,
                     channel_id: serverId
                 });
+                addDebugLogMaster(`📤 bot-join-channel event sent`, 'success');
                 
-                console.log('Bot initialization and channel join events sent');
+                setupBotMonitoring();
+                
+            } else {
+                addDebugLogMaster(`⚠️ Socket not ready - bot events not sent`, 'warning');
+                addDebugLogMaster(`Socket status: connected=${window.globalSocketManager?.connected}`, 'info');
             }
             
             if (window.showToast) {
                 window.showToast(`✅ TitiBot initialized in ${serverName}!`, 'success');
             }
             
-            document.getElementById('titibot-modal').remove();
+            const modal = document.getElementById('titibot-modal') || document.getElementById('master-debug-modal');
+            if (modal && modal.id === 'titibot-modal') {
+                modal.remove();
+            }
+            
+            initButton.innerHTML = '<i class="fas fa-play mr-2"></i>Initialize';
+            initButton.disabled = false;
+            
+            addDebugLogMaster(`🎉 TitiBot initialization completed successfully!`, 'success');
+            addDebugLogMaster(`💡 Bot is now ready to respond to commands in ${serverName}`, 'info');
             
         } else {
             const errorData = await addResponse.json();
+            addDebugLogMaster(`❌ Server addition failed: ${JSON.stringify(errorData)}`, 'error');
             throw new Error(errorData.message || 'Failed to add bot to server');
         }
         
     } catch (error) {
-        console.error('Error initializing TitiBot:', error);
+        addDebugLogMaster(`💥 Initialization failed: ${error.message}`, 'error');
+        addDebugLogMaster(`🔍 Error stack: ${error.stack?.substring(0, 200) || 'No stack'}`, 'error');
+        
         if (window.showToast) {
             window.showToast('❌ Failed to initialize TitiBot: ' + error.message, 'error');
         }
         
-        initButton.innerHTML = '<i class="fas fa-play mr-2"></i>Initialize Bot';
+        initButton.innerHTML = '<i class="fas fa-play mr-2"></i>Initialize';
         initButton.disabled = false;
     }
 }
@@ -598,6 +656,100 @@ function switchMasterTab(tabName) {
     });
 }
 
+function setupBotEventListeners() {
+    if (!window.globalSocketManager?.io) {
+        addDebugLogMaster('⚠️ Socket not available for bot event listeners', 'warning');
+        return;
+    }
+    
+    const io = window.globalSocketManager.io;
+    
+    io.on('bot-init-success', (data) => {
+        addDebugLogMaster(`🎉 Bot initialization successful: ${data.bot_id || data.username}`, 'success');
+        addDebugLogMaster(`📊 Init data: ${JSON.stringify(data)}`, 'info');
+        refreshMasterStatus();
+    });
+    
+    io.on('bot-init-error', (data) => {
+        addDebugLogMaster(`❌ Bot initialization failed: ${data.error || data.message}`, 'error');
+        addDebugLogMaster(`📊 Error data: ${JSON.stringify(data)}`, 'error');
+    });
+    
+    io.on('bot-join-success', (data) => {
+        addDebugLogMaster(`✅ Bot joined channel: ${data.channel_id}`, 'success');
+        addDebugLogMaster(`📊 Join data: ${JSON.stringify(data)}`, 'info');
+    });
+    
+    io.on('bot-join-error', (data) => {
+        addDebugLogMaster(`❌ Bot channel join failed: ${data.error || data.message}`, 'error');
+        addDebugLogMaster(`📊 Join error data: ${JSON.stringify(data)}`, 'error');
+    });
+    
+    addDebugLogMaster('🔗 Bot event listeners configured', 'success');
+}
+
+function setupBotMonitoring() {
+    if (!window.globalSocketManager?.io) {
+        addDebugLogMaster('⚠️ Socket not available for bot monitoring', 'warning');
+        return;
+    }
+    
+    const io = window.globalSocketManager.io;
+    
+    io.on('bot-message-intercept', (data) => {
+        addDebugLogMaster(`🤖 Bot intercepted message: "${data.content?.substring(0, 40)}..."`, 'info');
+        addDebugLogMaster(`   From: ${data.username} | Type: ${data.target_type} | ID: ${data.target_id}`, 'info');
+        updateBotActivityIndicator('intercepted');
+    });
+    
+    io.on('new-channel-message', (data) => {
+        if (data.user_id == window.titiBotData?.id) {
+            addDebugLogMaster(`🎤 Bot sent message: "${data.content?.substring(0, 40)}..."`, 'success');
+            addDebugLogMaster(`   Channel: ${data.channel_id} | Type: ${data.message_type}`, 'info');
+            updateBotActivityIndicator('sent');
+        }
+    });
+    
+    io.on('user-message-dm', (data) => {
+        if (data.user_id == window.titiBotData?.id) {
+            addDebugLogMaster(`💬 Bot sent DM: "${data.content?.substring(0, 40)}..."`, 'success');
+            addDebugLogMaster(`   Room: ${data.room_id} | Type: ${data.message_type}`, 'info');
+            updateBotActivityIndicator('sent');
+        }
+    });
+    
+    io.on('bot-music-command', (data) => {
+        addDebugLogMaster(`🎵 Bot music command: ${data.music_data?.action}`, 'success');
+        if (data.music_data?.track) {
+            addDebugLogMaster(`   Track: ${data.music_data.track.title}`, 'info');
+        }
+        updateBotActivityIndicator('music');
+    });
+    
+    addDebugLogMaster('👁️ Bot monitoring activated', 'success');
+    addDebugLogMaster('   Listening for: message intercepts, bot responses, music commands', 'info');
+}
+
+function updateBotActivityIndicator(activityType) {
+    const indicator = document.getElementById('bot-status-master');
+    if (!indicator) return;
+    
+    const colors = {
+        'intercepted': 'text-yellow-400',
+        'sent': 'text-green-400', 
+        'music': 'text-purple-400'
+    };
+    
+    const originalClass = indicator.className;
+    indicator.className = colors[activityType] || 'text-green-400';
+    indicator.innerHTML = '🔥 Active';
+    
+    setTimeout(() => {
+        indicator.className = originalClass;
+        indicator.innerHTML = '✅ Yes';
+    }, 2000);
+}
+
 function initializeMasterDebugPanel() {
     refreshMasterStatus();
     loadUserServersForMaster();
@@ -610,19 +762,16 @@ function initializeMasterDebugPanel() {
         const originalEmit = window.globalSocketManager.io.emit;
         window.globalSocketManager.io.emit = function(event, data) {
             if (event === 'save-and-send-message') {
-                addDebugLogMaster(`📤 Message: "${data.content?.substring(0, 30)}..."`, 'info');
+                addDebugLogMaster(`📤 Outgoing: "${data.content?.substring(0, 30)}..." → ${data.target_type}:${data.target_id}`, 'info');
             }
             return originalEmit.call(this, event, data);
         };
         
-        window.globalSocketManager.io.on('bot-initialized', (data) => {
-            addDebugLogMaster(`✅ Bot initialized: ${data.username}`, 'success');
-            refreshMasterStatus();
-        });
+        setupBotEventListeners();
         
-        window.globalSocketManager.io.on('bot-response', (data) => {
-            addDebugLogMaster(`🎤 Bot response: "${data.content?.substring(0, 30)}..."`, 'success');
-        });
+        addDebugLogMaster('🔌 Socket event interceptors configured', 'success');
+    } else {
+        addDebugLogMaster('⚠️ Socket not ready - event monitoring limited', 'warning');
     }
 }
 
@@ -675,24 +824,89 @@ async function loadUserServersForMaster() {
 }
 
 async function checkBotStatusForMaster() {
+    addDebugLogMaster('🔍 Performing comprehensive bot status check...', 'info');
+    
     try {
+        addDebugLogMaster('📡 Calling /api/bots/check/titibot endpoint...', 'info');
         const response = await fetch('/api/bots/check/titibot');
+        addDebugLogMaster(`📡 Bot check API response: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+        
         if (response.ok) {
             const data = await response.json();
+            addDebugLogMaster(`📊 Bot check response data: ${JSON.stringify(data)}`, 'info');
+            
             const botExists = data.exists && data.is_bot;
             const statusInfo = document.getElementById('bot-status-info');
             
             if (botExists) {
                 window.titiBotData = data.bot;
-                statusInfo.innerHTML = '<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot exists and ready</span>';
+                addDebugLogMaster(`✅ TitiBot found in database`, 'success');
+                addDebugLogMaster(`   Bot ID: ${data.bot.id}`, 'info');
+                addDebugLogMaster(`   Username: ${data.bot.username}`, 'info');
+                addDebugLogMaster(`   Status: ${data.bot.status}`, 'info');
+                addDebugLogMaster(`   Created: ${data.bot.created_at}`, 'info');
+                addDebugLogMaster(`   Discriminator: ${data.bot.discriminator}`, 'info');
+                
+                statusInfo.innerHTML = '<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>TitiBot exists - ready for initialization</span>';
+                
+                await checkBotServerMemberships();
+                
+            } else if (data.exists && !data.is_bot) {
+                addDebugLogMaster(`⚠️ User 'titibot' exists but is not marked as bot`, 'warning');
+                addDebugLogMaster(`   User status: ${data.user?.status || 'unknown'}`, 'warning');
+                statusInfo.innerHTML = '<span class="text-orange-400"><i class="fas fa-exclamation-triangle mr-1"></i>User exists but not a bot</span>';
             } else {
-                statusInfo.innerHTML = '<span class="text-yellow-400"><i class="fas fa-exclamation-circle mr-1"></i>TitiBot needs to be created</span>';
+                addDebugLogMaster(`📋 TitiBot does not exist in database`, 'info');
+                statusInfo.innerHTML = '<span class="text-yellow-400"><i class="fas fa-plus-circle mr-1"></i>TitiBot needs to be created</span>';
             }
             
             refreshMasterStatus();
+            
+        } else {
+            const errorText = await response.text();
+            addDebugLogMaster(`❌ Bot check API failed: ${errorText}`, 'error');
+            throw new Error(`API returned ${response.status}: ${errorText}`);
+        }
+        
+    } catch (error) {
+        addDebugLogMaster(`💥 Bot status check failed: ${error.message}`, 'error');
+        addDebugLogMaster(`🔍 Error details: ${error.stack?.substring(0, 200) || 'No stack'}`, 'error');
+        
+        const statusInfo = document.getElementById('bot-status-info');
+        if (statusInfo) {
+            statusInfo.innerHTML = '<span class="text-red-400"><i class="fas fa-times-circle mr-1"></i>Status check failed</span>';
+        }
+    }
+}
+
+async function checkBotServerMemberships() {
+    if (!window.titiBotData?.id) {
+        addDebugLogMaster('⚠️ No bot data available for server membership check', 'warning');
+        return;
+    }
+    
+    addDebugLogMaster('🔍 Checking bot server memberships...', 'info');
+    
+    try {
+        const response = await fetch('/api/user/servers');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.servers) {
+                addDebugLogMaster(`📊 Found ${data.servers.length} user servers`, 'info');
+                
+                for (const server of data.servers.slice(0, 3)) {
+                    addDebugLogMaster(`   Server: ${server.name} (ID: ${server.id})`, 'info');
+                }
+                
+                if (data.servers.length > 3) {
+                    addDebugLogMaster(`   ... and ${data.servers.length - 3} more servers`, 'info');
+                }
+            }
+        } else {
+            addDebugLogMaster('⚠️ Could not fetch user servers for membership check', 'warning');
         }
     } catch (error) {
-        console.error('Failed to check bot status:', error);
+        addDebugLogMaster(`❌ Server membership check failed: ${error.message}`, 'error');
     }
 }
 
@@ -840,7 +1054,20 @@ function sendTestCommand() {
         return;
     }
     
-    addDebugLogMaster(`🎯 Sending test command: "${command}" to room: ${roomId}`, 'info');
+    addDebugLogMaster(`🎯 Preparing to send test command: "${command}"`, 'info');
+    addDebugLogMaster(`📍 Target room: ${roomId}`, 'info');
+    
+    if (!window.globalSocketManager?.io) {
+        addDebugLogMaster('❌ No socket connection available', 'error');
+        return;
+    }
+    
+    if (!window.titiBotData?.id) {
+        addDebugLogMaster('⚠️ TitiBot not initialized - response unlikely', 'warning');
+    }
+    
+    const userId = document.querySelector('meta[name="user-id"]')?.content;
+    const username = document.querySelector('meta[name="username"]')?.content;
     
     const testMessage = {
         content: command,
@@ -848,22 +1075,119 @@ function sendTestCommand() {
         target_id: roomId,
         message_type: 'text',
         attachments: [],
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        user_id: userId,
+        username: username
     };
     
-    if (window.globalSocketManager?.io) {
-        window.globalSocketManager.io.emit('save-and-send-message', testMessage);
-        addDebugLogMaster('📤 Test command sent via WebSocket', 'success');
+    addDebugLogMaster(`📋 Message payload:`, 'info');
+    addDebugLogMaster(`   Content: "${testMessage.content}"`, 'info');
+    addDebugLogMaster(`   Type: ${testMessage.target_type}`, 'info');
+    addDebugLogMaster(`   ID: ${testMessage.target_id}`, 'info');
+    addDebugLogMaster(`   User: ${testMessage.username} (${testMessage.user_id})`, 'info');
+    
+    const startTime = Date.now();
+    let responseReceived = false;
+    
+    const checkForResponse = () => {
+        setTimeout(() => {
+            if (!responseReceived) {
+                addDebugLogMaster(`⏰ No bot response after 8 seconds`, 'warning');
+                addDebugLogMaster(`💡 Possible issues:`, 'info');
+                addDebugLogMaster(`   - TitiBot not initialized in this channel`, 'info');
+                addDebugLogMaster(`   - Bot command not recognized`, 'info');
+                addDebugLogMaster(`   - Socket connection issues`, 'info');
+            }
+        }, 8000);
+    };
+    
+    window.globalSocketManager.io.once('new-channel-message', (data) => {
+        if (data.user_id == window.titiBotData?.id) {
+            responseReceived = true;
+            const responseTime = Date.now() - startTime;
+            addDebugLogMaster(`🎉 Bot responded in ${responseTime}ms!`, 'success');
+            addDebugLogMaster(`   Response: "${data.content}"`, 'success');
+        }
+    });
+    
+    window.globalSocketManager.io.once('user-message-dm', (data) => {
+        if (data.user_id == window.titiBotData?.id) {
+            responseReceived = true;
+            const responseTime = Date.now() - startTime;
+            addDebugLogMaster(`🎉 Bot responded via DM in ${responseTime}ms!`, 'success');
+            addDebugLogMaster(`   Response: "${data.content}"`, 'success');
+        }
+    });
+    
+    window.globalSocketManager.io.emit('save-and-send-message', testMessage);
+    addDebugLogMaster('📤 Test command sent successfully', 'success');
+    addDebugLogMaster('⏳ Monitoring for bot response...', 'info');
+    
+    checkForResponse();
+}
+
+function runBotDiagnostics() {
+    addDebugLogMaster('🔬 Running comprehensive bot diagnostics...', 'info');
+    
+    const diagnostics = {
+        socketConnection: !!window.globalSocketManager?.io,
+        socketReady: window.globalSocketManager?.isReady(),
+        socketConnected: window.globalSocketManager?.connected,
+        socketAuthenticated: window.globalSocketManager?.authenticated,
+        botDataAvailable: !!window.titiBotData,
+        botId: window.titiBotData?.id,
+        currentLocation: window.location.pathname,
+        currentChannel: getCurrentChannelId(),
+        userAuthenticated: document.querySelector('meta[name="user-authenticated"]')?.content === 'true',
+        userId: document.querySelector('meta[name="user-id"]')?.content,
+        username: document.querySelector('meta[name="username"]')?.content
+    };
+    
+    addDebugLogMaster('📊 Diagnostic Results:', 'info');
+    
+    Object.entries(diagnostics).forEach(([key, value]) => {
+        const status = value ? '✅' : '❌';
+        const type = value ? 'success' : 'error';
+        addDebugLogMaster(`   ${status} ${key}: ${value}`, type);
+    });
+    
+    const issues = [];
+    if (!diagnostics.socketConnection) issues.push('Socket.IO not available');
+    if (!diagnostics.socketReady) issues.push('Socket not ready');
+    if (!diagnostics.socketConnected) issues.push('Socket not connected');
+    if (!diagnostics.socketAuthenticated) issues.push('Socket not authenticated');
+    if (!diagnostics.botDataAvailable) issues.push('Bot data not loaded');
+    if (!diagnostics.currentChannel) issues.push('No channel context');
+    if (!diagnostics.userAuthenticated) issues.push('User not authenticated');
+    
+    if (issues.length > 0) {
+        addDebugLogMaster('⚠️ Issues found:', 'warning');
+        issues.forEach(issue => addDebugLogMaster(`   - ${issue}`, 'warning'));
     } else {
-        addDebugLogMaster('❌ No socket connection to send test command', 'error');
+        addDebugLogMaster('✅ All systems operational for bot interaction', 'success');
     }
+    
+    if (window.globalSocketManager?.io) {
+        addDebugLogMaster('🔍 Socket room membership:', 'info');
+        const rooms = Array.from(window.globalSocketManager.io.rooms || []);
+        if (rooms.length > 0) {
+            rooms.forEach(room => addDebugLogMaster(`   - ${room}`, 'info'));
+        } else {
+            addDebugLogMaster('   No rooms joined', 'warning');
+        }
+    }
+    
+    return diagnostics;
 }
             
             function testBotMessage() {
-    addDebugLogMaster('🧪 Testing bot message flow...', 'info');
+    addDebugLogMaster('🧪 Starting comprehensive bot message flow test...', 'info');
     
     if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
         addDebugLogMaster('❌ Socket not ready for testing', 'error');
+        addDebugLogMaster(`   Socket exists: ${!!window.globalSocketManager}`, 'error');
+        addDebugLogMaster(`   Socket ready: ${window.globalSocketManager?.isReady()}`, 'error');
+        addDebugLogMaster(`   Socket connected: ${window.globalSocketManager?.connected}`, 'error');
         return;
     }
     
@@ -871,36 +1195,94 @@ function sendTestCommand() {
     const userId = document.querySelector('meta[name="user-id"]')?.content;
     const username = document.querySelector('meta[name="username"]')?.content;
     
-    addDebugLogMaster(`🔍 Current context: channelId=${currentChannelId}, userId=${userId}, username=${username}`, 'info');
+    addDebugLogMaster(`🔍 Current context analysis:`, 'info');
+    addDebugLogMaster(`   Channel ID: ${currentChannelId || 'NOT_FOUND'}`, 'info');
+    addDebugLogMaster(`   User ID: ${userId || 'NOT_FOUND'}`, 'info');
+    addDebugLogMaster(`   Username: ${username || 'NOT_FOUND'}`, 'info');
+    addDebugLogMaster(`   Current URL: ${window.location.pathname}`, 'info');
+    addDebugLogMaster(`   URL Search: ${window.location.search}`, 'info');
     
     let targetType, targetId;
     if (window.location.pathname.includes('/server/') && currentChannelId) {
         targetType = 'channel';
         targetId = currentChannelId;
+        addDebugLogMaster(`✅ Detected: Server channel context`, 'success');
     } else if (window.location.pathname.includes('/home/channels/dm/')) {
         targetType = 'dm';
         const dmMatch = window.location.pathname.match(/\/dm\/([^\/]+)/);
         targetId = dmMatch ? dmMatch[1] : currentChannelId;
+        addDebugLogMaster(`✅ Detected: Direct message context`, 'success');
     } else {
         targetType = 'channel';
         targetId = currentChannelId || '1';
+        addDebugLogMaster(`⚠️ Fallback: Using default channel context`, 'warning');
     }
     
+    if (!targetId) {
+        addDebugLogMaster('❌ No target ID found - test aborted', 'error');
+        addDebugLogMaster('💡 Try navigating to a specific channel or DM first', 'info');
+        return;
+    }
+    
+    const testCommands = ['/titibot ping', '/titibot help', '/titibot time'];
+    const selectedCommand = testCommands[Math.floor(Math.random() * testCommands.length)];
+    
     const testMessage = {
-        content: '/titibot ping',
+        content: selectedCommand,
         target_type: targetType,
         target_id: targetId,
         message_type: 'text',
         attachments: [],
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        user_id: userId,
+        username: username
     };
     
-    addDebugLogMaster(`🎯 Sending test message with correct fields:`, 'info');
-    addDebugLogMaster(`   content: "${testMessage.content}"`, 'info');
-    addDebugLogMaster(`   target_type: "${testMessage.target_type}"`, 'info');
-    addDebugLogMaster(`   target_id: "${testMessage.target_id}"`, 'info');
+    addDebugLogMaster(`🎯 Test message configuration:`, 'info');
+    addDebugLogMaster(`   Command: "${testMessage.content}"`, 'info');
+    addDebugLogMaster(`   Target Type: "${testMessage.target_type}"`, 'info');
+    addDebugLogMaster(`   Target ID: "${testMessage.target_id}"`, 'info');
+    addDebugLogMaster(`   User ID: "${testMessage.user_id}"`, 'info');
+    addDebugLogMaster(`   Username: "${testMessage.username}"`, 'info');
+    
+    const missingFields = [];
+    if (!testMessage.content) missingFields.push('content');
+    if (!testMessage.target_type) missingFields.push('target_type');
+    if (!testMessage.target_id) missingFields.push('target_id');
+    
+    if (missingFields.length > 0) {
+        addDebugLogMaster(`❌ Missing required fields: ${missingFields.join(', ')}`, 'error');
+        return;
+    }
+    
+    addDebugLogMaster(`📤 Sending test message via save-and-send-message event...`, 'info');
+    
+    const startTime = Date.now();
+    window.testMessageStartTime = startTime;
+    
+    let responseReceived = false;
+    const responseTimeout = setTimeout(() => {
+        if (!responseReceived) {
+            addDebugLogMaster(`⏰ No bot response received within 10 seconds`, 'warning');
+            addDebugLogMaster(`💡 Check if TitiBot is properly initialized and monitoring messages`, 'info');
+        }
+    }, 10000);
+    
+    const originalHandler = window.globalSocketManager.io._callbacks?.$['new-channel-message'];
+    window.globalSocketManager.io.once('new-channel-message', (data) => {
+        if (data.user_id == window.titiBotData?.id && Date.now() - startTime < 15000) {
+            responseReceived = true;
+            clearTimeout(responseTimeout);
+            const responseTime = Date.now() - startTime;
+            addDebugLogMaster(`🎉 Bot response received! (${responseTime}ms)`, 'success');
+            addDebugLogMaster(`   Bot message: "${data.content}"`, 'success');
+            addDebugLogMaster(`   Response time: ${responseTime}ms`, 'info');
+        }
+    });
     
     window.globalSocketManager.io.emit('save-and-send-message', testMessage);
+    addDebugLogMaster(`✅ Test message sent successfully`, 'success');
+    addDebugLogMaster(`⏳ Waiting for bot response...`, 'info');
 }
 
 function debugSocketConnection() {

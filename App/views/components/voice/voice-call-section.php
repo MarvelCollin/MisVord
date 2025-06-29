@@ -37,20 +37,20 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
                     </div>
                 </div>
                 <video id="screenShareVideo" class="w-full h-full object-contain bg-black" autoplay playsinline></video>
-            </div>
-            
-            <div id="speakerView" class="hidden flex-1 bg-[#1a1b1e] rounded-lg m-4 relative overflow-hidden shadow-xl">
-                <div class="absolute top-4 left-4 z-10 bg-[#1e1f22]/90 backdrop-blur-sm rounded-lg px-3 py-2">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-3 h-3 bg-[#3ba55c] rounded-full animate-pulse"></div>
-                        <span class="text-white text-sm font-medium" id="speakerUsername">Speaker</span>
-                    </div>
+                <div class="absolute bottom-4 right-4 z-10">
+                    <button onclick="closeScreenShare()" class="bg-[#ed4245] hover:bg-[#fc5054] text-white p-2 rounded-full transition-all duration-200">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <video id="speakerVideo" class="w-full h-full object-cover bg-[#1e1f22]" autoplay playsinline></video>
             </div>
             
-            <div id="voiceOnlyGrid" class="flex-1 flex items-center justify-center p-8">
-                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-6 max-w-6xl w-full justify-items-center">
+            <div id="participantGrid" class="flex-1 p-4">
+                <div id="videoGrid" class="grid gap-4 h-full" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-rows: minmax(200px, 1fr);">
+                </div>
+                
+                <div id="voiceOnlyGrid" class="hidden flex-1 flex items-center justify-center">
+                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-6 max-w-6xl w-full justify-items-center">
+                    </div>
                 </div>
             </div>
         </div>
@@ -191,6 +191,59 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     background: #1e1f22;
 }
 
+.discord-video-card {
+    @apply bg-[#1e1f22] rounded-lg overflow-hidden shadow-lg border border-[#40444b]/30 hover:border-[#40444b]/60 transition-all duration-200;
+    min-height: 200px;
+    aspect-ratio: 16/9;
+}
+
+.discord-video-card video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+}
+
+.discord-video-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.discord-voice-card {
+    @apply transition-all duration-200 hover:scale-105;
+}
+
+.discord-voice-card:hover {
+    transform: translateY(-4px) scale(1.05);
+}
+
+#videoGrid {
+    display: grid;
+    gap: 1rem;
+    height: 100%;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+#videoGrid::-webkit-scrollbar {
+    width: 8px;
+}
+
+#videoGrid::-webkit-scrollbar-track {
+    background: #313338;
+    border-radius: 4px;
+}
+
+#videoGrid::-webkit-scrollbar-thumb {
+    background: #40444b;
+    border-radius: 4px;
+}
+
+#videoGrid::-webkit-scrollbar-thumb:hover {
+    background: #4f545c;
+}
+
 .video-participant-card {
     @apply bg-[#1e1f22] rounded-lg overflow-hidden shadow-lg border border-[#40444b]/30 hover:border-[#40444b]/60 transition-all duration-200;
 }
@@ -322,6 +375,86 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     40% { transform: scale(1); }
 }
 
+@keyframes discord-glow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 165, 93, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(59, 165, 93, 0);
+    }
+}
+
+@keyframes slide-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.discord-speaking-glow {
+    animation: discord-glow 2s infinite;
+}
+
+.participant-enter {
+    animation: slide-in-up 0.4s ease-out forwards;
+}
+
+.video-card-enter {
+    animation: slide-in-right 0.5s ease-out forwards;
+}
+
+.speaking-border {
+    border: 2px solid #3ba55c !important;
+    box-shadow: 0 0 15px rgba(59, 165, 93, 0.3);
+}
+
+.participant-muted::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 20px;
+    height: 20px;
+    background: #ed4245;
+    border-radius: 50%;
+    border: 2px solid #1e1f22;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 16 16'%3e%3cpath d='M13 8c0 .564-.094 1.107-.266 1.613l-.814-.814A4.02 4.02 0 0 0 12 8V7a.5.5 0 0 1 1 0v1zm-5 4c.818 0 1.578-.188 2.262-.524l-.816-.816A2.99 2.99 0 0 1 8 11a3 3 0 0 1-3-3V6.341l-.912-.912A4.001 4.001 0 0 0 4 8v1a5 5 0 0 0 4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-1.025A5 5 0 0 1 3 9V8a5.001 5.001 0 0 1 .776-2.676L2.636 4.184a.5.5 0 1 1 .708-.708l11 11a.5.5 0 0 1-.708.708L8.5 9.5z'/%3e%3cpath d='M8 6a2 2 0 1 1 4 0v1a2 2 0 0 1-1.188 1.825l-.812-.812V6a1 1 0 0 0-2 0z'/%3e%3c/svg%3e");
+    background-size: 10px 10px;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.participant-deafened::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 20px;
+    height: 20px;
+    background: #ed4245;
+    border-radius: 50%;
+    border: 2px solid #1e1f22;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 16 16'%3e%3cpath d='M6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06zM6 5.04 4.312 6.39A.5.5 0 0 1 4 6.5H2v3h2a.5.5 0 0 1 .312.11L6 10.96V5.04zm7.854.606a.5.5 0 0 1 0 .708L12.207 8l1.647 1.646a.5.5 0 0 1-.708.708L11.5 8.707l-1.646 1.647a.5.5 0 0 1-.708-.708L10.793 8 9.146 6.354a.5.5 0 1 1 .708-.708L11.5 7.293l1.646-1.647a.5.5 0 0 1 .708 0z'/%3e%3c/svg%3e");
+    background-size: 10px 10px;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
 .voice-control-panel {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -438,6 +571,26 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
         height: 2.5rem;
         font-size: 0.75rem;
     }
+
+    #videoGrid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .discord-video-card {
+        min-height: 180px;
+    }
+
+    .discord-voice-card {
+        padding: 0.75rem;
+    }
+
+    #voiceOnlyGrid .grid {
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)) !important;
+        gap: 1rem;
+        max-width: 100%;
+    }
 }
 
 @media (max-width: 768px) {
@@ -546,18 +699,31 @@ function toggleMicrophone() {
     try {
         const newMicState = window.videoSDKManager.toggleMic();
         const micBtn = document.getElementById('voiceMicBtn');
+        if (!micBtn) {
+            console.error('Microphone button not found');
+            return;
+        }
+
         const micIcon = micBtn.querySelector('i');
-        const micTooltip = micBtn.querySelector('.mic-tooltip');
+        const micTooltip = micBtn.parentElement?.querySelector('.mic-tooltip');
 
         if (newMicState) {
-            micIcon.className = 'fas fa-microphone text-xl';
-            micTooltip.textContent = 'Mute';
+            if (micIcon) {
+                micIcon.className = 'fas fa-microphone text-xl';
+            }
+            if (micTooltip) {
+                micTooltip.textContent = 'Mute';
+            }
             micBtn.classList.remove('bg-red-500');
             micBtn.classList.add('bg-[#2f3136]');
             showToast('Microphone enabled', 'success');
         } else {
-            micIcon.className = 'fas fa-microphone-slash text-xl';
-            micTooltip.textContent = 'Unmute';
+            if (micIcon) {
+                micIcon.className = 'fas fa-microphone-slash text-xl';
+            }
+            if (micTooltip) {
+                micTooltip.textContent = 'Unmute';
+            }
             micBtn.classList.remove('bg-[#2f3136]');
             micBtn.classList.add('bg-red-500');
             showToast('Microphone muted', 'info');
@@ -577,18 +743,31 @@ function toggleDeafen() {
     try {
         const newDeafenState = window.videoSDKManager.toggleDeafen();
         const deafenBtn = document.getElementById('voiceDeafenBtn');
+        if (!deafenBtn) {
+            console.error('Deafen button not found');
+            return;
+        }
+
         const deafenIcon = deafenBtn.querySelector('i');
-        const deafenTooltip = deafenBtn.querySelector('.deafen-tooltip');
+        const deafenTooltip = deafenBtn.parentElement?.querySelector('.deafen-tooltip');
 
         if (newDeafenState) {
-            deafenIcon.className = 'fas fa-volume-mute text-xl';
-            deafenTooltip.textContent = 'Undeafen';
+            if (deafenIcon) {
+                deafenIcon.className = 'fas fa-volume-mute text-xl';
+            }
+            if (deafenTooltip) {
+                deafenTooltip.textContent = 'Undeafen';
+            }
             deafenBtn.classList.remove('bg-[#2f3136]');
             deafenBtn.classList.add('bg-red-500');
             showToast('Audio deafened', 'info');
         } else {
-            deafenIcon.className = 'fas fa-headphones text-xl';
-            deafenTooltip.textContent = 'Deafen';
+            if (deafenIcon) {
+                deafenIcon.className = 'fas fa-headphones text-xl';
+            }
+            if (deafenTooltip) {
+                deafenTooltip.textContent = 'Deafen';
+            }
             deafenBtn.classList.remove('bg-red-500');
             deafenBtn.classList.add('bg-[#2f3136]');
             showToast('Audio undeafened', 'success');
@@ -606,8 +785,13 @@ async function toggleCamera() {
     }
 
     const videoBtn = document.getElementById('voiceVideoBtn');
+    if (!videoBtn) {
+        console.error('Video button not found');
+        return;
+    }
+
     const videoIcon = videoBtn.querySelector('i');
-    const videoTooltip = videoBtn.querySelector('.video-tooltip');
+    const videoTooltip = videoBtn.parentElement?.querySelector('.video-tooltip');
     
     videoBtn.disabled = true;
     videoBtn.style.opacity = '0.6';
@@ -616,14 +800,22 @@ async function toggleCamera() {
         const newVideoState = await window.videoSDKManager.toggleWebcam();
         
         if (newVideoState) {
-            videoIcon.className = 'fas fa-video text-xl';
-            videoTooltip.textContent = 'Turn Off Camera';
+            if (videoIcon) {
+                videoIcon.className = 'fas fa-video text-xl';
+            }
+            if (videoTooltip) {
+                videoTooltip.textContent = 'Turn Off Camera';
+            }
             videoBtn.classList.remove('bg-[#2f3136]');
             videoBtn.classList.add('bg-green-600');
             showToast('Camera enabled', 'success');
         } else {
-            videoIcon.className = 'fas fa-video-slash text-xl';
-            videoTooltip.textContent = 'Turn On Camera';
+            if (videoIcon) {
+                videoIcon.className = 'fas fa-video-slash text-xl';
+            }
+            if (videoTooltip) {
+                videoTooltip.textContent = 'Turn On Camera';
+            }
             videoBtn.classList.remove('bg-green-600');
             videoBtn.classList.add('bg-[#2f3136]');
             showToast('Camera disabled', 'info');
@@ -646,8 +838,13 @@ async function toggleScreenShare() {
     }
 
     const screenBtn = document.getElementById('voiceScreenBtn');
+    if (!screenBtn) {
+        console.error('Screen share button not found');
+        return;
+    }
+
     const screenIcon = screenBtn.querySelector('i');
-    const screenTooltip = screenBtn.querySelector('.screen-tooltip');
+    const screenTooltip = screenBtn.parentElement?.querySelector('.screen-tooltip');
     
     screenBtn.disabled = true;
     screenBtn.style.opacity = '0.6';
@@ -656,14 +853,22 @@ async function toggleScreenShare() {
         const newScreenState = await window.videoSDKManager.toggleScreenShare();
         
         if (newScreenState) {
-            screenIcon.className = 'fas fa-stop-circle text-xl';
-            screenTooltip.textContent = 'Stop Sharing';
+            if (screenIcon) {
+                screenIcon.className = 'fas fa-stop-circle text-xl';
+            }
+            if (screenTooltip) {
+                screenTooltip.textContent = 'Stop Sharing';
+            }
             screenBtn.classList.remove('bg-[#2f3136]');
             screenBtn.classList.add('bg-blue-600');
             showToast('Screen share started', 'success');
         } else {
-            screenIcon.className = 'fas fa-desktop text-xl';
-            screenTooltip.textContent = 'Share Screen';
+            if (screenIcon) {
+                screenIcon.className = 'fas fa-desktop text-xl';
+            }
+            if (screenTooltip) {
+                screenTooltip.textContent = 'Share Screen';
+            }
             screenBtn.classList.remove('bg-blue-600');
             screenBtn.classList.add('bg-[#2f3136]');
             showToast('Screen share stopped', 'info');
@@ -697,6 +902,337 @@ function showToast(message, type = 'info', duration = 3000) {
         window.showToast(message, type, duration);
     } else {
         console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+}
+
+class DiscordVoiceManager {
+    constructor() {
+        this.participants = new Map();
+        this.videoParticipants = new Set();
+        this.screenShareActive = false;
+        this.currentLayout = 'voice-only';
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.updateParticipantCount();
+    }
+
+    setupEventListeners() {
+        window.addEventListener('voiceConnect', () => {
+            this.addParticipant('local', 'You', true);
+            this.updateLayout();
+        });
+
+        window.addEventListener('voiceDisconnect', () => {
+            this.clearAllParticipants();
+        });
+
+        window.addEventListener('videosdkStreamEnabled', (event) => {
+            const { kind, stream, participant } = event.detail;
+            if (kind === 'video') {
+                this.handleVideoEnabled(participant, stream);
+            } else if (kind === 'share') {
+                this.handleScreenShare(participant, stream, true);
+            }
+        });
+
+        window.addEventListener('videosdkStreamDisabled', (event) => {
+            const { kind, participant } = event.detail;
+            if (kind === 'video') {
+                this.handleVideoDisabled(participant);
+            } else if (kind === 'share') {
+                this.handleScreenShare(participant, null, false);
+            }
+        });
+    }
+
+    addParticipant(participantId, username = 'User', isLocal = false) {
+        if (this.participants.has(participantId)) {
+            return;
+        }
+
+        const participant = {
+            id: participantId,
+            username: username,
+            isLocal: isLocal,
+            hasVideo: false,
+            isMuted: false,
+            isDeafened: false,
+            isSpeaking: false
+        };
+
+        this.participants.set(participantId, participant);
+        this.createParticipantElement(participant);
+        this.updateParticipantCount();
+        this.updateLayout();
+
+        console.log(`➕ Participant added: ${username} (${participantId})`);
+    }
+
+    removeParticipant(participantId) {
+        if (!this.participants.has(participantId)) {
+            return;
+        }
+
+        const participant = this.participants.get(participantId);
+        this.participants.delete(participantId);
+        this.videoParticipants.delete(participantId);
+
+        const element = document.querySelector(`[data-participant-id="${participantId}"]`);
+        if (element) {
+            element.remove();
+        }
+
+        this.updateParticipantCount();
+        this.updateLayout();
+
+        console.log(`➖ Participant removed: ${participant.username} (${participantId})`);
+    }
+
+    createParticipantElement(participant) {
+        const videoGrid = document.getElementById('videoGrid');
+        const voiceGrid = document.querySelector('#voiceOnlyGrid .grid');
+        
+        if (participant.hasVideo) {
+            this.createVideoParticipantCard(participant, videoGrid);
+        } else {
+            this.createVoiceParticipantCard(participant, voiceGrid);
+        }
+    }
+
+    createVideoParticipantCard(participant, container) {
+        const card = document.createElement('div');
+        card.className = 'discord-video-card bg-[#1e1f22] rounded-lg overflow-hidden shadow-lg border border-[#40444b]/30 hover:border-[#40444b]/60 transition-all duration-200 relative group video-card-enter';
+        card.dataset.participantId = participant.id;
+        card.dataset.type = 'video';
+
+        card.innerHTML = `
+            <div class="relative w-full h-full min-h-[200px]">
+                <video class="w-full h-full object-cover bg-black" autoplay playsinline muted="${participant.isLocal}"></video>
+                
+                <div class="absolute top-3 left-3 bg-[#1e1f22]/90 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center space-x-2">
+                    <div class="w-2 h-2 rounded-full ${participant.isSpeaking ? 'bg-[#3ba55c] animate-pulse' : 'bg-[#72767d]'}"></div>
+                    <span class="text-white text-sm font-medium">${participant.username}</span>
+                </div>
+
+                <div class="absolute top-3 right-3 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    ${participant.isMuted ? '<div class="bg-red-500 p-1.5 rounded-full"><i class="fas fa-microphone-slash text-white text-xs"></i></div>' : ''}
+                    ${participant.isDeafened ? '<div class="bg-red-500 p-1.5 rounded-full"><i class="fas fa-volume-mute text-white text-xs"></i></div>' : ''}
+                </div>
+
+                <div class="absolute bottom-3 right-3 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button onclick="discordVoiceManager.toggleParticipantVideo('${participant.id}')" class="bg-[#2f3136] hover:bg-[#3c3f47] p-2 rounded-full transition-all duration-200" title="Toggle Video">
+                        <i class="fas fa-video text-white text-xs"></i>
+                    </button>
+                    ${!participant.isLocal ? `<button onclick="discordVoiceManager.toggleParticipantMute('${participant.id}')" class="bg-[#2f3136] hover:bg-[#3c3f47] p-2 rounded-full transition-all duration-200" title="Mute Participant">
+                        <i class="fas fa-microphone-slash text-white text-xs"></i>
+                    </button>` : ''}
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
+        return card;
+    }
+
+    createVoiceParticipantCard(participant, container) {
+        const card = document.createElement('div');
+        card.className = 'discord-voice-card flex flex-col items-center space-y-2 p-4 transition-all duration-200 hover:scale-105 participant-enter';
+        card.dataset.participantId = participant.id;
+        card.dataset.type = 'voice';
+
+        const avatarColor = this.getAvatarColor(participant.username);
+        const initial = participant.username.charAt(0).toUpperCase();
+
+        card.innerHTML = `
+            <div class="relative">
+                <div class="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg transition-all duration-200 ${participant.isSpeaking ? 'ring-4 ring-[#3ba55c] ring-opacity-60 animate-pulse' : ''}" style="background: ${avatarColor}">
+                    ${initial}
+                </div>
+                ${participant.isMuted ? '<div class="absolute -bottom-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"><i class="fas fa-microphone-slash text-white text-xs"></i></div>' : ''}
+                ${participant.isDeafened ? '<div class="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"><i class="fas fa-volume-mute text-white text-xs"></i></div>' : ''}
+            </div>
+            <span class="text-white text-sm font-medium text-center max-w-[100px] truncate">${participant.username}</span>
+        `;
+
+        container.appendChild(card);
+        return card;
+    }
+
+    handleVideoEnabled(participantId, stream) {
+        if (!this.participants.has(participantId)) {
+            this.addParticipant(participantId, participantId);
+        }
+
+        const participant = this.participants.get(participantId);
+        participant.hasVideo = true;
+        this.videoParticipants.add(participantId);
+
+        this.removeExistingParticipantElement(participantId);
+        
+        const videoGrid = document.getElementById('videoGrid');
+        const card = this.createVideoParticipantCard(participant, videoGrid);
+        
+        const video = card.querySelector('video');
+        if (video && stream) {
+            this.attachStreamToVideo(video, stream);
+        }
+
+        this.updateLayout();
+        console.log(`📹 Video enabled for ${participant.username}`);
+    }
+
+    handleVideoDisabled(participantId) {
+        if (!this.participants.has(participantId)) return;
+
+        const participant = this.participants.get(participantId);
+        participant.hasVideo = false;
+        this.videoParticipants.delete(participantId);
+
+        this.removeExistingParticipantElement(participantId);
+        
+        const voiceGrid = document.querySelector('#voiceOnlyGrid .grid');
+        this.createVoiceParticipantCard(participant, voiceGrid);
+
+        this.updateLayout();
+        console.log(`📹❌ Video disabled for ${participant.username}`);
+    }
+
+    handleScreenShare(participantId, stream, isSharing) {
+        const screenContainer = document.getElementById('screenShareContainer');
+        const screenVideo = document.getElementById('screenShareVideo');
+        const screenUsername = document.getElementById('screenShareUsername');
+
+        if (isSharing && stream) {
+            this.screenShareActive = true;
+            const participant = this.participants.get(participantId) || { username: participantId };
+            
+            screenUsername.textContent = `${participant.username}'s Screen`;
+            this.attachStreamToVideo(screenVideo, stream);
+            screenContainer.classList.remove('hidden');
+            
+            console.log(`🖥️ Screen share started by ${participant.username}`);
+        } else {
+            this.screenShareActive = false;
+            screenContainer.classList.add('hidden');
+            if (screenVideo.srcObject) {
+                screenVideo.srcObject = null;
+            }
+            console.log(`🖥️❌ Screen share stopped`);
+        }
+
+        this.updateLayout();
+    }
+
+    attachStreamToVideo(videoElement, stream) {
+        try {
+            let mediaStream = null;
+            
+            if (stream instanceof MediaStream) {
+                mediaStream = stream;
+            } else if (stream.stream instanceof MediaStream) {
+                mediaStream = stream.stream;
+            } else if (stream.track) {
+                mediaStream = new MediaStream([stream.track]);
+            }
+
+            if (mediaStream && videoElement) {
+                videoElement.srcObject = mediaStream;
+                videoElement.play().catch(error => {
+                    console.warn('Video play failed:', error);
+                });
+            }
+        } catch (error) {
+            console.error('Error attaching stream to video:', error);
+        }
+    }
+
+    removeExistingParticipantElement(participantId) {
+        const existingElement = document.querySelector(`[data-participant-id="${participantId}"]`);
+        if (existingElement) {
+            existingElement.remove();
+        }
+    }
+
+    updateLayout() {
+        const hasVideo = this.videoParticipants.size > 0;
+        const hasScreenShare = this.screenShareActive;
+        const videoGrid = document.getElementById('videoGrid');
+        const voiceGrid = document.getElementById('voiceOnlyGrid');
+        const participantGrid = document.getElementById('participantGrid');
+
+        if (hasScreenShare) {
+            this.currentLayout = 'screen-share';
+            participantGrid.classList.add('hidden');
+        } else if (hasVideo) {
+            this.currentLayout = 'video';
+            videoGrid.classList.remove('hidden');
+            voiceGrid.classList.add('hidden');
+            participantGrid.classList.remove('hidden');
+        } else {
+            this.currentLayout = 'voice-only';
+            videoGrid.classList.add('hidden');
+            voiceGrid.classList.remove('hidden');
+            participantGrid.classList.remove('hidden');
+        }
+
+        this.updateGridColumns();
+        console.log(`🔄 Layout updated: ${this.currentLayout}`);
+    }
+
+    updateGridColumns() {
+        const videoGrid = document.getElementById('videoGrid');
+        const participantCount = this.videoParticipants.size;
+
+        if (participantCount <= 1) {
+            videoGrid.style.gridTemplateColumns = '1fr';
+        } else if (participantCount <= 4) {
+            videoGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+        } else if (participantCount <= 9) {
+            videoGrid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        } else {
+            videoGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+        }
+    }
+
+    updateParticipantCount() {
+        const countElement = document.getElementById('voiceParticipantCount');
+        if (countElement) {
+            countElement.textContent = this.participants.size;
+        }
+    }
+
+    getAvatarColor(username) {
+        const colors = [
+            '#5865f2', '#3ba55c', '#faa61a', '#ed4245', '#9b59b6',
+            '#e91e63', '#00bcd4', '#607d8b', '#795548', '#ff5722'
+        ];
+        const hash = username.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+        return colors[hash % colors.length];
+    }
+
+    clearAllParticipants() {
+        this.participants.clear();
+        this.videoParticipants.clear();
+        this.screenShareActive = false;
+        
+        document.getElementById('videoGrid').innerHTML = '';
+        document.querySelector('#voiceOnlyGrid .grid').innerHTML = '';
+        document.getElementById('screenShareContainer').classList.add('hidden');
+        
+        this.updateParticipantCount();
+        this.updateLayout();
+        console.log('🧹 All participants cleared');
+    }
+}
+
+window.discordVoiceManager = new DiscordVoiceManager();
+
+function closeScreenShare() {
+    if (window.videoSDKManager && window.videoSDKManager.getScreenShareState()) {
+        toggleScreenShare();
     }
 }
 

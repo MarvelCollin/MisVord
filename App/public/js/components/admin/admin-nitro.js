@@ -54,9 +54,22 @@ export class NitroManager {
         return response.json();
       })
       .then(data => {
-        if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
+        console.log('Background user load response:', data);
+        
+        if (data.success && data.data && data.data.data && data.data.data.users && Array.isArray(data.data.data.users)) {
+          this.allUsersCache = data.data.data.users;
+          this.allUsersLoaded = true;
+          console.log(`Loaded ${data.data.data.users.length} users for fuzzy search`);
+        } else if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
           this.allUsersCache = data.data.users;
           this.allUsersLoaded = true;
+          console.log(`Loaded ${data.data.users.length} users for fuzzy search`);
+        } else if (data.success && data.users && Array.isArray(data.users)) {
+          this.allUsersCache = data.users;
+          this.allUsersLoaded = true;
+          console.log(`Loaded ${data.users.length} users for fuzzy search (alternative format)`);
+        } else {
+          console.warn('Unexpected response format for user preload:', data);
         }
       })
       .catch(error => {
@@ -232,8 +245,10 @@ export class NitroManager {
     }
     
     if (this.allUsersLoaded && this.allUsersCache) {
-      userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-pulse">Searching with fuzzy matching...</div>';
+      this.showUserSearchSkeleton(userSearchResults);
       this.showDropdownWithAnimation(userSearchResults);
+      
+      const searchStartTime = Date.now();
       
       setTimeout(() => {
         const fuzzyResults = jaroWinkler.searchUsers(this.allUsersCache, query, {
@@ -243,16 +258,23 @@ export class NitroManager {
           weights: { username: 1.0, display_name: 0.8, email: 0.6 }
         });
         
-        this.cacheSearchResult(query, fuzzyResults);
-        this.renderSearchResults(fuzzyResults, userSearchResults, query);
+        const searchDuration = Date.now() - searchStartTime;
+        const minLoadingTime = 1200;
+        const remainingTime = Math.max(0, minLoadingTime - searchDuration);
+        
+        setTimeout(() => {
+          this.cacheSearchResult(query, fuzzyResults);
+          this.renderSearchResults(fuzzyResults, userSearchResults, query);
+        }, remainingTime);
       }, 50);
       return;
     }
     
-    userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-pulse">Searching...</div>';
+    this.showUserSearchSkeleton(userSearchResults);
     this.showDropdownWithAnimation(userSearchResults);
     
     this.searchController = new AbortController();
+    const searchStartTime = Date.now();
     
     const ajaxConfig = {
       method: 'GET',
@@ -273,12 +295,27 @@ export class NitroManager {
         return response.json();
       })
       .then(data => {
-        if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
-          this.cacheSearchResult(query, data.data.users);
-          this.renderSearchResults(data.data.users, userSearchResults, query);
-        } else {
-          userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-shake">Invalid response format</div>';
-        }
+        console.log('Search response:', data);
+        
+        const searchDuration = Date.now() - searchStartTime;
+        const minLoadingTime = 1500;
+        const remainingTime = Math.max(0, minLoadingTime - searchDuration);
+        
+        setTimeout(() => {
+          if (data.success && data.data && data.data.data && data.data.data.users && Array.isArray(data.data.data.users)) {
+            this.cacheSearchResult(query, data.data.data.users);
+            this.renderSearchResults(data.data.data.users, userSearchResults, query);
+          } else if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
+            this.cacheSearchResult(query, data.data.users);
+            this.renderSearchResults(data.data.users, userSearchResults, query);
+          } else if (data.success && data.users && Array.isArray(data.users)) {
+            this.cacheSearchResult(query, data.users);
+            this.renderSearchResults(data.users, userSearchResults, query);
+          } else {
+            console.error('Invalid response format:', data);
+            userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-shake">Invalid response format</div>';
+          }
+        }, remainingTime);
       })
       .catch(error => {
         if (error.name === 'AbortError') {
@@ -612,6 +649,23 @@ export class NitroManager {
     };
   }
 
+  showUserSearchSkeleton(userSearchResults) {
+    const skeletonHtml = `
+      <div class="user-search-skeleton">
+        ${Array.from({length: 5}, (_, i) => `
+          <div class="p-2 flex items-center animate-pulse" style="animation-delay: ${i * 100}ms;">
+            <div class="w-8 h-8 rounded-full bg-discord-dark mr-2 flex-shrink-0 skeleton-shimmer"></div>
+            <div class="flex-1 min-w-0">
+              <div class="h-4 bg-discord-dark rounded skeleton-shimmer mb-1" style="width: ${60 + Math.random() * 40}%;"></div>
+              <div class="h-3 bg-discord-darker rounded skeleton-shimmer" style="width: ${40 + Math.random() * 30}%;"></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    userSearchResults.innerHTML = skeletonHtml;
+  }
+
   loadAllUsers() {
     const userSearchResults = document.getElementById('user-search-results');
     
@@ -628,10 +682,11 @@ export class NitroManager {
       return;
     }
     
-    userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-pulse">Loading users...</div>';
+    this.showUserSearchSkeleton(userSearchResults);
     this.showDropdownWithAnimation(userSearchResults);
     
     this.searchController = new AbortController();
+    const loadStartTime = Date.now();
     
     const ajaxConfig = {
       method: 'GET',
@@ -652,12 +707,27 @@ export class NitroManager {
         return response.json();
       })
       .then(data => {
-        if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
-          this.cacheSearchResult(cacheKey, data.data.users);
-          this.renderSearchResults(data.data.users, userSearchResults);
-        } else {
-          userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-shake">Failed to load users</div>';
-        }
+        console.log('Load all users response:', data);
+        
+        const loadDuration = Date.now() - loadStartTime;
+        const minLoadingTime = 1200;
+        const remainingTime = Math.max(0, minLoadingTime - loadDuration);
+        
+        setTimeout(() => {
+          if (data.success && data.data && data.data.data && data.data.data.users && Array.isArray(data.data.data.users)) {
+            this.cacheSearchResult(cacheKey, data.data.data.users);
+            this.renderSearchResults(data.data.data.users, userSearchResults);
+          } else if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
+            this.cacheSearchResult(cacheKey, data.data.users);
+            this.renderSearchResults(data.data.users, userSearchResults);
+          } else if (data.success && data.users && Array.isArray(data.users)) {
+            this.cacheSearchResult(cacheKey, data.users);
+            this.renderSearchResults(data.users, userSearchResults);
+          } else {
+            console.error('Invalid response format for load all users:', data);
+            userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-shake">Failed to load users</div>';
+          }
+        }, remainingTime);
       })
       .catch(error => {
         if (error.name === 'AbortError') {
