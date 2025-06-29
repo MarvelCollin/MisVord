@@ -166,15 +166,33 @@ class VoiceManager {
             
             window.videoSDKJoiningInProgress = true;
 
-            const meetingId = `voice_channel_${channelId}`;
-
-            const meeting = await this.videoSDKManager.createMeetingRoom(meetingId);
-            if (!meeting) {
-                throw new Error('Failed to create meeting room');
+            // 🎯 STEP 1: Check if meeting already exists for this channel
+            console.log(`🔍 [VOICE-MANAGER] Checking for existing meeting in channel ${channelId}...`);
+            const existingMeeting = await this.checkExistingMeeting(channelId);
+            
+            let meetingId;
+            if (existingMeeting) {
+                // 🎯 STEP 2: Join existing meeting
+                console.log(`✅ [VOICE-MANAGER] Found existing meeting: ${existingMeeting.meeting_id}`);
+                meetingId = existingMeeting.meeting_id;
+            } else {
+                // 🎯 STEP 3: Create new meeting and register with socket
+                console.log(`🆕 [VOICE-MANAGER] No existing meeting, creating new one...`);
+                const customMeetingId = `voice_channel_${channelId}`;
+                meetingId = await this.videoSDKManager.createMeetingRoom(customMeetingId);
+                
+                if (!meetingId) {
+                    throw new Error('Failed to create meeting room');
+                }
+                
+                console.log(`📝 [VOICE-MANAGER] Created new meeting: ${meetingId}, registering with socket...`);
+                await this.registerMeetingWithSocket(channelId, meetingId);
             }
             
+            // 🎯 STEP 4: Join the meeting (existing or new)
+            console.log(`🚪 [VOICE-MANAGER] Joining meeting: ${meetingId}`);
             await this.videoSDKManager.initMeeting({
-                meetingId: meeting,
+                meetingId: meetingId,
                 name: window.currentUsername || 'Anonymous',
                 micEnabled: true,
                 webcamEnabled: false
@@ -210,7 +228,7 @@ class VoiceManager {
                 }
             });
             
-            this.currentMeetingId = meeting;
+            this.currentMeetingId = meetingId;
             this.isConnected = true;
             
             const channelName = this.currentChannelName || 
@@ -222,12 +240,13 @@ class VoiceManager {
             this.dispatchEvent(window.VOICE_EVENTS?.VOICE_CONNECT || 'voiceConnect', {
                 channelId: this.currentChannelId,
                 channelName: channelName,
-                meetingId: meeting
+                meetingId: meetingId
             });
 
+            console.log(`🎉 [VOICE-MANAGER] Successfully joined voice - Meeting: ${meetingId}, Channel: ${channelId}`);
             return Promise.resolve();
         } catch (error) {
-            console.error('Failed to join voice:', error);
+            console.error('❌ [VOICE-MANAGER] Failed to join voice:', error);
             
             window.videoSDKJoiningInProgress = false;
             this.isConnected = false;

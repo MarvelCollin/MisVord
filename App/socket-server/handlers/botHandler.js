@@ -1,9 +1,11 @@
 const roomManager = require('../services/roomManager');
+const EventEmitter = require('events');
 
-class BotHandler {
+class BotHandler extends EventEmitter {
     static bots = new Map();
     static activeConnections = new Map();
     static processedMessages = new Set();
+    static botEventEmitter = new EventEmitter();
 
     static registerBot(botId, username) {
         console.log(`🤖 Registering bot: ${username} (ID: ${botId})`);
@@ -63,11 +65,10 @@ class BotHandler {
         console.log(`🔧 [BOT-LISTENERS] === SETTING UP BOT LISTENERS ===`);
         console.log(`👂 Setting up message listeners for bot ${username} (ID: ${botId})`);
 
-        const existingListeners = io.listeners('bot-message-intercept');
-        console.log(`📊 [BOT-LISTENERS] Found ${existingListeners.length} existing bot-message-intercept listeners`);
+        console.log(`📊 [BOT-LISTENERS] Checking existing bot-message-intercept listeners...`);
         
-        // Always remove existing bot listeners to avoid duplicates
-        io.removeAllListeners('bot-message-intercept');
+        // Remove any existing listeners for this bot
+        this.botEventEmitter.removeAllListeners('bot-message-intercept');
         console.log(`🧹 [BOT-LISTENERS] Cleared all existing bot-message-intercept listeners`);
 
         const messageHandler = (data) => {
@@ -89,15 +90,24 @@ class BotHandler {
             BotHandler.handleMessage(io, data, messageType, botId, username);
         };
 
-        messageHandler.isBotHandler = true; 
-
-        io.on('bot-message-intercept', messageHandler);
-        console.log(`✅ Bot ${username} is now listening for messages via bot-message-intercept`);
-        console.log(`📊 [BOT-LISTENERS] Total listeners now: ${io.listeners('bot-message-intercept').length}`);
+        this.botEventEmitter.on('bot-message-intercept', messageHandler);
+        console.log(`✅ Bot ${username} is now listening for messages via EventEmitter`);
+        console.log(`📊 [BOT-LISTENERS] Total listeners now: ${this.botEventEmitter.listenerCount('bot-message-intercept')}`);
         
         // Test the listener setup with a more comprehensive test
-        console.log(`🧪 [BOT-LISTENERS] Testing direct event emission...`);
+        console.log(`🧪 [BOT-LISTENERS] Testing EventEmitter bot-message-intercept...`);
+        
+        // Test 1: Simple event test
+        console.log(`🧪 [BOT-LISTENERS] Test 1: Simple event test...`);
+        this.botEventEmitter.on('test-simple', (data) => {
+            console.log(`✅ [BOT-LISTENERS] Simple event test WORKED! Data:`, data);
+        });
+        this.botEventEmitter.emit('test-simple', { test: 'simple test data' });
+        
+        // Test 2: Bot message intercept test
         setTimeout(() => {
+            console.log(`🧪 [BOT-LISTENERS] Test 2: Bot message intercept test...`);
+            console.log(`🧪 [BOT-LISTENERS] Current listener count: ${this.botEventEmitter.listenerCount('bot-message-intercept')}`);
             console.log(`🧪 [BOT-LISTENERS] Emitting test event NOW...`);
             const testData = {
                 id: 'test-message-123',
@@ -109,9 +119,22 @@ class BotHandler {
                 channel_id: 13
             };
             console.log(`🧪 [BOT-LISTENERS] Test data being emitted:`, testData);
-            io.emit('bot-message-intercept', testData);
+            this.botEventEmitter.emit('bot-message-intercept', testData);
             console.log(`🧪 [BOT-LISTENERS] Test event emitted - waiting for handler response...`);
         }, 1000);
+    }
+
+    // Add static method for external message emission
+    static emitBotMessageIntercept(data) {
+        console.log(`📡 [BOT-EMIT] Emitting bot-message-intercept via EventEmitter:`, {
+            messageId: data.id,
+            content: data.content?.substring(0, 50) + '...',
+            userId: data.user_id,
+            targetType: data.target_type,
+            targetId: data.target_id
+        });
+        this.botEventEmitter.emit('bot-message-intercept', data);
+        console.log(`✅ [BOT-EMIT] bot-message-intercept emitted successfully`);
     }
 
     static handleMessage(io, data, messageType, botId, username) {

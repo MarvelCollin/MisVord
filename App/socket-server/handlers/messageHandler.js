@@ -512,8 +512,8 @@ class MessageHandler {
                     username: broadcastData.username,
                     channelId: broadcastData.channel_id
                 });
-                io.emit('bot-message-intercept', broadcastData);
-                console.log(`✅ [SAVE-AND-SEND] bot-message-intercept emitted successfully`);
+                const BotHandler = require('./botHandler');
+                BotHandler.emitBotMessageIntercept(broadcastData);
                 
                 client.to(targetRoom).emit(eventName, broadcastData);
                 console.log(`✅ [SAVE-AND-SEND] Temporary message broadcasted to room ${targetRoom} (excluding sender)`, {
@@ -522,14 +522,14 @@ class MessageHandler {
                     replyMessageId: broadcastData.reply_message_id
                 });
             } else {
-                // First emit to bot for processing
                 console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing (no room):`, {
                     messageId: broadcastData.id,
                     content: broadcastData.content?.substring(0, 50) + '...',
                     userId: broadcastData.user_id,
                     username: broadcastData.username
                 });
-                io.emit('bot-message-intercept', broadcastData);
+                const BotHandler = require('./botHandler');
+                BotHandler.emitBotMessageIntercept(broadcastData);
                 
                 io.emit(eventName, broadcastData);
                 console.log(`⚠️ [SAVE-AND-SEND] No room found, broadcasted to all clients`, {
