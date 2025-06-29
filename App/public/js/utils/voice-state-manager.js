@@ -119,7 +119,7 @@ class VoiceStateManager {
             return;
         }
 
-        const videoButton = document.getElementById('joinVideoBtn');
+        const videoButton = document.getElementById('voiceVideoBtn');
         if (videoButton) videoButton.disabled = true;
 
         try {
@@ -219,7 +219,7 @@ class VoiceStateManager {
     }
 
     updateVideoControls() {
-        const videoButtons = document.querySelectorAll('#joinVideoBtn, .video-btn, button[title*="Camera"], button[title*="camera"]');
+        const videoButtons = document.querySelectorAll('#voiceVideoBtn, .video-btn, button[title*="Camera"], button[title*="camera"]');
         
         videoButtons.forEach(btn => {
             const icon = btn.querySelector('i');

@@ -177,7 +177,7 @@ class MessageHandler {
             client.to(targetRoom).emit(eventName, reactionData);
             console.log(`✅ [REACTION-HANDLER] Successfully broadcasted ${eventName} to ${targetRoom} (excluding sender)`);
             
-            this.saveReactionToDatabase(data, eventName);
+            this.saveReactionToDatabase(io, client, targetRoom, data, eventName);
         } else {
             console.warn(`⚠️ [REACTION-HANDLER] No target room found for ${eventName}:`, {
                 targetType: data.target_type,
@@ -186,13 +186,14 @@ class MessageHandler {
         }
     }
 
-    static async saveReactionToDatabase(data, eventName) {
+    static async saveReactionToDatabase(io, client, targetRoom, data, eventName) {
         try {
             console.log(`💾 [REACTION-SAVE] Saving reaction to database:`, {
                 messageId: data.message_id,
                 emoji: data.emoji,
                 userId: data.user_id,
-                action: data.action
+                action: data.action,
+                tempId: data.temp_reaction_id
             });
             
             const apiEndpoint = eventName === 'reaction-added' 
@@ -207,6 +208,8 @@ class MessageHandler {
                     'Content-Type': 'application/json',
                     'X-Socket-User-ID': data.user_id.toString(),
                     'X-Socket-Username': data.username,
+                    'X-Socket-Session-ID': client.data?.session_id || '',
+                    'X-Socket-Avatar-URL': client.data?.avatar_url || '/public/assets/common/default-profile-picture.png',
                     'User-Agent': 'SocketServer/1.0'
                 },
                 body: JSON.stringify({
@@ -219,11 +222,34 @@ class MessageHandler {
             }
             
             const result = await response.json();
-            console.log(`✅ [REACTION-SAVE] Reaction ${data.action} saved successfully:`, {
-                messageId: data.message_id,
-                emoji: data.emoji,
-                success: result.success
-            });
+            
+            if (result.success) {
+                console.log(`✅ [REACTION-SAVE] Reaction ${data.action} saved successfully, broadcasting confirmation`);
+                
+                const confirmationData = {
+                    message_id: data.message_id,
+                    emoji: data.emoji,
+                    user_id: data.user_id,
+                    username: data.username,
+                    target_type: data.target_type,
+                    target_id: data.target_id,
+                    action: result.data?.action || data.action,
+                    temp_reaction_id: data.temp_reaction_id,
+                    is_permanent: true,
+                    source: 'database-confirmed',
+                    timestamp: Date.now()
+                };
+                
+                if (targetRoom) {
+                    io.to(targetRoom).emit('reaction-confirmed', confirmationData);
+                    console.log(`📡 [REACTION-SAVE] Broadcasted reaction-confirmed to room: ${targetRoom}`);
+                } else {
+                    io.emit('reaction-confirmed', confirmationData);
+                    console.log(`📡 [REACTION-SAVE] Broadcasted reaction-confirmed to all clients`);
+                }
+            } else {
+                throw new Error(result.message || 'Database operation failed');
+            }
             
         } catch (error) {
             console.error(`❌ [REACTION-SAVE] Failed to save reaction to database:`, {
@@ -232,6 +258,28 @@ class MessageHandler {
                 emoji: data.emoji,
                 action: data.action
             });
+            
+            const failureData = {
+                message_id: data.message_id,
+                emoji: data.emoji,
+                user_id: data.user_id,
+                username: data.username,
+                target_type: data.target_type,
+                target_id: data.target_id,
+                action: data.action,
+                temp_reaction_id: data.temp_reaction_id,
+                error: error.message || 'Database save failed',
+                source: 'database-failed',
+                timestamp: Date.now()
+            };
+            
+            if (targetRoom) {
+                io.to(targetRoom).emit('reaction-failed', failureData);
+                console.log(`📡 [REACTION-SAVE] Broadcasted reaction-failed to room: ${targetRoom}`);
+            } else {
+                io.emit('reaction-failed', failureData);
+                console.log(`📡 [REACTION-SAVE] Broadcasted reaction-failed to all clients`);
+            }
         }
     }
 

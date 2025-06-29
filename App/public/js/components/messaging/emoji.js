@@ -681,6 +681,8 @@ class EmojiReactions {
         if (window.globalSocketManager?.io) {
             window.globalSocketManager.io.off('reaction-added');
             window.globalSocketManager.io.off('reaction-removed');
+            window.globalSocketManager.io.off('reaction-confirmed');
+            window.globalSocketManager.io.off('reaction-failed');
             console.log('🧹 Cleared existing reaction socket listeners');
         }
         
@@ -747,9 +749,11 @@ class EmojiReactions {
     }
 
     handleReactionAdded(data) {
-        const { message_id, emoji, user_id, username } = data;
+        const { message_id, emoji, user_id, username, temp_reaction_id, is_temporary } = data;
         
-        console.log('🔔 handleReactionAdded called with:', { message_id, emoji, user_id, username });
+        console.log('🔔 handleReactionAdded called with:', { 
+            message_id, emoji, user_id, username, temp_reaction_id, is_temporary 
+        });
         
         if (!this.currentReactions[message_id]) {
             this.currentReactions[message_id] = [];
@@ -768,17 +772,29 @@ class EmojiReactions {
             this.currentReactions[message_id].push({
                 emoji,
                 user_id: String(user_id),
-                username
+                username,
+                temp_reaction_id,
+                is_temporary
             });
             
             console.log('👆 Added reaction to memory, updating display for message:', message_id);
             this.updateReactionsDisplay(message_id, this.currentReactions[message_id]);
             
             setTimeout(() => {
-                const reactionElement = document.querySelector(`[data-message-id="${message_id}"] .message-reaction-pill[data-emoji="${emoji}"]`);
+                const messageElement = document.querySelector(`[data-message-id="${message_id}"]`);
+                const isBubbleMessage = messageElement?.closest('.bubble-message-group');
+                const reactionSelector = isBubbleMessage ? '.bubble-reaction' : '.message-reaction-pill';
+                const reactionElement = messageElement?.querySelector(`${reactionSelector}[data-emoji="${emoji}"]`);
+                
                 if (reactionElement) {
                     console.log('✨ Adding animation to reaction element');
                     reactionElement.classList.add('reaction-pop');
+                    
+                    if (is_temporary) {
+                        reactionElement.classList.add('reaction-temporary');
+                        console.log('⏳ Marked reaction as temporary:', temp_reaction_id);
+                    }
+                    
                     setTimeout(() => {
                         reactionElement.classList.remove('reaction-pop');
                     }, 1000);

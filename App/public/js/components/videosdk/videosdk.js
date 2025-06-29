@@ -656,20 +656,48 @@ class VideoSDKManager {
     }
     
     async toggleWebcam() {
-        if (!this.meeting) return false;
+        if (!this.meeting) {
+            console.error('[VideoSDK] No meeting available for webcam toggle');
+            return false;
+        }
+
+        if (!this.isConnected) {
+            console.error('[VideoSDK] Meeting not connected for webcam toggle');
+            return false;
+        }
+
+        if (!this.meeting.localParticipant) {
+            console.error('[VideoSDK] Local participant not available for webcam toggle');
+            return false;
+        }
         
         try {
             const isWebcamOn = this.getWebcamState();
+            console.log(`[VideoSDK] Current webcam state: ${isWebcamOn}`);
             
             if (isWebcamOn) {
+                console.log('[VideoSDK] Disabling webcam...');
                 await this.meeting.disableWebcam();
+                console.log('[VideoSDK] Webcam disabled successfully');
                 return false;
             } else {
+                console.log('[VideoSDK] Enabling webcam...');
                 await this.meeting.enableWebcam();
+                console.log('[VideoSDK] Webcam enabled successfully');
                 return true;
             }
         } catch (error) {
-            console.error("Error toggling webcam:", error);
+            console.error("[VideoSDK] Error toggling webcam:", error);
+            if (error.message) {
+                console.error("[VideoSDK] Error message:", error.message);
+            }
+            if (error.name === 'NotAllowedError') {
+                console.error("[VideoSDK] Camera permission denied");
+            } else if (error.name === 'NotFoundError') {
+                console.error("[VideoSDK] No camera device found");
+            } else if (error.name === 'NotReadableError') {
+                console.error("[VideoSDK] Camera device in use by another application");
+            }
             return false;
         }
     }
