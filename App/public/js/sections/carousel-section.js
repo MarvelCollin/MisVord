@@ -3,36 +3,51 @@ class CarouselSection {
         this.currentPage = 0;
         this.totalPages = 4;
         this.isAnimating = false;
-        this.isBookOpen = false;
         
         this.init();
     }
     
     init() {
-        this.bookCover = document.getElementById('bookCover');
         this.bookContent = document.getElementById('bookContent');
         this.bookNav = document.getElementById('bookNav');
         this.pages = document.querySelectorAll('.page');
-        this.contentPages = document.querySelectorAll('.page:not(.book-cover)');
         this.prevBtn = document.getElementById('prevPage');
         this.nextBtn = document.getElementById('nextPage');
         this.pageIndicator = document.getElementById('pageIndicator');
         
-        if (!this.bookCover) return;
+        if (!this.bookContent) return;
         
+        this.initializePages();
         this.setupEventListeners();
         this.updatePageIndicator();
+        this.showNavigation();
+    }
+    
+    initializePages() {
+        this.pages.forEach((page, index) => {
+            page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
+            page.style.zIndex = '';
+            page.style.opacity = '1';
+            page.style.visibility = 'visible';
+            
+            if (index === this.currentPage) {
+                page.classList.add('active');
+            } else if (index < this.currentPage) {
+                page.classList.add('behind');
+            }
+        });
     }
     
     setupEventListeners() {
-        this.bookCover?.addEventListener('click', () => {
-            if (!this.isBookOpen) {
-                this.openBook();
-            }
+        this.prevBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.prevPage();
         });
         
-        this.prevBtn?.addEventListener('click', () => this.prevPage());
-        this.nextBtn?.addEventListener('click', () => this.nextPage());
+        this.nextBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.nextPage();
+        });
         
         document.addEventListener('carouselVisible', () => {
             this.onSectionVisible();
@@ -40,34 +55,39 @@ class CarouselSection {
         
         document.addEventListener('keydown', (e) => {
             if (this.isBookActive()) {
-                if (this.isBookOpen) {
-                    if (e.key === 'ArrowLeft') {
-                        e.stopPropagation();
-                        this.prevPage();
-                    } else if (e.key === 'ArrowRight') {
-                        e.stopPropagation();
-                        this.nextPage();
-                    } else if (e.key === 'Escape') {
-                        e.stopPropagation();
-                        this.closeBook();
-                    }
-                } else {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        this.openBook();
-                    }
+                if (e.key === 'ArrowLeft') {
+                    e.stopPropagation();
+                    this.prevPage();
+                } else if (e.key === 'ArrowRight') {
+                    e.stopPropagation();
+                    this.nextPage();
                 }
             }
         });
         
-        this.contentPages.forEach((page, index) => {
-            page.addEventListener('click', () => {
-                if (!this.isBookOpen) return;
-                const actualIndex = index + 1;
-                if (actualIndex < this.currentPage) {
-                    this.prevPage();
-                } else if (actualIndex > this.currentPage) {
-                    this.nextPage();
+        this.pages.forEach((page, index) => {
+            page.addEventListener('click', (e) => {
+                if (this.isAnimating) return;
+                
+                const isBehind = page.classList.contains('behind');
+                const isActive = page.classList.contains('active');
+                
+                if (isBehind) {
+                    this.flipPageTo(index);
+                    return;
+                }
+                
+                if (!isActive) return;
+                
+                const rect = page.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const pageWidth = rect.width;
+                const leftSide = clickX < pageWidth / 2;
+                
+                if (leftSide && this.currentPage > 0) {
+                    this.flipPageTo(this.currentPage - 1);
+                } else if (!leftSide && this.currentPage < this.totalPages - 1) {
+                    this.flipPageTo(this.currentPage + 1);
                 }
             });
         });
@@ -78,111 +98,90 @@ class CarouselSection {
         return carouselSection && carouselSection.classList.contains('is-active');
     }
     
-    openBook() {
-        if (this.isAnimating || this.isBookOpen) return;
-        
-        this.isAnimating = true;
-        this.isBookOpen = true;
-        this.currentPage = 1;
-        
-        this.bookCover.classList.add('flipping-forward');
-        this.bookCover.classList.remove('active');
-        
-        setTimeout(() => {
-            this.bookCover.classList.remove('flipping-forward');
-            this.bookCover.classList.add('behind');
-            
-            this.pages[1].classList.add('active');
-            this.pages[1].classList.remove('behind');
-            
-            this.bookNav.style.opacity = '1';
-            this.bookNav.style.visibility = 'visible';
-            
-            this.updatePages();
-            this.updatePageIndicator();
-            this.isAnimating = false;
-        }, 800);
-    }
-    
-    closeBook() {
-        if (this.isAnimating || !this.isBookOpen) return;
-        
-        this.isAnimating = true;
-        this.isBookOpen = false;
-        
-        this.bookNav.style.opacity = '0';
-        this.bookNav.style.visibility = 'hidden';
-        
-        const currentPageEl = this.pages[this.currentPage];
-        currentPageEl.classList.add('flipping-backward');
-        currentPageEl.classList.remove('active');
-        
-        setTimeout(() => {
-            this.pages.forEach(page => {
-                page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
-            });
-            
-            this.currentPage = 0;
-            this.bookCover.classList.add('active');
-            this.updatePageIndicator();
-            this.isAnimating = false;
-        }, 800);
+    showNavigation() {
+        this.bookNav.style.opacity = '1';
+        this.bookNav.style.visibility = 'visible';
     }
     
     prevPage() {
-        if (this.isAnimating || !this.isBookOpen || this.currentPage <= 1) return;
-        
-        this.currentPage--;
-        this.turnPage('backward');
+        if (this.isAnimating || this.currentPage <= 0) return;
+        this.flipPageTo(this.currentPage - 1);
     }
     
     nextPage() {
-        if (this.isAnimating || !this.isBookOpen || this.currentPage >= this.totalPages - 1) return;
-        
-        this.currentPage++;
-        this.turnPage('forward');
+        if (this.isAnimating || this.currentPage >= this.totalPages - 1) return;
+        this.flipPageTo(this.currentPage + 1);
     }
     
-    turnPage(direction) {
-        this.isAnimating = true;
+    flipPageTo(targetPage) {
+        if (this.isAnimating || targetPage < 0 || targetPage >= this.totalPages || targetPage === this.currentPage) return;
         
-        const currentPageEl = this.pages[direction === 'forward' ? this.currentPage - 1 : this.currentPage + 1];
-        const targetPageEl = this.pages[this.currentPage];
+        this.isAnimating = true;
+        const currentPageEl = this.pages[this.currentPage];
+        const targetPageEl = this.pages[targetPage];
+        const direction = targetPage > this.currentPage ? 'forward' : 'backward';
         
         if (direction === 'forward') {
+            targetPageEl.style.opacity = '0';
+            targetPageEl.style.visibility = 'hidden';
+            
+            currentPageEl.style.zIndex = '25';
             currentPageEl.classList.add('flipping-forward');
-            currentPageEl.classList.remove('active');
             
             setTimeout(() => {
                 currentPageEl.classList.remove('flipping-forward');
+                currentPageEl.classList.remove('active');
                 currentPageEl.classList.add('behind');
-                targetPageEl.classList.add('active');
-                targetPageEl.classList.remove('behind');
+                currentPageEl.style.zIndex = '';
                 
-                this.updatePages();
-                this.updatePageIndicator();
-                this.isAnimating = false;
+                setTimeout(() => {
+                    targetPageEl.style.opacity = '1';
+                    targetPageEl.style.visibility = 'visible';
+                    targetPageEl.classList.add('active');
+                    targetPageEl.classList.remove('behind');
+                    targetPageEl.style.zIndex = '';
+                    
+                    this.currentPage = targetPage;
+                    this.updatePageStates();
+                    this.updatePageIndicator();
+                    this.isAnimating = false;
+                }, 50);
             }, 800);
         } else {
+            currentPageEl.style.opacity = '0';
+            currentPageEl.style.visibility = 'hidden';
+            
+            targetPageEl.style.zIndex = '25';
             targetPageEl.classList.add('flipping-backward');
-            targetPageEl.classList.remove('behind');
             
             setTimeout(() => {
                 targetPageEl.classList.remove('flipping-backward');
+                targetPageEl.classList.remove('behind');
                 targetPageEl.classList.add('active');
-                currentPageEl.classList.remove('active');
-                currentPageEl.classList.add('behind');
+                targetPageEl.style.zIndex = '';
                 
-                this.updatePages();
-                this.updatePageIndicator();
-                this.isAnimating = false;
+                setTimeout(() => {
+                    currentPageEl.style.opacity = '1';
+                    currentPageEl.style.visibility = 'visible';
+                    currentPageEl.classList.remove('active');
+                    currentPageEl.classList.add('behind');
+                    currentPageEl.style.zIndex = '';
+                    
+                    this.currentPage = targetPage;
+                    this.updatePageStates();
+                    this.updatePageIndicator();
+                    this.isAnimating = false;
+                }, 50);
             }, 800);
         }
     }
     
-    updatePages() {
+    updatePageStates() {
         this.pages.forEach((page, index) => {
-            page.classList.remove('active', 'behind');
+            page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
+            page.style.zIndex = '';
+            page.style.opacity = '1';
+            page.style.visibility = 'visible';
             
             if (index === this.currentPage) {
                 page.classList.add('active');
@@ -194,15 +193,11 @@ class CarouselSection {
     
     updatePageIndicator() {
         if (this.pageIndicator) {
-            if (this.isBookOpen) {
-                this.pageIndicator.textContent = `${this.currentPage} / ${this.totalPages - 1}`;
-            } else {
-                this.pageIndicator.textContent = `Cover`;
-            }
+            this.pageIndicator.textContent = `${this.currentPage + 1} / ${this.totalPages}`;
         }
         
         if (this.prevBtn) {
-            this.prevBtn.disabled = this.currentPage <= 1;
+            this.prevBtn.disabled = this.currentPage <= 0;
         }
         
         if (this.nextBtn) {
@@ -232,22 +227,20 @@ class CarouselSection {
     }
     
     animateBookAppearance() {
-        if (this.bookCover) {
-            this.bookCover.style.transform = 'scale(0.8) rotateX(20deg)';
-            this.bookCover.style.opacity = '0';
+        if (this.bookContent) {
+            this.bookContent.style.transform = 'scale(0.8) rotateX(20deg)';
+            this.bookContent.style.opacity = '0';
             
             setTimeout(() => {
-                this.bookCover.style.transition = 'all 1s cubic-bezier(0.23, 1, 0.32, 1)';
-                this.bookCover.style.transform = 'scale(1) rotateX(0deg)';
-                this.bookCover.style.opacity = '1';
+                this.bookContent.style.transition = 'all 1s cubic-bezier(0.23, 1, 0.32, 1)';
+                this.bookContent.style.transform = 'scale(1) rotateX(0deg)';
+                this.bookContent.style.opacity = '1';
             }, 100);
         }
     }
     
     destroy() {
-        if (this.isBookOpen) {
-            this.closeBook();
-        }
+        
     }
 }
 

@@ -118,14 +118,42 @@ class SimpleChannelSwitcher {
         
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
         if (channelElement && channelIcon && channelName) {
-            const nameText = channelElement.querySelector('.channel-name')?.textContent || 'Channel';
-            const iconElement = channelElement.querySelector('i');
+            let nameText = channelElement.querySelector('.channel-name')?.textContent?.trim() ||
+                          channelElement.getAttribute('data-channel-name') ||
+                          'Channel';
+            
+            nameText = this.cleanChannelName(nameText);
+            
+            const iconElement = channelElement.querySelector('i.fas');
             
             channelName.textContent = nameText;
             if (iconElement) {
                 channelIcon.className = iconElement.className;
             }
         }
+        
+        if (window.chatSection && typeof window.chatSection.updateChannelHeader === 'function') {
+            window.chatSection.updateChannelHeader();
+        }
+    }
+    
+    cleanChannelName(name) {
+        if (!name) return 'Channel';
+        
+        let cleanName = name.toString()
+            .replace(/=+/g, '')
+            .replace(/Edit\s*Delete?/gi, '')
+            .replace(/Delete\s*Edit?/gi, '')
+            .replace(/Edit/gi, '')
+            .replace(/Delete/gi, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        
+        if (!cleanName || cleanName.length === 0) {
+            return 'Channel';
+        }
+        
+        return cleanName;
     }
     
     renderMessages(messages) {

@@ -858,6 +858,8 @@ class MessageHandler {
         
         this.chatSection.hideEmptyState();
         
+        this.ensureFallbackStyles();
+        
         for (const message of messages) {
             try {
                 await this.addMessage(message);

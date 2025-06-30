@@ -28,7 +28,7 @@ if (!function_exists('renderChannel')) {
                   data-channel-type="' . htmlspecialchars($type) . '"
                   data-server-id="' . htmlspecialchars($serverId) . '">';
         echo '  <i class="fas fa-' . $icon . ' text-xs mr-3 text-gray-500"></i>';
-        echo '  <span class="text-sm flex-1">' . htmlspecialchars($channel['name']) . '</span>';
+        echo '  <span class="channel-name text-sm flex-1">' . htmlspecialchars($channel['name']) . '</span>';
         
         if ($type === 'voice') {
             echo '  <span class="ml-auto text-xs text-gray-500 voice-user-count">0</span>';

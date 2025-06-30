@@ -84,7 +84,6 @@ window.currentUsername = <?php echo json_encode($_SESSION['username'] ?? ''); ?>
 
 <link rel="stylesheet" href="<?php echo css('global'); ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?php echo css('lazy-loading'); ?>?v=<?php echo $cache_version; ?>">
-<link rel="stylesheet" href="<?php echo css('message-context-menu'); ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?= asset('/css/friends-mobile-menu.css') ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?= asset('/css/user-detail.css') ?>">
 
@@ -2492,4 +2491,3 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endif; ?>
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo $cache_version; ?>" type="module"></script>
-

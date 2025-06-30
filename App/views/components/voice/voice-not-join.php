@@ -173,6 +173,10 @@ async function joinVoiceChannel() {
     if (joinView) joinView.classList.add('hidden');
     if (connectingView) connectingView.classList.remove('hidden');
     
+    if (window.MusicLoaderStatic?.playCallSound) {
+        window.MusicLoaderStatic.playCallSound();
+    }
+    
     try {
         await ensureVoiceScriptsLoaded();
         

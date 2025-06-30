@@ -304,22 +304,46 @@ class ChatBot {
 
         console.log('🚀 [CHAT-BOT] Initializing TitiBot in socket server...');
         
+        if (!botInfo || !botInfo.id) {
+            console.error('❌ [CHAT-BOT] Invalid bot info provided:', botInfo);
+            return;
+        }
+        
         window.globalSocketManager.io.emit('bot-init', {
             bot_id: botInfo.id,
             username: botInfo.username
         });
 
         const serverId = this.getServerId();
-        if (serverId) {
+        let channelId = this.chatSection.targetId;
+        
+        if (!channelId && this.chatSection.chatType === 'channel') {
+            console.log('🔄 [CHAT-BOT] Channel ID not immediately available, checking again...');
+            channelId = this.chatSection.detectTargetId?.() || this.chatSection.targetId;
+        }
+        
+        if (serverId && channelId && this.chatSection.chatType === 'channel') {
+            console.log('🤖 [CHAT-BOT] Joining bot to channel:', {
+                botId: botInfo.id,
+                channelId: channelId,
+                serverId: serverId
+            });
+            
             window.globalSocketManager.io.emit('bot-join-channel', {
                 bot_id: botInfo.id,
-                channel_id: this.chatSection.targetId
+                channel_id: channelId
             });
             console.log('🤖 [CHAT-BOT] TitiBot initialization and channel join events sent');
+        } else {
+            console.warn('⚠️ [CHAT-BOT] Cannot join bot to channel:', {
+                hasServerId: !!serverId,
+                hasChannelId: !!channelId,
+                chatType: this.chatSection.chatType,
+                targetId: this.chatSection.targetId
+            });
+            console.log('🤖 [CHAT-BOT] TitiBot initialization sent (without channel join)');
         }
     }
-
-
 
     handleBotMessage(data) {
         if (!data || !data.is_bot || !data.music_data) {

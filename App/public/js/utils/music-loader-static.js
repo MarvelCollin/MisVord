@@ -26,9 +26,25 @@ export function playDisconnectVoiceSound() {
         .catch(err => console.error('Error playing Disconnect Voice sound:', err));
 }
 
+export function playDiscordMuteSound() {
+    const sound = new Audio('/public/assets/sound/discord_mute_sound.mp3');
+    sound.volume = 0.4;
+    sound.play()
+        .catch(err => console.error('Error playing Discord Mute sound:', err));
+}
+
+export function playDiscordUnmuteSound() {
+    const sound = new Audio('/public/assets/sound/discord_unmute_sound.mp3');
+    sound.volume = 0.4;
+    sound.play()
+        .catch(err => console.error('Error playing Discord Unmute sound:', err));
+}
+
 window.MusicLoaderStatic = {
     playDiscordoSound,
     playCallSound,
     playJoinVoiceSound,
-    playDisconnectVoiceSound
+    playDisconnectVoiceSound,
+    playDiscordMuteSound,
+    playDiscordUnmuteSound
 };

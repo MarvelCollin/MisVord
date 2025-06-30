@@ -33,10 +33,25 @@ class SendReceiveHandler {
                 console.log('📎 Including attachments:', attachmentUrls.length, 'files');
             }
             
-            const mentions = this.chatSection.mentionHandler.parseMentions(content);
-            if (mentions.length > 0) {
-                options.mentions = mentions;
-                console.log('💬 Including mentions:', mentions.length, 'mentions');
+            let mentions = [];
+            if (this.chatSection.mentionHandler) {
+                mentions = this.chatSection.mentionHandler.parseMentions(content);
+                if (mentions.length > 0) {
+                    options.mentions = mentions;
+                    console.log('💬 Including mentions:', mentions.length, 'mentions');
+                }
+            } else {
+                console.warn('⚠️ [SEND-RECEIVE] MentionHandler not ready, skipping mention parsing');
+                const simpleMentions = content.match(/@(\w+)/g);
+                if (simpleMentions && simpleMentions.length > 0) {
+                    mentions = simpleMentions.map(mention => ({
+                        type: 'user',
+                        username: mention.substring(1),
+                        user_id: null
+                    }));
+                    options.mentions = mentions;
+                    console.log('💬 Including basic mentions:', mentions.length, 'mentions (fallback)');
+                }
             }
             
             await this.sendDirectOrChannelMessage(content, options);

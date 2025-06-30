@@ -310,7 +310,16 @@ class GlobalVoiceIndicator {
         if (micBtn) {
             this.handleMicClick = () => {
                 if (window.videoSDKManager && window.videoSDKManager.isReady()) {
-                    window.videoSDKManager.toggleMic();
+                    const currentState = window.videoSDKManager.getMicState();
+                    const newState = window.videoSDKManager.toggleMic();
+                    
+                    if (window.MusicLoaderStatic) {
+                        if (newState) {
+                            window.MusicLoaderStatic.playDiscordUnmuteSound();
+                        } else {
+                            window.MusicLoaderStatic.playDiscordMuteSound();
+                        }
+                    }
                 } else {
                     window.showToast?.('Voice not connected', 'error');
                 }

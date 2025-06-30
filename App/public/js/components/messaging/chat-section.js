@@ -80,10 +80,40 @@ async function initializeChatSection() {
     }
     
     console.log('✅ Initializing ChatSection with ChatAPI ready');
+    
+    console.log('🔍 [CHAT-SECTION-INIT] Pre-initialization diagnostics:');
+    console.log('  URL:', window.location.href);
+    console.log('  Pathname:', window.location.pathname);
+    console.log('  Search:', window.location.search);
+    
+    const metaTags = {
+        chatType: document.querySelector('meta[name="chat-type"]')?.content,
+        chatId: document.querySelector('meta[name="chat-id"]')?.content,
+        channelId: document.querySelector('meta[name="channel-id"]')?.content,
+        roomId: document.querySelector('meta[name="room-id"]')?.content,
+        userId: document.querySelector('meta[name="user-id"]')?.content,
+        username: document.querySelector('meta[name="username"]')?.content
+    };
+    console.log('  Meta tags:', metaTags);
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    console.log('  URL parameters:', {
+        channel: urlParams.get('channel'),
+        room: urlParams.get('room'),
+        server: urlParams.get('server')
+    });
+    
     try {
         const chatSection = new ChatSection();
         await chatSection.init();
         window.chatSection = chatSection;
+        
+        console.log('🎯 [CHAT-SECTION-INIT] Final ChatSection state:', {
+            chatType: chatSection.chatType,
+            targetId: chatSection.targetId,
+            userId: chatSection.userId,
+            username: chatSection.username
+        });
         
         if (typeof window.emojiReactions === 'undefined' || !window.emojiReactions.initialized) {
             console.log('Ensuring emoji reactions system is initialized from ChatSection');
@@ -112,8 +142,10 @@ if (document.readyState === 'complete' && !window.chatSection && !isExcludedPage
 
 class ChatSection {
     constructor(options = {}) {
-        this.chatType = options.chatType || 'channel';
-        this.targetId = options.targetId || null;
+        console.log('🏗️ [CHAT-SECTION] Constructor called with options:', options);
+        
+        this.chatType = options.chatType || this.detectChatType();
+        this.targetId = options.targetId || this.detectTargetId();
         this.userId = options.userId || null;
         this.username = options.username || null;
         this.isInitialized = false;
@@ -122,6 +154,15 @@ class ChatSection {
         this.lastLoadedMessageId = null;
         this.replyingTo = null;
         this.currentEditingMessage = null;
+        this.socketRoomJoined = false;
+        this.socketListenersSetup = false;
+        
+        console.log('🎯 [CHAT-SECTION] Detected chat configuration:', {
+            chatType: this.chatType,
+            targetId: this.targetId,
+            userId: this.userId,
+            username: this.username
+        });
         
         this.chatContainer = null;
         this.chatMessages = null;
@@ -144,6 +185,104 @@ class ChatSection {
         this.mentionHandler = null;
         
         this.init();
+        
+        window.chatSection = this;
+    }
+    
+    detectChatType() {
+        const currentPath = window.location.pathname;
+        
+        if (currentPath === '/home' || currentPath.startsWith('/home/')) {
+            if (currentPath.includes('/channels/dm/')) {
+                console.log('🔍 [CHAT-SECTION] Detected chat type: direct (DM page)');
+                return 'direct';
+            }
+            console.log('🔍 [CHAT-SECTION] Detected chat type: direct (home page)');
+            return 'direct';
+        }
+        
+        if (currentPath.match(/^\/server\/\d+$/)) {
+            console.log('🔍 [CHAT-SECTION] Detected chat type: channel (server page)');
+            return 'channel';
+        }
+        
+        console.log('🔍 [CHAT-SECTION] Default chat type: channel');
+        return 'channel';
+    }
+
+    detectTargetId() {
+        const currentPath = window.location.pathname;
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        console.log('🔍 [CHAT-SECTION] detectTargetId - URL Analysis:', {
+            pathname: currentPath,
+            search: window.location.search,
+            chatType: this.chatType
+        });
+        
+        if (this.chatType === 'channel') {
+            const chatIdMeta = document.querySelector('meta[name="chat-id"]');
+            if (chatIdMeta && chatIdMeta.content && chatIdMeta.content !== '') {
+                console.log('🎯 [CHAT-SECTION] Channel ID from chat-id meta tag:', chatIdMeta.content);
+                return chatIdMeta.content;
+            }
+            
+            const channelMeta = document.querySelector('meta[name="channel-id"]');
+            if (channelMeta && channelMeta.content && channelMeta.content !== '') {
+                console.log('🎯 [CHAT-SECTION] Channel ID from channel-id meta tag:', channelMeta.content);
+                return channelMeta.content;
+            }
+            
+            const channelIdFromUrl = urlParams.get('channel');
+            if (channelIdFromUrl) {
+                console.log('🎯 [CHAT-SECTION] Channel ID from URL parameter:', channelIdFromUrl);
+                return channelIdFromUrl;
+            }
+            
+            console.warn('⚠️ [CHAT-SECTION] Could not detect channel ID. Available meta tags:', {
+                chatId: chatIdMeta?.content || 'not found',
+                channelId: channelMeta?.content || 'not found',
+                urlParam: channelIdFromUrl || 'not found'
+            });
+            return null;
+        }
+        
+        if (this.chatType === 'direct') {
+            const chatIdMeta = document.querySelector('meta[name="chat-id"]');
+            if (chatIdMeta && chatIdMeta.content && chatIdMeta.content !== '') {
+                console.log('🎯 [CHAT-SECTION] DM room ID from chat-id meta tag:', chatIdMeta.content);
+                return chatIdMeta.content;
+            }
+            
+            const dmMatch = currentPath.match(/\/channels\/dm\/(\d+)/);
+            if (dmMatch) {
+                console.log('🎯 [CHAT-SECTION] DM room ID from URL path:', dmMatch[1]);
+                return dmMatch[1];
+            }
+            
+            const roomIdFromUrl = urlParams.get('room');
+            if (roomIdFromUrl) {
+                console.log('🎯 [CHAT-SECTION] DM room ID from URL parameter:', roomIdFromUrl);
+                return roomIdFromUrl;
+            }
+            
+            const roomMeta = document.querySelector('meta[name="room-id"]');
+            if (roomMeta && roomMeta.content && roomMeta.content !== '') {
+                console.log('🎯 [CHAT-SECTION] DM room ID from room-id meta tag:', roomMeta.content);
+                return roomMeta.content;
+            }
+            
+            console.warn('⚠️ [CHAT-SECTION] Could not detect room ID for direct message. Available sources:', {
+                chatId: chatIdMeta?.content || 'not found',
+                urlPath: dmMatch ? dmMatch[1] : 'not found',
+                urlParam: roomIdFromUrl || 'not found',
+                roomMeta: roomMeta?.content || 'not found'
+            });
+            return null;
+        }
+        
+        console.warn('⚠️ [CHAT-SECTION] Unknown chat type for target ID detection:', this.chatType);
+        return null;
     }
     
     findDOMElements() {
@@ -206,87 +345,64 @@ class ChatSection {
     }
     
     async init() {
-        console.log('🚀 [CHAT-SECTION] Initializing ChatSection...');
-        
-        if (this.messageHandler) {
-            this.messageHandler.clearProcessedMessages();
-        }
-        
-        if (!this.chatType || this.chatType === '') {
-            const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
-            if (chatTypeMeta) {
-                this.chatType = chatTypeMeta.getAttribute('content');
-            }
-        }
-        
-        if (!this.targetId || this.targetId === '') {
-            const chatIdMeta = document.querySelector('meta[name="chat-id"]');
-            if (chatIdMeta) {
-                this.targetId = chatIdMeta.getAttribute('content');
-            }
-        }
-        
-        if (!this.userId || this.userId === '') {
-            const userIdMeta = document.querySelector('meta[name="user-id"]');
-            if (userIdMeta) {
-                this.userId = userIdMeta.getAttribute('content');
-            }
-        }
-        
-        if (!this.username || this.username === '') {
-            const usernameMeta = document.querySelector('meta[name="username"]');
-            if (usernameMeta) {
-                this.username = usernameMeta.getAttribute('content');
-            }
-        }
-        
-        const currentUrl = window.location.pathname;
-        const isDMUrl = currentUrl.includes('/home/channels/dm/');
-        const isChannelUrl = currentUrl.includes('/server/') && currentUrl.includes('channel=');
-        
-        if (isDMUrl && this.chatType !== 'direct' && this.chatType !== 'dm') {
-            this.chatType = 'direct';
-        } else if (isChannelUrl && this.chatType !== 'channel') {
-            this.chatType = 'channel';
-        }
-        
-        console.log('📝 [CHAT-SECTION] Configuration loaded:', {
-            chatType: this.chatType,
-            targetId: this.targetId,
-            userId: this.userId,
-            username: this.username
-        });
-        
         try {
+            console.log('🔄 [CHAT-SECTION] Starting initialization...');
+            
             await this.waitForRequiredElements();
             
-            this.mentionHandler = new MentionHandler(this);
-            
-            this.setupEventListeners();
-            
-            if (this.socketHandler) {
-                this.socketHandler.setupIoListeners();
+            if (!this.targetId) {
+                console.log('🔄 [CHAT-SECTION] Target ID not detected initially, retrying...');
+                this.targetId = this.detectTargetId();
+                
+                if (!this.targetId) {
+                    console.log('⏳ [CHAT-SECTION] Target ID still not found, waiting for DOM updates...');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    this.targetId = this.detectTargetId();
+                    
+                    if (!this.targetId) {
+                        console.log('⏳ [CHAT-SECTION] Final retry for target ID detection...');
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        this.targetId = this.detectTargetId();
+                    }
+                }
+                
+                if (this.targetId) {
+                    console.log('✅ [CHAT-SECTION] Target ID detected on retry:', this.targetId);
+                } else {
+                    console.warn('⚠️ [CHAT-SECTION] Target ID detection failed after retries');
+                }
             }
             
             if (this.targetId) {
-                setTimeout(() => {
-                    this.loadMessages();
-                }, 100);
+                this.updateChannelHeader();
             }
             
-            this.initializeExistingMessages();
+            this.setupEventListeners();
             
-            this.isInitialized = true;
-            
-            window.chatSection = this;
-            
-            if (window.globalSocketManager?.isReady()) {
+            if (this.targetId && this.chatType) {
+                console.log(`🎯 [CHAT-SECTION] Valid target found, loading messages for ${this.chatType}:${this.targetId}`);
+                
+                this.setupHandlers();
+                
+                if (this.messageHandler) {
+                    this.messageHandler.ensureFallbackStyles();
+                }
+                
                 this.joinSocketRoom();
+                
+                await this.loadMessages();
+                
+                this.initializeExistingMessages();
+                
+                this.updateChannelHeader();
             } else {
-                window.addEventListener('globalSocketReady', () => this.joinSocketRoom());
+                console.warn('⚠️ [CHAT-SECTION] No valid target found:', {
+                    targetId: this.targetId,
+                    chatType: this.chatType
+                });
             }
             
-            if (this.targetId && this.mentionHandler) {
+            if (this.mentionHandler && this.targetId) {
                 console.log('🔍 [CHAT-SECTION] Loading mention users for target:', this.targetId, 'type:', this.chatType);
                 setTimeout(() => {
                     this.mentionHandler.loadAvailableUsers();
@@ -298,7 +414,6 @@ class ChatSection {
                 });
             }
             
-            this.cleanupEmptyMessages();
             this.chatBot.init();
             
             console.log('✅ [CHAT-SECTION] Initialization completed successfully');
@@ -319,6 +434,7 @@ class ChatSection {
         
         if (!window.globalSocketManager?.isReady()) {
             console.warn('⚠️ [CHAT-SECTION] Socket not ready, will join when ready');
+            this.setupSocketReadyListeners();
             return;
         }
         
@@ -326,9 +442,39 @@ class ChatSection {
         
         if (this.chatType === 'channel' && window.globalSocketManager.joinChannel) {
             window.globalSocketManager.joinChannel(this.targetId);
+            console.log(`✅ [CHAT-SECTION] Successfully joined channel room: ${this.targetId}`);
         } else if (this.chatType === 'direct' && window.globalSocketManager.joinDMRoom) {
             window.globalSocketManager.joinDMRoom(this.targetId);
+            console.log(`✅ [CHAT-SECTION] Successfully joined DM room: ${this.targetId}`);
         }
+        
+        this.socketRoomJoined = true;
+    }
+    
+    setupSocketReadyListeners() {
+        if (this.socketListenersSetup) return;
+        
+        console.log('🔌 [CHAT-SECTION] Setting up socket ready listeners...');
+        
+        const handleSocketReady = () => {
+            console.log('🎉 [CHAT-SECTION] Socket ready event received, attempting to join room');
+            if (this.targetId && !this.socketRoomJoined) {
+                this.joinSocketRoom();
+            }
+        };
+        
+        window.addEventListener('globalSocketReady', handleSocketReady);
+        window.addEventListener('socketAuthenticated', handleSocketReady);
+        
+        setTimeout(() => {
+            if (window.globalSocketManager?.isReady() && this.targetId && !this.socketRoomJoined) {
+                console.log('🔄 [CHAT-SECTION] Socket became ready during timeout, joining room');
+                this.joinSocketRoom();
+            }
+        }, 2000);
+        
+        this.socketListenersSetup = true;
+        console.log('✅ [CHAT-SECTION] Socket ready listeners configured');
     }
     
     setupEventListeners() {
@@ -811,7 +957,11 @@ class ChatSection {
             return;
         }
         
-        // Throttle typing events
+        if (!this.targetId) {
+            console.warn('⚠️ [CHAT-SECTION] Cannot send typing event: No target ID');
+            return;
+        }
+        
         if (!this._lastTypingEvent || Date.now() - this._lastTypingEvent > 3000) {
             this._lastTypingEvent = Date.now();
             
@@ -821,10 +971,10 @@ class ChatSection {
                     user_id: this.userId,
                     username: this.username
                 }, 'channel', this.targetId);
-                        } else {
+            } else {
                 window.globalSocketManager.emitToRoom('typing', {
                     room_id: this.targetId,
-                user_id: this.userId,
+                    user_id: this.userId,
                     username: this.username
                 }, 'dm', this.targetId);
             }
@@ -1618,6 +1768,132 @@ class ChatSection {
         if (this.replyingTo) {
             this.cancelReply();
         }
+    }
+
+    setupHandlers() {
+        console.log('🔧 [CHAT-SECTION] Setting up handlers...');
+        
+        if (!this.mentionHandler) {
+            this.mentionHandler = new MentionHandler(this);
+            console.log('✅ [CHAT-SECTION] MentionHandler initialized');
+        }
+        
+        if (this.socketHandler && !this.socketHandler.socketListenersSetup) {
+            if (window.globalSocketManager && window.globalSocketManager.io) {
+                this.socketHandler.setupSocketHandlers(window.globalSocketManager.io);
+                console.log('✅ [CHAT-SECTION] SocketHandler setup completed');
+            } else {
+                console.log('⏳ [CHAT-SECTION] Socket not ready, will setup handlers when socket connects');
+                
+                const setupSocketHandlersWhenReady = () => {
+                    if (window.globalSocketManager && window.globalSocketManager.io && !this.socketHandler.socketListenersSetup) {
+                        this.socketHandler.setupSocketHandlers(window.globalSocketManager.io);
+                        console.log('✅ [CHAT-SECTION] SocketHandler setup completed after socket ready');
+                    }
+                };
+                
+                window.addEventListener('globalSocketReady', setupSocketHandlersWhenReady);
+                window.addEventListener('socketAuthenticated', setupSocketHandlersWhenReady);
+                
+                setTimeout(() => {
+                    if (window.globalSocketManager?.io && !this.socketHandler.socketListenersSetup) {
+                        setupSocketHandlersWhenReady();
+                    }
+                }, 2000);
+            }
+        }
+        
+        console.log('✅ [CHAT-SECTION] All handlers setup completed');
+    }
+
+    updateChannelHeader() {
+        console.log('🏷️ [CHAT-SECTION] Updating channel header...');
+        
+        const channelIcon = document.getElementById('channel-icon');
+        const channelName = document.getElementById('channel-name');
+        
+        if (!channelIcon || !channelName) {
+            console.warn('⚠️ [CHAT-SECTION] Channel header elements not found');
+            return;
+        }
+        
+        if (this.chatType === 'channel' && this.targetId) {
+            const channelElement = document.querySelector(`[data-channel-id="${this.targetId}"]`);
+            if (channelElement) {
+                let nameText = channelElement.querySelector('.channel-name')?.textContent?.trim() ||
+                              channelElement.getAttribute('data-channel-name') ||
+                              'Channel';
+                
+                nameText = this.cleanChannelName(nameText);
+                
+                const iconElement = channelElement.querySelector('i.fas');
+                
+                channelName.textContent = nameText;
+                if (iconElement) {
+                    channelIcon.className = iconElement.className;
+                } else {
+                    channelIcon.className = 'fas fa-hashtag text-[#949ba4] mr-2';
+                }
+                
+                console.log('✅ [CHAT-SECTION] Channel header updated from DOM:', nameText);
+                return;
+            }
+            
+            const chatTitleMeta = document.querySelector('meta[name="chat-title"]');
+            if (chatTitleMeta && chatTitleMeta.content) {
+                let nameText = this.cleanChannelName(chatTitleMeta.content);
+                channelName.textContent = nameText;
+                channelIcon.className = 'fas fa-hashtag text-[#949ba4] mr-2';
+                console.log('✅ [CHAT-SECTION] Channel header updated from meta tag:', nameText);
+                return;
+            }
+            
+            if (window.currentChannelData && window.currentChannelData.name) {
+                let nameText = this.cleanChannelName(window.currentChannelData.name);
+                channelName.textContent = nameText;
+                const iconClass = window.currentChannelData.type === 'voice' ? 'fas fa-volume-high' : 'fas fa-hashtag';
+                channelIcon.className = `${iconClass} text-[#949ba4] mr-2`;
+                console.log('✅ [CHAT-SECTION] Channel header updated from window data:', nameText);
+                return;
+            }
+            
+            channelName.textContent = `Channel ${this.targetId}`;
+            channelIcon.className = 'fas fa-hashtag text-[#949ba4] mr-2';
+            console.log('✅ [CHAT-SECTION] Channel header updated with fallback');
+            
+        } else if (this.chatType === 'direct') {
+            const chatTitleMeta = document.querySelector('meta[name="chat-title"]');
+            let titleText = chatTitleMeta?.content || 'Direct Message';
+            titleText = this.cleanChannelName(titleText);
+            
+            channelName.textContent = titleText;
+            channelIcon.className = 'fas fa-user text-[#949ba4] mr-2';
+            console.log('✅ [CHAT-SECTION] DM header updated:', titleText);
+            
+        } else {
+            channelName.textContent = 'Chat';
+            channelIcon.className = 'fas fa-comments text-[#949ba4] mr-2';
+            console.log('✅ [CHAT-SECTION] Generic header fallback applied');
+        }
+    }
+    
+    cleanChannelName(name) {
+        if (!name) return 'Channel';
+        
+        let cleanName = name.toString()
+            .replace(/=+/g, '')
+            .replace(/Edit\s*Delete?/gi, '')
+            .replace(/Delete\s*Edit?/gi, '')
+            .replace(/Edit/gi, '')
+            .replace(/Delete/gi, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        
+        if (!cleanName || cleanName.length === 0) {
+            return 'Channel';
+        }
+        
+        return cleanName;
     }
 }
 

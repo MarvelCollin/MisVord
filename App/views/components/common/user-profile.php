@@ -142,7 +142,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function handleMicClick() {
         if (window.localStorageManager) {
+            const currentState = window.localStorageManager.getVoiceState();
+            const newMutedState = !currentState.isMuted;
+            
             window.localStorageManager.toggleVoiceMute();
+            
+            if (window.MusicLoaderStatic) {
+                if (newMutedState) {
+                    window.MusicLoaderStatic.playDiscordMuteSound();
+                } else {
+                    window.MusicLoaderStatic.playDiscordUnmuteSound();
+                }
+            }
         } else {
             console.warn('LocalStorageManager not available for mic toggle');
         }
