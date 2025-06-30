@@ -40,6 +40,12 @@ async function loadVoiceScripts() {
 async function loadServerContent() {
     console.log('[Server Page] Loading server content');
     
+    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'server') {
+        console.log('[Server Page] Skeleton loading active, deferring server content loading');
+        return;
+    }
+    
     try {
         if (!window.channelSwitchManager && window.ChannelSwitchManager) {
             console.log('[Server Page] Creating new channel switch manager');
@@ -72,6 +78,12 @@ function getServerIdFromURL() {
 
 function initializeServerComponents() {
     console.log('[Server Page] Initializing server components');
+    
+    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'server') {
+        console.log('[Server Page] Skeleton loading active, deferring server components initialization');
+        return;
+    }
     
     if (typeof window.initializeServerDropdown === 'function') {
         window.initializeServerDropdown();
@@ -149,62 +161,62 @@ function renderMemberItem(member) {
 }
 
 function handleSkeletonLoading(show) {
-  const mainContent = document.querySelector('.flex-1');
+  console.log('[Server Page] Legacy skeleton loading called, delegating to new system');
   
-  if (!mainContent) return;
-  
-  if (typeof window.toggleChannelLoading === 'function') {
-    console.log("Skipping channel loading toggle to prevent reload");
-  }
-  
-  if (typeof window.toggleParticipantLoading === 'function') {
-    window.toggleParticipantLoading(show);
-  }
-  
-  if (show) {
-    const contentPart = mainContent.querySelector('.flex-grow, .flex-1');
-    if (contentPart) {
-      console.log("Adding skeleton loader to content part only");
-    const skeletonTemplate = `
-        <div class="chat-skeleton flex-grow bg-discord-background flex flex-col">
-          <div class="h-12 border-b border-discord-600 px-4 flex items-center">
-            <div class="h-5 bg-gray-700 rounded w-32 animate-pulse"></div>
-            <div class="ml-auto flex space-x-4">
-              ${Array(3).fill().map(() => `
-                <div class="h-6 w-6 bg-gray-700 rounded-full animate-pulse"></div>
+  if (show && typeof window.handleServerSkeletonLoading === 'function') {
+    window.handleServerSkeletonLoading(true);
+  } else if (!show && typeof window.hideServerSkeletonLoading === 'function') {
+    window.hideServerSkeletonLoading();
+  } else {
+    console.warn('[Server Page] New skeleton loading system not available, using fallback');
+    const mainContent = document.querySelector('.flex-1');
+    
+    if (!mainContent) return;
+    
+    if (show) {
+      const contentPart = mainContent.querySelector('.flex-grow, .flex-1');
+      if (contentPart) {
+        const skeletonTemplate = `
+          <div class="chat-skeleton flex-grow bg-discord-background flex flex-col">
+            <div class="h-12 border-b border-discord-600 px-4 flex items-center">
+              <div class="h-5 bg-gray-700 rounded w-32 animate-pulse"></div>
+              <div class="ml-auto flex space-x-4">
+                ${Array(3).fill().map(() => `
+                  <div class="h-6 w-6 bg-gray-700 rounded-full animate-pulse"></div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <div class="flex-grow p-4 overflow-y-auto">
+              ${Array(8).fill().map(() => `
+                <div class="flex mb-6">
+                  <div class="h-10 w-10 bg-gray-700 rounded-full mr-3 flex-shrink-0 animate-pulse"></div>
+                  <div class="flex-grow">
+                    <div class="flex items-center mb-1">
+                      <div class="h-4 bg-gray-700 rounded w-24 mr-2 animate-pulse"></div>
+                      <div class="h-3 bg-gray-700 rounded w-16 animate-pulse opacity-75"></div>
+                    </div>
+                    <div class="h-4 bg-gray-700 rounded w-full mb-1 animate-pulse"></div>
+                    <div class="h-4 bg-gray-700 rounded w-3/4 animate-pulse"></div>
+                  </div>
+                </div>
               `).join('')}
             </div>
+            
+            <div class="p-4 border-t border-discord-600">
+              <div class="h-10 bg-gray-700 rounded-lg w-full animate-pulse"></div>
           </div>
-          
-          <div class="flex-grow p-4 overflow-y-auto">
-            ${Array(8).fill().map(() => `
-              <div class="flex mb-6">
-                <div class="h-10 w-10 bg-gray-700 rounded-full mr-3 flex-shrink-0 animate-pulse"></div>
-                <div class="flex-grow">
-                  <div class="flex items-center mb-1">
-                    <div class="h-4 bg-gray-700 rounded w-24 mr-2 animate-pulse"></div>
-                    <div class="h-3 bg-gray-700 rounded w-16 animate-pulse opacity-75"></div>
-                  </div>
-                  <div class="h-4 bg-gray-700 rounded w-full mb-1 animate-pulse"></div>
-                  <div class="h-4 bg-gray-700 rounded w-3/4 animate-pulse"></div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-          
-          <div class="p-4 border-t border-discord-600">
-            <div class="h-10 bg-gray-700 rounded-lg w-full animate-pulse"></div>
         </div>
-      </div>
-    `;
-    
-      contentPart.innerHTML = skeletonTemplate;
-      contentPart.classList.add('loading');
-    }
-  } else {
-    const contentPart = mainContent.querySelector('.flex-grow, .flex-1');
-    if (contentPart) {
-      contentPart.classList.remove('loading');
+      `;
+      
+        contentPart.innerHTML = skeletonTemplate;
+        contentPart.classList.add('loading');
+      }
+    } else {
+      const contentPart = mainContent.querySelector('.flex-grow, .flex-1');
+      if (contentPart) {
+        contentPart.classList.remove('loading');
+      }
     }
   }
 }
@@ -434,6 +446,23 @@ window.ensureServerPageLoaded = function() {
 
 function initServerPage() {
   console.log('[Server Page] Initializing server page');
+  
+  const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+  if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'server') {
+    console.log('[Server Page] Skeleton loading active, deferring server page initialization');
+    document.addEventListener('ServerChanged', function() {
+      setTimeout(() => {
+        performDelayedServerInitialization();
+      }, 100);
+    }, { once: true });
+    return;
+  }
+  
+  performDelayedServerInitialization();
+}
+
+function performDelayedServerInitialization() {
+  console.log('[Server Page] Performing delayed server initialization');
   
   try {
     initializeServerComponents();

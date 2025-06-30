@@ -22,11 +22,10 @@ export function loadServerPage(serverId, channelId = null) {
 
     console.log('[Server Loader] Found main content:', !!mainContent);
     if (mainContent) {
-        if (typeof window.handleSkeletonLoading === 'function') {
-            window.handleSkeletonLoading(true);
-        } else {
-            showPageLoading(mainContent);
-        }
+        console.log('[Server Loader] Starting skeleton loading for server content');
+        handleServerSkeletonLoading(true);
+        
+        window.serverSkeletonStartTime = Date.now();
 
         const currentChannelId = getCurrentChannelId();
         if (currentChannelId && window.globalSocketManager) {
@@ -71,77 +70,22 @@ export function loadServerPage(serverId, channelId = null) {
                 
                 if (typeof response === 'string') {
                     console.log('[Server AJAX] Processing string response');
-                    updateServerLayout(response, serverId, channelId);
                     
-                    console.log('[Server AJAX] Validating server layout');
-                    validateServerLayoutRendering(serverId, channelId);
+                    const minDisplayTime = 500;
+                    const startTime = window.serverSkeletonStartTime || 0;
+                    const elapsedTime = Date.now() - startTime;
+                    const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
                     
-                    if (typeof window.handleSkeletonLoading === 'function') {
-                        window.handleSkeletonLoading(false);
-                        console.log('[Server AJAX] Skeleton loading disabled');
-                    }
+                    console.log('[Server Skeleton] Response ready - Elapsed time:', elapsedTime + 'ms', 'Remaining time:', remainingTime + 'ms');
                     
-                    if (typeof window.initServerPage === 'function') {
-                        window.initServerPage();
-                        console.log('[Server AJAX] Server page initialized');
-                    }
-                    
-                    if (typeof window.ChannelSwitchManager !== 'undefined') {
-                        if (window.channelSwitchManager) {
-                            console.log('[Server AJAX] Cleaning up existing channel switch manager');
-                            try {
-                                window.channelSwitchManager.cleanup();
-                            } catch (cleanupError) {
-                                console.warn('[Server AJAX] Error during cleanup:', cleanupError);
-                            }
-                            window.channelSwitchManager = null;
-                        }
-                        
-                        // Add a small delay to ensure cleanup is complete
+                    if (remainingTime > 0) {
+                        console.log('[Server Skeleton] Delaying content replacement to ensure minimum display time');
                         setTimeout(() => {
-                            if (!window.channelSwitchManager) {
-                                console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
-                                window.channelSwitchManager = new window.ChannelSwitchManager();
-                                console.log('[Server AJAX] Channel switch manager initialized');
-                            } else {
-                                console.log('[Server AJAX] Channel switch manager already exists, skipping creation');
-                            }
-                        }, 100);
+                            performServerLayoutUpdate(response, serverId, channelId, currentChannelId);
+                        }, remainingTime);
                     } else {
-                        console.warn('[Server AJAX] ChannelSwitchManager class not available');
+                        performServerLayoutUpdate(response, serverId, channelId, currentChannelId);
                     }
-                    
-                    if (typeof window.initServerDropdown === 'function') {
-                        console.log('[Server AJAX] Re-initializing server dropdown');
-                        window.initServerDropdown();
-                    } else {
-                        console.log('[Server AJAX] Manually initializing server dropdown');
-                        initServerDropdownManual();
-                    }
-                    
-                    if (typeof window.initializeParticipantSection === 'function') {
-                        window.initializeParticipantSection();
-                        console.log('[Server AJAX] Participant section initialized');
-                    }
-                    
-                    if (typeof window.updateActiveServer === 'function') {
-                        window.updateActiveServer('server', serverId);
-                        console.log('[Server AJAX] Active server state updated');
-                    }
-                    
-                    const event = new CustomEvent('ServerChanged', { 
-                        detail: { 
-                            serverId,
-                            channelId,
-                            previousChannelId: currentChannelId 
-                        } 
-                    });
-                    document.dispatchEvent(event);
-                    console.log('[Server AJAX] ServerChanged event dispatched');
-                    
-                    // Release global switch lock immediately after successful completion
-                    window.globalSwitchLock = false;
-                    console.log('[Server AJAX] Global switch lock released after server loading');
                     
                 } else if (response && response.data && response.data.redirect) {
                     console.log('[Server AJAX] Redirect response:', response.data.redirect);
@@ -164,9 +108,8 @@ export function loadServerPage(serverId, channelId = null) {
                 console.error('[Server AJAX] XHR responseText:', xhr ? xhr.responseText : 'none');
                 console.error('[Server AJAX] Target URL was:', url);
                 
-                if (typeof window.handleSkeletonLoading === 'function') {
-                    window.handleSkeletonLoading(false);
-                }
+                console.log('[Server AJAX] Disabling skeleton loading due to error');
+                handleServerSkeletonLoading(false);
                 
                 if (window.channelSwitchManager && typeof window.channelSwitchManager.cleanup === 'function') {
                     console.log('[Server AJAX] Cleaning up channel switch manager due to error');
@@ -189,6 +132,204 @@ export function loadServerPage(serverId, channelId = null) {
     }
 }
 
+function performServerLayoutUpdate(response, serverId, channelId, currentChannelId) {
+    console.log('[Server Layout] Performing delayed layout update');
+    
+    updateServerLayout(response, serverId, channelId);
+    
+    console.log('[Server AJAX] Validating server layout');
+    validateServerLayoutRendering(serverId, channelId);
+    
+    console.log('[Server AJAX] Disabling skeleton loading');
+    handleServerSkeletonLoading(false);
+    
+    if (typeof window.initServerPage === 'function') {
+        window.initServerPage();
+        console.log('[Server AJAX] Server page initialized');
+    }
+    
+    if (typeof window.ChannelSwitchManager !== 'undefined') {
+        if (window.channelSwitchManager) {
+            console.log('[Server AJAX] Cleaning up existing channel switch manager');
+            try {
+                window.channelSwitchManager.cleanup();
+            } catch (cleanupError) {
+                console.warn('[Server AJAX] Error during cleanup:', cleanupError);
+            }
+            window.channelSwitchManager = null;
+        }
+        
+        setTimeout(() => {
+            if (!window.channelSwitchManager) {
+                console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
+                window.channelSwitchManager = new window.ChannelSwitchManager();
+                console.log('[Server AJAX] Channel switch manager initialized');
+            } else {
+                console.log('[Server AJAX] Channel switch manager already exists, skipping creation');
+            }
+        }, 100);
+    } else {
+        console.warn('[Server AJAX] ChannelSwitchManager class not available');
+    }
+    
+    if (typeof window.initServerDropdown === 'function') {
+        console.log('[Server AJAX] Re-initializing server dropdown');
+        window.initServerDropdown();
+    } else {
+        console.log('[Server AJAX] Manually initializing server dropdown');
+        initServerDropdownManual();
+    }
+    
+    if (typeof window.initializeParticipantSection === 'function') {
+        window.initializeParticipantSection();
+        console.log('[Server AJAX] Participant section initialized');
+    }
+    
+    if (typeof window.updateActiveServer === 'function') {
+        window.updateActiveServer('server', serverId);
+        console.log('[Server AJAX] Active server state updated');
+    }
+    
+    const event = new CustomEvent('ServerChanged', { 
+        detail: { 
+            serverId,
+            channelId,
+            previousChannelId: currentChannelId 
+        } 
+    });
+    document.dispatchEvent(event);
+    console.log('[Server AJAX] ServerChanged event dispatched');
+    
+    window.globalSwitchLock = false;
+    console.log('[Server AJAX] Global switch lock released after server loading');
+}
+
+function handleServerSkeletonLoading(show) {
+    console.log('[Server Skeleton] Handle skeleton loading:', show);
+    
+    if (show) {
+        showServerSkeletonLoading();
+    } else {
+        hideServerSkeletonLoading();
+    }
+}
+
+function showServerSkeletonLoading() {
+    console.log('[Server Skeleton] Showing server skeleton loading');
+    
+    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    if (!mainLayoutContainer) {
+        console.warn('[Server Skeleton] Main layout container not found');
+        return;
+    }
+    
+    const skeletonHTML = `
+        <div class="server-skeleton-loading flex flex-1 overflow-hidden">
+            <!-- Channel Sidebar Skeleton -->
+            <div class="w-60 bg-discord-dark flex flex-col">
+                <div class="p-4 border-b border-gray-700">
+                    <div class="h-6 bg-gray-700 rounded w-40 animate-pulse"></div>
+                </div>
+                
+                <div class="flex-1 p-2">
+                    ${Array(3).fill().map(() => `
+                        <div class="mb-4">
+                            <div class="h-4 bg-gray-700 rounded w-24 mb-2 animate-pulse"></div>
+                            ${Array(4).fill().map(() => `
+                                <div class="flex items-center py-1.5 px-2 rounded mb-1">
+                                    <div class="w-4 h-4 bg-gray-700 rounded mr-2 animate-pulse"></div>
+                                    <div class="h-3 bg-gray-700 rounded w-20 animate-pulse"></div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="p-4 border-t border-gray-700">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-gray-700 rounded-full mr-3 animate-pulse"></div>
+                        <div class="flex-1">
+                            <div class="h-4 bg-gray-700 rounded w-20 mb-1 animate-pulse"></div>
+                            <div class="h-3 bg-gray-700 rounded w-16 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content Skeleton -->
+            <div class="flex-1 bg-discord-background flex flex-col">
+                <!-- Header -->
+                <div class="h-12 border-b border-gray-700 px-6 flex items-center">
+                    <div class="h-6 bg-gray-700 rounded w-32 animate-pulse"></div>
+                    <div class="ml-auto flex space-x-3">
+                        ${Array(4).fill().map(() => `<div class="w-8 h-8 bg-gray-700 rounded animate-pulse"></div>`).join('')}
+                    </div>
+                </div>
+                
+                <!-- Chat Messages Skeleton -->
+                <div class="flex-1 p-4 overflow-y-auto">
+                    ${Array(8).fill().map(() => `
+                        <div class="flex mb-6">
+                            <div class="w-10 h-10 bg-gray-700 rounded-full mr-3 flex-shrink-0 animate-pulse"></div>
+                            <div class="flex-grow">
+                                <div class="flex items-center mb-1">
+                                    <div class="h-4 bg-gray-700 rounded w-24 mr-2 animate-pulse"></div>
+                                    <div class="h-3 bg-gray-700 rounded w-16 animate-pulse opacity-75"></div>
+                                </div>
+                                <div class="h-4 bg-gray-700 rounded w-full mb-1 animate-pulse"></div>
+                                <div class="h-4 bg-gray-700 rounded w-3/4 animate-pulse"></div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- Message Input Skeleton -->
+                <div class="p-4 border-t border-gray-700">
+                    <div class="h-10 bg-gray-700 rounded-lg w-full animate-pulse"></div>
+                </div>
+            </div>
+            
+            <!-- Participant Sidebar Skeleton -->
+            <div class="w-60 bg-discord-background border-l border-gray-700 flex flex-col">
+                <div class="p-4 border-b border-gray-700">
+                    <div class="h-5 bg-gray-700 rounded w-20 animate-pulse"></div>
+                </div>
+                
+                <div class="flex-1 p-4">
+                    ${Array(6).fill().map(() => `
+                        <div class="flex items-center py-2 px-2 rounded mb-2">
+                            <div class="w-8 h-8 bg-gray-700 rounded-full mr-3 animate-pulse"></div>
+                            <div class="flex-1">
+                                <div class="h-4 bg-gray-700 rounded w-24 mb-1 animate-pulse"></div>
+                                <div class="h-3 bg-gray-700 rounded w-16 animate-pulse"></div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    mainLayoutContainer.innerHTML = skeletonHTML;
+    mainLayoutContainer.setAttribute('data-skeleton', 'server');
+    console.log('[Server Skeleton] Server skeleton displayed');
+}
+
+function hideServerSkeletonLoading() {
+    console.log('[Server Skeleton] Hiding server skeleton loading');
+    actuallyHideServerSkeleton();
+}
+
+function actuallyHideServerSkeleton() {
+    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'server') {
+        mainLayoutContainer.removeAttribute('data-skeleton');
+        console.log('[Server Skeleton] Server skeleton actually hidden');
+    }
+    
+    window.serverSkeletonStartTime = null;
+}
+
 function getCurrentChannelId() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('channel');
@@ -202,8 +343,6 @@ function showPageLoading(container) {
         </div>
     `;
 }
-
-
 
 function updateServerLayout(html, serverId, channelId) {
     console.log('[Server Layout] Starting server layout replacement');
@@ -298,8 +437,6 @@ function updateServerLayout(html, serverId, channelId) {
         console.error('[Server Layout] Response HTML structure preview:', html.substring(0, 500));
     }
 }
-
-
 
 function validateServerLayoutRendering(serverId, channelId) {
     console.log('[Server Validation] Starting server layout validation');
@@ -481,4 +618,6 @@ function initServerDropdownManual() {
     }, 150);
 }
 
-window.loadServerPage = loadServerPage; 
+window.loadServerPage = loadServerPage;
+window.handleServerSkeletonLoading = handleServerSkeletonLoading;
+window.hideServerSkeletonLoading = hideServerSkeletonLoading; 

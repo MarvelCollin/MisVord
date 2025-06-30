@@ -72,7 +72,7 @@ if (file_exists($tooltipPath)) {
             $isActive = ($activeDmId == $roomId);
             $activeClass = $isActive ? 'bg-discord-light' : 'hover:bg-discord-light';
             ?>
-            <div class="dm-friend-item flex items-center p-1.5 rounded <?php echo $activeClass; ?> text-discord-lighter hover:text-white cursor-pointer group"
+            <div class="dm-friend-item flex items-center p-1.5 rounded <?php echo $activeClass; ?> text-discord-lighter hover:text-white cursor-pointer"
                  data-friend-id="<?php echo htmlspecialchars($otherUserId); ?>"
                  data-chat-room-id="<?php echo htmlspecialchars($roomId); ?>"
                  data-chat-type="direct"
@@ -85,15 +85,6 @@ if (file_exists($tooltipPath)) {
                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> user-status-indicator" data-user-id="<?php echo htmlspecialchars($otherUserId); ?>"></span>
                 </div>
                 <span class="font-medium truncate"><?php echo htmlspecialchars($otherUsername); ?></span>
-
-                <div class="ml-auto hidden group-hover:flex items-center space-x-1">
-                    <button class="text-discord-lighter hover:text-white p-1 rounded hover:bg-discord-background">
-                        <i class="fas fa-phone-alt text-xs"></i>
-                    </button>
-                    <button class="text-discord-lighter hover:text-white p-1 rounded hover:bg-discord-background">
-                        <i class="fas fa-video text-xs"></i>
-                    </button>
-                </div>
             </div>
         <?php endforeach; ?>
     </div>

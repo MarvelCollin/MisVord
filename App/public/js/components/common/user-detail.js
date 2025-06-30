@@ -874,6 +874,11 @@ document.addEventListener('click', (e) => {
     const trigger = e.target.closest('.user-profile-trigger');
 
     if (trigger) {
+        if (trigger.classList.contains('mention-all') || trigger.classList.contains('bubble-mention-all') || trigger.dataset.mentionType === 'all') {
+            console.log('🚫 [USER-DETAIL] @all mention clicked, ignoring user detail trigger');
+            return;
+        }
+
         let userId = trigger.dataset.userId;
         const serverId = trigger.dataset.serverId;
         const username = trigger.dataset.username;

@@ -24,6 +24,23 @@ class ChannelSwitchManager {
 
     init() {
         console.log('[ChannelSwitchManager] Initializing channel switch manager');
+        
+        const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+        if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'server') {
+            console.log('[ChannelSwitchManager] Skeleton loading active, deferring initialization');
+            document.addEventListener('ServerChanged', () => {
+                setTimeout(() => {
+                    this.performDelayedInitialization();
+                }, 150);
+            }, { once: true });
+            return;
+        }
+        
+        this.performDelayedInitialization();
+    }
+    
+    performDelayedInitialization() {
+        console.log('[ChannelSwitchManager] Performing delayed initialization');
         this.injectSwitchingCSS();
         this.bindChannelClickEvents();
         this.setupPopstateListener();
@@ -34,7 +51,7 @@ class ChannelSwitchManager {
             this.initializeCurrentChannel();
         }
         
-        console.log('[ChannelSwitchManager] On server page, initializing channel switch manager');
+        console.log('[ChannelSwitchManager] Channel switch manager initialization completed');
     }
 
     injectSwitchingCSS() {
@@ -892,7 +909,12 @@ class ChannelSwitchManager {
     }
 
     initializeCurrentChannel() {
-        // Get current channel from URL
+        const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+        if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'server') {
+            console.log('[ChannelSwitchManager] Skeleton loading active, deferring channel initialization');
+            return;
+        }
+        
         const urlParams = new URLSearchParams(window.location.search);
         const channelId = urlParams.get('channel');
         const channelType = urlParams.get('type') || 'text';
@@ -900,14 +922,11 @@ class ChannelSwitchManager {
         if (channelId) {
             console.log('[ChannelSwitchManager] Initializing current channel from URL:', { channelId, channelType });
             
-            // Set current state without switching (since we're already on this channel)
             this.currentChannelId = channelId;
             this.currentChannelType = channelType;
             
-            // Update UI to reflect current state
             this.updateActiveChannelUI(channelId);
             
-            // Initialize appropriate section
             setTimeout(() => {
                 if (channelType === 'voice') {
                     this.ensureVoiceSectionVisible();
@@ -919,7 +938,6 @@ class ChannelSwitchManager {
                 }
             }, 200);
         } else {
-            // No channel specified, find and initialize first text channel
             const firstTextChannel = document.querySelector('.channel-item[data-channel-type="text"]');
             if (firstTextChannel) {
                 const firstChannelId = firstTextChannel.getAttribute('data-channel-id');

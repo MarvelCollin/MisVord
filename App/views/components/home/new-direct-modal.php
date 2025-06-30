@@ -1,6 +1,6 @@
 <div class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center" id="new-direct-modal" style="z-index: 100000;">
-    <div class="modal w-full max-w-md mx-4 bg-discord-darkest rounded-lg shadow-2xl" onclick="event.stopPropagation();">
-        <div class="p-4 border-b border-discord-darker">
+    <div class="modal w-full max-w-md mx-4 bg-[#2b2d31] rounded-lg shadow-2xl border border-[#1e1f22]" onclick="event.stopPropagation();">
+        <div class="p-4 border-b border-[#1e1f22] bg-[#2b2d31]">
             <div class="flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-white">New Message</h3>
                 <button id="close-new-direct-modal" class="text-gray-400 hover:text-white focus:outline-none focus:ring-0">
@@ -8,11 +8,11 @@
                 </button>
             </div>
         </div>
-        <div class="p-4">
+        <div class="p-4 bg-[#2b2d31]">
             <div class="mb-4">
                 <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Select a Friend</label>
                 <div class="relative">
-                    <input type="text" placeholder="Search by username" class="w-full bg-discord-dark text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-discord-primary" id="dm-search-input">
+                    <input type="text" placeholder="Search by username" class="w-full bg-[#1e1f22] text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-[#404249]" id="dm-search-input">
                     <i class="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
                 </div>
             </div>
@@ -21,18 +21,17 @@
                 </div>
 
             <div id="dm-friends-list" class="max-h-60 overflow-y-auto py-2 space-y-2 custom-scrollbar">
-                <!-- Friends will be loaded here dynamically -->
                 <div class="text-gray-400 text-center py-4 hidden" id="no-dm-friends">
                     <i class="fas fa-user-friends text-2xl mb-2"></i>
                     <p>No friends found</p>
                 </div>
             </div>
         </div>
-        <div class="p-4 bg-discord-darker flex justify-end space-x-3 rounded-b-lg">
-            <button class="px-4 py-2 text-white bg-gray-600 hover:bg-gray-700 rounded-md transition-colors duration-150" id="cancel-new-direct">
+        <div class="p-4 bg-[#2b2d31] flex justify-end space-x-3 rounded-b-lg border-t border-[#1e1f22]">
+            <button class="px-4 py-2 text-white bg-[#4e5058] hover:bg-[#5c5e66] rounded-md transition-colors duration-150" id="cancel-new-direct">
                 Cancel
             </button>
-            <button class="px-4 py-2 text-white bg-discord-primary hover:bg-discord-primary-dark rounded-md opacity-50 cursor-not-allowed transition-colors duration-150" id="create-new-direct" disabled>
+            <button class="px-4 py-2 text-white bg-[#5865f2] hover:bg-[#4752c4] rounded-md opacity-50 cursor-not-allowed transition-colors duration-150" id="create-new-direct" disabled>
                 Create Message
             </button>
         </div>
@@ -63,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             const statusText = getStatusText(friend.status || 'offline');
                             
                             const friendItem = document.createElement('div');
-                            friendItem.className = 'dm-friend-item flex items-center p-2 rounded hover:bg-discord-dark cursor-pointer';
+                            friendItem.className = 'modal-friend-item flex items-center p-2 rounded hover:bg-[#35373c] cursor-pointer transition-colors duration-150';
                             friendItem.setAttribute('data-username', friend.username);
                             friendItem.setAttribute('data-user-id', friend.id);
                             
@@ -73,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                                              alt="Avatar" class="w-full h-full object-cover">
                                     </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-darker ${statusColor}"></span>
+                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#2b2d31] ${statusColor}"></span>
                                 </div>
                                 <div>
                                     <p class="font-medium text-white">${escapeHtml(friend.username)}</p>
@@ -125,15 +124,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function selectFriendForDM(element) {
-        const allFriends = document.querySelectorAll('.dm-friend-item');
+        const allFriends = modal.querySelectorAll('.modal-friend-item');
         
         allFriends.forEach(friend => {
-            friend.classList.remove('bg-discord-light');
-            friend.classList.add('hover:bg-discord-dark');
+            friend.classList.remove('bg-[#404249]');
+            friend.classList.add('hover:bg-[#35373c]');
         });
         
-        element.classList.add('bg-discord-light');
-        element.classList.remove('hover:bg-discord-dark');
+        element.classList.add('bg-[#404249]');
+        element.classList.remove('hover:bg-[#35373c]');
         
         selectedUserId = element.getAttribute('data-user-id');
         
@@ -161,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (data.success && data.data && data.data.channel_id) {
-                                        window.location.href = `/home/channels/dm/${data.data.channel_id}`;
+                window.location.href = `/home/channels/dm/${data.data.channel_id}`;
             } else {
                 if (window.showToast) {
                     window.showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
@@ -178,10 +177,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getStatusColor(status) {
         switch (status) {
-            case 'online': return 'bg-discord-green';
-            case 'away': return 'bg-discord-yellow';
-            case 'dnd': return 'bg-discord-red';
-            default: return 'bg-gray-500';
+            case 'online': return 'bg-[#23a559]';
+            case 'away': return 'bg-[#f0b232]';
+            case 'dnd': return 'bg-[#f23f43]';
+            default: return 'bg-[#80848e]';
         }
     }
 
@@ -235,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput) {
         searchInput.addEventListener('input', function() {
             const query = this.value.toLowerCase();
-            const friends = document.querySelectorAll('.dm-friend-item');
+            const friends = modal.querySelectorAll('.modal-friend-item');
             
             let hasVisibleFriends = false;
             

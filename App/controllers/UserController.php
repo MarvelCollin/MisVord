@@ -1087,4 +1087,71 @@ class UserController extends BaseController
             return $this->serverError('An error occurred while changing password: ' . $e->getMessage());
         }
     }
+
+    public function getPendingRequestsCount()
+    {
+        $this->requireAuth();
+        
+        $userId = $this->getCurrentUserId();
+        
+        try {
+            $pendingRequests = $this->friendListRepository->getPendingRequests($userId);
+            $count = count($pendingRequests);
+            
+            return $this->success([
+                'count' => $count
+            ], 'Pending friend requests count retrieved successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving pending requests count: ' . $e->getMessage());
+        }
+    }
+
+    public function getAllUsers()
+    {
+        $this->requireAuth();
+        
+        $currentUserId = $this->getCurrentUserId();
+        
+        try {
+            $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 50;
+            $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+            
+            $query = new \Query();
+            $queryBuilder = $query->table('users')
+                ->where('status', '!=', 'bot')
+                ->where('status', '!=', 'banned')
+                ->where('status', '!=', 'deleted')
+                ->where('id', '!=', $currentUserId);
+                
+            if (!empty($search)) {
+                $queryBuilder->where(function($q) use ($search) {
+                    $q->whereLike('username', "%$search%")
+                      ->orWhereLike('display_name', "%$search%");
+                });
+            }
+            
+            $results = $queryBuilder->orderBy('username', 'ASC')
+                ->limit($limit)
+                ->get();
+            
+            $users = [];
+            foreach ($results as $result) {
+                $users[] = [
+                    'id' => $result['id'],
+                    'username' => $result['username'],
+                    'display_name' => $result['display_name'] ?? $result['username'],
+                    'avatar_url' => $result['avatar_url'],
+                    'status' => $result['status'] ?? 'offline'
+                ];
+            }
+            
+            return $this->success([
+                'users' => $users,
+                'total' => count($users)
+            ]);
+        } catch (Exception $e) {
+            error_log("Error getting all users: " . $e->getMessage());
+            return $this->serverError('Failed to get users: ' . $e->getMessage());
+        }
+    }
 } 

@@ -442,6 +442,11 @@ Route::post('/api/users/find', function() {
     $controller->findUsers();
 });
 
+Route::get('/api/users/all', function() {
+    $controller = new UserController();
+    $controller->getAllUsers();
+});
+
 Route::get('/api/users/([0-9]+)/profile', function($userId) {
     $controller = new UserController();
     $controller->getUserProfile($userId);

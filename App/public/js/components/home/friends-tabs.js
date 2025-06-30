@@ -152,6 +152,8 @@ function initFriendsTabManager() {
     }
 }
 
+window.initFriendsTabManager = initFriendsTabManager;
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initFriendsTabManager);
 } else {

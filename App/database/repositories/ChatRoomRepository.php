@@ -157,4 +157,54 @@ class ChatRoomRepository extends Repository {
     public function getUserDirectMessages($userId) {
         return $this->getUserDirectRooms($userId);
     }
+
+    public function createGroupChatRoom($participantIds, $groupName, $groupImage = null) {
+        if (count($participantIds) < 2) {
+            throw new Exception('Group chat requires at least 2 participants');
+        }
+
+        $query = new Query();
+        
+        try {
+            $query->beginTransaction();
+            
+            $roomId = $query->table('chat_rooms')->insert([
+                'name' => $groupName,
+                'type' => 'group',
+                'image_url' => $groupImage,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+            
+            if ($roomId) {
+                foreach ($participantIds as $userId) {
+                    $user = $query->table('users')->where('id', $userId)->first();
+                    if (!$user) {
+                        throw new Exception("User with ID $userId not found");
+                    }
+                    
+                    if ($user['status'] === 'banned' || $user['status'] === 'deleted') {
+                        throw new Exception("Cannot add user {$user['username']} to group");
+                    }
+                    
+                    $query->table('chat_participants')->insert([
+                        'chat_room_id' => $roomId,
+                        'user_id' => $userId,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
+                $query->commit();
+                return $this->find($roomId);
+            } else {
+                $query->rollback();
+                return null;
+            }
+        } catch (Exception $e) {
+            $query->rollback();
+            error_log('Error creating group chat room: ' . $e->getMessage());
+            throw $e;
+        }
+    }
 }

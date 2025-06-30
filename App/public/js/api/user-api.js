@@ -222,7 +222,7 @@ class UserAPI {
     }
 
     async declineFriendRequest(friendshipId) {
-        console.log('�� UserAPI: Declining friend request:', friendshipId);
+        console.log('🔗 UserAPI: Declining friend request:', friendshipId);
         const result = await this.makeRequest(`/api/friends/decline?id=${friendshipId}`, {
             method: 'POST'
         });
@@ -280,6 +280,24 @@ class UserAPI {
             console.error('UserAPI: Failed to update bio:', result.error);
         } else {
             console.log('🔗 UserAPI: Successfully updated bio');
+        }
+        
+        return result;
+    }
+
+    async getAllUsers(search = '', limit = 50) {
+        console.log('🔗 UserAPI: Fetching all users for chat');
+        let url = `/api/users/all?limit=${limit}`;
+        if (search) {
+            url += `&search=${encodeURIComponent(search)}`;
+        }
+        
+        const result = await this.makeRequest(url);
+        
+        if (!result.success) {
+            console.error('UserAPI: Failed to fetch all users:', result.error);
+        } else {
+            console.log('🔗 UserAPI: Successfully fetched all users');
         }
         
         return result;

@@ -545,6 +545,8 @@ function initDirectMessageNavigation() {
     }
 }
 
+window.initDirectMessageNavigation = initDirectMessageNavigation;
+
 window.addEventListener('popstate', (event) => {
     if (event.state) {
         if (event.state.contentType === 'friends' && window.directMessageNavigation) {

@@ -398,78 +398,6 @@ class ChatController extends BaseController
         }
     }
 
-    public function createDirectMessage()
-    {
-        $this->requireAuth();
-        $userId = $this->getCurrentUserId();
-
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-
-        $this->validate($input, ['friend_id' => 'required']);
-
-        $friendId = $input['friend_id'];
-
-        if ($friendId == $userId) {
-            return $this->validationError(['friend_id' => 'Cannot create chat with yourself']);
-        }
-
-        $friend = $this->userRepository->find($friendId);
-        if (!$friend) {
-            return $this->notFound('User not found');
-        }
-
-        if ($friend->status === 'banned' || $friend->status === 'deleted') {
-            return $this->forbidden('Cannot message this user');
-        }
-
-        try {
-            $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
-            if ($existingRoom) {
-                $chatRoomData = [
-                    'id' => $existingRoom->id,
-                    'type' => $existingRoom->type,
-                    'name' => $existingRoom->name,
-                    'image_url' => $existingRoom->image_url,
-                    'created_at' => $existingRoom->created_at,
-                    'updated_at' => $existingRoom->updated_at
-                ];
-                return $this->success([
-                    'data' => [
-                        'chat_room' => $chatRoomData,
-                        'room_id' => $existingRoom->id
-                    ]
-                ]);
-            }
-
-            $chatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
-
-
-            if (!$chatRoom || !$chatRoom->id) {
-                return $this->serverError('Failed to create chat room');
-            }
-
-
-            $chatRoomData = [
-                'id' => $chatRoom->id,
-                'type' => $chatRoom->type,
-                'name' => $chatRoom->name,
-                'image_url' => $chatRoom->image_url,
-                'created_at' => $chatRoom->created_at,
-                'updated_at' => $chatRoom->updated_at
-            ];
-            return $this->success([
-                'data' => [
-                    'chat_room' => $chatRoomData,
-                    'room_id' => $chatRoom->id
-                ]
-            ], 'Direct message created');
-        } catch (Exception $e) {
-            error_log('CreateDirectMessage Error: ' . $e->getMessage());
-            return $this->serverError('Failed to create direct message: ' . $e->getMessage());
-        }
-    }
-
     public function create()
     {
         $this->requireAuth();
@@ -478,54 +406,104 @@ class ChatController extends BaseController
         $input = $this->getInput();
         $input = $this->sanitize($input);
 
-        $this->validate($input, ['user_id' => 'required']);
+        if (isset($input['user_id'])) {
+            $this->validate($input, ['user_id' => 'required']);
+            $friendId = $input['user_id'];
 
-        $friendId = $input['user_id'];
-
-        if ($friendId == $userId) {
-            return $this->validationError(['user_id' => 'Cannot create chat with yourself']);
-        }
-
-        $friend = $this->userRepository->find($friendId);
-        if (!$friend) {
-            return $this->notFound('User not found');
-        }
-
-        if ($friend->status === 'banned' || $friend->status === 'deleted') {
-            return $this->forbidden('Cannot message this user');
-        }
-
-        try {
-            $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
-            if ($existingRoom) {
-                return $this->success([
-                    'data' => [
-                        'channel_id' => $existingRoom->id,
-                        'room_id' => $existingRoom->id
-                    ]
-                ]);
+            if ($friendId == $userId) {
+                return $this->validationError(['user_id' => 'Cannot create chat with yourself']);
             }
 
             $friend = $this->userRepository->find($friendId);
             if (!$friend) {
-                return $this->notFound('Friend not found');
-            }
-            
-            $chatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
-            if (!$chatRoom || !$chatRoom->id) {
-                return $this->serverError('Failed to create chat room');
+                return $this->notFound('User not found');
             }
 
-            return $this->success([
-                'data' => [
-                    'channel_id' => $chatRoom->id,
-                    'room_id' => $chatRoom->id
-                ]
-            ], 'Direct message created');
-        } catch (Exception $e) {
-            error_log('Create Chat Error: ' . $e->getMessage());
-            return $this->serverError('Failed to create direct message: ' . $e->getMessage());
+            if ($friend->status === 'banned' || $friend->status === 'deleted') {
+                return $this->forbidden('Cannot message this user');
+            }
+
+            try {
+                $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
+                if ($existingRoom) {
+                    return $this->validationError(['message' => 'Conversation already exists']);
+                }
+
+                $friend = $this->userRepository->find($friendId);
+                if (!$friend) {
+                    return $this->notFound('Friend not found');
+                }
+                
+                $chatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
+                if (!$chatRoom || !$chatRoom->id) {
+                    return $this->serverError('Failed to create chat room');
+                }
+
+                return $this->success([
+                    'data' => [
+                        'channel_id' => $chatRoom->id,
+                        'room_id' => $chatRoom->id
+                    ]
+                ], 'Direct message created');
+            } catch (Exception $e) {
+                error_log('Create Chat Error: ' . $e->getMessage());
+                return $this->serverError('Failed to create direct message: ' . $e->getMessage());
+            }
         }
+
+        if (isset($input['user_ids']) && is_array($input['user_ids'])) {
+            $userIds = array_filter($input['user_ids'], function($id) {
+                return is_numeric($id) && $id > 0;
+            });
+
+            if (empty($userIds)) {
+                return $this->validationError(['user_ids' => 'At least one user is required']);
+            }
+
+            if (in_array($userId, $userIds)) {
+                return $this->validationError(['user_ids' => 'Cannot add yourself to the group']);
+            }
+
+            if (count($userIds) === 1) {
+                $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $userIds[0]);
+                if ($existingRoom) {
+                    return $this->validationError(['message' => 'Conversation already exists']);
+                }
+            }
+
+            try {
+                if (count($userIds) === 1) {
+                    $chatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $userIds[0]);
+                } else {
+                    $groupName = $input['group_name'] ?? null;
+                    $groupImage = $input['group_image'] ?? null;
+                    
+                    if (empty($groupName)) {
+                        return $this->validationError(['group_name' => 'Group name is required for group chats']);
+                    }
+
+                    $allParticipants = array_merge([$userId], $userIds);
+                    $chatRoom = $this->chatRoomRepository->createGroupChatRoom($allParticipants, $groupName, $groupImage);
+                }
+
+                if (!$chatRoom || !$chatRoom->id) {
+                    return $this->serverError('Failed to create chat room');
+                }
+
+                return $this->success([
+                    'data' => [
+                        'channel_id' => $chatRoom->id,
+                        'room_id' => $chatRoom->id,
+                        'type' => count($userIds) === 1 ? 'direct' : 'group'
+                    ]
+                ], count($userIds) === 1 ? 'Direct message created' : 'Group chat created');
+            } catch (Exception $e) {
+                error_log('Create Group Chat Error: ' . $e->getMessage());
+                return $this->serverError('Failed to create chat: ' . $e->getMessage());
+            }
+        }
+
+        return $this->validationError(['input' => 'Either user_id or user_ids array is required']);
     }
 
     public function getDirectMessageRooms()

@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     requestAnimationFrame(() => {
         initServerModal();
-        initDirectMessageModal();
         initResponsiveHandling();
         initMobileMenu();
         
@@ -82,160 +81,7 @@ function initServerModal() {
     }
 }
 
-function initDirectMessageModal() {
-    const newDirectMessageBtn = document.getElementById('new-direct-message-btn');
-    const modal = document.getElementById('new-direct-modal');
-    const closeBtn = document.getElementById('close-new-direct-modal');
-    const cancelBtn = document.getElementById('cancel-new-direct');
-    const searchInput = document.getElementById('dm-search-input');
-    const friendsList = document.getElementById('dm-friends-list');
-    const createButton = document.getElementById('create-new-direct');
 
-    if (!newDirectMessageBtn || !modal) return;
-
-    newDirectMessageBtn.addEventListener('click', function () {
-        modal.classList.remove('hidden');
-        loadFriendsForDM();
-    });
-
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function () {
-            modal.classList.add('hidden');
-        });
-    }
-
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', function () {
-            modal.classList.add('hidden');
-        });
-    }
-
-    if (modal) {
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) {
-                modal.classList.add('hidden');
-            }
-        });
-    }
-
-    if (searchInput) {
-        searchInput.addEventListener('input', function () {
-            const query = this.value.toLowerCase();
-            const friends = friendsList.querySelectorAll('.dm-friend-item');
-
-            let hasVisibleFriends = false;
-
-            friends.forEach(friend => {
-                const username = friend.getAttribute('data-username').toLowerCase();
-                if (username.includes(query)) {
-                    friend.classList.remove('hidden');
-                    hasVisibleFriends = true;
-                } else {
-                    friend.classList.add('hidden');
-                }
-            });
-
-            const noFriendsMsg = document.getElementById('no-dm-friends');
-            if (noFriendsMsg) {
-                noFriendsMsg.classList.toggle('hidden', hasVisibleFriends);
-            }
-        });
-    }
-}
-
-function loadFriendsForDM() {
-    const friendsList = document.getElementById('dm-friends-list');
-    const noFriendsMsg = document.getElementById('no-dm-friends');
-
-    if (!friendsList) return;
-
-    friendsList.innerHTML = generateSkeletonItems(3);
-
-    friendAPI.getFriends()
-        .then(friends => {
-            friendsList.innerHTML = '';
-
-            if (friends && friends.length > 0) {
-                friends.forEach(friend => {
-                    const statusColor = window.FriendsManager.getInstance().getStatusColor(friend.status || 'offline');
-
-                    const friendItem = document.createElement('div');
-                    friendItem.className = 'dm-friend-item flex items-center p-2 rounded hover:bg-discord-dark cursor-pointer';
-                    friendItem.setAttribute('data-username', friend.username);
-                    friendItem.setAttribute('data-user-id', friend.id);
-
-                    friendItem.innerHTML = `
-                        <div class="relative mr-3">
-                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                     alt="Avatar" class="w-full h-full object-cover">
-                            </div>
-                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-darker ${statusColor}"></span>
-                        </div>
-                        <span class="font-medium text-white">${window.FriendsManager.getInstance().escapeHtml(friend.username)}</span>
-                    `;
-
-                    friendItem.addEventListener('click', function () {
-                        selectFriendForDM(this);
-                    });
-
-                    friendsList.appendChild(friendItem);
-                });
-
-                if (noFriendsMsg) {
-                    noFriendsMsg.classList.add('hidden');
-                }
-            } else {
-                if (noFriendsMsg) {
-                    noFriendsMsg.classList.remove('hidden');
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error loading friends:', error);
-            friendsList.innerHTML = '<div class="text-gray-400 text-center py-2">Failed to load friends</div>';
-        });
-}
-
-function generateSkeletonItems(count) {
-    let skeletonHtml = '';
-
-    for (let i = 0; i < count; i++) {
-        skeletonHtml += `
-            <div class="skeleton-item flex items-center">
-                <div class="skeleton skeleton-avatar mr-3"></div>
-                <div class="flex-1">
-                    <div class="skeleton skeleton-text"></div>
-                </div>
-            </div>
-        `;
-    }
-
-    return skeletonHtml;
-}
-
-function selectFriendForDM(element) {
-    const createButton = document.getElementById('create-new-direct');
-    const allFriends = document.querySelectorAll('.dm-friend-item');
-
-    allFriends.forEach(friend => {
-        friend.classList.remove('bg-discord-light');
-        friend.classList.add('hover:bg-discord-dark');
-    });
-
-    element.classList.add('bg-discord-light');
-    element.classList.remove('hover:bg-discord-dark');
-
-    if (createButton) {
-        createButton.disabled = false;
-        createButton.classList.remove('opacity-50', 'cursor-not-allowed');
-
-        createButton.onclick = function () {
-            const userId = element.getAttribute('data-user-id');
-            createDirectMessage(userId);
-        };
-    }
-}
 
 function createDirectMessage(userId) {
     const modal = document.getElementById('new-direct-modal');
@@ -284,6 +130,12 @@ function initTabHandling() {
 }
 
 function activateTab(tabName) {
+    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
+        console.log('[App Layout] Skeleton loading active, deferring tab activation');
+        return;
+    }
+    
     const tabs = document.querySelectorAll('[data-tab]');
     const tabContents = document.querySelectorAll('.tab-content');
     
@@ -299,6 +151,12 @@ function activateTab(tabName) {
 }
 
 function updateTabUI(tabName, tabs, tabContents) {
+    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
+        console.log('[App Layout] Skeleton loading active, deferring tab UI update');
+        return;
+    }
+    
     tabs.forEach(tab => {
         if (tab.getAttribute('data-tab') === tabName) {
             tab.classList.remove('text-gray-300');
@@ -349,6 +207,12 @@ function updateTabUI(tabName, tabs, tabContents) {
 }
 
 async function loadOnlineFriends(forceRefresh = false) {
+    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
+        console.log('[App Layout] Skeleton loading active, skipping online friends load');
+        return;
+    }
+    
     const container = document.getElementById('online-friends-container');
     if (!container) return;
     
@@ -425,6 +289,12 @@ async function loadOnlineFriends(forceRefresh = false) {
 }
 
 async function loadAllFriends(forceRefresh = false) {
+    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
+        console.log('[App Layout] Skeleton loading active, skipping all friends load');
+        return;
+    }
+    
     const container = document.getElementById('all-friends-container');
     if (!container) return;
     
@@ -503,6 +373,12 @@ async function loadAllFriends(forceRefresh = false) {
 }
 
 async function loadPendingRequests(forceRefresh = false) {
+    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
+        console.log('[App Layout] Skeleton loading active, skipping pending requests load');
+        return;
+    }
+    
     const pendingContainer = document.getElementById('pending-requests');
     if (!pendingContainer) return;
 
@@ -1099,6 +975,24 @@ function initMobileMenu() {
 }
 
 function initializeOnPageLoad() {
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/friends')) {
+        const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+        if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
+            console.log('[App Layout] Skeleton loading active, deferring initialization');
+            document.addEventListener('HomePageChanged', function() {
+                setTimeout(() => {
+                    performDelayedInitialization();
+                }, 100);
+            }, { once: true });
+            return;
+        }
+        
+        performDelayedInitialization();
+    }
+}
+
+function performDelayedInitialization() {
     const currentPath = window.location.pathname;
     if (currentPath.includes('/friends')) {
         const urlParams = new URLSearchParams(window.location.search);
