@@ -351,10 +351,8 @@ class NavigationManager {
     cleanupComponents() {
         console.log('[Navigation] Cleaning up components');
         
-        if (window.channelSwitchManager && typeof window.channelSwitchManager.cleanup === 'function') {
-            console.log('[Navigation] Cleaning up existing ChannelSwitchManager');
-            window.channelSwitchManager.cleanup();
-            window.channelSwitchManager = null;
+        if (window.simpleChannelSwitcher) {
+            window.simpleChannelSwitcher = null;
         }
         
         if (window.chatSection && typeof window.chatSection.cleanup === 'function') {
@@ -412,22 +410,14 @@ class NavigationManager {
         this.cleanupComponents();
         
         setTimeout(() => {
-            console.log('[Navigation] Creating new ChannelSwitchManager');
-            if (window.ChannelSwitchManager) {
-                window.channelSwitchManager = new window.ChannelSwitchManager();
-                console.log('[Navigation] ChannelSwitchManager created successfully');
-            } else {
-                console.warn('[Navigation] ChannelSwitchManager class not available');
+            if (window.SimpleChannelSwitcher) {
+                new window.SimpleChannelSwitcher();
+                console.log('[Navigation] SimpleChannelSwitcher created successfully');
             }
             
             if (typeof window.initializeChatSection === 'function') {
                 console.log('[Navigation] Initializing chat section');
                 window.initializeChatSection();
-            }
-            
-            if (typeof window.initializeParticipantSection === 'function') {
-                console.log('[Navigation] Initializing participant section');
-                window.initializeParticipantSection();
             }
             
             if (typeof window.updateActiveServer === 'function') {

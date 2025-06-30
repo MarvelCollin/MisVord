@@ -17,6 +17,7 @@ class VideoSDKManager {
         this._micState = false;
         this._webcamState = false;
         this._screenShareState = false;
+        this.processedParticipants = new Set();
     }
 
     async getAuthToken() {
@@ -202,6 +203,12 @@ class VideoSDKManager {
     handleParticipantJoined(participant) {
         console.log(`👤 [VideoSDK] Setting up handlers for joined participant: ${participant.id}`);
         
+        if (this.processedParticipants.has(participant.id)) {
+            console.log(`👤 [VideoSDK] Participant ${participant.id} already processed, skipping`);
+            return;
+        }
+        
+        this.processedParticipants.add(participant.id);
         this.registerStreamEvents(participant);
         this.startStreamMonitoring(participant);
         
@@ -215,6 +222,7 @@ class VideoSDKManager {
     handleParticipantLeft(participant) {
         console.log(`👋 [VideoSDK] Cleaning up handlers for left participant: ${participant.id}`);
         
+        this.processedParticipants.delete(participant.id);
         this.cleanupParticipantResourcesById(participant.id);
         
         window.dispatchEvent(new CustomEvent('videosdkParticipantLeft', {
@@ -234,8 +242,14 @@ class VideoSDKManager {
                 this.meeting.participants.forEach((participant, participantId) => {
                     console.log(`👤 [VideoSDK] Processing participant: ${participant.id} (${participant.displayName || participant.name || 'Unknown'})`);
                     
+                    if (this.processedParticipants.has(participant.id)) {
+                        console.log(`👤 [VideoSDK] Participant ${participant.id} already processed, skipping`);
+                        return;
+                    }
+                    
                     if (participant.id !== this.meeting.localParticipant?.id) {
                         console.log(`👤 [VideoSDK] Setting up existing remote participant: ${participant.id}`);
+                        this.processedParticipants.add(participant.id);
                         this.registerStreamEvents(participant);
                         this.startStreamMonitoring(participant);
                         
@@ -248,7 +262,7 @@ class VideoSDKManager {
                         console.log(`👤 [VideoSDK] Skipping local participant: ${participant.id}`);
                     }
                 });
-            }, 500);
+            }, 1000);
         } catch (error) {
             console.error('Error setting up existing participants:', error);
         }
@@ -563,6 +577,7 @@ class VideoSDKManager {
                 this._micState = false;
                 this._webcamState = false;
                 this._screenShareState = false;
+                this.processedParticipants.clear();
                 
                 this.meeting.leave();
                 this.meeting = null;

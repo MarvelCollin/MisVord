@@ -74,29 +74,13 @@ function isChatPage() {
 
 async function initializeChatSection() {
     if (typeof window.ChatAPI === 'undefined') {
-        console.log('ChatAPI not ready, retrying...', {
-            ChatAPI: typeof window.ChatAPI,
-            chatAPI: typeof window.chatAPI,
-            loadedScripts: Array.from(document.scripts).map(s => s.src).filter(s => s.includes('chat-api'))
-        });
+        console.log('ChatAPI not ready, retrying...');
         setTimeout(initializeChatSection, 100);
         return;
     }
     
     console.log('✅ Initializing ChatSection with ChatAPI ready');
     try {
-        if (window.chatSection && typeof window.chatSection.switchTarget === 'function') {
-            const channelId = document.querySelector('meta[name="channel-id"]')?.content || 
-                             new URLSearchParams(window.location.search).get('channel');
-            const chatType = document.querySelector('meta[name="chat-type"]')?.content || 'channel';
-            
-            if (channelId) {
-                console.log('[Chat Section] Existing chat section found, switching target');
-                window.chatSection.switchTarget(chatType, channelId);
-                return;
-            }
-        }
-        
         const chatSection = new ChatSection();
         await chatSection.init();
         window.chatSection = chatSection;
@@ -333,49 +317,17 @@ class ChatSection {
             return;
         }
         
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.warn('⚠️ [CHAT-SECTION] Cannot join room: Socket not ready, retrying in 1 second...');
-            setTimeout(() => {
-                this.joinSocketRoom();
-            }, 1000);
+        if (!window.globalSocketManager?.isReady()) {
+            console.warn('⚠️ [CHAT-SECTION] Socket not ready, will join when ready');
             return;
         }
         
-        const chatType = this.chatType || 'channel';
         console.log(`🔌 [CHAT-SECTION] Joining socket room for ${this.chatType} with ID ${this.targetId}`);
         
-        if (window.globalSocketManager.joinChannel) {
+        if (this.chatType === 'channel' && window.globalSocketManager.joinChannel) {
             window.globalSocketManager.joinChannel(this.targetId);
-        }
-        
-        if (window.globalSocketManager.io) {
-            for (let i = 0; i < 3; i++) {
-                setTimeout(() => {
-                    if (window.globalSocketManager && window.globalSocketManager.io) {
-                        console.log(`📡 [CHAT-SECTION] Emitting join-room event (attempt ${i+1}) for ${chatType}-${this.targetId}`);
-                        window.globalSocketManager.io.emit('join-room', {
-                            room_type: chatType,
-                            room_id: this.targetId
-                        });
-                    }
-                }, i * 1000);
-            }
-        }
-        
-        if (this.socketHandler) {
-            this.socketHandler.setupIoListeners();
-        }
-        
-        if (!this._roomCheckInterval) {
-            this._roomCheckInterval = setInterval(() => {
-                if (window.globalSocketManager && window.globalSocketManager.isReady() && window.globalSocketManager.io) {
-                    console.log(`🔍 [CHAT-SECTION] Periodic room check for ${chatType}-${this.targetId}`);
-                    window.globalSocketManager.io.emit('join-room', {
-                        room_type: chatType,
-                        room_id: this.targetId
-                    });
-                }
-            }, 30000);
+        } else if (this.chatType === 'direct' && window.globalSocketManager.joinDMRoom) {
+            window.globalSocketManager.joinDMRoom(this.targetId);
         }
     }
     
@@ -1621,7 +1573,6 @@ class ChatSection {
     initializeExistingMessages() {
         console.log('🔧 [CHAT-SECTION] Initializing event listeners for existing server-rendered messages');
         
-        // Find all existing message elements
         const existingMessages = document.querySelectorAll('.message-content[data-message-id]');
         
         console.log(`📝 [CHAT-SECTION] Found ${existingMessages.length} existing messages to initialize`);
@@ -1635,151 +1586,6 @@ class ChatSection {
         });
         
         console.log('✅ [CHAT-SECTION] Existing message initialization complete');
-    }
-    
-    switchTarget(newChatType, newTargetId) {
-        console.log(`🔄 [CHAT-SECTION] Switching target from ${this.chatType}:${this.targetId} to ${newChatType}:${newTargetId}`);
-        
-        if (this.chatType === newChatType && this.targetId === newTargetId) {
-            console.log('⚠️ [CHAT-SECTION] Already on the same target, skipping switch');
-            return;
-        }
-        
-        console.log('🧹 [CHAT-SECTION] Starting target switch cleanup...');
-        
-        if (this._roomCheckInterval) {
-            clearInterval(this._roomCheckInterval);
-            this._roomCheckInterval = null;
-        }
-        
-        if (this.messageHandler) {
-            this.messageHandler.clearProcessedMessages();
-        }
-        
-        if (this.socketHandler) {
-            this.socketHandler.socketListenersSetup = false;
-        }
-        
-        this.showLoadingIndicator();
-        this.clearChatMessages();
-        
-        console.log('📝 [CHAT-SECTION] Updating target properties...');
-        this.chatType = newChatType;
-        this.targetId = newTargetId;
-        this.hasMoreMessages = true;
-        this.lastLoadedMessageId = null;
-        this.replyingTo = null;
-        this.currentEditingMessage = null;
-        
-        if (this.mentionHandler) {
-            this.mentionHandler.onTargetChanged();
-        }
-        
-        console.log('🔌 [CHAT-SECTION] Setting up socket room...');
-        if (window.globalSocketManager?.isReady()) {
-            this.joinSocketRoom();
-        }
-        
-        console.log('📨 [CHAT-SECTION] Loading messages for new target...');
-        
-        if (!this.chatMessages) {
-            console.log('⚠️ [CHAT-SECTION] Chat messages element not found during switch, finding DOM elements...');
-            this.findDOMElements();
-        }
-        
-        this.loadMessages()
-            .then(() => {
-                console.log(`✅ [CHAT-SECTION] Successfully switched to ${newChatType}:${newTargetId} and loaded messages`);
-                this.hideLoadingIndicator();
-            })
-            .catch((error) => {
-                console.error(`❌ [CHAT-SECTION] Failed to load messages for ${newChatType}:${newTargetId}`, error);
-                this.showEmptyState('Failed to load messages. Please try again.');
-                this.hideLoadingIndicator();
-            });
-    }
-    
-    async switchTargetWithSkeleton(newChatType, newTargetId, skeletonHideCallback) {
-        console.log(`🎨 [CHAT-SECTION] Switching target with skeleton coordination from ${this.chatType}:${this.targetId} to ${newChatType}:${newTargetId}`);
-        
-        if (this.chatType === newChatType && this.targetId === newTargetId) {
-            console.log('⚠️ [CHAT-SECTION] Already on the same target, hiding skeleton and skipping');
-            if (skeletonHideCallback) skeletonHideCallback();
-            return;
-        }
-        
-        console.log('🧹 [CHAT-SECTION] Starting skeleton-aware target switch cleanup...');
-        
-        if (this._roomCheckInterval) {
-            clearInterval(this._roomCheckInterval);
-            this._roomCheckInterval = null;
-        }
-        
-        if (this.messageHandler) {
-            this.messageHandler.clearProcessedMessages();
-        }
-        
-        if (this.socketHandler) {
-            this.socketHandler.socketListenersSetup = false;
-        }
-        
-        const chatMessages = document.getElementById('chat-messages');
-        const hasChannelSkeleton = chatMessages && chatMessages.getAttribute('data-channel-skeleton') === 'active';
-        
-        if (!hasChannelSkeleton) {
-            this.showLoadingIndicator();
-        }
-        
-        this.clearChatMessages();
-        
-        console.log('📝 [CHAT-SECTION] Updating target properties...');
-        this.chatType = newChatType;
-        this.targetId = newTargetId;
-        this.hasMoreMessages = true;
-        this.lastLoadedMessageId = null;
-        this.replyingTo = null;
-        this.currentEditingMessage = null;
-        
-        if (this.mentionHandler) {
-            this.mentionHandler.onTargetChanged();
-        }
-        
-        console.log('🔌 [CHAT-SECTION] Setting up socket room...');
-        if (window.globalSocketManager?.isReady()) {
-            this.joinSocketRoom();
-        }
-        
-        console.log('📨 [CHAT-SECTION] Loading messages for new target...');
-        
-        if (!this.chatMessages) {
-            console.log('⚠️ [CHAT-SECTION] Chat messages element not found during switch, finding DOM elements...');
-            this.findDOMElements();
-        }
-        
-        try {
-            await this.loadMessages();
-            console.log(`✅ [CHAT-SECTION] Successfully switched to ${newChatType}:${newTargetId} and loaded messages`);
-            
-            if (skeletonHideCallback) {
-                console.log('🎨 [CHAT-SECTION] Calling skeleton hide callback');
-                skeletonHideCallback();
-            }
-            
-            if (!hasChannelSkeleton) {
-                this.hideLoadingIndicator();
-            }
-            
-        } catch (error) {
-            console.error(`❌ [CHAT-SECTION] Failed to load messages for ${newChatType}:${newTargetId}`, error);
-            
-            if (skeletonHideCallback) {
-                console.log('🎨 [CHAT-SECTION] Calling skeleton hide callback due to error');
-                skeletonHideCallback();
-            }
-            
-            this.showEmptyState('Failed to load messages. Please try again.');
-            this.hideLoadingIndicator();
-        }
     }
     
     clearChatMessages() {
@@ -1796,64 +1602,6 @@ class ChatSection {
         
         this.hasMoreMessages = true;
         this.lastLoadedMessageId = null;
-    }
-    
-    debugMessageSystem() {
-        console.log('🔍 [CHAT-SECTION] Message System Debug Info:', {
-            chatType: this.chatType,
-            targetId: this.targetId,
-            processedMessageCount: this.messageHandler?.processedMessageIds?.size || 0,
-            temporaryMessageCount: this.messageHandler?.temporaryMessages?.size || 0,
-            socketReady: window.globalSocketManager?.isReady() || false,
-            socketAuthenticated: window.globalSocketManager?.authenticated || false,
-            messagesInDOM: document.querySelectorAll('[data-message-id]').length,
-            sentMessageIds: window._sentMessageIds?.size || 0
-        });
-        
-        // List all processed message IDs
-        if (this.messageHandler?.processedMessageIds?.size > 0) {
-            console.log('📝 Processed Message IDs:', Array.from(this.messageHandler.processedMessageIds));
-        }
-        
-        // List all DOM message elements
-        const domMessages = Array.from(document.querySelectorAll('[data-message-id]')).map(el => el.dataset.messageId);
-        if (domMessages.length > 0) {
-            console.log('🏠 Messages in DOM:', domMessages);
-        }
-        
-        return {
-            processedCount: this.messageHandler?.processedMessageIds?.size || 0,
-            domCount: domMessages.length,
-            tempCount: this.messageHandler?.temporaryMessages?.size || 0
-        };
-    }
-    
-    cleanupEmptyMessages() {
-        const messagesContainer = this.getMessagesContainer();
-        if (!messagesContainer) return;
-        
-        const emptyGroups = messagesContainer.querySelectorAll('.bubble-message-group[data-user-id="0"][data-timestamp="0"]');
-        emptyGroups.forEach(group => {
-            const messageId = group.querySelector('[data-message-id]')?.dataset.messageId;
-            if (!messageId || messageId === '' || messageId === '0') {
-                console.log('🧹 [CHAT-SECTION] Removing empty message group:', group);
-                group.remove();
-            }
-        });
-        
-        const emptyMessages = messagesContainer.querySelectorAll('[data-message-id=""], [data-message-id="0"]');
-        emptyMessages.forEach(msg => {
-            const messageGroup = msg.closest('.bubble-message-group');
-            if (messageGroup) {
-                console.log('🧹 [CHAT-SECTION] Removing empty message:', messageGroup);
-                messageGroup.remove();
-            }
-        });
-        
-        const remainingMessages = messagesContainer.querySelectorAll('.bubble-message-group');
-        if (remainingMessages.length === 0) {
-            this.showEmptyState();
-        }
     }
 
     clearMessage() {

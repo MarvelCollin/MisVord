@@ -157,26 +157,18 @@ function renderChannelList(rawData) {
 function initChannelEventListeners() {
     console.log('🎯 Setting up channel event listeners');
 
-    if (!window.channelSwitchManager) {
-        console.warn('⚠️ channelSwitchManager not available, waiting for it...');
+    if (!window.simpleChannelSwitcher) {
+        console.warn('⚠️ SimpleChannelSwitcher not available, waiting for it...');
         
-        let retries = 0;
-        const maxRetries = 10;
-        
-        const checkForManager = () => {
-            retries++;
-            if (window.channelSwitchManager) {
-                console.log('✅ Channel switch manager found (delayed)');
-            } else if (retries < maxRetries) {
-                setTimeout(checkForManager, 200);
+        setTimeout(() => {
+            if (window.simpleChannelSwitcher) {
+                console.log('✅ Simple channel switcher found (delayed)');
             } else {
-                console.warn('⚠️ ChannelSwitchManager not available - channel navigation may not work');
+                console.warn('⚠️ SimpleChannelSwitcher not available - channel navigation may not work');
             }
-        };
-        
-        setTimeout(checkForManager, 200);
+        }, 200);
     } else {
-        console.log('✅ Channel switch manager ready');
+        console.log('✅ Simple channel switcher ready');
     }
 
     initUpdateChannelForms();

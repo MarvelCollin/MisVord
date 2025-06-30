@@ -7,9 +7,35 @@ document.addEventListener('DOMContentLoaded', function() {
     handleLandingPageResize();
     initAuthIcon();
     initHeroAssets();
+    initScrollLockIndicator();
     
     console.log('Landing page initialized successfully');
 });
+
+function initScrollLockIndicator() {
+    const indicator = document.getElementById('scrollLockIndicator');
+    const swipeHint = document.querySelector('.swipe-hint');
+    
+    window.addEventListener('navigationLocked', function() {
+        if (indicator) {
+            indicator.classList.add('show');
+        }
+        if (swipeHint) {
+            swipeHint.classList.add('locked-mode');
+        }
+        console.log('Navigation locked indicator shown');
+    });
+    
+    window.addEventListener('navigationUnlocked', function() {
+        if (indicator) {
+            indicator.classList.remove('show');
+        }
+        if (swipeHint) {
+            swipeHint.classList.remove('locked-mode');
+        }
+        console.log('Navigation unlocked indicator hidden');
+    });
+}
 
 function initParallax() {
     const layers = document.querySelectorAll('.parallax-layer');
@@ -352,5 +378,6 @@ window.landingPageAPI = {
     initAuthIcon,
     handleLogout,
     initHeroAssets,
-    addRandomSparkle
+    addRandomSparkle,
+    initScrollLockIndicator
 };

@@ -22,6 +22,10 @@ $additional_js = [];
 ob_start();
 ?>
 
+<div class="scroll-lock-indicator" id="scrollLockIndicator">
+    🔒 Navigation Locked - Use B to return to A
+</div>
+
 <section class="hero-section scroll-section min-h-screen flex items-center justify-center">
     <div class="hero-background">
         <div class="bg-gradient"></div>

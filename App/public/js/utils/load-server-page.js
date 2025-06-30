@@ -189,56 +189,14 @@ function initializeVoiceSystems() {
 }
 
 function initializeChatSystems() {
-    console.log('[Chat Systems] Starting chat system initialization');
-    
-    if (!window.ChatAPI) {
-        console.log('[Chat Systems] ChatAPI not available, waiting...');
-        setTimeout(() => {
-            if (window.ChatAPI) {
-                console.log('[Chat Systems] ChatAPI now available');
-                proceedWithChatInitialization();
-            } else {
-                console.warn('[Chat Systems] ChatAPI still not available after timeout');
-            }
-        }, 200);
-    } else {
-        console.log('[Chat Systems] ChatAPI already available');
-        proceedWithChatInitialization();
-    }
-}
-
-function proceedWithChatInitialization() {
-    console.log('[Chat Systems] Proceeding with chat initialization');
-    
-    if (window.chatSection) {
-        console.log('[Chat Systems] Existing chat section found, cleaning up');
-        try {
-            if (window.chatSection._roomCheckInterval) {
-                clearInterval(window.chatSection._roomCheckInterval);
-            }
-            window.chatSection = null;
-        } catch (error) {
-            console.warn('[Chat Systems] Error during chat cleanup:', error);
-        }
-    }
+    console.log('[Chat Systems] Simple chat initialization');
     
     setTimeout(() => {
         if (typeof window.initializeChatSection === 'function') {
-            console.log('[Chat Systems] Calling global chat section initializer');
+            console.log('[Chat Systems] Initializing chat section');
             window.initializeChatSection();
-        } else if (typeof window.ChatSection === 'function') {
-            console.log('[Chat Systems] Creating new chat section instance');
-            try {
-                window.chatSection = new window.ChatSection();
-            } catch (error) {
-                console.error('[Chat Systems] Error creating chat section:', error);
-            }
-        } else {
-            console.warn('[Chat Systems] No chat initialization methods available');
         }
-    }, 300);
-    
-    console.log('[Chat Systems] Chat system initialization completed');
+    }, 100);
 }
 
 function handleServerSkeletonLoading(show) {
@@ -702,22 +660,14 @@ function initializeServerSystems() {
     console.log('[Server AJAX] Initializing server systems');
     
     setTimeout(() => {
-        console.log('[Server AJAX] Creating new ChannelSwitchManager');
-        if (window.ChannelSwitchManager) {
-            window.channelSwitchManager = new window.ChannelSwitchManager();
-            console.log('[Server AJAX] ChannelSwitchManager created successfully');
-        } else {
-            console.warn('[Server AJAX] ChannelSwitchManager class not available');
+        if (window.SimpleChannelSwitcher) {
+            new window.SimpleChannelSwitcher();
+            console.log('[Server AJAX] SimpleChannelSwitcher created successfully');
         }
         
         if (typeof window.initializeChatSection === 'function') {
             console.log('[Server AJAX] Initializing chat section');
             window.initializeChatSection();
-        }
-        
-        if (typeof window.initializeParticipantSection === 'function') {
-            console.log('[Server AJAX] Initializing participant section');
-            window.initializeParticipantSection();
         }
         
         console.log('[Server AJAX] Server systems initialized');

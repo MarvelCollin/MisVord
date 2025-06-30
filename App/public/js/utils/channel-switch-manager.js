@@ -1,163 +1,59 @@
-class ChannelSwitchManager {
+class SimpleChannelSwitcher {
     constructor() {
-        if (window.channelSwitchManager) {
-            console.log('[ChannelSwitchManager] Using existing instance');
-            return window.channelSwitchManager;
+        if (window.simpleChannelSwitcher) {
+            return window.simpleChannelSwitcher;
         }
         
-        this.isDestroyed = false;
-        this.isLoading = false;
         this.currentChannelId = null;
-        this.currentChannelType = null;
-        this.currentServerId = null;
-        this.isInitialized = false;
+        this.currentChannelType = 'text';
+        this.isLoading = false;
         
-        window.channelSwitchManager = this;
+        window.simpleChannelSwitcher = this;
         this.init();
+        
+        console.log('[SimpleChannelSwitcher] Initialized');
     }
     
     init() {
-        if (this.isDestroyed || this.isInitialized) return;
-        
-        this.waitForDOM().then(() => {
-            this.setupEventHandlers();
-            this.injectCSS();
-            this.initializeCurrentChannel();
-            this.isInitialized = true;
-            
-            console.log('[ChannelSwitchManager] Initialized successfully');
-        }).catch(error => {
-            console.error('[ChannelSwitchManager] Initialization failed:', error);
-        });
+        this.setupChannelClicks();
+        this.initFromURL();
     }
     
-    waitForDOM() {
-        return new Promise((resolve) => {
-            const checkDOM = () => {
-                const hasChannels = document.querySelectorAll('.channel-item').length > 0;
-                const hasSections = document.querySelector('.chat-section') || document.querySelector('.voice-section');
-                const hasMainContent = document.querySelector('#main-content') || document.querySelector('.main-content-area');
-                
-                console.log('[ChannelSwitchManager] DOM check:', {
-                    hasChannels,
-                    hasSections: !!hasSections,
-                    hasMainContent: !!hasMainContent,
-                    totalChannels: document.querySelectorAll('.channel-item').length,
-                    sectionsFound: {
-                        chatSection: !!document.querySelector('.chat-section'),
-                        voiceSection: !!document.querySelector('.voice-section')
-                    }
-                });
-                
-                if (hasChannels && (hasSections || hasMainContent)) {
-                    console.log('[ChannelSwitchManager] DOM is ready for initialization');
-                    resolve();
-                } else {
-                    setTimeout(checkDOM, 100);
-                }
-            };
-            checkDOM();
-        });
-    }
-    
-    setupEventHandlers() {
-        this.removeEventHandlers();
-        
-        this.clickHandler = (e) => {
+    setupChannelClicks() {
+        document.addEventListener('click', (e) => {
             const channelItem = e.target.closest('.channel-item');
-            if (!channelItem || this.isLoading || this.isDestroyed) return;
+            if (!channelItem || this.isLoading) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
             
             const channelId = channelItem.getAttribute('data-channel-id');
             const channelType = channelItem.getAttribute('data-channel-type') || 'text';
-            const serverId = this.getServerIdFromURL();
             
-            if (channelId && serverId) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.switchToChannel(serverId, channelId, channelType);
+            if (channelId) {
+                this.switchToChannel(channelId, channelType);
             }
-        };
-        
-        this.popstateHandler = (event) => {
-            if (this.isDestroyed) return;
-            if (event.state?.channelId) {
-                const { serverId, channelId, channelType } = event.state;
-                this.switchToChannel(serverId, channelId, channelType || 'text', false);
-            }
-        };
-        
-        document.addEventListener('click', this.clickHandler, true);
-        window.addEventListener('popstate', this.popstateHandler);
+        });
     }
     
-    removeEventHandlers() {
-        if (this.clickHandler) {
-            document.removeEventListener('click', this.clickHandler, true);
-            this.clickHandler = null;
-        }
+    switchToChannel(channelId, channelType = 'text') {
+        if (this.isLoading || this.currentChannelId === channelId) return;
         
-        if (this.popstateHandler) {
-            window.removeEventListener('popstate', this.popstateHandler);
-            this.popstateHandler = null;
-        }
-    }
-    
-    injectCSS() {
-        if (document.getElementById('channel-switch-styles')) return;
-        
-        const style = document.createElement('style');
-        style.id = 'channel-switch-styles';
-        style.textContent = `
-            .channel-item.switching {
-                opacity: 0.7;
-                pointer-events: none;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    
-    async switchToChannel(serverId, channelId, channelType = 'text', updateHistory = true) {
-        if (this.isDestroyed) {
-            console.warn('[ChannelSwitchManager] Instance destroyed, ignoring switch request');
-            return;
-        }
-        
-        if (this.isLoading) {
-            console.log('[ChannelSwitchManager] Already switching, ignoring request');
-            return;
-        }
-        
-        if (this.currentChannelId === channelId && this.currentChannelType === channelType) {
-            console.log('[ChannelSwitchManager] Already on this channel');
-            return;
-        }
+        console.log('[SimpleChannelSwitcher] Switching to:', channelId, channelType);
         
         this.isLoading = true;
-        console.log('[ChannelSwitchManager] Switching to channel:', { serverId, channelId, channelType });
+        this.currentChannelId = channelId;
+        this.currentChannelType = channelType;
         
-        try {
-            this.updateActiveChannelUI(channelId);
-            this.updateSections(channelType);
-            await this.initializeChannelSystems(channelId, channelType);
-            
-            if (updateHistory) {
-                this.updateURL(serverId, channelId, channelType);
-            }
-            
-            this.currentChannelId = channelId;
-            this.currentChannelType = channelType;
-            this.currentServerId = serverId;
-            
-            console.log('[ChannelSwitchManager] Channel switch completed');
-            
-        } catch (error) {
-            console.error('[ChannelSwitchManager] Error switching channel:', error);
-        } finally {
-            this.isLoading = false;
-        }
+        this.updateActiveChannel(channelId);
+        this.showSection(channelType);
+        this.loadChannelContent(channelId, channelType);
+        this.updateURL(channelId, channelType);
+        
+        this.isLoading = false;
     }
     
-    updateActiveChannelUI(channelId) {
+    updateActiveChannel(channelId) {
         document.querySelectorAll('.channel-item').forEach(item => {
             item.classList.remove('active-channel');
         });
@@ -168,113 +64,133 @@ class ChannelSwitchManager {
         }
     }
     
-    updateSections(channelType) {
+    showSection(channelType) {
         const chatSection = document.querySelector('.chat-section');
         const voiceSection = document.querySelector('.voice-section');
         
-        if (!chatSection && !voiceSection) {
-            console.warn('[ChannelSwitchManager] No sections found in DOM');
+        if (channelType === 'voice') {
+            if (chatSection) chatSection.style.display = 'none';
+            if (voiceSection) voiceSection.style.display = 'flex';
+        } else {
+            if (voiceSection) voiceSection.style.display = 'none';
+            if (chatSection) chatSection.style.display = 'flex';
+        }
+    }
+    
+    async loadChannelContent(channelId, channelType) {
+        if (channelType === 'text') {
+            await this.loadChatMessages(channelId);
+        }
+    }
+    
+    async loadChatMessages(channelId) {
+        const chatMessagesContainer = document.getElementById('chat-messages');
+        if (!chatMessagesContainer) return;
+        
+        const messagesContainer = chatMessagesContainer.querySelector('.messages-container');
+        if (messagesContainer) {
+            messagesContainer.innerHTML = '<div class="flex justify-center p-4"><div class="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div></div>';
+        }
+        
+        this.updateChannelHeader(channelId);
+        
+        try {
+            const response = await fetch(`/api/chat/channel/${channelId}/messages?limit=50`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.renderMessages(data.data?.messages || []);
+                this.joinSocketRoom(channelId);
+            }
+        } catch (error) {
+            console.error('[SimpleChannelSwitcher] Error loading messages:', error);
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '<div class="text-center p-4 text-red-400">Failed to load messages</div>';
+            }
+        }
+    }
+    
+    updateChannelHeader(channelId) {
+        const channelIcon = document.getElementById('channel-icon');
+        const channelName = document.getElementById('channel-name');
+        
+        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        if (channelElement && channelIcon && channelName) {
+            const nameText = channelElement.querySelector('.channel-name')?.textContent || 'Channel';
+            const iconElement = channelElement.querySelector('i');
+            
+            channelName.textContent = nameText;
+            if (iconElement) {
+                channelIcon.className = iconElement.className;
+            }
+        }
+    }
+    
+    renderMessages(messages) {
+        const messagesContainer = document.querySelector('#chat-messages .messages-container');
+        if (!messagesContainer) return;
+        
+        if (messages.length === 0) {
+            messagesContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-[#dcddde]">
+                    <i class="fas fa-comments text-6xl mb-4 text-[#4f545c]"></i>
+                    <p class="text-lg">No messages yet</p>
+                    <p class="text-sm text-[#a3a6aa]">Be the first to send a message!</p>
+                </div>
+            `;
             return;
         }
         
-        if (channelType === 'voice') {
-            if (chatSection) {
-                chatSection.classList.add('hidden');
-                chatSection.style.display = 'none';
-            }
-            if (voiceSection) {
-                voiceSection.classList.remove('hidden');
-                voiceSection.style.display = 'flex';
-            }
-        } else {
-            if (voiceSection) {
-                voiceSection.classList.add('hidden');
-                voiceSection.style.display = 'none';
-            }
-            if (chatSection) {
-                chatSection.classList.remove('hidden');
-                chatSection.style.display = 'flex';
+        const messagesHTML = messages.map(message => this.createMessageHTML(message)).join('');
+        messagesContainer.innerHTML = messagesHTML;
+        
+        this.scrollToBottom();
+    }
+    
+    createMessageHTML(message) {
+        const avatar = message.avatar_url || '/public/assets/common/default-profile-picture.png';
+        const timestamp = new Date(message.created_at).toLocaleTimeString();
+        
+        return `
+            <div class="bubble-message-group flex items-start p-2 hover:bg-[#2e3035]" data-user-id="${message.user_id}" data-timestamp="${message.created_at}">
+                <div class="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                    <img src="${avatar}" alt="${message.username}" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center mb-1">
+                        <span class="font-semibold text-white mr-2">${message.username}</span>
+                        <span class="text-xs text-[#a3a6aa]">${timestamp}</span>
+                    </div>
+                    <div class="message-content text-[#dcddde]" data-message-id="${message.id}">
+                        ${message.content}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    scrollToBottom() {
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+    
+    joinSocketRoom(channelId) {
+        if (window.globalSocketManager?.isReady()) {
+            const roomName = `channel-${channelId}`;
+            if (!window.globalSocketManager.joinedRooms?.has(roomName)) {
+                window.globalSocketManager.joinChannel(channelId);
             }
         }
     }
     
-    async initializeChannelSystems(channelId, channelType) {
-        if (channelType === 'voice') {
-            this.initializeVoiceSection(channelId);
-        } else {
-            this.initializeChatSection(channelId);
-        }
-    }
-    
-    initializeVoiceSection(channelId) {
-        if (window.voiceManager) {
-            window.voiceManager.setupVoice(channelId);
-        }
-        
-        if (window.globalVoiceIndicator) {
-            window.globalVoiceIndicator.updateVisibility();
-        }
-    }
-    
-    initializeChatSection(channelId) {
-        console.log('[ChannelSwitchManager] Initializing chat section for channel:', channelId);
-        
-        this.updateChatMetaTags(channelId);
-        
-        if (window.chatSection) {
-            if (typeof window.chatSection.switchTarget === 'function') {
-                console.log('[ChannelSwitchManager] Switching existing chat section to channel:', channelId);
-                window.chatSection.switchTarget('channel', channelId);
-            } else {
-                console.warn('[ChannelSwitchManager] ChatSection exists but switchTarget method not available');
-                window.chatSection.targetId = channelId;
-                window.chatSection.chatType = 'channel';
-                if (typeof window.chatSection.loadMessages === 'function') {
-                    window.chatSection.loadMessages();
-                }
-            }
-        } else if (typeof window.initializeChatSection === 'function') {
-            console.log('[ChannelSwitchManager] Creating new chat section for channel:', channelId);
-            window.initializeChatSection();
-        } else {
-            console.warn('[ChannelSwitchManager] No chat section available');
-        }
-    }
-    
-    updateChatMetaTags(channelId) {
-        console.log('[ChannelSwitchManager] Updating chat meta tags for channel:', channelId);
-        
-        let chatIdMeta = document.querySelector('meta[name="chat-id"]');
-        if (chatIdMeta) {
-            chatIdMeta.setAttribute('content', channelId);
-        } else {
-            chatIdMeta = document.createElement('meta');
-            chatIdMeta.setAttribute('name', 'chat-id');
-            chatIdMeta.setAttribute('content', channelId);
-            document.head.appendChild(chatIdMeta);
-        }
-        
-        let channelIdMeta = document.querySelector('meta[name="channel-id"]');
-        if (channelIdMeta) {
-            channelIdMeta.setAttribute('content', channelId);
-        } else {
-            channelIdMeta = document.createElement('meta');
-            channelIdMeta.setAttribute('name', 'channel-id');
-            channelIdMeta.setAttribute('content', channelId);
-            document.head.appendChild(channelIdMeta);
-        }
-        
-        let chatTypeMeta = document.querySelector('meta[name="chat-type"]');
-        if (chatTypeMeta) {
-            chatTypeMeta.setAttribute('content', 'channel');
-        } else {
-            chatTypeMeta = document.createElement('meta');
-            chatTypeMeta.setAttribute('name', 'chat-type');
-            chatTypeMeta.setAttribute('content', 'channel');
-            document.head.appendChild(chatTypeMeta);
-        }
-        
-        console.log('[ChannelSwitchManager] Meta tags updated successfully');
+    updateURL(channelId, channelType) {
+        const serverId = this.getServerIdFromURL();
+        const newURL = `/server/${serverId}?channel=${channelId}${channelType === 'voice' ? '&type=voice' : ''}`;
+        window.history.pushState({ channelId, channelType }, '', newURL);
     }
     
     getServerIdFromURL() {
@@ -282,93 +198,35 @@ class ChannelSwitchManager {
         return match ? match[1] : null;
     }
     
-    updateURL(serverId, channelId, channelType) {
-        const newURL = `/server/${serverId}?channel=${channelId}${channelType === 'voice' ? '&type=voice' : ''}`;
-        window.history.pushState(
-            { serverId, channelId, channelType }, 
-            '', 
-            newURL
-        );
-    }
-    
-    initializeCurrentChannel() {
+    initFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const channelId = urlParams.get('channel');
         const channelType = urlParams.get('type') || 'text';
         
         if (channelId) {
-            this.currentChannelId = channelId;
-            this.currentChannelType = channelType;
-            this.updateActiveChannelUI(channelId);
-            this.updateSections(channelType);
-            this.initializeChannelSystems(channelId, channelType);
-        } else {
-            const firstChannel = document.querySelector('.channel-item[data-channel-type="text"]');
-            if (firstChannel) {
-                const firstChannelId = firstChannel.getAttribute('data-channel-id');
-                const serverId = this.getServerIdFromURL();
-                if (firstChannelId && serverId) {
-                    setTimeout(() => {
-                        this.switchToChannel(serverId, firstChannelId, 'text');
-                    }, 100);
-                }
-            }
+            setTimeout(() => {
+                this.switchToChannel(channelId, channelType);
+            }, 100);
         }
-    }
-    
-    cleanup() {
-        console.log('[ChannelSwitchManager] Cleaning up');
-        
-        this.isDestroyed = true;
-        this.isLoading = false;
-        
-        this.removeEventHandlers();
-        
-        document.querySelectorAll('.channel-item').forEach(item => {
-            item.classList.remove('switching', 'active-channel');
-        });
-        
-        const styles = document.getElementById('channel-switch-styles');
-        if (styles) {
-            styles.remove();
-        }
-        
-        console.log('[ChannelSwitchManager] Cleanup completed');
-    }
-    
-    static getInstance() {
-        if (!window.channelSwitchManager && window.location.pathname.includes('/server/')) {
-            return new ChannelSwitchManager();
-        }
-        return window.channelSwitchManager;
     }
 }
 
-window.ChannelSwitchManager = ChannelSwitchManager;
+window.SimpleChannelSwitcher = SimpleChannelSwitcher;
 
-function ensureChannelSwitchManager() {
-    if (window.location.pathname.includes('/server/') && !window.channelSwitchManager) {
-        console.log('[ChannelSwitchManager] Auto-creating instance');
-        new ChannelSwitchManager();
+function initSimpleChannelSwitcher() {
+    if (window.location.pathname.includes('/server/') && !window.simpleChannelSwitcher) {
+        new SimpleChannelSwitcher();
     }
 }
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ensureChannelSwitchManager);
+    document.addEventListener('DOMContentLoaded', initSimpleChannelSwitcher);
 } else {
-    ensureChannelSwitchManager();
+    initSimpleChannelSwitcher();
 }
 
-window.addEventListener('load', () => {
-    setTimeout(ensureChannelSwitchManager, 100);
+document.addEventListener('ServerChanged', () => {
+    setTimeout(initSimpleChannelSwitcher, 100);
 });
 
-document.addEventListener('ServerChanged', () => {
-    console.log('[ChannelSwitchManager] ServerChanged event detected');
-    setTimeout(() => {
-        if (window.location.pathname.includes('/server/') && !window.channelSwitchManager) {
-            console.log('[ChannelSwitchManager] Creating instance after server change');
-            new ChannelSwitchManager();
-        }
-    }, 100);
-}); 
+window.ChannelSwitchManager = SimpleChannelSwitcher; 

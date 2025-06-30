@@ -29,7 +29,18 @@ class VoiceConnectionTracker {
 
     static getUserVoiceStatus(userId) {
         const userKey = userId.toString();
-        return this.userVoiceStatus.get(userKey) || false;
+        const isConnected = this.connections.has(userKey) && this.connections.get(userKey).isConnected;
+        
+        console.log(`🔍 [VOICE-TRACKER] Checking voice status for user ${userKey}: ${isConnected ? 'CONNECTED' : 'NOT CONNECTED'}`);
+        if (isConnected) {
+            console.log(`🔍 [VOICE-TRACKER] Connection details:`, {
+                channelId: this.connections.get(userKey)?.channelId,
+                meetingId: this.connections.get(userKey)?.meetingId,
+                joinedAt: new Date(this.connections.get(userKey)?.joinedAt).toISOString()
+            });
+        }
+        
+        return isConnected;
     }
 
     static isUserInVoice(userId) {

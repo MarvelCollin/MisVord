@@ -442,5 +442,5 @@ window.refreshChannelMenus = function() {
     checkUserRoleAndUpdateMenus();
 };
 
-console.log('✅ Channel menu system initialized (ChannelSwitchManager handles navigation)');
+console.log('✅ Channel menu system initialized (SimpleChannelSwitcher handles navigation)');
 </script>

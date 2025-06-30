@@ -570,19 +570,29 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 class UnifiedParticipantManager {
     constructor() {
         this.participants = new Map();
-        this.eventSources = new Set();
-        this.isProcessingEvent = false;
-        this.pendingEvents = [];
+        this.eventQueue = [];
+        this.processing = false;
+        this.participantSources = new Map();
     }
 
     async processEvent(event) {
-        if (this.isProcessingEvent) {
-            this.pendingEvents.push(event);
-            return;
+        this.eventQueue.push(event);
+        if (!this.processing) {
+            this.processing = true;
+            await this.processQueuedEvents();
+            this.processing = false;
         }
+    }
 
-        this.isProcessingEvent = true;
+    async processQueuedEvents() {
+        while (this.eventQueue.length > 0) {
+            const event = this.eventQueue.shift();
+            await this.handleSingleEvent(event);
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+    }
 
+    async handleSingleEvent(event) {
         try {
             switch (event.type) {
                 case 'participant_joined':
@@ -598,44 +608,36 @@ class UnifiedParticipantManager {
                     await this.handleBotLeft(event.data);
                     break;
             }
-        } finally {
-            this.isProcessingEvent = false;
-            
-            if (this.pendingEvents.length > 0) {
-                const nextEvent = this.pendingEvents.shift();
-                setTimeout(() => this.processEvent(nextEvent), 50);
-            }
+        } catch (error) {
+            console.error('Error processing event:', error);
         }
     }
 
     async handleParticipantJoined(data) {
-        const { participantId, participantObj, source } = data;
+        const participantId = data.participantId || data.participant;
+        const source = data.source || 'videosdk';
         
         if (this.participants.has(participantId)) {
-            console.log(`⚠️ [UNIFIED-MANAGER] Participant ${participantId} already exists from source: ${this.participants.get(participantId).source}, ignoring duplicate from: ${source}`);
+            const existingSource = this.participantSources.get(participantId);
+            console.log(`⚠️ [PARTICIPANT-MANAGER] Participant ${participantId} already exists from source: ${existingSource}, ignoring duplicate from: ${source}`);
             return;
-        }
-
-        let participantName = `User ${participantId.slice(-4)}`;
-        if (participantObj) {
-            participantName = participantObj.displayName || participantObj.name || participantObj.username || participantName;
         }
 
         const participant = {
             id: participantId,
-            name: participantName,
-            source: source,
-            isLocal: participantId === window.voiceCallManager?.localParticipantId,
-            isBot: source === 'bot',
-            joinedAt: Date.now(),
+            name: data.participantObj?.displayName || data.participantObj?.name || data.name || `User ${participantId.slice(-4)}`,
             hasVideo: false,
             isMuted: false,
-            isSpeaking: false
+            isSpeaking: false,
+            isBot: false,
+            source: source
         };
 
         this.participants.set(participantId, participant);
-        console.log(`✅ [UNIFIED-MANAGER] Added participant ${participantId} (${participantName}) from source: ${source}`);
-
+        this.participantSources.set(participantId, source);
+        
+        console.log(`✅ [PARTICIPANT-MANAGER] Added participant: ${participant.name} (${participantId}) from source: ${source}`);
+        
         if (window.voiceCallManager) {
             window.voiceCallManager.createParticipantElement(participant);
             window.voiceCallManager.updateParticipantCount();
@@ -643,17 +645,19 @@ class UnifiedParticipantManager {
     }
 
     async handleParticipantLeft(data) {
-        const { participantId, source } = data;
+        const participantId = data.participantId || data.participant;
         
-        const participant = this.participants.get(participantId);
-        if (!participant) {
-            console.log(`⚠️ [UNIFIED-MANAGER] Participant ${participantId} not found for removal from source: ${source}`);
+        if (!this.participants.has(participantId)) {
+            console.log(`⚠️ [PARTICIPANT-MANAGER] Participant ${participantId} not found for removal`);
             return;
         }
 
+        const participant = this.participants.get(participantId);
         this.participants.delete(participantId);
-        console.log(`✅ [UNIFIED-MANAGER] Removed participant ${participantId} from source: ${source}`);
-
+        this.participantSources.delete(participantId);
+        
+        console.log(`🗑️ [PARTICIPANT-MANAGER] Removed participant: ${participant.name} (${participantId})`);
+        
         if (window.voiceCallManager) {
             window.voiceCallManager.removeParticipantElement(participantId);
             window.voiceCallManager.updateParticipantCount();
@@ -661,41 +665,57 @@ class UnifiedParticipantManager {
     }
 
     async handleBotJoined(data) {
-        const { participant } = data;
-        const botId = `bot-${participant.user_id}`;
+        const botId = data.participant?.id || data.id;
+        const source = 'bot';
         
         if (this.participants.has(botId)) {
-            console.log(`⚠️ [UNIFIED-MANAGER] Bot ${botId} already exists, ignoring duplicate`);
+            console.log(`⚠️ [PARTICIPANT-MANAGER] Bot ${botId} already exists, ignoring duplicate`);
             return;
         }
 
-        await this.handleParticipantJoined({
-            participantId: botId,
-            participantObj: {
-                name: participant.username,
-                username: participant.username,
-                isBot: true
-            },
-            source: 'bot'
-        });
+        const participant = {
+            id: botId,
+            name: data.participant?.username || data.username || 'Bot',
+            hasVideo: false,
+            isMuted: false,
+            isSpeaking: false,
+            isBot: true,
+            source: source
+        };
+
+        this.participants.set(botId, participant);
+        this.participantSources.set(botId, source);
+        
+        console.log(`🤖 [PARTICIPANT-MANAGER] Added bot: ${participant.name} (${botId})`);
+        
+        if (window.voiceCallManager) {
+            window.voiceCallManager.createParticipantElement(participant);
+            window.voiceCallManager.updateParticipantCount();
+        }
     }
 
     async handleBotLeft(data) {
-        const { participant } = data;
-        const botId = `bot-${participant.user_id}`;
+        const botId = data.participant?.id || data.id;
         
-        await this.handleParticipantLeft({
-            participantId: botId,
-            source: 'bot'
-        });
+        if (!this.participants.has(botId)) {
+            console.log(`⚠️ [PARTICIPANT-MANAGER] Bot ${botId} not found for removal`);
+            return;
+        }
+
+        const participant = this.participants.get(botId);
+        this.participants.delete(botId);
+        this.participantSources.delete(botId);
+        
+        console.log(`🤖🗑️ [PARTICIPANT-MANAGER] Removed bot: ${participant.name} (${botId})`);
+        
+        if (window.voiceCallManager) {
+            window.voiceCallManager.removeParticipantElement(botId);
+            window.voiceCallManager.updateParticipantCount();
+        }
     }
 
     getParticipant(participantId) {
         return this.participants.get(participantId);
-    }
-
-    getAllParticipants() {
-        return Array.from(this.participants.values());
     }
 
     getParticipantCount() {
@@ -704,8 +724,8 @@ class UnifiedParticipantManager {
 
     clear() {
         this.participants.clear();
-        this.eventSources.clear();
-        this.pendingEvents = [];
+        this.participantSources.clear();
+        this.eventQueue = [];
     }
 }
 
@@ -754,15 +774,31 @@ class VoiceCallManager {
             if (type === 'mic') {
                 this.isMuted = !state;
                 this.updateButtonStates();
+                
+                if (window.unifiedVoiceStateManager) {
+                    window.unifiedVoiceStateManager.setState({ isMuted: this.isMuted });
+                }
             } else if (type === 'video') {
                 this.isVideoOn = state;
                 this.updateButtonStates();
+                
+                if (window.unifiedVoiceStateManager) {
+                    window.unifiedVoiceStateManager.setState({ isVideoOn: this.isVideoOn });
+                }
             } else if (type === 'screenShare') {
                 this.isScreenSharing = state;
                 this.updateButtonStates();
+                
+                if (window.unifiedVoiceStateManager) {
+                    window.unifiedVoiceStateManager.setState({ isScreenSharing: this.isScreenSharing });
+                }
             } else if (type === 'deafen') {
                 this.isDeafened = state;
                 this.updateButtonStates();
+                
+                if (window.unifiedVoiceStateManager) {
+                    window.unifiedVoiceStateManager.setState({ isDeafened: this.isDeafened });
+                }
             }
         });
 
@@ -792,31 +828,42 @@ class VoiceCallManager {
         window.addEventListener('voiceConnect', (event) => {
             this.isConnected = true;
             
+            if (window.unifiedVoiceStateManager) {
+                window.unifiedVoiceStateManager.setState({
+                    isConnected: true,
+                    channelId: event.detail?.channelId || null,
+                    channelName: event.detail?.channelName || null,
+                    meetingId: event.detail?.meetingId || null,
+                    connectionTime: Date.now()
+                });
+            }
+            
             if (window.videoSDKManager?.meeting?.localParticipant) {
                 this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
-                
-                this.participantManager.processEvent({
-                    type: 'participant_joined',
-                    data: {
-                        participantId: this.localParticipantId,
-                        participantObj: {
-                            name: document.querySelector('meta[name="username"]')?.content || 'You',
-                            displayName: document.querySelector('meta[name="username"]')?.content || 'You'
-                        },
-                        source: 'local'
-                    }
-                });
             }
             
             if (event.detail?.meetingId) {
                 this.displayMeetingId(event.detail.meetingId);
             }
             
+            const channelName = event.detail?.channelName || 'Voice Channel';
+            this.showToast(`Successfully joined ${channelName}`, 'success');
+            
             this.updateGrid();
         });
 
         window.addEventListener('voiceDisconnect', (event) => {
             this.isConnected = false;
+            
+            if (window.unifiedVoiceStateManager) {
+                window.unifiedVoiceStateManager.setState({
+                    isConnected: false,
+                    channelId: null,
+                    channelName: null,
+                    meetingId: null,
+                    connectionTime: null
+                });
+            }
             
             const meetingIdDisplay = document.getElementById('meetingIdDisplay');
             if (meetingIdDisplay) {
@@ -1534,27 +1581,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-window.voiceCallManager = new VoiceCallManager();
-
-console.log('✅ [VOICE-SYSTEM] Unified voice call manager initialized with deduplication');
-
-if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-    console.log('✅ [VOICE-SYSTEM] Socket manager ready, voice system fully operational');
-} else {
-    console.log('⏳ [VOICE-SYSTEM] Waiting for socket manager...');
-    const checkSocket = () => {
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            console.log('✅ [VOICE-SYSTEM] Socket manager ready, voice system now fully operational');
-        } else {
-            setTimeout(checkSocket, 500);
-        }
-    };
-    checkSocket();
-}
-
-document.addEventListener('DOMContentLoaded', function() {
+const initializeUnifiedVoiceSystem = () => {
+    if (!window.localStorageManager) {
+        setTimeout(initializeUnifiedVoiceSystem, 100);
+        return;
+    }
+    
+    if (!window.unifiedVoiceStateManager) {
+        setTimeout(initializeUnifiedVoiceSystem, 100);
+        return;
+    }
+    
     if (!window.voiceCallManager) {
         window.voiceCallManager = new VoiceCallManager();
+        console.log('✅ [UNIFIED-VOICE-SYSTEM] Voice call manager initialized with unified state management');
     }
-});
+    
+    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+        console.log('✅ [UNIFIED-VOICE-SYSTEM] Socket manager ready, voice system fully operational');
+    } else {
+        console.log('⏳ [UNIFIED-VOICE-SYSTEM] Waiting for socket manager...');
+        const checkSocket = () => {
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                console.log('✅ [UNIFIED-VOICE-SYSTEM] Socket manager ready, voice system now fully operational');
+            } else {
+                setTimeout(checkSocket, 500);
+            }
+        };
+        checkSocket();
+    }
+};
+
+document.addEventListener('DOMContentLoaded', initializeUnifiedVoiceSystem);
+
+setTimeout(initializeUnifiedVoiceSystem, 500);
 </script>

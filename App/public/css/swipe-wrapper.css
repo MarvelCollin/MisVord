@@ -1,6 +1,7 @@
 html {
     scroll-behavior: smooth;
     scroll-snap-type: y mandatory;
+    overflow-x: hidden;
 }
 
 body {
@@ -11,6 +12,13 @@ body {
     scroll-behavior: smooth;
 }
 
+body.locked {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
 .swipe-wrapper {
     display: flex;
     width: 300vw;
@@ -18,6 +26,10 @@ body {
     position: relative;
     overflow: hidden;
     transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    position: relative;
+    z-index: 2;
 }
 
 .swipe-section {
@@ -31,10 +43,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    scroll-snap-align: none;
 }
 
 .scroll-section {
-    scroll-snap-align: none;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
 }
 
 .hero-section {
@@ -42,6 +56,19 @@ body {
     scroll-snap-stop: always;
     position: relative;
     z-index: 1;
+    min-height: 100vh;
+    height: 100vh;
+}
+
+.navigation-locked {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.navigation-locked * {
+    overflow: hidden !important;
 }
 
 .section-navigation {
@@ -100,6 +127,12 @@ body {
     animation: pulse 2s infinite;
 }
 
+.swipe-hint.locked-mode::after {
+    content: " (Navigation Locked - Use B to return to A)";
+    color: rgba(255, 101, 97, 0.8);
+    font-weight: bold;
+}
+
 @keyframes pulse {
     0%, 100% {
         opacity: 0.7;
@@ -107,6 +140,26 @@ body {
     50% {
         opacity: 1;
     }
+}
+
+.scroll-lock-indicator {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 101, 97, 0.9);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.scroll-lock-indicator.show {
+    opacity: 1;
 }
 
 @media screen and (max-width: 768px) {
@@ -132,6 +185,15 @@ body {
     
     .swipe-hint {
         display: none;
+    }
+    
+    .scroll-lock-indicator {
+        display: none;
+    }
+    
+    body.locked {
+        position: relative !important;
+        overflow: auto !important;
     }
 }
 

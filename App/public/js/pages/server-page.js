@@ -245,12 +245,11 @@ function handlePopState(event) {
   if (state && state.channelId) {
     console.log("Handling popstate event for channel:", state.channelId);
     
-    if (window.channelSwitchManager) {
-      const serverId = getServerIdFromURL();
+    if (window.simpleChannelSwitcher) {
       const channelType = state.channelType || 'text';
-      window.channelSwitchManager.switchToChannel(serverId, state.channelId, channelType, false);
+      window.simpleChannelSwitcher.switchToChannel(state.channelId, channelType);
     } else {
-      console.error('ChannelSwitchManager not available for popstate handling');
+      console.error('SimpleChannelSwitcher not available for popstate handling');
     }
   }
 }
@@ -329,50 +328,6 @@ function setupChannelListObserver() {
   console.log("Channel list observer set up");
 }
 
-function updateChatMetaTags(channelId) {
-  console.log(`Updating chat meta tags for channel ID: ${channelId}`);
-  
-  let chatIdMeta = document.querySelector('meta[name="chat-id"]');
-  if (chatIdMeta) {
-    console.log(`Updating existing chat-id meta tag to: ${channelId}`);
-    chatIdMeta.setAttribute('content', channelId);
-  } else {
-    console.log(`Creating new chat-id meta tag with value: ${channelId}`);
-    chatIdMeta = document.createElement('meta');
-    chatIdMeta.setAttribute('name', 'chat-id');
-    chatIdMeta.setAttribute('content', channelId);
-    document.head.appendChild(chatIdMeta);
-  }
-  
-  let channelIdMeta = document.querySelector('meta[name="channel-id"]');
-  if (channelIdMeta) {
-    console.log(`Updating existing channel-id meta tag to: ${channelId}`);
-    channelIdMeta.setAttribute('content', channelId);
-  } else {
-    console.log(`Creating new channel-id meta tag with value: ${channelId}`);
-    channelIdMeta = document.createElement('meta');
-    channelIdMeta.setAttribute('name', 'channel-id');
-    channelIdMeta.setAttribute('content', channelId);
-    document.head.appendChild(channelIdMeta);
-  }
-  
-  if (window.chatSection) {
-    console.log("Force-updating existing chat section with new channel ID");
-    window.chatSection.targetId = channelId;
-    
-    if (window.chatSection.chatMessages) {
-      console.log("Clearing existing chat messages");
-      window.chatSection.chatMessages.innerHTML = '';
-      window.chatSection.messagesLoaded = false;
-      window.chatSection.loadMessages();
-    } else {
-      console.log("Chat messages element not found, cannot clear messages");
-    }
-  } else {
-    console.log("No chat section instance found, meta tags updated for next initialization");
-  }
-}
-
 function initVoicePage() {
   const channelItems = document.querySelectorAll('.channel-item');
   if (channelItems.length > 0) {
@@ -418,7 +373,7 @@ function initVoicePage() {
 window.getServerIdFromURL = getServerIdFromURL;
 
 window.isServerPageReady = function() {
-  return typeof window.ChannelSwitchManager === 'function';
+  return typeof window.SimpleChannelSwitcher === 'function';
 };
 
 window.ensureServerPageLoaded = function() {
