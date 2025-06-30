@@ -306,7 +306,7 @@ class BotHandler extends EventEmitter {
 
         switch (command) {
             case 'ping':
-                responseContent = `🏓 Pong! Halo bang ${originalMessage.username}`;
+                responseContent = `🏓 Pong! Bot is active and responding`;
                 break;
 
             case 'play':

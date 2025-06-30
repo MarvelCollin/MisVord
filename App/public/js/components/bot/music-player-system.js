@@ -258,10 +258,6 @@ class MusicPlayerSystem {
         
         const result = await this.playTrack(track);
         this.removeExistingSearchModal();
-        
-        if (window.showToast) {
-            window.showToast(result, result.includes('❌') ? 'error' : 'success');
-        }
     }
 
     async queueSearchResult(index) {
@@ -269,17 +265,12 @@ class MusicPlayerSystem {
         if (!track) return;
         
         if (!track.previewUrl) {
-            if (window.showToast) {
-                window.showToast(`❌ No preview available for "${track.title}"`, 'error');
-            }
+            console.warn(`❌ No preview available for "${track.title}"`);
             return;
         }
         
         this.queue.push(track);
-        
-        if (window.showToast) {
-            window.showToast(`➕ Added "${track.title}" to queue (Position: ${this.queue.length})`, 'success');
-        }
+        console.log(`➕ Added "${track.title}" to queue (Position: ${this.queue.length})`);
         
         console.log(`🎵 Added to queue: ${track.title} by ${track.artist}`);
     }
@@ -410,9 +401,7 @@ class MusicPlayerSystem {
                 }
             }
             
-            if (window.showToast) {
-                window.showToast(`🗑️ Removed "${removedTrack.title}" from queue`, 'info');
-            }
+            console.log(`🗑️ Removed "${removedTrack.title}" from queue`);
             
             this.showQueueModal();
         }
@@ -431,9 +420,7 @@ class MusicPlayerSystem {
         this.currentIndex = this.queue.findIndex(track => track.id === currentSong.id);
         if (this.currentIndex === -1) this.currentIndex = 0;
         
-        if (window.showToast) {
-            window.showToast('🔀 Queue shuffled!', 'success');
-        }
+        console.log('🔀 Queue shuffled!');
         
         this.showQueueModal();
     }
@@ -441,10 +428,6 @@ class MusicPlayerSystem {
     clearQueue() {
         this.queue = [];
         this.currentIndex = 0;
-        
-        if (window.showToast) {
-            window.showToast('🗑️ Queue cleared', 'info');
-        }
         
         this.removeExistingQueueModal();
         console.log('🎵 Queue cleared');
@@ -556,9 +539,7 @@ class MusicPlayerSystem {
             const failedTrack = this.currentTrack || this.currentSong;
             console.log('🎵 [MUSIC-PLAYER] Attempting to recover from playback error for:', failedTrack.title);
             
-            if (window.showToast) {
-                window.showToast(`❌ Failed to play "${failedTrack.title}" - skipping`, 'error');
-            }
+                            console.error(`❌ Failed to play "${failedTrack.title}" - skipping`);
             
             this.queue = this.queue.filter(t => t.id !== failedTrack.id);
             
@@ -567,9 +548,7 @@ class MusicPlayerSystem {
                 setTimeout(() => this.playNext(), 1000);
             } else {
                 console.log('🎵 [MUSIC-PLAYER] No more tracks in queue');
-                if (window.showToast) {
-                    window.showToast('🎵 No more playable tracks', 'info');
-                }
+                            console.log('🎵 No more playable tracks');
             }
         }
     }
@@ -875,9 +854,7 @@ class MusicPlayerSystem {
         });
         console.log('🎵 === END DEBUG ===');
         
-        if (window.showToast) {
-            window.showToast('🎛️ Debug info logged to console', 'info');
-        }
+        console.log('🎛️ Debug info logged to console');
     }
 }
 

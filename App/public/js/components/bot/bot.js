@@ -31,17 +31,10 @@ class BotComponent {
                 status: 'active',
                 joinedAt: Date.now()
             });
-
-            if (window.showToast) {
-                window.showToast(`🤖 ${data.username} is now active!`, 'success');
-            }
         });
 
         io.on('bot-init-error', (data) => {
             console.error('❌ Bot initialization failed:', data);
-            if (window.showToast) {
-                window.showToast(`❌ Bot initialization failed: ${data.message}`, 'error');
-            }
         });
 
         io.on('bot-join-success', (data) => {
@@ -51,17 +44,10 @@ class BotComponent {
                 if (!bot.channels) bot.channels = new Set();
                 bot.channels.add(data.channel_id);
             }
-
-            if (window.showToast) {
-                window.showToast('🤖 Bot joined channel successfully!', 'success');
-            }
         });
 
         io.on('bot-join-error', (data) => {
             console.error('❌ Bot join channel failed:', data);
-            if (window.showToast) {
-                window.showToast(`❌ Bot join failed: ${data.message}`, 'error');
-            }
         });
 
         io.on('bot-voice-participant-joined', (data) => {
@@ -79,10 +65,6 @@ class BotComponent {
                 if (window.voiceCallManager) {
                     window.voiceCallManager.addBotParticipant(participant);
                 }
-
-                if (window.showToast) {
-                    window.showToast(`🤖🎵 ${participant.username} joined voice channel!`, 'success');
-                }
             }
         });
 
@@ -95,10 +77,6 @@ class BotComponent {
 
                 if (window.voiceCallManager) {
                     window.voiceCallManager.removeBotParticipant(participant.user_id);
-                }
-
-                if (window.showToast) {
-                    window.showToast(`🤖👋 Bot left voice channel`, 'info');
                 }
             }
         });
