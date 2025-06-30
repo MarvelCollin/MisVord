@@ -192,39 +192,21 @@ function initializeExploreComponents() {
         console.log('[Explore Loader] Explore page initialized');
     }
     
-    let attempts = 0;
-    const maxAttempts = 20;
+    if (typeof window.ServerDetailModal !== 'undefined' && !window.serverDetailModal) {
+        console.log('[Explore Loader] Initializing server detail modal for explore page');
+        window.serverDetailModal = new window.ServerDetailModal();
+    }
     
-    const initServerDetail = () => {
-        attempts++;
-        console.log(`[Explore Loader] Attempt ${attempts} to initialize server detail modal...`);
-        
-        if (typeof window.ServerDetailModal !== 'undefined') {
-            if (!window.serverDetailModal) {
-                window.serverDetailModal = new window.ServerDetailModal();
-                console.log('[Explore Loader] Server detail modal created');
+    if (typeof window.showServerDetail !== 'function') {
+        window.showServerDetail = (serverId, serverData) => {
+            console.log('[Explore Loader] showServerDetail called with:', serverId, serverData);
+            if (window.serverDetailModal && window.serverDetailModal.initialized) {
+                window.serverDetailModal.showServerDetail(serverId, serverData);
+            } else {
+                console.log('[Explore Loader] Server detail modal not ready');
             }
-            
-            window.showServerDetail = (serverId, serverData) => {
-                console.log('[Explore Loader] showServerDetail called with:', serverId, serverData);
-                if (window.serverDetailModal) {
-                    window.serverDetailModal.showServerDetail(serverId, serverData);
-                } else {
-                    console.error('[Explore Loader] Server detail modal not available');
-                }
-            };
-            
-            console.log('[Explore Loader] Server detail functionality ready');
-            
-        } else if (attempts < maxAttempts) {
-            console.log(`[Explore Loader] ServerDetailModal not ready, retrying in 200ms... (${attempts}/${maxAttempts})`);
-            setTimeout(initServerDetail, 200);
-        } else {
-            console.error('[Explore Loader] Failed to initialize server detail modal after maximum attempts');
-        }
-    };
-    
-    initServerDetail();
+        };
+    }
     
     console.log('[Explore Loader] Setting up server navigation handlers');
     setupExploreServerNavigation();

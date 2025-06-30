@@ -71,7 +71,7 @@ $content = ob_get_clean();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800;900&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -392,6 +392,41 @@ $content = ob_get_clean();
 
             .user-dropdown {
                 min-width: 160px;
+            }
+        }
+
+        .hero-title {
+            font-family: 'Orbitron', monospace !important;
+            font-weight: 900 !important;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            background: linear-gradient(135deg, #ffffff 0%, #e6f0ff 50%, #5865F2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+        }
+
+        .hero-title.wave-active {
+            animation: titleWave 3s ease-in-out infinite;
+        }
+
+        @keyframes titleWave {
+            0%, 100% {
+                transform: translateY(0px) rotateX(0deg);
+                filter: drop-shadow(0 5px 15px rgba(88, 101, 242, 0.3));
+            }
+            25% {
+                transform: translateY(-8px) rotateX(5deg);
+                filter: drop-shadow(0 15px 25px rgba(88, 101, 242, 0.5));
+            }
+            50% {
+                transform: translateY(-12px) rotateX(0deg);
+                filter: drop-shadow(0 20px 35px rgba(88, 101, 242, 0.7));
+            }
+            75% {
+                transform: translateY(-8px) rotateX(-5deg);
+                filter: drop-shadow(0 15px 25px rgba(88, 101, 242, 0.5));
             }
         }
     </style>

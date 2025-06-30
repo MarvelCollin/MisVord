@@ -99,9 +99,6 @@ class ChannelSwitchManager {
                 opacity: 0.7;
                 pointer-events: none;
             }
-            .channel-item.active-channel {
-                background-color: #5865f2;
-            }
         `;
         document.head.appendChild(style);
     }

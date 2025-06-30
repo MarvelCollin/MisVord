@@ -266,8 +266,8 @@ class TicTacToeModal {
                             <i class="fas fa-window-minimize"></i>
                         </button>
                         <button id="close-tic-tac-toe" class="text-[#949ba4] hover:text-white text-xl transition-colors">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        <i class="fas fa-times"></i>
+                    </button>
                     </div>
                 </div>
                 

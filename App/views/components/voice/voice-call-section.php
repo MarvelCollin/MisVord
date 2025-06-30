@@ -202,9 +202,14 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     transition: all 0.2s ease !important;
     position: relative !important;
     aspect-ratio: 16/9 !important;
-    min-height: 200px !important;
+    min-height: 180px !important;
+    max-height: 400px !important;
     width: 100% !important;
+    height: 100% !important;
     box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .video-participant-card:hover {
@@ -311,7 +316,9 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 }
 
 #videoGrid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+    aspect-ratio: unset !important;
+    min-height: 200px !important;
 }
 
 #screenShareSection {
@@ -330,34 +337,40 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 }
 
 @media (max-width: 768px) {
-    #cameraSection {
-        width: 100%;
-        height: 200px;
-        border-r: none;
-        border-b: 1px solid rgba(64, 68, 75, 0.3);
-    }
-    
     #voiceParticipantsGrid {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+        gap: 12px !important;
     }
     
     #videoGrid {
         grid-template-columns: 1fr !important;
-        gap: 8px;
+        gap: 6px !important;
+        min-height: 250px !important;
+    }
+    
+    .video-participant-card {
+        min-height: 150px !important;
+        max-height: 250px !important;
     }
     
     .voice-controls {
-        padding: 12px;
+        padding: 12px !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
     }
     
     .voice-control-btn {
-        width: 36px !important;
-        height: 36px !important;
+        width: 40px !important;
+        height: 40px !important;
+        flex-shrink: 0 !important;
     }
     
     .voice-control-btn i {
-        font-size: 12px !important;
+        font-size: 14px !important;
+    }
+    
+    .voice-tooltip {
+        display: none !important;
     }
 }
 
@@ -435,12 +448,12 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     }
 }
 
-/* Video Grid Auto-sizing - Force important to override Tailwind */
 #videoGrid {
     display: grid !important;
     gap: 8px !important;
     width: 100% !important;
     height: 100% !important;
+    min-height: 300px !important;
 }
 
 #videoGrid[data-count="1"] {
@@ -475,6 +488,17 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 #videoGrid[data-count="7"], #videoGrid[data-count="8"], #videoGrid[data-count="9"] {
     grid-template-columns: 1fr 1fr 1fr !important;
     grid-template-rows: 1fr 1fr 1fr !important;
+}
+
+@media (max-width: 768px) {
+    #videoGrid[data-count="2"], #videoGrid[data-count="3"], #videoGrid[data-count="4"] {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: repeat(auto, 1fr) !important;
+    }
+    
+    #videoGrid[data-count="3"] .video-participant-card:first-child {
+        grid-column: 1 !important;
+    }
 }
 
 /* Participant Cards */
@@ -598,49 +622,28 @@ class VoiceCallManager {
     }
 
     setupEventListeners() {
-        console.log(`🎧 [DEBUG] Setting up VoiceCallManager event listeners...`);
-
         window.addEventListener('videosdkStreamEnabled', (event) => {
             const { kind, stream, participant } = event.detail;
-            console.log(`📹 [DEBUG] videosdkStreamEnabled event received:`, {
-                kind: kind,
-                participant: participant,
-                stream: stream,
-                streamType: typeof stream,
-                eventDetail: event.detail
-            });
             
             if (kind === 'video') {
-                console.log(`📹 [DEBUG] Handling video stream for ${participant}`);
                 this.handleCameraStream(participant, stream);
             } else if (kind === 'share') {
-                console.log(`📹 [DEBUG] Handling screen share for ${participant}`);
                 this.handleScreenShare(participant, stream);
-            } else {
-                console.log(`📹 [DEBUG] Ignoring stream kind: ${kind}`);
             }
         });
 
         window.addEventListener('videosdkStreamDisabled', (event) => {
             const { kind, participant } = event.detail;
-            console.log(`📹❌ [DEBUG] videosdkStreamDisabled event received:`, {
-                kind: kind,
-                participant: participant,
-                eventDetail: event.detail
-            });
             
             if (kind === 'video') {
-                console.log(`📹❌ [DEBUG] Handling video disabled for ${participant}`);
                 this.handleCameraDisabled(participant);
             } else if (kind === 'share') {
-                console.log(`📹❌ [DEBUG] Handling screen share stopped`);
                 this.handleScreenShareStopped();
             }
         });
 
         window.addEventListener('voiceStateChanged', (event) => {
             const { type, state } = event.detail;
-            console.log(`🔄 [DEBUG] voiceStateChanged event received:`, { type, state });
             
             if (type === 'mic') {
                 this.isMuted = !state;
@@ -659,56 +662,35 @@ class VoiceCallManager {
 
         window.addEventListener('videosdkParticipantJoined', (event) => {
             const { participant, participantObj } = event.detail;
-            console.log(`👤 [DEBUG] videosdkParticipantJoined event received:`, {
-                participant: participant,
-                participantObj: participantObj
-            });
-            
-            // Add remote participant to UI
             this.addRemoteParticipant(participant, participantObj);
         });
 
         window.addEventListener('videosdkParticipantLeft', (event) => {
             const { participant } = event.detail;
-            console.log(`👋 [DEBUG] videosdkParticipantLeft event received:`, {
-                participant: participant
-            });
-            
-            // Remove remote participant from UI
             this.removeRemoteParticipant(participant);
         });
 
         window.addEventListener('voiceConnect', (event) => {
-            console.log(`🔗 [DEBUG] voiceConnect event received:`, event.detail);
             this.isConnected = true;
             
-            // Capture the local participant ID and add to UI
             if (window.videoSDKManager?.meeting?.localParticipant) {
                 this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
-                console.log(`🔗 [DEBUG] Local participant ID captured:`, this.localParticipantId);
                 
-                // Add local participant to UI if not already added
                 if (!this.participants.has(this.localParticipantId)) {
                     const localParticipant = window.videoSDKManager.meeting.localParticipant;
                     const localName = localParticipant.displayName || localParticipant.name || document.querySelector('meta[name="username"]')?.content || 'You';
                     this.addParticipant(this.localParticipantId, localName, true);
-                    console.log(`👤 [DEBUG] Local participant added to UI: ${localName}`);
-                } else {
-                    console.log(`⚠️ [DEBUG] Local participant already exists in UI`);
                 }
             }
             
-            // Display the meeting ID
             if (event.detail?.meetingId) {
                 this.displayMeetingId(event.detail.meetingId);
-                console.log(`🔗 [DEBUG] Meeting ID displayed:`, event.detail.meetingId);
             }
             
             this.updateView();
         });
 
         window.addEventListener('voiceDisconnect', (event) => {
-            console.log(`🔌 [DEBUG] voiceDisconnect event received:`, event.detail);
             this.isConnected = false;
             
             const meetingIdDisplay = document.getElementById('meetingIdDisplay');
@@ -726,25 +708,19 @@ class VoiceCallManager {
             const io = window.globalSocketManager.io;
             
             io.on('bot-voice-participant-joined', (data) => {
-                console.log(`🤖 [VOICE-BOT] Bot participant joined:`, data);
                 const { participant } = data;
-                
                 if (participant && participant.username) {
                     this.addBotParticipant(participant);
                 }
             });
 
             io.on('bot-voice-participant-left', (data) => {
-                console.log(`🤖 [VOICE-BOT] Bot participant left:`, data);
                 const { participant } = data;
-                
                 if (participant && participant.user_id) {
                     this.removeBotParticipant(participant.user_id);
                 }
             });
         }
-
-        console.log(`🎧 [DEBUG] VoiceCallManager event listeners set up complete`);
     }
 
     setupControls() {
@@ -1005,18 +981,13 @@ class VoiceCallManager {
     }
 
     createVideoParticipantCard(participantId, stream) {
-        console.log(`👥 [DEBUG] Creating video card for participant: ${participantId}`);
-        
         const container = document.getElementById('videoGrid');
         if (!container) {
-            console.error(`👥 [ERROR] videoGrid container not found`);
             return;
         }
 
-        // Check if card already exists
         let existingCard = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card`);
         if (existingCard) {
-            console.log(`👥 [DEBUG] Video card already exists for ${participantId}, updating stream`);
             const video = existingCard.querySelector('video');
             if (video && stream) {
                 this.attachStreamToVideo(video, stream);
@@ -1024,10 +995,8 @@ class VoiceCallManager {
             return;
         }
 
-        // Get or create participant info
         let participant = this.participants.get(participantId);
         if (!participant) {
-            console.log(`👥 [DEBUG] Participant ${participantId} not in Map, creating entry`);
             participant = {
                 id: participantId,
                 name: `User ${participantId.slice(-4)}`,
@@ -1038,14 +1007,16 @@ class VoiceCallManager {
             this.participants.set(participantId, participant);
         }
 
-        console.log(`👥 [DEBUG] Creating video card with name: ${participant.name}`);
-
         const card = document.createElement('div');
         card.className = 'video-participant-card';
         card.dataset.participantId = participantId;
+        card.style.width = '100%';
+        card.style.height = '100%';
+        card.style.minHeight = '180px';
+        card.style.maxHeight = '400px';
 
         card.innerHTML = `
-            <video autoplay playsinline muted class="w-full h-full object-cover" data-participant-id="${participantId}"></video>
+            <video autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; background: #000;" data-participant-id="${participantId}"></video>
             <div class="video-participant-overlay">
                 <span>${participant.name}</span>
                 ${participant.isMuted ? '<i class="fas fa-microphone-slash ml-2"></i>' : ''}
@@ -1054,14 +1025,12 @@ class VoiceCallManager {
 
         const video = card.querySelector('video');
         if (video && stream) {
-            console.log(`👥 [DEBUG] Attaching stream to video element for ${participantId}`);
             this.attachStreamToVideo(video, stream);
         }
 
         container.appendChild(card);
         participant.hasVideo = true;
         
-        console.log(`👥 [SUCCESS] Video card created for ${participantId}`);
         this.updateView();
     }
 
@@ -1239,30 +1208,19 @@ class VoiceCallManager {
     }
 
     async toggleVideo() {
-        console.log(`📹 [DEBUG] toggleVideo() called`);
-        
         if (!window.videoSDKManager?.isReady()) {
-            console.error(`📹 [ERROR] VideoSDK not ready:`, {
-                videoSDKManager: !!window.videoSDKManager,
-                isReady: window.videoSDKManager?.isReady?.()
-            });
             this.showToast('Voice not connected', 'error');
             return;
         }
 
         if (!this.localParticipantId && window.videoSDKManager?.meeting?.localParticipant) {
             this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
-            console.log(`📹 [DEBUG] Captured missing local participant ID:`, this.localParticipantId);
         }
 
         try {
-            console.log(`📹 [DEBUG] Calling videoSDKManager.toggleWebcam()...`);
             const newState = await window.videoSDKManager.toggleWebcam();
-            console.log(`📹 [DEBUG] toggleWebcam() returned:`, newState);
-            
             this.showToast(newState ? 'Camera enabled' : 'Camera disabled', 'info');
         } catch (error) {
-            console.error('📹 [ERROR] Error toggling video:', error);
             this.showToast('Failed to toggle camera', 'error');
         }
     }
@@ -1355,40 +1313,20 @@ class VoiceCallManager {
     updateVideoGrid() {
         const videoGrid = document.getElementById('videoGrid');
         if (!videoGrid) {
-            console.error('🎥 [DEBUG] Video grid element not found');
             return;
         }
 
         const videoParticipants = Array.from(this.participants.values()).filter(p => p.hasVideo);
         const count = videoParticipants.length;
         
-        console.log(`🎥 [DEBUG] Updating video grid with ${count} video participants:`, videoParticipants.map(p => p.name));
-        
-        // Set grid layout based on participant count
         videoGrid.setAttribute('data-count', count.toString());
         
-        // Force grid display styles
         videoGrid.style.display = 'grid';
         videoGrid.style.gap = '8px';
         videoGrid.style.width = '100%';
         videoGrid.style.height = '100%';
+        videoGrid.style.minHeight = '300px';
         
-        console.log(`🎥 [DEBUG] Video grid data-count set to: ${count}`);
-        
-        // Log current grid style
-        setTimeout(() => {
-            const computedStyle = window.getComputedStyle(videoGrid);
-            console.log(`🎥 [DEBUG] Video grid computed styles:`, {
-                display: computedStyle.display,
-                gridTemplateColumns: computedStyle.gridTemplateColumns,
-                gridTemplateRows: computedStyle.gridTemplateRows,
-                gap: computedStyle.gap,
-                width: computedStyle.width,
-                height: computedStyle.height
-            });
-        }, 100);
-        
-        // Update voice-only strip visibility
         const voiceOnlyParticipants = Array.from(this.participants.values()).filter(p => !p.hasVideo);
         const voiceOnlyStrip = document.getElementById('voiceOnlyStrip');
         const voiceOnlyContainer = document.getElementById('voiceOnlyParticipants');
@@ -1560,8 +1498,6 @@ class VoiceCallManager {
     }
 
     addBotParticipant(botParticipant) {
-        console.log(`🤖 [VOICE-BOT] Adding bot participant to voice UI:`, botParticipant);
-        
         const botData = {
             id: botParticipant.user_id,
             name: botParticipant.username,
@@ -1576,28 +1512,20 @@ class VoiceCallManager {
         this.participants.set(botParticipant.user_id, botData);
         this.createParticipantElement(botData);
         this.updateParticipantCount();
-        
-        console.log(`✅ [VOICE-BOT] Bot ${botParticipant.username} added to voice channel UI`);
     }
 
     removeBotParticipant(botUserId) {
-        console.log(`🤖 [VOICE-BOT] Removing bot participant from voice UI:`, botUserId);
-        
         this.participants.delete(botUserId);
         
         const participantCard = document.querySelector(`[data-participant-id="${botUserId}"].voice-participant-card`);
         if (participantCard) {
             participantCard.remove();
-            console.log(`🗑️ [VOICE-BOT] Removed bot participant card for ${botUserId}`);
         }
         
         this.updateParticipantCount();
-        console.log(`✅ [VOICE-BOT] Bot ${botUserId} removed from voice channel UI`);
     }
 
     cleanup() {
-        console.log('🧹 Cleaning up voice call manager');
-        
         const videos = document.querySelectorAll('#screenShareVideo, #pipCameraVideo, .video-participant-card video');
         videos.forEach(video => {
             if (video.srcObject) {

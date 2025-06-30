@@ -6,6 +6,7 @@ class ServerDetailModal {
         this.joinButton = null;
         this.currentServerId = null;
         this.currentInviteLink = null;
+        this.initialized = false;
         
         this.initModal();
     }
@@ -13,8 +14,10 @@ class ServerDetailModal {
     initModal() {
         this.findModalElements();
         
-        if (this.modal) {
+        if (this.modal && this.modalContent && this.closeButton && this.joinButton) {
             this.init();
+            this.initialized = true;
+            console.log('[Server Detail] Modal initialized successfully');
         } else {
             this.waitForModalElements();
         }
@@ -35,13 +38,15 @@ class ServerDetailModal {
             attempts++;
             this.findModalElements();
             
-            if (this.modal) {
+            if (this.modal && this.modalContent && this.closeButton && this.joinButton) {
                 this.init();
-                console.log('[Server Detail] Modal elements found and initialized');
+                this.initialized = true;
+                console.log('[Server Detail] Modal elements found and initialized after', attempts, 'attempts');
             } else if (attempts < maxAttempts) {
                 setTimeout(checkForElements, 200);
             } else {
-                console.warn('[Server Detail] Modal elements not found after maximum attempts');
+                console.log('[Server Detail] Modal elements not available - this is normal if not on explore page');
+                this.initialized = false;
             }
         };
         
@@ -50,7 +55,7 @@ class ServerDetailModal {
     
     init() {
         if (!this.modal || !this.closeButton || !this.joinButton) {
-            console.error('Server detail modal elements not found');
+            console.error('[Server Detail] Cannot initialize - required elements missing');
             return;
         }
         
@@ -71,9 +76,8 @@ class ServerDetailModal {
     }
     
     async showServerDetail(serverId, serverData = null) {
-        if (!this.modal) {
-            console.log('[Server Detail] Modal not ready, waiting...');
-            setTimeout(() => this.showServerDetail(serverId, serverData), 200);
+        if (!this.initialized || !this.modal) {
+            console.log('[Server Detail] Modal not ready, skipping display');
             return;
         }
         
@@ -391,23 +395,38 @@ if (!window.customAnimationStyles) {
 window.ServerDetailModal = ServerDetailModal;
 
 function initServerDetailModal() {
-    if (!window.serverDetailModal) {
+    if (window.serverDetailModal) {
+        console.log('[Server Detail] Modal already initialized');
+        return;
+    }
+    
+    const modalExists = document.getElementById('server-detail-modal');
+    if (!modalExists) {
+        console.log('[Server Detail] Modal HTML not available, skipping initialization');
+        return;
+    }
+    
+    try {
         window.serverDetailModal = new ServerDetailModal();
         
         window.showServerDetail = (serverId, serverData) => {
-            if (window.serverDetailModal) {
+            if (window.serverDetailModal && window.serverDetailModal.initialized) {
                 window.serverDetailModal.showServerDetail(serverId, serverData);
+            } else {
+                console.log('[Server Detail] Modal not ready for showServerDetail call');
             }
         };
         
-        console.log('[Server Detail] Modal initialized and ready');
+        console.log('[Server Detail] Initialization completed');
+    } catch (error) {
+        console.error('[Server Detail] Initialization failed:', error);
     }
 }
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initServerDetailModal);
 } else {
-    setTimeout(initServerDetailModal, 100);
+    initServerDetailModal();
 }
 
 export { ServerDetailModal };

@@ -424,13 +424,148 @@
     display: inline-block !important;
     opacity: 1 !important;
     visibility: visible !important;
-    color: white !important;
     position: relative;
     text-align: center;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.1em;
     line-height: 1.2;
     filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
     perspective: 1000px;
+    font-family: 'Orbitron', monospace !important;
+    font-weight: 900 !important;
+    text-transform: uppercase;
+}
+
+.hero-title.scramble-text .scramble-char {
+    background: linear-gradient(135deg, #ffffff 0%, #e6f0ff 50%, #5865F2 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+}
+
+.hero-title.scramble-text .scramble-char.revealed {
+    background: linear-gradient(135deg, #ffffff 0%, #e6f0ff 50%, #5865F2 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+}
+
+.hero-title.wave-active .scramble-char.wave-char {
+    animation: characterWave 2s ease-in-out infinite;
+}
+
+.hero-title.wave-active .scramble-char.wave-char:nth-child(1) { animation-delay: 0s; }
+.hero-title.wave-active .scramble-char.wave-char:nth-child(2) { animation-delay: 0.1s; }
+.hero-title.wave-active .scramble-char.wave-char:nth-child(3) { animation-delay: 0.2s; }
+.hero-title.wave-active .scramble-char.wave-char:nth-child(4) { animation-delay: 0.3s; }
+.hero-title.wave-active .scramble-char.wave-char:nth-child(5) { animation-delay: 0.4s; }
+.hero-title.wave-active .scramble-char.wave-char:nth-child(6) { animation-delay: 0.5s; }
+.hero-title.wave-active .scramble-char.wave-char:nth-child(7) { animation-delay: 0.6s; }
+
+@keyframes characterWave {
+    0%, 100% {
+        transform: translateY(0px) scale(1) rotateZ(0deg);
+        filter: drop-shadow(0 0 20px rgba(88, 101, 242, 0.6)) brightness(1);
+    }
+    25% {
+        transform: translateY(-15px) scale(1.1) rotateZ(2deg);
+        filter: drop-shadow(0 0 30px rgba(88, 101, 242, 0.9)) drop-shadow(0 0 50px rgba(255, 255, 255, 0.5)) brightness(1.2);
+    }
+    50% {
+        transform: translateY(-25px) scale(1.15) rotateZ(0deg);
+        filter: drop-shadow(0 0 40px rgba(88, 101, 242, 1)) drop-shadow(0 0 70px rgba(255, 255, 255, 0.7)) brightness(1.4);
+    }
+    75% {
+        transform: translateY(-15px) scale(1.1) rotateZ(-2deg);
+        filter: drop-shadow(0 0 30px rgba(88, 101, 242, 0.9)) drop-shadow(0 0 50px rgba(255, 255, 255, 0.5)) brightness(1.2);
+    }
+}
+
+@keyframes titleSparkle {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    20% {
+        opacity: 1;
+        transform: scale(1.5) rotate(90deg);
+    }
+    80% {
+        opacity: 1;
+        transform: scale(1) rotate(270deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0) rotate(360deg);
+    }
+}
+
+@keyframes titleMegaPulse {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 5px 15px rgba(88, 101, 242, 0.3));
+    }
+    50% {
+        transform: scale(1.05);
+        filter: drop-shadow(0 10px 30px rgba(88, 101, 242, 0.8)) drop-shadow(0 0 60px rgba(255, 255, 255, 0.6));
+    }
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 5px 15px rgba(88, 101, 242, 0.3));
+    }
+}
+
+.title-sparkle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* Enhanced floating effect for wave characters */
+.hero-title .scramble-char.wave-char.floating {
+    animation: characterWave 2s ease-in-out infinite, floatingEnhanced 4s ease-in-out infinite;
+}
+
+@keyframes floatingEnhanced {
+    0%, 100% {
+        filter: hue-rotate(0deg) brightness(1);
+    }
+    33% {
+        filter: hue-rotate(120deg) brightness(1.2);
+    }
+    66% {
+        filter: hue-rotate(240deg) brightness(1.1);
+    }
+}
+
+.animate-float-title {
+    animation: float-title 3s ease-in-out infinite;
+    display: inline-block;
+}
+
+@keyframes float-title {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+        filter: drop-shadow(0 0 20px rgba(88, 101, 242, 0.6)) brightness(1);
+    }
+    50% {
+        transform: translateY(-5px) rotate(2deg);
+        filter: drop-shadow(0 0 30px rgba(88, 101, 242, 0.9)) drop-shadow(0 0 50px rgba(255, 255, 255, 0.6)) brightness(1.3);
+    }
+}
+
+.hero-title.glow-active {
+    animation: titleGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+    0% {
+        filter: drop-shadow(0 5px 15px rgba(88, 101, 242, 0.4)) brightness(1);
+    }
+    100% {
+        filter: drop-shadow(0 5px 35px rgba(88, 101, 242, 0.8)) drop-shadow(0 0 60px rgba(255, 255, 255, 0.5)) brightness(1.2);
+    }
 }
 
 /* Responsive adjustments */
@@ -441,6 +576,36 @@
     
     .scramble-text .char.revealed {
         animation: simple-reveal 0.5s ease-out;
+    }
+
+    .hero-title.wave-active .scramble-char.wave-char {
+        animation: characterWaveMobile 1.5s ease-in-out infinite;
+    }
+    
+    .hero-title.animate-float-title {
+        animation: float-title-mobile 3s ease-in-out infinite;
+    }
+    
+    @keyframes float-title-mobile {
+        0%, 100% {
+            transform: translateY(0) rotate(0deg);
+            filter: drop-shadow(0 0 15px rgba(88, 101, 242, 0.5)) brightness(1);
+        }
+        50% {
+            transform: translateY(-3px) rotate(1deg);
+            filter: drop-shadow(0 0 25px rgba(88, 101, 242, 0.8)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.4)) brightness(1.2);
+        }
+    }
+}
+
+@keyframes characterWaveMobile {
+    0%, 100% {
+        transform: translateY(0px) scale(1);
+        filter: drop-shadow(0 0 15px rgba(88, 101, 242, 0.5)) brightness(1);
+    }
+    50% {
+        transform: translateY(-8px) scale(1.05);
+        filter: drop-shadow(0 0 25px rgba(88, 101, 242, 0.8)) brightness(1.2);
     }
 }
 
@@ -460,7 +625,10 @@
     .scramble-text .char,
     .scramble-text .char.floating,
     .scramble-text .char.breathing,
-    .scramble-text .char.shimmer {
+    .scramble-text .char.shimmer,
+    .hero-title.wave-active .scramble-char.wave-char,
+    .animate-float-title,
+    .hero-title.glow-active {
         animation: none !important;
     }
 }

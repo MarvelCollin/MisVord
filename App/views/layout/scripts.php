@@ -79,12 +79,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="<?php echo js('utils/jaro-winkler'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    if (window.ImageCutter) {
-        console.log("✅ ImageCutter loaded successfully");
-    } else {
-        console.warn("⚠️ ImageCutter not loaded");
-    }
-    
     if (window.JaroWinkler || window.jaroWinkler) {
         console.log("✅ JaroWinkler loaded successfully");
     } else {

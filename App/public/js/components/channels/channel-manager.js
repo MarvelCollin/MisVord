@@ -198,10 +198,10 @@ function renderChannelList(rawData) {
         // Update active highlight
         const currentChannelId = new URLSearchParams(window.location.search).get('channel');
         if (currentChannelId) {
-            document.querySelectorAll('.channel-item').forEach(ch => ch.classList.remove('bg-discord-lighten', 'bg-gray-700', 'text-white', 'active-channel'));
+            document.querySelectorAll('.channel-item').forEach(ch => ch.classList.remove('active-channel'));
             const activeChannel = channelContainer.querySelector(`[data-channel-id="${currentChannelId}"]`);
             if (activeChannel) {
-                activeChannel.classList.add('bg-discord-lighten', 'text-white', 'active-channel');
+                activeChannel.classList.add('active-channel');
                 console.log(`✅ Marked channel ${currentChannelId} as active (refresh only)`);
             } else {
                 console.warn(`⚠️ Channel ${currentChannelId} not found in DOM for highlighting`);
@@ -287,7 +287,7 @@ function renderChannelList(rawData) {
     if (currentChannelId) {
         const activeChannel = channelContainer.querySelector(`[data-channel-id="${currentChannelId}"]`);
         if (activeChannel) {
-            activeChannel.classList.add('bg-discord-lighten', 'text-white', 'active-channel');
+            activeChannel.classList.add('active-channel');
             console.log(`✅ Marked channel ${currentChannelId} as active`);
         } else {
             console.warn(`⚠️ Channel ${currentChannelId} not found in rendered channels`);
@@ -311,7 +311,7 @@ function createChannelElementPHP(channel) {
     
     // Use the same structure as PHP renderChannel function
     const isActive = new URLSearchParams(window.location.search).get('channel') == channel.id;
-    const activeClass = isActive ? 'bg-discord-lighten text-white active-channel' : '';
+    const activeClass = isActive ? 'active-channel' : '';
     
     const type = channel.type_name || channel.type || 'text';
     const icon = getChannelIconJS(type);
@@ -505,13 +505,13 @@ function forceHighlightCurrentChannel() {
     
     // Clear all active states
     document.querySelectorAll('.channel-item').forEach(ch => {
-        ch.classList.remove('bg-discord-lighten', 'bg-gray-700', 'text-white', 'active-channel');
+        ch.classList.remove('active-channel');
     });
     
     // Find and highlight the current channel
     const activeChannel = document.querySelector(`[data-channel-id="${currentChannelId}"]`);
     if (activeChannel) {
-        activeChannel.classList.add('bg-discord-lighten', 'text-white', 'active-channel');
+        activeChannel.classList.add('active-channel');
         console.log(`✅ Successfully highlighted channel ${currentChannelId}`);
         return true;
     } else {

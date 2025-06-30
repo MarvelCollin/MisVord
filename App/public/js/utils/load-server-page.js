@@ -530,53 +530,70 @@ function validateServerLayoutRendering(serverId, channelId) {
     console.log('[Server Validation] Starting server layout validation');
     console.log('[Server Validation] Target server:', serverId, 'channel:', channelId);
     
-    const validationChecks = {
-        'app-container': !!document.querySelector('#app-container'),
-        'main-content-layout': !!document.querySelector('.flex.flex-1.overflow-hidden'),
-        'server-channels-sidebar': !!document.querySelector('.w-60.bg-discord-dark'),
-        'channel-wrapper': !!document.querySelector('.channel-wrapper'),
-        'chat-section': !!document.querySelector('.chat-section'),
-        'voice-section': !!document.querySelector('.voice-section'),
-        'participant-section': !!document.querySelector('.w-60.bg-discord-background') || !!document.querySelector('[class*="participant"]'),
-        'main-content-area': !!document.querySelector('.main-content-area'),
-        'server-layout-structure': !!document.querySelector('#main-content')
+    let attempts = 0;
+    const maxAttempts = 5;
+    const retryDelay = 200;
+    
+    const performValidation = () => {
+        attempts++;
+        console.log('[Server Validation] Validation attempt', attempts, 'of', maxAttempts);
+        
+        const validationChecks = {
+            'app-container': !!document.querySelector('#app-container'),
+            'main-content-layout': !!document.querySelector('.flex.flex-1.overflow-hidden'),
+            'server-channels-sidebar': !!document.querySelector('.w-60.bg-discord-dark'),
+            'channel-wrapper': !!document.querySelector('.channel-wrapper'),
+            'chat-section': !!document.querySelector('.chat-section'),
+            'voice-section': !!document.querySelector('.voice-section'),
+            'participant-section': !!document.querySelector('.w-60.bg-discord-background') || !!document.querySelector('[class*="participant"]'),
+            'main-content-area': !!document.querySelector('.main-content-area'),
+            'server-layout-structure': !!document.querySelector('#main-content')
+        };
+        
+        console.log('[Server Validation] Layout validation results (attempt ' + attempts + '):', validationChecks);
+        
+        const failedChecks = Object.keys(validationChecks).filter(key => !validationChecks[key]);
+        
+        if (failedChecks.length === 0) {
+            console.log('[Server Validation] SUCCESS - All server layout elements rendered correctly');
+            
+            const serverIndicators = {
+                'url-is-server': window.location.pathname.includes('/server/'),
+                'correct-server-id': window.location.pathname.includes(`/server/${serverId}`),
+                'active-server-icon': !!document.querySelector(`.server-icon.active[data-server-id="${serverId}"]`),
+                'server-channels-visible': !!document.querySelector('.channel-wrapper') && document.querySelector('.channel-wrapper').style.display !== 'none',
+                'no-home-elements': !document.querySelector('.tab-content') || document.querySelector('.tab-content').style.display === 'none'
+            };
+            
+            console.log('[Server Validation] Server state indicators:', serverIndicators);
+            
+            const channelItems = document.querySelectorAll('.channel-item');
+            console.log('[Server Validation] Found', channelItems.length, 'channel items');
+            if (channelItems.length > 0) {
+                console.log('[Server Validation] Channel items:', Array.from(channelItems).map(item => ({
+                    id: item.dataset.channelId,
+                    name: item.textContent.trim(),
+                    type: item.dataset.channelType
+                })));
+            }
+            
+            return true;
+        } else if (attempts < maxAttempts) {
+            console.log('[Server Validation] RETRYING - Missing elements:', failedChecks, '- attempt', attempts, 'of', maxAttempts);
+            setTimeout(performValidation, retryDelay);
+            return false;
+        } else {
+            console.warn('[Server Validation] FAILED VALIDATION after', maxAttempts, 'attempts - Missing elements:', failedChecks);
+            console.warn('[Server Validation] Available containers:');
+            console.warn('[Server Validation] - app-container:', document.querySelector('#app-container'));
+            console.warn('[Server Validation] - flex containers:', document.querySelectorAll('.flex').length);
+            console.warn('[Server Validation] - w-60 containers:', document.querySelectorAll('.w-60').length);
+            console.warn('[Server Validation] - channel items:', document.querySelectorAll('.channel-item').length);
+            return false;
+        }
     };
     
-    console.log('[Server Validation] Layout validation results:', validationChecks);
-    
-    const failedChecks = Object.keys(validationChecks).filter(key => !validationChecks[key]);
-    if (failedChecks.length > 0) {
-        console.error('[Server Validation] FAILED VALIDATION - Missing elements:', failedChecks);
-        console.error('[Server Validation] Available containers:');
-        console.error('[Server Validation] - app-container:', document.querySelector('#app-container'));
-        console.error('[Server Validation] - flex containers:', document.querySelectorAll('.flex').length);
-        console.error('[Server Validation] - w-60 containers:', document.querySelectorAll('.w-60').length);
-        console.error('[Server Validation] - channel items:', document.querySelectorAll('.channel-item').length);
-    } else {
-        console.log('[Server Validation] SUCCESS - All server layout elements rendered correctly');
-    }
-    
-    const serverIndicators = {
-        'url-is-server': window.location.pathname.includes('/server/'),
-        'correct-server-id': window.location.pathname.includes(`/server/${serverId}`),
-        'active-server-icon': !!document.querySelector(`.server-icon.active[data-server-id="${serverId}"]`),
-        'server-channels-visible': !!document.querySelector('.channel-wrapper') && document.querySelector('.channel-wrapper').style.display !== 'none',
-        'no-home-elements': !document.querySelector('.tab-content') || document.querySelector('.tab-content').style.display === 'none'
-    };
-    
-    console.log('[Server Validation] Server state indicators:', serverIndicators);
-    
-    const channelItems = document.querySelectorAll('.channel-item');
-    console.log('[Server Validation] Found', channelItems.length, 'channel items');
-    if (channelItems.length > 0) {
-        console.log('[Server Validation] Channel items:', Array.from(channelItems).map(item => ({
-            id: item.dataset.channelId,
-            name: item.textContent.trim(),
-            type: item.dataset.channelType
-        })));
-    }
-    
-    return failedChecks.length === 0;
+    setTimeout(performValidation, 100);
 }
 
 function executeInlineScripts(doc) {

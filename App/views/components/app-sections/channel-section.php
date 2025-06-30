@@ -36,7 +36,7 @@ if (!function_exists('renderChannel')) {
     $type = $channel['type'] ?? 'text';
     $icon = getChannelIcon($type);
     $isActive = $activeChannelId == $channel['id'];
-    $activeClass = $isActive ? 'bg-discord-lighten text-white active-channel' : '';
+    $activeClass = $isActive ? 'active-channel' : '';
     
     $serverId = $GLOBALS['currentServer']->id ?? ($GLOBALS['server']->id ?? '');
     

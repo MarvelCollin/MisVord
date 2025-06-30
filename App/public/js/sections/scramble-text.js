@@ -210,28 +210,79 @@ class ScrambleText {
     elementData.isAnimating = false;
     elementData.completed = true;
 
-    this.addFinalGlowPulse(element);
-
-    spans.forEach((span, index) => {
-      if (
-        !span.classList.contains("space") &&
-        span.classList.contains("revealed")
-      ) {
-        setTimeout(() => {
-          span.classList.add("floating", "breathing", "shimmer");
-
-          this.addCharacterCelebration(span, index);
-
-          this.startContinuousEffects(span, index);
-        }, index * 100);
-      }
-    });
-
     setTimeout(() => {
       this.setupInteractiveEffects(elementData);
       this.startAmbientEffects(elementData);
       this.startFloatingParticles(element);
-    }, 3000);
+      this.startWaveAnimation(element);
+    }, 500);
+  }
+
+  startWaveAnimation(element) {
+    if (element.classList.contains('hero-title')) {
+      setTimeout(() => {
+        element.classList.add('wave-active');
+        element.classList.add('animate-float-title');
+        element.classList.add('glow-active');
+        this.addEnhancedTitleEffects(element);
+      }, 1000);
+    }
+  }
+
+  addEnhancedTitleEffects(element) {
+    const spans = element.querySelectorAll('.scramble-char');
+    
+    spans.forEach((span, index) => {
+      if (!span.classList.contains('space')) {
+        span.classList.add('wave-char');
+        span.style.animationDelay = `${index * 0.1}s`;
+      }
+    });
+
+    setInterval(() => {
+      if (Math.random() < 0.3) {
+        this.addTitleSparkle(element);
+      }
+    }, 2000);
+
+    setInterval(() => {
+      if (Math.random() < 0.2) {
+        this.addTitlePulse(element);
+      }
+    }, 4000);
+  }
+
+  addTitleSparkle(element) {
+    const sparkle = document.createElement('div');
+    sparkle.className = 'title-sparkle';
+    
+    const rect = element.getBoundingClientRect();
+    const x = Math.random() * rect.width;
+    const y = Math.random() * rect.height;
+    
+    sparkle.style.cssText = `
+      position: absolute;
+      left: ${x}px;
+      top: ${y}px;
+      width: 4px;
+      height: 4px;
+      background: linear-gradient(45deg, #ffffff, #5865F2);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: titleSparkle 1.5s ease-out forwards;
+      z-index: 1000;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+    `;
+    
+    element.appendChild(sparkle);
+    setTimeout(() => sparkle.remove(), 1500);
+  }
+
+  addTitlePulse(element) {
+    element.style.animation = 'titleMegaPulse 1s ease-out';
+    setTimeout(() => {
+      element.style.animation = 'titleWave 3s ease-in-out infinite';
+    }, 1000);
   }
 
   addCharacterCelebration(span, index) {
