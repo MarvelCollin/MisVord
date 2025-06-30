@@ -189,6 +189,18 @@ Route::get('/server/([0-9]+)', function($id) {
 
 
 
+Route::get('/server/([0-9]+)/layout', function($serverId) {
+    require_once __DIR__ . '/../controllers/ServerController.php';
+    $controller = new ServerController();
+    $controller->getServerLayoutHtml($serverId);
+});
+
+Route::post('/server/([0-9]+)/layout', function($serverId) {
+    require_once __DIR__ . '/../controllers/ServerController.php';
+    $controller = new ServerController();
+    $controller->getServerLayoutHtml($serverId);
+});
+
 Route::get('/servers/([0-9]+)', function($id) {
     $channel = $_GET['channel'] ?? null;
     $redirectUrl = "/server/{$id}";

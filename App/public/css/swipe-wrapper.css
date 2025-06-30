@@ -1,11 +1,23 @@
+html {
+    scroll-behavior: smooth;
+    scroll-snap-type: y mandatory;
+}
+
+body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    scroll-behavior: smooth;
+}
+
 .swipe-wrapper {
     display: flex;
     width: 300vw;
     height: 100vh;
     position: relative;
     overflow: hidden;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
+    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .swipe-section {
@@ -29,44 +41,15 @@
 .hero-section {
     scroll-snap-align: start;
     scroll-snap-stop: always;
-}
-
-@media screen and (max-width: 768px) {
-    .swipe-wrapper {
-        flex-direction: column;
-        width: 100vw;
-        height: auto;
-        overflow: visible;
-        transform: none !important;
-    }
-    
-    .swipe-section {
-        min-width: 100vw;
-        width: 100vw;
-        height: auto;
-        min-height: 100vh;
-        padding: 1rem;
-    }
-}
-
-@media screen and (max-width: 480px) {
-    .swipe-section {
-        padding: 0.5rem;
-    }
-}
-
-body {
-    overflow-x: hidden;
-    overflow-y: auto;
-    scroll-behavior: smooth;
-}
-
-html {
-    scroll-snap-type: y mandatory;
+    position: relative;
+    z-index: 1;
 }
 
 .swipe-wrapper {
-    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    position: relative;
+    z-index: 2;
 }
 
 .section-navigation {
@@ -113,12 +96,6 @@ html {
     background: rgba(255, 255, 255, 0.5);
 }
 
-@media screen and (max-width: 768px) {
-    .section-navigation {
-        display: none;
-    }
-}
-
 .swipe-hint {
     position: fixed;
     bottom: 2rem;
@@ -141,7 +118,33 @@ html {
 }
 
 @media screen and (max-width: 768px) {
+    .swipe-wrapper {
+        flex-direction: column;
+        width: 100vw;
+        height: auto;
+        overflow: visible;
+        transform: none !important;
+    }
+    
+    .swipe-section {
+        min-width: 100vw;
+        width: 100vw;
+        height: auto;
+        min-height: 100vh;
+        padding: 1rem;
+    }
+    
+    .section-navigation {
+        display: none;
+    }
+    
     .swipe-hint {
         display: none;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .swipe-section {
+        padding: 0.5rem;
     }
 } 

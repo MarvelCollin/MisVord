@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initScrollTransition();
     initSectionCoordination();
     handleLandingPageResize();
-    initScrollEnhancements();
     initAuthIcon();
     initHeroAssets();
     
@@ -91,16 +90,10 @@ function initSectionCoordination() {
         scrollIndicator.addEventListener('click', (e) => {
             e.preventDefault();
             
-            document.body.style.scrollSnapType = 'none';
-            
             featuredSection.scrollIntoView({ 
                 behavior: 'smooth',
                 block: 'start'
             });
-            
-            setTimeout(() => {
-                document.body.style.scrollSnapType = 'y proximity';
-            }, 1000);
         });
     }
     
@@ -163,39 +156,6 @@ function handleSectionCoordination() {
     }
 }
 
-function initScrollEnhancements() {
-    const sections = document.querySelectorAll('.scroll-section');
-    
-    const sectionObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('in-view');
-                
-                if (entry.target.classList.contains('featured-cards-section')) {
-                    triggerFeaturedCardsEnhancements();
-                }
-            }
-        });
-    }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    });
-    
-    sections.forEach(section => {
-        sectionObserver.observe(section);
-    });
-    
-    document.addEventListener('wheel', (e) => {
-        if (Math.abs(e.deltaY) > 50) {
-            document.body.style.scrollSnapType = 'none';
-            clearTimeout(window.snapTimeout);
-            window.snapTimeout = setTimeout(() => {
-                document.body.style.scrollSnapType = 'y proximity';
-            }, 100);
-        }
-    }, { passive: true });
-}
-
 function triggerFeaturedCardsEnhancements() {
     const cards = document.querySelectorAll('.featured-card');
     
@@ -234,15 +194,11 @@ function handleLandingPageResize() {
         cards.forEach(card => {
             card.style.transform = 'none';
         });
-        
-        document.body.style.scrollSnapType = 'y proximity';
     } else {
         const stars = document.querySelectorAll('.star');
         stars.forEach(star => {
             star.style.display = 'block';
         });
-        
-        document.body.style.scrollSnapType = 'y proximity';
     }
     
     setTimeout(() => {

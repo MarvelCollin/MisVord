@@ -825,9 +825,9 @@ class VoiceCallManager {
     }
 
     createParticipantElement(participant) {
-        const container = document.getElementById('voiceParticipantsGrid');
+        const container = document.getElementById('participantGrid');
         if (!container) {
-            console.error('🔊 [ERROR] voiceParticipantsGrid container not found');
+            console.error('🔊 [ERROR] participantGrid container not found');
             return;
         }
 
@@ -1130,6 +1130,20 @@ class VoiceCallManager {
             result: result
         });
         return result;
+    }
+
+    updateGrid() {
+        const participantGrid = document.getElementById('participantGrid');
+        if (!participantGrid) return;
+
+        const participantCount = this.participants.size;
+        participantGrid.setAttribute('data-count', participantCount.toString());
+        
+        participantGrid.style.display = 'grid';
+        participantGrid.style.gap = '12px';
+        participantGrid.style.width = '100%';
+        participantGrid.style.height = '100%';
+        participantGrid.style.padding = '8px';
     }
 
     updateView() {
@@ -1555,12 +1569,12 @@ class VoiceCallManager {
         });
 
         const videoGrid = document.getElementById('videoGrid');
-        const voiceParticipantsGrid = document.getElementById('voiceParticipantsGrid');
+        const participantGrid = document.getElementById('participantGrid');
         const screenShareParticipants = document.getElementById('screenShareParticipants');
         const voiceOnlyParticipants = document.getElementById('voiceOnlyParticipants');
 
         if (videoGrid) videoGrid.innerHTML = '';
-        if (voiceParticipantsGrid) voiceParticipantsGrid.innerHTML = '';
+        if (participantGrid) participantGrid.innerHTML = '';
         if (screenShareParticipants) screenShareParticipants.innerHTML = '';
         if (voiceOnlyParticipants) voiceOnlyParticipants.innerHTML = '';
 
