@@ -285,7 +285,7 @@ function initJoinServerHandlers() {
     });
 }
 
-function joinServer(serverId, button) {
+async function joinServer(serverId, button) {
     if (!serverId || button.disabled) return;
 
     const originalText = button.innerHTML;
@@ -308,15 +308,16 @@ function joinServer(serverId, button) {
     form.appendChild(serverIdInput);
     document.body.appendChild(form);
 
-    fetch(form.action, {
-        method: 'POST',
-        body: new FormData(form),
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        const data = await response.json();
+
         if (data.success) {
             button.innerHTML = '<i class="fas fa-check mr-2"></i>Joined!';
             button.className = 'join-server-btn w-full bg-discord-green text-white text-center py-2.5 text-sm rounded-lg transition-all font-semibold';
@@ -331,13 +332,13 @@ function joinServer(serverId, button) {
                 window.showToast('Successfully joined server!', 'success');
             }
 
-            setTimeout(() => {
-                if (window.loadServerPage && typeof window.loadServerPage === 'function') {
-                    window.loadServerPage(serverId);
-                } else {
-                    window.location.href = `/server/${serverId}`;
-                }
-            }, 1500);
+            if (window.loadServerPage && typeof window.loadServerPage === 'function') {
+                console.log('[Explore Servers] Using AJAX navigation to server:', serverId);
+                await window.loadServerPage(serverId);
+            } else {
+                console.log('[Explore Servers] AJAX navigation not available, using direct navigation');
+                window.location.href = `/server/${serverId}`;
+            }
         } else {
             button.innerHTML = originalText;
             button.className = originalClasses;
@@ -348,8 +349,7 @@ function joinServer(serverId, button) {
                 window.showToast(data.message || 'Failed to join server', 'error');
             }
         }
-    })
-    .catch(error => {
+    } catch (error) {
         button.innerHTML = originalText;
         button.className = originalClasses;
         button.disabled = false;
@@ -358,10 +358,9 @@ function joinServer(serverId, button) {
         if (window.showToast) {
             window.showToast('Error joining server', 'error');
         }
-    })
-    .finally(() => {
+    } finally {
         document.body.removeChild(form);
-    });
+    }
 }
 
 function initServerDetailTriggers() {

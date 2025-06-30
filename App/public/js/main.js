@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', function() {
         window.globalSocketManager = globalSocketManager;
         window.loadCSS = loadCSS;
         window.unloadCSS = unloadCSS;
-        window.globalSwitchLock = false;
         
         if (!window.nitroCrownManager) {
             window.nitroCrownManager = new NitroCrownManager();
@@ -294,3 +293,84 @@ export {
     loadCSS,
     unloadCSS
 };
+
+async function initializeNavigation() {
+    console.log('[Main] Initializing navigation system');
+    
+    try {
+        if (!window.loadHomePage) {
+            console.log('[Main] Loading home page navigation');
+            await import('./utils/load-home-page.js');
+        }
+        
+        if (!window.loadServerPage) {
+            console.log('[Main] Loading server page navigation');
+            await import('./utils/load-server-page.js');
+        }
+        
+        if (!window.loadExplorePage) {
+            console.log('[Main] Loading explore page navigation');
+            await import('./utils/load-explore-page.js');
+        }
+        
+        if (!window.navigationManager) {
+            console.log('[Main] Loading navigation manager');
+            const { NavigationManager } = await import('./utils/navigation-manager.js');
+            if (!window.navigationManager) {
+                window.navigationManager = new NavigationManager();
+            }
+        }
+        
+        window.globalSwitchLock = false;
+        
+        console.log('[Main] Navigation system initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('[Main] Failed to initialize navigation system:', error);
+        return false;
+    }
+}
+
+async function initializeApplication() {
+    console.log('[Main] Starting application initialization');
+    
+    await initializeNavigation();
+    
+    if (document.readyState === 'complete') {
+        console.log('[Main] Document ready, initializing components');
+        initializeComponents();
+    } else {
+        console.log('[Main] Waiting for document ready');
+        document.addEventListener('DOMContentLoaded', initializeComponents);
+    }
+}
+
+function initializeComponents() {
+    console.log('[Main] Initializing core components');
+    
+    const isAuthenticated = document.querySelector('meta[name="user-authenticated"]')?.content === 'true';
+    
+    if (isAuthenticated) {
+        console.log('[Main] User authenticated, setting up navigation');
+        
+        setTimeout(() => {
+            if (typeof window.initServerSidebar === 'function') {
+                window.initServerSidebar();
+            }
+            
+            if (typeof window.updateActiveServer === 'function') {
+                const currentPath = window.location.pathname;
+                if (currentPath.includes('/server/')) {
+                    const serverId = currentPath.split('/server/')[1].split('/')[0];
+                    window.updateActiveServer('server', serverId);
+                } else if (currentPath === '/home' || currentPath === '/') {
+                    window.updateActiveServer('home');
+                } else if (currentPath.includes('/explore')) {
+                    window.updateActiveServer('explore');
+                }
+            }
+        }, 100);
+    }
+}
+
+initializeApplication();

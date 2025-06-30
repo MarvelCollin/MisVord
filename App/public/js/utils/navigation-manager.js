@@ -88,6 +88,11 @@ class NavigationManager {
         const currentTime = Date.now();
         const timeSinceLastNav = currentTime - this.lastNavigationTime;
         
+        if (this.isNavigating && timeSinceLastNav > 10000) {
+            console.warn('[Navigation] Clearing stuck navigation state');
+            this.isNavigating = false;
+        }
+        
         if (this.isNavigating) {
             console.log('[Navigation] Already navigating, blocking request');
             return false;
@@ -122,29 +127,37 @@ class NavigationManager {
 
         this.showSkeleton(config.type);
 
-        const response = await fetch(config.url, {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+        try {
+            const response = await fetch(config.url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Navigation failed: ${response.status} ${response.statusText}`);
             }
-        });
 
-        if (!response.ok) {
-            throw new Error(`Navigation failed: ${response.status} ${response.statusText}`);
+            const html = await response.text();
+            
+            await this.ensureMinimumSkeletonTime();
+            
+            this.hideSkeleton(config.type);
+            
+            if (config.onSuccess) {
+                config.onSuccess(html);
+            }
+            
+            this.updateBrowserState(config);
+            this.initializeComponents(config);
+            
+            return true;
+        } catch (error) {
+            console.error(`[Navigation] ${config.type} navigation failed:`, error);
+            this.hideSkeleton(config.type);
+            return false;
         }
-
-        const html = await response.text();
-        
-        await this.ensureMinimumSkeletonTime();
-        
-        this.hideSkeleton(config.type);
-        
-        if (config.onSuccess) {
-            config.onSuccess(html);
-        }
-        
-        this.updateBrowserState(config);
-        this.initializeComponents(config);
     }
 
     showSkeleton(type) {

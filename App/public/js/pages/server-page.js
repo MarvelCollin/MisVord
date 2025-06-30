@@ -15,24 +15,17 @@ function loadScript(src, type = '', async = false) {
 async function loadVoiceScripts() {
   try {
     if (!window.VideoSDK) {
-      console.log("Loading VideoSDK from CDN");
       await loadScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
-      console.log("VideoSDK loaded successfully");
     }
     
     if (!window.videoSDKManager) {
-      console.log("Loading VideoSDK manager");
       await loadScript('/public/js/components/videosdk/videosdk.js?v=' + Date.now());
-      console.log("VideoSDK manager loaded successfully");
     }
     
-    console.log("Loading voice manager");
     await loadScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
-    console.log("Voice manager loaded successfully");
     
     return true;
   } catch (error) {
-    console.error("Error loading voice scripts:", error);
     return false;
   }
 }
@@ -398,29 +391,19 @@ function updateChatMetaTags(channelId) {
 }
 
 function initVoicePage() {
-  console.log("Initializing voice page");
-  
   const channelItems = document.querySelectorAll('.channel-item');
   if (channelItems.length > 0) {
-    console.log(`Found ${channelItems.length} channel items in voice page`);
-    // Channel click handling is now managed by ChannelSwitchManager
-  } else {
-    console.log("No channel items found in voice page");
   }
   
   if (!window.VideoSDK && !document.querySelector('script[src*="videosdk.js"]')) {
-    console.log("Loading VideoSDK script for voice page");
     const script = document.createElement('script');
     script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
     script.onload = () => {
-      console.log("VideoSDK loaded, now loading VideoSDK manager");
       if (!window.videoSDKManager && !document.querySelector('script[src*="/videosdk/videosdk.js"]')) {
         const managerScript = document.createElement('script');
         managerScript.src = '/public/js/components/videosdk/videosdk.js?v=' + Date.now();
         managerScript.onload = () => {
-          console.log("VideoSDK manager loaded for voice page");
           if (!window.voiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
-            console.log("Loading voice manager script for voice page");
             const voiceScript = document.createElement('script');
             voiceScript.src = '/public/js/components/voice/voice-manager.js?v=' + Date.now();
             document.head.appendChild(voiceScript);
@@ -431,13 +414,10 @@ function initVoicePage() {
     };
     document.head.appendChild(script);
   } else if (!window.videoSDKManager && !document.querySelector('script[src*="/videosdk/videosdk.js"]')) {
-    console.log("Loading VideoSDK manager script for voice page");
     const managerScript = document.createElement('script');
     managerScript.src = '/public/js/components/videosdk/videosdk.js?v=' + Date.now();
     managerScript.onload = () => {
-      console.log("VideoSDK manager loaded for voice page");
       if (!window.voiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
-        console.log("Loading voice manager script for voice page");
         const voiceScript = document.createElement('script');
         voiceScript.src = '/public/js/components/voice/voice-manager.js?v=' + Date.now();
         document.head.appendChild(voiceScript);
@@ -445,7 +425,6 @@ function initVoicePage() {
     };
     document.head.appendChild(managerScript);
   } else if (!window.voiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
-    console.log("Loading voice manager script for voice page");
     const voiceScript = document.createElement('script');
     voiceScript.src = '/public/js/components/voice/voice-manager.js?v=' + Date.now();
     document.head.appendChild(voiceScript);

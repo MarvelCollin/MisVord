@@ -100,19 +100,8 @@ function ensureServerAPI() {
 }
 
 export function loadExplorePage() {
-    if (window.globalSwitchLock) {
-        window.globalSwitchLock = false;
-    }
+    console.log('[Explore AJAX] Starting direct AJAX explore page load');
     
-    if (window.navigationManager) {
-        return window.navigationManager.navigateToExplore();
-    }
-    
-    console.error('[Explore Loader] Navigation manager not available, falling back to direct navigation');
-    window.location.href = '/explore-servers';
-}
-
-function startExploreAjaxLoad() {
     const mainContent = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
 
     if (mainContent) {
@@ -129,7 +118,6 @@ function startExploreAjaxLoad() {
 
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
             window.voiceManager.leaveVoice();
-            window.voiceManager = null;
         }
 
         $.ajax({
@@ -452,5 +440,4 @@ function debugExploreServerNavigation() {
 }
 
 window.loadExplorePage = loadExplorePage;
-window.loadServerPage = loadServerPage;
 window.debugExploreServerNavigation = debugExploreServerNavigation; 

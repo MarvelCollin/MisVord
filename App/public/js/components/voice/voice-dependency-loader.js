@@ -28,12 +28,10 @@ class VoiceDependencyLoader {
             
             script.onload = () => {
                 this.loadedScripts.add(src);
-                console.log(`✅ Loaded: ${src.split('/').pop()}`);
                 resolve(true);
             };
             
             script.onerror = () => {
-                console.error(`❌ Failed to load: ${src}`);
                 reject(new Error(`Failed to load ${src}`));
             };
             
@@ -45,18 +43,14 @@ class VoiceDependencyLoader {
     }
 
     async loadAllDependencies() {
-        console.log('🔄 Loading voice dependencies...');
-        
         try {
             for (const dependency of this.dependencies) {
                 await this.loadScript(dependency);
             }
 
             await this.waitForDependencies();
-            console.log('✅ All voice dependencies loaded');
             return true;
         } catch (error) {
-            console.error('❌ Failed to load voice dependencies:', error);
             throw error;
         }
     }

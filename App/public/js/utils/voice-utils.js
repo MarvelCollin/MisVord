@@ -57,21 +57,17 @@ window.loadVoiceScript = async function(src) {
         const scriptPath = src.split('?')[0];
         const existingScript = document.querySelector(`script[src*="${scriptPath.split('/').pop()}"]`);
         if (existingScript) {
-            console.log(`Script already loaded: ${scriptPath}`);
             resolve();
             return;
         }
         
-        console.log(`Loading script: ${src}`);
         const script = document.createElement('script');
         script.src = src;
         script.async = true;
         script.onload = () => {
-            console.log(`Script loaded successfully: ${src}`);
             resolve();
         };
         script.onerror = () => {
-            console.error(`Failed to load script: ${src}`);
             reject(new Error(`Failed to load ${src}`));
         };
         document.head.appendChild(script);

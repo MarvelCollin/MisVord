@@ -1,15 +1,5 @@
 export function loadServerPage(serverId, channelId = null) {
-    if (window.globalSwitchLock) {
-        window.globalSwitchLock = false;
-    }
-    
-    if (window.navigationManager) {
-        return window.navigationManager.navigateToServer(serverId, channelId);
-    }
-    
-    console.error('[Server Loader] Navigation manager not available, falling back to direct navigation');
-    window.location.href = `/server/${serverId}`;
-    return;
+    console.log('[Server AJAX] Starting direct AJAX server page load');
     
     const mainContent = document.querySelector('.flex-1') ||
         document.querySelector('[class*="server-content"]') ||
@@ -31,7 +21,6 @@ export function loadServerPage(serverId, channelId = null) {
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
             console.log('[Server Loader] Cleaning up voice manager');
             window.voiceManager.leaveVoice();
-            window.voiceManager = null;
         }
 
         let url = `/server/${serverId}/layout`;
@@ -84,13 +73,11 @@ export function loadServerPage(serverId, channelId = null) {
                     
                 } else if (response && response.data && response.data.redirect) {
                     console.log('[Server AJAX] Redirect response:', response.data.redirect);
-                    window.globalSwitchLock = false;
                     window.location.href = response.data.redirect;
                 } else {
                     console.error('[Server AJAX] INVALID RESPONSE FORMAT');
                     console.error('[Server AJAX] Expected string, got:', typeof response);
                     console.error('[Server AJAX] Response content:', response);
-                    window.globalSwitchLock = false;
                     window.location.href = `/server/${serverId}`;
                 }
             },
@@ -122,7 +109,6 @@ export function loadServerPage(serverId, channelId = null) {
             });
     } else {
         console.error('[Server Loader] No main content container found');
-        window.globalSwitchLock = false;
         window.location.href = `/server/${serverId}`;
     }
 }
@@ -149,6 +135,11 @@ function performServerLayoutUpdate(response, serverId, channelId, currentChannel
         }
         
         console.log('[Server AJAX] Initializing core server components');
+        
+        if (window.globalSwitchLock) {
+            console.log('[Server AJAX] Clearing global switch lock');
+            window.globalSwitchLock = false;
+        }
         
         if (typeof window.ChannelSwitchManager !== 'undefined') {
             if (window.channelSwitchManager) {
@@ -205,9 +196,6 @@ function performServerLayoutUpdate(response, serverId, channelId, currentChannel
         });
         document.dispatchEvent(event);
         console.log('[Server AJAX] ServerChanged event dispatched');
-        
-        window.globalSwitchLock = false;
-        console.log('[Server AJAX] Global switch lock released after server loading');
     }
     
     let initializationCompleted = false;
@@ -230,32 +218,24 @@ function performServerLayoutUpdate(response, serverId, channelId, currentChannel
 }
 
 function initializeVoiceSystems() {
-    console.log('[Voice Systems] Starting voice system initialization');
-    
     if (!window.voiceManager) {
-        console.log('[Voice Systems] Creating new voice manager instance');
         if (typeof window.VoiceManager === 'function') {
             window.voiceManager = new window.VoiceManager();
             if (window.voiceManager.preloadResources) {
                 window.voiceManager.preloadResources();
             }
-        } else {
-            console.warn('[Voice Systems] VoiceManager constructor not available');
         }
     } else {
-        console.log('[Voice Systems] Voice manager already exists, ensuring proper state');
         if (typeof window.voiceManager.resetState === 'function') {
             window.voiceManager.resetState();
         }
     }
     
     if (!window.globalVoiceIndicator) {
-        console.log('[Voice Systems] Creating global voice indicator');
         if (typeof window.GlobalVoiceIndicator === 'function') {
             window.globalVoiceIndicator = new window.GlobalVoiceIndicator();
         }
     } else {
-        console.log('[Voice Systems] Ensuring voice indicator visibility');
         if (window.globalVoiceIndicator.ensureIndicatorVisible) {
             window.globalVoiceIndicator.ensureIndicatorVisible();
         }
@@ -264,14 +244,10 @@ function initializeVoiceSystems() {
     setTimeout(() => {
         if (typeof window.waitForVoiceManager === 'function') {
             window.waitForVoiceManager().then(() => {
-                console.log('[Voice Systems] Voice manager ready for use');
             }).catch(error => {
-                console.warn('[Voice Systems] Voice manager initialization timeout:', error);
             });
         }
     }, 500);
-    
-    console.log('[Voice Systems] Voice system initialization completed');
 }
 
 function initializeChatSystems() {

@@ -166,6 +166,11 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
                 <div class="voice-tooltip">Share Screen</div>
             </button>
 
+            <button id="ticTacToeBtn" class="voice-control-btn tic-tac-toe-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#8b5cf6] text-white transition-all duration-150 flex items-center justify-center group">
+                <i class="fas fa-chess-board text-sm"></i>
+                <div class="voice-tooltip">Play Tic Mac Voe</div>
+            </button>
+
             <div class="w-px h-6 bg-[#4f545c]"></div>
 
             <!-- Disconnect -->
@@ -747,6 +752,7 @@ class VoiceCallManager {
         document.getElementById('deafenBtn').addEventListener('click', () => this.toggleDeafen());
         document.getElementById('videoBtn').addEventListener('click', () => this.toggleVideo());
         document.getElementById('screenBtn').addEventListener('click', () => this.toggleScreenShare());
+        document.getElementById('ticTacToeBtn').addEventListener('click', () => this.openTicTacToe());
         document.getElementById('disconnectBtn').addEventListener('click', () => this.disconnect());
     }
 
@@ -1277,6 +1283,50 @@ class VoiceCallManager {
     }
 
 
+
+    openTicTacToe() {
+        const serverId = document.querySelector('meta[name="server-id"]')?.content;
+        const userId = document.querySelector('meta[name="user-id"]')?.content;
+        const username = document.querySelector('meta[name="username"]')?.content;
+        
+        if (!serverId || !userId || !username) {
+            this.showToast('Missing required information. Please refresh the page.', 'error');
+            return;
+        }
+        
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            this.showToast('Connection not ready. Please wait and try again.', 'error');
+            return;
+        }
+        
+        if (window.TicTacToeModal) {
+            window.TicTacToeModal.createTicTacToeModal(serverId, userId, username);
+        } else {
+            this.loadTicTacToeAndOpen(serverId, userId, username);
+        }
+    }
+
+    async loadTicTacToeAndOpen(serverId, userId, username) {
+        try {
+            if (!document.querySelector('script[src*="tic-tac-toe.js"]')) {
+                const script = document.createElement('script');
+                script.src = '/public/js/components/activity/tic-tac-toe.js?v=' + Date.now();
+                script.onload = () => {
+                    if (window.TicTacToeModal) {
+                        window.TicTacToeModal.createTicTacToeModal(serverId, userId, username);
+                    } else {
+                        this.showToast('Game not available. Please try again later.', 'error');
+                    }
+                };
+                script.onerror = () => {
+                    this.showToast('Failed to load game. Please try again.', 'error');
+                };
+                document.head.appendChild(script);
+            }
+        } catch (error) {
+            this.showToast('Failed to load game. Please try again.', 'error');
+        }
+    }
 
     disconnect() {
         if (window.voiceManager?.isConnected) {

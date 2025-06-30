@@ -9,7 +9,7 @@ let cacheExpiry = 0;
 let isHandlingClick = false;
 
 let lastServerSwitchTime = 0;
-const SERVER_SWITCH_DELAY = 2000;
+const SERVER_SWITCH_DELAY = 1300;
 
 let homeIconClickCount = 0;
 let lastClickTime = 0;
@@ -918,23 +918,39 @@ export async function handleHomeClick(event) {
             }
         }
 
-        console.log('[Home Navigation] Using navigation manager');
+        let success = false;
+        
         if (window.navigationManager) {
-            const success = await window.navigationManager.navigateToHome('friends');
-            if (!success) {
-                console.warn('[Home Navigation] Navigation manager failed, using fallback');
-                window.location.href = '/home';
-            }
-        } else {
-            console.error('[Home Navigation] Navigation manager not available, using fallback');
+            console.log('[Home Navigation] Trying navigation manager');
+            success = await window.navigationManager.navigateToHome('friends');
+        }
+        
+        if (!success && typeof window.loadHomePage === 'function') {
+            console.log('[Home Navigation] Navigation manager failed, trying loadHomePage');
+            await window.loadHomePage('friends');
+            success = true;
+        }
+        
+        if (!success) {
+            console.error('[Home Navigation] All navigation methods failed, forcing page reload');
             window.location.href = '/home';
+            return;
         }
 
         console.log('[Home Navigation] SUCCESS - Home navigation completed');
 
     } catch (error) {
         console.error('[Home Navigation] ERROR in handleHomeClick:', error);
-        throw error;
+        if (typeof window.loadHomePage === 'function') {
+            try {
+                await window.loadHomePage('friends');
+            } catch (fallbackError) {
+                console.error('[Home Navigation] Fallback also failed:', fallbackError);
+                window.location.href = '/home';
+            }
+        } else {
+            window.location.href = '/home';
+        }
     } finally {
         hideHomeLoadingIndicator();
     }
@@ -945,7 +961,7 @@ export async function handleServerClick(serverId, event) {
     
     if (!serverId) {
         console.error('[Server Navigation] No server ID provided');
-        throw new Error('No server ID provided');
+        return;
     }
 
     const currentTime = Date.now();
@@ -960,22 +976,38 @@ export async function handleServerClick(serverId, event) {
     showServerLoadingIndicator(serverId);
 
     try {
+        let success = false;
+        
         if (window.navigationManager) {
-            console.log('[Server Navigation] Using navigation manager');
-            const success = await window.navigationManager.navigateToServer(serverId);
-            if (success) {
-                console.log('[Server Navigation] SUCCESS - Server navigation completed via navigation manager');
-            } else {
-                console.warn('[Server Navigation] Navigation manager failed, using fallback');
-                window.location.href = `/server/${serverId}`;
-            }
-        } else {
-            console.warn('[Server Navigation] Navigation manager not available, using fallback');
-            window.location.href = `/server/${serverId}`;
+            console.log('[Server Navigation] Trying navigation manager');
+            success = await window.navigationManager.navigateToServer(serverId);
         }
+        
+        if (!success && typeof window.loadServerPage === 'function') {
+            console.log('[Server Navigation] Navigation manager failed, trying loadServerPage');
+            await window.loadServerPage(serverId);
+            success = true;
+        }
+        
+        if (!success) {
+            console.log('[Server Navigation] All navigation methods failed, using direct AJAX fallback');
+            await handleServerClickFallback(serverId);
+            success = true;
+        }
+        
+        if (success) {
+            console.log('[Server Navigation] SUCCESS - Server navigation completed');
+        }
+        
     } catch (error) {
         console.error('[Server Navigation] ERROR in handleServerClick:', error);
-        throw error;
+        try {
+            console.log('[Server Navigation] Attempting fallback navigation');
+            await handleServerClickFallback(serverId);
+        } catch (fallbackError) {
+            console.error('[Server Navigation] Fallback also failed:', fallbackError);
+            window.location.href = `/server/${serverId}`;
+        }
     } finally {
         hideServerLoadingIndicator(serverId);
     }
@@ -1064,23 +1096,39 @@ export async function handleExploreClick(event) {
             }
         }
 
-        console.log('[Explore Navigation] Using navigation manager');
+        let success = false;
+        
         if (window.navigationManager) {
-            const success = await window.navigationManager.navigateToExplore();
-            if (!success) {
-                console.warn('[Explore Navigation] Navigation manager failed, using fallback');
-                window.location.href = '/explore-servers';
-            }
-        } else {
-            console.error('[Explore Navigation] Navigation manager not available, using fallback');
+            console.log('[Explore Navigation] Trying navigation manager');
+            success = await window.navigationManager.navigateToExplore();
+        }
+        
+        if (!success && typeof window.loadExplorePage === 'function') {
+            console.log('[Explore Navigation] Navigation manager failed, trying loadExplorePage');
+            await window.loadExplorePage();
+            success = true;
+        }
+        
+        if (!success) {
+            console.error('[Explore Navigation] All navigation methods failed, forcing page reload');
             window.location.href = '/explore-servers';
+            return;
         }
 
         console.log('[Explore Navigation] SUCCESS - Explore navigation completed');
 
     } catch (error) {
         console.error('[Explore Navigation] ERROR in handleExploreClick:', error);
-        throw error;
+        if (typeof window.loadExplorePage === 'function') {
+            try {
+                await window.loadExplorePage();
+            } catch (fallbackError) {
+                console.error('[Explore Navigation] Fallback also failed:', fallbackError);
+                window.location.href = '/explore-servers';
+            }
+        } else {
+            window.location.href = '/explore-servers';
+        }
     } finally {
         hideExploreLoadingIndicator();
     }

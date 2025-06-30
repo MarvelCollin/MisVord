@@ -16,7 +16,6 @@ class ChannelSwitchManager {
         this.boundPopstateHandler = null;
         this.isDestroyed = false;
         this.channelSkeletonStartTime = null;
-        this.lockStartTime = null;
         
         this.init();
         
@@ -174,14 +173,9 @@ class ChannelSwitchManager {
         }
         
         if (window.globalSwitchLock) {
-            if (!this.lockStartTime || (Date.now() - this.lockStartTime) > 15000) {
-                window.globalSwitchLock = false;
-                this.isLoading = false;
-            } else {
-                console.log('[ChannelSwitchManager] Global switch lock active, queuing request');
-                this.switchQueue.push({ serverId, channelId, channelType, clickedElement, updateHistory });
-                return;
-            }
+            console.log('[ChannelSwitchManager] Global switch lock active, queuing request');
+            this.switchQueue.push({ serverId, channelId, channelType, clickedElement, updateHistory });
+            return;
         }
         
         if (this.isLoading) {
@@ -195,7 +189,6 @@ class ChannelSwitchManager {
                 console.warn('[ChannelSwitchManager] Switch timeout - force releasing locks');
                 this.isLoading = false;
                 window.globalSwitchLock = false;
-                this.lockStartTime = null;
                 this.hideChannelSwitchingState(clickedElement);
                 this.hideChannelSkeleton();
             }
@@ -214,7 +207,6 @@ class ChannelSwitchManager {
         }
 
         window.globalSwitchLock = true;
-        this.lockStartTime = Date.now();
         this.isLoading = true;
         this.showChannelSwitchingState(clickedElement);
 
@@ -244,7 +236,6 @@ class ChannelSwitchManager {
         } finally {
             clearTimeout(switchTimeout);
             window.globalSwitchLock = false;
-            this.lockStartTime = null;
             this.isLoading = false;
             this.hideChannelSwitchingState(clickedElement);
             
@@ -265,12 +256,9 @@ class ChannelSwitchManager {
     }
 
     async initializeVoiceSystemsForChannel(channelId) {
-        console.log('[ChannelSwitchManager] Initializing voice systems for channel:', channelId);
-        
         this.initializeVoiceSection(channelId);
         
         if (window.voiceManager) {
-            console.log('[ChannelSwitchManager] Setting up voice manager for channel:', channelId);
             window.voiceManager.setupVoice(channelId);
         }
         
@@ -305,15 +293,10 @@ class ChannelSwitchManager {
 
     leaveCurrentChannel() {
         if (this.currentChannelId && window.globalSocketManager) {
-            console.log('[ChannelSwitchManager] Leaving current channel:', this.currentChannelId);
             window.globalSocketManager.leaveChannel(this.currentChannelId);
         }
         
-        // DON'T cleanup voice manager when switching channels - keep voice alive!
-        // Voice should only disconnect when explicitly requested by user
         if (this.currentChannelType === 'voice' && window.voiceManager) {
-            console.log('[ChannelSwitchManager] Keeping voice connection alive during channel switch');
-            // Just update the voice state to reflect we're no longer on the voice channel page
             if (window.globalVoiceIndicator) {
                 setTimeout(() => {
                     window.globalVoiceIndicator.ensureIndicatorVisible();
@@ -838,27 +821,19 @@ class ChannelSwitchManager {
     loadVoiceScripts() {
         return new Promise(async (resolve, reject) => {
             try {
-                // Load VideoSDK if not already loaded
                 if (!window.VideoSDK) {
-                    console.log('[ChannelSwitchManager] Loading VideoSDK');
                     await this.loadScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
                 }
                 
-                // Load VideoSDK manager if not already loaded
                 if (!window.videoSDKManager) {
-                    console.log('[ChannelSwitchManager] Loading VideoSDK manager');
                     await this.loadScript('/public/js/components/videosdk/videosdk.js?v=' + Date.now());
                 }
                 
-                // Load voice manager if not already loaded
                 if (!window.VoiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
-                    console.log('[ChannelSwitchManager] Loading voice manager');
                     await this.loadScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
                 }
                 
-                // Load voice section if not already loaded
                 if (!window.VoiceSection && !document.querySelector('script[src*="voice-section.js"]')) {
-                    console.log('[ChannelSwitchManager] Loading voice section');
                     await this.loadScript('/public/js/components/voice/voice-section.js?v=' + Date.now());
                 }
                 
@@ -927,21 +902,17 @@ class ChannelSwitchManager {
     }
     
     handleVoiceJoin(channelId) {
-        console.log('[ChannelSwitchManager] Handling voice join for channel:', channelId);
-        
         const joinView = document.getElementById('joinView');
         const connectingView = document.getElementById('connectingView');
         
         if (joinView) joinView.classList.add('hidden');
         if (connectingView) connectingView.classList.remove('hidden');
         
-        // Initialize voice manager if available
         if (window.voiceManager && typeof window.voiceManager.joinVoice === 'function') {
             window.voiceManager.joinVoice();
         } else if (window.voiceSection && typeof window.voiceSection.autoJoin === 'function') {
             window.voiceSection.autoJoin();
         } else {
-            console.warn('[ChannelSwitchManager] No voice manager available for joining');
             setTimeout(() => {
                 if (joinView) joinView.classList.remove('hidden');
                 if (connectingView) connectingView.classList.add('hidden');
@@ -950,8 +921,6 @@ class ChannelSwitchManager {
     }
     
     handleVoiceLeave() {
-        console.log('[ChannelSwitchManager] Handling voice leave');
-        
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
             window.voiceManager.leaveVoice();
         }

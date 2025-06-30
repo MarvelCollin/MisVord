@@ -1,17 +1,7 @@
 import { NavigationManager } from './navigation-manager.js';
 
 export function loadHomePage(pageType = 'friends') {
-    if (window.globalSwitchLock) {
-        window.globalSwitchLock = false;
-    }
-    
-    if (window.navigationManager) {
-        return window.navigationManager.navigateToHome(pageType);
-    }
-    
-    console.error('[Home Loader] Navigation manager not available, falling back to direct navigation');
-    window.location.href = '/home';
-    return;
+    console.log('[Home AJAX] Starting direct AJAX home page load');
     
     const mainContent = document.querySelector('.flex-1') ||
         document.querySelector('[class*="server-content"]') ||
@@ -33,7 +23,6 @@ export function loadHomePage(pageType = 'friends') {
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
             console.log('Cleaning up voice manager');
             window.voiceManager.leaveVoice();
-            window.voiceManager = null;
         }
 
         let url = '/home/layout';
@@ -576,5 +565,4 @@ function performHomeLayoutUpdate(response, pageType, currentChannelId) {
 }
 
 window.loadHomePage = loadHomePage;
-window.loadServerPage = loadServerPage;
 window.debugHomeServerNavigation = debugHomeServerNavigation; 

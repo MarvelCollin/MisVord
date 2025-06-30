@@ -39,11 +39,6 @@ class VoiceSection {
             connectingView: document.getElementById('connectingView'),
             voiceControls: document.getElementById('voiceControls')
         };
-        
-        console.log("Voice elements found:", Object.entries(this.elements).reduce((acc, [key, val]) => {
-            acc[key] = !!val;
-            return acc;
-        }, {}));
     }
     
     init() {
@@ -58,7 +53,6 @@ class VoiceSection {
         
         this.loadDependencies()
             .then(() => {
-                console.log('Voice section dependencies loaded');
                 this.initialized = true;
             })
             .catch(error => {
@@ -74,11 +68,9 @@ class VoiceSection {
 
     setupEventListeners() {
         if (!this.elements.joinBtn) {
-            console.warn("Join button not found, can't set up event listeners");
             return;
         }
         
-        // Ensure VOICE_EVENTS are defined
         if (!window.VOICE_EVENTS) {
             window.VOICE_EVENTS = {
                 VOICE_CONNECT: 'voiceConnect',
@@ -168,11 +160,9 @@ class VoiceSection {
     
     async handleJoinClick() {
         if (this.isProcessing || this.elements.joinBtn?.getAttribute('data-processing') === 'true') {
-            console.log('Join already in progress, skipping');
             return;
         }
         
-        console.log('Starting join process');
         this.isProcessing = true;
         
         if (this.elements.joinBtn) {
@@ -202,7 +192,6 @@ class VoiceSection {
             await window.waitForVoiceManager();
             await this.connectToVoice();
         } catch (error) {
-            console.error('Error connecting to voice:', error);
             this.handleConnectionError();
         } finally {
             this.isProcessing = false;
@@ -226,14 +215,11 @@ class VoiceSection {
             
             await voiceManager.joinVoice();
         } catch (error) {
-            console.error('Connection error:', error);
             throw error;
         }
     }
     
     handleConnectionError() {
-        console.error('Connection error occurred');
-        
         this.isProcessing = false;
         this.autoJoinInProgress = false;
         
@@ -295,8 +281,6 @@ class VoiceSection {
     }
 
     resetState() {
-        console.log("Voice section reset triggered");
-        
         if (this.durationInterval) {
             clearInterval(this.durationInterval);
             this.durationInterval = null;
@@ -315,7 +299,6 @@ class VoiceSection {
             voiceControls: null
         };
         
-        console.log("Re-initializing voice section after reset");
         setTimeout(() => {
             this.findElements();
             this.init();
@@ -323,8 +306,6 @@ class VoiceSection {
     }
     
     updateChannelId(channelId) {
-        console.log("Voice section updating channel ID to:", channelId);
-        
         this.currentChannelId = channelId;
         
         if (this.elements.joinBtn) {
@@ -337,13 +318,10 @@ class VoiceSection {
         this.updateChannelNames(channelName);
         
         if (window.voiceManager && window.voiceManager.isConnected) {
-            console.log("Voice manager is connected, updating channel context");
             if (typeof window.voiceManager.updateChannelContext === 'function') {
                 window.voiceManager.updateChannelContext(channelId, channelName);
             }
         }
-        
-        console.log("Voice section channel ID updated successfully");
     }
 }
 

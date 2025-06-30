@@ -117,15 +117,12 @@ class ChatAPI {
             throw new Error('Target ID is required');
         }
 
-        // Normalize chat type
-        const apiChatType = chatType === 'direct' ? 'dm' : chatType;
+        const apiChatType = this.normalizeApiChatType(chatType);
         
-        // Set up query parameters
         const limit = options.limit || 50;
         const before = options.before || null;
         const offset = options.offset || 0;
         
-        // Use the primary endpoint format
         let url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
         if (before) {
             url += `&before=${before}`;
@@ -133,9 +130,20 @@ class ChatAPI {
         
         console.log('🔍 Getting messages from:', url);
         
-        // Fetch messages from primary endpoint
         const response = await this.makeRequest(url);
         return response;
+    }
+
+    normalizeApiChatType(chatType) {
+        if (chatType === 'direct' || chatType === 'dm') {
+            return 'dm';
+        }
+        
+        if (chatType === 'text' || chatType === 'voice' || chatType === 'channel') {
+            return 'channel';
+        }
+        
+        return chatType;
     }
 
     async uploadFiles(formData) {
