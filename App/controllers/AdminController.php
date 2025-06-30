@@ -71,10 +71,10 @@ class AdminController extends BaseController
         
         try {
             if (!empty($query)) {
-                $users = $this->userRepository->search($query, $page, $limit, $status);
+                $users = $this->userRepository->searchWithNitroStatus($query, $page, $limit, $status);
                 $total = $this->userRepository->countSearch($query, $status);
             } else {
-                $users = $this->userRepository->paginate($page, $limit, $status);
+                $users = $this->userRepository->paginateWithNitroStatus($page, $limit, $status);
                 $total = $this->userRepository->countRegularUsers($status);
             }
             
@@ -93,7 +93,9 @@ class AdminController extends BaseController
                     'banner_url' => $userData['banner_url'] ?? null,
                     'bio' => $userData['bio'] ?? '',
                     'created_at' => $userData['created_at'] ?? null,
-                    'updated_at' => $userData['updated_at'] ?? null
+                    'updated_at' => $userData['updated_at'] ?? null,
+                    'has_nitro' => isset($userData['has_nitro']) ? (bool)$userData['has_nitro'] : false,
+                    'nitro_code' => $userData['nitro_code'] ?? null
                 ];
             }
             
@@ -183,7 +185,7 @@ class AdminController extends BaseController
         }
         
         try {
-            $users = $this->userRepository->search($query, $page, $limit);
+            $users = $this->userRepository->searchWithNitroStatus($query, $page, $limit);
             
             $normalizedUsers = [];
             foreach ($users as $user) {
@@ -195,7 +197,9 @@ class AdminController extends BaseController
                     'discriminator' => $userData['discriminator'] ?? '0000',
                     'email' => $userData['email'] ?? '',
                     'display_name' => $userData['display_name'] ?? $userData['username'] ?? 'Unknown',
-                    'avatar_url' => $userData['avatar_url'] ?? null
+                    'avatar_url' => $userData['avatar_url'] ?? null,
+                    'has_nitro' => isset($userData['has_nitro']) ? (bool)$userData['has_nitro'] : false,
+                    'nitro_code' => $userData['nitro_code'] ?? null
                 ];
             }
             

@@ -376,29 +376,5 @@ window.toggleParticipantLoading = function(loading = true) {
     console.log('Participant loading toggle called but using simple DOM - no skeleton');
 };
 
-function initializeParticipantCrowns() {
-    const memberUsernames = document.querySelectorAll('.member-username[data-user-id]');
-    const elements = Array.from(memberUsernames).map(el => ({
-        element: el,
-        userId: el.dataset.userId
-    })).filter(({ userId }) => userId && userId !== 'null' && userId !== '0');
-    
-    if (elements.length > 0 && window.nitroCrownManager) {
-        console.log(`🎯 [PARTICIPANT] Initializing crowns for ${elements.length} members`);
-        window.nitroCrownManager.updateBulkUserElements(elements);
-    }
-}
 
-if (window.nitroCrownManager) {
-    initializeParticipantCrowns();
-} else {
-    const checkNitroCrownManager = () => {
-        if (window.nitroCrownManager) {
-            initializeParticipantCrowns();
-        } else {
-            setTimeout(checkNitroCrownManager, 100);
-        }
-    };
-    checkNitroCrownManager();
-}
 </script>

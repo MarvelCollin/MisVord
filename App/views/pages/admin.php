@@ -445,6 +445,10 @@ ob_start();
                                 </div>
                             </div>
                             <div class="text-xs text-gray-400 mt-1">Search by username or email</div>
+                            <div class="flex items-center mt-2 p-2 bg-blue-500/10 border border-blue-500/20 rounded-md">
+                                <i class="fas fa-info-circle text-blue-400 mr-2"></i>
+                                <span class="text-xs text-blue-300">Users with existing Nitro will appear disabled and cannot be selected</span>
+                            </div>
                         </div>
                         <button type="submit" class="bg-discord-blue hover:bg-discord-blue-dark text-white rounded-md px-4 py-2 w-full">
                             Generate Code

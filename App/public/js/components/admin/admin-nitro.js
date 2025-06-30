@@ -346,9 +346,20 @@ export class NitroManager {
     const fragment = document.createDocumentFragment();
     
     users.forEach((user, index) => {
+      const hasNitro = user.has_nitro || user.nitro_status === 'active' || user.nitro_active;
+      
+      let itemClasses = 'p-2 flex items-center transition-all duration-200 opacity-0';
+      
+      if (hasNitro) {
+        itemClasses += ' opacity-50 cursor-not-allowed';
+      } else {
+        itemClasses += ' hover:bg-discord-dark cursor-pointer hover:scale-[1.02] transform';
+      }
+      
       const resultItem = document.createElement('div');
-      resultItem.className = 'p-2 hover:bg-discord-dark cursor-pointer flex items-center transition-all duration-200 hover:scale-[1.02] transform opacity-0';
+      resultItem.className = itemClasses;
       resultItem.dataset.userId = user.id;
+      resultItem.dataset.hasNitro = hasNitro;
       
       const username = user.username || 'Unknown';
       const discriminator = user.discriminator || '0000';
@@ -360,17 +371,40 @@ export class NitroManager {
         email = jaroWinkler.highlightMatches(email, query);
       }
       
+      const nitroIndicator = hasNitro ? 
+        '<div class="ml-2 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30"><i class="fas fa-crown mr-1"></i>Has Nitro</div>' : 
+        '';
+      
+      const avatarOpacity = hasNitro ? 'opacity-60' : '';
+      const textOpacity = hasNitro ? 'opacity-60' : '';
+      
       resultItem.innerHTML = `
-        <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2 flex-shrink-0">
+        <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2 flex-shrink-0 ${avatarOpacity}">
           <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="" class="w-full h-full object-cover" loading="lazy" onerror="this.src='/public/assets/common/default-profile-picture.png'">
         </div>
-        <div class="flex-1 min-w-0">
+        <div class="flex-1 min-w-0 ${textOpacity}">
           <div class="text-sm font-medium text-white truncate">${displayName}</div>
           <div class="text-xs text-discord-lighter truncate">${email}</div>
         </div>
+        ${nitroIndicator}
+        ${hasNitro ? '<div class="ml-2 text-discord-lighter"><i class="fas fa-ban"></i></div>' : ''}
       `;
       
-      resultItem.addEventListener('click', () => this.selectUserWithAnimation(user, resultItem));
+      if (!hasNitro) {
+        resultItem.addEventListener('click', () => this.selectUserWithAnimation(user, resultItem));
+      } else {
+        resultItem.addEventListener('click', (e) => {
+          e.preventDefault();
+          resultItem.style.animation = 'shake 0.3s ease-in-out';
+          showToast("This user already has an active Nitro subscription", "warning");
+          setTimeout(() => {
+            resultItem.style.animation = '';
+          }, 300);
+        });
+        
+        resultItem.title = "This user already has Nitro and cannot be assigned another code";
+      }
+      
       fragment.appendChild(resultItem);
     });
     
@@ -651,6 +685,22 @@ export class NitroManager {
 
   showUserSearchSkeleton(userSearchResults) {
     const skeletonHtml = `
+      <style>
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+          20%, 40%, 60%, 80% { transform: translateX(2px); }
+        }
+        .user-search-skeleton .skeleton-shimmer {
+          background: linear-gradient(90deg, #2f3136 25%, #36393f 50%, #2f3136 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+      </style>
       <div class="user-search-skeleton">
         ${Array.from({length: 5}, (_, i) => `
           <div class="p-2 flex items-center animate-pulse" style="animation-delay: ${i * 100}ms;">

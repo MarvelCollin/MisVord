@@ -182,23 +182,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     checkAndUpdate();
     
-    function initializeCurrentUserCrown() {
-        const currentUserElement = document.getElementById('current-user-name');
-        if (currentUserElement && window.nitroCrownManager) {
-            const userId = currentUserElement.dataset.userId;
-            if (userId && userId !== '') {
-                window.nitroCrownManager.updateUserElement(currentUserElement, userId);
-            }
-        }
-    }
-    
-    if (window.nitroCrownManager) {
-        initializeCurrentUserCrown();
-    } else {
-        const script = document.createElement('script');
-        script.src = '/public/js/utils/nitro-crown-manager.js';
-        script.onload = initializeCurrentUserCrown;
-        document.head.appendChild(script);
-    }
+
 });
 </script> 

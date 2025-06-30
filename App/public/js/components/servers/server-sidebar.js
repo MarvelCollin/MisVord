@@ -50,6 +50,68 @@ function hideServerLoadingIndicator(serverId) {
     serverButton.style.opacity = '1';
 }
 
+function showHomeLoadingIndicator() {
+    const homeIcon = document.querySelector('.server-icon:first-child');
+    if (!homeIcon) return;
+    
+    const serverButton = homeIcon.querySelector('.server-button');
+    if (!serverButton) return;
+    
+    let loadingOverlay = serverButton.querySelector('.server-loading-overlay');
+    if (!loadingOverlay) {
+        loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'server-loading-overlay';
+        loadingOverlay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        serverButton.appendChild(loadingOverlay);
+    }
+    
+    loadingOverlay.style.display = 'flex';
+    serverButton.style.opacity = '0.7';
+}
+
+function hideHomeLoadingIndicator() {
+    const homeIcon = document.querySelector('.server-icon:first-child');
+    if (!homeIcon) return;
+    
+    const serverButton = homeIcon.querySelector('.server-button');
+    if (!serverButton) return;
+    
+    const loadingOverlay = serverButton.querySelector('.server-loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+    
+    serverButton.style.opacity = '1';
+}
+
+function showExploreLoadingIndicator() {
+    const exploreButton = document.querySelector('.discord-explore-server-button');
+    if (!exploreButton) return;
+    
+    let loadingOverlay = exploreButton.querySelector('.server-loading-overlay');
+    if (!loadingOverlay) {
+        loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'server-loading-overlay';
+        loadingOverlay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        exploreButton.appendChild(loadingOverlay);
+    }
+    
+    loadingOverlay.style.display = 'flex';
+    exploreButton.style.opacity = '0.7';
+}
+
+function hideExploreLoadingIndicator() {
+    const exploreButton = document.querySelector('.discord-explore-server-button');
+    if (!exploreButton) return;
+    
+    const loadingOverlay = exploreButton.querySelector('.server-loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+    
+    exploreButton.style.opacity = '1';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[Server Sidebar] DOMContentLoaded: Initializing server sidebar');
     initServerSidebar();
@@ -844,6 +906,7 @@ export async function handleHomeClick(event) {
     }
     
     lastServerSwitchTime = currentTime;
+    showHomeLoadingIndicator();
 
     try {
         if (window.voiceManager && window.voiceManager.isConnected) {
@@ -868,6 +931,8 @@ export async function handleHomeClick(event) {
     } catch (error) {
         console.error('[Home Navigation] ERROR in handleHomeClick:', error);
         throw error;
+    } finally {
+        hideHomeLoadingIndicator();
     }
 }
 
@@ -979,6 +1044,7 @@ export async function handleExploreClick(event) {
     }
     
     lastServerSwitchTime = currentTime;
+    showExploreLoadingIndicator();
     
     try {
         const currentChannelId = new URLSearchParams(window.location.search).get('channel');
@@ -1075,6 +1141,8 @@ export async function handleExploreClick(event) {
     } catch (error) {
         console.error('[Explore Navigation] ERROR in handleExploreClick:', error);
         throw error;
+    } finally {
+        hideExploreLoadingIndicator();
     }
 }
 

@@ -207,31 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setInterval(updateAllUserStatuses, 60000);
     
-    function initializeDMCrowns() {
-        const dmUsernames = document.querySelectorAll('.dm-username[data-user-id]');
-        const elements = Array.from(dmUsernames).map(el => ({
-            element: el,
-            userId: el.dataset.userId
-        })).filter(({ userId }) => userId && userId !== 'null' && userId !== '');
-        
-        if (elements.length > 0 && window.nitroCrownManager) {
-            console.log(`🎯 [DM-SIDEBAR] Initializing crowns for ${elements.length} DM users`);
-            window.nitroCrownManager.updateBulkUserElements(elements);
-        }
-    }
-    
-    if (window.nitroCrownManager) {
-        initializeDMCrowns();
-    } else {
-        const checkNitroCrownManager = () => {
-            if (window.nitroCrownManager) {
-                initializeDMCrowns();
-            } else {
-                setTimeout(checkNitroCrownManager, 100);
-            }
-        };
-        checkNitroCrownManager();
-    }
+
 });
 </script>
 

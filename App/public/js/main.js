@@ -214,11 +214,17 @@ function initNitroCrowns() {
     
     logger.info('nitro', 'Initializing Nitro crown system');
     
-    setTimeout(() => {
-        window.nitroCrownManager.scanAndUpdateExistingElements();
-        window.nitroCrownManager.observeUserElements();
-        logger.info('nitro', 'Nitro crown system initialized');
-    }, 100);
+    const initializeCrowns = () => {
+        if (document.readyState === 'complete') {
+            window.nitroCrownManager.scanAndUpdateExistingElements();
+            window.nitroCrownManager.observeUserElements();
+            logger.info('nitro', 'Nitro crown system initialized');
+        } else {
+            setTimeout(initializeCrowns, 50);
+        }
+    };
+    
+    setTimeout(initializeCrowns, 100);
 }
 
 function getUserDataFromPage() {

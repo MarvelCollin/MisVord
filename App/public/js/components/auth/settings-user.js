@@ -191,68 +191,8 @@ function initUserAvatarUpload() {
         removeIconBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             
-            if (!confirm('Are you sure you want to remove your profile picture?')) {
-                return;
-            }
-            
-            fetch('/user/avatar/remove', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            })
-            .then(async response => {
-                if (!response.ok) {
-                    let errorMessage = `HTTP error! status: ${response.status}`;
-                    try {
-                        const errorData = await response.json();
-                        errorMessage = errorData.message || errorData.error?.message || errorMessage;
-                    } catch (parseError) {
-                        console.warn('Could not parse error response as JSON:', parseError);
-                    }
-                    throw new Error(errorMessage);
-                }
-                
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Server returned non-JSON response');
-                }
-                
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    if (iconPreview) {
-                        iconPreview.src = '/public/assets/common/default-profile-picture.png';
-                    }
-                    
-                    if (iconContainer) {
-                        delete iconContainer.dataset.croppedImage;
-                    }
-                    
-                    removeIconBtn.classList.add('hidden');
-                    
-                    if (iconInput) {
-                        iconInput.value = '';
-                    }
-                    
-                    updateAllAvatars('/public/assets/common/default-profile-picture.png');
-                    
-                    showToast('Profile picture removed successfully', 'success');
-                    
-                    // Reload page after successful removal to ensure all UI is updated
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                } else {
-                    throw new Error(data.message || data.error?.message || 'Failed to remove profile picture');
-                }
-            })
-            .catch(error => {
-                console.error('Error removing profile picture:', error);
-                showToast(error.message || 'Error removing profile picture', 'error');
+            showImageRemovalConfirmation('avatar', () => {
+                removeUserImage('avatar');
             });
         });
     }
@@ -352,71 +292,8 @@ function initUserBannerUpload() {
         removeBannerBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             
-            if (!confirm('Are you sure you want to remove your profile banner?')) {
-                return;
-            }
-            
-            fetch('/user/banner/remove', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            })
-            .then(async response => {
-                if (!response.ok) {
-                    let errorMessage = `HTTP error! status: ${response.status}`;
-                    try {
-                        const errorData = await response.json();
-                        errorMessage = errorData.message || errorData.error?.message || errorMessage;
-                    } catch (parseError) {
-                        console.warn('Could not parse error response as JSON:', parseError);
-                    }
-                    throw new Error(errorMessage);
-                }
-                
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Server returned non-JSON response');
-                }
-                
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    if (bannerPreview) {
-                        bannerPreview.classList.add('hidden');
-                    }
-                    
-                    const placeholder = document.getElementById('user-banner-placeholder');
-                    if (placeholder) placeholder.classList.remove('hidden');
-                    
-                    if (bannerContainer) {
-                        delete bannerContainer.dataset.croppedImage;
-                    }
-                    
-                    removeBannerBtn.classList.add('hidden');
-                    
-                    if (bannerInput) {
-                        bannerInput.value = '';
-                    }
-                    
-                    updateAllBanners(null);
-                    
-                    showToast('Profile banner removed successfully', 'success');
-                    
-                    // Reload page after successful removal to ensure all UI is updated
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                } else {
-                    throw new Error(data.message || data.error?.message || 'Failed to remove profile banner');
-                }
-            })
-            .catch(error => {
-                console.error('Error removing profile banner:', error);
-                showToast(error.message || 'Error removing profile banner', 'error');
+            showImageRemovalConfirmation('banner', () => {
+                removeUserImage('banner');
             });
         });
     }
@@ -2005,5 +1882,165 @@ function updateDisplayName(displayName) {
 /**
  * Update profile
  */
+
+function showImageRemovalConfirmation(type, onConfirm) {
+    const typeText = type === 'avatar' ? 'profile picture' : 'profile banner';
+    const modalHtml = `
+        <div id="image-removal-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-discord-darker rounded-lg p-6 w-full max-w-md transform transition-all">
+                <div class="text-lg font-medium text-white mb-4">Remove ${typeText}</div>
+                <div class="text-discord-lighter mb-6">Are you sure you want to remove your ${typeText}?</div>
+                <div class="flex justify-end space-x-3">
+                    <button id="cancel-removal-btn" class="px-4 py-2 rounded-md bg-[#4e5058] hover:bg-[#6d6f78] text-white font-medium">Cancel</button>
+                    <button id="confirm-removal-btn" class="px-4 py-2 rounded-md bg-[#ed4245] hover:bg-red-600 text-white font-medium">Remove</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const existingModal = document.getElementById('image-removal-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const modal = document.getElementById('image-removal-modal');
+    const cancelBtn = document.getElementById('cancel-removal-btn');
+    const confirmBtn = document.getElementById('confirm-removal-btn');
+
+    function closeModal() {
+        if (modal && modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }
+
+    function handleConfirm() {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        onConfirm();
+        closeModal();
+    }
+
+    const handleModalClick = (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    };
+
+    const handleKeydown = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    };
+
+    modal.addEventListener('click', handleModalClick);
+    cancelBtn.addEventListener('click', closeModal);
+    confirmBtn.addEventListener('click', handleConfirm);
+    document.addEventListener('keydown', handleKeydown);
+
+    requestAnimationFrame(() => {
+        modal.classList.add('opacity-100');
+    });
+}
+
+function removeUserImage(type) {
+    const endpoint = type === 'avatar' ? '/user/avatar/remove' : '/user/banner/remove';
+    const successMessage = type === 'avatar' ? 'Profile picture removed successfully' : 'Profile banner removed successfully';
+    
+    fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(async response => {
+        if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error?.message || errorMessage;
+            } catch (parseError) {
+                console.warn('Could not parse error response as JSON:', parseError);
+            }
+            throw new Error(errorMessage);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            if (type === 'avatar') {
+                const iconPreview = document.getElementById('user-avatar-preview');
+                const iconContainer = document.getElementById('user-avatar-container');
+                const removeIconBtn = document.getElementById('remove-avatar-btn');
+                const iconInput = document.getElementById('avatar-input');
+                
+                if (iconPreview) {
+                    iconPreview.src = '/public/assets/common/default-profile-picture.png';
+                }
+                
+                if (iconContainer) {
+                    delete iconContainer.dataset.croppedImage;
+                }
+                
+                if (removeIconBtn) {
+                    removeIconBtn.classList.add('hidden');
+                }
+                
+                if (iconInput) {
+                    iconInput.value = '';
+                }
+                
+                updateAllAvatars('/public/assets/common/default-profile-picture.png');
+            } else {
+                const bannerPreview = document.getElementById('user-banner-preview');
+                const bannerContainer = document.getElementById('user-banner-container');
+                const removeBannerBtn = document.getElementById('remove-banner-btn');
+                const bannerInput = document.getElementById('user-banner-input');
+                
+                if (bannerPreview) {
+                    bannerPreview.classList.add('hidden');
+                }
+                
+                const placeholder = document.getElementById('user-banner-placeholder');
+                if (placeholder) placeholder.classList.remove('hidden');
+                
+                if (bannerContainer) {
+                    delete bannerContainer.dataset.croppedImage;
+                }
+                
+                if (removeBannerBtn) {
+                    removeBannerBtn.classList.add('hidden');
+                }
+                
+                if (bannerInput) {
+                    bannerInput.value = '';
+                }
+                
+                updateAllBanners(null);
+            }
+            
+            showToast(successMessage, 'success');
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            throw new Error(data.message || data.error?.message || `Failed to remove ${type}`);
+        }
+    })
+    .catch(error => {
+        console.error(`Error removing ${type}:`, error);
+        showToast(error.message || `Error removing ${type}`, 'error');
+    });
+}
 
 

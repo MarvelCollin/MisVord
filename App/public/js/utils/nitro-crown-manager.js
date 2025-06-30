@@ -37,6 +37,11 @@ class NitroCrownManager {
         const existingCrown = element.querySelector('.nitro-crown-wrapper');
         if (existingCrown) return;
         
+        const parent = element.parentElement;
+        if (parent && parent.querySelector('.nitro-crown-wrapper')) return;
+        
+        if (element.dataset.nitroCrownProcessed === 'true') return;
+        
         const crown = this.createCrownElement();
         
         if (position === 'after') {
@@ -53,6 +58,8 @@ class NitroCrownManager {
                 }
             }
         }
+        
+        element.dataset.nitroCrownProcessed = 'true';
     }
 
     removeCrownFromElement(element) {
@@ -62,6 +69,8 @@ class NitroCrownManager {
         if (crown) {
             crown.remove();
         }
+        
+        delete element.dataset.nitroCrownProcessed;
     }
 
     findTextNode(element) {
@@ -311,10 +320,6 @@ class NitroCrownManager {
 
 if (typeof window !== 'undefined') {
     window.NitroCrownManager = NitroCrownManager;
-    
-    if (!window.nitroCrownManager) {
-        window.nitroCrownManager = new NitroCrownManager();
-    }
 }
 
 export default NitroCrownManager; 
