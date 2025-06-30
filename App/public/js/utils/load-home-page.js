@@ -2,27 +2,31 @@ import { NavigationManager } from './navigation-manager.js';
 
 export function loadHomePage(pageType = 'friends') {
     console.log('[Home AJAX] Starting direct AJAX home page load');
+    console.log('[Home AJAX] Page type:', pageType);
     
-    const mainContent = document.querySelector('.flex-1') ||
-        document.querySelector('[class*="server-content"]') ||
-        document.querySelector('main');
+    const mainContent = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
 
-    console.log('[Home Loader] Found main content:', !!mainContent);
     if (mainContent) {
-        console.log('[Home Loader] Starting skeleton loading for home content');
         handleHomeSkeletonLoading(true);
-        
         window.homeSkeletonStartTime = Date.now();
 
         const currentChannelId = getCurrentChannelId();
         if (currentChannelId && window.globalSocketManager) {
-            console.log('Cleaning up current channel socket: ' + currentChannelId);
+            console.log('Cleaning up current channel socket:', currentChannelId);
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
+        const targetPath = '/home';
+        const shouldPreserveVoice = shouldPreserveVoiceConnection(targetPath);
+        
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
-            console.log('Cleaning up voice manager');
-            window.voiceManager.leaveVoice();
+            if (shouldPreserveVoice) {
+                console.log('[Home Loader] Preserving voice connection - navigating between allowed pages');
+                window.showToast?.('Voice connection preserved in standby mode', 'info');
+            } else {
+                console.log('[Home Loader] Cleaning up voice manager');
+                window.voiceManager.leaveVoice();
+            }
         }
 
         let url = '/home/layout';
@@ -101,6 +105,22 @@ export function loadHomePage(pageType = 'friends') {
 function getCurrentChannelId() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('channel');
+}
+
+function isAllowedVoicePage(path) {
+    const isHomePage = path === '/home' || path === '/home/' || path === '/';
+    const isServerPage = path.includes('/server/');
+    const isExplorePage = path.includes('/explore-server') || path === '/explore-servers';
+    
+    return isHomePage || isServerPage || isExplorePage;
+}
+
+function shouldPreserveVoiceConnection(targetPath) {
+    const currentPath = window.location.pathname;
+    const currentAllowed = isAllowedVoicePage(currentPath);
+    const targetAllowed = isAllowedVoicePage(targetPath);
+    
+    return currentAllowed && targetAllowed;
 }
 
 function handleHomeSkeletonLoading(show) {

@@ -116,8 +116,17 @@ export function loadExplorePage() {
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
+        const targetPath = '/explore-servers';
+        const shouldPreserveVoice = shouldPreserveVoiceConnection(targetPath);
+        
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
-            window.voiceManager.leaveVoice();
+            if (shouldPreserveVoice) {
+                console.log('[Explore Loader] Preserving voice connection - navigating between allowed pages');
+                window.showToast?.('Voice connection preserved in standby mode', 'info');
+            } else {
+                console.log('[Explore Loader] Cleaning up voice manager');
+                window.voiceManager.leaveVoice();
+            }
         }
 
         $.ajax({
@@ -286,6 +295,22 @@ function showPageLoading(container) {
 function getCurrentChannelId() {
     const activeChannelInput = document.getElementById('active-channel-id');
     return activeChannelInput ? activeChannelInput.value : null;
+}
+
+function isAllowedVoicePage(path) {
+    const isHomePage = path === '/home' || path === '/home/' || path === '/';
+    const isServerPage = path.includes('/server/');
+    const isExplorePage = path.includes('/explore-server') || path === '/explore-servers';
+    
+    return isHomePage || isServerPage || isExplorePage;
+}
+
+function shouldPreserveVoiceConnection(targetPath) {
+    const currentPath = window.location.pathname;
+    const currentAllowed = isAllowedVoicePage(currentPath);
+    const targetAllowed = isAllowedVoicePage(targetPath);
+    
+    return currentAllowed && targetAllowed;
 }
 
 async function getDefaultChannelForServer(serverId) {

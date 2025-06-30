@@ -120,13 +120,14 @@ class VoiceManager {
         
         this.currentChannelId = channelId;
         
-        const channelNameElements = document.querySelectorAll('.channel-name, .voice-ind-title');
+        const channelNameElements = document.querySelectorAll('.voice-ind-title, .voice-channel-title, .voice-section .channel-name');
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-        const channelName = channelElement?.textContent?.trim() || 'Voice Channel';
+        const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
+                           channelElement?.textContent?.trim() || 'Voice Channel';
         this.currentChannelName = channelName;
         
         channelNameElements.forEach(el => {
-            if (el.classList.contains('channel-name')) {
+            if (el.classList.contains('channel-name') || el.classList.contains('voice-channel-title')) {
                 el.textContent = channelName.length > 10 
                     ? channelName.substring(0, 8) + '...' 
                     : channelName;

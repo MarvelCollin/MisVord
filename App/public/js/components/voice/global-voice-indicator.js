@@ -172,6 +172,16 @@ class GlobalVoiceIndicator {
         return hasVoiceElements || isVoiceURL;
     }
 
+    isOnAllowedPage() {
+        const currentPath = window.location.pathname;
+        
+        const isHomePage = currentPath === '/home' || currentPath === '/home/' || currentPath === '/';
+        const isServerPage = currentPath.includes('/server/');
+        const isExplorePage = currentPath.includes('/explore-server') || currentPath === '/explore-servers';
+        
+        return isHomePage || isServerPage || isExplorePage;
+    }
+
     createIndicator() {
         this.cleanup();
         
@@ -204,14 +214,20 @@ class GlobalVoiceIndicator {
     }
 
     getIndicatorHTML() {
+        const isOnAllowed = this.isOnAllowedPage();
+        const disconnectBtnClass = isOnAllowed ? 'text-[#faa61a] hover:text-[#fb923c]' : 'text-[#ed4245] hover:text-[#fc5054]';
+        const disconnectIcon = isOnAllowed ? 'fa-pause' : 'fa-phone-slash';
+        const statusText = isOnAllowed ? 'Voice Standby' : 'Voice Connected';
+        const statusColor = isOnAllowed ? 'bg-[#faa61a]' : 'bg-[#3ba55c]';
+        
         return `
             <div class="voice-indicator-header flex items-center justify-between p-3 bg-gradient-to-r from-[#2b2d31] to-[#36393f] rounded-t-lg cursor-grab active:cursor-grabbing">
                 <div class="flex items-center gap-3">
-                    <div class="w-3 h-3 bg-[#3ba55c] rounded-full animate-pulse shadow-lg"></div>
-                    <span class="text-sm font-semibold">Voice Connected</span>
+                    <div class="w-3 h-3 ${statusColor} rounded-full animate-pulse shadow-lg"></div>
+                    <span class="text-sm font-semibold">${statusText}</span>
                 </div>
-                <button class="disconnect-btn text-[#ed4245] hover:text-[#fc5054] transition-all duration-200 p-2 rounded-md hover:bg-[#ed4245]/10">
-                    <i class="fas fa-phone-slash text-sm"></i>
+                <button class="disconnect-btn ${disconnectBtnClass} transition-all duration-200 p-2 rounded-md hover:bg-[#ed4245]/10" title="${isOnAllowed ? 'Voice is protected on this page' : 'Disconnect Voice'}">
+                    <i class="fas ${disconnectIcon} text-sm"></i>
                 </button>
             </div>
             
@@ -350,15 +366,13 @@ class GlobalVoiceIndicator {
         const disconnectBtn = this.indicator.querySelector('.disconnect-btn');
         if (disconnectBtn) {
             this.handleDisconnectClick = () => {
-                if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
-                    window.voiceManager.leaveVoice();
-                } else if (window.videoSDKManager && window.videoSDKManager.isConnected) {
-                    window.videoSDKManager.leaveMeeting();
-                } else if (window.voiceStateManager) {
-                    window.voiceStateManager.disconnectVoice();
-                }
+                const isOnAllowed = this.isOnAllowedPage();
                 
-                this.handleDisconnect();
+                if (isOnAllowed) {
+                    this.showProtectedDisconnectModal();
+                } else {
+                    this.performDisconnect();
+                }
             };
             disconnectBtn.addEventListener('click', this.handleDisconnectClick);
         }
@@ -368,6 +382,7 @@ class GlobalVoiceIndicator {
         if (!this.indicator) return;
 
         this.updateVisibility();
+        this.updateIndicatorAppearance();
 
         const state = this.getVoiceState();
         if (!state) return;
@@ -398,6 +413,42 @@ class GlobalVoiceIndicator {
                 deafenBtn.classList.remove('bg-[#ed4245]/20', 'border-[#ed4245]/40');
                 deafenBtn.classList.add('bg-[#2f3136]', 'border-[#40444b]/30');
             }
+        }
+    }
+
+    updateIndicatorAppearance() {
+        if (!this.indicator) return;
+
+        const isOnAllowed = this.isOnAllowedPage();
+        const statusIndicator = this.indicator.querySelector('.voice-indicator-header .w-3');
+        const statusText = this.indicator.querySelector('.voice-indicator-header span');
+        const disconnectBtn = this.indicator.querySelector('.disconnect-btn');
+        const disconnectIcon = disconnectBtn?.querySelector('i');
+
+        if (statusIndicator) {
+            if (isOnAllowed) {
+                statusIndicator.className = 'w-3 h-3 bg-[#faa61a] rounded-full animate-pulse shadow-lg';
+            } else {
+                statusIndicator.className = 'w-3 h-3 bg-[#3ba55c] rounded-full animate-pulse shadow-lg';
+            }
+        }
+
+        if (statusText) {
+            statusText.textContent = isOnAllowed ? 'Voice Standby' : 'Voice Connected';
+        }
+
+        if (disconnectBtn) {
+            if (isOnAllowed) {
+                disconnectBtn.className = 'disconnect-btn text-[#faa61a] hover:text-[#fb923c] transition-all duration-200 p-2 rounded-md hover:bg-[#ed4245]/10';
+                disconnectBtn.title = 'Voice is protected on this page';
+            } else {
+                disconnectBtn.className = 'disconnect-btn text-[#ed4245] hover:text-[#fc5054] transition-all duration-200 p-2 rounded-md hover:bg-[#ed4245]/10';
+                disconnectBtn.title = 'Disconnect Voice';
+            }
+        }
+
+        if (disconnectIcon) {
+            disconnectIcon.className = isOnAllowed ? 'fas fa-pause text-sm' : 'fas fa-phone-slash text-sm';
         }
     }
 
@@ -612,13 +663,93 @@ class GlobalVoiceIndicator {
         const voiceState = this.getVoiceState();
         const isConnected = voiceState?.isConnected || this.isConnected;
         const isOnVoicePage = this.isOnVoiceChannelPage();
+        const isOnAllowedPage = this.isOnAllowedPage();
         
-        if (isConnected && !isOnVoicePage) {
+        if (isConnected && !isOnVoicePage && isOnAllowedPage) {
             this.indicator.style.display = 'flex';
             this.showIndicator();
         } else {
             this.indicator.style.display = 'none';
         }
+    }
+
+    showProtectedDisconnectModal() {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] backdrop-blur-sm';
+        modal.innerHTML = `
+            <div class="bg-gradient-to-b from-[#2f3136] to-[#36393f] rounded-xl p-6 m-4 max-w-md w-full shadow-2xl border border-[#40444b]">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-shield-alt text-[#faa61a]"></i>
+                        Voice Protected
+                    </h3>
+                    <button class="close-modal text-[#b9bbbe] hover:text-white p-1 rounded transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+                <div class="space-y-4 text-sm text-[#b9bbbe]">
+                    <p>Voice is currently in standby mode and protected on this page.</p>
+                    <p>You can navigate between Home, Server, and Explore pages while staying connected.</p>
+                    <div class="flex items-center gap-2 text-[#faa61a] bg-[#faa61a]/10 p-3 rounded-lg border border-[#faa61a]/20">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="text-xs">Your voice will only disconnect when you leave these pages</span>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button class="force-disconnect-btn flex-1 bg-[#ed4245] hover:bg-[#da373c] text-white py-2 px-4 rounded-lg transition-colors font-medium">
+                        Force Disconnect
+                    </button>
+                    <button class="cancel-btn flex-1 bg-[#4f545c] hover:bg-[#5865f2] text-white py-2 px-4 rounded-lg transition-colors font-medium">
+                        Keep Connected
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const forceDisconnectBtn = modal.querySelector('.force-disconnect-btn');
+        const cancelBtn = modal.querySelector('.cancel-btn');
+        const closeBtn = modal.querySelector('.close-modal');
+
+        if (forceDisconnectBtn) {
+            forceDisconnectBtn.addEventListener('click', () => {
+                modal.remove();
+                this.performDisconnect();
+            });
+        }
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                modal.remove();
+                window.showToast?.('Voice connection preserved', 'success');
+            });
+        }
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => modal.remove());
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+
+        setTimeout(() => {
+            if (modal.parentNode) modal.remove();
+        }, 15000);
+    }
+
+    performDisconnect() {
+        if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
+            window.voiceManager.leaveVoice();
+        } else if (window.videoSDKManager && window.videoSDKManager.isConnected) {
+            window.videoSDKManager.leaveMeeting();
+        } else if (window.voiceStateManager) {
+            window.voiceStateManager.disconnectVoice();
+        }
+        
+        this.handleDisconnect();
+        window.showToast?.('Voice disconnected', 'info');
     }
 }
 

@@ -16,29 +16,56 @@ async function getDefaultChannelForServer(serverId) {
     }
 }
 
-export async function loadServerPage(serverId, channelId = null) {
-    console.log('[Server AJAX] Starting direct AJAX server page load');
+function isAllowedVoicePage(path) {
+    const isHomePage = path === '/home' || path === '/home/' || path === '/';
+    const isServerPage = path.includes('/server/');
+    const isExplorePage = path.includes('/explore-server') || path === '/explore-servers';
     
-    const mainContent = document.querySelector('.flex-1') ||
-        document.querySelector('[class*="server-content"]') ||
-        document.querySelector('main');
+    return isHomePage || isServerPage || isExplorePage;
+}
 
-    console.log('[Server Loader] Found main content:', !!mainContent);
+function shouldPreserveVoiceConnection(targetPath) {
+    const currentPath = window.location.pathname;
+    const currentAllowed = isAllowedVoicePage(currentPath);
+    const targetAllowed = isAllowedVoicePage(targetPath);
+    
+    return currentAllowed && targetAllowed;
+}
+
+export async function loadServerPage(serverId, channelId = null) {
+    console.log('[Server AJAX] Loading server page with parameters:', { serverId, channelId });
+    
+    const mainContent = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+
     if (mainContent) {
-        console.log('[Server Loader] Starting skeleton loading for server content');
-        handleServerSkeletonLoading(true);
-        
-        window.serverSkeletonStartTime = Date.now();
+        if (typeof window.handleSkeletonLoading === 'function') {
+            console.log('[Server AJAX] Using global skeleton loading');
+            window.handleSkeletonLoading(true);
+        } else {
+            console.log('[Server AJAX] Using server-specific skeleton loading');
+            handleServerSkeletonLoading(true);
+        }
 
         const currentChannelId = getCurrentChannelId();
+        console.log('[Server AJAX] Current channel ID:', currentChannelId);
+        console.log('[Server AJAX] Target channel ID:', channelId);
+
         if (currentChannelId && window.globalSocketManager) {
             console.log('[Server Loader] Cleaning up current channel socket: ' + currentChannelId);
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
+        const targetPath = `/server/${serverId}`;
+        const shouldPreserveVoice = shouldPreserveVoiceConnection(targetPath);
+        
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
-            console.log('[Server Loader] Cleaning up voice manager');
-            window.voiceManager.leaveVoice();
+            if (shouldPreserveVoice) {
+                console.log('[Server Loader] Preserving voice connection - navigating between allowed pages');
+                window.showToast?.('Voice connection preserved in standby mode', 'info');
+            } else {
+                console.log('[Server Loader] Cleaning up voice manager');
+                window.voiceManager.leaveVoice();
+            }
         }
 
         if (!channelId) {
@@ -633,8 +660,6 @@ function initServerDropdownManual() {
         }
     }, 150);
 }
-
-
 
 function cleanupForServerSwitch() {
     console.log('[Server AJAX] Cleaning up for server switch');

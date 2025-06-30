@@ -534,6 +534,16 @@ function setup(io) {
             console.log(`🎯 [TIC-TAC-TOE] Leave game from ${client.id}:`, data);
             ActivityHandler.handleTicTacToeLeave(io, client, data);
         });
+
+        client.on('tic-tac-toe-play-again-request', (data) => {
+            console.log(`🎯 [TIC-TAC-TOE] Play again request from ${client.id}:`, data);
+            ActivityHandler.handleTicTacToePlayAgainRequest(io, client, data);
+        });
+
+        client.on('tic-tac-toe-play-again-response', (data) => {
+            console.log(`🎯 [TIC-TAC-TOE] Play again response from ${client.id}:`, data);
+            ActivityHandler.handleTicTacToePlayAgainResponse(io, client, data);
+        });
         
         client.on('disconnect', () => {
             console.log(`❌ [DISCONNECT] Client disconnected: ${client.id}`);

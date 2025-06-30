@@ -121,7 +121,7 @@
         left: -100%;
     }
     50% {
-        left: 100%;
+    left: 100%;
     }
 }
 
@@ -699,6 +699,29 @@
             0 0 30px rgba(88, 101, 242, 0.8),
             0 0 60px rgba(88, 101, 242, 0.5),
             inset 0 0 30px rgba(88, 101, 242, 0.2);
+    }
+}
+
+@keyframes confettiDrop {
+    0% {
+        transform: translateY(-20px) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    25% {
+        transform: translateY(25vh) rotate(90deg) scale(1.2);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(50vh) rotate(180deg) scale(0.8);
+        opacity: 1;
+    }
+    75% {
+        transform: translateY(75vh) rotate(270deg) scale(1.1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translateY(110vh) rotate(360deg) scale(0.5);
+        opacity: 0;
     }
 }
 

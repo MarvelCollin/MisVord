@@ -551,7 +551,7 @@ class VideoSDKManager {
             await this.waitForMeetingJoined();
             
             const channelId = document.querySelector('meta[name="channel-id"]')?.content;
-            const channelName = document.querySelector('.channel-name')?.textContent || 'Voice Channel';
+            const channelName = document.querySelector('.voice-section .channel-name, .voice-channel-title, #channel-name')?.textContent || 'Voice Channel';
             
             window.dispatchEvent(new CustomEvent('voiceConnect', {
                 detail: { 
