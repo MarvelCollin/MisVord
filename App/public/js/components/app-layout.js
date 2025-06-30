@@ -581,48 +581,52 @@ function generateSkeletonPendingItems(count) {
     return html;
 }
 
-
-
-async function acceptFriendRequest(userId) {
-    if (!window.FriendsManager) {
-        console.error('FriendsManager not loaded');
-        return;
-    }
-    
-    const friendsManager = window.FriendsManager.getInstance();
-    
+async function acceptFriendRequest(friendshipId) {
     try {
-        await friendsManager.acceptFriendRequest(userId);
-        showToast('Friend request accepted!', 'success');
+        const response = await fetch(`/api/friends/accept?id=${friendshipId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'include'
+        });
         
-        const debouncedUpdate = friendsManager.debounce(() => {
-            loadPendingRequests();
-            updatePendingCount();
-        }, 200);
-        debouncedUpdate();
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to accept friend request');
+        }
+        
+        showToast('Friend request accepted!', 'success');
+        loadPendingRequests();
+        updatePendingCount();
     } catch (error) {
         console.error('Error accepting friend request:', error);
         showToast(error.message || 'Failed to accept friend request', 'error');
     }
 }
 
-async function ignoreFriendRequest(userId) {
-    if (!window.FriendsManager) {
-        console.error('FriendsManager not loaded');
-        return;
-    }
-    
-    const friendsManager = window.FriendsManager.getInstance();
-    
+async function ignoreFriendRequest(friendshipId) {
     try {
-        await friendsManager.declineFriendRequest(userId);
-        showToast('Friend request ignored', 'info');
+        const response = await fetch(`/api/friends/decline?id=${friendshipId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'include'
+        });
         
-        const debouncedUpdate = friendsManager.debounce(() => {
-            loadPendingRequests();
-            updatePendingCount();
-        }, 200);
-        debouncedUpdate();
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to ignore friend request');
+        }
+        
+        showToast('Friend request ignored', 'info');
+        loadPendingRequests();
+        updatePendingCount();
     } catch (error) {
         console.error('Error ignoring friend request:', error);
         showToast(error.message || 'Failed to ignore friend request', 'error');
@@ -630,21 +634,25 @@ async function ignoreFriendRequest(userId) {
 }
 
 async function cancelFriendRequest(userId) {
-    if (!window.FriendsManager) {
-        console.error('FriendsManager not loaded');
-        return;
-    }
-    
-    const friendsManager = window.FriendsManager.getInstance();
-    
     try {
-        await friendsManager.removeFriend(userId);
-        showToast('Friend request cancelled', 'info');
+        const response = await fetch('/api/friends', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ user_id: userId })
+        });
         
-        const debouncedUpdate = friendsManager.debounce(() => {
-            loadPendingRequests();
-        }, 200);
-        debouncedUpdate();
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to cancel friend request');
+        }
+        
+        showToast('Friend request cancelled', 'info');
+        loadPendingRequests();
     } catch (error) {
         console.error('Error cancelling friend request:', error);
         showToast(error.message || 'Failed to cancel friend request', 'error');
@@ -767,58 +775,9 @@ function showToast(message, type = 'info') {
     }
 }
 
-window.acceptFriendRequest = async function (friendshipId) {
-    if (!window.FriendsManager) {
-        console.error('FriendsManager not loaded');
-        showToast('Friends system not ready', 'error');
-        return;
-    }
-    
-    const friendsManager = window.FriendsManager.getInstance();
-    
-    try {
-        console.log('Accepting friend request:', friendshipId);
-        const result = await friendsManager.acceptFriendRequest(friendshipId);
-
-        showToast('Friend request accepted!', 'success');
-        
-        const debouncedUpdate = friendsManager.debounce(() => {
-            loadPendingRequests();
-            updatePendingCount();
-        }, 200);
-        debouncedUpdate();
-    } catch (error) {
-        console.error('Error accepting friend request:', error);
-        showToast(error.message || 'Failed to accept friend request', 'error');
-    }
-};
-
-window.ignoreFriendRequest = async function (friendshipId) {
-    if (!window.FriendsManager) {
-        console.error('FriendsManager not loaded');
-        showToast('Friends system not ready', 'error');
-        return;
-    }
-    
-    const friendsManager = window.FriendsManager.getInstance();
-    
-    try {
-        console.log('Ignoring friend request:', friendshipId);
-        const result = await friendsManager.declineFriendRequest(friendshipId);
-
-        showToast('Friend request ignored', 'info');
-        
-        const debouncedUpdate = friendsManager.debounce(() => {
-            loadPendingRequests();
-            updatePendingCount();
-        }, 200);
-        debouncedUpdate();
-    } catch (error) {
-        console.error('Error ignoring friend request:', error);
-        showToast(error.message || 'Failed to ignore friend request', 'error');
-    }
-};
-
+window.acceptFriendRequest = acceptFriendRequest;
+window.ignoreFriendRequest = ignoreFriendRequest;
+window.cancelFriendRequest = cancelFriendRequest;
 window.createDirectMessage = createDirectMessage;
 
 function initResponsiveHandling() {

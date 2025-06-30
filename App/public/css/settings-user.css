@@ -83,8 +83,8 @@ body {
     radial-gradient(circle at 75% 75%, rgba(88, 101, 242, 0.03) 0%, transparent 50%);
   color: var(--discord-text-normal);
   font-family: var(--discord-font-primary);
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-x: hidden;
   margin: 0;
   padding: 0;
   line-height: 1.5;
@@ -97,8 +97,7 @@ body {
   margin: 0 auto;
   width: 100%;
   max-width: 1260px;
-  height: 100vh;
-  overflow: hidden;
+  min-height: calc(100vh - 2rem);
   display: flex;
   padding: var(--discord-spacing-xxl);
   gap: 0;
@@ -107,7 +106,6 @@ body {
   background-color: var(--discord-bg-primary);
   margin-top: var(--discord-spacing-md);
   margin-bottom: var(--discord-spacing-md);
-  height: calc(100vh - var(--discord-spacing-xl));
   position: relative;
   border: 1px solid rgba(4, 4, 5, 0.2);
   animation: fadeIn 0.3s ease-out;
@@ -126,8 +124,8 @@ body {
   border-radius: var(--discord-border-radius-primary) 0 0 var(--discord-border-radius-primary);
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
+  height: auto;
+  min-height: 100%;
   position: relative;
   transition: width var(--discord-animation-default) ease;
 }
@@ -276,7 +274,7 @@ body {
   flex: 1;
   background-color: var(--discord-bg-primary);
   overflow-y: auto;
-  height: 100vh;
+  max-height: calc(100vh - 4rem);
   border-radius: 0 var(--discord-border-radius-primary) var(--discord-border-radius-primary) 0;
   margin: 0;
   position: relative;
@@ -305,9 +303,9 @@ body {
 }
 
 .p-10 {
-  padding: var(--discord-spacing-xxl) var(--discord-spacing-xxl) var(--discord-spacing-xxl) var(--discord-spacing-xl);
+  padding: var(--discord-spacing-xxl) var(--discord-spacing-xxl) calc(var(--discord-spacing-xxl) + 2rem) var(--discord-spacing-xl);
   position: relative;
-  overflow: hidden;
+  min-height: calc(100vh - 8rem);
 }
 
 .p-10::before {
@@ -816,55 +814,78 @@ button:active {
 @media (max-width: 1200px) {
   .flex.min-h-screen {
     max-width: 100%;
-    padding: 20px;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    height: calc(100vh - 20px);
+    padding: var(--discord-spacing-lg);
+    margin-top: 0;
+    margin-bottom: 0;
+    border-radius: 0;
+    min-height: 100vh;
+  }
+  
+  .flex-1.bg-discord-dark {
+    max-height: none;
+  }
+  
+  .p-10 {
+    padding: var(--discord-spacing-lg) var(--discord-spacing-lg) calc(var(--discord-spacing-lg) + 2rem) var(--discord-spacing-lg);
+    min-height: auto;
   }
 }
 
 @media (max-width: 768px) {
   .flex.min-h-screen {
     flex-direction: column;
-    padding: 10px;
-    gap: 10px;
-    max-width: 100%;
+    height: auto;
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
   }
   
   .w-60 {
     width: 100%;
     min-width: auto;
-    height: auto;
-    max-height: 200px;
-    border-radius: 8px 8px 0 0;
     border-right: none;
-    border-bottom: 1px solid rgba(79, 84, 92, 0.3);
+    border-bottom: 1px solid rgba(4, 4, 5, 0.2);
+    border-radius: var(--discord-border-radius-primary) var(--discord-border-radius-primary) 0 0;
+    height: auto;
+    max-height: 50vh;
+    overflow-y: auto;
   }
   
   .flex-1.bg-discord-dark {
-    border-radius: 0 0 8px 8px;
+    border-radius: 0 0 var(--discord-border-radius-primary) var(--discord-border-radius-primary);
+    max-height: none;
+    flex: 1;
   }
   
   .p-10 {
-    padding: var(--spacing-lg);
+    padding: var(--discord-spacing-lg);
+    min-height: auto;
   }
   
   .close-button {
     top: 10px;
     right: 10px;
-    padding: 4px 8px;
   }
   
-  .close-button-icon {
-    width: 20px;
-    height: 20px;
+  .form-input {
+    font-size: 16px;
+    padding: 12px;
+    height: 44px;
+  }
+  
+  .bg-discord-darker {
+    margin-bottom: var(--discord-spacing-md);
   }
 }
 
 @media (min-width: 1400px) {
   .flex.min-h-screen {
     max-width: 1300px;
-    padding: 60px;
+    padding: var(--discord-spacing-xxl) calc(var(--discord-spacing-xxl) * 1.5);
+  }
+  
+  .p-10 {
+    padding: calc(var(--discord-spacing-xxl) * 1.2) calc(var(--discord-spacing-xxl) * 1.2) calc(var(--discord-spacing-xxl) * 1.2 + 2rem) calc(var(--discord-spacing-xl) * 1.2);
   }
 }
 
@@ -2014,9 +2035,8 @@ button:hover::before {
 }
 
 #approve-display-name:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: scale(1) translateX(0);
 }
 
 #logout-confirmation-modal {
@@ -2055,6 +2075,203 @@ button:hover::before {
     to {
         transform: rotate(360deg);
     }
+}
+
+#bio {
+  width: 100%;
+  background-color: var(--discord-bg-tertiary);
+  border: 1px solid rgba(4, 4, 5, 0.3);
+  border-radius: var(--discord-border-radius-secondary);
+  padding: 12px;
+  color: var(--discord-interactive-active);
+  font-size: 15px;
+  font-family: var(--discord-font-primary);
+  line-height: 1.4;
+  resize: none;
+  transition: border-color var(--discord-animation-default) ease, box-shadow var(--discord-animation-default) ease;
+  min-height: 80px;
+  max-height: 150px;
+}
+
+#bio:hover {
+  border-color: rgba(79, 84, 92, 0.6);
+}
+
+#bio:focus {
+  outline: none;
+  border-color: var(--discord-blurple);
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+}
+
+#bio::placeholder {
+  color: var(--discord-interactive-muted);
+  transition: color var(--discord-animation-short) ease, opacity var(--discord-animation-short) ease;
+}
+
+#bio:focus::placeholder {
+  color: var(--discord-interactive-muted);
+  opacity: 0.5;
+}
+
+#bio-counter {
+  font-family: var(--discord-font-code);
+  font-size: 11px;
+  font-weight: 500;
+  transition: color var(--discord-animation-short) ease;
+}
+
+#bio-counter.text-yellow-400 {
+  color: var(--discord-yellow);
+}
+
+#bio-counter.text-red-400 {
+  color: var(--discord-red);
+}
+
+#approve-bio {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  border-radius: var(--discord-border-radius-secondary);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--discord-animation-default) ease;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+  position: relative;
+  overflow: hidden;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 32px;
+  opacity: 0;
+  transform: translateX(10px) scale(0.9);
+}
+
+#approve-bio::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left var(--discord-animation-long) ease;
+}
+
+#approve-bio:hover::before {
+  left: 100%;
+}
+
+#approve-bio.show {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+#approve-bio:hover {
+  background: linear-gradient(135deg, #9333ea 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+  transform: translateY(-1px) scale(1.02);
+}
+
+#approve-bio:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+}
+
+#approve-bio:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#approve-bio i {
+  font-size: 12px;
+}
+
+.form-group .flex.flex-col {
+  gap: var(--discord-spacing-sm);
+}
+
+.form-group .flex.justify-between.items-center {
+  margin-top: var(--discord-spacing-xs);
+}
+
+.form-group .flex.items-center.space-x-2 > * + * {
+  margin-left: var(--discord-spacing-sm);
+}
+
+@media (max-width: 768px) {
+  #bio {
+    font-size: 16px;
+    padding: 14px;
+    min-height: 90px;
+  }
+  
+  #approve-bio {
+    padding: 10px 14px;
+    font-size: 14px;
+    height: 36px;
+    min-width: 40px;
+  }
+  
+  #bio-counter {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .flex.min-h-screen {
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+  }
+  
+  .p-10 {
+    padding: var(--discord-spacing-md);
+    min-height: auto;
+  }
+  
+  .close-button {
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .close-button-text {
+    display: none;
+  }
+  
+  .form-group .flex.justify-between.items-center {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--discord-spacing-xs);
+  }
+  
+  .form-group .flex.items-center.space-x-2 {
+    align-self: flex-end;
+  }
+  
+  .text-lg.font-medium.mb-4 {
+    font-size: 18px;
+  }
+  
+  .bg-discord-darker {
+    margin-bottom: var(--discord-spacing-sm);
+    padding: var(--discord-spacing-md);
+  }
+  
+  .w-60 .p-4 {
+    padding: var(--discord-spacing-sm) var(--discord-spacing-md);
+  }
+  
+  .sidebar-item {
+    padding: 10px var(--discord-spacing-md);
+    font-size: 14px;
+  }
 }
 
 

@@ -1,6 +1,14 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
 import { playDiscordoSound, playCallSound } from '../../utils/music-loader-static.js';
-import { loadServerPage } from '../../utils/load-server-page.js';
+
+let loadServerPagePromise = null;
+function getLoadServerPage() {
+    if (!loadServerPagePromise) {
+        loadServerPagePromise = import('../../utils/load-server-page.js')
+            .then(mod => mod.loadServerPage);
+    }
+    return loadServerPagePromise;
+}
 
 let isRendering = false;
 let serverDataCache = null;
@@ -894,15 +902,12 @@ export async function handleServerClick(serverId, event) {
     }
 
     try {
-        if (loadServerPage) {
-            console.log('[Server Navigation] Using loadServerPage function');
-            await loadServerPage(serverId);
-            updateActiveServer('server', serverId);
-            console.log('[Server Navigation] SUCCESS - Server navigation completed via loadServerPage');
-        } else {
-            console.warn('[Server Navigation] loadServerPage not available, using fallback AJAX method');
-            await handleServerClickFallback(serverId);
-        }
+        console.log('[Server Navigation] Loading server page function dynamically');
+        const loadServerPageFn = await getLoadServerPage();
+        console.log('[Server Navigation] Using loadServerPage function');
+        await loadServerPageFn(serverId);
+        updateActiveServer('server', serverId);
+        console.log('[Server Navigation] SUCCESS - Server navigation completed via loadServerPage');
     } catch (error) {
         console.error('[Server Navigation] ERROR in handleServerClick:', error);
         throw error;
