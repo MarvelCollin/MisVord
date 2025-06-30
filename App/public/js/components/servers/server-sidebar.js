@@ -1,6 +1,7 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
 import { playDiscordoSound, playCallSound } from '../../utils/music-loader-static.js';
 import { NavigationManager } from '../../utils/navigation-manager.js';
+import { loadServerPage } from '../../utils/load-server-page.js';
 
 let isRendering = false;
 let serverDataCache = null;
@@ -1004,7 +1005,7 @@ async function handleServerClickFallback(serverId) {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
 
-        const layoutContainer = document.querySelector('.flex.flex-1.overflow-hidden') || 
+        const layoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden') || 
                               document.querySelector('#main-content') || 
                               document.querySelector('.main-content') || 
                               document.querySelector('#app-content') ||

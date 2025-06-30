@@ -2119,7 +2119,7 @@ class ServerController extends BaseController
                 return $this->notFound('Server not found');
             }
 
-            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
+            if (!$this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
                 error_log("[Channel Section] User not a member of server: " . $serverId);
                 return $this->forbidden('You do not have access to this server');
             }

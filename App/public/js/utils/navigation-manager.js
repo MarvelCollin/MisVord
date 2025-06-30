@@ -148,7 +148,7 @@ class NavigationManager {
     }
 
     showSkeleton(type) {
-        const mainContainer = document.querySelector('.flex-1') || document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+        const mainContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
         if (!mainContainer) return;
 
         const skeletonHTML = this.getSkeletonHTML(type);
@@ -157,7 +157,7 @@ class NavigationManager {
     }
 
     hideSkeleton(type) {
-        const mainContainer = document.querySelector('.flex-1') || document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+        const mainContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
         if (mainContainer) {
             mainContainer.removeAttribute('data-skeleton');
         }
@@ -218,7 +218,7 @@ class NavigationManager {
     }
 
     handleHomeSuccess(html, pageType) {
-        const mainContainer = document.querySelector('.flex-1') || document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+        const mainContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
         if (mainContainer) {
             mainContainer.innerHTML = html;
             this.currentPageType = 'home';
@@ -228,7 +228,7 @@ class NavigationManager {
     }
 
     handleServerSuccess(html, serverId, channelId) {
-        const mainContainer = document.querySelector('.flex-1') || document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+        const mainContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
         if (mainContainer) {
             mainContainer.innerHTML = html;
             this.currentPageType = 'server';
@@ -238,7 +238,7 @@ class NavigationManager {
     }
 
     handleExploreSuccess(html) {
-        const mainContainer = document.querySelector('.flex-1') || document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+        const mainContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
         if (mainContainer) {
             mainContainer.innerHTML = html;
             this.currentPageType = 'explore';

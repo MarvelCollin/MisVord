@@ -388,3 +388,69 @@
         font-size: 0.9rem;
     }
 }
+
+.tic-tac-toe-minimized {
+    transition: all 0.3s ease !important;
+    cursor: move !important;
+    user-select: none !important;
+}
+
+.tic-tac-toe-minimized:hover {
+    background: rgba(0, 0, 0, 0.9) !important;
+    transform: scale(1.02) !important;
+}
+
+.tic-tac-toe-minimized h2 {
+    cursor: move !important;
+    user-select: none !important;
+}
+
+#minimize-tic-tac-toe {
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#minimize-tic-tac-toe:hover {
+    color: #5865f2 !important;
+    background-color: rgba(88, 101, 242, 0.1);
+    transform: scale(1.1) !important;
+}
+
+#tic-tac-toe-modal.minimized {
+    backdrop-filter: none !important;
+    animation: none !important;
+}
+
+#tic-tac-toe-modal.minimized .bg-\[#313338\] {
+    animation: none !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8) !important;
+}
+
+#ticTacToeBtn {
+    position: relative;
+    overflow: hidden;
+}
+
+#ticTacToeBtn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+#ticTacToeBtn:hover::before {
+    left: 100%;
+}
+
+#ticTacToeBtn:hover {
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}

@@ -56,18 +56,10 @@ export class NitroManager {
       .then(data => {
         console.log('Background user load response:', data);
         
-        if (data.success && data.data && data.data.data && data.data.data.users && Array.isArray(data.data.data.users)) {
-          this.allUsersCache = data.data.data.users;
-          this.allUsersLoaded = true;
-          console.log(`Loaded ${data.data.data.users.length} users for fuzzy search`);
-        } else if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
+        if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
           this.allUsersCache = data.data.users;
           this.allUsersLoaded = true;
           console.log(`Loaded ${data.data.users.length} users for fuzzy search`);
-        } else if (data.success && data.users && Array.isArray(data.users)) {
-          this.allUsersCache = data.users;
-          this.allUsersLoaded = true;
-          console.log(`Loaded ${data.users.length} users for fuzzy search (alternative format)`);
         } else {
           console.warn('Unexpected response format for user preload:', data);
         }
@@ -302,15 +294,9 @@ export class NitroManager {
         const remainingTime = Math.max(0, minLoadingTime - searchDuration);
         
         setTimeout(() => {
-          if (data.success && data.data && data.data.data && data.data.data.users && Array.isArray(data.data.data.users)) {
-            this.cacheSearchResult(query, data.data.data.users);
-            this.renderSearchResults(data.data.data.users, userSearchResults, query);
-          } else if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
+          if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
             this.cacheSearchResult(query, data.data.users);
             this.renderSearchResults(data.data.users, userSearchResults, query);
-          } else if (data.success && data.users && Array.isArray(data.users)) {
-            this.cacheSearchResult(query, data.users);
-            this.renderSearchResults(data.users, userSearchResults, query);
           } else {
             console.error('Invalid response format:', data);
             userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-shake">Invalid response format</div>';
@@ -338,6 +324,8 @@ export class NitroManager {
   }
   
   renderSearchResults(users, userSearchResults, query = '') {
+    console.log('🔍 renderSearchResults called with users:', users);
+    
     if (users.length === 0) {
       userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-fade-in">No users found</div>';
       return;
@@ -346,14 +334,26 @@ export class NitroManager {
     const fragment = document.createDocumentFragment();
     
     users.forEach((user, index) => {
+      console.log(`👤 Processing user ${index}:`, {
+        username: user.username,
+        discriminator: user.discriminator,
+        has_nitro: user.has_nitro,
+        nitro_status: user.nitro_status,
+        nitro_active: user.nitro_active,
+        nitro_code: user.nitro_code,
+        raw_user_data: user
+      });
+      
       const hasNitro = user.has_nitro || user.nitro_status === 'active' || user.nitro_active;
       
-      let itemClasses = 'p-2 flex items-center transition-all duration-200 opacity-0';
+      console.log(`🎯 Final hasNitro decision for ${user.username}: ${hasNitro}`);
+      
+      let itemClasses = 'p-2 flex items-center transition-all duration-200 opacity-0 border-l-2 border-transparent';
       
       if (hasNitro) {
-        itemClasses += ' opacity-50 cursor-not-allowed';
+        itemClasses += ' opacity-60 cursor-not-allowed bg-yellow-500/5 border-l-yellow-500/50';
       } else {
-        itemClasses += ' hover:bg-discord-dark cursor-pointer hover:scale-[1.02] transform';
+        itemClasses += ' hover:bg-discord-dark cursor-pointer hover:scale-[1.02] transform hover:border-l-blue-500/50';
       }
       
       const resultItem = document.createElement('div');
@@ -372,22 +372,27 @@ export class NitroManager {
       }
       
       const nitroIndicator = hasNitro ? 
-        '<div class="ml-2 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30"><i class="fas fa-crown mr-1"></i>Has Nitro</div>' : 
+        '<div class="ml-2 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30 font-medium"><i class="fas fa-crown mr-1"></i>Has Nitro</div>' : 
         '';
       
-      const avatarOpacity = hasNitro ? 'opacity-60' : '';
-      const textOpacity = hasNitro ? 'opacity-60' : '';
+      const avatarOpacity = hasNitro ? 'opacity-50 grayscale' : '';
+      const textOpacity = hasNitro ? 'opacity-70' : '';
+      const overlayEffect = hasNitro ? '<div class="absolute inset-0 bg-gray-600/10 rounded-md"></div>' : '';
       
       resultItem.innerHTML = `
-        <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2 flex-shrink-0 ${avatarOpacity}">
-          <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="" class="w-full h-full object-cover" loading="lazy" onerror="this.src='/public/assets/common/default-profile-picture.png'">
+        <div class="relative flex items-center w-full">
+          ${overlayEffect}
+          <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2 flex-shrink-0 ${avatarOpacity} relative">
+            <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="" class="w-full h-full object-cover" loading="lazy" onerror="this.src='/public/assets/common/default-profile-picture.png'">
+            ${hasNitro ? '<div class="absolute inset-0 bg-yellow-400/20 rounded-full"></div>' : ''}
+          </div>
+          <div class="flex-1 min-w-0 ${textOpacity} relative z-10">
+            <div class="text-sm font-medium text-white truncate">${displayName}</div>
+            <div class="text-xs text-discord-lighter truncate">${email}</div>
+          </div>
+          ${nitroIndicator}
+          ${hasNitro ? '<div class="ml-2 text-yellow-400/70"><i class="fas fa-lock text-sm"></i></div>' : ''}
         </div>
-        <div class="flex-1 min-w-0 ${textOpacity}">
-          <div class="text-sm font-medium text-white truncate">${displayName}</div>
-          <div class="text-xs text-discord-lighter truncate">${email}</div>
-        </div>
-        ${nitroIndicator}
-        ${hasNitro ? '<div class="ml-2 text-discord-lighter"><i class="fas fa-ban"></i></div>' : ''}
       `;
       
       if (!hasNitro) {
@@ -765,15 +770,9 @@ export class NitroManager {
         const remainingTime = Math.max(0, minLoadingTime - loadDuration);
         
         setTimeout(() => {
-          if (data.success && data.data && data.data.data && data.data.data.users && Array.isArray(data.data.data.users)) {
-            this.cacheSearchResult(cacheKey, data.data.data.users);
-            this.renderSearchResults(data.data.data.users, userSearchResults);
-          } else if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
+          if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
             this.cacheSearchResult(cacheKey, data.data.users);
             this.renderSearchResults(data.data.users, userSearchResults);
-          } else if (data.success && data.users && Array.isArray(data.users)) {
-            this.cacheSearchResult(cacheKey, data.users);
-            this.renderSearchResults(data.users, userSearchResults);
           } else {
             console.error('Invalid response format for load all users:', data);
             userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-shake">Failed to load users</div>';

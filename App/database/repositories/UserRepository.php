@@ -515,7 +515,7 @@ class UserRepository extends Repository {
         
         $query = new Query();
         $queryBuilder = $query->table(User::getTable() . ' u')
-            ->select('u.*, CASE WHEN n.user_id IS NOT NULL THEN 1 ELSE 0 END as has_nitro, n.code as nitro_code')
+            ->select('u.id, u.username, u.discriminator, u.email, u.display_name, u.avatar_url, u.banner_url, u.bio, u.status, u.created_at, u.updated_at, CASE WHEN n.user_id IS NOT NULL THEN 1 ELSE 0 END as has_nitro, n.code as nitro_code')
             ->leftJoin('nitro n', 'u.id', '=', 'n.user_id')
             ->where('u.status', '!=', 'bot')
             ->where('u.email', '!=', 'admin@admin.com');
@@ -543,7 +543,7 @@ class UserRepository extends Repository {
         
         $queryBuilder = new Query();
         $builder = $queryBuilder->table(User::getTable() . ' u')
-            ->select('u.id, u.username, u.discriminator, u.email, u.display_name, u.avatar_url, u.status, u.created_at, CASE WHEN n.user_id IS NOT NULL THEN 1 ELSE 0 END as has_nitro, n.code as nitro_code')
+            ->select('u.id, u.username, u.discriminator, u.email, u.display_name, u.avatar_url, u.status, u.created_at, u.updated_at, CASE WHEN n.user_id IS NOT NULL THEN 1 ELSE 0 END as has_nitro, n.code as nitro_code')
             ->leftJoin('nitro n', 'u.id', '=', 'n.user_id')
             ->where(function($q) use ($query) {
                 $q->whereLike('u.username', "%$query%")

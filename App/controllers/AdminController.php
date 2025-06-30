@@ -95,6 +95,8 @@ class AdminController extends BaseController
                     'created_at' => $userData['created_at'] ?? null,
                     'updated_at' => $userData['updated_at'] ?? null,
                     'has_nitro' => isset($userData['has_nitro']) ? (bool)$userData['has_nitro'] : false,
+                    'nitro_active' => isset($userData['has_nitro']) ? (bool)$userData['has_nitro'] : false,
+                    'nitro_status' => isset($userData['has_nitro']) && $userData['has_nitro'] ? 'active' : 'inactive',
                     'nitro_code' => $userData['nitro_code'] ?? null
                 ];
             }
@@ -172,9 +174,7 @@ class AdminController extends BaseController
         
         if (empty($query) || strlen($query) < 2) {
             return $this->success([
-                'data' => [
-                    'users' => []
-                ],
+                'users' => [],
                 'pagination' => [
                     'total' => 0,
                     'page' => $page,
@@ -199,14 +199,14 @@ class AdminController extends BaseController
                     'display_name' => $userData['display_name'] ?? $userData['username'] ?? 'Unknown',
                     'avatar_url' => $userData['avatar_url'] ?? null,
                     'has_nitro' => isset($userData['has_nitro']) ? (bool)$userData['has_nitro'] : false,
+                    'nitro_active' => isset($userData['has_nitro']) ? (bool)$userData['has_nitro'] : false,
+                    'nitro_status' => isset($userData['has_nitro']) && $userData['has_nitro'] ? 'active' : 'inactive',
                     'nitro_code' => $userData['nitro_code'] ?? null
                 ];
             }
             
             return $this->success([
-                'data' => [
-                    'users' => $normalizedUsers
-                ],
+                'users' => $normalizedUsers,
                 'pagination' => [
                     'total' => count($normalizedUsers),
                     'page' => $page,

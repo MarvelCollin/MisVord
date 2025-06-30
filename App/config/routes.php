@@ -1357,13 +1357,7 @@ Route::get('/api/chat/dm/([0-9]+)', function($roomId) {
     $controller->getDirectMessageRoom($roomId);
 });
 
-Route::get('/api/test-message-flow', function() {
-    require_once __DIR__ . '/../public/api/test-message-flow.php';
-});
 
-Route::post('/api/test-message-flow', function() {
-    require_once __DIR__ . '/../public/api/test-message-flow.php';
-});
 
 
 
@@ -1381,13 +1375,7 @@ Route::get('/api/debug/socket-status', function() {
     ]);
 });
 
-Route::get('/api/test-socket-realtime', function() {
-    require_once __DIR__ . '/../public/api/test-socket-realtime.php';
-});
 
-Route::get('/debug/socket-test', function() {
-    require_once __DIR__ . '/../public/api/test-socket-realtime.php';
-});
 
 Route::get('/api/debug/database', function() {
     header('Content-Type: application/json');
@@ -1572,9 +1560,7 @@ Route::post('/api/servers/([0-9]+)/sync-positions', function($serverId) {
     $controller->syncServerPositions();
 });
 
-Route::get('/api/test-position-verify', function() {
-    require_once __DIR__ . '/../public/api/test-position-verify.php';
-});
+
 
 Route::post('/api/chat/save-bot-message', function() {
     $controller = new ChatController();

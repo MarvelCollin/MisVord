@@ -222,9 +222,18 @@ class TicTacToeModal {
         this.serverId = null;
         this.userId = null;
         this.username = null;
+        this.isMinimized = false;
+        this.minimizedPosition = { x: 20, y: 20 };
     }
 
     static createTicTacToeModal(serverId, userId, username) {
+        if (window.activeTicTacToeModal) {
+            if (window.activeTicTacToeModal.isMinimized) {
+                window.activeTicTacToeModal.toggleMinimize();
+            }
+            return window.activeTicTacToeModal;
+        }
+        
         if (document.getElementById('tic-tac-toe-modal')) return;
         
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
@@ -240,6 +249,7 @@ class TicTacToeModal {
         modal.setupEventListeners();
         modal.connectToSocket();
         
+        window.activeTicTacToeModal = modal;
         return modal;
     }
 
@@ -251,9 +261,14 @@ class TicTacToeModal {
             <div class="bg-[#313338] rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-white">Tic Mac Voe</h2>
-                    <button id="close-tic-tac-toe" class="text-[#949ba4] hover:text-white text-xl">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button id="minimize-tic-tac-toe" class="text-[#949ba4] hover:text-white text-lg transition-colors">
+                            <i class="fas fa-window-minimize"></i>
+                        </button>
+                        <button id="close-tic-tac-toe" class="text-[#949ba4] hover:text-white text-xl transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="tic-tac-toe-content">
@@ -303,6 +318,7 @@ class TicTacToeModal {
     setupEventListeners() {
         const modal = document.getElementById('tic-tac-toe-modal');
         const closeButton = modal.querySelector('#close-tic-tac-toe');
+        const minimizeButton = modal.querySelector('#minimize-tic-tac-toe');
         const readyButton = modal.querySelector('#ready-button');
         const playButton = modal.querySelector('#play-button');
         const newGameButton = modal.querySelector('#new-game-button');
@@ -312,6 +328,11 @@ class TicTacToeModal {
                 window.globalSocketManager.io.emit('leave-tic-tac-toe', { server_id: this.serverId });
             }
             modal.remove();
+            window.activeTicTacToeModal = null;
+        });
+        
+        minimizeButton.addEventListener('click', () => {
+            this.toggleMinimize();
         });
         
         readyButton.addEventListener('click', () => {
@@ -500,9 +521,135 @@ class TicTacToeModal {
         
         this.updateGameBoard();
     }
+    
+    toggleMinimize() {
+        const modal = document.getElementById('tic-tac-toe-modal');
+        if (!modal) return;
+        
+        if (this.isMinimized) {
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.style.width = '';
+            modal.style.height = '';
+            modal.style.top = '';
+            modal.style.left = '';
+            
+            const content = modal.querySelector('div[class*="bg-[#313338]"]');
+            if (content) {
+                content.style.transform = '';
+                content.style.width = '';
+                content.style.height = '';
+            }
+            
+            const minimizeBtn = modal.querySelector('#minimize-tic-tac-toe i');
+            if (minimizeBtn) {
+                minimizeBtn.className = 'fas fa-window-minimize';
+            }
+            
+            this.isMinimized = false;
+        } else {
+            this.minimizedPosition.x = Math.min(this.minimizedPosition.x, window.innerWidth - 320);
+            this.minimizedPosition.y = Math.min(this.minimizedPosition.y, window.innerHeight - 60);
+            
+            modal.className = 'fixed z-50';
+            modal.style.width = '300px';
+            modal.style.height = '50px';
+            modal.style.top = this.minimizedPosition.y + 'px';
+            modal.style.left = this.minimizedPosition.x + 'px';
+            modal.style.background = 'rgba(0, 0, 0, 0.8)';
+            modal.style.borderRadius = '8px';
+            modal.style.border = '1px solid #404249';
+            
+            const content = modal.querySelector('div[class*="bg-[#313338]"]');
+            if (content) {
+                content.style.transform = 'scale(0)';
+                content.style.width = '100%';
+                content.style.height = '100%';
+                content.style.display = 'flex';
+                content.style.alignItems = 'center';
+                content.style.justifyContent = 'space-between';
+                content.style.padding = '8px 12px';
+            }
+            
+            const title = modal.querySelector('h2');
+            if (title) {
+                title.style.fontSize = '14px';
+                title.style.margin = '0';
+            }
+            
+            const minimizeBtn = modal.querySelector('#minimize-tic-tac-toe i');
+            if (minimizeBtn) {
+                minimizeBtn.className = 'fas fa-window-maximize';
+            }
+            
+            this.isMinimized = true;
+            this.makeDraggable(modal);
+        }
+    }
+    
+    makeDraggable(element) {
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+        
+        element.addEventListener('mousedown', (e) => {
+            if (e.target.closest('#minimize-tic-tac-toe') || e.target.closest('#close-tic-tac-toe')) {
+                return;
+            }
+            
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+            
+            if (e.target === element || e.target.closest('h2')) {
+                isDragging = true;
+                element.style.cursor = 'grabbing';
+            }
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+                xOffset = currentX;
+                yOffset = currentY;
+                
+                const newX = Math.max(0, Math.min(currentX, window.innerWidth - element.offsetWidth));
+                const newY = Math.max(0, Math.min(currentY, window.innerHeight - element.offsetHeight));
+                
+                element.style.left = newX + 'px';
+                element.style.top = newY + 'px';
+                
+                this.minimizedPosition.x = newX;
+                this.minimizedPosition.y = newY;
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            element.style.cursor = 'default';
+        });
+    }
 }
 
 if (typeof window !== 'undefined') {
     window.TicTacToeGame = TicTacToeGame;
     window.TicTacToeModal = TicTacToeModal;
+    
+    window.toggleTicTacToeModal = function(serverId, userId, username) {
+        if (window.activeTicTacToeModal) {
+            if (window.activeTicTacToeModal.isMinimized) {
+                window.activeTicTacToeModal.toggleMinimize();
+            } else {
+                window.activeTicTacToeModal.toggleMinimize();
+            }
+        } else {
+            if (serverId && userId && username) {
+                window.TicTacToeModal.createTicTacToeModal(serverId, userId, username);
+            }
+        }
+    };
 }
