@@ -410,22 +410,7 @@ class GlobalSocketManager {
         
         this.log(`Leaving channel: ${channelId}`);
         this.io.emit('leave-channel', { channel_id: channelId });
-        
-        const roomName = `channel-${channelId}`;
         this.joinedChannels.delete(channelId);
-        this.joinedRooms.delete(roomName);
-        return true;
-    }
-    
-    leaveDMRoom(roomId) {
-        if (!this.connected || !this.io || !this.authenticated) return false;
-        
-        this.log(`Leaving DM room: ${roomId}`);
-        this.io.emit('leave-dm-room', { room_id: roomId });
-        
-        const roomName = `dm-room-${roomId}`;
-        this.joinedDMRooms.delete(roomId);
-        this.joinedRooms.delete(roomName);
         return true;
     }
     
@@ -504,30 +489,29 @@ class GlobalSocketManager {
         return true;
     }
     
-    leaveRoom(roomName) {
-        console.log(`🚪 [SOCKET] Leaving room: ${roomName}`);
+    leaveRoom(roomType, roomId) {
+        console.log(`🚪 [SOCKET] Leaving ${roomType} room ${roomId}`);
         
         if (!this.isReady()) {
             console.warn('⚠️ [SOCKET] Cannot leave room - socket not ready');
             return false;
         }
         
-        if (!roomName) {
-            console.warn('⚠️ [SOCKET] Cannot leave room - no room name provided');
+        if (!roomId) {
+            console.warn('⚠️ [SOCKET] Cannot leave room - no room ID provided');
             return false;
         }
         
-        if (roomName.startsWith('channel-')) {
-            const channelId = roomName.replace('channel-', '');
-            return this.leaveChannel(channelId);
-        } else if (roomName.startsWith('dm-room-')) {
-            const roomId = roomName.replace('dm-room-', '');
-            return this.leaveDMRoom(roomId);
-        }
+        // Use consistent room name format
+        const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
         
-        this.io.emit('leave-room', { room_name: roomName });
+        // Leave the room with the server
+        this.io.emit('leave-room', { room_type: roomType, room_id: roomId });
+        
+        // Remove from tracked rooms
         this.joinedRooms.delete(roomName);
-        console.log(`✅ [SOCKET] Left room: ${roomName}`);
+        
+        console.log(`✅ [SOCKET] Left ${roomType} room: ${roomName}`);
         return true;
     }
     

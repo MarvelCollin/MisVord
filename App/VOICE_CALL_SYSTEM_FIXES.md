@@ -30,16 +30,27 @@
 - Added visual distinction (blue border, desktop icon, "Screen" label)
 - Used `object-fit: contain` for proper screen aspect ratio
 
-### ✅ **Issue 4: Grid Not Scrollable (NEW REQUEST)**
+### ✅ **Issue 4: Grid Not Scrollable (SOLVED)**
 **Root Cause**: Participant grid had fixed layout that couldn't handle many participants
 
 **Fixes Applied**:
 - **Added vertical scrolling** to participant grid
 - **Custom Discord-style blue scrollbar** with smooth animations
 - **Scroll indicators** showing participant count when scrollable
-- **Auto-scroll to new participants** when they join
-- **Responsive grid layout** that adapts to any number of participants
-- **Mobile-optimized scrolling** with proper touch support
+- **Auto-scroll functionality** for new participants (except local user)
+- **Mobile responsive scrolling** with optimized touch experience
+
+### ✅ **Issue 5: Double-Click Fullscreen (NEW FEATURE)**
+**User Request**: Double-click cards for fullscreen view with minimize button for UX
+
+**Implementation**:
+- **Double-click any card** → Enter fullscreen mode with overlay
+- **Minimize button** → Exit fullscreen and return to grid view  
+- **Click overlay or ESC key** → Also exits fullscreen
+- **Works with all card types** (voice, video, screen share)
+- **Auto-cleanup** when fullscreened participant leaves
+- **Mobile optimized** with responsive design
+- **Smooth animations** with fade-in effects and backdrop blur
 
 ## 📁 **FILES MODIFIED**
 
@@ -155,6 +166,8 @@ Voice Call System Flow (Updated):
 8. **📜 Infinite Scrolling**: Handle unlimited participants with smooth scrolling
 9. **🎯 Auto-Scroll**: New participants automatically scroll into view
 10. **📱 Mobile Perfect**: Optimized scrolling experience on all devices
+11. **🖥️ Fullscreen Participant View**: Double-click any card for immersive fullscreen experience
+12. **🔄 Easy Exit**: Minimize button, ESC key, or click overlay to return to grid
 
 ## 🧪 **TESTING SCENARIOS** 
 
@@ -167,6 +180,10 @@ Test these scenarios to verify the fixes:
 5. **Scrolling Test**: Add 7+ participants → Grid should become scrollable
 6. **Auto-Scroll Test**: New participant joins → Should auto-scroll to show them
 7. **Mobile Scroll**: Test on mobile → Should scroll smoothly with touch
+8. **Double-Click Fullscreen**: Double-click any card → Should enter fullscreen overlay mode
+9. **Minimize Button**: Click minimize button → Should exit fullscreen and return to grid
+10. **ESC Key Exit**: Press ESC while in fullscreen → Should exit fullscreen mode
+11. **Overlay Click**: Click outside participant in fullscreen → Should exit fullscreen
 
 ## 📊 **IMPLEMENTATION SUMMARY**
 
@@ -181,4 +198,4 @@ Test these scenarios to verify the fixes:
 
 **Status: 🚀 READY FOR TESTING**
 
-The voice call system now handles screen sharing as **normal participant cards** in the grid with **infinite scrolling support**, exactly as requested. No more full-screen takeovers and no more participant limits! 
+The voice call system now handles screen sharing as **normal participant cards** in the grid with **infinite scrolling support** and **double-click fullscreen functionality**, exactly as requested. No more full-screen takeovers, no participant limits, and immersive fullscreen viewing! 

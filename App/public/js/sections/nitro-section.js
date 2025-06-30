@@ -14,6 +14,7 @@ class NitroSection {
         if (!this.section) return;
         
         this.setupEventListeners();
+        this.setupDragFunctionality();
     }
     
     setupEventListeners() {
@@ -52,7 +53,146 @@ class NitroSection {
         });
     }
     
+    setupDragFunctionality() {
+        if (!this.crownCenter) return;
+        
+        this.isDragging = false;
+        this.dragOffset = { x: 0, y: 0 };
+        this.initialPosition = { x: 0, y: 0 };
+        this.hexagonContainer = this.section.querySelector('.hexagon-container');
+        
+        this.crownCenter.style.cursor = 'grab';
+        
+        this.crownCenter.addEventListener('mousedown', this.startDrag.bind(this));
+        this.crownCenter.addEventListener('touchstart', this.startDrag.bind(this), { passive: false });
+        
+        document.addEventListener('mousemove', this.handleDrag.bind(this));
+        document.addEventListener('touchmove', this.handleDrag.bind(this), { passive: false });
+        
+        document.addEventListener('mouseup', this.endDrag.bind(this));
+        document.addEventListener('touchend', this.endDrag.bind(this));
+    }
     
+    startDrag(e) {
+        e.preventDefault();
+        this.isDragging = true;
+        this.crownCenter.style.cursor = 'grabbing';
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        const rect = this.hexagonContainer.getBoundingClientRect();
+        this.dragOffset.x = clientX - rect.left - rect.width / 2;
+        this.dragOffset.y = clientY - rect.top - rect.height / 2;
+        
+        this.crownCenter.style.transition = 'none';
+        this.hexagons.forEach(hexagon => {
+            hexagon.style.transition = 'none';
+        });
+        
+        const rotatingHexagons = this.section.querySelector('.rotating-hexagons');
+        if (rotatingHexagons) {
+            rotatingHexagons.style.animationPlayState = 'paused';
+        }
+    }
+    
+    handleDrag(e) {
+        if (!this.isDragging) return;
+        
+        e.preventDefault();
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        const containerRect = this.hexagonContainer.getBoundingClientRect();
+        const centerX = containerRect.left + containerRect.width / 2;
+        const centerY = containerRect.top + containerRect.height / 2;
+        
+        const deltaX = clientX - this.dragOffset.x - centerX;
+        const deltaY = clientY - this.dragOffset.y - centerY;
+        
+        this.hexagonContainer.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+        
+        this.createDragParticles(clientX, clientY);
+    }
+    
+    endDrag() {
+        if (!this.isDragging) return;
+        
+        this.isDragging = false;
+        this.crownCenter.style.cursor = 'grab';
+        
+        this.crownCenter.style.transition = 'all 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
+        this.hexagons.forEach(hexagon => {
+            hexagon.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        });
+        
+        this.hexagonContainer.style.transition = 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
+        this.hexagonContainer.style.transform = 'translate(0, 0)';
+        
+        const rotatingHexagons = this.section.querySelector('.rotating-hexagons');
+        if (rotatingHexagons) {
+            rotatingHexagons.style.animationPlayState = 'running';
+        }
+        
+        this.createReturnEffect();
+    }
+    
+    createDragParticles(x, y) {
+        if (Math.random() < 0.3) {
+            const particle = document.createElement('div');
+            particle.style.cssText = `
+                position: fixed;
+                width: 8px;
+                height: 8px;
+                background: linear-gradient(45deg, #ffd700, #ff69b4);
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 1000;
+                left: ${x - 4}px;
+                top: ${y - 4}px;
+                animation: dragParticle 1s ease-out forwards;
+            `;
+            
+            document.body.appendChild(particle);
+            
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.parentNode.removeChild(particle);
+                }
+            }, 1000);
+        }
+    }
+    
+    createReturnEffect() {
+        for (let i = 0; i < 10; i++) {
+            setTimeout(() => {
+                const sparkle = document.createElement('div');
+                sparkle.style.cssText = `
+                    position: absolute;
+                    width: 6px;
+                    height: 6px;
+                    background: #ffd700;
+                    border-radius: 50%;
+                    box-shadow: 0 0 10px #ffd700;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    opacity: 1;
+                    z-index: 15;
+                    animation: returnSparkle 0.8s ease-out forwards;
+                `;
+                
+                this.crownCenter.appendChild(sparkle);
+                
+                setTimeout(() => {
+                    if (sparkle.parentNode) {
+                        sparkle.parentNode.removeChild(sparkle);
+                    }
+                }, 800);
+            }, i * 50);
+        }
+    }
     
     onSectionVisible() {
         if (this.animationTriggered) return;
@@ -81,6 +221,7 @@ class NitroSection {
             
             setTimeout(() => {
                 hexagon.classList.add('visible');
+                hexagon.style.animation = `hexagonAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards`;
                 this.addHexagonSparkles(hexagon);
             }, 1000 + delay);
         });
@@ -128,53 +269,44 @@ class NitroSection {
         }
     }
     
-        animateHexagonHover(hexagon) {
+    animateHexagonHover(hexagon) {
         const icon = hexagon.querySelector('.feature-icon');
-        const content = hexagon.querySelector('.hexagon-content');
-        const border = hexagon.querySelector('.hexagon-border');
-        
         if (icon) {
-            icon.style.transform = 'scale(1.2) rotate(10deg)';
+            icon.style.transform = 'scale(1.1) rotate(5deg)';
         }
-        
-        if (content) {
-            content.style.transform = content.style.transform + ' scale(1.1)';
-            content.style.background = 'rgba(255, 255, 255, 0.1)';
-        }
-        
-        if (border) {
-            border.style.opacity = '0.8';
-            border.style.transform = border.style.transform + ' scale(1.05)';
-        }
-        
-        hexagon.style.transform = hexagon.style.transform.replace(/scale\([^)]*\)/, '') + ' scale(1.15)';
-        hexagon.style.zIndex = '100';
-        hexagon.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
         
         this.createHoverSparkles(hexagon);
+        this.pulseConnectedHexagons(hexagon);
     }
-
+    
     resetHexagonHover(hexagon) {
         const icon = hexagon.querySelector('.feature-icon');
-        const content = hexagon.querySelector('.hexagon-content');
-        const border = hexagon.querySelector('.hexagon-border');
-        
         if (icon) {
             icon.style.transform = '';
         }
+    }
+    
+    pulseConnectedHexagons(hexagon) {
+        const index = Array.from(this.hexagons).indexOf(hexagon);
+        const connectedIndexes = [];
         
-        if (content) {
-            content.style.transform = content.style.transform.replace(/scale\([^)]*\)/g, '');
-            content.style.background = 'rgba(255, 255, 255, 0.05)';
+        if (index % 2 === 0) {
+            if (index > 0) connectedIndexes.push(index - 1);
+            if (index < this.hexagons.length - 1) connectedIndexes.push(index + 1);
         }
         
-        if (border) {
-            border.style.opacity = '0.3';
-            border.style.transform = border.style.transform.replace(/scale\([^)]*\)/g, '');
-        }
-        
-        hexagon.style.transform = hexagon.style.transform.replace(/scale\([^)]*\)/, '');
-        hexagon.style.zIndex = '';
+        connectedIndexes.forEach(i => {
+            const connectedHexagon = this.hexagons[i];
+            const border = connectedHexagon.querySelector('.hexagon-border');
+            if (border) {
+                border.style.opacity = '0.6';
+                border.style.filter = 'blur(8px)';
+                setTimeout(() => {
+                    border.style.opacity = '0.3';
+                    border.style.filter = 'blur(4px)';
+                }, 300);
+            }
+        });
     }
     
     createHoverSparkles(hexagon) {

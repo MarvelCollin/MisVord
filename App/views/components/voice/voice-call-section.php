@@ -233,7 +233,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 .scroll-indicator {
     position: absolute;
-    right: 10px;
+    right: 5px;
     top: 50%;
     transform: translateY(-50%);
     background: rgba(88, 101, 242, 0.8);
@@ -420,6 +420,28 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
         right: 5px !important;
         padding: 6px !important;
         font-size: 10px !important;
+    }
+    
+    .fullscreen-participant {
+        min-width: 95vw !important;
+        min-height: 70vh !important;
+        max-width: 95vw !important;
+        max-height: 85vh !important;
+    }
+    
+    .minimize-btn {
+        width: 35px !important;
+        height: 35px !important;
+        top: 10px !important;
+        right: 10px !important;
+        font-size: 14px !important;
+    }
+    
+    .fullscreen-participant-info {
+        bottom: 10px !important;
+        left: 10px !important;
+        padding: 6px 12px !important;
+        font-size: 14px !important;
     }
 }
 
@@ -644,6 +666,89 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 .screen-share-card .video-participant-overlay {
     background: rgba(88, 101, 242, 0.9) !important;
 }
+
+.fullscreen-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.95) !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    backdrop-filter: blur(5px) !important;
+    animation: fullscreenFadeIn 0.3s ease-out !important;
+}
+
+.fullscreen-participant {
+    max-width: 90vw !important;
+    max-height: 90vh !important;
+    min-width: 600px !important;
+    min-height: 400px !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    border: 3px solid #5865f2 !important;
+    box-shadow: 0 0 30px rgba(88, 101, 242, 0.5) !important;
+    position: relative !important;
+    background: #1e1f22 !important;
+}
+
+.fullscreen-participant video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+}
+
+.minimize-btn {
+    position: absolute !important;
+    top: 15px !important;
+    right: 15px !important;
+    width: 40px !important;
+    height: 40px !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    border: 2px solid #5865f2 !important;
+    border-radius: 50% !important;
+    color: white !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    font-size: 16px !important;
+    z-index: 10 !important;
+}
+
+.minimize-btn:hover {
+    background: rgba(88, 101, 242, 0.8) !important;
+    transform: scale(1.1) !important;
+    box-shadow: 0 0 15px rgba(88, 101, 242, 0.6) !important;
+}
+
+.fullscreen-participant-info {
+    position: absolute !important;
+    bottom: 15px !important;
+    left: 15px !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: white !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    backdrop-filter: blur(4px) !important;
+    border: 1px solid rgba(88, 101, 242, 0.3) !important;
+}
+
+@keyframes fullscreenFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
 </style>
 
 <script>
@@ -823,6 +928,8 @@ class VoiceCallManager {
         this.isScreenSharing = false;
         this.currentView = 'unified';
         this.eventListenersRegistered = false;
+        this.fullscreenParticipant = null;
+        this.isFullscreenMode = false;
         
         this.participantManager = new UnifiedParticipantManager();
         
@@ -834,6 +941,7 @@ class VoiceCallManager {
     init() {
         this.setupEventListeners();
         this.setupControls();
+        this.setupDoubleClickHandlers();
     }
 
     setupEventListeners() {
@@ -1029,6 +1137,96 @@ class VoiceCallManager {
         document.getElementById('disconnectBtn').addEventListener('click', () => this.disconnect());
     }
 
+    setupDoubleClickHandlers() {
+        const participantGrid = document.getElementById('participantGrid');
+        if (!participantGrid) return;
+        
+        participantGrid.addEventListener('dblclick', (event) => {
+            const card = event.target.closest('[data-participant-id]');
+            if (!card) return;
+            
+            const participantId = card.dataset.participantId;
+            this.toggleParticipantFullscreen(participantId);
+        });
+    }
+
+    toggleParticipantFullscreen(participantId) {
+        if (this.fullscreenParticipant === participantId) {
+            this.exitFullscreen();
+        } else {
+            this.enterFullscreen(participantId);
+        }
+    }
+
+    enterFullscreen(participantId) {
+        this.exitFullscreen();
+        
+        this.fullscreenParticipant = participantId;
+        this.isFullscreenMode = true;
+        
+        const targetCard = document.querySelector(`[data-participant-id="${participantId}"]`);
+        if (!targetCard) return;
+        
+        const participant = this.participantManager.getParticipant(participantId);
+        if (!participant) return;
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'fullscreen-overlay';
+        overlay.id = 'participantFullscreenOverlay';
+        
+        const clonedCard = targetCard.cloneNode(true);
+        clonedCard.className = 'fullscreen-participant';
+        
+        const minimizeBtn = document.createElement('button');
+        minimizeBtn.className = 'minimize-btn';
+        minimizeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        minimizeBtn.onclick = () => this.exitFullscreen();
+        
+        const participantInfo = document.createElement('div');
+        participantInfo.className = 'fullscreen-participant-info';
+        const isLocal = participantId === this.localParticipantId ? ' (You)' : '';
+        participantInfo.textContent = `${participant.name}${isLocal}`;
+        
+        clonedCard.appendChild(minimizeBtn);
+        clonedCard.appendChild(participantInfo);
+        overlay.appendChild(clonedCard);
+        document.body.appendChild(overlay);
+        
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                this.exitFullscreen();
+            }
+        });
+        
+        document.addEventListener('keydown', this.handleFullscreenKeydown.bind(this));
+        
+        console.log(`🔍 [FULLSCREEN] Participant ${participantId} entered fullscreen mode`);
+    }
+
+    exitFullscreen() {
+        if (!this.isFullscreenMode) return;
+        
+        this.fullscreenParticipant = null;
+        this.isFullscreenMode = false;
+        
+        const overlay = document.getElementById('participantFullscreenOverlay');
+        if (overlay) {
+            overlay.remove();
+        }
+        
+        document.removeEventListener('keydown', this.handleFullscreenKeydown.bind(this));
+        
+        console.log(`🔍 [FULLSCREEN] Fullscreen mode exited`);
+    }
+
+    handleFullscreenKeydown(event) {
+        if (event.key === 'Escape' && this.isFullscreenMode) {
+            this.exitFullscreen();
+        }
+    }
+
+
+
     createParticipantElement(participant) {
         const container = document.getElementById('participantGrid');
         if (!container) {
@@ -1092,7 +1290,7 @@ class VoiceCallManager {
             this.scrollToNewParticipant(element);
         }
         
-        console.log(`🔊 [DEBUG] Voice participant element created for: ${participant.name}`);
+        this.updateView();
     }
 
     scrollToNewParticipant(element) {
@@ -1114,13 +1312,15 @@ class VoiceCallManager {
     }
 
     removeParticipantElement(participantId) {
-        const elements = document.querySelectorAll(`[data-participant-id="${participantId}"]`);
-        elements.forEach(element => {
-            element.remove();
-            console.log(`🗑️ [DEBUG] Removed participant element for ${participantId}`);
-        });
+        const voiceCard = document.querySelector(`[data-participant-id="${participantId}"].voice-participant-card`);
+        const videoCard = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card`);
         
-        this.removeVideoParticipantCard(participantId);
+        if (voiceCard) voiceCard.remove();
+        if (videoCard) videoCard.remove();
+        
+        if (this.fullscreenParticipant === participantId) {
+            this.exitFullscreen();
+        }
     }
 
     updateParticipantCount() {
@@ -1149,6 +1349,8 @@ class VoiceCallManager {
         if (container) {
             container.innerHTML = '';
         }
+        
+        this.exitFullscreen();
         
         this.updateParticipantCount();
         
@@ -1386,6 +1588,10 @@ class VoiceCallManager {
         if (voiceCard) {
             voiceCard.remove();
         }
+        
+        if (this.fullscreenParticipant === participantId) {
+            this.exitFullscreen();
+        }
     }
 
     removeVideoParticipantCard(participantId) {
@@ -1397,6 +1603,10 @@ class VoiceCallManager {
         }
         if (screenCard) {
             screenCard.remove();
+        }
+        
+        if (this.fullscreenParticipant === participantId) {
+            this.exitFullscreen();
         }
         
         const participant = this.participantManager.getParticipant(participantId);

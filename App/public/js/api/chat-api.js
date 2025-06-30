@@ -116,32 +116,18 @@ class ChatAPI {
 
         const apiChatType = this.normalizeApiChatType(chatType);
         
-        const limit = options.limit || 20;
+        const limit = options.limit || 50;
+        const before = options.before || null;
         const offset = options.offset || 0;
-        const loadMore = options.loadMore || false;
         
         let url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
-        
-        console.log('🔍 Getting messages from:', url, {
-            targetId,
-            chatType: apiChatType,
-            limit,
-            offset,
-            loadMore
-        });
-        
-        const response = await this.makeRequest(url);
-        
-        if (response && response.data) {
-            response.data.pagination = {
-                limit,
-                offset,
-                loadMore,
-                hasMore: response.data.has_more || false,
-                messageCount: response.data.messages?.length || 0
-            };
+        if (before) {
+            url += `&before=${before}`;
         }
         
+        console.log('🔍 Getting messages from:', url);
+        
+        const response = await this.makeRequest(url);
         return response;
     }
 

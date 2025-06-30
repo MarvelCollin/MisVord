@@ -21,16 +21,14 @@ if (!function_exists('renderChannel')) {
         $activeClass = $isActive ? 'active-channel' : '';
         
         $serverId = $GLOBALS['currentServer']->id ?? ($GLOBALS['server']->id ?? '');
-        $description = $channel['description'] ?? '';
         
         echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-discord-lighten ' . $activeClass . ' group" 
                   data-channel-id="' . $channel['id'] . '" 
                   data-channel-name="' . htmlspecialchars($channel['name']) . '"
                   data-channel-type="' . htmlspecialchars($type) . '"
-                  data-server-id="' . htmlspecialchars($serverId) . '"
-                  data-channel-description="' . htmlspecialchars($description) . '">';
+                  data-server-id="' . htmlspecialchars($serverId) . '">';
         echo '  <i class="fas fa-' . $icon . ' text-xs mr-3 text-gray-500"></i>';
-        echo '  <span class="channel-name text-sm flex-1">' . htmlspecialchars($channel['name']) . '</span>';
+        echo '  <span class="text-sm flex-1">' . htmlspecialchars($channel['name']) . '</span>';
         
         if ($type === 'voice') {
             echo '  <span class="ml-auto text-xs text-gray-500 voice-user-count">0</span>';

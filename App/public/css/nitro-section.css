@@ -746,3 +746,40 @@
         transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-130px) rotate(calc(var(--rotation))) scale(1.1) !important;
     }
 }
+
+@keyframes dragParticle {
+    0% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0) rotate(360deg) translateY(-50px);
+        opacity: 0;
+    }
+}
+
+@keyframes returnSparkle {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.5) rotate(180deg);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(0) rotate(360deg) translateY(-30px);
+        opacity: 0;
+    }
+}
+
+@keyframes hexagonAppear {
+    0% {
+        opacity: 0;
+        filter: blur(10px);
+    }
+    100% {
+        opacity: 1;
+        filter: blur(0);
+    }
+}
