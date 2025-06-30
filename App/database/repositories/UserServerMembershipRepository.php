@@ -130,34 +130,7 @@ class UserServerMembershipRepository extends Repository {
         }
     }
     
-    public function updateNotificationSettings($userId, $serverId, $settings) {
-        $query = new Query();
-        return $query->table('user_server_memberships')
-            ->where('user_id', $userId)
-            ->where('server_id', $serverId)
-            ->update(['notification_settings' => json_encode($settings)]);
-    }
-    
-    public function getNotificationSettings($userId, $serverId) {
-        $query = new Query();
-        $result = $query->table('user_server_memberships')
-            ->select('notification_settings')
-            ->where('user_id', $userId)
-            ->where('server_id', $serverId)
-            ->first();
-        
-        if ($result && !empty($result['notification_settings'])) {
-            return json_decode($result['notification_settings'], true);
-        }
-        
-        return [
-            'all_messages' => false,
-            'mentions_only' => true,
-            'muted' => false,
-            'suppress_everyone' => false,
-            'suppress_roles' => false
-        ];
-    }
+
     
     public function getServerIdsForUser($userId) {
         return UserServerMembership::getServerIdsForUser($userId);

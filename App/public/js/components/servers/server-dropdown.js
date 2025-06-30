@@ -109,10 +109,6 @@ function initServerActions() {
                 case 'Create Category':
                     showCreateCategoryModal();
                     break;
-                case 'Notification Settings':
-                    showNotificationSettingsModal();
-                    break;
-
                 case 'Leave Server':
                     showLeaveServerConfirmation();
                     break;
@@ -346,34 +342,7 @@ function showCreateCategoryModal() {
     }
 }
 
-function showNotificationSettingsModal() {
-    const serverId = getCurrentServerId();
-    const modal = document.getElementById('notification-settings-modal');
 
-    if (modal) {
-        modal.classList.remove('hidden');
-        loadNotificationSettings(serverId);
-
-        const form = document.getElementById('notification-settings-form');
-        const closeBtn = document.getElementById('close-notification-settings-modal');
-        const cancelBtn = document.getElementById('cancel-notification-settings');
-
-        if (form && !form.hasAttribute('data-listener')) {
-            form.addEventListener('submit', (e) => updateNotificationSettings(e, serverId));
-            form.setAttribute('data-listener', 'true');
-        }
-
-        if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
-            closeBtn.addEventListener('click', () => closeModal('notification-settings-modal'));
-            closeBtn.setAttribute('data-listener', 'true');
-        }
-
-        if (cancelBtn && !cancelBtn.hasAttribute('data-listener')) {
-            cancelBtn.addEventListener('click', () => closeModal('notification-settings-modal'));
-            cancelBtn.setAttribute('data-listener', 'true');
-        }
-    }
-}
 
 
 
@@ -637,76 +606,146 @@ function createCategory(e, serverId) {
         });
 }
 
-function loadNotificationSettings(serverId) {
-    serverAPI.getNotificationSettings(serverId)
-        .then(data => {
-            if (data.data && data.data.settings) {
-                const settings = data.data.settings;
 
-                if (settings.all_messages) {
-                    document.querySelector('input[value="all_messages"]').checked = true;
-                } else if (settings.muted) {
-                    document.querySelector('input[value="muted"]').checked = true;
-                } else {
-                    document.querySelector('input[value="mentions_only"]').checked = true;
-                }
-
-                document.getElementById('suppress-everyone').checked = settings.suppress_everyone || false;
-                document.getElementById('mobile-notifications').checked = settings.mobile_notifications || false;
-            }
-        })
-        .catch(error => {
-            console.error('Error loading notification settings:', error);
-        });
-}
-
-function updateNotificationSettings(e, serverId) {
-    e.preventDefault();
-
-    const formData = new FormData(e.target);
-    const notificationType = formData.get('notification_type');
-
-    const data = {
-        server_id: serverId,
-        all_messages: notificationType === 'all_messages',
-        mentions_only: notificationType === 'mentions_only',
-        muted: notificationType === 'muted',
-        suppress_everyone: formData.has('suppress_everyone'),
-        mobile_notifications: formData.has('mobile_notifications')
-    };
-    
-    serverAPI.updateNotificationSettings(serverId, data)
-        .then(data => {
-            if (data.data) {
-                showToast('Notification settings updated!', 'success');
-                closeModal('notification-settings-modal');
-            } else {
-                throw new Error(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error updating notification settings:', error);
-            showToast('Failed to update notification settings', 'error');
-        });
-}
 
 
 
 function leaveServer(serverId) {
-    serverAPI.leaveServer(serverId)
+    if (!window.serverAPI) {
+        showToast('Server API not available', 'error');
+        return;
+    }
+    
+    window.serverAPI.leaveServer(serverId)
         .then(data => {
-            if (data.data) {
-                showToast('You have left the server', 'success');
+            if (data.success) {
+                showToast(data.message || 'You have left the server', 'success');
                 closeModal('leave-server-modal');
 
-                setTimeout(() => window.location.href = '/home', 1000);
+                setTimeout(() => {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        window.location.href = '/home';
+                    }
+                }, 1000);
             } else {
-                throw new Error(data.message);
+                throw new Error(data.message || 'Failed to leave server');
             }
         })
         .catch(error => {
             console.error('Error leaving server:', error);
-            showToast('Failed to leave server', 'error');
+            
+            if (error.message && error.message.includes('ownership')) {
+                showTransferOwnershipModal(serverId);
+                closeModal('leave-server-modal');
+            } else {
+                showToast('Failed to leave server: ' + error.message, 'error');
+            }
+        });
+}
+
+function showTransferOwnershipModal(serverId) {
+    const modal = document.getElementById('transfer-ownership-modal');
+    if (!modal) {
+        console.error('Transfer ownership modal not found');
+        return;
+    }
+    
+    modal.classList.remove('hidden');
+    
+    const newOwnerSelect = document.getElementById('new-owner-select');
+    const confirmBtn = document.getElementById('confirm-transfer-ownership');
+    
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+    }
+    
+    if (newOwnerSelect) {
+        newOwnerSelect.innerHTML = '<option value="">Loading members...</option>';
+        
+        window.serverAPI.getEligibleNewOwners(serverId)
+            .then(data => {
+                if (data.success && data.members) {
+                    newOwnerSelect.innerHTML = '<option value="">Select new owner...</option>';
+                    
+                    data.members.forEach(member => {
+                        const option = document.createElement('option');
+                        option.value = member.id;
+                        option.textContent = `${member.display_name || member.username} (${member.role})`;
+                        newOwnerSelect.appendChild(option);
+                    });
+                    
+                    if (data.members.length === 0) {
+                        newOwnerSelect.innerHTML = '<option value="">No eligible members found</option>';
+                    }
+                } else {
+                    newOwnerSelect.innerHTML = '<option value="">Error loading members</option>';
+                    console.error('Failed to load eligible members:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading eligible members:', error);
+                newOwnerSelect.innerHTML = '<option value="">Error loading members</option>';
+            });
+    }
+    
+    const confirmTransferBtn = document.getElementById('confirm-transfer-ownership');
+    if (confirmTransferBtn && !confirmTransferBtn.hasAttribute('data-listener')) {
+        confirmTransferBtn.addEventListener('click', function() {
+            const newOwnerId = document.getElementById('new-owner-select').value;
+            
+            if (!newOwnerId) {
+                showToast('Please select a new owner', 'error');
+                return;
+            }
+            
+            transferOwnershipAndLeave(serverId, newOwnerId);
+        });
+        confirmTransferBtn.setAttribute('data-listener', 'true');
+    }
+}
+
+function transferOwnershipAndLeave(serverId, newOwnerId) {
+    const transferBtn = document.getElementById('confirm-transfer-ownership');
+    
+    if (transferBtn) {
+        transferBtn.disabled = true;
+        transferBtn.textContent = 'Transferring...';
+    }
+    
+    if (!window.serverAPI) {
+        showToast('Server API not available', 'error');
+        return;
+    }
+    
+    window.serverAPI.transferOwnershipAndLeave(serverId, newOwnerId)
+        .then(response => {
+            if (response.success) {
+                showToast(response.message || 'Ownership transferred successfully', 'success');
+                
+                closeModal('transfer-ownership-modal');
+                
+                setTimeout(() => {
+                    if (response.redirect) {
+                        window.location.href = response.redirect;
+                    } else {
+                        window.location.href = '/home';
+                    }
+                }, 1000);
+            } else {
+                showToast(response.message || 'Failed to transfer ownership', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error transferring ownership:', error);
+            showToast('Failed to transfer ownership: ' + error.message, 'error');
+        })
+        .finally(() => {
+            if (transferBtn) {
+                transferBtn.disabled = false;
+                transferBtn.textContent = 'Transfer & Leave';
+            }
         });
 }
 

@@ -339,6 +339,12 @@ async function loadAllFriends() {
     const container = document.getElementById('all-friends-container');
     if (!container) return;
     
+    if (!window.FriendsManager) {
+        console.error('FriendsManager not loaded');
+        container.innerHTML = '<div class="text-gray-400 p-4">Loading friends system...</div>';
+        return;
+    }
+    
     const friendsManager = window.FriendsManager.getInstance();
     
     container.innerHTML = generateSkeletonFriends(5);
@@ -432,6 +438,12 @@ function generateSkeletonFriends(count) {
 async function loadPendingRequests() {
     const pendingContainer = document.getElementById('pending-requests');
     if (!pendingContainer) return;
+
+    if (!window.FriendsManager) {
+        console.error('FriendsManager not loaded');
+        pendingContainer.innerHTML = '<div class="text-gray-400 p-4">Loading friends system...</div>';
+        return;
+    }
 
     const friendsManager = window.FriendsManager.getInstance();
     
@@ -566,6 +578,11 @@ function generateSkeletonPendingItems(count) {
 
 
 async function acceptFriendRequest(userId) {
+    if (!window.FriendsManager) {
+        console.error('FriendsManager not loaded');
+        return;
+    }
+    
     const friendsManager = window.FriendsManager.getInstance();
     
     try {
@@ -584,6 +601,11 @@ async function acceptFriendRequest(userId) {
 }
 
 async function ignoreFriendRequest(userId) {
+    if (!window.FriendsManager) {
+        console.error('FriendsManager not loaded');
+        return;
+    }
+    
     const friendsManager = window.FriendsManager.getInstance();
     
     try {
@@ -602,6 +624,11 @@ async function ignoreFriendRequest(userId) {
 }
 
 async function cancelFriendRequest(userId) {
+    if (!window.FriendsManager) {
+        console.error('FriendsManager not loaded');
+        return;
+    }
+    
     const friendsManager = window.FriendsManager.getInstance();
     
     try {
@@ -658,6 +685,10 @@ function initFriendRequestForm() {
         sendFriendRequestBtn.classList.add('opacity-50', 'cursor-not-allowed');
 
         try {
+            if (!window.FriendsManager) {
+                throw new Error('Friends system not ready');
+            }
+            
             const friendsManager = window.FriendsManager.getInstance();
             await friendsManager.sendFriendRequest(username);
 
@@ -715,6 +746,12 @@ function showToast(message, type = 'info') {
 }
 
 window.acceptFriendRequest = async function (friendshipId) {
+    if (!window.FriendsManager) {
+        console.error('FriendsManager not loaded');
+        showToast('Friends system not ready', 'error');
+        return;
+    }
+    
     const friendsManager = window.FriendsManager.getInstance();
     
     try {
@@ -735,6 +772,12 @@ window.acceptFriendRequest = async function (friendshipId) {
 };
 
 window.ignoreFriendRequest = async function (friendshipId) {
+    if (!window.FriendsManager) {
+        console.error('FriendsManager not loaded');
+        showToast('Friends system not ready', 'error');
+        return;
+    }
+    
     const friendsManager = window.FriendsManager.getInstance();
     
     try {
