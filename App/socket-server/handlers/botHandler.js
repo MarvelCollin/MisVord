@@ -226,6 +226,8 @@ class BotHandler extends EventEmitter {
         
         if (!isInVoice) {
             console.log(`❌ [VOICE-CHECK] User ${userId} not in voice channel, sending rejection message`);
+            console.log(`🚀 [VOICE-CHECK] Adding 3-second delay to ensure proper message ordering in database...`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
             const responseContent = '😒Minimal masuk voice channel dulu bang';
             await this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, null);
             return false;
@@ -361,6 +363,8 @@ class BotHandler extends EventEmitter {
                 responseContent = '❌ bro minimal baca tutorial dulu kalo command';
         }
 
+        console.log(`🚀 [BOT-RESPONSE] Adding 3-second delay to ensure proper message ordering in database...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
         console.log(`🚀 [BOT-RESPONSE] Sending bot response using DIRECT message emission (same as normal users)`);
         
         await this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData);
@@ -485,6 +489,8 @@ class BotHandler extends EventEmitter {
 
     static async fallbackDirectResponse(io, originalMessage, messageType, botId, username, responseContent, musicData) {
         console.log(`🔄 [BOT-FALLBACK] Using fallback response (this should not be called anymore)`);
+        console.log(`🚀 [BOT-FALLBACK] Adding 3-second delay to ensure proper message ordering in database...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
         await this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData);
     }
 

@@ -226,6 +226,14 @@ class LocalStorageManager {
                 }
             });
             
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: { 
+                    type: 'stateUpdate',
+                    state: state,
+                    source: 'localStorage'
+                }
+            }));
+            
             this.debounceTimers.delete(debounceKey);
         }, 50));
     }
@@ -244,6 +252,85 @@ class LocalStorageManager {
 
     setVoiceState(state) {
         return this.setUnifiedVoiceState(state);
+    }
+
+    clearVoiceState() {
+        return this.setUnifiedVoiceState({
+            isMuted: false,
+            isDeafened: false,
+            volume: 100,
+            isConnected: false,
+            channelId: null,
+            channelName: null,
+            meetingId: null,
+            connectionTime: null
+        });
+    }
+
+    toggleVoiceMute() {
+        if (window.videoSDKManager && window.videoSDKManager.isReady()) {
+            const newState = window.videoSDKManager.toggleMic();
+            
+            const currentState = this.getUnifiedVoiceState();
+            this.setUnifiedVoiceState({
+                ...currentState,
+                isMuted: !newState
+            });
+            
+            if (window.MusicLoaderStatic) {
+                if (newState) {
+                    window.MusicLoaderStatic.playDiscordUnmuteSound();
+                } else {
+                    window.MusicLoaderStatic.playDiscordMuteSound();
+                }
+            }
+            
+            return !newState;
+        } else {
+            const currentState = this.getUnifiedVoiceState();
+            const newMutedState = !currentState.isMuted;
+            
+            this.setUnifiedVoiceState({
+                ...currentState,
+                isMuted: newMutedState
+            });
+            
+            if (window.MusicLoaderStatic) {
+                if (newMutedState) {
+                    window.MusicLoaderStatic.playDiscordMuteSound();
+                } else {
+                    window.MusicLoaderStatic.playDiscordUnmuteSound();
+                }
+            }
+            
+            return newMutedState;
+        }
+    }
+
+    toggleVoiceDeafen() {
+        if (window.videoSDKManager && window.videoSDKManager.isReady()) {
+            const newState = window.videoSDKManager.toggleDeafen();
+            
+            const currentState = this.getUnifiedVoiceState();
+            this.setUnifiedVoiceState({
+                ...currentState,
+                isDeafened: newState,
+                isMuted: newState ? true : currentState.isMuted
+            });
+            
+            return newState;
+        } else {
+            const currentState = this.getUnifiedVoiceState();
+            const newDeafenedState = !currentState.isDeafened;
+            
+            this.setUnifiedVoiceState({
+                ...currentState,
+                isDeafened: newDeafenedState,
+                isMuted: newDeafenedState ? true : currentState.isMuted
+            });
+            
+            return newDeafenedState;
+        }
     }
 
     showToast(message, type = 'info') {

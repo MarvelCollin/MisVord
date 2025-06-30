@@ -321,6 +321,14 @@ class GlobalSocketManager {
             }
         });
         
+        this.io.on('voice-meeting-status', (data) => {
+            console.log('📡 [SOCKET] Voice meeting status received:', data);
+        });
+        
+        this.io.on('voice-meeting-update', (data) => {
+            console.log('📡 [SOCKET] Voice meeting update received:', data);
+        });
+        
         this.io.on('stop-typing', this.handleStopTyping.bind(this));
         this.io.on('mention_notification', this.handleMentionNotification.bind(this));
         

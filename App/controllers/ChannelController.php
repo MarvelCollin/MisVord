@@ -633,7 +633,6 @@ class ChannelController extends BaseController
 
             $participants = $this->membershipRepository->getServerMembers($channel->server_id);
 
-            // Format participants for mention handler compatibility
             $formattedParticipants = array_map(function($participant) {
                 return [
                     'user_id' => $participant['id'],
@@ -651,7 +650,7 @@ class ChannelController extends BaseController
 
             return $this->success([
                 'data' => $formattedParticipants,
-                'participants' => $participants, // Keep for backward compatibility
+                'participants' => $participants,
                 'channel_id' => $channelId,
                 'total' => count($participants)
             ]);
@@ -734,6 +733,71 @@ class ChannelController extends BaseController
                 'channels' => [],
                 'categories' => []
             ];
+        }
+    }
+
+    public function switchToChannel()
+    {
+        $this->requireAuth();
+        
+        $input = $this->getInput();
+        $channelId = $input['channel_id'] ?? $_GET['channel_id'] ?? null;
+        $limit = $input['limit'] ?? $_GET['limit'] ?? 50;
+        
+        if (!$channelId) {
+            return $this->validationError(['channel_id' => 'Channel ID is required']);
+        }
+        
+        try {
+            $channel = $this->channelRepository->find($channelId);
+            if (!$channel) {
+                return $this->notFound('Channel not found');
+            }
+            
+            $currentUserId = $this->getCurrentUserId();
+            
+            if ($channel->server_id != 0) {
+                $membership = $this->membershipRepository->findByUserAndServer($currentUserId, $channel->server_id);
+                if (!$membership) {
+                    return $this->forbidden('You are not a member of this server');
+                }
+            }
+            
+            $messages = [];
+            if ($channel->type === 'text' || $channel->type === '1' || $channel->type == 1) {
+                $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, 0);
+            }
+            
+            require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+            $serverRepository = new ServerRepository();
+            $server = $serverRepository->find($channel->server_id);
+            
+            $this->logActivity('channel_switched', ['channel_id' => $channelId]);
+            
+            return $this->success([
+                'channel' => [
+                    'id' => $channel->id,
+                    'name' => $channel->name,
+                    'type' => $channel->type,
+                    'description' => $channel->description,
+                    'server_id' => $channel->server_id,
+                    'category_id' => $channel->category_id,
+                    'is_private' => $channel->is_private
+                ],
+                'server' => $server ? [
+                    'id' => $server->id,
+                    'name' => $server->name
+                ] : null,
+                'messages' => $messages,
+                'message_count' => count($messages),
+                'has_more' => count($messages) >= $limit
+            ]);
+        } catch (Exception $e) {
+            $this->logActivity('channel_switch_error', [
+                'channel_id' => $channelId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to switch to channel: ' . $e->getMessage());
         }
     }
 

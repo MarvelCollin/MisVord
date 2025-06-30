@@ -272,23 +272,21 @@ Route::post('/api/categories/create', function() {
     $controller->createCategory();
 });
 
-Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
-    require_once __DIR__ . '/../controllers/MessageController.php';
-    $controller = new MessageController();
-    $_GET['chat_type'] = 'channel';
-    $controller->getMessages($channelId);
-});
-
-Route::post('/api/channels/([0-9]+)/messages', function($channelId) {
-    require_once __DIR__ . '/../controllers/MessageController.php';
-    $controller = new MessageController();
-    $_POST['chat_type'] = 'channel';
-    $controller->sendMessage($channelId);
-});
-
 Route::get('/api/channels/([0-9]+)', function($channelId) {
     $controller = new ChannelController();
     $controller->show($channelId);
+});
+
+Route::get('/api/channels/([0-9]+)/switch', function($channelId) {
+    $controller = new ChannelController();
+    $_GET['channel_id'] = $channelId;
+    $controller->switchToChannel();
+});
+
+Route::post('/api/channels/([0-9]+)/switch', function($channelId) {
+    $controller = new ChannelController();
+    $_POST['channel_id'] = $channelId;
+    $controller->switchToChannel();
 });
 
 Route::put('/api/channels/([0-9]+)', function($channelId) {
@@ -1436,17 +1434,15 @@ Route::get('/api/chat/dm/([0-9]+)', function($dmId) {
 });
 
 Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
-    require_once __DIR__ . '/../controllers/MessageController.php';
-    $controller = new MessageController();
-    $_GET['chat_type'] = 'channel';
-    $controller->getMessages($channelId);
+    $controller = new ChatController();
+    $controller->getMessages('channel', $channelId);
 });
 
 Route::post('/api/channels/([0-9]+)/messages', function($channelId) {
-    require_once __DIR__ . '/../controllers/MessageController.php';
-    $controller = new MessageController();
-    $_POST['chat_type'] = 'channel';
-    $controller->sendMessage($channelId);
+    $controller = new ChatController();
+    $_POST['target_type'] = 'channel';
+    $_POST['target_id'] = $channelId;
+    $controller->sendMessage();
 });
 
 Route::get('/api/chat/channel/([0-9]+)/messages', function($channelId) {

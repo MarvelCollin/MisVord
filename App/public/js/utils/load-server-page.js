@@ -664,15 +664,20 @@ function initServerDropdownManual() {
 function cleanupForServerSwitch() {
     console.log('[Server AJAX] Cleaning up for server switch');
     
+    if (window.chatSection) {
+        console.log('[Server AJAX] Cleaning up existing chat section');
+        if (typeof window.chatSection.leaveCurrentSocketRoom === 'function') {
+            window.chatSection.leaveCurrentSocketRoom();
+        }
+        if (typeof window.chatSection.cleanup === 'function') {
+            window.chatSection.cleanup();
+        }
+        window.chatSection = null;
+    }
+    
     if (window.simpleChannelSwitcher) {
         console.log('[Server AJAX] Cleaning up existing simple channel switcher');
         window.simpleChannelSwitcher = null;
-    }
-    
-    if (window.chatSection && typeof window.chatSection.cleanup === 'function') {
-        console.log('[Server AJAX] Cleaning up existing chat section');
-        window.chatSection.cleanup();
-        window.chatSection = null;
     }
     
     console.log('[Server AJAX] Cleanup completed');
@@ -681,19 +686,29 @@ function cleanupForServerSwitch() {
 function initializeServerSystems() {
     console.log('[Server AJAX] Initializing server systems');
     
-    setTimeout(() => {
-        if (window.SimpleChannelSwitcher) {
-            new window.SimpleChannelSwitcher();
-            console.log('[Server AJAX] SimpleChannelSwitcher created successfully');
-        }
+    setTimeout(async () => {
+        let chatSection = null;
+        let channelSwitcher = null;
         
         if (typeof window.initializeChatSection === 'function') {
             console.log('[Server AJAX] Initializing chat section');
-            window.initializeChatSection();
+            await window.initializeChatSection();
+            chatSection = window.chatSection;
+            console.log('[Server AJAX] Chat section ready:', !!chatSection);
+        }
+        
+        if (window.SimpleChannelSwitcher) {
+            channelSwitcher = new window.SimpleChannelSwitcher();
+            console.log('[Server AJAX] SimpleChannelSwitcher created successfully');
+            
+            if (chatSection && channelSwitcher) {
+                chatSection.setChannelSwitchManager(channelSwitcher);
+                console.log('[Server AJAX] Systems linked successfully');
+            }
         }
         
         console.log('[Server AJAX] Server systems initialized');
-    }, 200);
+    }, 300);
 }
 
 window.loadServerPage = loadServerPage; 

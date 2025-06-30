@@ -7,6 +7,8 @@ class SimpleChannelSwitcher {
         this.currentChannelId = null;
         this.currentChannelType = 'text';
         this.isLoading = false;
+        this.clickHandlerSetup = false;
+        this.channelClickHandler = null;
         
         window.simpleChannelSwitcher = this;
         this.init();
@@ -20,9 +22,13 @@ class SimpleChannelSwitcher {
     }
     
     setupChannelClicks() {
-        document.addEventListener('click', (e) => {
+        if (this.clickHandlerSetup) return;
+        
+        this.channelClickHandler = (e) => {
             const channelItem = e.target.closest('.channel-item');
             if (!channelItem || this.isLoading) return;
+            
+            if (channelItem.dataset.handledBy === 'SimpleChannelSwitcher') return;
             
             e.preventDefault();
             e.stopPropagation();
@@ -31,9 +37,17 @@ class SimpleChannelSwitcher {
             const channelType = channelItem.getAttribute('data-channel-type') || 'text';
             
             if (channelId) {
+                channelItem.dataset.handledBy = 'SimpleChannelSwitcher';
                 this.switchToChannel(channelId, channelType);
+                setTimeout(() => {
+                    delete channelItem.dataset.handledBy;
+                }, 500);
             }
-        });
+        };
+        
+        document.addEventListener('click', this.channelClickHandler);
+        this.clickHandlerSetup = true;
+        console.log('[SimpleChannelSwitcher] Channel click handler setup');
     }
     
     switchToChannel(channelId, channelType = 'text') {
@@ -77,41 +91,145 @@ class SimpleChannelSwitcher {
         }
     }
     
-    async loadChannelContent(channelId, channelType) {
+        async loadChannelContent(channelId, channelType) {
         if (channelType === 'text') {
-            await this.loadChatMessages(channelId);
+            await this.loadChannelData(channelId);
         }
     }
-    
-    async loadChatMessages(channelId) {
+
+    async loadChannelData(channelId) {
+        console.log('[SimpleChannelSwitcher] Loading channel data for:', channelId);
+        
+        if (window.chatSection && typeof window.chatSection.switchToChannel === 'function') {
+            console.log('[SimpleChannelSwitcher] Using ChatSection to switch channel');
+            
+            try {
+                await window.chatSection.switchToChannel(channelId, this.currentChannelType);
+                this.updateChannelMetaTags(channelId);
+                this.joinSocketRoom(channelId);
+                console.log('[SimpleChannelSwitcher] Channel switch completed via ChatSection');
+            } catch (error) {
+                console.error('[SimpleChannelSwitcher] Error switching via ChatSection:', error);
+                await this.fallbackLoadChannelData(channelId);
+            }
+        } else {
+            console.log('[SimpleChannelSwitcher] ChatSection not available, using fallback');
+            await this.fallbackLoadChannelData(channelId);
+        }
+    }
+
+    async fallbackLoadChannelData(channelId) {
         const chatMessagesContainer = document.getElementById('chat-messages');
         if (!chatMessagesContainer) return;
-        
+
         const messagesContainer = chatMessagesContainer.querySelector('.messages-container');
         if (messagesContainer) {
             messagesContainer.innerHTML = '<div class="flex justify-center p-4"><div class="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div></div>';
         }
-        
-        this.updateChannelHeader(channelId);
-        
+
         try {
-            const response = await fetch(`/api/chat/channel/${channelId}/messages?limit=50`, {
+            const response = await fetch(`/api/channels/${channelId}/switch?limit=50`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
-                this.renderMessages(data.data?.messages || []);
-                this.joinSocketRoom(channelId);
+                if (data.success && data.data) {
+                    this.updateChannelHeaderFromData(data.data.channel, data.data.server);
+                    this.updateChannelMetaTags(channelId, data.data.channel);
+                    this.renderMessages(data.data.messages || []);
+                    this.joinSocketRoom(channelId);
+                } else {
+                    throw new Error(data.message || 'Failed to load channel data');
+                }
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
         } catch (error) {
-            console.error('[SimpleChannelSwitcher] Error loading messages:', error);
+            console.error('[SimpleChannelSwitcher] Error loading channel:', error);
             if (messagesContainer) {
-                messagesContainer.innerHTML = '<div class="text-center p-4 text-red-400">Failed to load messages</div>';
+                messagesContainer.innerHTML = '<div class="text-center p-4 text-red-400">Failed to load channel: ' + error.message + '</div>';
             }
         }
     }
+
+    updateChannelMetaTags(channelId, channelData = null) {
+        console.log('[SimpleChannelSwitcher] Updating meta tags for channel:', channelId);
+        
+        let channelIdMeta = document.querySelector('meta[name="channel-id"]');
+        if (!channelIdMeta) {
+            channelIdMeta = document.createElement('meta');
+            channelIdMeta.name = 'channel-id';
+            document.head.appendChild(channelIdMeta);
+        }
+        channelIdMeta.content = channelId;
+
+        let chatIdMeta = document.querySelector('meta[name="chat-id"]');
+        if (!chatIdMeta) {
+            chatIdMeta = document.createElement('meta');
+            chatIdMeta.name = 'chat-id';
+            document.head.appendChild(chatIdMeta);
+        }
+        chatIdMeta.content = channelId;
+
+        if (channelData && channelData.name) {
+            let chatTitleMeta = document.querySelector('meta[name="chat-title"]');
+            if (!chatTitleMeta) {
+                chatTitleMeta = document.createElement('meta');
+                chatTitleMeta.name = 'chat-title';
+                document.head.appendChild(chatTitleMeta);
+            }
+            chatTitleMeta.content = channelData.name;
+        }
+
+        console.log('[SimpleChannelSwitcher] Meta tags updated successfully');
+    }
     
+    updateChannelHeaderFromData(channel, server) {
+        const channelIcon = document.getElementById('channel-icon');
+        const channelName = document.getElementById('channel-name');
+        
+        if (channelIcon && channelName && channel) {
+            channelName.textContent = channel.name || 'Channel';
+            
+            const iconClass = this.getChannelIconClass(channel.type);
+            channelIcon.className = iconClass;
+            
+            if (server) {
+                const serverNameElement = document.querySelector('.server-name');
+                if (serverNameElement) {
+                    serverNameElement.textContent = server.name;
+                }
+            }
+        }
+        
+        if (window.chatSection && typeof window.chatSection.updateChannelHeader === 'function') {
+            window.chatSection.updateChannelHeader();
+        }
+    }
+    
+    getChannelIconClass(channelType) {
+        switch(channelType) {
+            case 'voice':
+            case '2':
+            case 2:
+                return 'fas fa-volume-up text-gray-400';
+            case 'announcement':
+            case '4':
+            case 4:
+                return 'fas fa-bullhorn text-gray-400';
+            case 'forum':
+            case '5':
+            case 5:
+                return 'fas fa-comments text-gray-400';
+            case 'text':
+            case '1':
+            case 1:
+            default:
+                return 'fas fa-hashtag text-gray-400';
+        }
+    }
+
     updateChannelHeader(channelId) {
         const channelIcon = document.getElementById('channel-icon');
         const channelName = document.getElementById('channel-name');

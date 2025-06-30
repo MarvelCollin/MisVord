@@ -12,6 +12,113 @@ class UnifiedVoiceStateManager {
     init() {
         this.setupEventListeners();
         this.cleanupConflictingStorage();
+        this.validateStoredConnection();
+    }
+
+    async validateStoredConnection() {
+        setTimeout(async () => {
+            const storedState = this.storageManager.getUnifiedVoiceState();
+            
+            if (!storedState.isConnected) {
+                return;
+            }
+
+            console.log('🔍 [UNIFIED-VOICE] Validating stored connection:', storedState);
+            
+            const isReallyConnected = await this.verifyActiveConnection();
+            
+            if (!isReallyConnected) {
+                console.log('❌ [UNIFIED-VOICE] Stored connection is stale, clearing...');
+                this.clearStaleConnection();
+                
+                if (window.globalVoiceIndicator) {
+                    window.globalVoiceIndicator.handleDisconnect();
+                }
+                
+                if (window.showToast) {
+                    window.showToast('Previous voice connection expired', 'info');
+                }
+            } else {
+                console.log('✅ [UNIFIED-VOICE] Stored connection is valid');
+            }
+        }, 1000);
+    }
+
+    async verifyActiveConnection() {
+        const videoSDKConnected = window.videoSDKManager?.isConnected;
+        const voiceManagerConnected = window.voiceManager?.isConnected;
+        
+        if (videoSDKConnected && window.videoSDKManager?.meeting?.id) {
+            console.log('✅ [UNIFIED-VOICE] VideoSDK connection verified');
+            return true;
+        }
+        
+        if (voiceManagerConnected && window.voiceManager?.currentMeetingId) {
+            console.log('✅ [UNIFIED-VOICE] VoiceManager connection verified');
+            return true;
+        }
+        
+        if (window.globalSocketManager?.isReady()) {
+            const socketVerified = await this.verifySocketConnection();
+            if (socketVerified) {
+                console.log('✅ [UNIFIED-VOICE] Socket connection verified');
+                return true;
+            }
+        }
+        
+        console.log('❌ [UNIFIED-VOICE] No active connection found');
+        return false;
+    }
+
+    async verifySocketConnection() {
+        return new Promise((resolve) => {
+            const storedState = this.storageManager.getUnifiedVoiceState();
+            
+            if (!storedState.channelId || !storedState.meetingId) {
+                resolve(false);
+                return;
+            }
+            
+            const timeout = setTimeout(() => {
+                if (window.globalSocketManager?.io) {
+                    window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
+                }
+                resolve(false);
+            }, 3000);
+            
+            const handleResponse = (data) => {
+                if (data.channel_id === storedState.channelId) {
+                    clearTimeout(timeout);
+                    window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
+                    resolve(data.has_meeting && data.meeting_id === storedState.meetingId);
+                }
+            };
+            
+            if (window.globalSocketManager?.io) {
+                window.globalSocketManager.io.on('voice-meeting-status', handleResponse);
+                window.globalSocketManager.io.emit('check-voice-meeting', { 
+                    channel_id: storedState.channelId 
+                });
+            } else {
+                clearTimeout(timeout);
+                resolve(false);
+            }
+        });
+    }
+
+    clearStaleConnection() {
+        this.storageManager.setUnifiedVoiceState({
+            isMuted: false,
+            isDeafened: false,
+            volume: 100,
+            isConnected: false,
+            channelId: null,
+            channelName: null,
+            meetingId: null,
+            connectionTime: null
+        });
+        
+        console.log('🧹 [UNIFIED-VOICE] Cleared stale connection state');
     }
 
     cleanupConflictingStorage() {
@@ -46,6 +153,13 @@ class UnifiedVoiceStateManager {
                 } catch (error) {
                     console.error('Error parsing unified voice state from storage:', error);
                 }
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            const state = this.getState();
+            if (state.isConnected) {
+                console.log('🔄 [UNIFIED-VOICE] Page unloading, voice state preserved');
             }
         });
     }
@@ -149,11 +263,15 @@ class UnifiedVoiceStateManager {
             window.voiceCallManager.isConnected = state.isConnected || false;
         }
 
-        if (window.globalVoiceIndicator && state.isConnected && state.channelName) {
-            window.globalVoiceIndicator.channelName = state.channelName;
-            window.globalVoiceIndicator.meetingId = state.meetingId;
-            window.globalVoiceIndicator.connectionTime = state.connectionTime;
-            window.globalVoiceIndicator.updateVisibility();
+        if (window.globalVoiceIndicator) {
+            if (state.isConnected && state.channelName) {
+                window.globalVoiceIndicator.channelName = state.channelName;
+                window.globalVoiceIndicator.meetingId = state.meetingId;
+                window.globalVoiceIndicator.connectionTime = state.connectionTime;
+                window.globalVoiceIndicator.updateVisibility();
+            } else {
+                window.globalVoiceIndicator.handleDisconnect();
+            }
         }
     }
 
@@ -189,6 +307,39 @@ class UnifiedVoiceStateManager {
         
         this.handleDisconnect();
         window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+    }
+
+    toggleMute() {
+        if (this.storageManager.toggleVoiceMute) {
+            return this.storageManager.toggleVoiceMute();
+        }
+        
+        const currentState = this.getState();
+        const newMutedState = !currentState.isMuted;
+        
+        this.setState({
+            ...currentState,
+            isMuted: newMutedState
+        });
+        
+        return newMutedState;
+    }
+
+    toggleDeafen() {
+        if (this.storageManager.toggleVoiceDeafen) {
+            return this.storageManager.toggleVoiceDeafen();
+        }
+        
+        const currentState = this.getState();
+        const newDeafenedState = !currentState.isDeafened;
+        
+        this.setState({
+            ...currentState,
+            isDeafened: newDeafenedState,
+            isMuted: newDeafenedState ? true : currentState.isMuted
+        });
+        
+        return newDeafenedState;
     }
 
     reset() {

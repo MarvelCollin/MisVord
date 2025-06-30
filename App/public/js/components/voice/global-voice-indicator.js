@@ -21,23 +21,120 @@ class GlobalVoiceIndicator {
     }
     
     checkExistingConnection() {
-        setTimeout(() => {
+        setTimeout(async () => {
             const voiceState = this.getVoiceState();
             const voiceManagerConnected = window.voiceManager?.isConnected;
             const videoSDKConnected = window.videoSDKManager?.isConnected;
+            const hasStoredConnection = voiceState?.isConnected;
             
-            if (voiceState?.isConnected || voiceManagerConnected || videoSDKConnected) {
-                this.isConnected = true;
-                this.channelName = voiceState?.channelName || window.voiceManager?.currentChannelName || 'Voice Channel';
-                this.meetingId = voiceState?.meetingId || window.voiceManager?.currentMeetingId || '';
-                this.connectionTime = voiceState?.connectionTime || Date.now();
+            console.log('🔍 [GLOBAL-VOICE-INDICATOR] Checking existing connection:', {
+                hasStoredConnection,
+                voiceManagerConnected,
+                videoSDKConnected,
+                voiceState
+            });
+            
+            if (hasStoredConnection || voiceManagerConnected || videoSDKConnected) {
+                const isValidConnection = await this.validateConnection(voiceState);
                 
-                this.createIndicator();
-                this.updateVisibility();
+                if (isValidConnection) {
+                    this.isConnected = true;
+                    this.channelName = voiceState?.channelName || window.voiceManager?.currentChannelName || 'Voice Channel';
+                    this.meetingId = voiceState?.meetingId || window.voiceManager?.currentMeetingId || '';
+                    this.connectionTime = voiceState?.connectionTime || Date.now();
+                    
+                    console.log('✅ [GLOBAL-VOICE-INDICATOR] Valid connection found, showing indicator');
+                    this.createIndicator();
+                    this.updateVisibility();
+                } else {
+                    console.log('❌ [GLOBAL-VOICE-INDICATOR] Invalid connection, clearing state');
+                    this.handleDisconnect();
+                    
+                    if (window.unifiedVoiceStateManager) {
+                        window.unifiedVoiceStateManager.clearStaleConnection();
+                    }
+                }
+            } else {
+                console.log('🔍 [GLOBAL-VOICE-INDICATOR] No connection found');
             }
-        }, 500);
+        }, 1000);
     }
     
+    async validateConnection(voiceState) {
+        if (!voiceState || !voiceState.isConnected) {
+            return false;
+        }
+        
+        if (window.videoSDKManager?.isConnected && window.videoSDKManager?.meeting?.id) {
+            const currentMeetingId = window.videoSDKManager.meeting.id;
+            if (voiceState.meetingId && voiceState.meetingId !== currentMeetingId) {
+                console.log('⚠️ [GLOBAL-VOICE-INDICATOR] Meeting ID mismatch:', {
+                    stored: voiceState.meetingId,
+                    current: currentMeetingId
+                });
+                return false;
+            }
+            return true;
+        }
+        
+        if (window.voiceManager?.isConnected && window.voiceManager?.currentMeetingId) {
+            const currentMeetingId = window.voiceManager.currentMeetingId;
+            if (voiceState.meetingId && voiceState.meetingId !== currentMeetingId) {
+                console.log('⚠️ [GLOBAL-VOICE-INDICATOR] Voice manager meeting ID mismatch:', {
+                    stored: voiceState.meetingId,
+                    current: currentMeetingId
+                });
+                return false;
+            }
+            return true;
+        }
+        
+        if (window.globalSocketManager?.isReady() && voiceState.channelId && voiceState.meetingId) {
+            const socketValid = await this.verifySocketConnection(voiceState);
+            return socketValid;
+        }
+        
+        console.log('❌ [GLOBAL-VOICE-INDICATOR] No active connection managers found');
+        return false;
+    }
+    
+    async verifySocketConnection(voiceState) {
+        return new Promise((resolve) => {
+            const timeout = setTimeout(() => {
+                if (window.globalSocketManager?.io) {
+                    window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
+                }
+                console.log('⏰ [GLOBAL-VOICE-INDICATOR] Socket verification timeout');
+                resolve(false);
+            }, 2000);
+            
+            const handleResponse = (data) => {
+                if (data.channel_id === voiceState.channelId) {
+                    clearTimeout(timeout);
+                    window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
+                    
+                    const isValid = data.has_meeting && data.meeting_id === voiceState.meetingId;
+                    console.log('📡 [GLOBAL-VOICE-INDICATOR] Socket verification result:', {
+                        isValid,
+                        serverMeetingId: data.meeting_id,
+                        storedMeetingId: voiceState.meetingId
+                    });
+                    resolve(isValid);
+                }
+            };
+            
+            if (window.globalSocketManager?.io) {
+                window.globalSocketManager.io.on('voice-meeting-status', handleResponse);
+                window.globalSocketManager.io.emit('check-voice-meeting', { 
+                    channel_id: voiceState.channelId 
+                });
+            } else {
+                clearTimeout(timeout);
+                resolve(false);
+            }
+        });
+    }
+
     startPeriodicCheck() {
         if (this.periodicCheckInterval) {
             clearInterval(this.periodicCheckInterval);
@@ -325,7 +422,9 @@ class GlobalVoiceIndicator {
         const micBtn = this.indicator.querySelector('.mic-btn');
         if (micBtn) {
             this.handleMicClick = () => {
-                if (window.videoSDKManager && window.videoSDKManager.isReady()) {
+                if (window.localStorageManager) {
+                    window.localStorageManager.toggleVoiceMute();
+                } else if (window.videoSDKManager && window.videoSDKManager.isReady()) {
                     const currentState = window.videoSDKManager.getMicState();
                     const newState = window.videoSDKManager.toggleMic();
                     
@@ -346,7 +445,9 @@ class GlobalVoiceIndicator {
         const deafenBtn = this.indicator.querySelector('.deafen-btn');
         if (deafenBtn) {
             this.handleDeafenClick = () => {
-                if (window.videoSDKManager && window.videoSDKManager.isReady()) {
+                if (window.localStorageManager) {
+                    window.localStorageManager.toggleVoiceDeafen();
+                } else if (window.videoSDKManager && window.videoSDKManager.isReady()) {
                     window.videoSDKManager.toggleDeafen();
                 } else {
                     window.showToast?.('Voice not connected', 'error');
@@ -619,6 +720,17 @@ class GlobalVoiceIndicator {
     }
 
     getVoiceState() {
+        if (window.localStorageManager) {
+            const state = window.localStorageManager.getVoiceState();
+            
+            if (window.voiceCallManager) {
+                state.isVideoOn = window.voiceCallManager.isVideoOn || false;
+                state.isScreenSharing = window.voiceCallManager.isScreenSharing || false;
+            }
+            
+            return state;
+        }
+        
         if (window.unifiedVoiceStateManager) {
             const state = window.unifiedVoiceStateManager.getState();
             

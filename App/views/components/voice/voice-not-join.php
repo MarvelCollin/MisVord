@@ -4,7 +4,7 @@ $currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
 $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name'] : $activeChannel->name) : 'Voice Channel';
 ?>
 
-<div id="joinView" class="h-full w-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a0f] via-[#1a1a2e] to-[#16213e] relative overflow-hidden" onmousemove="handleMouseMove(event)">
+<div id="joinView" class="h-full w-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a0f] via-[#1a1a2e] to-[#16213e] relative overflow-hidden">
     <div id="interactive-glow" class="absolute w-96 h-96 rounded-full bg-[radial-gradient(circle,rgba(139,92,246,0.2)_0%,transparent_70%)] blur-2xl opacity-0 transition-all duration-300 pointer-events-none"></div>
     
     <div class="absolute inset-8">
@@ -50,10 +50,29 @@ $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name
         <p class="text-blue-100/90 text-lg drop-shadow-lg font-light tracking-wide">No one is currently exploring this space</p>
         
         <div class="space-y-4">
-            <button id="joinBtn" class="relative transition-all duration-300 bg-gradient-to-r from-[#8b5cf6]/20 to-[#06b6d4]/20 border border-white/30 text-white font-semibold py-4 px-12 rounded-xl hover:scale-110 cursor-pointer z-50" style="pointer-events: auto;" onclick="joinVoiceChannel()">
+            <div id="loadingContainer" class="w-full max-w-md mx-auto">
+                <div id="loadingBar" class="mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-blue-100/80 font-medium">Initializing voice connection...</span>
+                        <span id="loadingPercent" class="text-sm text-cyan-300 font-mono">0%</span>
+                    </div>
+                    <div class="w-full bg-black/30 rounded-full h-2 overflow-hidden border border-white/10">
+                        <div id="loadingProgress" class="h-full bg-gradient-to-r from-[#8b5cf6] via-[#06b6d4] to-[#6366f1] rounded-full transition-all duration-100 ease-out shadow-lg shadow-purple-500/50" style="width: 0%"></div>
+                    </div>
+                    <div class="flex items-center justify-center mt-3">
+                        <div class="flex space-x-1">
+                            <div class="w-2 h-2 bg-purple-400 rounded-full animate-loading-dot-1"></div>
+                            <div class="w-2 h-2 bg-blue-400 rounded-full animate-loading-dot-2"></div>
+                            <div class="w-2 h-2 bg-cyan-400 rounded-full animate-loading-dot-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="joinBtn" class="relative transition-all duration-300 bg-gradient-to-r from-gray-600/20 to-gray-500/20 border border-gray-500/30 text-gray-400 font-semibold py-4 px-12 rounded-xl cursor-not-allowed z-50 opacity-50" disabled onclick="joinVoiceChannel()">
                 <span class="relative z-10 flex items-center gap-3">
-                    <i class="fas fa-microphone text-xl transition-transform group-hover:scale-110"></i>
-                    Enter the voice channel
+                    <i class="fas fa-microphone text-xl"></i>
+                    <span id="btnText">Preparing...</span>
                 </span>
             </button>
         </div>
@@ -75,6 +94,69 @@ $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name
     </div>
 </div>
 
+<style>
+@keyframes loading-dot-1 {
+    0%, 80%, 100% { 
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    40% { 
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes loading-dot-2 {
+    0%, 80%, 100% { 
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    40% { 
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes loading-dot-3 {
+    0%, 80%, 100% { 
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    40% { 
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+.animate-loading-dot-1 {
+    animation: loading-dot-1 1.4s infinite ease-in-out;
+    animation-delay: 0s;
+}
+
+.animate-loading-dot-2 {
+    animation: loading-dot-2 1.4s infinite ease-in-out;
+    animation-delay: 0.2s;
+}
+
+.animate-loading-dot-3 {
+    animation: loading-dot-3 1.4s infinite ease-in-out;
+    animation-delay: 0.4s;
+}
+
+.voice-loading-shimmer {
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(139, 92, 246, 0.3) 50%, 
+        transparent 100%);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+</style>
+
 <script>
 function handleMouseMove(event) {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -90,10 +172,12 @@ function handleMouseMove(event) {
     
     const driftElements = document.querySelectorAll('[class*="animate-cosmic-drift"]');
     driftElements.forEach((element, index) => {
-        const speed = (index + 1) * 0.02;
-        const moveX = (x - rect.width / 2) * speed;
-        const moveY = (y - rect.height / 2) * speed;
-        element.style.transform = `translate(${moveX}px, ${moveY}px)`;
+        if (element) {
+            const speed = (index + 1) * 0.02;
+            const moveX = (x - rect.width / 2) * speed;
+            const moveY = (y - rect.height / 2) * speed;
+            element.style.transform = `translate(${moveX}px, ${moveY}px)`;
+        }
     });
 }
 
@@ -196,9 +280,112 @@ async function joinVoiceChannel() {
     }
 }
 
+function startVoiceLoadingSequence() {
+    const loadingProgress = document.getElementById('loadingProgress');
+    const loadingPercent = document.getElementById('loadingPercent');
+    const joinBtn = document.getElementById('joinBtn');
+    const btnText = document.getElementById('btnText');
+    
+    if (!loadingProgress || !loadingPercent || !joinBtn) {
+        return;
+    }
+    
+    const loadingDuration = Math.floor(Math.random() * 1000) + 3000;
+    let currentProgress = 0;
+    const progressInterval = 50;
+    const progressStep = (100 / (loadingDuration / progressInterval));
+    
+    const loadingMessages = [
+        'Initializing voice connection...',
+        'Checking audio permissions...',
+        'Connecting to voice server...',
+        'Preparing audio systems...',
+        'Almost ready...'
+    ];
+    
+    let messageIndex = 0;
+    const loadingText = document.querySelector('#loadingBar .text-blue-100\\/80');
+    
+    const updateProgress = () => {
+        if (!loadingProgress || !loadingPercent) {
+            clearInterval(progressTimer);
+            return;
+        }
+        
+        currentProgress += progressStep;
+        
+        if (currentProgress > 100) {
+            currentProgress = 100;
+        }
+        
+        loadingProgress.style.width = currentProgress + '%';
+        loadingPercent.textContent = Math.floor(currentProgress) + '%';
+        
+        if (currentProgress >= 20 && messageIndex < loadingMessages.length - 1) {
+            const messageThreshold = (messageIndex + 1) * (100 / loadingMessages.length);
+            if (currentProgress >= messageThreshold) {
+                messageIndex++;
+                if (loadingText) {
+                    loadingText.textContent = loadingMessages[messageIndex];
+                }
+            }
+        }
+        
+        if (currentProgress >= 100) {
+            clearInterval(progressTimer);
+            setTimeout(() => {
+                completeLoading();
+            }, 300);
+        }
+    };
+    
+    const progressTimer = setInterval(updateProgress, progressInterval);
+    
+    function completeLoading() {
+        const loadingContainer = document.getElementById('loadingContainer');
+        
+        if (loadingContainer) {
+            loadingContainer.style.opacity = '0';
+            loadingContainer.style.transform = 'translateY(-20px)';
+            loadingContainer.style.transition = 'all 0.5s ease-out';
+            
+            setTimeout(() => {
+                loadingContainer.style.display = 'none';
+            }, 500);
+        }
+        
+        if (joinBtn && btnText) {
+            joinBtn.disabled = false;
+            joinBtn.style.pointerEvents = 'auto';
+            joinBtn.style.cursor = 'pointer';
+            joinBtn.className = 'relative transition-all duration-300 bg-gradient-to-r from-[#8b5cf6]/20 to-[#06b6d4]/20 border border-white/30 text-white font-semibold py-4 px-12 rounded-xl hover:scale-110 cursor-pointer z-50';
+            
+            btnText.textContent = 'Enter the voice channel';
+            
+            joinBtn.style.opacity = '0';
+            joinBtn.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                joinBtn.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+                joinBtn.style.opacity = '1';
+                joinBtn.style.transform = 'translateY(0)';
+                
+                setTimeout(() => {
+                    const icon = joinBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'fas fa-microphone text-xl transition-transform group-hover:scale-110';
+                    }
+                }, 300);
+            }, 100);
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const joinView = document.getElementById('joinView');
     if (joinView) {
+        joinView.addEventListener('mousemove', handleMouseMove);
+        
         joinView.addEventListener('mouseleave', function() {
             const interactiveGlow = document.getElementById('interactive-glow');
             if (interactiveGlow) {
@@ -207,7 +394,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const driftElements = document.querySelectorAll('[class*="animate-cosmic-drift"]');
             driftElements.forEach(element => {
-                element.style.transform = '';
+                if (element) {
+                    element.style.transform = '';
+                }
             });
         });
     }
@@ -227,6 +416,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         console.log('🎧 [VOICE-NOT-JOIN] Join button event listener attached');
     }
+    
+    setTimeout(() => {
+        const voiceElements = document.getElementById('joinView');
+        if (voiceElements) {
+            startVoiceLoadingSequence();
+        }
+    }, 500);
     
     window.dispatchEvent(new CustomEvent('voiceUIReady'));
 });

@@ -53,13 +53,17 @@ const channelAPI = {
         });
     },
 
-    switchToChannel: function(serverId, channelId, channelType = 'text') {
-        if (!window.simpleChannelSwitcher) {
-            console.warn('[Channel API] SimpleChannelSwitcher not available');
-            return Promise.reject(new Error('SimpleChannelSwitcher not available'));
-        }
-        
-        return Promise.resolve(window.simpleChannelSwitcher.switchToChannel(channelId, channelType));
+    switchToChannel: function(channelId, channelType = 'text', limit = 50) {
+        return $.ajax({
+            url: `/api/channels/${channelId}/switch`,
+            method: 'GET',
+            dataType: 'json',
+            data: { limit: limit },
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
     },
 
     joinVoiceChannel: function(channelId) {

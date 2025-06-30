@@ -1913,21 +1913,23 @@ class VoiceCallManager {
     }
 
     async toggleMic() {
-        if (!window.videoSDKManager?.isReady()) {
-            this.showToast('Voice not connected', 'error');
-            return;
-        }
-
         try {
-            const newState = window.videoSDKManager.toggleMic();
-            this.showToast(newState ? 'Microphone enabled' : 'Microphone muted', 'info');
-            
-            if (window.MusicLoaderStatic) {
-                if (newState) {
-                    window.MusicLoaderStatic.playDiscordUnmuteSound();
-                } else {
-                    window.MusicLoaderStatic.playDiscordMuteSound();
+            if (window.localStorageManager) {
+                const isMuted = window.localStorageManager.toggleVoiceMute();
+                this.showToast(isMuted ? 'Microphone muted' : 'Microphone enabled', 'info');
+            } else if (window.videoSDKManager?.isReady()) {
+                const newState = window.videoSDKManager.toggleMic();
+                this.showToast(newState ? 'Microphone enabled' : 'Microphone muted', 'info');
+                
+                if (window.MusicLoaderStatic) {
+                    if (newState) {
+                        window.MusicLoaderStatic.playDiscordUnmuteSound();
+                    } else {
+                        window.MusicLoaderStatic.playDiscordMuteSound();
+                    }
                 }
+            } else {
+                this.showToast('Voice not connected', 'error');
             }
         } catch (error) {
             console.error('Error toggling mic:', error);
@@ -1936,14 +1938,16 @@ class VoiceCallManager {
     }
 
     async toggleDeafen() {
-        if (!window.videoSDKManager?.isReady()) {
-            this.showToast('Voice not connected', 'error');
-            return;
-        }
-
         try {
-            const newState = window.videoSDKManager.toggleDeafen();
-            this.showToast(newState ? 'Audio deafened' : 'Audio undeafened', 'info');
+            if (window.localStorageManager) {
+                const isDeafened = window.localStorageManager.toggleVoiceDeafen();
+                this.showToast(isDeafened ? 'Audio deafened' : 'Audio undeafened', 'info');
+            } else if (window.videoSDKManager?.isReady()) {
+                const newState = window.videoSDKManager.toggleDeafen();
+                this.showToast(newState ? 'Audio deafened' : 'Audio undeafened', 'info');
+            } else {
+                this.showToast('Voice not connected', 'error');
+            }
         } catch (error) {
             console.error('Error toggling deafen:', error);
             this.showToast('Failed to toggle deafen', 'error');

@@ -10,6 +10,24 @@ class VoiceManager {
         this.preloadStarted = false;
         this.preloadComplete = false;
         
+        this.validateExistingState();
+    }
+    
+    validateExistingState() {
+        setTimeout(() => {
+            if (window.unifiedVoiceStateManager) {
+                const storedState = window.unifiedVoiceStateManager.getState();
+                if (storedState.isConnected && !this.isConnected) {
+                    console.log('🔍 [VOICE-MANAGER] Found stored connection state but not connected locally');
+                    
+                    const hasVideoSDK = window.videoSDKManager?.isConnected;
+                    if (!hasVideoSDK) {
+                        console.log('❌ [VOICE-MANAGER] No active VideoSDK connection, clearing stored state');
+                        window.unifiedVoiceStateManager.clearStaleConnection();
+                    }
+                }
+            }
+        }, 500);
     }
     
     async init() {
@@ -329,6 +347,11 @@ class VoiceManager {
             return;
         }
         
+        console.log('🚪 [VOICE-MANAGER] Leaving voice channel:', {
+            channelId: this.currentChannelId,
+            meetingId: this.currentMeetingId
+        });
+        
         if (this.currentChannelId && window.globalSocketManager?.io) {
             window.globalSocketManager.io.emit('unregister-voice-meeting', {
                 channel_id: this.currentChannelId
@@ -344,6 +367,11 @@ class VoiceManager {
         this.currentChannelName = null;
         this.currentMeetingId = null;
         window.voiceJoinInProgress = false;
+        
+        if (window.unifiedVoiceStateManager) {
+            window.unifiedVoiceStateManager.handleDisconnect();
+        }
+        
         this.dispatchEvent(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect');
         this.showToast('Disconnected from voice', 'info');
 
@@ -412,6 +440,8 @@ class VoiceManager {
     }
 
     resetState() {
+        console.log('🔄 [VOICE-MANAGER] Resetting state');
+        
         this.isConnected = false;
         this.currentChannelId = null;
         this.currentChannelName = null;
@@ -425,6 +455,10 @@ class VoiceManager {
             this.videoSDKManager = null;
             this.initialized = false;
             this.initializationPromise = null;
+        }
+        
+        if (window.unifiedVoiceStateManager) {
+            window.unifiedVoiceStateManager.reset();
         }
         
         setTimeout(() => {
