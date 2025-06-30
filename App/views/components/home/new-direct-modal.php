@@ -1,6 +1,6 @@
 <div class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center" id="new-direct-modal" style="z-index: 100000;">
-    <div class="modal w-full max-w-md mx-4 bg-[#2b2d31] rounded-lg shadow-2xl border border-[#1e1f22]" onclick="event.stopPropagation();">
-        <div class="p-4 border-b border-[#1e1f22] bg-[#2b2d31]">
+    <div class="modal w-full max-w-md mx-4 bg-[#2b2d31] rounded-lg shadow-2xl border border-[#1e1f22] max-h-[90vh] flex flex-col" onclick="event.stopPropagation();">
+        <div class="p-4 border-b border-[#1e1f22] bg-[#2b2d31] flex-shrink-0">
             <div class="flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-white" id="modal-title">New Message</h3>
                 <button id="close-new-direct-modal" class="text-gray-400 hover:text-white focus:outline-none focus:ring-0">
@@ -8,7 +8,7 @@
                 </button>
             </div>
         </div>
-        <div class="p-4 bg-[#2b2d31]">
+        <div class="p-4 bg-[#2b2d31] flex-1 overflow-y-auto custom-scrollbar">
             <div class="mb-4">
                 <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Select Users</label>
                 <div class="relative">
@@ -17,11 +17,13 @@
                 </div>
             </div>
             
-            <div id="dm-selected-users" class="flex flex-wrap gap-2 mb-4 hidden">
-                <div class="text-xs text-gray-400 uppercase font-semibold mb-2 w-full">Selected Users:</div>
+            <div id="dm-selected-users" class="mb-4 hidden">
+                <div class="text-xs text-gray-400 uppercase font-semibold mb-2">Selected Users:</div>
+                <div class="flex flex-wrap gap-2 max-h-20 overflow-y-auto custom-scrollbar p-1">
+                </div>
             </div>
 
-            <div id="group-options" class="mb-4 hidden">
+            <div id="group-options" class="mb-4 hidden max-h-32 overflow-y-auto custom-scrollbar">
                 <div class="mb-3">
                     <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Group Name</label>
                     <input type="text" placeholder="Enter group name" class="w-full bg-[#1e1f22] text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-[#404249]" id="group-name-input">
@@ -29,12 +31,12 @@
                 <div class="mb-3">
                     <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Group Image</label>
                     <div class="flex items-center space-x-3">
-                        <div id="group-image-preview" class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden cursor-pointer border-2 border-[#404249] hover:border-[#5865f2] transition-colors">
+                        <div id="group-image-preview" class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden cursor-pointer border-2 border-[#404249] hover:border-[#5865f2] transition-colors flex-shrink-0">
                             <i class="fas fa-camera text-gray-400"></i>
                         </div>
-                        <div class="flex-1">
+                        <div class="flex-1 min-w-0">
                             <input type="file" accept="image/*" class="hidden" id="group-image-input">
-                            <button type="button" class="w-full bg-[#4e5058] hover:bg-[#5c5e66] text-white px-3 py-2 rounded transition-colors" id="group-image-select-btn">
+                            <button type="button" class="w-full bg-[#4e5058] hover:bg-[#5c5e66] text-white px-3 py-2 rounded transition-colors text-sm" id="group-image-select-btn">
                                 Select Image
                             </button>
                         </div>
@@ -43,14 +45,19 @@
                 </div>
             </div>
 
-            <div id="dm-users-list" class="max-h-60 overflow-y-auto py-2 space-y-2 custom-scrollbar">
-                <div class="text-gray-400 text-center py-4 hidden" id="no-dm-users">
-                    <i class="fas fa-users text-2xl mb-2"></i>
-                    <p>No users found</p>
+            <div class="relative">
+                <div id="dm-users-list" class="max-h-60 overflow-y-auto py-2 space-y-1 custom-scrollbar scroll-smooth">
+                    <div class="text-gray-400 text-center py-4 hidden" id="no-dm-users">
+                        <i class="fas fa-users text-2xl mb-2"></i>
+                        <p>No users found</p>
+                    </div>
+                </div>
+                <div class="absolute top-0 right-0 h-full w-2 pointer-events-none">
+                    <div class="h-full bg-gradient-to-b from-transparent via-[#5865f2] to-transparent opacity-20 rounded-full" id="scroll-indicator" style="display: none;"></div>
                 </div>
             </div>
         </div>
-        <div class="p-4 bg-[#2b2d31] flex justify-end space-x-3 rounded-b-lg border-t border-[#1e1f22]">
+        <div class="p-4 bg-[#2b2d31] flex justify-end space-x-3 rounded-b-lg border-t border-[#1e1f22] flex-shrink-0">
             <button class="px-4 py-2 text-white bg-[#4e5058] hover:bg-[#5c5e66] rounded-md transition-colors duration-150" id="cancel-new-direct">
                 Cancel
             </button>
@@ -60,6 +67,78 @@
         </div>
     </div>
 </div>
+
+<style>
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #2b2d31;
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1e1f22;
+    border-radius: 4px;
+    border: 2px solid #2b2d31;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #4f545c;
+}
+
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #1e1f22 #2b2d31;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: #4f545c;
+}
+
+.scroll-smooth {
+    scroll-behavior: smooth;
+}
+
+.modal-user-item {
+    scroll-margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+    .modal {
+        max-width: 95vw !important;
+        max-height: 95vh !important;
+        margin: 0.5rem !important;
+    }
+    
+    .modal .p-4 {
+        padding: 1rem !important;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 12px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #4f545c;
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+    }
+    
+    .custom-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+}
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -237,6 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!users || users.length === 0) {
             usersList.innerHTML = '<div class="text-gray-400 text-center py-2">No users found</div>';
+            updateScrollIndicator();
             return;
         }
 
@@ -255,16 +335,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="flex items-center mr-3">
                     <input type="checkbox" class="user-checkbox mr-3 w-4 h-4 text-[#5865f2] bg-[#1e1f22] border-[#404249] rounded focus:ring-[#5865f2] focus:ring-2" ${isSelected ? 'checked' : ''}>
                 </div>
-                <div class="relative mr-3">
+                <div class="relative mr-3 flex-shrink-0">
                     <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                         <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                              alt="Avatar" class="w-full h-full object-cover">
                     </div>
                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#2b2d31] ${statusColor}"></span>
                 </div>
-                <div>
-                    <p class="font-medium text-white">${escapeHtml(user.username)}</p>
-                    <p class="text-gray-400 text-sm">${statusText}</p>
+                <div class="flex-1 min-w-0">
+                    <p class="font-medium text-white truncate">${escapeHtml(user.username)}</p>
+                    <p class="text-gray-400 text-sm truncate">${statusText}</p>
                 </div>
             `;
             
@@ -274,6 +354,42 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             usersList.appendChild(userItem);
+        });
+
+        updateScrollIndicator();
+        setupScrollListeners();
+    }
+
+    function updateScrollIndicator() {
+        const usersList = document.getElementById('dm-users-list');
+        const scrollIndicator = document.getElementById('scroll-indicator');
+        
+        if (!usersList || !scrollIndicator) return;
+        
+        const hasScrollableContent = usersList.scrollHeight > usersList.clientHeight;
+        
+        if (hasScrollableContent) {
+            scrollIndicator.style.display = 'block';
+        } else {
+            scrollIndicator.style.display = 'none';
+        }
+    }
+
+    function setupScrollListeners() {
+        const usersList = document.getElementById('dm-users-list');
+        if (!usersList) return;
+        
+        let scrollTimeout;
+        usersList.addEventListener('scroll', function() {
+            const scrollIndicator = document.getElementById('scroll-indicator');
+            if (scrollIndicator) {
+                scrollIndicator.style.opacity = '0.4';
+                
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    scrollIndicator.style.opacity = '0.2';
+                }, 1000);
+            }
         });
     }
 
@@ -321,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const selectedUsers = allUsers.filter(user => selectedUserIds.has(user.id));
         const usersHtml = selectedUsers.map(user => `
-            <div class="inline-flex items-center bg-[#404249] text-white px-2 py-1 rounded-md text-sm">
+            <div class="inline-flex items-center bg-[#404249] text-white px-2 py-1 rounded-md text-sm whitespace-nowrap">
                 ${escapeHtml(user.username)}
                 <button class="ml-2 text-gray-400 hover:text-white" onclick="removeSelectedUser(${user.id})">
                     <i class="fas fa-times"></i>
@@ -329,10 +445,15 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `).join('');
         
-        container.innerHTML = `
-            <div class="text-xs text-gray-400 uppercase font-semibold mb-2 w-full">Selected Users (${selectedUserIds.size}):</div>
-            ${usersHtml}
-        `;
+        const titleDiv = container.querySelector('.text-xs');
+        if (titleDiv) {
+            titleDiv.textContent = `Selected Users (${selectedUserIds.size}):`;
+        }
+        
+        const usersContainer = container.querySelector('.flex.flex-wrap');
+        if (usersContainer) {
+            usersContainer.innerHTML = usersHtml;
+        }
     }
 
     function updateCreateButton() {

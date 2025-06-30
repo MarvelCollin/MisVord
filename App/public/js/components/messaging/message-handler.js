@@ -52,47 +52,38 @@ class MessageHandler {
             return;
         }
         
-        try {
-            const bubbleHtml = await this.renderBubbleMessage(formattedMessage);
-            
-            if (!bubbleHtml || typeof bubbleHtml !== 'string') {
-                console.error('❌ [MESSAGE-HANDLER] Invalid bubble HTML response:', bubbleHtml);
-                this.fallbackAddMessage(formattedMessage, messagesContainer, isTemporary);
-                return;
-            }
-            
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = bubbleHtml;
-            
-            const messageGroup = tempDiv.querySelector('.bubble-message-group');
+        const messageElement = await this.createMessageElement(formattedMessage, isTemporary);
         
-            if (messageGroup) {
-                this.ensureBubbleStyles(tempDiv);
-                
-                messagesContainer.appendChild(messageGroup);
-                this.lastMessageGroup = messageGroup;
-                const messageElement = messageGroup.querySelector('[data-message-id]');
-                
-            if (isTemporary) {
-                    this.markAsTemporary(messageElement);
-                    this.temporaryMessages.set(messageData.id, messageElement);
-                }
-                
-                this.processedMessageIds.add(messageData.id);
-                this.chatSection.scrollToBottomIfNeeded();
-                
-                console.log(`✅ [MESSAGE-HANDLER] Message ${messageData.id} successfully added to UI using bubble component`);
-            } else {
-                const htmlPreview = bubbleHtml ? bubbleHtml.substring(0, 200) : 'undefined';
-                console.error('❌ [MESSAGE-HANDLER] Failed to find bubble-message-group in HTML:', htmlPreview);
-                console.log('🔧 [MESSAGE-HANDLER] Falling back to manual creation');
-                this.fallbackAddMessage(formattedMessage, messagesContainer, isTemporary);
-            }
-            
-        } catch (error) {
-            console.error('❌ [MESSAGE-HANDLER] Error rendering bubble message:', error);
-            this.fallbackAddMessage(formattedMessage, messagesContainer, isTemporary);
+        if (!messageElement) {
+            console.error('❌ [MESSAGE-HANDLER] Failed to create message element');
+            return;
         }
+        
+        this.insertMessageIntoDOM(messageElement, messagesContainer, formattedMessage);
+        
+        this.processedMessageIds.add(messageData.id);
+        
+        if (isTemporary) {
+            this.temporaryMessages.set(messageData.id, messageData);
+        }
+        
+        this.addMessageEventListeners(messageData.id);
+        
+        // Process reactions for non-temporary messages (database-loaded messages)
+        if (!isTemporary && messageData.reactions && messageData.reactions.length > 0) {
+            console.log('🎯 [MESSAGE-HANDLER] Processing reactions for database-loaded message:', messageData.id);
+            setTimeout(() => {
+                if (window.emojiReactions && typeof window.emojiReactions.processMessageReactions === 'function') {
+                    window.emojiReactions.processMessageReactions(messageData);
+                } else {
+                    console.warn('⚠️ [MESSAGE-HANDLER] Emoji reactions system not available for processing reactions');
+                }
+            }, 100);
+        }
+        
+        this.chatSection.scrollToBottomIfNeeded();
+        
+        console.log(`✅ [MESSAGE-HANDLER] Successfully added ${isTemporary ? 'temporary' : 'permanent'} message ${messageData.id}`);
     }
     
     async renderBubbleMessage(messageData) {
@@ -951,6 +942,83 @@ class MessageHandler {
             messagesContainer.insertBefore(messageGroup, firstChild);
             this.processedMessageIds.add(formattedMessage.id);
         }
+    }
+
+    async createMessageElement(formattedMessage, isTemporary) {
+        try {
+            const bubbleHtml = await this.renderBubbleMessage(formattedMessage);
+            
+            if (!bubbleHtml || typeof bubbleHtml !== 'string') {
+                console.error('❌ [MESSAGE-HANDLER] Invalid bubble HTML response:', bubbleHtml);
+                return this.fallbackCreateMessage(formattedMessage, isTemporary);
+            }
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = bubbleHtml;
+            
+            const messageGroup = tempDiv.querySelector('.bubble-message-group');
+        
+            if (messageGroup) {
+                this.ensureBubbleStyles(tempDiv);
+                
+                const messageElement = messageGroup.querySelector('[data-message-id]');
+                
+                if (isTemporary && messageElement) {
+                    this.markAsTemporary(messageElement);
+                }
+                
+                console.log(`✅ [MESSAGE-HANDLER] Message element created successfully using bubble component`);
+                return messageGroup;
+            } else {
+                const htmlPreview = bubbleHtml ? bubbleHtml.substring(0, 200) : 'undefined';
+                console.error('❌ [MESSAGE-HANDLER] Failed to find bubble-message-group in HTML:', htmlPreview);
+                console.log('🔧 [MESSAGE-HANDLER] Falling back to manual creation');
+                return this.fallbackCreateMessage(formattedMessage, isTemporary);
+            }
+            
+        } catch (error) {
+            console.error('❌ [MESSAGE-HANDLER] Error creating message element:', error);
+            return this.fallbackCreateMessage(formattedMessage, isTemporary);
+        }
+    }
+
+    insertMessageIntoDOM(messageElement, messagesContainer, formattedMessage) {
+        if (!messageElement || !messagesContainer) {
+            console.error('❌ [MESSAGE-HANDLER] Cannot insert message: missing element or container');
+            return;
+        }
+        
+        messagesContainer.appendChild(messageElement);
+        this.lastMessageGroup = messageElement;
+        
+        console.log(`✅ [MESSAGE-HANDLER] Message ${formattedMessage.id} inserted into DOM`);
+    }
+
+    fallbackCreateMessage(formattedMessage, isTemporary) {
+        console.log('🔧 [MESSAGE-HANDLER] Using fallback message creation');
+        
+        // Create a simple message element as fallback
+        const messageGroup = document.createElement('div');
+        messageGroup.className = 'bubble-message-group';
+        messageGroup.dataset.userId = formattedMessage.user_id;
+        messageGroup.dataset.timestamp = formattedMessage.timestamp;
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        messageContent.dataset.messageId = formattedMessage.id;
+        
+        const messageText = document.createElement('div');
+        messageText.className = 'message-main-text';
+        messageText.innerHTML = formattedMessage.content || '';
+        
+        messageContent.appendChild(messageText);
+        messageGroup.appendChild(messageContent);
+        
+        if (isTemporary) {
+            this.markAsTemporary(messageContent);
+        }
+        
+        return messageGroup;
     }
 }
 

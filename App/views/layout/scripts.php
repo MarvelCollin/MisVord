@@ -56,12 +56,18 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="<?php echo js('api/user-api'); ?>?v=<?php echo time(); ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    if (window.userAPI && window.userAPI.getAllUsers) {
-        console.log("✅ UserAPI getAllUsers method available");
-    } else {
-        console.error("❌ UserAPI getAllUsers method not available");
-        console.log("UserAPI object:", window.userAPI);
+    if (!window.ChatAPI) {
+        window.ChatAPI = new ChatAPI();
+        console.log("✅ ChatAPI initialized in scripts.php");
     }
+    
+    setTimeout(() => {
+        if (window.userAPI && window.userAPI.getAllUsers) {
+            console.log("✅ UserAPI getAllUsers method available");
+        } else {
+            console.warn("⚠️ UserAPI getAllUsers method not available, will load on demand");
+        }
+    }, 100);
 });
 </script>
 <script src="<?php echo js('api/friend-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
@@ -69,6 +75,23 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="<?php echo js('api/server-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/bot-api'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('components/bot/music-player-system'); ?>?v=<?php echo time(); ?>"></script>
+<script src="<?php echo js('components/common/image-cutter'); ?>?v=<?php echo time(); ?>" type="module"></script>
+<script src="<?php echo js('utils/jaro-winkler'); ?>?v=<?php echo time(); ?>" type="module"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.ImageCutter) {
+        console.log("✅ ImageCutter loaded successfully");
+    } else {
+        console.warn("⚠️ ImageCutter not loaded");
+    }
+    
+    if (window.JaroWinkler || window.jaroWinkler) {
+        console.log("✅ JaroWinkler loaded successfully");
+    } else {
+        console.warn("⚠️ JaroWinkler not loaded");
+    }
+});
+</script>
 <?php endif; ?>
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo time(); ?>" type="module"></script>

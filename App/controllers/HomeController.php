@@ -186,82 +186,36 @@ class HomeController extends BaseController
             <script type="module">
                 console.log('[Home Layout] Initializing home page scripts via AJAX');
                 
-                const ensureUserAPI = () => {
-                    return new Promise((resolve) => {
-                        if (window.userAPI && typeof window.userAPI.getAllUsers === 'function') {
-                            console.log('[Home Layout] ✅ UserAPI already available');
-                            resolve();
-                            return;
+                if (typeof window.initFriendsTabManager === 'function') {
+                    window.initFriendsTabManager();
+                    console.log('[Home Layout] ✅ Friends tab manager initialized');
+                } else {
+                    import('/public/js/components/home/friends-tabs.js').then(module => {
+                        if (module.initFriendsTabManager) {
+                            module.initFriendsTabManager();
+                            console.log('[Home Layout] ✅ Friends tab manager loaded and initialized');
                         }
-                        
-                        console.log('[Home Layout] 🔄 Loading UserAPI...');
-                        
-                        if (typeof UserAPI === 'function') {
-                            const userAPI = new UserAPI();
-                            window.userAPI = userAPI;
-                            console.log('[Home Layout] ✅ UserAPI initialized from existing class');
-                            resolve();
-                            return;
+                    }).catch(err => console.warn('[Home Layout] ⚠️ Could not load friends-tabs.js'));
+                }
+                
+                if (typeof window.initDirectMessageNavigation === 'function') {
+                    window.initDirectMessageNavigation();
+                    console.log('[Home Layout] ✅ Direct message navigation initialized');
+                } else {
+                    import('/public/js/components/home/direct-message-nav.js').then(module => {
+                        if (module.initDirectMessageNavigation) {
+                            module.initDirectMessageNavigation();
+                            console.log('[Home Layout] ✅ Direct message navigation loaded and initialized');
                         }
-                        
-                        const script = document.createElement('script');
-                        script.src = '/public/js/api/user-api.js?v=' + Date.now();
-                        script.onload = () => {
-                            console.log('[Home Layout] ✅ UserAPI script loaded');
-                            setTimeout(() => {
-                                if (window.userAPI && typeof window.userAPI.getAllUsers === 'function') {
-                                    console.log('[Home Layout] ✅ UserAPI now available');
-                                    resolve();
-                                } else {
-                                    console.warn('[Home Layout] ⚠️ UserAPI still not available after loading');
-                                    resolve();
-                                }
-                            }, 100);
-                        };
-                        script.onerror = () => {
-                            console.error('[Home Layout] ❌ Failed to load UserAPI script');
-                            resolve();
-                        };
-                        document.head.appendChild(script);
-                    });
-                };
+                    }).catch(err => console.warn('[Home Layout] ⚠️ Could not load direct-message-nav.js'));
+                }
                 
-                const initializeComponents = async () => {
-                    await ensureUserAPI();
-                    
-                    if (typeof window.initFriendsTabManager === 'function') {
-                        window.initFriendsTabManager();
-                        console.log('[Home Layout] ✅ Friends tab manager initialized');
-                    } else {
-                        import('/public/js/components/home/friends-tabs.js').then(module => {
-                            if (module.initFriendsTabManager) {
-                                module.initFriendsTabManager();
-                                console.log('[Home Layout] ✅ Friends tab manager loaded and initialized');
-                            }
-                        }).catch(err => console.warn('[Home Layout] ⚠️ Could not load friends-tabs.js'));
-                    }
-                    
-                    if (typeof window.initDirectMessageNavigation === 'function') {
-                        window.initDirectMessageNavigation();
-                        console.log('[Home Layout] ✅ Direct message navigation initialized');
-                    } else {
-                        import('/public/js/components/home/direct-message-nav.js').then(module => {
-                            if (module.initDirectMessageNavigation) {
-                                module.initDirectMessageNavigation();
-                                console.log('[Home Layout] ✅ Direct message navigation loaded and initialized');
-                            }
-                        }).catch(err => console.warn('[Home Layout] ⚠️ Could not load direct-message-nav.js'));
-                    }
-                    
-                    if (typeof window.initializeHomeComponents === 'function') {
-                        window.initializeHomeComponents();
-                        console.log('[Home Layout] ✅ Additional home components initialized');
-                    }
-                    
-                    console.log('[Home Layout] ✅ All home page scripts initialized successfully');
-                };
+                if (typeof window.initializeHomeComponents === 'function') {
+                    window.initializeHomeComponents();
+                    console.log('[Home Layout] ✅ Additional home components initialized');
+                }
                 
-                initializeComponents();
+                console.log('[Home Layout] ✅ All home page scripts initialized successfully');
             </script>
             <?php endif; ?>
             <?php

@@ -389,6 +389,24 @@ class EmojiReactions {
                 const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
                 if (messageElement) {
                     this.updateReactionButtonState(messageElement, messageId);
+                    
+                    // Check if message has reaction data embedded
+                    const messageGroup = messageElement.closest('.bubble-message-group, .message-group');
+                    if (messageGroup && messageGroup.dataset.messageReactions) {
+                        try {
+                            const reactionsData = JSON.parse(messageGroup.dataset.messageReactions);
+                            if (reactionsData && reactionsData.length > 0) {
+                                console.log('📥 [EMOJI-REACTIONS] Processing embedded reactions for message:', messageId, reactionsData);
+                                this.updateReactionsDisplay(messageId, reactionsData);
+                                this.loadedMessageIds.add(messageId);
+                                return;
+                            }
+                        } catch (e) {
+                            console.warn('⚠️ Failed to parse embedded reactions:', e);
+                        }
+                    }
+                    
+                    // Load reactions via API for permanent IDs only
                     if (/^\d+$/.test(String(messageId))) {
                         this.loadMessageReactions(messageId);
                     }
@@ -406,13 +424,29 @@ class EmojiReactions {
             const messageId = message.dataset.messageId;
             if (messageId && !this.loadedMessageIds.has(messageId)) {
                 this.updateReactionButtonState(message, messageId);
+                
+                // Check if message has reaction data embedded
+                const messageGroup = message.closest('.bubble-message-group, .message-group');
+                if (messageGroup && messageGroup.dataset.messageReactions) {
+                    try {
+                        const reactionsData = JSON.parse(messageGroup.dataset.messageReactions);
+                        if (reactionsData && reactionsData.length > 0) {
+                            console.log('📥 [EMOJI-REACTIONS] Processing embedded reactions for existing message:', messageId, reactionsData);
+                            this.updateReactionsDisplay(messageId, reactionsData);
+                            this.loadedMessageIds.add(messageId);
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Failed to parse embedded reactions:', e);
+                    }
+                }
+                
+                // Load reactions via API for permanent IDs only
                 if (/^\d+$/.test(String(messageId))) {
                     this.loadMessageReactions(messageId);
                 }
             }
         });
-
-        this.setupExistingReactionButtons();
     }
 
     setupExistingReactionButtons() {
@@ -1319,12 +1353,21 @@ class EmojiReactions {
                 this.currentReactions[permanentId] = this.currentReactions[tempId];
                 delete this.currentReactions[tempId];
                 console.log('📝 [EMOJI-REACTIONS] Moved reactions from temp ID to permanent ID');
-            }
-            
-            // Update loaded message IDs
-            if (this.loadedMessageIds.has(tempId)) {
-                this.loadedMessageIds.delete(tempId);
-                this.loadedMessageIds.add(permanentId);
+                
+                // Only mark as loaded if we actually have reactions to transfer
+                if (this.currentReactions[permanentId] && this.currentReactions[permanentId].length > 0) {
+                    if (this.loadedMessageIds.has(tempId)) {
+                        this.loadedMessageIds.delete(tempId);
+                    }
+                    this.loadedMessageIds.add(permanentId);
+                    console.log('✅ [EMOJI-REACTIONS] Marked permanent ID as loaded due to transferred reactions');
+                }
+            } else {
+                // No reactions to transfer - allow loading from database later
+                if (this.loadedMessageIds.has(tempId)) {
+                    this.loadedMessageIds.delete(tempId);
+                }
+                console.log('📭 [EMOJI-REACTIONS] No reactions to transfer, permanent ID will load from database if needed');
             }
             
             // Clear any loading states for temp ID
@@ -1352,6 +1395,10 @@ class EmojiReactions {
                 // Refresh reactions display to ensure everything is working
                 if (this.currentReactions[permanentId]) {
                     this.updateReactionsDisplay(permanentId, this.currentReactions[permanentId]);
+                } else {
+                    // No reactions transferred, try to load from database
+                    console.log('🔍 [EMOJI-REACTIONS] No transferred reactions, attempting to load from database for permanent ID:', permanentId);
+                    this.loadMessageReactions(permanentId);
                 }
                 
                 console.log('✅ [EMOJI-REACTIONS] Message ID update completed successfully');
@@ -1400,6 +1447,39 @@ class EmojiReactions {
         });
 
         console.log('✅ [EMOJI-REACTIONS] Tooltip event listeners set up');
+    }
+
+    // Process reactions from message data (for database-loaded messages)
+    processMessageReactions(messageData) {
+        if (!messageData || !messageData.id) return;
+        
+        const messageId = messageData.id;
+        const reactions = messageData.reactions || [];
+        
+        if (reactions.length > 0) {
+            console.log('📥 [EMOJI-REACTIONS] Processing reactions from message data:', {
+                messageId,
+                reactionCount: reactions.length
+            });
+            
+            // Store reactions in memory
+            this.currentReactions[messageId] = reactions.map(reaction => ({
+                emoji: reaction.emoji,
+                user_id: String(reaction.user_id),
+                username: reaction.username,
+                avatar_url: reaction.avatar_url || '/public/assets/common/default-profile-picture.png'
+            }));
+            
+            // Update display
+            this.updateReactionsDisplay(messageId, this.currentReactions[messageId]);
+            
+            // Mark as loaded to prevent duplicate API calls
+            this.loadedMessageIds.add(messageId);
+            
+            console.log('✅ [EMOJI-REACTIONS] Processed reactions from message data for:', messageId);
+        } else {
+            console.log('📭 [EMOJI-REACTIONS] No reactions in message data for:', messageId);
+        }
     }
 }
 
@@ -1499,6 +1579,42 @@ window.forceLoadAllReactions = function() {
     });
     
     return `Started loading reactions for ${messages.length} messages`;
+};
+
+// Debug function to test reaction system after reload
+window.debugReactionSystem = function() {
+    console.log('🔍 [DEBUG] Debugging reaction system state...');
+    
+    const messages = document.querySelectorAll('[data-message-id]');
+    console.log(`📊 [DEBUG] Found ${messages.length} messages in DOM`);
+    
+    messages.forEach(msg => {
+        const messageId = msg.dataset.messageId;
+        const hasReactions = emojiReactions.currentReactions[messageId];
+        const isLoaded = emojiReactions.loadedMessageIds.has(messageId);
+        const reactionsInDOM = msg.querySelectorAll('.bubble-reaction, .message-reaction-pill').length;
+        
+        console.log(`📝 [DEBUG] Message ${messageId}:`, {
+            hasReactions: !!hasReactions,
+            reactionCount: hasReactions ? hasReactions.length : 0,
+            isLoaded: isLoaded,
+            reactionsInDOM: reactionsInDOM,
+            isTemp: messageId.toString().startsWith('temp-')
+        });
+        
+        // If message has no reactions but should, try to load them
+        if (!hasReactions && !/^temp-/.test(messageId) && /^\d+$/.test(messageId)) {
+            console.log(`🔄 [DEBUG] Attempting to load reactions for message ${messageId}`);
+            emojiReactions.loadedMessageIds.delete(messageId);
+            emojiReactions.loadMessageReactions(messageId);
+        }
+    });
+    
+    return {
+        totalMessages: messages.length,
+        loadedReactions: Object.keys(emojiReactions.currentReactions).length,
+        markedAsLoaded: emojiReactions.loadedMessageIds.size
+    };
 };
 
 // Helper to reinitialize if needed

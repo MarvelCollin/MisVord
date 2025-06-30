@@ -1542,4 +1542,62 @@ class ChatController extends BaseController
             return $this->serverError('Failed to get chat participants');
         }
     }
+
+    private function processGroupImage($imageData)
+    {
+        if (empty($imageData)) {
+            return null;
+        }
+
+        if (strpos($imageData, 'data:image/') !== 0) {
+            return $imageData;
+        }
+
+        try {
+            $parts = explode(',', $imageData, 2);
+            if (count($parts) !== 2) {
+                throw new Exception('Invalid base64 image format');
+            }
+
+            $header = $parts[0];
+            $data = $parts[1];
+            
+            if (!preg_match('/data:image\/([a-zA-Z]+);base64/', $header, $matches)) {
+                throw new Exception('Invalid image header format');
+            }
+            
+            $extension = $matches[1];
+            if (!in_array($extension, ['jpeg', 'jpg', 'png', 'gif', 'webp'])) {
+                throw new Exception('Unsupported image format: ' . $extension);
+            }
+
+            $imageContent = base64_decode($data);
+            if ($imageContent === false) {
+                throw new Exception('Failed to decode base64 image data');
+            }
+
+            if (strlen($imageContent) > 5 * 1024 * 1024) {
+                throw new Exception('Image size exceeds 5MB limit');
+            }
+
+            $uploadPath = dirname(__DIR__) . '/public/storage/';
+            if (!is_dir($uploadPath)) {
+                if (!mkdir($uploadPath, 0777, true)) {
+                    throw new Exception('Failed to create storage directory');
+                }
+            }
+
+            $fileName = 'group_' . uniqid() . '_' . time() . '.' . $extension;
+            $filePath = $uploadPath . $fileName;
+            
+            if (file_put_contents($filePath, $imageContent) === false) {
+                throw new Exception('Failed to save image file');
+            }
+
+            return '/public/storage/' . $fileName;
+        } catch (Exception $e) {
+            error_log('Group image processing error: ' . $e->getMessage());
+            throw new Exception('Failed to process group image: ' . $e->getMessage());
+        }
+    }
 }
