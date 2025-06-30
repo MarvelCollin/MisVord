@@ -1,4 +1,5 @@
 import '../api/friend-api.js';
+import '../utils/friends-manager.js';
 
 const friendAPI = window.FriendAPI;
 
@@ -46,6 +47,10 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
+
+    const friendsManager = window.FriendsManager.getInstance();
+    
+    initializeOnPageLoad();
 });
 
 function initServerModal() {
@@ -150,7 +155,7 @@ function loadFriendsForDM() {
 
             if (friends && friends.length > 0) {
                 friends.forEach(friend => {
-                    const statusColor = getStatusColor(friend.status || 'offline');
+                    const statusColor = window.FriendsManager.getInstance().getStatusColor(friend.status || 'offline');
 
                     const friendItem = document.createElement('div');
                     friendItem.className = 'dm-friend-item flex items-center p-2 rounded hover:bg-discord-dark cursor-pointer';
@@ -165,7 +170,7 @@ function loadFriendsForDM() {
                             </div>
                             <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-darker ${statusColor}"></span>
                         </div>
-                        <span class="font-medium text-white">${escapeHtml(friend.username)}</span>
+                        <span class="font-medium text-white">${window.FriendsManager.getInstance().escapeHtml(friend.username)}</span>
                     `;
 
                     friendItem.addEventListener('click', function () {
@@ -330,78 +335,74 @@ function updateTabUI(tabName, tabs, tabContents) {
     });
 }
 
-function loadAllFriends() {
+async function loadAllFriends() {
     const container = document.getElementById('all-friends-container');
     if (!container) return;
     
+    const friendsManager = window.FriendsManager.getInstance();
+    
     container.innerHTML = generateSkeletonFriends(5);
     
-    friendAPI.getFriends()
-        .then(async friends => {
-            if (!friends || friends.length === 0) {
-                container.innerHTML = `
-                    <div class="p-4 bg-discord-dark rounded text-center">
-                        <div class="mb-2 text-gray-400">
-                            <i class="fa-solid fa-user-group text-3xl"></i>
-                        </div>
-                        <p class="text-gray-300 mb-1">No friends found</p>
-                        <p class="text-gray-500 text-sm">Add some friends to get started!</p>
+    try {
+        const [friends, onlineUsers] = await Promise.all([
+            friendsManager.getFriends(),
+            friendsManager.getOnlineUsers()
+        ]);
+
+        if (!friends || friends.length === 0) {
+            container.innerHTML = `
+                <div class="p-4 bg-discord-dark rounded text-center">
+                    <div class="mb-2 text-gray-400">
+                        <i class="fa-solid fa-user-group text-3xl"></i>
                     </div>
-                `;
-                return;
-            }
+                    <p class="text-gray-300 mb-1">No friends found</p>
+                    <p class="text-gray-500 text-sm">Add some friends to get started!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let friendsHtml = '';
+        friends.forEach(friend => {
+            const isOnlineInSocket = onlineUsers[friend.id] !== undefined;
+            const socketStatus = isOnlineInSocket ? onlineUsers[friend.id].status || 'online' : 'offline';
             
-            let onlineUsers = {};
-            try {
-                if (window.ChatAPI && typeof window.ChatAPI.getOnlineUsers === 'function') {
-                    onlineUsers = await window.ChatAPI.getOnlineUsers();
-                }
-            } catch (error) {
-                console.error('Error getting online users from WebSocket:', error);
-            }
+            const status = isOnlineInSocket ? socketStatus : 'offline';
+            const statusColor = friendsManager.getStatusColor(status);
+            const statusText = friendsManager.getStatusText(status);
             
-            let friendsHtml = '';
-            friends.forEach(friend => {
-                const isOnlineInSocket = onlineUsers[friend.id] !== undefined;
-                const socketStatus = isOnlineInSocket ? onlineUsers[friend.id].status || 'online' : 'offline';
-                
-                const status = isOnlineInSocket ? socketStatus : 'offline';
-                const statusColor = getStatusColor(status);
-                const statusText = getStatusText(status);
-                
-                friendsHtml += `
-                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-3 rounded hover:bg-discord-light group friend-item gap-2 sm:gap-0" data-user-id="${friend.id}">
-                        <div class="flex items-center">
-                            <div class="relative mr-3">
-                                <div class="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                    <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                         alt="Avatar" class="w-full h-full object-cover">
-                                </div>
-                                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${statusColor}"></span>
+            friendsHtml += `
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-3 rounded hover:bg-discord-light group friend-item gap-2 sm:gap-0" data-user-id="${friend.id}">
+                    <div class="flex items-center">
+                        <div class="relative mr-3">
+                            <div class="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                                     alt="Avatar" class="w-full h-full object-cover">
                             </div>
-                            <div>
-                                <div class="font-medium text-white friend-name text-sm sm:text-base">${escapeHtml(friend.username)}</div>
-                                <div class="text-xs text-gray-400 friend-status">${statusText}</div>
-                            </div>
+                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${statusColor}"></span>
                         </div>
-                        <div class="flex space-x-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-end sm:self-auto">
-                            <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full text-sm" title="Message" onclick="createDirectMessage('${friend.id}')">
-                                <i class="fa-solid fa-message"></i>
-                            </button>
-                            <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full text-sm" title="More">
-                                <i class="fa-solid fa-ellipsis-vertical"></i>
-                            </button>
+                        <div>
+                            <div class="font-medium text-white friend-name text-sm sm:text-base">${friendsManager.escapeHtml(friend.username)}</div>
+                            <div class="text-xs text-gray-400 friend-status">${statusText}</div>
                         </div>
                     </div>
-                `;
-            });
-            
-            container.innerHTML = friendsHtml;
-        })
-        .catch(error => {
-            console.error('Error loading friends:', error);
-            container.innerHTML = '<div class="text-gray-400 p-4">Failed to load friends</div>';
+                    <div class="flex space-x-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-end sm:self-auto">
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full text-sm" title="Message" onclick="createDirectMessage('${friend.id}')">
+                            <i class="fa-solid fa-message"></i>
+                        </button>
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full text-sm" title="More">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
         });
+        
+        container.innerHTML = friendsHtml;
+    } catch (error) {
+        console.error('Error loading friends:', error);
+        container.innerHTML = '<div class="text-gray-400 p-4">Failed to load friends</div>';
+    }
 }
 
 function generateSkeletonFriends(count) {
@@ -428,87 +429,78 @@ function generateSkeletonFriends(count) {
     return skeletonHtml;
 }
 
-function loadPendingRequests() {
+async function loadPendingRequests() {
     const pendingContainer = document.getElementById('pending-requests');
     if (!pendingContainer) return;
 
+    const friendsManager = window.FriendsManager.getInstance();
+    
     pendingContainer.innerHTML = generateSkeletonPending();
 
-    friendAPI.getPendingRequests()
-        .then(pendingData => {
-            pendingContainer.innerHTML = '';
+    try {
+        const pendingData = await friendsManager.getPendingRequests();
+        pendingContainer.innerHTML = '';
 
-            if (pendingData) {
-                const { incoming, outgoing } = pendingData;
+        if (pendingData) {
+            const { incoming, outgoing } = pendingData;
 
-                if (incoming && incoming.length > 0) {
-                    const incomingHtml = `
-                        <h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Incoming Friend Requests — ${incoming.length}</h3>
-                        <div class="space-y-2">
-                            ${incoming.map(user => `
-                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
-                                    <div class="flex items-center">
-                                        <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                            <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                                 alt="Avatar" class="w-full h-full object-cover">
-                                        </div>
-                                        <div>
-                                            <div class="font-medium text-white text-sm sm:text-base">${escapeHtml(user.username)}</div>
-                                            <div class="text-xs text-gray-400">Incoming Friend Request</div>
-                                        </div>
+            if (incoming && incoming.length > 0) {
+                const incomingHtml = `
+                    <h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Incoming Friend Requests — ${incoming.length}</h3>
+                    <div class="space-y-2">
+                        ${incoming.map(user => `
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
+                                <div class="flex items-center">
+                                    <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
+                                        <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                                             alt="Avatar" class="w-full h-full object-cover">
                                     </div>
-                                    <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
-                                        <button class="bg-discord-green hover:bg-discord-green/90 text-white rounded-md px-3 py-2 sm:py-1 text-sm order-1 sm:order-none"
-                                                onclick="acceptFriendRequest('${user.friendship_id}')">Accept</button>
-                                        <button class="bg-discord-dark hover:bg-discord-light text-white rounded-md px-3 py-2 sm:py-1 text-sm border border-gray-600 order-2 sm:order-none"
-                                                onclick="ignoreFriendRequest('${user.friendship_id}')">Ignore</button>
+                                    <div>
+                                        <div class="font-medium text-white text-sm sm:text-base">${friendsManager.escapeHtml(user.username)}</div>
+                                        <div class="text-xs text-gray-400">Incoming Friend Request</div>
                                     </div>
                                 </div>
-                            `).join('')}
-                        </div>
-                    `;
-                    pendingContainer.insertAdjacentHTML('beforeend', incomingHtml);
-                }
-
-                if (outgoing && outgoing.length > 0) {
-                    const outgoingHtml = `
-                        <h3 class="text-xs uppercase font-semibold text-gray-400 mt-4 mb-2">Outgoing Friend Requests — ${outgoing.length}</h3>
-                        <div class="space-y-2">
-                            ${outgoing.map(user => `
-                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
-                                    <div class="flex items-center">
-                                        <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                            <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                                 alt="Avatar" class="w-full h-full object-cover">
-                                        </div>
-                                        <div>
-                                            <div class="font-medium text-white text-sm sm:text-base">${escapeHtml(user.username)}</div>
-                                            <div class="text-xs text-gray-400">Outgoing Friend Request</div>
-                                        </div>
-                                    </div>
-                                    <div class="self-start sm:self-auto">
-                                        <button class="bg-discord-red hover:bg-discord-red/90 text-white rounded-md px-3 py-2 sm:py-1 text-sm w-full sm:w-auto"
-                                                onclick="cancelFriendRequest('${user.id}')">Cancel</button>
-                                    </div>
+                                <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
+                                    <button class="bg-discord-green hover:bg-discord-green/90 text-white rounded-md px-3 py-2 sm:py-1 text-sm order-1 sm:order-none"
+                                            onclick="acceptFriendRequest('${user.friendship_id}')">Accept</button>
+                                    <button class="bg-discord-dark hover:bg-discord-light text-white rounded-md px-3 py-2 sm:py-1 text-sm border border-gray-600 order-2 sm:order-none"
+                                            onclick="ignoreFriendRequest('${user.friendship_id}')">Ignore</button>
                                 </div>
-                            `).join('')}
-                        </div>
-                    `;
-                    pendingContainer.insertAdjacentHTML('beforeend', outgoingHtml);
-                }
-
-                if ((!incoming || incoming.length === 0) && (!outgoing || outgoing.length === 0)) {
-                    pendingContainer.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-8">
-                            <div class="mb-4 text-gray-400">
-                                <i class="fas fa-user-plus text-4xl"></i>
                             </div>
-                            <div class="text-white font-medium mb-1">Wumpus is waiting on friends</div>
-                            <div class="text-gray-400 text-sm text-center">You don't have any pending friend requests. Here's Wumpus for now.</div>
-                        </div>
-                    `;
-                }
-            } else {
+                        `).join('')}
+                    </div>
+                `;
+                pendingContainer.insertAdjacentHTML('beforeend', incomingHtml);
+            }
+
+            if (outgoing && outgoing.length > 0) {
+                const outgoingHtml = `
+                    <h3 class="text-xs uppercase font-semibold text-gray-400 mt-4 mb-2">Outgoing Friend Requests — ${outgoing.length}</h3>
+                    <div class="space-y-2">
+                        ${outgoing.map(user => `
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
+                                <div class="flex items-center">
+                                    <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
+                                        <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                                             alt="Avatar" class="w-full h-full object-cover">
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white text-sm sm:text-base">${friendsManager.escapeHtml(user.username)}</div>
+                                        <div class="text-xs text-gray-400">Outgoing Friend Request</div>
+                                    </div>
+                                </div>
+                                <div class="self-start sm:self-auto">
+                                    <button class="bg-discord-red hover:bg-discord-red/90 text-white rounded-md px-3 py-2 sm:py-1 text-sm w-full sm:w-auto"
+                                            onclick="cancelFriendRequest('${user.id}')">Cancel</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                pendingContainer.insertAdjacentHTML('beforeend', outgoingHtml);
+            }
+
+            if ((!incoming || incoming.length === 0) && (!outgoing || outgoing.length === 0)) {
                 pendingContainer.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-8">
                         <div class="mb-4 text-gray-400">
@@ -519,11 +511,21 @@ function loadPendingRequests() {
                     </div>
                 `;
             }
-        })
-        .catch(error => {
-            console.error('Error loading pending requests:', error);
-            pendingContainer.innerHTML = '<div class="text-gray-400 p-4">Failed to load pending requests</div>';
-        });
+        } else {
+            pendingContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-8">
+                    <div class="mb-4 text-gray-400">
+                        <i class="fas fa-user-plus text-4xl"></i>
+                    </div>
+                    <div class="text-white font-medium mb-1">Wumpus is waiting on friends</div>
+                    <div class="text-gray-400 text-sm text-center">You don't have any pending friend requests. Here's Wumpus for now.</div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading pending requests:', error);
+        pendingContainer.innerHTML = '<div class="text-gray-400 p-4">Failed to load pending requests</div>';
+    }
 }
 
 function generateSkeletonPending() {
@@ -563,83 +565,58 @@ function generateSkeletonPendingItems(count) {
 
 
 
-function getStatusColor(status) {
-    const statusColors = {
-        'online': 'bg-discord-green',
-        'appear': 'bg-discord-green',
-        'invisible': 'bg-gray-500',
-        'away': 'bg-discord-yellow',
-        'idle': 'bg-discord-yellow',
-        'dnd': 'bg-discord-red',
-        'do_not_disturb': 'bg-discord-red',
-        'offline': 'bg-[#747f8d]',
-        'banned': 'bg-black'
-    };
+async function acceptFriendRequest(userId) {
+    const friendsManager = window.FriendsManager.getInstance();
     
-    return statusColors[status] || 'bg-gray-500';
-}
-
-function getStatusText(status) {
-    const statusTexts = {
-        'online': 'Online',
-        'appear': 'Online',
-        'invisible': 'Invisible',
-        'away': 'Away',
-        'idle': 'Away',
-        'dnd': 'Do Not Disturb',
-        'do_not_disturb': 'Do Not Disturb',
-        'offline': 'Offline',
-        'banned': 'Banned'
-    };
-    
-    return statusTexts[status] || 'Offline';
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function acceptFriendRequest(userId) {
-    friendAPI.acceptFriendRequest(userId)
-        .then(() => {
-            showToast('Friend request accepted!', 'success');
+    try {
+        await friendsManager.acceptFriendRequest(userId);
+        showToast('Friend request accepted!', 'success');
+        
+        const debouncedUpdate = friendsManager.debounce(() => {
             loadPendingRequests();
             updatePendingCount();
-        })
-        .catch(error => {
-            console.error('Error accepting friend request:', error);
-            showToast(error.message || 'Failed to accept friend request', 'error');
-        });
+        }, 200);
+        debouncedUpdate();
+    } catch (error) {
+        console.error('Error accepting friend request:', error);
+        showToast(error.message || 'Failed to accept friend request', 'error');
+    }
 }
 
-function ignoreFriendRequest(userId) {
-    friendAPI.declineFriendRequest(userId)
-        .then(() => {
-            showToast('Friend request ignored', 'info');
+async function ignoreFriendRequest(userId) {
+    const friendsManager = window.FriendsManager.getInstance();
+    
+    try {
+        await friendsManager.declineFriendRequest(userId);
+        showToast('Friend request ignored', 'info');
+        
+        const debouncedUpdate = friendsManager.debounce(() => {
             loadPendingRequests();
             updatePendingCount();
-        })
-        .catch(error => {
-            console.error('Error ignoring friend request:', error);
-            showToast(error.message || 'Failed to ignore friend request', 'error');
-        });
+        }, 200);
+        debouncedUpdate();
+    } catch (error) {
+        console.error('Error ignoring friend request:', error);
+        showToast(error.message || 'Failed to ignore friend request', 'error');
+    }
 }
 
-function cancelFriendRequest(userId) {
-    friendAPI.removeFriend(userId)
-        .then(() => {
-            showToast('Friend request cancelled', 'info');
+async function cancelFriendRequest(userId) {
+    const friendsManager = window.FriendsManager.getInstance();
+    
+    try {
+        await friendsManager.removeFriend(userId);
+        showToast('Friend request cancelled', 'info');
+        
+        const debouncedUpdate = friendsManager.debounce(() => {
             loadPendingRequests();
-        })
-        .catch(error => {
-            console.error('Error cancelling friend request:', error);
-            showToast(error.message || 'Failed to cancel friend request', 'error');
-        });
+        }, 200);
+        debouncedUpdate();
+    } catch (error) {
+        console.error('Error cancelling friend request:', error);
+        showToast(error.message || 'Failed to cancel friend request', 'error');
+    }
 }
-
-
 
 function initFriendRequestForm() {
     const friendUsernameInput = document.getElementById('friend-username-input');
@@ -681,7 +658,8 @@ function initFriendRequestForm() {
         sendFriendRequestBtn.classList.add('opacity-50', 'cursor-not-allowed');
 
         try {
-            await friendAPI.sendFriendRequest(username);
+            const friendsManager = window.FriendsManager.getInstance();
+            await friendsManager.sendFriendRequest(username);
 
             if (successDiv) {
                 successDiv.textContent = 'Friend request sent!';
@@ -690,7 +668,10 @@ function initFriendRequestForm() {
             if (errorDiv) errorDiv.classList.add('hidden');
             friendUsernameInput.value = '';
 
-            updatePendingCount();
+            const debouncedUpdate = friendsManager.debounce(() => {
+                updatePendingCount();
+            }, 200);
+            debouncedUpdate();
 
         } catch (error) {
             console.error('Error sending friend request:', error);
@@ -734,17 +715,19 @@ function showToast(message, type = 'info') {
 }
 
 window.acceptFriendRequest = async function (friendshipId) {
+    const friendsManager = window.FriendsManager.getInstance();
+    
     try {
         console.log('Accepting friend request:', friendshipId);
-        const result = await friendAPI.acceptFriendRequest(friendshipId);
+        const result = await friendsManager.acceptFriendRequest(friendshipId);
 
-        if (result.success) {
-            showToast('Friend request accepted!', 'success');
+        showToast('Friend request accepted!', 'success');
+        
+        const debouncedUpdate = friendsManager.debounce(() => {
             loadPendingRequests();
             updatePendingCount();
-        } else {
-            showToast(result.message || 'Failed to accept friend request', 'error');
-        }
+        }, 200);
+        debouncedUpdate();
     } catch (error) {
         console.error('Error accepting friend request:', error);
         showToast(error.message || 'Failed to accept friend request', 'error');
@@ -752,17 +735,19 @@ window.acceptFriendRequest = async function (friendshipId) {
 };
 
 window.ignoreFriendRequest = async function (friendshipId) {
+    const friendsManager = window.FriendsManager.getInstance();
+    
     try {
         console.log('Ignoring friend request:', friendshipId);
-        const result = await friendAPI.declineFriendRequest(friendshipId);
+        const result = await friendsManager.declineFriendRequest(friendshipId);
 
-        if (result.success) {
-            showToast('Friend request ignored', 'info');
+        showToast('Friend request ignored', 'info');
+        
+        const debouncedUpdate = friendsManager.debounce(() => {
             loadPendingRequests();
             updatePendingCount();
-        } else {
-            showToast(result.message || 'Failed to ignore friend request', 'error');
-        }
+        }, 200);
+        debouncedUpdate();
     } catch (error) {
         console.error('Error ignoring friend request:', error);
         showToast(error.message || 'Failed to ignore friend request', 'error');
@@ -918,5 +903,32 @@ function initMobileMenu() {
                 menuIcon.classList.add('fa-bars');
             }
         }
+    });
+}
+
+function initializeOnPageLoad() {
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/friends')) {
+        const friendsManager = window.FriendsManager.getInstance();
+        
+        const debouncedLoadFriends = friendsManager.debounce(() => {
+            loadAllFriends();
+            loadPendingRequests();
+        }, 100);
+        
+        debouncedLoadFriends();
+    }
+}
+
+function setupCreateServerButton() {
+    const createServerButtons = document.querySelectorAll('.create-server-btn');
+    
+    createServerButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = document.querySelector('.create-server-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        });
     });
 }

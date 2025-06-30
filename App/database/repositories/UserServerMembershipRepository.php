@@ -185,4 +185,89 @@ class UserServerMembershipRepository extends Repository {
             return null;
         }
     }
+    
+    public function getUserServerMembershipDetails($userId, $serverId) {
+        try {
+            $query = new Query();
+            $result = $query->table('user_server_memberships usm')
+                ->join('users u', 'usm.user_id', '=', 'u.id')
+                ->join('servers s', 'usm.server_id', '=', 's.id')
+                ->where('usm.user_id', $userId)
+                ->where('usm.server_id', $serverId)
+                ->select('usm.*, u.username, u.discriminator, u.avatar_url, u.status, s.name as server_name, s.owner_id')
+                ->first();
+                
+            if ($result) {
+                $result['is_owner'] = $result['owner_id'] == $userId;
+            }
+            
+            return $result;
+        } catch (Exception $e) {
+            error_log("Error getting user server membership details: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    public function transferOwnership($serverId, $currentOwnerId, $newOwnerId) {
+        try {
+            $query = new Query();
+            
+            $query->getPdo()->beginTransaction();
+            
+            $updateServer = $query->table('servers')
+                ->where('id', $serverId)
+                ->where('owner_id', $currentOwnerId)
+                ->update(['owner_id' => $newOwnerId]);
+            
+            if (!$updateServer) {
+                $query->getPdo()->rollBack();
+                return false;
+            }
+            
+            $updateCurrentOwner = $query->table('user_server_memberships')
+                ->where('user_id', $currentOwnerId)
+                ->where('server_id', $serverId)
+                ->update(['role' => 'admin']);
+            
+            $updateNewOwner = $query->table('user_server_memberships')
+                ->where('user_id', $newOwnerId)
+                ->where('server_id', $serverId)
+                ->update(['role' => 'owner']);
+            
+            if (!$updateCurrentOwner || !$updateNewOwner) {
+                $query->getPdo()->rollBack();
+                return false;
+            }
+            
+            $query->getPdo()->commit();
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("Error transferring ownership: " . $e->getMessage());
+            if (isset($query)) {
+                $query->getPdo()->rollBack();
+            }
+            return false;
+        }
+    }
+    
+    public function getEligibleNewOwners($serverId, $excludeUserId) {
+        try {
+            $query = new Query();
+            $results = $query->table('user_server_memberships usm')
+                ->join('users u', 'usm.user_id', '=', 'u.id')
+                ->where('usm.server_id', $serverId)
+                ->where('usm.user_id', '!=', $excludeUserId)
+                ->where('u.status', '!=', 'bot')
+                ->select('u.id, u.username, u.discriminator, u.avatar_url, u.display_name, usm.role')
+                ->orderBy('usm.role', 'ASC')
+                ->orderBy('u.username', 'ASC')
+                ->get();
+            
+            return $results;
+        } catch (Exception $e) {
+            error_log("Error getting eligible new owners: " . $e->getMessage());
+            return [];
+        }
+    }
 }

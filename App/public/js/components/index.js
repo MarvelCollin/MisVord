@@ -32,6 +32,7 @@ export * from './home/direct-message-nav.js';
 
 import './app-layout.js';
 import './settings/mic-video-check.js';
+import '../utils/friends-manager.js';
 
 
 if (!document.body.classList.contains('settings-page') &&

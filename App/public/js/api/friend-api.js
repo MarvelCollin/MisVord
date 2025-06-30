@@ -80,10 +80,6 @@ class FriendAPI {
             body: JSON.stringify({ username })
         });
         
-        if (!data.data) {
-            throw new Error(data.message || 'Failed to send friend request');
-        }
-        
         return data;
     }
 

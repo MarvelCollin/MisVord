@@ -950,6 +950,7 @@ class ServerController extends BaseController
         if (!$serverId) {
             return $this->validationError(['server_id' => 'Server ID is required']);
         }
+        
         try {
             $server = $this->serverRepository->find($serverId);
             if (!$server) {
@@ -963,8 +964,27 @@ class ServerController extends BaseController
             }
             
             $input = $this->getInput();
-            $expiresAt = null;
+            $forceNew = isset($input['force_new']) && $input['force_new'];
             
+            if (!$forceNew) {
+                $existingInvite = $this->inviteRepository->getExistingInviteForServer($serverId);
+                if ($existingInvite) {
+                    $this->logActivity('existing_invite_returned', [
+                        'server_id' => $serverId,
+                        'invite_code' => $existingInvite->invite_link
+                    ]);
+
+                    return $this->success([
+                        'invite_code' => $existingInvite->invite_link,
+                        'invite_url' => $this->getBaseUrl() . '/join/' . $existingInvite->invite_link,
+                        'expires_at' => $existingInvite->expires_at,
+                        'created_at' => $existingInvite->created_at,
+                        'existing' => true
+                    ]);
+                }
+            }
+            
+            $expiresAt = null;
             if (isset($input['expires_in'])) {
                 $hours = (int)$input['expires_in'];
                 if ($hours > 0) {
@@ -984,17 +1004,19 @@ class ServerController extends BaseController
                 return $this->serverError('Failed to create invite');
             }
             
-                $this->logActivity('invite_generated', [
-                    'server_id' => $serverId,
+            $this->logActivity('invite_generated', [
+                'server_id' => $serverId,
                 'invite_code' => $invite->invite_link,
-                    'expires_at' => $expiresAt
-                ]);
+                'expires_at' => $expiresAt
+            ]);
 
-                return $this->success([
+            return $this->success([
                 'invite_code' => $invite->invite_link,
                 'invite_url' => $this->getBaseUrl() . '/join/' . $invite->invite_link,
-                    'expires_at' => $expiresAt
-                ]);
+                'expires_at' => $expiresAt,
+                'created_at' => $invite->created_at,
+                'existing' => false
+            ]);
         } catch (Exception $e) {
             $this->logActivity('invite_generation_error', [
                 'server_id' => $serverId,
@@ -1758,222 +1780,246 @@ class ServerController extends BaseController
         }
     }
 
-    private function acceptInvite() {
-        $inviteCode = trim($_GET['code'] ?? '');
-        
-        if (empty($inviteCode)) {
-            $this->redirect('/explore-servers?error=' . urlencode('Invite code is required.'));
-            return;
+    public function getExistingInvite($serverId = null) {
+        $this->requireAuth();
+
+        if (!$serverId) {
+            $input = $this->getInput();
+            $serverId = $input['server_id'] ?? null;
         }
-        
-        $inviteRepo = new ServerInviteRepository();
-        $invite = $inviteRepo->getByCode($inviteCode);
-        
-        if (!$invite) {
-            $this->redirect('/accept-invite/' . urlencode($inviteCode) . '?error=' . urlencode('Invite not found or expired.'));
-            return;
+
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
         }
-        
-        $now = date('Y-m-d H:i:s');
-        if ($invite['expires_at'] && $invite['expires_at'] <= $now) {
-            $this->redirect('/accept-invite/' . urlencode($inviteCode) . '?error=' . urlencode('This invite has expired.'));
-            return;
-        }
-        
-        $serverId = $invite['server_id'];
-        $membershipRepo = new UserServerMembershipRepository();
-        
-        if ($this->session->isLoggedIn()) {
-            $userId = $this->session->getUserId();
-            $existingMembership = $membershipRepo->getUserServerMembership($userId, $serverId);
-            
-            if ($existingMembership) {
-                $this->redirect('/server/' . $serverId . '?message=' . urlencode('You are already a member of this server.'));
-                return;
+
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
             }
-            
-            $this->db->beginTransaction();
-            try {
-                $membershipRepo->createMembership($userId, $serverId);
-                $this->db->commit();
-                
-                $this->redirect('/server/' . $serverId . '?message=' . urlencode('Welcome to the server!'));
-                return;
-            } catch (Exception $e) {
-                $this->db->rollback();
-                error_log("Error joining server: " . $e->getMessage());
-                $this->redirect('/accept-invite/' . urlencode($inviteCode) . '?error=' . urlencode('Failed to join server. Please try again.'));
-                return;
+
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $serverId);
+            if (!$membership || (!$this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId) && 
+                $membership->role !== 'admin' && $membership->role !== 'moderator')) {
+                return $this->forbidden('You do not have permission to view invite links');
             }
-        } else {
-            $this->redirect('/auth?redirect=' . urlencode('/accept-invite/' . $inviteCode));
+
+            $existingInvite = $this->inviteRepository->getExistingInviteForServer($serverId);
+            
+            if ($existingInvite) {
+                $this->logActivity('existing_invite_retrieved', [
+                    'server_id' => $serverId,
+                    'invite_code' => $existingInvite->invite_link
+                ]);
+
+                return $this->success([
+                    'invite_code' => $existingInvite->invite_link,
+                    'invite_url' => $this->getBaseUrl() . '/join/' . $existingInvite->invite_link,
+                    'expires_at' => $existingInvite->expires_at,
+                    'created_at' => $existingInvite->created_at
+                ]);
+            } else {
+                return $this->success([
+                    'invite_code' => null,
+                    'message' => 'No active invite found for this server'
+                ]);
+            }
+        } catch (Exception $e) {
+            $this->logActivity('existing_invite_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to get existing invite: ' . $e->getMessage());
         }
     }
 
-    public function generateInvite() {
-        header('Content-Type: application/json');
+    public function getUserServerMembership($serverId = null) {
+        $this->requireAuth();
+
+        if (!$serverId) {
+            $input = $this->getInput();
+            $serverId = $input['server_id'] ?? null;
+        }
+
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
+        }
+
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            $membershipDetails = $this->userServerMembershipRepository->getUserServerMembershipDetails($this->getCurrentUserId(), $serverId);
+            
+            if (!$membershipDetails) {
+                return $this->forbidden('You are not a member of this server');
+            }
+
+            $this->logActivity('user_server_membership_retrieved', [
+                'server_id' => $serverId,
+                'user_id' => $this->getCurrentUserId()
+            ]);
+
+            return $this->success([
+                'membership' => $membershipDetails
+            ]);
+        } catch (Exception $e) {
+            $this->logActivity('user_server_membership_error', [
+                'server_id' => $serverId,
+                'user_id' => $this->getCurrentUserId(),
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to get user server membership: ' . $e->getMessage());
+        }
+    }
+    
+    public function leaveServer() {
+        $this->requireAuth();
         
-        if (!$this->isAjax()) {
-            http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-            return;
+        $input = $this->getInput();
+        $serverId = $input['server_id'] ?? null;
+        
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
         }
         
         try {
-            $serverId = $_POST['server_id'] ?? null;
-            $expiresIn = $_POST['expires_in'] ?? null;
-            $expiresAt = $_POST['expires_at'] ?? null;
-            
-            if (!$serverId) {
-                throw new ValidationException('Server ID is required');
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
             }
             
-            if (!$this->session->isLoggedIn()) {
-                throw new AuthenticationException('Please log in to create invites');
-            }
-            
-            $userId = $this->session->getUserId();
-            $membershipRepo = new UserServerMembershipRepository();
-            $membership = $membershipRepo->getUserServerMembership($userId, $serverId);
-            
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $serverId);
             if (!$membership) {
-                throw new AuthenticationException('You are not a member of this server');
+                return $this->notFound('You are not a member of this server');
             }
             
-            $expirationDate = null;
-            if ($expiresIn) {
-                $hours = (int)$expiresIn;
-                $expirationDate = date('Y-m-d H:i:s', strtotime("+{$hours} hours"));
-            } elseif ($expiresAt) {
-                $expirationDate = $expiresAt;
+            $isOwner = $this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId);
+            if ($isOwner) {
+                return $this->validationError(['ownership' => 'Cannot leave server as owner. Transfer ownership first.']);
             }
             
-            $inviteRepo = new ServerInviteRepository();
-            $inviteCode = $inviteRepo->generateUniqueCode();
+            $removed = $this->userServerMembershipRepository->removeMembership($this->getCurrentUserId(), $serverId);
+            if (!$removed) {
+                return $this->serverError('Failed to leave server');
+            }
             
-            $result = $inviteRepo->createInvite([
-                'code' => $inviteCode,
+            $this->logActivity('server_left', [
                 'server_id' => $serverId,
-                'created_by' => $userId,
-                'expires_at' => $expirationDate,
-                'max_uses' => null,
-                'uses' => 0
+                'server_name' => $server->name
             ]);
             
-            AppLogger::info("Invite created", [
-                'code' => $inviteCode,
-                'server_id' => $serverId,
-                'created_by' => $userId,
-                'expires_at' => $expirationDate
-            ]);
-            
-            echo json_encode([
-                'success' => true,
-                'invite' => [
-                    'code' => $inviteCode,
-                    'url' => $this->getBaseUrl() . '/accept-invite/' . $inviteCode,
-                    'expires_at' => $expirationDate
-                ]
+            return $this->success([
+                'message' => 'Successfully left server',
+                'redirect' => '/home'
             ]);
             
         } catch (Exception $e) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            $this->logActivity('server_leave_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to leave server: ' . $e->getMessage());
         }
     }
-
-    public function acceptInviteAction() {
-        $inviteCode = $_GET['code'] ?? null;
+    
+    public function getEligibleNewOwners($serverId = null) {
+        $this->requireAuth();
         
-        if (!$inviteCode) {
-            $this->redirect('/explore-servers');
-            return;
+        if (!$serverId) {
+            $input = $this->getInput();
+            $serverId = $input['server_id'] ?? null;
         }
         
-        if ($this->isAjax()) {
-            $this->handleAjaxInviteAccept($inviteCode);
-            return;
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
         }
-        
-        $inviteRepo = new ServerInviteRepository();
-        $invite = $inviteRepo->getByCode($inviteCode);
-        
-        if (!$invite) {
-            $error = 'Invite not found or expired.';
-            include 'views/pages/accept-invite.php';
-            return;
-        }
-        
-        $now = date('Y-m-d H:i:s');
-        if ($invite['expires_at'] && $invite['expires_at'] <= $now) {
-            $error = 'This invite has expired.';
-            include 'views/pages/accept-invite.php';
-            return;
-        }
-        
-        if (!$this->session->isLoggedIn()) {
-            $error = 'Please log in to accept this invite.';
-            include 'views/pages/accept-invite.php';
-            return;
-        }
-        
-        $this->redirect('/accept-invite/' . $inviteCode);
-    }
-
-    private function handleAjaxInviteAccept($inviteCode) {
-        header('Content-Type: application/json');
         
         try {
-            if (!$this->session->isLoggedIn()) {
-                throw new AuthenticationException('Please log in to accept invites');
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
             }
             
-            $inviteRepo = new ServerInviteRepository();
-            $invite = $inviteRepo->getByCode($inviteCode);
-            
-            if (!$invite) {
-                throw new NotFoundException('Invite not found or expired');
+            if (!$this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId)) {
+                return $this->forbidden('Only server owner can view eligible new owners');
             }
             
-            $now = date('Y-m-d H:i:s');
-            if ($invite['expires_at'] && $invite['expires_at'] <= $now) {
-                throw new ValidationException('This invite has expired');
-            }
+            $eligibleMembers = $this->userServerMembershipRepository->getEligibleNewOwners($serverId, $this->getCurrentUserId());
             
-            $serverId = $invite['server_id'];
-            $userId = $this->session->getUserId();
-            $membershipRepo = new UserServerMembershipRepository();
-            $existingMembership = $membershipRepo->getUserServerMembership($userId, $serverId);
-            
-            if ($existingMembership) {
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'You are already a member of this server',
-                    'redirect' => '/server/' . $serverId
-                ]);
-                return;
-            }
-            
-            $this->db->beginTransaction();
-            try {
-                $membershipRepo->createMembership($userId, $serverId);
-                $this->db->commit();
-                
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Successfully joined the server!',
-                    'redirect' => '/server/' . $serverId
-                ]);
-                return;
-            } catch (Exception $e) {
-                $this->db->rollback();
-                throw $e;
-            }
+            return $this->success([
+                'members' => $eligibleMembers
+            ]);
             
         } catch (Exception $e) {
-            http_response_code($e instanceof AuthenticationException ? 401 : 
-                            ($e instanceof NotFoundException ? 404 : 400));
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            $this->logActivity('eligible_owners_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to get eligible members: ' . $e->getMessage());
+        }
+    }
+    
+    public function transferOwnershipAndLeave() {
+        $this->requireAuth();
+        
+        $input = $this->getInput();
+        $serverId = $input['server_id'] ?? null;
+        $newOwnerId = $input['new_owner_id'] ?? null;
+        
+        if (!$serverId || !$newOwnerId) {
+            return $this->validationError([
+                'server_id' => 'Server ID is required',
+                'new_owner_id' => 'New owner ID is required'
+            ]);
+        }
+        
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+            
+            if (!$this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId)) {
+                return $this->forbidden('Only server owner can transfer ownership');
+            }
+            
+            $newOwnerMembership = $this->userServerMembershipRepository->findByUserAndServer($newOwnerId, $serverId);
+            if (!$newOwnerMembership) {
+                return $this->validationError(['new_owner_id' => 'Selected user is not a member of this server']);
+            }
+            
+            $transferSuccess = $this->userServerMembershipRepository->transferOwnership($serverId, $this->getCurrentUserId(), $newOwnerId);
+            if (!$transferSuccess) {
+                return $this->serverError('Failed to transfer ownership');
+            }
+            
+            $leaveSuccess = $this->userServerMembershipRepository->removeMembership($this->getCurrentUserId(), $serverId);
+            if (!$leaveSuccess) {
+                return $this->serverError('Ownership transferred but failed to leave server');
+            }
+            
+            $this->logActivity('ownership_transferred_and_left', [
+                'server_id' => $serverId,
+                'server_name' => $server->name,
+                'old_owner_id' => $this->getCurrentUserId(),
+                'new_owner_id' => $newOwnerId
+            ]);
+            
+            return $this->success([
+                'message' => 'Ownership transferred successfully and left server',
+                'redirect' => '/home'
+            ]);
+            
+        } catch (Exception $e) {
+            $this->logActivity('transfer_ownership_error', [
+                'server_id' => $serverId,
+                'new_owner_id' => $newOwnerId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to transfer ownership: ' . $e->getMessage());
         }
     }
 

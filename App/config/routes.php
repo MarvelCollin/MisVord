@@ -329,6 +329,16 @@ Route::post('/api/servers/([0-9]+)/invite', function($serverId) {
     $controller->generateInviteLink($serverId);
 });
 
+Route::get('/api/servers/([0-9]+)/invite', function($serverId) {
+    $controller = new ServerController();
+    $controller->getExistingInvite($serverId);
+});
+
+Route::get('/api/servers/([0-9]+)/membership', function($serverId) {
+    $controller = new ServerController();
+    $controller->getUserServerMembership($serverId);
+});
+
 Route::post('/api/channels/position', function() {
     $controller = new ChannelController();
     $controller->updateChannelPosition();
@@ -1564,6 +1574,21 @@ Route::post('/api/chat/save-bot-message', function() {
 Route::post('/api/debug/socket-input', function() {
     $controller = new DebugController();
     return $controller->testSocketInput();
+});
+
+Route::post('/api/servers/leave', function() {
+    $controller = new ServerController();
+    $controller->leaveServer();
+});
+
+Route::get('/api/servers/([0-9]+)/eligible-owners', function($serverId) {
+    $controller = new ServerController();
+    $controller->getEligibleNewOwners($serverId);
+});
+
+Route::post('/api/servers/transfer-ownership', function() {
+    $controller = new ServerController();
+    $controller->transferOwnershipAndLeave();
 });
 
 return array_merge(Route::getRoutes(), [

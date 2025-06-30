@@ -324,6 +324,40 @@ const serverAPI = {
         });
     },
 
+    getExistingInvite: function(serverId) {
+        return fetch(`/api/servers/${serverId}/invite`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    getUserServerMembership: function(serverId) {
+        return fetch(`/api/servers/${serverId}/membership`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
 
 
 
@@ -372,7 +406,51 @@ const serverAPI = {
                 server_id: serverId
             })
         })
-        .then(response => response.json());
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+    
+    getEligibleNewOwners: function(serverId) {
+        return fetch(`/api/servers/${serverId}/eligible-owners`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+    
+    transferOwnershipAndLeave: function(serverId, newOwnerId) {
+        return fetch(`/api/servers/transfer-ownership`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                server_id: serverId,
+                new_owner_id: newOwnerId
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
     },
 
     createChannel: function(serverId, channelData) {
@@ -442,19 +520,6 @@ const serverAPI = {
         return $.ajax({
             url: `/api/servers/${serverId}/categories/${categoryId}`,
             method: 'DELETE',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-    },
-
-    generateInviteLink: function(serverId, options = {}) {
-        return $.ajax({
-            url: `/api/servers/${serverId}/invite`,
-            method: 'POST',
-            data: JSON.stringify(options),
-            contentType: 'application/json',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'

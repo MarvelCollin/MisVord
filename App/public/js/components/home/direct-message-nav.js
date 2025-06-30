@@ -297,8 +297,12 @@ class DirectMessageNavigation {
         this.updateChatMetaTags(dmId, username);
         
         // Initialize or reinitialize chat section (with small delay to ensure DOM is ready)
-        setTimeout(() => {
-            this.initializeChatSection(dmId, username);
+        setTimeout(async () => {
+            try {
+                await this.initializeChatSection(dmId, username);
+            } catch (error) {
+                console.error('[DM Navigation] Error initializing chat section:', error);
+            }
         }, 50);
         
         console.log('[DM Navigation] DM chat section displayed successfully');
@@ -366,18 +370,15 @@ class DirectMessageNavigation {
         console.log('[DM Navigation] Updated meta tags for DM chat');
     }
     
-    initializeChatSection(dmId, username) {
+    async initializeChatSection(dmId, username) {
         console.log('[DM Navigation] Initializing chat section for DM:', dmId, username);
         
-        // Check if chat section is already initialized
         if (window.chatSection && typeof window.chatSection.switchTarget === 'function') {
             console.log('[DM Navigation] Switching existing chat section to DM');
-            // Switch the existing chat section to this DM
             window.chatSection.switchTarget('direct', dmId);
             return;
         }
         
-        // Function to ensure all dependencies are loaded
         const ensureDependencies = () => {
             return new Promise((resolve) => {
                 const checkDependencies = () => {
@@ -413,7 +414,7 @@ class DirectMessageNavigation {
                     attempts++;
                     if (checkDependencies()) {
                         clearInterval(checkInterval);
-                    } else if (attempts > 100) { // 10 seconds timeout
+                    } else if (attempts > 100) {
                         clearInterval(checkInterval);
                         console.warn('[DM Navigation] Dependencies not loaded after timeout, attempting anyway');
                         resolve();
@@ -422,39 +423,51 @@ class DirectMessageNavigation {
             });
         };
         
-        // Function to create new chat section instance
-        const createChatSection = () => {
+        const createChatSection = async () => {
             if (typeof window.ChatSection === 'function') {
                 console.log('[DM Navigation] Creating new ChatSection instance');
-                const chatSection = new window.ChatSection({
-                    chatType: 'direct',
-                    targetId: dmId,
-                    userId: window.currentUserId || document.querySelector('meta[name="user-id"]')?.getAttribute('content'),
-                    username: window.currentUsername || document.querySelector('meta[name="username"]')?.getAttribute('content')
-                });
-                window.chatSection = chatSection;
-                return true;
+                try {
+                    const chatSection = new window.ChatSection({
+                        chatType: 'direct',
+                        targetId: dmId,
+                        userId: window.currentUserId || document.querySelector('meta[name="user-id"]')?.getAttribute('content'),
+                        username: window.currentUsername || document.querySelector('meta[name="username"]')?.getAttribute('content')
+                    });
+                    await chatSection.init();
+                    window.chatSection = chatSection;
+                    return true;
+                } catch (error) {
+                    console.error('[DM Navigation] Error creating ChatSection:', error);
+                    return false;
+                }
             }
             return false;
         };
         
-        // Ensure dependencies and then initialize
-        ensureDependencies().then(() => {
-            // Try to create chat section directly
-            if (createChatSection()) {
+        try {
+            await ensureDependencies();
+            
+            if (await createChatSection()) {
                 console.log('[DM Navigation] Chat section initialized directly');
                 return;
             }
             
-            // Try using global initialization function
             if (typeof window.initializeChatSection === 'function') {
                 console.log('[DM Navigation] Using global initializeChatSection function');
-                window.initializeChatSection();
+                try {
+                    await window.initializeChatSection();
+                    console.log('[DM Navigation] Global initializeChatSection completed');
+                } catch (error) {
+                    console.error('[DM Navigation] Error with global initializeChatSection:', error);
+                }
                 return;
             }
             
             console.error('[DM Navigation] Failed to initialize chat section - no available methods');
-        });
+            
+        } catch (error) {
+            console.error('[DM Navigation] Error during chat section initialization:', error);
+        }
     }
 
     showFriendsContent() {

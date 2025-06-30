@@ -186,6 +186,9 @@ class ChannelSwitchManager {
             if (channelType === 'text') {
                 this.updateChatMetaTags(channelId, serverId);
                 
+                const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+                const channelName = channelElement ? channelElement.textContent.trim().replace('#', '') : 'channel';
+                
                 const messageInput = document.querySelector('#message-input');
                 if (messageInput) {
                     messageInput.placeholder = `Message #${channelName}`;
@@ -195,7 +198,7 @@ class ChannelSwitchManager {
                 }
                 
                 await new Promise(resolve => setTimeout(resolve, 100));
-                this.initializeChatSection(channelId);
+                await this.initializeChatSection(channelId);
                 
                 await new Promise(resolve => setTimeout(resolve, 200));
                 if (window.chatSection && window.chatSection.isLoading) {
@@ -407,7 +410,7 @@ class ChannelSwitchManager {
         }
     }
 
-    initializeChatSection(channelId) {
+    async initializeChatSection(channelId) {
         console.log('[ChannelSwitchManager] Initializing chat section for channel:', channelId);
         
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
@@ -461,11 +464,11 @@ class ChannelSwitchManager {
             } catch (error) {
                 console.error('[ChannelSwitchManager] ❌ Error switching chat section target:', error);
                 console.log('[ChannelSwitchManager] Falling back to creating new chat section instance');
-                this.createChatSectionInstance(channelId);
+                await this.createChatSectionInstance(channelId);
             }
         } else {
             console.log('[ChannelSwitchManager] Chat section not found or switchTarget not available, creating new instance');
-            this.createChatSectionInstance(channelId);
+            await this.createChatSectionInstance(channelId);
         }
         
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
@@ -474,29 +477,37 @@ class ChannelSwitchManager {
         }
     }
     
-    createChatSectionInstance(channelId) {
+    async createChatSectionInstance(channelId) {
         if (typeof window.initializeChatSection === 'function') {
             console.log('[ChannelSwitchManager] Using global initializeChatSection function');
-            window.initializeChatSection();
+            try {
+                await window.initializeChatSection();
+            } catch (error) {
+                console.error('[ChannelSwitchManager] Error with global initializeChatSection:', error);
+            }
         } else if (typeof window.ChatSection === 'function') {
             console.log('[ChannelSwitchManager] Creating ChatSection instance manually');
-            const chatSection = new window.ChatSection({
-                chatType: 'channel',
-                targetId: channelId,
-                userId: window.currentUserId || document.querySelector('meta[name="user-id"]')?.getAttribute('content'),
-                username: window.currentUsername || document.querySelector('meta[name="username"]')?.getAttribute('content')
-            });
-            window.chatSection = chatSection;
-            
-            // Initialize the chat section
-            if (typeof chatSection.init === 'function') {
-                chatSection.init();
+            try {
+                const chatSection = new window.ChatSection({
+                    chatType: 'channel',
+                    targetId: channelId,
+                    userId: window.currentUserId || document.querySelector('meta[name="user-id"]')?.getAttribute('content'),
+                    username: window.currentUsername || document.querySelector('meta[name="username"]')?.getAttribute('content')
+                });
+                
+                await chatSection.init();
+                window.chatSection = chatSection;
+            } catch (error) {
+                console.error('[ChannelSwitchManager] Error creating ChatSection instance:', error);
             }
         } else {
             console.log('[ChannelSwitchManager] Loading chat section script dynamically');
-            this.loadChatSectionScript().then(() => {
-                this.createChatSectionInstance(channelId);
-            });
+            try {
+                await this.loadChatSectionScript();
+                await this.createChatSectionInstance(channelId);
+            } catch (error) {
+                console.error('[ChannelSwitchManager] Error loading chat section script:', error);
+            }
         }
     }
     

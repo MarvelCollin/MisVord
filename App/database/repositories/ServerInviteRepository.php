@@ -60,4 +60,25 @@ class ServerInviteRepository extends Repository {
             ->where('server_id', $serverId)
             ->delete();
     }
+    
+    public function getActiveInviteForServer($serverId) {
+        $query = new Query();
+        $pdo = $query->getPdo();
+        
+        $sql = "SELECT * FROM " . static::getModelClass()::getTable() . " 
+                WHERE server_id = ? 
+                AND (expires_at IS NULL OR expires_at > ?)
+                ORDER BY created_at DESC
+                LIMIT 1";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$serverId, date('Y-m-d H:i:s')]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        return $data ? new ServerInvite($data) : null;
+    }
+    
+    public function getExistingInviteForServer($serverId) {
+        return $this->getActiveInviteForServer($serverId);
+    }
 }

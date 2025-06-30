@@ -19,7 +19,7 @@ function isExcludedPage() {
     return pageType === 'admin' || pageType === 'nitro';
 }
 
-function initializeChatSection() {
+async function initializeChatSection() {
     if (typeof window.ChatAPI === 'undefined') {
         console.log('ChatAPI not ready, retrying...', {
             ChatAPI: typeof window.ChatAPI,
@@ -31,15 +31,21 @@ function initializeChatSection() {
     }
     
     console.log('✅ Initializing ChatSection with ChatAPI ready');
-    const chatSection = new ChatSection();
-    chatSection.init();
-    window.chatSection = chatSection;
-    
-    // Make sure emoji reactions system is initialized
-    if (typeof window.emojiReactions === 'undefined' || !window.emojiReactions.initialized) {
-        console.log('Ensuring emoji reactions system is initialized from ChatSection');
-        if (typeof window.initializeEmojiReactions === 'function') {
-            window.initializeEmojiReactions();
+    try {
+        const chatSection = new ChatSection();
+        await chatSection.init();
+        window.chatSection = chatSection;
+        
+        if (typeof window.emojiReactions === 'undefined' || !window.emojiReactions.initialized) {
+            console.log('Ensuring emoji reactions system is initialized from ChatSection');
+            if (typeof window.initializeEmojiReactions === 'function') {
+                window.initializeEmojiReactions();
+            }
+        }
+    } catch (error) {
+        console.error('❌ Failed to initialize ChatSection:', error);
+        if (window.showToast) {
+            window.showToast('Failed to initialize chat. Please refresh the page.', 'error');
         }
     }
 }
@@ -65,10 +71,17 @@ class ChatSection {
         this.replyingTo = null;
         this.currentEditingMessage = null;
         
-        this.chatContainer = document.querySelector('.flex-1.flex.flex-col.bg-\\[\\#313338\\].h-screen.overflow-hidden') || document.getElementById('chat-container');
-        this.chatMessages = document.getElementById('chat-messages');
-        this.messageForm = document.getElementById('message-form');
-        this.messageInput = document.getElementById('message-input');
+        this.chatContainer = null;
+        this.chatMessages = null;
+        this.messageForm = null;
+        this.messageInput = null;
+        this.sendButton = null;
+        this.loadMoreButton = null;
+        this.emptyStateContainer = null;
+        this.loadingIndicator = null;
+        this.contextMenu = null;
+        this.fileUploadInput = null;
+        this.filePreviewModal = null;
         
         this.messageHandler = new MessageHandler(this);
         this.socketHandler = new SocketHandler(this);
@@ -76,12 +89,17 @@ class ChatSection {
         this.fileUploadHandler = new FileUploadHandler(this);
         this.sendReceiveHandler = new SendReceiveHandler(this);
         this.chatBot = new ChatBot(this);
+        this.mentionHandler = null;
         
+        this.init();
+    }
+    
+    findDOMElements() {
+        this.chatContainer = document.querySelector('.flex-1.flex.flex-col.bg-\\[\\#313338\\].h-screen.overflow-hidden') || document.getElementById('chat-container');
+        this.chatMessages = document.getElementById('chat-messages');
+        this.messageForm = document.getElementById('message-form');
+        this.messageInput = document.getElementById('message-input');
         this.sendButton = document.getElementById('send-button');
-        if (!this.sendButton) {
-            console.warn('⚠️ [CHAT-SECTION] Send button not found in HTML');
-        }
-        
         this.loadMoreButton = document.getElementById('load-more-messages');
         this.emptyStateContainer = document.getElementById('empty-state-container');
         this.loadingIndicator = document.getElementById('loading-indicator');
@@ -89,10 +107,51 @@ class ChatSection {
         this.fileUploadInput = document.getElementById('file-upload');
         this.filePreviewModal = document.getElementById('file-preview-modal');
         
-        this.init();
+        console.log('🔍 [CHAT-SECTION] DOM elements found:', {
+            chatMessages: !!this.chatMessages,
+            messageForm: !!this.messageForm,
+            messageInput: !!this.messageInput,
+            sendButton: !!this.sendButton
+        });
     }
     
-    init() {
+    waitForRequiredElements() {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 50;
+            
+            const checkElements = () => {
+                this.findDOMElements();
+                
+                if (this.chatMessages && this.messageForm && this.messageInput) {
+                    console.log('✅ [CHAT-SECTION] Required DOM elements found');
+                    resolve();
+                    return;
+                }
+                
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    console.error('❌ [CHAT-SECTION] Required DOM elements not found after', maxAttempts, 'attempts');
+                    console.error('❌ [CHAT-SECTION] Missing elements:', {
+                        chatMessages: !this.chatMessages,
+                        messageForm: !this.messageForm,
+                        messageInput: !this.messageInput
+                    });
+                    reject(new Error('Required DOM elements not found'));
+                    return;
+                }
+                
+                console.log(`⏳ [CHAT-SECTION] Waiting for DOM elements (attempt ${attempts}/${maxAttempts})`);
+                setTimeout(checkElements, 100);
+            };
+            
+            checkElements();
+        });
+    }
+    
+    async init() {
+        console.log('🚀 [CHAT-SECTION] Initializing ChatSection...');
+        
         if (this.messageHandler) {
             this.messageHandler.clearProcessedMessages();
         }
@@ -135,45 +194,61 @@ class ChatSection {
             this.chatType = 'channel';
         }
         
-        if (!this.chatMessages) {
-            console.error('Required DOM element chat-messages not found');
-            return;
+        console.log('📝 [CHAT-SECTION] Configuration loaded:', {
+            chatType: this.chatType,
+            targetId: this.targetId,
+            userId: this.userId,
+            username: this.username
+        });
+        
+        try {
+            await this.waitForRequiredElements();
+            
+            this.mentionHandler = new MentionHandler(this);
+            
+            this.setupEventListeners();
+            
+            if (this.socketHandler) {
+                this.socketHandler.setupIoListeners();
+            }
+            
+            if (this.targetId) {
+                setTimeout(() => {
+                    this.loadMessages();
+                }, 100);
+            }
+            
+            this.initializeExistingMessages();
+            
+            this.isInitialized = true;
+            
+            window.chatSection = this;
+            
+            if (window.globalSocketManager?.isReady()) {
+                this.joinSocketRoom();
+            } else {
+                window.addEventListener('globalSocketReady', () => this.joinSocketRoom());
+            }
+            
+            if (this.targetId && this.mentionHandler) {
+                setTimeout(() => {
+                    this.mentionHandler.loadAvailableUsers();
+                }, 500);
+            }
+            
+            this.cleanupEmptyMessages();
+            this.chatBot.init();
+            
+            console.log('✅ [CHAT-SECTION] Initialization completed successfully');
+            
+        } catch (error) {
+            console.error('❌ [CHAT-SECTION] Initialization failed:', error);
+            console.error('❌ [CHAT-SECTION] ChatSection will not be functional');
+            
+            if (window.showToast) {
+                window.showToast('Chat initialization failed. Please refresh the page.', 'error');
+            }
         }
-        
-        this.mentionHandler = new MentionHandler(this);
-        
-        this.setupEventListeners();
-        
-        if (this.socketHandler) {
-            this.socketHandler.setupIoListeners();
-        }
-        
-        if (this.targetId) {
-            setTimeout(() => {
-                this.loadMessages();
-            }, 100);
-        }
-        
-        this.initializeExistingMessages();
-        
-        this.isInitialized = true;
-        
-        window.chatSection = this;
-        
-        if (window.globalSocketManager?.isReady()) {
-            this.joinSocketRoom();
-        } else {
-            window.addEventListener('globalSocketReady', () => this.joinSocketRoom());
-        }
-        
-        if (this.targetId && this.mentionHandler) {
-            setTimeout(() => {
-                this.mentionHandler.loadAvailableUsers();
-            }, 500);
-        }
-        
-        this.cleanupEmptyMessages();
-        this.chatBot.init();
     }
     
     joinSocketRoom() {
@@ -1272,15 +1347,19 @@ class ChatSection {
         }
     }
     
-
-    
     scrollToBottom() {
+        if (!this.chatMessages) {
+            this.findDOMElements();
+        }
         if (this.chatMessages) {
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
         }
     }
     
     scrollToBottomIfNeeded() {
+        if (!this.chatMessages) {
+            this.findDOMElements();
+        }
         if (!this.chatMessages) return;
         
         const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
@@ -1327,6 +1406,10 @@ class ChatSection {
     }
     
     getMessagesContainer() {
+        if (!this.chatMessages) {
+            console.log('⚠️ [CHAT-SECTION] Chat messages element not found, attempting to find it...');
+            this.findDOMElements();
+        }
         return this.chatMessages;
     }
     
@@ -1449,6 +1532,12 @@ class ChatSection {
         }
         
         console.log('📨 [CHAT-SECTION] Loading messages for new target...');
+        
+        if (!this.chatMessages) {
+            console.log('⚠️ [CHAT-SECTION] Chat messages element not found during switch, finding DOM elements...');
+            this.findDOMElements();
+        }
+        
         this.loadMessages()
             .then(() => {
                 console.log(`✅ [CHAT-SECTION] Successfully switched to ${newChatType}:${newTargetId} and loaded messages`);
@@ -1463,6 +1552,10 @@ class ChatSection {
     
     clearChatMessages() {
         console.log('🧹 [CHAT-SECTION] Clearing chat messages');
+        
+        if (!this.chatMessages) {
+            this.findDOMElements();
+        }
         
         if (this.chatMessages) {
             this.chatMessages.innerHTML = '';
@@ -1507,9 +1600,11 @@ class ChatSection {
     }
     
     cleanupEmptyMessages() {
+        if (!this.chatMessages) {
+            this.findDOMElements();
+        }
         if (!this.chatMessages) return;
         
-        // Remove empty message groups
         const emptyGroups = this.chatMessages.querySelectorAll('.bubble-message-group[data-user-id="0"][data-timestamp="0"]');
         emptyGroups.forEach(group => {
             const messageId = group.querySelector('[data-message-id]')?.dataset.messageId;
@@ -1519,7 +1614,6 @@ class ChatSection {
             }
         });
         
-        // Remove messages with empty IDs
         const emptyMessages = this.chatMessages.querySelectorAll('[data-message-id=""], [data-message-id="0"]');
         emptyMessages.forEach(msg => {
             const messageGroup = msg.closest('.bubble-message-group');
@@ -1529,7 +1623,6 @@ class ChatSection {
             }
         });
         
-        // Check if we need to show empty state after cleanup
         const remainingMessages = this.chatMessages.querySelectorAll('.bubble-message-group');
         if (remainingMessages.length === 0) {
             this.showEmptyState();
@@ -1537,6 +1630,9 @@ class ChatSection {
     }
 
     clearMessage() {
+        if (!this.messageInput) {
+            this.findDOMElements();
+        }
         if (this.messageInput) {
             this.messageInput.value = '';
             this.updateSendButton();

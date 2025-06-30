@@ -212,113 +212,48 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                             Generate a new link
                         </button>
                     </div>
-
-                    <hr class="border-gray-700 my-4">
-                    
-                    <div>
-                        <h3 class="text-white font-medium mb-2">Send to friends</h3>
-                        <div class="relative">
-                            <input type="text" id="friend-search" 
-                                class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
-                                placeholder="Search friends...">
-                            <div id="friend-search-results" class="absolute z-10 left-0 right-0 mt-1 bg-discord-dark border border-gray-700 rounded max-h-60 overflow-y-auto hidden">
-                                <!-- Friend results will be populated here -->
-                                <div class="text-gray-400 text-center p-2 text-sm hidden" id="no-friends-found">No friends found</div>
-                                <div class="text-gray-400 text-center p-2 text-sm hidden" id="search-friend-prompt">Type to search friends</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="selected-friends" class="flex flex-wrap gap-2">
-                        <!-- Selected friends will appear here as tags -->
-                    </div>
-                    
-                    <div id="invite-friends-actions" class="flex justify-end hidden">
-                        <button id="send-invites-btn" class="bg-discord-primary hover:bg-discord-primary/90 text-white px-4 py-2 rounded transition-colors">
-                            Send Invites
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div id="notification-settings-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
+<div id="transfer-ownership-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md">
         <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-white">Notification Settings</h2>
-                    <button id="close-notification-settings-modal" class="text-gray-400 hover:text-white">
+                    <h2 class="text-xl font-bold text-white">Transfer Ownership</h2>
+                    <button id="close-transfer-ownership-modal" class="text-gray-400 hover:text-white">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 
-                <form id="notification-settings-form" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">SERVER NOTIFICATIONS</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center p-3 border border-gray-700 rounded cursor-pointer hover:bg-discord-dark">
-                                <input type="radio" name="notification_type" value="all_messages" 
-                                       class="mr-3 accent-discord-primary">
-                                <div>
-                                    <div class="text-white font-medium">All Messages</div>
-                                    <div class="text-gray-400 text-sm">You'll be notified when anyone sends a message</div>
-                                </div>
-                            </label>
-                            <label class="flex items-center p-3 border border-gray-700 rounded cursor-pointer hover:bg-discord-dark">
-                                <input type="radio" name="notification_type" value="mentions_only" checked 
-                                       class="mr-3 accent-discord-primary">
-                                <div>
-                                    <div class="text-white font-medium">Only @mentions</div>
-                                    <div class="text-gray-400 text-sm">You'll only be notified when someone mentions you</div>
-                                </div>
-                            </label>
-                            <label class="flex items-center p-3 border border-gray-700 rounded cursor-pointer hover:bg-discord-dark">
-                                <input type="radio" name="notification_type" value="muted" 
-                                       class="mr-3 accent-discord-primary">
-                                <div>
-                                    <div class="text-white font-medium">Nothing</div>
-                                    <div class="text-gray-400 text-sm">You won't receive any notifications</div>
-                                </div>
-                            </label>
-                        </div>
+                <div class="space-y-4">
+                    <div class="text-center">
+                        <i class="fas fa-crown text-yellow-500 text-4xl mb-4"></i>
+                        <p class="text-white mb-2">You're about to leave your own server!</p>
+                        <p class="text-gray-400 text-sm mb-4">You must transfer ownership to another member before leaving.</p>
                     </div>
                     
-                    <div class="space-y-3">
-                        <div class="notification-option">
-                            <div class="text-white font-medium">Suppress @here and @everyone</div>
-                            <div class="text-gray-400 text-sm">Don't notify me when @here and @everyone are used</div>
-                            <label class="notification-switch">
-                                <input type="checkbox" id="suppress-everyone" name="suppress_everyone"
-                                       class="notification-checkbox">
-                                <span class="notification-slider"></span>
-                            </label>
-                        </div>
-                        
-                        <div class="notification-option">
-                            <div class="text-white font-medium">Mobile push notifications</div>
-                            <div class="text-gray-400 text-sm">Send push notifications to your mobile device</div>
-                            <label class="notification-switch">
-                                <input type="checkbox" id="mobile-notifications" name="mobile_notifications"
-                                       class="notification-checkbox">
-                                <span class="notification-slider"></span>
-                            </label>
-                        </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Select New Owner</label>
+                        <select id="new-owner-select" class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary">
+                            <option value="">Loading members...</option>
+                        </select>
                     </div>
                     
                     <div class="pt-4 flex space-x-3">
-                        <button type="button" id="cancel-notification-settings" 
+                        <button type="button" id="cancel-transfer-ownership" 
                                 class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
                             Cancel
                         </button>
-                        <button type="submit" 
-                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
-                            Save Settings
+                        <button type="button" id="confirm-transfer-ownership" 
+                                class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded" disabled>
+                            Transfer & Leave
                         </button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
@@ -402,6 +337,128 @@ document.addEventListener('DOMContentLoaded', function() {
         openModals.forEach(modal => {
             if (modal.id === 'create-channel-modal') closeCreateChannelModal();
             if (modal.id === 'create-category-modal') closeCreateCategoryModal();
+            if (modal.id === 'invite-people-modal') closeInvitePeopleModal();
+            if (modal.id === 'notification-settings-modal') closeNotificationSettingsModal();
+            if (modal.id === 'leave-server-modal') closeLeaveServerModal();
+            if (modal.id === 'edit-profile-modal') closeEditProfileModal();
+        });
+    }
+
+    function closeInvitePeopleModal() {
+        const modal = document.getElementById('invite-people-modal');
+        if (!modal) return;
+        
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+
+    function closeTransferOwnershipModal() {
+        const modal = document.getElementById('transfer-ownership-modal');
+        if (!modal) return;
+        
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+
+    function closeLeaveServerModal() {
+        const modal = document.getElementById('leave-server-modal');
+        if (!modal) return;
+        
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+
+    function closeEditProfileModal() {
+        const modal = document.getElementById('edit-profile-modal');
+        if (!modal) return;
+        
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+
+    const invitePeopleModal = document.getElementById('invite-people-modal');
+    const closeInviteBtn = document.getElementById('close-invite-modal');
+    
+    if (closeInviteBtn) {
+        closeInviteBtn.addEventListener('click', closeInvitePeopleModal);
+    }
+    
+    if (invitePeopleModal) {
+        invitePeopleModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeInvitePeopleModal();
+            }
+        });
+    }
+
+    const transferOwnershipModal = document.getElementById('transfer-ownership-modal');
+    const closeTransferBtn = document.getElementById('close-transfer-ownership-modal');
+    const cancelTransferBtn = document.getElementById('cancel-transfer-ownership');
+    const confirmTransferBtn = document.getElementById('confirm-transfer-ownership');
+    const newOwnerSelect = document.getElementById('new-owner-select');
+    
+    if (closeTransferBtn) {
+        closeTransferBtn.addEventListener('click', closeTransferOwnershipModal);
+    }
+    
+    if (cancelTransferBtn) {
+        cancelTransferBtn.addEventListener('click', closeTransferOwnershipModal);
+    }
+    
+    if (transferOwnershipModal) {
+        transferOwnershipModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTransferOwnershipModal();
+            }
+        });
+    }
+
+    if (newOwnerSelect) {
+        newOwnerSelect.addEventListener('change', function() {
+            const confirmBtn = document.getElementById('confirm-transfer-ownership');
+            if (confirmBtn) {
+                confirmBtn.disabled = !this.value;
+            }
+        });
+    }
+
+    const leaveServerModal = document.getElementById('leave-server-modal');
+    const closeLeaveBtn = document.getElementById('close-leave-server-modal');
+    const cancelLeaveBtn = document.getElementById('cancel-leave-server');
+    
+    if (closeLeaveBtn) {
+        closeLeaveBtn.addEventListener('click', closeLeaveServerModal);
+    }
+    
+    if (cancelLeaveBtn) {
+        cancelLeaveBtn.addEventListener('click', closeLeaveServerModal);
+    }
+    
+    if (leaveServerModal) {
+        leaveServerModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLeaveServerModal();
+            }
+        });
+    }
+
+    const editProfileModal = document.getElementById('edit-profile-modal');
+    const closeEditProfileBtn = document.getElementById('close-edit-profile-modal');
+    const cancelEditProfileBtn = document.getElementById('cancel-edit-profile');
+    
+    if (closeEditProfileBtn) {
+        closeEditProfileBtn.addEventListener('click', closeEditProfileModal);
+    }
+    
+    if (cancelEditProfileBtn) {
+        cancelEditProfileBtn.addEventListener('click', closeEditProfileModal);
+    }
+    
+    if (editProfileModal) {
+        editProfileModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditProfileModal();
+            }
         });
     }
 
