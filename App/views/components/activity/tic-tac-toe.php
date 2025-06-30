@@ -4,6 +4,8 @@ $username = $_SESSION['username'] ?? null;
 $serverId = $GLOBALS['server']->id ?? $GLOBALS['currentServer']->id ?? null;
 ?>
 
+<link rel="stylesheet" href="/css/tic-tac-toe.css">
+
 <div id="tic-tac-toe-container" class="relative p-8 rounded-2xl max-w-lg mx-auto cyber-grid hologram-effect">
     <div class="energy-orb"></div>
     

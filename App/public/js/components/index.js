@@ -9,7 +9,6 @@ export * from './servers/settings-server.js';
 export * from './servers/server-detail.js';
 export * from './servers/channel-redirect.js';
 export * from './channels/channel-manager.js';
-export * from './channels/channel-drag.js';
 export * from './voice/voice-manager.js';
 export * from './voice/global-voice-indicator.js';
 export * from './videosdk/videosdk.js';

@@ -256,22 +256,23 @@
 
 #game-board {
     background: linear-gradient(145deg, #1e2124, #2c2f36, #1a1d23);
-    border: 3px solid rgba(88, 101, 242, 0.6);
+    border: 4px solid #5865f2;
     box-shadow: 
         inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 50px rgba(88, 101, 242, 0.2);
+        0 0 50px rgba(88, 101, 242, 0.4),
+        0 0 100px rgba(88, 101, 242, 0.2);
     perspective: 1500px;
     position: relative;
     overflow: hidden;
-    gap: 3px;
-    padding: 8px;
+    gap: 4px;
+    padding: 10px;
 }
 
 #game-board::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, transparent 40%, rgba(88, 101, 242, 0.1) 100%);
+    background: radial-gradient(circle at center, transparent 40%, rgba(88, 101, 242, 0.15) 100%);
     pointer-events: none;
 }
 
@@ -279,7 +280,7 @@
 
 #game-board button {
     background: linear-gradient(145deg, #2c2f36, #36393f, #2b2d31);
-    border: 2px solid rgba(88, 101, 242, 0.6);
+    border: 2px solid #5865f2;
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -287,44 +288,45 @@
     box-shadow: 
         0 4px 8px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        0 0 0 1px rgba(88, 101, 242, 0.3);
+        0 0 0 1px rgba(88, 101, 242, 0.5),
+        0 0 20px rgba(88, 101, 242, 0.2);
     z-index: 2;
-    border-radius: 8px;
+    border-radius: 6px;
 }
 
 #game-board button:nth-child(1),
 #game-board button:nth-child(2) {
-    border-bottom: 3px solid rgba(88, 101, 242, 0.8);
+    border-bottom: 5px solid #5865f2 !important;
 }
 
 #game-board button:nth-child(4),
 #game-board button:nth-child(5) {
-    border-top: 3px solid rgba(88, 101, 242, 0.8);
-    border-bottom: 3px solid rgba(88, 101, 242, 0.8);
+    border-top: 5px solid #5865f2 !important;
+    border-bottom: 5px solid #5865f2 !important;
 }
 
 #game-board button:nth-child(7),
 #game-board button:nth-child(8) {
-    border-top: 3px solid rgba(88, 101, 242, 0.8);
+    border-top: 5px solid #5865f2 !important;
 }
 
 #game-board button:nth-child(1),
 #game-board button:nth-child(4),
 #game-board button:nth-child(7) {
-    border-right: 3px solid rgba(88, 101, 242, 0.8);
+    border-right: 5px solid #5865f2 !important;
 }
 
 #game-board button:nth-child(2),
 #game-board button:nth-child(5),
 #game-board button:nth-child(8) {
-    border-left: 3px solid rgba(88, 101, 242, 0.8);
-    border-right: 3px solid rgba(88, 101, 242, 0.8);
+    border-left: 5px solid #5865f2 !important;
+    border-right: 5px solid #5865f2 !important;
 }
 
 #game-board button:nth-child(3),
 #game-board button:nth-child(6),
 #game-board button:nth-child(9) {
-    border-left: 3px solid rgba(88, 101, 242, 0.8);
+    border-left: 5px solid #5865f2 !important;
 }
 
 #game-board button::before {

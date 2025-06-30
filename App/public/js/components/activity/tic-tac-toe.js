@@ -284,7 +284,9 @@ class TicTacToeModal {
         if (document.getElementById('tic-tac-toe-modal')) return;
         
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            alert('WebSocket connection not ready. Please wait and try again.');
+            if (window.showToast) {
+                window.showToast('WebSocket connection not ready. Please wait and try again.', 'error');
+            }
             return;
         }
         
@@ -559,7 +561,7 @@ class TicTacToeModal {
         gameBoard.innerHTML = '';
         for (let i = 0; i < 9; i++) {
             const cell = document.createElement('button');
-            cell.className = 'w-20 h-20 text-3xl font-bold rounded-xl transition-all duration-300 hover:scale-105 focus:outline-none';
+            cell.className = 'w-20 h-20 text-3xl font-bold rounded-xl transition-all duration-300 hover:scale-105 focus:outline-none border-2 border-[#5865f2] bg-gradient-to-br from-[#2c2f36] to-[#36393f]';
             cell.addEventListener('click', () => this.makeMove(i));
             gameBoard.appendChild(cell);
         }
@@ -594,12 +596,16 @@ class TicTacToeModal {
 
     makeMove(position) {
         if (!this.currentGameData || this.currentGameData.current_turn != this.userId) {
-            alert('Not your turn!');
+            if (window.showToast) {
+                window.showToast('Not your turn!', 'warning');
+            }
             return;
         }
         
         if (this.currentGameData.board[position] !== null) {
-            alert('Invalid move!');
+            if (window.showToast) {
+                window.showToast('Invalid move!', 'warning');
+            }
             return;
         }
         
@@ -716,12 +722,15 @@ class TicTacToeModal {
         });
         
         readyButton.addEventListener('click', () => {
-            const isReady = readyButton.textContent === 'Ready';
+            const isReady = readyButton.textContent.includes('Ready for Battle');
             window.globalSocketManager.io.emit('tic-tac-toe-ready', { ready: isReady });
-            readyButton.textContent = isReady ? 'Not Ready' : 'Ready';
-            readyButton.className = isReady 
-                ? 'w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200'
-                : 'w-full bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-4 rounded-md transition-colors duration-200';
+            if (isReady) {
+                readyButton.innerHTML = '<span class="relative z-10">Cancel Ready</span>';
+                readyButton.className = 'w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300';
+            } else {
+                readyButton.innerHTML = '<span class="relative z-10">Ready for Battle</span>';
+                readyButton.className = 'ready-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-300';
+            }
         });
         
         playButton.addEventListener('click', () => {
@@ -740,6 +749,7 @@ class TicTacToeModal {
                     window.globalSocketManager.io.emit('leave-tic-tac-toe', { server_id: this.serverId });
                 }
                 modal.remove();
+                window.activeTicTacToeModal = null;
             }
         });
     }
@@ -778,7 +788,9 @@ class TicTacToeModal {
             this.showGameResult(data);
         });
         io.on('tic-tac-toe-error', (data) => {
-            alert('Error: ' + data.message);
+            if (window.showToast) {
+                window.showToast('Error: ' + data.message, 'error');
+            }
         });
     }
 

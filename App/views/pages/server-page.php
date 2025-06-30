@@ -61,7 +61,6 @@ $additional_js = [
     'components/servers/server-sidebar',
     'components/servers/channel-redirect',
     'components/channels/channel-manager',
-    'components/channels/channel-drag',
     'components/activity/activity',
     'components/activity/tic-tac-toe',
     'utils/channel-switch-manager',
