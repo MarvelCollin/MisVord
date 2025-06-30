@@ -192,7 +192,11 @@ class VoiceVideoSettings {
 
     setupEventListeners() {
         document.querySelectorAll('.voice-tab').forEach(tab => {
-            tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.switchTab(tab.dataset.tab);
+            });
         });
 
         const inputVolumeSlider = document.getElementById('input-volume');
