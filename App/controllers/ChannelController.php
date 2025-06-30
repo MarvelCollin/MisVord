@@ -652,6 +652,11 @@ class ChannelController extends BaseController
         }
     }
 
+    public function getMembers($channelId = null)
+    {
+        return $this->getChannelParticipants($channelId);
+    }
+
     public function getServerChannels($serverId)
     {
         $this->requireAuth();

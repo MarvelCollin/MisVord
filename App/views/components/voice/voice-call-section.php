@@ -190,51 +190,90 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 }
 
 .video-participant-card {
-    background: #1e1f22;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    border: 1px solid rgba(64, 68, 75, 0.3);
-    transition: all 0.2s ease;
-    position: relative;
-    aspect-ratio: 16/9;
+    background: #1e1f22 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    border: 2px solid #40444b !important;
+    transition: all 0.2s ease !important;
+    position: relative !important;
+    aspect-ratio: 16/9 !important;
+    min-height: 200px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .video-participant-card:hover {
-    border-color: rgba(64, 68, 75, 0.6);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    border-color: #5865f2 !important;
+    transform: scale(1.02) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
 .video-participant-card video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    background: #000;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    background: #000 !important;
+    display: block !important;
+}
+
+.video-participant-overlay {
+    position: absolute !important;
+    bottom: 8px !important;
+    left: 8px !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: white !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+/* Voice Participants Grid */
+#voiceParticipantsGrid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    gap: 16px !important;
+    width: 100% !important;
+    max-width: 800px !important;
+    margin: 0 auto !important;
 }
 
 .voice-participant-card {
-    display: flex;
-    flex-col;
-    align-items: center;
-    padding: 1rem;
-    transition: all 0.2s ease;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 16px !important;
+    background: #2f3136 !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    border: 2px solid transparent !important;
+    min-height: 120px !important;
+    box-sizing: border-box !important;
 }
 
 .voice-participant-card:hover {
-    transform: scale(1.05);
+    background: #32353b !important;
+    transform: translateY(-2px) !important;
 }
 
 .voice-participant-avatar {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    position: relative;
-    transition: all 0.2s ease;
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: white !important;
+    font-weight: 700 !important;
+    font-size: 20px !important;
+    position: relative !important;
+    margin-bottom: 8px !important;
+    transition: all 0.3s ease !important;
+    border: 3px solid transparent !important;
+    box-sizing: border-box !important;
 }
 
 .voice-participant-avatar.speaking {
@@ -293,22 +332,216 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
         border-b: 1px solid rgba(64, 68, 75, 0.3);
     }
     
-    .voice-content {
-        flex-direction: column;
+    #voiceParticipantsGrid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 16px;
     }
     
     #videoGrid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
+        gap: 8px;
     }
     
-    .voice-controls .flex {
-        space-x: 1rem;
+    .voice-controls {
+        padding: 12px;
     }
     
-    .voice-controls button {
-        width: 3rem;
-        height: 3rem;
+    .voice-control-btn {
+        width: 36px !important;
+        height: 36px !important;
     }
+    
+    .voice-control-btn i {
+        font-size: 12px !important;
+    }
+}
+
+/* Discord-style additions */
+.voice-control-btn {
+    position: relative;
+    border: none;
+    outline: none;
+    cursor: pointer;
+}
+
+.voice-control-btn.active {
+    background-color: #3ba55c !important;
+}
+
+.voice-control-btn.muted {
+    background-color: #ed4245 !important;
+}
+
+.voice-control-btn.deafened {
+    background-color: #ed4245 !important;
+}
+
+.voice-control-btn.screen-sharing {
+    background-color: #5865f2 !important;
+}
+
+/* Tooltips */
+.voice-tooltip {
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #18191c;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+}
+
+.voice-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #18191c;
+}
+
+.voice-control-btn:hover .voice-tooltip {
+    opacity: 1;
+}
+
+/* Enhanced voice participant styling */
+.voice-participant-avatar.speaking {
+    border: 4px solid #3ba55c;
+    animation: discord-speaking 2s ease-in-out infinite;
+}
+
+@keyframes discord-speaking {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 165, 93, 0.4);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(59, 165, 93, 0);
+        transform: scale(1.05);
+    }
+}
+
+/* Video Grid Auto-sizing - Force important to override Tailwind */
+#videoGrid {
+    display: grid !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+#videoGrid[data-count="1"] {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
+}
+
+#videoGrid[data-count="2"] {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr !important;
+}
+
+#videoGrid[data-count="3"] {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+}
+
+#videoGrid[data-count="3"] .video-participant-card:first-child {
+    grid-column: 1 / -1 !important;
+}
+
+#videoGrid[data-count="4"] {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+}
+
+#videoGrid[data-count="5"], #videoGrid[data-count="6"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+}
+
+#videoGrid[data-count="7"], #videoGrid[data-count="8"], #videoGrid[data-count="9"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr 1fr !important;
+}
+
+/* Participant Cards */
+.voice-only-participant {
+    display: flex;
+    align-items: center;
+    background: #2f3136;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    color: #b9bbbe;
+    border: 1px solid #40444b;
+}
+
+.voice-only-participant .avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-right: 8px;
+    background: #5865f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 10px;
+}
+
+.screen-share-participant {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.screen-share-participant .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #5865f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    margin-bottom: 4px;
+    border: 2px solid transparent;
+}
+
+.screen-share-participant .avatar.speaking {
+    border-color: #3ba55c;
+    animation: discord-speaking 2s ease-in-out infinite;
+}
+
+.screen-share-participant .name {
+    font-size: 11px;
+    color: #b9bbbe;
+    text-align: center;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Animations */
+.view-transition {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 </style>
 
@@ -526,23 +759,62 @@ class VoiceCallManager {
 
     createParticipantElement(participant) {
         const container = document.getElementById('voiceParticipantsGrid');
-        if (!container) return;
+        if (!container) {
+            console.error('🔊 [ERROR] voiceParticipantsGrid container not found');
+            return;
+        }
+
+        console.log(`🔊 [DEBUG] Creating voice participant element for: ${participant.name}`);
+
+        // Force grid display styles on container
+        container.style.display = 'grid';
+        container.style.gridTemplateColumns = 'repeat(auto-fit, minmax(140px, 1fr))';
+        container.style.gap = '16px';
+        container.style.width = '100%';
+        container.style.maxWidth = '800px';
+        container.style.margin = '0 auto';
 
         const element = document.createElement('div');
         element.className = 'voice-participant-card';
         element.dataset.participantId = participant.id;
 
+        // Force participant card styles
+        element.style.display = 'flex';
+        element.style.flexDirection = 'column';
+        element.style.alignItems = 'center';
+        element.style.justifyContent = 'center';
+        element.style.padding = '16px';
+        element.style.background = '#2f3136';
+        element.style.borderRadius = '8px';
+        element.style.minHeight = '120px';
+        element.style.border = '2px solid transparent';
+        element.style.cursor = 'pointer';
+        element.style.transition = 'all 0.2s ease';
+
         const avatarColor = this.getAvatarColor(participant.name);
         const initial = participant.name.charAt(0).toUpperCase();
 
         element.innerHTML = `
-            <div class="voice-participant-avatar" style="background: ${avatarColor}">
+            <div class="voice-participant-avatar" style="background: ${avatarColor}; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px; margin-bottom: 8px; border: 3px solid transparent;">
                 ${initial}
             </div>
-            <span class="text-white text-xs mt-2 text-center max-w-full truncate">${participant.name}</span>
+            <span style="color: white; font-size: 12px; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${participant.name}</span>
         `;
 
         container.appendChild(element);
+        
+        console.log(`🔊 [DEBUG] Voice participant element created for: ${participant.name}`);
+        
+        // Log container styles after adding element
+        setTimeout(() => {
+            const computedStyle = window.getComputedStyle(container);
+            console.log(`🔊 [DEBUG] Voice grid styles after adding ${participant.name}:`, {
+                display: computedStyle.display,
+                gridTemplateColumns: computedStyle.gridTemplateColumns,
+                gap: computedStyle.gap,
+                childCount: container.children.length
+            });
+        }, 100);
     }
 
     handleCameraStream(participantId, stream) {
@@ -560,58 +832,22 @@ class VoiceCallManager {
         });
         
         if (participantId === this.localParticipantId) {
-            const video = document.getElementById('localCameraVideo');
-            const placeholder = document.getElementById('cameraPlaceholder');
-            const cameraSection = document.getElementById('cameraSection');
+            // Handle local participant camera
+            console.log(`🎥 [DEBUG] Handling local participant camera stream`);
             
-            console.log(`🎥 [DEBUG] Elements found:`, {
-                video: !!video,
-                placeholder: !!placeholder,
-                cameraSection: !!cameraSection
-            });
+            this.isVideoOn = true;
             
-            if (video && stream) {
-                console.log(`🎥 [DEBUG] Attempting to attach stream...`);
-                
-                try {
-                    this.attachStreamToVideo(video, stream);
-                    console.log(`🎥 [DEBUG] Stream attached, updating visibility...`);
-                    
-                    video.classList.remove('hidden');
-                    console.log(`🎥 [DEBUG] Video element shown`);
-                    
-                    if (placeholder) {
-                        placeholder.classList.add('hidden');
-                        console.log(`🎥 [DEBUG] Placeholder hidden`);
-                    }
-                    
-                    if (cameraSection) {
-                        cameraSection.classList.remove('hidden');
-                        console.log(`🎥 [DEBUG] Camera section shown`);
-                    }
-                    
-                    this.isVideoOn = true;
-                    console.log('✅ [DEBUG] Local camera stream attached and visible - SUCCESS');
-                    
-                    setTimeout(() => {
-                        console.log(`🎥 [DEBUG] Post-attachment status:`, {
-                            videoSrcObject: !!video.srcObject,
-                            videoVisible: !video.classList.contains('hidden'),
-                            placeholderHidden: placeholder?.classList.contains('hidden'),
-                            cameraSectionVisible: !cameraSection?.classList.contains('hidden'),
-                            isVideoOn: this.isVideoOn
-                        });
-                    }, 1000);
-                    
-                } catch (error) {
-                    console.error(`🎥 [ERROR] Failed to attach stream:`, error);
-                }
-            } else {
-                console.error(`🎥 [ERROR] Missing elements or stream:`, {
-                    hasVideo: !!video,
-                    hasStream: !!stream
-                });
+            // Update participant data
+            const localParticipant = this.participants.get(participantId);
+            if (localParticipant) {
+                localParticipant.hasVideo = true;
             }
+            
+            // Create video card for local participant
+            this.createVideoParticipantCard(participantId, stream);
+            
+            console.log('✅ [DEBUG] Local camera stream handled - SUCCESS');
+            
         } else {
             console.log(`🎥 [DEBUG] Remote participant detected - ${participantId}!`);
             console.log(`🎥 [DEBUG] About to create video participant card...`);
@@ -630,24 +866,19 @@ class VoiceCallManager {
     handleCameraDisabled(participantId) {
         console.log(`🎥❌ Handling camera disabled for ${participantId}`);
         
-        if (participantId === this.localParticipantId) {
-            const video = document.getElementById('localCameraVideo');
-            const placeholder = document.getElementById('cameraPlaceholder');
-            
-            if (video && video.srcObject) {
-                const tracks = video.srcObject.getTracks();
-                tracks.forEach(track => track.stop());
-                video.srcObject = null;
-            }
-            
-            if (video) video.classList.add('hidden');
-            if (placeholder) placeholder.classList.remove('hidden');
-            
-            this.isVideoOn = false;
-            console.log('✅ Local camera stream removed and hidden');
-        } else {
-            this.removeVideoParticipantCard(participantId);
+        // Update participant data
+        const participant = this.participants.get(participantId);
+        if (participant) {
+            participant.hasVideo = false;
         }
+        
+        if (participantId === this.localParticipantId) {
+            this.isVideoOn = false;
+            console.log('✅ Local camera disabled');
+        }
+        
+        // Remove video card
+        this.removeVideoParticipantCard(participantId);
         
         this.updateView();
     }
@@ -657,10 +888,8 @@ class VoiceCallManager {
         
         const video = document.getElementById('screenShareVideo');
         const username = document.getElementById('screenShareUsername');
-        const title = document.getElementById('screenShareTitle');
-        const section = document.getElementById('screenShareSection');
         
-        if (video && stream && section) {
+        if (video && stream) {
             this.attachStreamToVideo(video, stream);
             
             const participant = this.participants.get(participantId);
@@ -668,12 +897,12 @@ class VoiceCallManager {
                               (participant ? `${participant.name}'s Screen` : `${participantId}'s Screen`);
             
             if (username) username.textContent = displayName;
-            if (title) title.textContent = 'Screen Share Active';
             
-            section.classList.remove('hidden');
-            this.isScreenSharing = true;
+            if (participantId === this.localParticipantId) {
+                this.isScreenSharing = true;
+            }
             
-            console.log('✅ Screen share stream attached and visible');
+            console.log('✅ Screen share stream attached');
         }
         
         this.updateView();
@@ -683,7 +912,7 @@ class VoiceCallManager {
         console.log(`🖥️❌ Handling screen share stopped`);
         
         const video = document.getElementById('screenShareVideo');
-        const section = document.getElementById('screenShareSection');
+        const pipCamera = document.getElementById('pipCamera');
         
         if (video && video.srcObject) {
             const tracks = video.srcObject.getTracks();
@@ -691,10 +920,14 @@ class VoiceCallManager {
             video.srcObject = null;
         }
         
-        if (section) section.classList.add('hidden');
+        // Hide picture-in-picture camera
+        if (pipCamera) {
+            pipCamera.classList.add('hidden');
+        }
+        
         this.isScreenSharing = false;
         
-        console.log('✅ Screen share stream removed and hidden');
+        console.log('✅ Screen share stopped');
         this.updateView();
     }
 
@@ -724,8 +957,10 @@ class VoiceCallManager {
             console.log(`👥 [DEBUG] Participant ${participantId} not in Map, creating entry`);
             participant = {
                 id: participantId,
-                name: `User ${participantId.slice(-4)}`, // Use last 4 chars as fallback name
-                hasVideo: false
+                name: `User ${participantId.slice(-4)}`,
+                hasVideo: false,
+                isMuted: false,
+                isSpeaking: false
             };
             this.participants.set(participantId, participant);
         }
@@ -733,15 +968,14 @@ class VoiceCallManager {
         console.log(`👥 [DEBUG] Creating video card with name: ${participant.name}`);
 
         const card = document.createElement('div');
-        card.className = 'video-participant-card bg-[#1a1b1e] rounded-lg relative overflow-hidden';
-        card.style.minHeight = '200px';
-        card.style.width = '100%';
+        card.className = 'video-participant-card';
         card.dataset.participantId = participantId;
 
         card.innerHTML = `
-            <video autoplay playsinline muted class="w-full h-full object-cover"></video>
-            <div class="absolute top-3 left-3 bg-black/60 rounded px-2 py-1">
-                <span class="text-white text-sm">${participant.name}</span>
+            <video autoplay playsinline muted class="w-full h-full object-cover" data-participant-id="${participantId}"></video>
+            <div class="video-participant-overlay">
+                <span>${participant.name}</span>
+                ${participant.isMuted ? '<i class="fas fa-microphone-slash ml-2"></i>' : ''}
             </div>
         `;
 
@@ -838,10 +1072,9 @@ class VoiceCallManager {
     }
 
     updateView() {
-        const voiceSection = document.getElementById('voiceOnlySection');
-        const videoSection = document.getElementById('videoGridSection');
-        const screenSection = document.getElementById('screenShareSection');
-        const cameraSection = document.getElementById('cameraSection');
+        const voiceOnlyView = document.getElementById('voiceOnlyView');
+        const videoGridView = document.getElementById('videoGridView');
+        const screenShareView = document.getElementById('screenShareView');
 
         console.log(`🔄 [DEBUG] updateView() called with state:`, {
             isVideoOn: this.isVideoOn,
@@ -849,55 +1082,57 @@ class VoiceCallManager {
             hasOtherVideo: this.hasOtherVideo(),
             currentView: this.currentView,
             elementsFound: {
-                voiceSection: !!voiceSection,
-                videoSection: !!videoSection,
-                screenSection: !!screenSection,
-                cameraSection: !!cameraSection
+                voiceOnlyView: !!voiceOnlyView,
+                videoGridView: !!videoGridView,
+                screenShareView: !!screenShareView
             }
         });
 
-        // Hide all sections first
-        voiceSection?.classList.add('hidden');
-        videoSection?.classList.add('hidden');
-        console.log(`🔄 [DEBUG] Hidden voice and video sections`);
+        // Hide all views first
+        voiceOnlyView?.classList.add('hidden');
+        videoGridView?.classList.add('hidden');
+        screenShareView?.classList.add('hidden');
 
         if (this.isScreenSharing) {
+            // Screen Share View (Highest Priority)
             this.currentView = 'screen-share';
+            screenShareView?.classList.remove('hidden');
+            this.updateScreenShareParticipants();
             console.log('📺 [DEBUG] Showing screen share view');
-        } else if (this.isVideoOn || this.hasOtherVideo()) {
-            this.currentView = 'video';
-            videoSection?.classList.remove('hidden');
-            console.log('🎥 [DEBUG] Showing video grid section - Condition met:', {
-                isVideoOn: this.isVideoOn,
-                hasOtherVideo: this.hasOtherVideo(),
-                videoSectionExists: !!videoSection
-            });
             
+            // Handle PiP camera if same user has both camera and screen share
             if (this.isVideoOn) {
-                cameraSection?.classList.remove('hidden');
-                console.log('🎥 [DEBUG] Showing camera section (local video on)');
-            } else {
-                console.log('🎥 [DEBUG] Camera section not shown (local video off)');
+                this.showPictureInPicture();
             }
+            
+        } else if (this.isVideoOn || this.hasOtherVideo()) {
+            // Video Grid View
+            this.currentView = 'video';
+            videoGridView?.classList.remove('hidden');
+            this.updateVideoGrid();
+            this.updateVideoParticipantCount();
+            console.log('🎥 [DEBUG] Showing video grid view');
+            
         } else {
+            // Voice Only View (Default)
             this.currentView = 'voice-only';
-            voiceSection?.classList.remove('hidden');
-            cameraSection?.classList.add('hidden');
+            voiceOnlyView?.classList.remove('hidden');
             console.log('🎤 [DEBUG] Showing voice-only view');
         }
+
+        // Update button states
+        this.updateButtonStates();
+        this.updateParticipantCount();
 
         // Final state check
         setTimeout(() => {
             console.log(`🔄 [DEBUG] Final view state:`, {
                 currentView: this.currentView,
-                voiceSectionVisible: voiceSection && !voiceSection.classList.contains('hidden'),
-                videoSectionVisible: videoSection && !videoSection.classList.contains('hidden'),
-                cameraSectionVisible: cameraSection && !cameraSection.classList.contains('hidden'),
-                screenSectionVisible: screenSection && !screenSection.classList.contains('hidden')
+                voiceOnlyVisible: voiceOnlyView && !voiceOnlyView.classList.contains('hidden'),
+                videoGridVisible: videoGridView && !videoGridView.classList.contains('hidden'),
+                screenShareVisible: screenShareView && !screenShareView.classList.contains('hidden')
             });
         }, 100);
-
-        this.updateParticipantCount();
     }
 
     async toggleMic() {
@@ -1022,73 +1257,101 @@ class VoiceCallManager {
 
     updateMicButton() {
         const btn = document.getElementById('micBtn');
+        if (!btn) {
+            console.error('❌ [ERROR] micBtn element not found');
+            return;
+        }
+        
         const icon = btn.querySelector('i');
-        const tooltip = btn.parentElement.querySelector('.mic-tooltip');
+        const tooltip = btn.querySelector('.voice-tooltip');
         
         if (this.isMuted) {
-            icon.className = 'fas fa-microphone-slash text-xl';
-            tooltip.textContent = 'Unmute';
-            btn.classList.add('bg-red-500');
-            btn.classList.remove('bg-[#2f3136]');
+            if (icon) icon.className = 'fas fa-microphone-slash text-sm';
+            if (tooltip) tooltip.textContent = 'Unmute';
+            btn.classList.add('muted');
+            btn.classList.remove('bg-[#4f545c]');
+            btn.classList.add('bg-[#ed4245]');
         } else {
-            icon.className = 'fas fa-microphone text-xl';
-            tooltip.textContent = 'Mute';
-            btn.classList.remove('bg-red-500');
-            btn.classList.add('bg-[#2f3136]');
+            if (icon) icon.className = 'fas fa-microphone text-sm';
+            if (tooltip) tooltip.textContent = 'Mute';
+            btn.classList.remove('muted');
+            btn.classList.remove('bg-[#ed4245]');
+            btn.classList.add('bg-[#4f545c]');
         }
     }
 
     updateDeafenButton() {
         const btn = document.getElementById('deafenBtn');
+        if (!btn) {
+            console.error('❌ [ERROR] deafenBtn element not found');
+            return;
+        }
+        
         const icon = btn.querySelector('i');
-        const tooltip = btn.parentElement.querySelector('.deafen-tooltip');
+        const tooltip = btn.querySelector('.voice-tooltip');
         
         if (this.isDeafened) {
-            icon.className = 'fas fa-volume-mute text-xl';
-            tooltip.textContent = 'Undeafen';
-            btn.classList.add('bg-red-500');
-            btn.classList.remove('bg-[#2f3136]');
+            if (icon) icon.className = 'fas fa-volume-mute text-sm';
+            if (tooltip) tooltip.textContent = 'Undeafen';
+            btn.classList.add('deafened');
+            btn.classList.remove('bg-[#4f545c]');
+            btn.classList.add('bg-[#ed4245]');
         } else {
-            icon.className = 'fas fa-headphones text-xl';
-            tooltip.textContent = 'Deafen';
-            btn.classList.remove('bg-red-500');
-            btn.classList.add('bg-[#2f3136]');
+            if (icon) icon.className = 'fas fa-headphones text-sm';
+            if (tooltip) tooltip.textContent = 'Deafen';
+            btn.classList.remove('deafened');
+            btn.classList.remove('bg-[#ed4245]');
+            btn.classList.add('bg-[#4f545c]');
         }
     }
 
     updateVideoButton() {
         const btn = document.getElementById('videoBtn');
+        if (!btn) {
+            console.error('❌ [ERROR] videoBtn element not found');
+            return;
+        }
+        
         const icon = btn.querySelector('i');
-        const tooltip = btn.parentElement.querySelector('.video-tooltip');
+        const tooltip = btn.querySelector('.voice-tooltip');
         
         if (this.isVideoOn) {
-            icon.className = 'fas fa-video text-xl';
-            tooltip.textContent = 'Turn Off Camera';
-            btn.classList.add('bg-green-600');
-            btn.classList.remove('bg-[#2f3136]');
+            if (icon) icon.className = 'fas fa-video text-sm';
+            if (tooltip) tooltip.textContent = 'Turn Off Camera';
+            btn.classList.add('active');
+            btn.classList.remove('bg-[#4f545c]');
+            btn.classList.add('bg-[#3ba55c]');
         } else {
-            icon.className = 'fas fa-video-slash text-xl';
-            tooltip.textContent = 'Turn On Camera';
-            btn.classList.remove('bg-green-600');
-            btn.classList.add('bg-[#2f3136]');
+            if (icon) icon.className = 'fas fa-video-slash text-sm';
+            if (tooltip) tooltip.textContent = 'Turn On Camera';
+            btn.classList.remove('active');
+            btn.classList.remove('bg-[#3ba55c]');
+            btn.classList.add('bg-[#4f545c]');
         }
     }
 
     updateScreenButton() {
         const btn = document.getElementById('screenBtn');
+        if (!btn) {
+            console.error('❌ [ERROR] screenBtn element not found');
+            return;
+        }
+        
         const icon = btn.querySelector('i');
-        const tooltip = btn.parentElement.querySelector('.screen-tooltip');
+        const tooltip = btn.querySelector('.voice-tooltip');
         
         if (this.isScreenSharing) {
-            icon.className = 'fas fa-stop-circle text-xl';
-            tooltip.textContent = 'Stop Sharing';
-            btn.classList.add('bg-blue-600');
-            btn.classList.remove('bg-[#2f3136]');
+            if (icon) icon.className = 'fas fa-stop-circle text-sm';
+            if (tooltip) tooltip.textContent = 'Stop Sharing';
+            btn.classList.add('screen-sharing');
+            btn.classList.remove('bg-[#4f545c]');
+            btn.classList.add('bg-[#5865f2]');
         } else {
-            icon.className = 'fas fa-desktop text-xl';
-            tooltip.textContent = 'Share Screen';
-            btn.classList.remove('bg-blue-600');
-            btn.classList.add('bg-[#2f3136]');
+            if (icon) icon.className = 'fas fa-desktop text-sm';
+            if (tooltip) tooltip.textContent = 'Share Screen';
+            btn.classList.remove('screen-sharing');
+            btn.classList.remove('bg-[#5865f2]');
+            btn.classList.add('bg-[#4f545c]');
         }
     }
 
@@ -1102,10 +1365,193 @@ class VoiceCallManager {
     updateParticipantCount() {
         const count = this.participants.size;
         const mainCount = document.getElementById('voiceParticipantCount');
-        const sidebarCount = document.getElementById('sidebarParticipantCount');
         
         if (mainCount) mainCount.textContent = count;
-        if (sidebarCount) sidebarCount.textContent = count;
+    }
+
+    updateVideoParticipantCount() {
+        const videoCount = Array.from(this.participants.values()).filter(p => p.hasVideo).length;
+        const countElement = document.getElementById('videoParticipantCount');
+        
+        if (countElement) {
+            const text = videoCount === 1 ? '1 participant with video' : `${videoCount} participants with video`;
+            countElement.textContent = text;
+        }
+    }
+
+    updateVideoGrid() {
+        const videoGrid = document.getElementById('videoGrid');
+        if (!videoGrid) {
+            console.error('🎥 [DEBUG] Video grid element not found');
+            return;
+        }
+
+        const videoParticipants = Array.from(this.participants.values()).filter(p => p.hasVideo);
+        const count = videoParticipants.length;
+        
+        console.log(`🎥 [DEBUG] Updating video grid with ${count} video participants:`, videoParticipants.map(p => p.name));
+        
+        // Set grid layout based on participant count
+        videoGrid.setAttribute('data-count', count.toString());
+        
+        // Force grid display styles
+        videoGrid.style.display = 'grid';
+        videoGrid.style.gap = '8px';
+        videoGrid.style.width = '100%';
+        videoGrid.style.height = '100%';
+        
+        console.log(`🎥 [DEBUG] Video grid data-count set to: ${count}`);
+        
+        // Log current grid style
+        setTimeout(() => {
+            const computedStyle = window.getComputedStyle(videoGrid);
+            console.log(`🎥 [DEBUG] Video grid computed styles:`, {
+                display: computedStyle.display,
+                gridTemplateColumns: computedStyle.gridTemplateColumns,
+                gridTemplateRows: computedStyle.gridTemplateRows,
+                gap: computedStyle.gap,
+                width: computedStyle.width,
+                height: computedStyle.height
+            });
+        }, 100);
+        
+        // Update voice-only strip visibility
+        const voiceOnlyParticipants = Array.from(this.participants.values()).filter(p => !p.hasVideo);
+        const voiceOnlyStrip = document.getElementById('voiceOnlyStrip');
+        const voiceOnlyContainer = document.getElementById('voiceOnlyParticipants');
+        
+        if (voiceOnlyParticipants.length > 0 && count > 0) {
+            voiceOnlyStrip?.classList.remove('hidden');
+            
+            if (voiceOnlyContainer) {
+                voiceOnlyContainer.innerHTML = '';
+                voiceOnlyParticipants.forEach(participant => {
+                    const element = this.createVoiceOnlyParticipantElement(participant);
+                    voiceOnlyContainer.appendChild(element);
+                });
+            }
+        } else {
+            voiceOnlyStrip?.classList.add('hidden');
+        }
+    }
+
+    updateScreenShareParticipants() {
+        const container = document.getElementById('screenShareParticipants');
+        if (!container) return;
+
+        container.innerHTML = '';
+        
+        Array.from(this.participants.values()).forEach(participant => {
+            const element = this.createScreenShareParticipantElement(participant);
+            container.appendChild(element);
+        });
+    }
+
+    showPictureInPicture() {
+        const pipCamera = document.getElementById('pipCamera');
+        const pipVideo = document.getElementById('pipCameraVideo');
+        
+        if (pipCamera && pipVideo) {
+            pipCamera.classList.remove('hidden');
+            
+            // Copy local video stream to PiP
+            const localVideo = document.querySelector('#videoGrid video[data-participant-id="' + this.localParticipantId + '"]');
+            if (localVideo && localVideo.srcObject) {
+                pipVideo.srcObject = localVideo.srcObject;
+            }
+        }
+    }
+
+    updateButtonStates() {
+        // Update mic button
+        const micBtn = document.getElementById('micBtn');
+        const micIcon = micBtn?.querySelector('i');
+        const micTooltip = micBtn?.querySelector('.voice-tooltip');
+        
+        if (this.isMuted) {
+            micBtn?.classList.add('muted');
+            micIcon?.classList.replace('fa-microphone', 'fa-microphone-slash');
+            if (micTooltip) micTooltip.textContent = 'Unmute';
+        } else {
+            micBtn?.classList.remove('muted');
+            micIcon?.classList.replace('fa-microphone-slash', 'fa-microphone');
+            if (micTooltip) micTooltip.textContent = 'Mute';
+        }
+
+        // Update deafen button
+        const deafenBtn = document.getElementById('deafenBtn');
+        const deafenIcon = deafenBtn?.querySelector('i');
+        const deafenTooltip = deafenBtn?.querySelector('.voice-tooltip');
+        
+        if (this.isDeafened) {
+            deafenBtn?.classList.add('deafened');
+            deafenIcon?.classList.replace('fa-headphones', 'fa-volume-mute');
+            if (deafenTooltip) deafenTooltip.textContent = 'Undeafen';
+        } else {
+            deafenBtn?.classList.remove('deafened');
+            deafenIcon?.classList.replace('fa-volume-mute', 'fa-headphones');
+            if (deafenTooltip) deafenTooltip.textContent = 'Deafen';
+        }
+
+        // Update video button
+        const videoBtn = document.getElementById('videoBtn');
+        const videoIcon = videoBtn?.querySelector('i');
+        const videoTooltip = videoBtn?.querySelector('.voice-tooltip');
+        
+        if (this.isVideoOn) {
+            videoBtn?.classList.add('active');
+            videoIcon?.classList.replace('fa-video-slash', 'fa-video');
+            if (videoTooltip) videoTooltip.textContent = 'Turn Off Camera';
+        } else {
+            videoBtn?.classList.remove('active');
+            videoIcon?.classList.replace('fa-video', 'fa-video-slash');
+            if (videoTooltip) videoTooltip.textContent = 'Turn On Camera';
+        }
+
+        // Update screen share button
+        const screenBtn = document.getElementById('screenBtn');
+        const screenIcon = screenBtn?.querySelector('i');
+        const screenTooltip = screenBtn?.querySelector('.voice-tooltip');
+        
+        if (this.isScreenSharing) {
+            screenBtn?.classList.add('screen-sharing');
+            screenIcon?.classList.replace('fa-desktop', 'fa-stop-circle');
+            if (screenTooltip) screenTooltip.textContent = 'Stop Sharing';
+        } else {
+            screenBtn?.classList.remove('screen-sharing');
+            screenIcon?.classList.replace('fa-stop-circle', 'fa-desktop');
+            if (screenTooltip) screenTooltip.textContent = 'Share Screen';
+        }
+    }
+
+    createVoiceOnlyParticipantElement(participant) {
+        const element = document.createElement('div');
+        element.className = 'voice-only-participant';
+        
+        const avatarColor = this.getAvatarColor(participant.name);
+        const initial = participant.name.charAt(0).toUpperCase();
+        
+        element.innerHTML = `
+            <div class="avatar" style="background: ${avatarColor}">${initial}</div>
+            <span>${participant.name}</span>
+        `;
+        
+        return element;
+    }
+
+    createScreenShareParticipantElement(participant) {
+        const element = document.createElement('div');
+        element.className = 'screen-share-participant';
+        
+        const avatarColor = this.getAvatarColor(participant.name);
+        const initial = participant.name.charAt(0).toUpperCase();
+        
+        element.innerHTML = `
+            <div class="avatar ${participant.isSpeaking ? 'speaking' : ''}" style="background: ${avatarColor}">${initial}</div>
+            <div class="name">${participant.name}</div>
+        `;
+        
+        return element;
     }
 
     displayMeetingId(meetingId) {
@@ -1143,7 +1589,7 @@ class VoiceCallManager {
     cleanup() {
         console.log('🧹 Cleaning up voice call manager');
         
-        const videos = document.querySelectorAll('#localCameraVideo, #screenShareVideo, .video-participant-card video');
+        const videos = document.querySelectorAll('#screenShareVideo, #pipCameraVideo, .video-participant-card video');
         videos.forEach(video => {
             if (video.srcObject) {
                 const tracks = video.srcObject.getTracks();
@@ -1152,75 +1598,130 @@ class VoiceCallManager {
             }
         });
 
-        const cameraSection = document.getElementById('cameraSection');
-        const screenSection = document.getElementById('screenShareSection');
         const videoGrid = document.getElementById('videoGrid');
-        const participantsList = document.getElementById('participantsList');
         const voiceParticipantsGrid = document.getElementById('voiceParticipantsGrid');
+        const screenShareParticipants = document.getElementById('screenShareParticipants');
+        const voiceOnlyParticipants = document.getElementById('voiceOnlyParticipants');
 
-        cameraSection?.classList.add('hidden');
-        screenSection?.classList.add('hidden');
         if (videoGrid) videoGrid.innerHTML = '';
-        if (participantsList) participantsList.innerHTML = '';
         if (voiceParticipantsGrid) voiceParticipantsGrid.innerHTML = '';
+        if (screenShareParticipants) screenShareParticipants.innerHTML = '';
+        if (voiceOnlyParticipants) voiceOnlyParticipants.innerHTML = '';
 
-        // Clear all participants including remote ones
+        const pipCamera = document.getElementById('pipCamera');
+        if (pipCamera) pipCamera.classList.add('hidden');
+
         this.participants.clear();
-        
         this.isVideoOn = false;
         this.isScreenSharing = false;
+        this.isMuted = false;
+        this.isDeafened = false;
         this.currentView = 'voice-only';
         this.localParticipantId = null;
         
         this.updateView();
     }
+
+    highlightParticipantActivity(userId, command) {
+        console.log(`🎯 [VoiceCallManager] Highlighting activity for user ${userId} with command: ${command}`);
+        
+        const participantCards = document.querySelectorAll(`[data-participant-id]`);
+        
+        participantCards.forEach(card => {
+            const participant = this.participants.get(card.dataset.participantId);
+            
+            if (participant && (participant.id === userId || 
+                window.globalSocketManager?.userId?.toString() === userId?.toString())) {
+                
+                console.log(`✨ [VoiceCallManager] Found participant card to highlight:`, participant.name);
+                
+                card.classList.add('participant-activity');
+                card.style.transition = 'all 0.3s ease';
+                card.style.transform = 'scale(1.05)';
+                card.style.boxShadow = '0 0 20px rgba(88, 101, 242, 0.6)';
+                card.style.border = '2px solid #5865f2';
+                
+                const commandBadge = document.createElement('div');
+                commandBadge.className = 'command-badge';
+                commandBadge.style.cssText = `
+                    position: absolute;
+                    top: -10px;
+                    right: -10px;
+                    background: #5865f2;
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    font-size: 10px;
+                    font-weight: bold;
+                    z-index: 10;
+                    animation: fadeInOut 3s ease-in-out;
+                `;
+                commandBadge.textContent = '🎵 BOT';
+                
+                card.style.position = 'relative';
+                card.appendChild(commandBadge);
+                
+                setTimeout(() => {
+                    card.classList.remove('participant-activity');
+                    card.style.transform = '';
+                    card.style.boxShadow = '';
+                    card.style.border = '';
+                    
+                    if (commandBadge && commandBadge.parentNode) {
+                        commandBadge.parentNode.removeChild(commandBadge);
+                    }
+                }, 3000);
+                
+                console.log(`✅ [VoiceCallManager] Participant activity highlight applied`);
+                break;
+            }
+        });
+    }
 }
 
+// Global functions for UI interactions
 function stopScreenShare() {
     if (window.voiceCallManager) {
         window.voiceCallManager.toggleScreenShare();
     }
 }
 
-function minimizeScreenShare() {
-    const screenSection = document.getElementById('screenShareSection');
-    if (screenSection) {
-        screenSection.style.transform = 'scale(0.3)';
-        screenSection.style.transformOrigin = 'bottom right';
-        screenSection.style.position = 'fixed';
-        screenSection.style.bottom = '120px';
-        screenSection.style.right = '20px';
-        screenSection.style.width = '300px';
-        screenSection.style.height = '200px';
-        screenSection.style.zIndex = '100';
-        screenSection.style.transition = 'all 0.3s ease';
-    }
-}
-
-function toggleCameraSettings() {
-    window.voiceCallManager?.showToast('Camera settings coming soon', 'info');
-}
-
 function toggleVideoLayout() {
-    const videoGrid = document.getElementById('videoGrid');
-    if (videoGrid) {
-        const currentCols = videoGrid.style.gridTemplateColumns;
-        if (currentCols.includes('repeat(auto-fit')) {
-            videoGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
-        } else {
-            videoGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(280px, 1fr))';
-        }
-    }
-}
-
-function toggleVideoSidebar() {
-    const cameraSection = document.getElementById('cameraSection');
-    if (cameraSection) {
-        cameraSection.classList.toggle('hidden');
+    // Toggle between grid and speaker view
+    const gridBtn = document.getElementById('gridViewBtn');
+    const speakerBtn = document.getElementById('speakerViewBtn');
+    
+    if (gridBtn?.classList.contains('bg-[#4f545c]')) {
+        // Switch to speaker view
+        gridBtn.classList.remove('bg-[#4f545c]');
+        gridBtn.classList.add('bg-[#36393f]');
+        speakerBtn.classList.remove('bg-[#36393f]');
+        speakerBtn.classList.add('bg-[#4f545c]');
+        
+        // Implement speaker view logic here
+        window.voiceCallManager?.showToast('Speaker view coming soon', 'info');
+    } else {
+        // Switch to grid view
+        speakerBtn.classList.remove('bg-[#4f545c]');
+        speakerBtn.classList.add('bg-[#36393f]');
+        gridBtn.classList.remove('bg-[#36393f]');
+        gridBtn.classList.add('bg-[#4f545c]');
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     window.voiceCallManager = new VoiceCallManager();
+    
+    // Set up view toggle buttons
+    const gridViewBtn = document.getElementById('gridViewBtn');
+    const speakerViewBtn = document.getElementById('speakerViewBtn');
+    
+    if (gridViewBtn) {
+        gridViewBtn.addEventListener('click', toggleVideoLayout);
+    }
+    
+    if (speakerViewBtn) {
+        speakerViewBtn.addEventListener('click', toggleVideoLayout);
+    }
 });
 </script>

@@ -138,73 +138,161 @@ class BotHandler extends EventEmitter {
     }
 
     static async handleMessage(io, data, messageType, botId, username) {
-        console.log(`🤖 [BOT-HANDLER] === PROCESSING MESSAGE ===`);
-        console.log(`🤖 [BOT-HANDLER] Bot: ${username} (ID: ${botId})`);
-        console.log(`🤖 [BOT-HANDLER] Message type: ${messageType}`);
-        console.log(`🤖 [BOT-HANDLER] Full message data:`, JSON.stringify(data, null, 2));
+        console.log(`🤖 [BOT-HANDLER] Processing message for bot ${username} (ID: ${botId})`);
         
-        const messageId = data.id || `${data.user_id}-${data.channel_id || data.room_id}-${data.content}`;
+        const content = data.content?.toLowerCase() || '';
         
-        if (this.processedMessages.has(messageId)) {
-            console.log(`🔄 [BOT-HANDLER] Message already processed, skipping: ${messageId}`);
-            return;
-        }
-        
-        this.processedMessages.add(messageId);
-        
-        if (this.processedMessages.size > 100) {
-            const oldestMessage = Array.from(this.processedMessages)[0];
-            this.processedMessages.delete(oldestMessage);
-        }
-
-        const bot = this.bots.get(botId);
-        
-        if (!bot) {
-            console.warn(`⚠️ [BOT-HANDLER] Bot not found in registry: ${botId}`);
-            console.log(`🤖 [BOT-HANDLER] Available bots:`, Array.from(this.bots.keys()));
-            return;
-        }
-        
-        if (data.user_id == botId) {
-            console.log(`🤖 [BOT-HANDLER] Ignoring message from bot itself`);
+        if (!content.startsWith('/titibot ')) {
+            console.log(`🤖 [BOT-HANDLER] Message does not start with /titibot, ignoring`);
             return;
         }
 
-        const content = data.content?.toLowerCase().trim();
-        
-        if (!content) {
-            console.warn(`⚠️ [BOT-HANDLER] No content in message`);
-            return;
-        }
-
-        console.log(`📨 Bot ${username} received message: "${content.substring(0, 50)}..." in ${messageType}`);
-        console.log(`🔍 [BOT-HANDLER] Checking commands against: "${content}"`);
+        console.log(`🤖 [BOT-HANDLER] TitiBot command detected: "${content}"`);
 
         if (content.toLowerCase() === '/titibot ping') {
             console.log(`✅ [BOT-HANDLER] PING command detected!`);
             await this.sendBotResponse(io, data, messageType, botId, username, 'ping');
-        } else if (content.toLowerCase().startsWith('/titibot play ')) {
-            console.log(`✅ [BOT-HANDLER] PLAY command detected!`);
-            const songName = content.substring('/titibot play '.length).trim();
-            console.log(`🎵 [BOT-HANDLER] Song name: "${songName}"`);
-            await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
-        } else if (content.toLowerCase() === '/titibot stop') {
-            console.log(`✅ [BOT-HANDLER] STOP command detected!`);
-            await this.sendBotResponse(io, data, messageType, botId, username, 'stop');
-        } else if (content.toLowerCase() === '/titibot next') {
-            console.log(`✅ [BOT-HANDLER] NEXT command detected!`);
-            await this.sendBotResponse(io, data, messageType, botId, username, 'next');
-        } else if (content.toLowerCase() === '/titibot prev') {
-            console.log(`✅ [BOT-HANDLER] PREV command detected!`);
-            await this.sendBotResponse(io, data, messageType, botId, username, 'prev');
-        } else if (content.toLowerCase().startsWith('/titibot queue ')) {
-            console.log(`✅ [BOT-HANDLER] QUEUE command detected!`);
-            const songName = content.substring('/titibot queue '.length).trim();
-            console.log(`🎵 [BOT-HANDLER] Queue song name: "${songName}"`);
-            await this.sendBotResponse(io, data, messageType, botId, username, 'queue', songName);
         } else {
-            console.log(`❌ [BOT-HANDLER] No matching command found for: "${content}"`);
+            const isVoiceConnected = await this.validateVoiceConnection(io, data);
+            
+            if (!isVoiceConnected) {
+                console.log(`❌ [BOT-HANDLER] User not in voice channel, sending error message`);
+                await this.sendVoiceRequiredResponse(io, data, messageType, botId, username);
+                return;
+            }
+            
+            console.log(`✅ [BOT-HANDLER] Voice validation passed, processing command`);
+            
+            if (content.toLowerCase().startsWith('/titibot play ')) {
+                console.log(`✅ [BOT-HANDLER] PLAY command detected!`);
+                const songName = content.substring('/titibot play '.length).trim();
+                console.log(`🎵 [BOT-HANDLER] Song name: "${songName}"`);
+                await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
+                await this.emitVoiceParticipantActivity(io, data);
+            } else if (content.toLowerCase() === '/titibot stop') {
+                console.log(`✅ [BOT-HANDLER] STOP command detected!`);
+                await this.sendBotResponse(io, data, messageType, botId, username, 'stop');
+                await this.emitVoiceParticipantActivity(io, data);
+            } else if (content.toLowerCase() === '/titibot next') {
+                console.log(`✅ [BOT-HANDLER] NEXT command detected!`);
+                await this.sendBotResponse(io, data, messageType, botId, username, 'next');
+                await this.emitVoiceParticipantActivity(io, data);
+            } else if (content.toLowerCase() === '/titibot prev') {
+                console.log(`✅ [BOT-HANDLER] PREV command detected!`);
+                await this.sendBotResponse(io, data, messageType, botId, username, 'prev');
+                await this.emitVoiceParticipantActivity(io, data);
+            } else if (content.toLowerCase().startsWith('/titibot queue ')) {
+                console.log(`✅ [BOT-HANDLER] QUEUE command detected!`);
+                const songName = content.substring('/titibot queue '.length).trim();
+                console.log(`🎵 [BOT-HANDLER] Queue song name: "${songName}"`);
+                await this.sendBotResponse(io, data, messageType, botId, username, 'queue', songName);
+                await this.emitVoiceParticipantActivity(io, data);
+            } else {
+                console.log(`❌ [BOT-HANDLER] No matching command found for: "${content}"`);
+            }
         }
+    }
+
+    static async validateVoiceConnection(io, originalMessage) {
+        return new Promise((resolve) => {
+            console.log(`🔍 [BOT-HANDLER] Validating voice connection for user ${originalMessage.user_id}`);
+            
+            const userSocket = this.findUserSocket(io, originalMessage.user_id);
+            if (!userSocket) {
+                console.log(`❌ [BOT-HANDLER] User socket not found for user ${originalMessage.user_id}`);
+                resolve(false);
+                return;
+            }
+            
+            const timeoutId = setTimeout(() => {
+                console.log(`⏰ [BOT-HANDLER] Voice validation timeout for user ${originalMessage.user_id}`);
+                userSocket.off('voice-validation-response', responseHandler);
+                resolve(false);
+            }, 3000);
+            
+            const responseHandler = (response) => {
+                clearTimeout(timeoutId);
+                userSocket.off('voice-validation-response', responseHandler);
+                
+                console.log(`📋 [BOT-HANDLER] Voice validation response:`, response);
+                resolve(response.isConnected === true);
+            };
+            
+            userSocket.on('voice-validation-response', responseHandler);
+            
+            console.log(`📤 [BOT-HANDLER] Requesting voice validation from user ${originalMessage.user_id}`);
+            userSocket.emit('voice-validation-request', {
+                user_id: originalMessage.user_id,
+                username: originalMessage.username,
+                timestamp: Date.now()
+            });
+        });
+    }
+
+    static findUserSocket(io, userId) {
+        for (const [socketId, socket] of io.sockets.sockets) {
+            if (socket.data?.user_id?.toString() === userId?.toString()) {
+                return socket;
+            }
+        }
+        return null;
+    }
+
+    static async sendVoiceRequiredResponse(io, originalMessage, messageType, botId, username) {
+        console.log(`🎯 [BOT-HANDLER] Sending voice required response`);
+        
+        const channelId = originalMessage.channel_id || (originalMessage.target_type === 'channel' ? originalMessage.target_id : null);
+        const roomId = originalMessage.room_id || (originalMessage.target_type === 'dm' ? originalMessage.target_id : null);
+        
+        const botResponseData = {
+            id: `bot-msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            user_id: botId.toString(),
+            username: username,
+            avatar_url: '/public/assets/common/default-profile-picture.png',
+            content: '😒 Minimal masuk voice channel dulu bang',
+            sent_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+            edited_at: null,
+            type: 'text',
+            message_type: 'text',
+            attachments: [],
+            has_reactions: false,
+            reaction_count: 0,
+            channel_id: messageType === 'channel' ? channelId : null,
+            room_id: messageType === 'dm' ? roomId : null,
+            is_bot: true,
+            bot_id: botId
+        };
+        
+        const eventName = messageType === 'channel' ? 'new-channel-message' : 'user-message-dm';
+        const targetRoom = messageType === 'channel' ? `channel-${channelId}` : `dm-${roomId}`;
+        
+        console.log(`📡 [BOT-HANDLER] Emitting voice required message to room ${targetRoom}`);
+        
+        io.to(targetRoom).emit(eventName, botResponseData);
+        
+        await this.saveBotMessageToDatabase(botResponseData, messageType);
+    }
+
+    static async emitVoiceParticipantActivity(io, originalMessage) {
+        console.log(`📡 [BOT-HANDLER] Emitting voice participant activity for user ${originalMessage.user_id}`);
+        
+        const userSocket = this.findUserSocket(io, originalMessage.user_id);
+        if (!userSocket) {
+            console.log(`❌ [BOT-HANDLER] User socket not found, cannot emit participant activity`);
+            return;
+        }
+        
+        const participantData = {
+            user_id: originalMessage.user_id,
+            username: originalMessage.username,
+            activity: 'bot_command',
+            command: originalMessage.content,
+            timestamp: Date.now()
+        };
+        
+        userSocket.emit('voice-participant-activity', participantData);
+        
+        console.log(`✅ [BOT-HANDLER] Voice participant activity emitted:`, participantData);
     }
 
     static async sendBotResponse(io, originalMessage, messageType, botId, username, command, parameter = null) {

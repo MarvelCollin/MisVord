@@ -5,6 +5,7 @@ import ChatUIHandler from './chat-ui-handler.js';
 import FileUploadHandler from './file-upload-handler.js';
 import SendReceiveHandler from './send-receive-handler.js';
 import ChatBot from './chat-bot.js';
+import MentionHandler from './mention-handler.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Chat section script loaded via DOM content loaded');
@@ -72,6 +73,7 @@ class ChatSection {
         this.fileUploadHandler = new FileUploadHandler(this);
         this.sendReceiveHandler = new SendReceiveHandler(this);
         this.chatBot = new ChatBot(this);
+        this.mentionHandler = new MentionHandler(this);
         
         // DOM elements
         this.chatContainer = document.querySelector('.flex-1.flex.flex-col.bg-\\[\\#313338\\].h-screen.overflow-hidden') || document.getElementById('chat-container');

@@ -505,17 +505,20 @@ class MessageHandler {
                 }, null, 2));
                 
                 // First emit to bot for processing (before room broadcast)
-                console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing:`, {
-                    messageId: broadcastData.id,
-                    content: broadcastData.content?.substring(0, 50) + '...',
-                    userId: broadcastData.user_id,
-                    username: broadcastData.username,
-                    channelId: broadcastData.channel_id
-                });
-                const BotHandler = require('./botHandler');
-                BotHandler.emitBotMessageIntercept(broadcastData);
-                
-                client.to(targetRoom).emit(eventName, broadcastData);
+                            console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing:`, {
+                messageId: broadcastData.id,
+                content: broadcastData.content?.substring(0, 50) + '...',
+                userId: broadcastData.user_id,
+                username: broadcastData.username,
+                channelId: broadcastData.channel_id
+            });
+            const BotHandler = require('./botHandler');
+            BotHandler.emitBotMessageIntercept(broadcastData);
+            
+            // Handle mentions notification
+            this.handleMentionNotifications(io, client, broadcastData, targetRoom);
+            
+            client.to(targetRoom).emit(eventName, broadcastData);
                 console.log(`✅ [SAVE-AND-SEND] Temporary message broadcasted to room ${targetRoom} (excluding sender)`, {
                     messageId: broadcastData.id,
                     hasReplyData: !!broadcastData.reply_data,
@@ -530,6 +533,9 @@ class MessageHandler {
                 });
                 const BotHandler = require('./botHandler');
                 BotHandler.emitBotMessageIntercept(broadcastData);
+                
+                // Handle mentions notification for global broadcast
+                this.handleMentionNotifications(io, client, broadcastData, null);
                 
                 io.emit(eventName, broadcastData);
                 console.log(`⚠️ [SAVE-AND-SEND] No room found, broadcasted to all clients`, {
@@ -913,6 +919,65 @@ class MessageHandler {
                 io.emit('message-edit-failed', failureData);
             }
         }
+    }
+    
+    static handleMentionNotifications(io, client, messageData, targetRoom) {
+        if (!messageData.mentions || messageData.mentions.length === 0) {
+            return;
+        }
+        
+        console.log(`💬 [MENTION-HANDLER] Processing mentions for message ${messageData.id}:`, messageData.mentions);
+        
+        messageData.mentions.forEach(mention => {
+            if (mention.type === 'all') {
+                console.log(`📢 [MENTION-HANDLER] Broadcasting @all mention to room ${targetRoom || 'global'}`);
+                
+                if (targetRoom) {
+                    client.to(targetRoom).emit('mention_notification', {
+                        type: 'all',
+                        message_id: messageData.id,
+                        content: messageData.content,
+                        user_id: messageData.user_id,
+                        username: messageData.username,
+                        channel_id: messageData.channel_id,
+                        room_id: messageData.room_id,
+                        target_type: messageData.target_type,
+                        target_id: messageData.target_id,
+                        timestamp: Date.now()
+                    });
+                } else {
+                    io.emit('mention_notification', {
+                        type: 'all',
+                        message_id: messageData.id,
+                        content: messageData.content,
+                        user_id: messageData.user_id,
+                        username: messageData.username,
+                        channel_id: messageData.channel_id,
+                        room_id: messageData.room_id,
+                        target_type: messageData.target_type,
+                        target_id: messageData.target_id,
+                        timestamp: Date.now()
+                    });
+                }
+            } else if (mention.type === 'user' && mention.user_id && mention.user_id !== messageData.user_id) {
+                console.log(`👤 [MENTION-HANDLER] Sending user mention to user ${mention.user_id} (${mention.username})`);
+                
+                io.emit('mention_notification', {
+                    type: 'user',
+                    mentioned_user_id: mention.user_id,
+                    mentioned_username: mention.username,
+                    message_id: messageData.id,
+                    content: messageData.content,
+                    user_id: messageData.user_id,
+                    username: messageData.username,
+                    channel_id: messageData.channel_id,
+                    room_id: messageData.room_id,
+                    target_type: messageData.target_type,
+                    target_id: messageData.target_id,
+                    timestamp: Date.now()
+                });
+            }
+        });
     }
 }
 

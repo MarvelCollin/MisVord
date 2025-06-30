@@ -52,6 +52,7 @@ class SocketHandler {
         io.off('message_error');
         io.off('typing');
         io.off('stop-typing');
+        io.off('mention_notification');
         
         io.on('new-channel-message', this.handleChannelMessage.bind(this));
         io.on('user-message-dm', this.handleDMMessage.bind(this));
@@ -69,6 +70,7 @@ class SocketHandler {
         io.on('message_error', this.handleMessageError.bind(this));
         io.on('typing', this.handleTyping.bind(this));
         io.on('stop-typing', this.handleStopTyping.bind(this));
+        io.on('mention_notification', this.handleMentionNotification.bind(this));
         
         this.socketListenersSetup = true;
         console.log('✅ Socket handlers setup complete');
@@ -124,6 +126,10 @@ class SocketHandler {
             
             if (!isSender) {
                 this.chatSection.playMessageSound();
+                
+                if (data.mentions && data.mentions.length > 0) {
+                    this.chatSection.mentionHandler.handleMentionNotification(data);
+                }
             }
             
             window.dispatchEvent(new CustomEvent('messageReceived', {
@@ -190,6 +196,10 @@ class SocketHandler {
             
             if (!isSender) {
                 this.chatSection.playMessageSound();
+                
+                if (data.mentions && data.mentions.length > 0) {
+                    this.chatSection.mentionHandler.handleMentionNotification(data);
+                }
             }
             
             window.dispatchEvent(new CustomEvent('messageReceived', {
@@ -758,6 +768,35 @@ class SocketHandler {
         } catch (error) {
             console.error('❌ Error joining channel:', error);
             return false;
+        }
+    }
+    
+    handleMentionNotification(data) {
+        try {
+            const currentUserId = window.globalSocketManager?.userId;
+            if (!currentUserId) return;
+            
+            console.log('💬 [SOCKET-HANDLER] Mention notification received:', data);
+            
+            if (data.type === 'all') {
+                console.log('📢 [SOCKET-HANDLER] @all mention detected');
+                if (this.chatSection.mentionHandler) {
+                    this.chatSection.mentionHandler.handleMentionNotification({
+                        ...data,
+                        mentions: [{ type: 'all', username: 'all', user_id: 'all' }]
+                    });
+                }
+            } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
+                console.log('👤 [SOCKET-HANDLER] User mention detected for current user');
+                if (this.chatSection.mentionHandler) {
+                    this.chatSection.mentionHandler.handleMentionNotification({
+                        ...data,
+                        mentions: [{ type: 'user', username: data.mentioned_username, user_id: data.mentioned_user_id }]
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('❌ [SOCKET-HANDLER] Error handling mention notification:', error);
         }
     }
 }

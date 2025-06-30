@@ -365,6 +365,29 @@ class MessageHandler {
 .bubble-reply-content {
     color: #a3a6aa;
 }
+
+.mention {
+    color: #4f9cff;
+    background-color: rgba(79, 156, 255, 0.2);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.mention:hover {
+    background-color: rgba(79, 156, 255, 0.3);
+}
+
+.mention-all {
+    color: #faa61a;
+    background-color: rgba(250, 166, 26, 0.2);
+}
+
+.mention-all:hover {
+    background-color: rgba(250, 166, 26, 0.3);
+}
 `;
             
             const styleElement = document.createElement('style');
@@ -505,7 +528,15 @@ class MessageHandler {
     createMessageText(messageData) {
         const textContainer = document.createElement('div');
         textContainer.className = 'bubble-message-text';
-        textContainer.textContent = messageData.content || '';
+        
+        let content = messageData.content || '';
+        
+        if (this.chatSection.mentionHandler) {
+            content = this.chatSection.mentionHandler.formatMessageWithMentions(content);
+            textContainer.innerHTML = content;
+        } else {
+            textContainer.textContent = content;
+        }
         
         return textContainer;
     }

@@ -391,38 +391,37 @@ function setup(io) {
         });
         
         client.on('check-voice-meeting', (data) => {
-            console.log(`🎤 [VOICE-CHECK] Voice meeting check from ${client.id}:`, {
-                channelId: data.channel_id,
-                userId: client.data?.user_id
-            });
+            console.log(`🎤 [VOICE-CHECK] Check voice meeting request from ${client.id}:`, data);
             handleCheckVoiceMeeting(io, client, data);
         });
         
         client.on('register-voice-meeting', (data) => {
-            console.log(`🎤 [VOICE-REGISTER] Voice meeting registration from ${client.id}:`, {
-                channelId: data.channel_id,
-                meetingId: data.meeting_id,
-                userId: client.data?.user_id,
-                username: client.data?.username
-            });
-            
-            if (!client.data?.authenticated) {
-                console.warn('⚠️ [VOICE-REGISTER] Proceeding without authentication');
-            }
+            console.log(`🎤 [VOICE-REGISTER] Register voice meeting request from ${client.id}:`, data);
             handleRegisterVoiceMeeting(io, client, data);
         });
         
         client.on('unregister-voice-meeting', (data) => {
-            console.log(`🎤 [VOICE-UNREGISTER] Voice meeting unregistration from ${client.id}:`, {
-                channelId: data.channel_id,
-                userId: client.data?.user_id,
-                username: client.data?.username
-            });
-            
-            if (!client.data?.authenticated) {
-                console.warn('⚠️ [VOICE-UNREGISTER] Proceeding without authentication');
-            }
+            console.log(`🎤 [VOICE-UNREGISTER] Unregister voice meeting request from ${client.id}:`, data);
             handleUnregisterVoiceMeeting(io, client, data);
+        });
+
+        client.on('voice-participant-update', (data) => {
+            console.log(`🎤 [VOICE-PARTICIPANT] Voice participant update from ${client.id}:`, data);
+            handleVoiceParticipantUpdate(io, client, data);
+        });
+
+        client.on('voice-validation-request', (data) => {
+            console.log(`🔍 [VOICE-VALIDATION] Voice validation request from ${client.id}:`, data);
+            handleVoiceValidationRequest(io, client, data);
+        });
+
+        client.on('voice-validation-response', (data) => {
+            console.log(`📋 [VOICE-VALIDATION] Voice validation response from ${client.id}:`, data);
+        });
+        
+        client.on('voice-participant-activity', (data) => {
+            console.log(`🎯 [VOICE-ACTIVITY] Voice participant activity from ${client.id}:`, data);
+            handleVoiceParticipantActivity(io, client, data);
         });
         
         client.on('get-online-users', () => {
@@ -854,6 +853,86 @@ function handleTitiBotCommand(io, client, data) {
         console.error(`❌ [TITIBOT-CMD-HANDLER] Error processing command:`, error);
         client.emit('titibot-command-error', { message: 'Failed to process command' });
     }
+}
+
+function handleVoiceParticipantUpdate(io, client, data) {
+    console.log(`🎤 [VOICE-PARTICIPANT-HANDLER] Processing voice participant update:`, {
+        participantId: data.participant_id,
+        channelId: data.channel_id,
+        action: data.action,
+        username: data.username,
+        userId: data.user_id
+    });
+    
+    const { channel_id, participant_id, action, username, user_id } = data;
+    
+    if (!channel_id || !participant_id || !action) {
+        console.warn(`⚠️ [VOICE-PARTICIPANT-HANDLER] Missing required fields`);
+        return;
+    }
+    
+    const targetRoom = `channel-${channel_id}`;
+    
+    const participantUpdateData = {
+        channel_id,
+        participant_id,
+        action,
+        username: username || 'Unknown User',
+        user_id: user_id || participant_id,
+        timestamp: data.timestamp || Date.now()
+    };
+    
+    console.log(`📡 [VOICE-PARTICIPANT-HANDLER] Broadcasting participant update to room ${targetRoom}:`, participantUpdateData);
+    
+    io.to(targetRoom).emit('voice-participant-joined', participantUpdateData);
+    
+    console.log(`✅ [VOICE-PARTICIPANT-HANDLER] Voice participant update broadcast complete`);
+}
+
+function handleVoiceValidationRequest(io, client, data) {
+    console.log(`🔍 [VOICE-VALIDATION-HANDLER] Processing voice validation request:`, {
+        userId: data.user_id,
+        username: data.username,
+        requestingClient: client.id
+    });
+    
+    client.emit('voice-validation-request', {
+        user_id: data.user_id,
+        username: data.username,
+        timestamp: data.timestamp || Date.now()
+    });
+    
+    console.log(`✅ [VOICE-VALIDATION-HANDLER] Voice validation request forwarded to client`);
+}
+
+function handleVoiceParticipantActivity(io, client, data) {
+    console.log(`🎯 [VOICE-ACTIVITY-HANDLER] Processing voice participant activity:`, {
+        userId: data.user_id,
+        username: data.username,
+        activity: data.activity,
+        command: data.command
+    });
+    
+    const { user_id, username, activity, command } = data;
+    
+    if (!user_id || !activity) {
+        console.warn(`⚠️ [VOICE-ACTIVITY-HANDLER] Missing required fields`);
+        return;
+    }
+    
+    const activityData = {
+        user_id,
+        username: username || 'Unknown User',
+        activity,
+        command: command || null,
+        timestamp: data.timestamp || Date.now()
+    };
+    
+    console.log(`📡 [VOICE-ACTIVITY-HANDLER] Broadcasting participant activity:`, activityData);
+    
+    io.emit('voice-participant-activity-broadcast', activityData);
+    
+    console.log(`✅ [VOICE-ACTIVITY-HANDLER] Voice participant activity broadcast complete`);
 }
 
 module.exports = { setup };

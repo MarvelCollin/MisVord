@@ -33,6 +33,12 @@ class SendReceiveHandler {
                 console.log('📎 Including attachments:', attachmentUrls.length, 'files');
             }
             
+            const mentions = this.chatSection.mentionHandler.parseMentions(content);
+            if (mentions.length > 0) {
+                options.mentions = mentions;
+                console.log('💬 Including mentions:', mentions.length, 'mentions');
+            }
+            
             await this.sendDirectOrChannelMessage(content, options);
             
             if (this.chatSection.messageInput) {
