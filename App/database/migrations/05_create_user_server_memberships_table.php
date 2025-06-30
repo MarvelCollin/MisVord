@@ -7,7 +7,6 @@ class CreateUserServerMembershipsMigration {
             $table->integer('user_id'); 
             $table->integer('server_id'); 
             $table->string('role', 255, true);
-            $table->string('nickname', 255, true);
             $table->text('notification_settings', true);
             $table->timestamps();
             

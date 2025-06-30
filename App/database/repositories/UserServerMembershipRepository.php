@@ -81,7 +81,7 @@ class UserServerMembershipRepository extends Repository {
             }
             
             $results = $queryBuilder
-                ->select('u.id, u.username, u.discriminator, u.avatar_url, u.display_name, u.status, usm.role, usm.nickname, usm.created_at as joined_at')
+                ->select('u.id, u.username, u.discriminator, u.avatar_url, u.display_name, u.status, usm.role, usm.created_at as joined_at')
                 ->orderBy('usm.created_at', 'ASC')
                 ->get();
             
@@ -105,7 +105,7 @@ class UserServerMembershipRepository extends Repository {
                 ->join('user_server_memberships usm', 'u.id', '=', 'usm.user_id')
                 ->where('usm.server_id', $serverId)
                 ->where('u.status', 'bot')
-                ->select('u.id, u.username, u.discriminator, u.avatar_url, u.display_name, u.status, usm.role, usm.nickname, usm.created_at as joined_at')
+                ->select('u.id, u.username, u.discriminator, u.avatar_url, u.display_name, u.status, usm.role, usm.created_at as joined_at')
                 ->orderBy('usm.created_at', 'ASC')
                 ->get();
             
@@ -163,52 +163,17 @@ class UserServerMembershipRepository extends Repository {
         return UserServerMembership::getServerIdsForUser($userId);
     }
     
-    public function getUserNickname($userId, $serverId) {
-        try {
-            $query = new Query();
-            $result = $query->table('user_server_memberships')
-                ->select('nickname')
-                ->where('user_id', $userId)
-                ->where('server_id', $serverId)
-                ->first();
-            
-            return $result ? $result['nickname'] : null;
-        } catch (Exception $e) {
-            error_log("Error getting user nickname: " . $e->getMessage());
-            return null;
-        }
-    }
-    
-    public function updateUserNickname($userId, $serverId, $nickname) {
-        try {
-            $query = new Query();
-            $updated = $query->table('user_server_memberships')
-                ->where('user_id', $userId)
-                ->where('server_id', $serverId)
-                ->update([
-                    'nickname' => $nickname,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
-            
-            return $updated > 0;
-        } catch (Exception $e) {
-            error_log("Error updating user nickname: " . $e->getMessage());
-            return false;
-        }
-    }
-    
     public function getPerServerProfile($userId, $serverId) {
         try {
             $query = new Query();
             $result = $query->table('user_server_memberships')
-                ->select('nickname, role, notification_settings')
+                ->select('role, notification_settings')
                 ->where('user_id', $userId)
                 ->where('server_id', $serverId)
                 ->first();
             
             if ($result) {
                 return [
-                    'nickname' => $result['nickname'],
                     'role' => $result['role'],
                     'notification_settings' => $result['notification_settings'] ? json_decode($result['notification_settings'], true) : null
                 ];

@@ -128,7 +128,7 @@ class ChannelSwitchManager {
             currentChannelId: this.currentChannelId
         });
         
-        if (this.currentChannelId === channelId) {
+        if (this.currentChannelId === channelId && this.currentChannelType === channelType) {
             console.log('[ChannelSwitchManager] Already on this channel');
             return;
         }
@@ -137,33 +137,41 @@ class ChannelSwitchManager {
         this.showChannelSwitchingState(clickedElement);
 
         try {
-            // Leave current socket room
             this.leaveCurrentChannel();
             
-            // Update active channel UI
             this.updateActiveChannelUI(channelId);
             
-            // Update sections (chat vs voice)
             this.updateSections(channelType);
             
-            // Update meta tags for chat section
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             if (channelType === 'text') {
                 this.updateChatMetaTags(channelId, serverId);
-            }
-            
-            // Switch chat section target or initialize voice
-            if (channelType === 'text') {
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
                 this.initializeChatSection(channelId);
+                
+                await new Promise(resolve => setTimeout(resolve, 200));
+                if (window.chatSection && window.chatSection.isLoading) {
+                    await new Promise(resolve => {
+                        const checkLoading = () => {
+                            if (!window.chatSection.isLoading) {
+                                resolve();
+                            } else {
+                                setTimeout(checkLoading, 100);
+                            }
+                        };
+                        checkLoading();
+                    });
+                }
             } else if (channelType === 'voice') {
                 this.initializeVoiceSection(channelId);
             }
             
-            // Update URL
             if (updateHistory) {
                 this.updateURL(serverId, channelId, channelType);
             }
             
-            // Update current state
             this.currentChannelId = channelId;
             this.currentChannelType = channelType;
             this.currentServerId = serverId;
@@ -172,10 +180,14 @@ class ChannelSwitchManager {
 
         } catch (error) {
             console.error('[ChannelSwitchManager] Error switching channel:', error);
+            this.showNotification?.('Failed to switch channel. Please try again.', 'error');
         } finally {
             this.isLoading = false;
             this.hideChannelSwitchingState(clickedElement);
-            this.processQueue();
+            
+            setTimeout(() => {
+                this.processQueue();
+            }, 100);
         }
     }
 
@@ -351,7 +363,6 @@ class ChannelSwitchManager {
     initializeChatSection(channelId) {
         console.log('[ChannelSwitchManager] Initializing chat section for channel:', channelId);
         
-        // Ensure chat section element exists
         let chatSection = document.querySelector('.chat-section');
         if (!chatSection) {
             console.log('[ChannelSwitchManager] Chat section element not found, creating it');
@@ -388,7 +399,6 @@ class ChannelSwitchManager {
             }
         }
         
-        // Update channel name in header
         const channelNameElement = document.querySelector('#channel-name');
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
         const channelName = channelElement ? channelElement.textContent.trim().replace('#', '') : 'channel';
@@ -396,22 +406,35 @@ class ChannelSwitchManager {
             channelNameElement.textContent = channelName;
         }
         
-        // Check if chat section exists and switch target
         if (window.chatSection && typeof window.chatSection.switchTarget === 'function') {
             console.log('[ChannelSwitchManager] Switching existing chat section to channel:', channelId);
-            window.chatSection.switchTarget('channel', channelId);
+            
+            if (window.chatSection.isLoading) {
+                console.log('[ChannelSwitchManager] Chat section is loading, waiting...');
+                setTimeout(() => {
+                    this.initializeChatSection(channelId);
+                }, 500);
+                return;
+            }
+            
+            try {
+                window.chatSection.switchTarget('channel', channelId);
+            } catch (error) {
+                console.error('[ChannelSwitchManager] Error switching chat section target:', error);
+                this.createChatSectionInstance(channelId);
+            }
         } else {
             console.log('[ChannelSwitchManager] Creating new chat section instance');
-            // Initialize new chat section with proper delay
             setTimeout(() => {
                 this.createChatSectionInstance(channelId);
-            }, 100);
+            }, 200);
         }
         
-        // Join socket room for this channel
-        if (window.globalSocketManager) {
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
             console.log('[ChannelSwitchManager] Joining channel socket room:', channelId);
-            window.globalSocketManager.joinChannel(channelId);
+            setTimeout(() => {
+                window.globalSocketManager.joinChannel(channelId);
+            }, 300);
         }
     }
     
@@ -465,7 +488,6 @@ class ChannelSwitchManager {
     initializeVoiceSection(channelId) {
         console.log('[ChannelSwitchManager] Initializing voice section for channel:', channelId);
         
-        // Ensure voice section element exists
         let voiceSection = document.querySelector('.voice-section');
         if (!voiceSection) {
             console.log('[ChannelSwitchManager] Voice section element not found, creating it');
@@ -486,7 +508,7 @@ class ChannelSwitchManager {
                                 <i class="fas fa-microphone text-6xl mb-4 text-gray-400"></i>
                                 <h2 class="text-2xl font-bold mb-4">Join Voice Channel</h2>
                                 <p class="text-gray-400 mb-6">Connect to start talking with others in this channel</p>
-                                <button id="joinBtn" class="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                                <button id="joinBtn" class="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors" data-channel-id="${channelId}">
                                     <i class="fas fa-microphone mr-2"></i>
                                     Join Voice
                                 </button>
@@ -498,26 +520,22 @@ class ChannelSwitchManager {
                             <div id="connectedView" class="w-full hidden">
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     <div class="text-center">
-                                        <div class="relative w-20 h-20 mx-auto mb-2">
-                                            <img id="userAvatar" src="/public/assets/common/default-profile-picture.png" 
-                                                 alt="User Avatar" class="w-full h-full rounded-full">
-                                            <div id="micStatus" class="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white">
-                                                <i class="fas fa-microphone text-white text-xs"></i>
+                                        <div class="bg-gray-700 rounded-lg p-4">
+                                            <div class="w-16 h-16 bg-gray-600 rounded-full mx-auto mb-2"></div>
+                                            <p class="text-sm">You</p>
+                                            <div class="flex items-center justify-center mt-2 space-x-2">
+                                                <button class="text-gray-400 hover:text-white">
+                                                    <i class="fas fa-microphone"></i>
+                                                </button>
+                                                <button class="text-gray-400 hover:text-white">
+                                                    <i class="fas fa-video"></i>
+                                                </button>
+                                                <button class="text-red-400 hover:text-red-300" id="leaveBtn">
+                                                    <i class="fas fa-phone-slash"></i>
+                                                </button>
                                             </div>
                                         </div>
-                                        <p id="userName" class="text-sm font-medium">You</p>
                                     </div>
-                                </div>
-                                <div class="mt-8 flex justify-center space-x-4">
-                                    <button id="muteBtn" class="bg-gray-600 hover:bg-gray-700 text-white p-3 rounded-full">
-                                        <i class="fas fa-microphone"></i>
-                                    </button>
-                                    <button id="videoBtn" class="bg-gray-600 hover:bg-gray-700 text-white p-3 rounded-full">
-                                        <i class="fas fa-video"></i>
-                                    </button>
-                                    <button id="leaveBtn" class="bg-red-500 hover:bg-red-600 text-white p-3 rounded-full">
-                                        <i class="fas fa-phone-slash"></i>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -527,7 +545,6 @@ class ChannelSwitchManager {
             }
         }
         
-        // Update voice channel name in header
         const voiceChannelNameElement = document.querySelector('#voice-channel-name');
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
         const channelName = channelElement ? channelElement.textContent.trim() : 'Voice Channel';
@@ -535,13 +552,34 @@ class ChannelSwitchManager {
             voiceChannelNameElement.textContent = channelName;
         }
         
-        // Load voice scripts and initialize
-        this.loadVoiceScripts().then(() => {
-            console.log('[ChannelSwitchManager] Voice scripts loaded, initializing voice components');
-            this.initializeVoiceComponents(channelId);
-        }).catch(error => {
-            console.error('[ChannelSwitchManager] Failed to load voice scripts:', error);
-        });
+        const joinBtn = document.getElementById('joinBtn');
+        if (joinBtn) {
+            joinBtn.setAttribute('data-channel-id', channelId);
+        }
+        
+        if (window.voiceSection) {
+            console.log('[ChannelSwitchManager] Updating existing voice section for channel:', channelId);
+            if (typeof window.voiceSection.updateChannelId === 'function') {
+                window.voiceSection.updateChannelId(channelId);
+            } else {
+                window.voiceSection.resetState();
+            }
+        } else {
+            console.log('[ChannelSwitchManager] Loading voice scripts and initializing voice section');
+            this.loadVoiceScripts().then(() => {
+                console.log('[ChannelSwitchManager] Voice scripts loaded, initializing voice components');
+                this.initializeVoiceComponents(channelId);
+            }).catch(error => {
+                console.error('[ChannelSwitchManager] Failed to load voice scripts:', error);
+            });
+        }
+        
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            console.log('[ChannelSwitchManager] Joining voice channel socket room:', channelId);
+            setTimeout(() => {
+                window.globalSocketManager.joinChannel(channelId);
+            }, 300);
+        }
     }
     
     loadVoiceScripts() {
@@ -752,7 +790,7 @@ class ChannelSwitchManager {
     }
 
     processQueue() {
-        if (this.switchQueue.length > 0) {
+        if (this.switchQueue.length > 0 && !this.isLoading) {
             const next = this.switchQueue.shift();
             console.log('[ChannelSwitchManager] Processing queued channel switch');
             this.switchToChannel(next.serverId, next.channelId, next.channelType, next.clickedElement, next.updateHistory);
@@ -855,6 +893,29 @@ class ChannelSwitchManager {
         if (voiceSection) {
             voiceSection.classList.remove('hidden');
             voiceSection.style.display = 'flex';
+        }
+    }
+
+    showNotification(message, type = 'info', duration = 3000) {
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, type, duration);
+        } else {
+            console.log(`[ChannelSwitchManager] ${type.toUpperCase()}: ${message}`);
+            
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 p-3 rounded shadow-lg z-50 ${
+                type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+            } text-white`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('opacity-0');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, duration);
         }
     }
 }

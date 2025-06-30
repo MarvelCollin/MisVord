@@ -464,7 +464,10 @@ class ChatSection {
     }
     
     async loadMessages(options = {}) {
-        if (this.isLoading) return;
+        if (this.isLoading) {
+            console.log('⚠️ [CHAT-SECTION] Already loading messages, skipping request');
+            return;
+        }
         
         if (!this.targetId) {
             console.warn('⚠️ Cannot load messages: No target ID');
@@ -480,7 +483,16 @@ class ChatSection {
         
         try {
             if (!window.ChatAPI) {
-                throw new Error('ChatAPI not initialized');
+                await new Promise(resolve => {
+                    const checkAPI = () => {
+                        if (window.ChatAPI) {
+                            resolve();
+                        } else {
+                            setTimeout(checkAPI, 100);
+                        }
+                    };
+                    checkAPI();
+                });
             }
             
             console.log('🔍 Loading messages:', {
@@ -498,49 +510,61 @@ class ChatSection {
             
             console.log('📨 Messages response:', response);
             
-            if (response && response.success) {
-                // Handle different response structures
-                const messages = response.data?.messages || 
-                                response.data?.data?.messages || 
-                                [];
+            if (!response) {
+                throw new Error('No response received from server');
+            }
+            
+            if (response.success && response.data && Array.isArray(response.data.messages)) {
+                const messages = response.data.messages;
                 
-                console.log('📨 Parsed messages:', messages.length);
+                console.log(`📬 Loaded ${messages.length} messages for ${this.chatType}:${this.targetId}`);
                 
-                if (messages.length === 0) {
-                    this.hasMoreMessages = false;
-                    if (!before) {
-                        this.showEmptyState();
-                    }
+                if (messages.length === 0 && !before) {
+                    this.showEmptyState();
                 } else {
                     this.hideEmptyState();
                     
-                    // Update last loaded message ID for pagination
-                    if (messages.length > 0 && messages[0].id) {
-                        this.lastLoadedMessageId = messages[0].id;
+                    if (this.messageHandler) {
+                        if (before) {
+                            this.messageHandler.prependMessages(messages);
+                        } else {
+                            this.messageHandler.clearProcessedMessages();
+                            this.messageHandler.displayMessages(messages);
+                        }
                     }
                     
-                    // Render messages with API source tag
-                    messages.forEach(message => {
-                        this.messageHandler.addMessage({...message, source: 'api-loaded'});
-                    });
+                    this.hasMoreMessages = response.data.has_more || messages.length >= limit;
+                    this.updateLoadMoreButton();
                     
-                    // Scroll to bottom if this is the initial load
                     if (!before) {
-                        this.scrollToBottom();
+                        setTimeout(() => {
+                            this.scrollToBottom();
+                        }, 100);
                     }
-                    
-                    // Set flag if we have more messages to load
-                    this.hasMoreMessages = messages.length >= limit;
                 }
-                
-                this.updateLoadMoreButton();
+            } else if (response.success === false) {
+                console.error('❌ Failed to load messages:', response.message || response.error);
+                throw new Error(response.message || response.error || 'Failed to load messages');
             } else {
-                console.error('❌ Failed to load messages:', response?.message || 'Unknown error');
-                this.showEmptyState('Failed to load messages. Please try again.');
+                console.error('❌ Invalid response format:', response);
+                throw new Error('Invalid response format from server');
             }
         } catch (error) {
             console.error('❌ Error loading messages:', error);
-            this.showEmptyState('Failed to load messages. Please try again.');
+            
+            const errorMessage = error.message || 'Unknown error occurred';
+            
+            if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+                this.showEmptyState('Channel not found or you don\'t have access');
+            } else if (errorMessage.includes('forbidden') || errorMessage.includes('403')) {
+                this.showEmptyState('You don\'t have permission to view this channel');
+            } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+                this.showEmptyState('Network error. Please check your connection and try again.');
+            } else {
+                this.showEmptyState(`Failed to load messages: ${errorMessage}`);
+            }
+            
+            this.showNotification(`Failed to load messages: ${errorMessage}`, 'error');
         } finally {
             this.isLoading = false;
             this.hideLoadingIndicator();

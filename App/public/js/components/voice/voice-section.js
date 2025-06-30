@@ -321,6 +321,30 @@ class VoiceSection {
             this.init();
         }, 300);
     }
+    
+    updateChannelId(channelId) {
+        console.log("Voice section updating channel ID to:", channelId);
+        
+        this.currentChannelId = channelId;
+        
+        if (this.elements.joinBtn) {
+            this.elements.joinBtn.setAttribute('data-channel-id', channelId);
+        }
+        
+        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        const channelName = channelElement ? channelElement.textContent.trim() : 'Voice Channel';
+        
+        this.updateChannelNames(channelName);
+        
+        if (window.voiceManager && window.voiceManager.isConnected) {
+            console.log("Voice manager is connected, updating channel context");
+            if (typeof window.voiceManager.updateChannelContext === 'function') {
+                window.voiceManager.updateChannelContext(channelId, channelName);
+            }
+        }
+        
+        console.log("Voice section channel ID updated successfully");
+    }
 }
 
 window.VoiceSection = VoiceSection;
