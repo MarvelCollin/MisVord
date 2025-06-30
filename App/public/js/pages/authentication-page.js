@@ -460,6 +460,10 @@ function initAuth() {
                         firstInvalidField.focus();
                     }
                     
+                    setTimeout(() => {
+                        checkForErrors();
+                    }, 100);
+                    
                     return false;
                 }
 
@@ -572,6 +576,52 @@ function initAuth() {
     }
     
     function checkForErrors() {
+        const bannedAccountMessage = document.getElementById('banned-account-message');
+        if (bannedAccountMessage) {
+            bannedAccountMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            bannedAccountMessage.classList.add('animate-pulse');
+            bannedAccountMessage.style.animation = 'pulse 2s infinite, glow 3s ease-in-out infinite alternate';
+            
+            const icon = bannedAccountMessage.querySelector('.fas.fa-ban');
+            if (icon) {
+                icon.style.animation = 'shake 0.5s ease-in-out infinite alternate';
+            }
+            
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                const inputs = loginForm.querySelectorAll('input');
+                const submitBtn = loginForm.querySelector('button[type="submit"]');
+                
+                inputs.forEach(input => {
+                    input.disabled = true;
+                    input.style.opacity = '0.5';
+                    input.style.cursor = 'not-allowed';
+                    input.style.backgroundColor = '#1a1a1a';
+                });
+                
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.5';
+                    submitBtn.style.cursor = 'not-allowed';
+                    submitBtn.innerHTML = '<i class="fas fa-ban mr-2"></i>Account Banned';
+                    submitBtn.style.backgroundColor = '#7f1d1d';
+                }
+                
+                const toggleBtns = loginForm.querySelectorAll('.password-toggle');
+                toggleBtns.forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                });
+            }
+            
+            setTimeout(() => {
+                if (bannedAccountMessage.parentNode) {
+                    bannedAccountMessage.style.animation = 'pulse 2s infinite';
+                }
+            }, 3000);
+        }
+        
         const authError = document.getElementById('auth-error');
         if (authError) {
             authError.scrollIntoView({ behavior: 'smooth', block: 'center' });

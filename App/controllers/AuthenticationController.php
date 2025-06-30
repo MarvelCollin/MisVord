@@ -118,7 +118,10 @@ class AuthenticationController extends BaseController
         
         if ($user->status === 'banned') {
             $this->logFailedLogin($email);
-            $_SESSION['errors'] = ['auth' => 'This account has been banned. Please contact an administrator.'];
+            $_SESSION['errors'] = [
+                'auth' => 'This account has been banned. Please contact an administrator.',
+                'banned' => true
+            ];
             $_SESSION['old_input'] = ['email' => $email];
             $this->setSecurityHeaders();
             header('Location: /login');
@@ -606,7 +609,10 @@ class AuthenticationController extends BaseController
                         return $this->error('This account has been banned. Please contact an administrator.', 403);
                     }
                     
-                    $_SESSION['errors'] = ['auth' => 'This account has been banned. Please contact an administrator.'];
+                    $_SESSION['errors'] = [
+                        'auth' => 'This account has been banned. Please contact an administrator.',
+                        'banned' => true
+                    ];
                     if (!headers_sent()) {
                         header('Location: /login');
                     }

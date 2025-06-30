@@ -100,6 +100,29 @@ try {
     .step-line { width: 100% !important; }
     .step-indicator.active { background-color: #5865f2; color: white; }
     <?php endif; ?>
+    
+    @keyframes glow {
+        0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.5); }
+        100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 30px rgba(239, 68, 68, 0.6); }
+    }
+    
+    @keyframes shake {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(-2px); }
+        50% { transform: translateX(2px); }
+        75% { transform: translateX(-1px); }
+        100% { transform: translateX(0); }
+    }
+    
+    #banned-account-message {
+        position: relative;
+        z-index: 10;
+    }
+    
+    #banned-account-message .fas.fa-ban {
+        color: #fef2f2;
+        filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8));
+    }
 </style>
 
 <body data-page="auth">
@@ -137,7 +160,29 @@ try {
         <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 200px;">
 
             <form action="/login" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
-                <?php if (isset($errors['auth'])): ?>
+                <?php if (isset($errors['banned']) && $errors['banned']): ?>
+                    <div class="bg-red-600 border-2 border-red-500 text-white p-4 rounded-lg mb-6 text-center shadow-lg" id="banned-account-message">
+                        <div class="flex items-center justify-center mb-2">
+                            <i class="fas fa-ban text-2xl mr-3"></i>
+                            <h3 class="text-lg font-bold">Account Banned</h3>
+                        </div>
+                        <p class="text-sm mb-3"><?php echo $errors['auth']; ?></p>
+                        <div class="bg-red-700/50 rounded p-2 text-xs mb-3">
+                            <p><strong>What this means:</strong></p>
+                            <p>• Your account access has been restricted</p>
+                            <p>• You cannot log in or use our services</p>
+                            <p>• Contact support if you believe this is an error</p>
+                        </div>
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="window.location.href='/contact'" class="bg-white text-red-600 px-4 py-2 rounded text-sm font-medium hover:bg-gray-100 transition-colors">
+                                <i class="fas fa-envelope mr-1"></i>Contact Support
+                            </button>
+                            <button onclick="window.location.href='/register'" class="bg-red-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-400 transition-colors">
+                                <i class="fas fa-user-plus mr-1"></i>Create New Account
+                            </button>
+                        </div>
+                    </div>
+                <?php elseif (isset($errors['auth'])): ?>
                     <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse" id="form-error-message">
                         <?php echo $errors['auth']; ?>
                     </div>
