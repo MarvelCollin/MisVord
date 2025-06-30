@@ -138,11 +138,20 @@ class VoiceManager {
     
     async joinVoice() {
         if (this.isConnected) {
+            console.log('🎉 [VOICE-MANAGER] Already connected, skipping duplicate join');
             return Promise.resolve();
         }
         
+        if (window.voiceJoinInProgress) {
+            console.log('🎉 [VOICE-MANAGER] Join already in progress, skipping duplicate');
+            return Promise.resolve();
+        }
+        
+        window.voiceJoinInProgress = true;
+        
         const channelId = this.currentChannelId || document.querySelector('meta[name="channel-id"]')?.content;
         if (!channelId) {
+            window.voiceJoinInProgress = false;
             this.showToast('Channel not available', 'error');
             return Promise.reject(new Error('Channel not available'));
         }
@@ -241,6 +250,8 @@ class VoiceManager {
                 action: existingMeeting ? 'JOINED_EXISTING' : 'CREATED_NEW'
             });
 
+            window.voiceJoinInProgress = false;
+
             if (window.MusicLoaderStatic?.playJoinVoiceSound) {
                 window.MusicLoaderStatic.playJoinVoiceSound();
             }
@@ -249,6 +260,7 @@ class VoiceManager {
             console.error('❌ [VOICE-MANAGER] Failed to join voice:', error);
             
             window.videoSDKJoiningInProgress = false;
+            window.voiceJoinInProgress = false;
             this.isConnected = false;
             this.showToast('Failed to connect to voice', 'error');
             return Promise.reject(error);
@@ -330,6 +342,7 @@ class VoiceManager {
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;
+        window.voiceJoinInProgress = false;
         this.dispatchEvent(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect');
         this.showToast('Disconnected from voice', 'info');
 

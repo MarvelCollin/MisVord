@@ -116,18 +116,32 @@ class ChatAPI {
 
         const apiChatType = this.normalizeApiChatType(chatType);
         
-        const limit = options.limit || 50;
-        const before = options.before || null;
+        const limit = options.limit || 20;
         const offset = options.offset || 0;
+        const loadMore = options.loadMore || false;
         
         let url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
-        if (before) {
-            url += `&before=${before}`;
-        }
         
-        console.log('🔍 Getting messages from:', url);
+        console.log('🔍 Getting messages from:', url, {
+            targetId,
+            chatType: apiChatType,
+            limit,
+            offset,
+            loadMore
+        });
         
         const response = await this.makeRequest(url);
+        
+        if (response && response.data) {
+            response.data.pagination = {
+                limit,
+                offset,
+                loadMore,
+                hasMore: response.data.has_more || false,
+                messageCount: response.data.messages?.length || 0
+            };
+        }
+        
         return response;
     }
 
@@ -692,7 +706,7 @@ window.debugMessageDeletion = function() {
     }
     
     console.log('🔍 4. Checking for real messages to test with...');
-    const messages = document.querySelectorAll('[data-message-id]');
+    const messages = document.querySelectorAll('.message-content[data-message-id]');
     console.log(`Found ${messages.length} messages on page`);
     
     if (messages.length > 0) {

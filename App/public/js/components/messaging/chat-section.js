@@ -112,58 +112,101 @@ if (document.readyState === 'complete' && !window.chatSection && !isExcludedPage
 
 class ChatSection {
     constructor(options = {}) {
-        this.chatType = options.chatType || 'channel';
+        this.chatType = options.chatType || null;
         this.targetId = options.targetId || null;
         this.userId = options.userId || null;
         this.username = options.username || null;
+        this.currentServerId = options.currentServerId || null;
+        
         this.isInitialized = false;
         this.isLoading = false;
+        this.currentOffset = 0;
         this.hasMoreMessages = true;
-        this.lastLoadedMessageId = null;
+        
+        this.messageInput = null;
+        this.sendButton = null;
+        this.messageForm = null;
+        this.messagesContainer = null;
+        this.skeletonLoader = null;
+        
         this.replyingTo = null;
-        this.currentEditingMessage = null;
+        this.editingMessageId = null;
+        
+        this.messageHandler = null;
+        this.sendReceiveHandler = null;
+        this.socketHandler = null;
+        this.emojiHandler = null;
+        this.mentionHandler = null;
+        this.fileUploadHandler = null;
         
         this.chatContainer = null;
         this.chatMessages = null;
-        this.messageForm = null;
-        this.messageInput = null;
-        this.sendButton = null;
-        this.loadMoreButton = null;
         this.emptyStateContainer = null;
         this.loadingIndicator = null;
         this.contextMenu = null;
         this.fileUploadInput = null;
         this.filePreviewModal = null;
         
-        this.messageHandler = new MessageHandler(this);
-        this.socketHandler = new SocketHandler(this);
-        this.uiHandler = new ChatUIHandler(this);
-        this.fileUploadHandler = new FileUploadHandler(this);
-        this.sendReceiveHandler = new SendReceiveHandler(this);
-        this.chatBot = new ChatBot(this);
-        this.mentionHandler = null;
+        this.loadMoreButton = null;
         
         this.init();
     }
     
     findDOMElements() {
-        this.chatContainer = document.querySelector('.flex-1.flex.flex-col.bg-\\[\\#313338\\].h-screen.overflow-hidden') || document.getElementById('chat-container');
+        console.log('🔍 [CHAT-SECTION] Finding DOM elements...');
+        
+        this.chatContainer = document.querySelector('.chat-section');
         this.chatMessages = document.getElementById('chat-messages');
         this.messageForm = document.getElementById('message-form');
         this.messageInput = document.getElementById('message-input');
         this.sendButton = document.getElementById('send-button');
-        this.loadMoreButton = document.getElementById('load-more-messages');
-        this.emptyStateContainer = document.getElementById('empty-state-container');
-        this.loadingIndicator = document.getElementById('loading-indicator');
-        this.contextMenu = document.getElementById('message-context-menu') || document.getElementById('context-menu');
-        this.fileUploadInput = document.getElementById('file-upload');
-        this.filePreviewModal = document.getElementById('file-preview-modal');
+        this.fileUploadInput = document.getElementById('file-upload-input');
+        this.fileUploadButton = document.getElementById('file-upload-button');
         
-        console.log('🔍 [CHAT-SECTION] DOM elements found:', {
+        this.messagesContainer = this.chatMessages;
+        
+        if (this.messagesContainer && !this.skeletonLoader) {
+            this.skeletonLoader = new window.ChatSkeletonLoader(this.messagesContainer);
+        }
+        
+        if (!this.messageHandler) {
+            this.messageHandler = new MessageHandler(this);
+        }
+        
+        if (!this.socketHandler) {
+            this.socketHandler = new SocketHandler(this);
+        }
+        
+        if (!this.uiHandler) {
+            this.uiHandler = new ChatUIHandler(this);
+        }
+        
+        if (!this.fileUploadHandler) {
+            this.fileUploadHandler = new FileUploadHandler(this);
+        }
+        
+        if (!this.sendReceiveHandler) {
+            this.sendReceiveHandler = new SendReceiveHandler(this);
+        }
+        
+        if (!this.chatBot) {
+            this.chatBot = new ChatBot(this);
+        }
+        
+        console.log('📋 [CHAT-SECTION] DOM elements status:', {
+            chatContainer: !!this.chatContainer,
             chatMessages: !!this.chatMessages,
             messageForm: !!this.messageForm,
             messageInput: !!this.messageInput,
-            sendButton: !!this.sendButton
+            sendButton: !!this.sendButton,
+            fileUploadInput: !!this.fileUploadInput,
+            skeletonLoader: !!this.skeletonLoader,
+            messageHandler: !!this.messageHandler,
+            socketHandler: !!this.socketHandler,
+            uiHandler: !!this.uiHandler,
+            fileUploadHandler: !!this.fileUploadHandler,
+            sendReceiveHandler: !!this.sendReceiveHandler,
+            chatBot: !!this.chatBot
         });
     }
     
@@ -269,6 +312,8 @@ class ChatSection {
             }
             
             if (this.targetId) {
+                console.log('🔄 [CHAT-SECTION] Loading messages for target:', this.targetId);
+                this.clearChatMessages();
                 setTimeout(() => {
                     this.loadMessages();
                 }, 100);
@@ -358,7 +403,7 @@ class ChatSection {
                     if (this.replyingTo) {
                         this.cancelReply();
                         e.preventDefault();
-                    } else if (this.currentEditingMessage) {
+                    } else if (this.editingMessageId) {
                         this.cancelEditing();
                         e.preventDefault();
                     }
@@ -528,17 +573,25 @@ class ChatSection {
             return;
         }
         
-        const limit = options.limit || 50;
-        const before = options.before || null;
+        const limit = options.limit || 20;
+        const loadMore = options.loadMore || false;
+        const currentOffset = loadMore ? this.currentOffset : 0;
         
         this.isLoading = true;
-        this.showLoadingIndicator();
+        
+        if (loadMore) {
+            this.showLoadMoreIndicator();
+        } else {
+            this.showLoadingIndicator();
+            this.currentOffset = 0;
+        }
         
         console.log('🔍 [CHAT-SECTION] Starting loadMessages with:', {
             targetId: this.targetId, 
             chatType: this.chatType,
-            before: before,
+            offset: currentOffset,
             limit: limit,
+            loadMore: loadMore,
             ChatAPIExists: !!window.ChatAPI
         });
         
@@ -562,7 +615,11 @@ class ChatSection {
             const response = await window.ChatAPI.getMessages(
                 this.targetId,
                 this.chatType,
-                { limit, before, offset: options.offset || 0 }
+                { 
+                    limit, 
+                    offset: currentOffset,
+                    loadMore: loadMore
+                }
             );
             
             console.log('📨 [CHAT-SECTION] API Response received:', {
@@ -571,7 +628,8 @@ class ChatSection {
                 successValue: response?.success,
                 hasData: 'data' in response,
                 dataType: typeof response?.data,
-                messageCount: response?.data?.messages?.length || 'unknown'
+                messageCount: response?.data?.messages?.length || 'unknown',
+                pagination: response?.data?.pagination
             });
             
             if (!response) {
@@ -616,27 +674,26 @@ class ChatSection {
             console.log('🎯 [CHAT-SECTION] Processing messages:', {
                 messageCount: messages.length,
                 hasMore: hasMore,
-                append: !!before
+                loadMore: loadMore,
+                currentOffset: currentOffset
             });
 
             if (messages.length > 0) {
-                if (before) {
+                if (loadMore) {
                     console.log('📜 [CHAT-SECTION] Prepending older messages');
                     await this.messageHandler.prependMessages(messages);
+                    this.currentOffset += messages.length;
                 } else {
                     console.log('📝 [CHAT-SECTION] Displaying fresh messages');
                     await this.messageHandler.displayMessages(messages);
-                }
-                
-                if (!before) {
+                    this.currentOffset = messages.length;
                     this.scrollToBottom();
                 }
                 
-                this.lastLoadedMessageId = messages[messages.length - 1]?.id || null;
                 this.hideEmptyState();
                 console.log('✅ [CHAT-SECTION] Messages processed successfully');
             } else {
-                if (!before) {
+                if (!loadMore) {
                     this.showEmptyState();
                 }
                 console.log('📭 [CHAT-SECTION] No messages to display');
@@ -648,60 +705,87 @@ class ChatSection {
             console.error('❌ [CHAT-SECTION] Error loading messages:', error);
             this.showNotification('Failed to load messages. Please try again.', 'error');
             
-            if (!before) {
+            if (!loadMore) {
                 this.showEmptyState('Failed to load messages. Please try again.');
             }
         } finally {
             this.isLoading = false;
-            this.hideLoadingIndicator();
+            if (loadMore) {
+                this.hideLoadMoreIndicator();
+            } else {
+                this.hideLoadingIndicator();
+            }
             console.log('🏁 [CHAT-SECTION] loadMessages completed');
         }
     }
     
     loadMoreMessages() {
-        if (!this.hasMoreMessages || this.isLoading) return;
-        
-        this.loadMessages({
-            before: this.lastLoadedMessageId,
-            limit: 30
-        });
-    }
-    
-    updateLoadMoreButton() {
-        const messagesContainer = this.getMessagesContainer();
-        if (!messagesContainer) {
-            console.error('❌ [CHAT-SECTION] Cannot update load more button: messages container not found');
+        if (!this.hasMoreMessages || this.isLoading) {
+            console.log('⚠️ [CHAT-SECTION] Cannot load more messages:', {
+                hasMore: this.hasMoreMessages,
+                isLoading: this.isLoading
+            });
             return;
         }
         
-        if (!this.loadMoreButton) {
-            this.loadMoreButton = document.createElement('div');
-            this.loadMoreButton.id = 'load-more-messages';
-            this.loadMoreButton.className = 'load-more-messages text-center p-2 text-[#949ba4] hover:text-[#dcddde] cursor-pointer hidden';
-            this.loadMoreButton.innerHTML = 'Load more messages';
-            
-            try {
-                if (messagesContainer.firstChild) {
-                    messagesContainer.insertBefore(this.loadMoreButton, messagesContainer.firstChild);
-                } else {
-                    messagesContainer.appendChild(this.loadMoreButton);
-                }
-                console.log('✅ [CHAT-SECTION] Load more button created and added to messages container');
-            } catch (error) {
-                console.error('❌ [CHAT-SECTION] Failed to add load more button:', error);
-                return;
-            }
-            
-            this.loadMoreButton.addEventListener('click', () => {
-                this.loadMoreMessages();
-            });
+        console.log('📜 [CHAT-SECTION] Loading more messages from offset:', this.currentOffset || 0);
+        this.loadMessages({
+            loadMore: true,
+            limit: 20
+        });
+    }
+    
+    showLoadMoreIndicator() {
+        const messagesContainer = this.getMessagesContainer();
+        if (!messagesContainer) {
+            console.error('❌ [CHAT-SECTION] Cannot show load more indicator: messages container not found');
+            return;
         }
         
-        if (this.hasMoreMessages) {
-            this.loadMoreButton.classList.remove('hidden');
+        if (this.skeletonLoader) {
+            this.skeletonLoader.show(true);
         } else {
-            this.loadMoreButton.classList.add('hidden');
+            if (!this.loadMoreIndicator) {
+                this.loadMoreIndicator = document.createElement('div');
+                this.loadMoreIndicator.id = 'load-more-indicator';
+                this.loadMoreIndicator.className = 'flex justify-center items-center p-4 text-[#dcddde]';
+                this.loadMoreIndicator.innerHTML = `
+                    <div class="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-[#5865f2] mr-2"></div>
+                    <span class="text-sm">Loading older messages...</span>
+                `;
+            }
+            
+            if (messagesContainer.firstChild) {
+                messagesContainer.insertBefore(this.loadMoreIndicator, messagesContainer.firstChild);
+            } else {
+                messagesContainer.appendChild(this.loadMoreIndicator);
+            }
         }
+        
+        const loadMoreButton = document.getElementById('load-more-messages');
+        if (loadMoreButton) {
+            loadMoreButton.style.display = 'none';
+        }
+        
+        console.log('✅ [CHAT-SECTION] Load more indicator shown');
+    }
+
+    hideLoadMoreIndicator() {
+        if (this.skeletonLoader) {
+            this.skeletonLoader.hideLoadMoreSkeleton();
+        }
+        
+        if (this.loadMoreIndicator) {
+            this.loadMoreIndicator.remove();
+            this.loadMoreIndicator = null;
+        }
+        
+        const loadMoreButton = document.getElementById('load-more-messages');
+        if (loadMoreButton && this.hasMoreMessages) {
+            loadMoreButton.style.display = 'block';
+        }
+        
+        console.log('✅ [CHAT-SECTION] Load more indicator hidden');
     }
     
     showLoadingIndicator() {
@@ -711,28 +795,37 @@ class ChatSection {
             return;
         }
         
-        if (!this.loadingIndicator) {
-            this.loadingIndicator = document.createElement('div');
-            this.loadingIndicator.id = 'loading-indicator';
-            this.loadingIndicator.className = 'flex justify-center items-center p-4 text-[#dcddde]';
-            this.loadingIndicator.innerHTML = `
-                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#5865f2]"></div>
-            `;
-            
-            try {
-                messagesContainer.appendChild(this.loadingIndicator);
-                console.log('✅ [CHAT-SECTION] Loading indicator created and appended to messages container');
-            } catch (error) {
-                console.error('❌ [CHAT-SECTION] Failed to append loading indicator:', error);
-                return;
-            }
+        if (this.skeletonLoader) {
+            console.log('🎨 [CHAT-SECTION] Showing skeleton loading');
+            this.skeletonLoader.show(false);
         } else {
-            this.loadingIndicator.classList.remove('hidden');
-            console.log('✅ [CHAT-SECTION] Loading indicator shown');
+            if (!this.loadingIndicator) {
+                this.loadingIndicator = document.createElement('div');
+                this.loadingIndicator.id = 'loading-indicator';
+                this.loadingIndicator.className = 'flex justify-center items-center p-4 text-[#dcddde]';
+                this.loadingIndicator.innerHTML = `
+                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#5865f2]"></div>
+                `;
+                
+                try {
+                    messagesContainer.appendChild(this.loadingIndicator);
+                    console.log('✅ [CHAT-SECTION] Loading indicator created and appended to messages container');
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Failed to append loading indicator:', error);
+                    return;
+                }
+            } else {
+                this.loadingIndicator.classList.remove('hidden');
+                console.log('✅ [CHAT-SECTION] Loading indicator shown');
+            }
         }
     }
     
     hideLoadingIndicator() {
+        if (this.skeletonLoader) {
+            this.skeletonLoader.clearAll();
+        }
+        
         if (this.loadingIndicator) {
             this.loadingIndicator.classList.add('hidden');
         }
@@ -840,11 +933,13 @@ class ChatSection {
             return;
         }
         
+        // Handle both bubble messages and regular messages
         const isBubbleMessage = messageElement.closest('.bubble-message-group');
         let username = 'Unknown User';
         let content = 'a message';
         
         if (isBubbleMessage) {
+            // Bubble message handling
             const messageGroup = messageElement.closest('.bubble-message-group');
             const usernameElement = messageGroup?.querySelector('.bubble-username');
             const contentElement = messageElement.querySelector('.bubble-message-text');
@@ -852,6 +947,7 @@ class ChatSection {
             username = usernameElement?.textContent?.trim() || 'Unknown User';
             content = contentElement?.textContent?.trim() || 'a message';
         } else {
+            // Regular message handling
             const messageGroup = messageElement.closest('.message-group');
             const usernameElement = messageGroup?.querySelector('.font-medium, .message-username');
             const contentElement = messageElement.querySelector('.message-main-text');
@@ -870,6 +966,7 @@ class ChatSection {
         
         this.showReplyUI();
         
+        // Focus the input
         if (this.messageInput) {
             this.messageInput.focus();
         }
@@ -1141,13 +1238,7 @@ class ChatSection {
         messageTextElement.appendChild(editContainer);
         
         // Store editing state
-        this.currentEditingMessage = {
-            messageId,
-            originalContent: originalContent,
-            originalHTML: originalHTML,
-            element: messageTextElement,
-            isBubbleMessage: isBubbleMessage
-        };
+        this.editingMessageId = messageId;
         
         // Focus and setup input
         setTimeout(() => {
@@ -1177,43 +1268,42 @@ class ChatSection {
     }
     
     cancelEditing() {
-        if (!this.currentEditingMessage) {
+        if (!this.editingMessageId) {
             console.log('⚠️ [CHAT-SECTION] No current editing message to cancel');
             return;
         }
         
-        console.log('❌ [CHAT-SECTION] Canceling edit for message:', this.currentEditingMessage.messageId);
+        console.log('❌ [CHAT-SECTION] Canceling edit for message:', this.editingMessageId);
         
-        const { messageId, originalContent, originalHTML, element, isBubbleMessage } = this.currentEditingMessage;
+        const messageId = this.editingMessageId;
         
         // Restore original content
-        if (originalHTML) {
-            // Restore the exact original HTML
-            element.innerHTML = originalHTML;
-        } else {
-            // Fallback: recreate the content with formatting
-            element.innerHTML = this.formatMessageContent(originalContent);
-            
-            // Add edited badge if it was there before
-            if (originalContent && originalHTML && originalHTML.includes('(edited)')) {
-                let editedBadge = element.querySelector('.edited-badge, .bubble-edited-badge');
-                if (!editedBadge) {
-                    editedBadge = document.createElement('span');
-                    editedBadge.className = isBubbleMessage ? 'bubble-edited-badge text-xs text-[#a3a6aa] ml-1' : 'edited-badge text-xs text-[#a3a6aa] ml-1';
-                    editedBadge.textContent = '(edited)';
-                    element.appendChild(editedBadge);
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            const messageTextElement = messageElement.querySelector('.message-main-text, .bubble-message-text');
+            if (messageTextElement) {
+                messageTextElement.innerHTML = this.formatMessageContent(originalContent);
+                
+                // Add edited badge if it was there before
+                if (originalContent && originalHTML && originalHTML.includes('(edited)')) {
+                    let editedBadge = messageTextElement.querySelector('.edited-badge, .bubble-edited-badge');
+                    if (!editedBadge) {
+                        editedBadge = document.createElement('span');
+                        editedBadge.className = isBubbleMessage ? 'bubble-edited-badge text-xs text-[#a3a6aa] ml-1' : 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                        editedBadge.textContent = '(edited)';
+                        messageTextElement.appendChild(editedBadge);
+                    }
                 }
             }
         }
         
         // Remove editing visual feedback
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (messageElement) {
             messageElement.classList.remove('message-editing');
         }
         
         // Clear editing state
-        this.currentEditingMessage = null;
+        this.editingMessageId = null;
         
         console.log('✅ [CHAT-SECTION] Edit canceled and original content restored');
     }
@@ -1265,10 +1355,9 @@ class ChatSection {
             console.error('❌ [CHAT-SECTION] Error in temp edit system:', error);
             
             // Restore original content on error
-            if (this.currentEditingMessage) {
-                const { element, originalContent } = this.currentEditingMessage;
-                element.innerHTML = this.formatMessageContent(originalContent);
-                this.currentEditingMessage = null;
+            if (this.editingMessageId) {
+                const messageId = this.editingMessageId;
+                this.startEditing(messageId);
             }
             
             this.showNotification('Failed to update message. Please try again.', 'error');
@@ -1293,7 +1382,7 @@ class ChatSection {
                 this.markMessageAsTempEdit(messageElement, tempEditId);
                 
                 // Add/update edited badge
-                let editedBadge = messageElement.querySelector('.edited-badge, .bubble-edited-badge');
+                let editedBadge = messageTextElement.querySelector('.edited-badge, .bubble-edited-badge');
                 if (!editedBadge) {
                     editedBadge = document.createElement('span');
                     editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
@@ -1379,19 +1468,22 @@ class ChatSection {
             if (response.success) {
                 console.log(`✅ [CHAT-SECTION] Message ${messageId} deleted successfully`);
                 
+                // Update UI immediately
             const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
             if (messageElement) {
-                const messageGroup = messageElement.closest('.bubble-message-group');
+                const messageGroup = messageElement.closest('.message-group');
                 
-                if (messageGroup && messageGroup.querySelectorAll('[data-message-id]').length === 1) {
+                if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
                     messageGroup.remove();
                 } else {
                     messageElement.remove();
                 }
                 
+                    // Remove from processed messages
                     this.messageHandler.processedMessageIds.delete(messageId);
                 
-                const remainingMessages = this.getMessagesContainer().querySelectorAll('.bubble-message-group');
+                    // Show empty state if no messages left
+                const remainingMessages = this.getMessagesContainer().querySelectorAll('.message-group');
                 if (remainingMessages.length === 0) {
                     this.showEmptyState();
                 }
@@ -1566,7 +1658,7 @@ class ChatSection {
     initializeExistingMessages() {
         console.log('🔧 [CHAT-SECTION] Initializing event listeners for existing server-rendered messages');
         
-        const existingMessages = document.querySelectorAll('[data-message-id]');
+        const existingMessages = document.querySelectorAll('.message-content[data-message-id]');
         
         console.log(`📝 [CHAT-SECTION] Found ${existingMessages.length} existing messages to initialize`);
         
@@ -1594,7 +1686,7 @@ class ChatSection {
         }
         
         this.hasMoreMessages = true;
-        this.lastLoadedMessageId = null;
+        this.currentOffset = 0;
     }
 
     clearMessage() {
@@ -1612,17 +1704,118 @@ class ChatSection {
             this.cancelReply();
         }
     }
+
+    cleanup() {
+        console.log('🧹 [CHAT-SECTION] Cleaning up ChatSection');
+        
+        try {
+            if (this.socketHandler && window.globalSocketManager?.io) {
+                console.log('🧹 [CHAT-SECTION] Cleaning up socket listeners');
+                
+                const io = window.globalSocketManager.io;
+                io.off('new-channel-message');
+                io.off('user-message-dm');
+                io.off('reaction-added');
+                io.off('reaction-removed');
+                io.off('message-updated');
+                io.off('message-deleted');
+                io.off('message-pinned');
+                io.off('message-unpinned');
+                io.off('message-edit-temp');
+                io.off('message-edit-confirmed');
+                io.off('message-edit-failed');
+                io.off('message_id_updated');
+                io.off('message_save_failed');
+                io.off('message_error');
+                io.off('typing');
+                io.off('stop-typing');
+                io.off('mention_notification');
+                
+                this.socketHandler.socketListenersSetup = false;
+            }
+            
+            if (this.messageHandler) {
+                this.messageHandler.clearProcessedMessages();
+            }
+            
+            if (this.targetId && window.globalSocketManager?.isReady()) {
+                const roomName = this.chatType === 'channel' ? `channel-${this.targetId}` : `dm-${this.targetId}`;
+                if (window.globalSocketManager.joinedRooms?.has(roomName)) {
+                    console.log('🧹 [CHAT-SECTION] Leaving socket room:', roomName);
+                    if (this.chatType === 'channel') {
+                        window.globalSocketManager.leaveChannel(this.targetId);
+                    } else {
+                        window.globalSocketManager.leaveDMRoom(this.targetId);
+                    }
+                }
+            }
+            
+            this.isInitialized = false;
+            console.log('✅ [CHAT-SECTION] Cleanup completed');
+            
+        } catch (error) {
+            console.error('❌ [CHAT-SECTION] Error during cleanup:', error);
+        }
+    }
+
+    updateLoadMoreButton() {
+        const messagesContainer = this.getMessagesContainer();
+        if (!messagesContainer) {
+            console.error('❌ [CHAT-SECTION] Cannot update load more button: messages container not found');
+            return;
+        }
+        
+        if (!this.loadMoreButton) {
+            this.loadMoreButton = document.createElement('div');
+            this.loadMoreButton.id = 'load-more-messages';
+            this.loadMoreButton.className = 'load-more-messages text-center p-3 text-[#949ba4] hover:text-[#dcddde] cursor-pointer border-b border-[#2b2d31] hidden transition-colors duration-200';
+            this.loadMoreButton.innerHTML = `
+                <div class="flex items-center justify-center gap-2">
+                    <i class="fas fa-chevron-up text-xs"></i>
+                    <span class="text-sm font-medium">Load older messages</span>
+                </div>
+            `;
+            
+            try {
+                if (messagesContainer.firstChild) {
+                    messagesContainer.insertBefore(this.loadMoreButton, messagesContainer.firstChild);
+                } else {
+                    messagesContainer.appendChild(this.loadMoreButton);
+                }
+                console.log('✅ [CHAT-SECTION] Load more button created and added to messages container');
+            } catch (error) {
+                console.error('❌ [CHAT-SECTION] Failed to add load more button:', error);
+                return;
+            }
+            
+            this.loadMoreButton.addEventListener('click', () => {
+                console.log('🖱️ [CHAT-SECTION] Load more button clicked');
+                this.loadMoreMessages();
+            });
+        }
+        
+        if (this.hasMoreMessages && !this.isLoading) {
+            this.loadMoreButton.classList.remove('hidden');
+            console.log('✅ [CHAT-SECTION] Load more button shown');
+        } else {
+            this.loadMoreButton.classList.add('hidden');
+            console.log('🚫 [CHAT-SECTION] Load more button hidden');
+        }
+    }
 }
 
+// Make functions and classes globally available for dynamic initialization
 window.initializeChatSection = initializeChatSection;
 window.ChatSection = ChatSection;
 
+// Debug log to confirm availability
 console.log('✅ [CHAT-SECTION] Global functions exposed:', {
     initializeChatSection: typeof window.initializeChatSection,
     ChatSection: typeof window.ChatSection,
     timestamp: new Date().toISOString()
   });
 
+// Add global debug function for testing
 window.debugChatSection = function() {
     console.log('🧪 [DEBUG] Current URL:', window.location.href);
     console.log('🧪 [DEBUG] URL pathname:', window.location.pathname);
@@ -1646,4 +1839,4 @@ window.debugChatSection = function() {
     }
 };
   
-export default ChatSection;
+  export default ChatSection;

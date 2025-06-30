@@ -40,7 +40,7 @@ if (!function_exists('asset')) {
 
                 <div class="rotating-hexagons">
                     <div class="hexagon-grid">
-                        <div class="hexagon-feature" data-delay="0" style="--rotation: 0deg">
+                        <div class="hexagon-feature" data-delay="0" style="--rotation: 0deg" data-target="dot-0">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
                                     <i class="fas fa-palette"></i>
@@ -50,7 +50,7 @@ if (!function_exists('asset')) {
                             <div class="hexagon-border"></div>
                         </div>
                         
-                        <div class="hexagon-feature" data-delay="100" style="--rotation: 60deg">
+                        <div class="hexagon-feature" data-delay="100" style="--rotation: 60deg" data-target="dot-1">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
                                     <i class="fas fa-file-upload"></i>
@@ -60,7 +60,7 @@ if (!function_exists('asset')) {
                             <div class="hexagon-border"></div>
                         </div>
 
-                        <div class="hexagon-feature" data-delay="200" style="--rotation: 120deg">
+                        <div class="hexagon-feature" data-delay="200" style="--rotation: 120deg" data-target="dot-2">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
                                     <i class="fas fa-crown"></i>
@@ -70,7 +70,7 @@ if (!function_exists('asset')) {
                             <div class="hexagon-border"></div>
                         </div>
 
-                        <div class="hexagon-feature" data-delay="300" style="--rotation: 180deg">
+                        <div class="hexagon-feature" data-delay="300" style="--rotation: 180deg" data-target="dot-3">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
                                     <i class="fas fa-magic"></i>
@@ -80,7 +80,7 @@ if (!function_exists('asset')) {
                             <div class="hexagon-border"></div>
                         </div>
 
-                        <div class="hexagon-feature" data-delay="400" style="--rotation: 240deg">
+                        <div class="hexagon-feature" data-delay="400" style="--rotation: 240deg" data-target="dot-4">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
                                     <i class="fas fa-headset"></i>
@@ -90,7 +90,7 @@ if (!function_exists('asset')) {
                             <div class="hexagon-border"></div>
                         </div>
 
-                        <div class="hexagon-feature" data-delay="500" style="--rotation: 300deg">
+                        <div class="hexagon-feature" data-delay="500" style="--rotation: 300deg" data-target="dot-5">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
                                     <i class="fas fa-bolt"></i>
@@ -99,6 +99,15 @@ if (!function_exists('asset')) {
                             </div>
                             <div class="hexagon-border"></div>
                         </div>
+                    </div>
+                    
+                    <div class="target-dots">
+                        <div class="target-dot" id="dot-0" style="--dot-rotation: 0deg"></div>
+                        <div class="target-dot" id="dot-1" style="--dot-rotation: 60deg"></div>
+                        <div class="target-dot" id="dot-2" style="--dot-rotation: 120deg"></div>
+                        <div class="target-dot" id="dot-3" style="--dot-rotation: 180deg"></div>
+                        <div class="target-dot" id="dot-4" style="--dot-rotation: 240deg"></div>
+                        <div class="target-dot" id="dot-5" style="--dot-rotation: 300deg"></div>
                     </div>
                 </div>
             </div>

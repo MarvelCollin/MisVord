@@ -3,11 +3,20 @@ class ChatSkeletonLoader {
     constructor(container) {
         this.container = container;
         this.skeletonCount = 6;
+        this.loadMoreSkeletonCount = 3;
     }
 
-    show() {
+    show(isPagination = false) {
         if (!this.container) return;
         
+        if (isPagination) {
+            this.showLoadMoreSkeleton();
+        } else {
+            this.showInitialSkeleton();
+        }
+    }
+
+    showInitialSkeleton() {
         this.hideEmptyState();
         
         const isChannelSwitching = this.container.getAttribute('data-channel-skeleton') === 'active';
@@ -28,6 +37,53 @@ class ChatSkeletonLoader {
         console.log(`🎨 [ChatSkeletonLoader] Displayed ${this.skeletonCount} skeleton messages`);
     }
 
+    showLoadMoreSkeleton() {
+        this.hideLoadMoreButton();
+        
+        if (!this.loadMoreSkeletonContainer) {
+            this.loadMoreSkeletonContainer = document.createElement('div');
+            this.loadMoreSkeletonContainer.className = 'load-more-skeleton-container';
+            this.loadMoreSkeletonContainer.id = 'load-more-skeleton';
+        }
+        
+        this.loadMoreSkeletonContainer.innerHTML = '';
+        
+        for (let i = 0; i < this.loadMoreSkeletonCount; i++) {
+            const skeleton = this.createSkeleton(i % 2 === 0);
+            this.loadMoreSkeletonContainer.appendChild(skeleton);
+        }
+        
+        if (this.container.firstChild) {
+            this.container.insertBefore(this.loadMoreSkeletonContainer, this.container.firstChild);
+        } else {
+            this.container.appendChild(this.loadMoreSkeletonContainer);
+        }
+        
+        console.log(`🎨 [ChatSkeletonLoader] Displayed ${this.loadMoreSkeletonCount} load more skeleton messages`);
+    }
+
+    hideLoadMoreSkeleton() {
+        if (this.loadMoreSkeletonContainer) {
+            this.loadMoreSkeletonContainer.remove();
+            this.loadMoreSkeletonContainer = null;
+        }
+        this.showLoadMoreButton();
+    }
+
+    hideLoadMoreButton() {
+        const loadMoreButton = document.getElementById('load-more-messages');
+        if (loadMoreButton) {
+            loadMoreButton.style.display = 'none';
+        }
+    }
+
+    showLoadMoreButton() {
+        const loadMoreButton = document.getElementById('load-more-messages');
+        if (loadMoreButton) {
+            loadMoreButton.style.display = 'block';
+        }
+    }
+
     clear() {
         if (!this.container) return;
         
@@ -39,10 +95,15 @@ class ChatSkeletonLoader {
         }
     }
 
+    clearAll() {
+        this.clear();
+        this.hideLoadMoreSkeleton();
+    }
+
     hideEmptyState() {
         if (!this.container) return;
         
-        const emptyState = this.container.querySelector('#chat-empty-state');
+        const emptyState = this.container.querySelector('#chat-empty-state, #empty-state-container');
         if (emptyState) {
             emptyState.style.display = 'none';
         }
@@ -105,6 +166,10 @@ class ChatSkeletonLoader {
 
     setSkeletonCount(count) {
         this.skeletonCount = count;
+    }
+
+    setLoadMoreSkeletonCount(count) {
+        this.loadMoreSkeletonCount = count;
     }
 }
 

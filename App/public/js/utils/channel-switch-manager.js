@@ -36,7 +36,7 @@ class SimpleChannelSwitcher {
         });
     }
     
-    switchToChannel(channelId, channelType = 'text') {
+    async switchToChannel(channelId, channelType = 'text') {
         if (this.isLoading || this.currentChannelId === channelId) return;
         
         console.log('[SimpleChannelSwitcher] Switching to:', channelId, channelType);
@@ -45,12 +45,20 @@ class SimpleChannelSwitcher {
         this.currentChannelId = channelId;
         this.currentChannelType = channelType;
         
-        this.updateActiveChannel(channelId);
-        this.showSection(channelType);
-        this.loadChannelContent(channelId, channelType);
-        this.updateURL(channelId, channelType);
-        
-        this.isLoading = false;
+        try {
+            this.updateActiveChannel(channelId);
+            this.showSection(channelType);
+            
+            if (channelType === 'text') {
+                await this.initializeChatSection(channelId);
+            }
+            
+            this.updateURL(channelId, channelType);
+        } catch (error) {
+            console.error('[SimpleChannelSwitcher] Error switching channel:', error);
+        } finally {
+            this.isLoading = false;
+        }
     }
     
     updateActiveChannel(channelId) {
@@ -77,39 +85,97 @@ class SimpleChannelSwitcher {
         }
     }
     
-    async loadChannelContent(channelId, channelType) {
-        if (channelType === 'text') {
-            await this.loadChatMessages(channelId);
-        }
-    }
-    
-    async loadChatMessages(channelId) {
-        const chatMessagesContainer = document.getElementById('chat-messages');
-        if (!chatMessagesContainer) return;
-        
-        const messagesContainer = chatMessagesContainer.querySelector('.messages-container');
-        if (messagesContainer) {
-            messagesContainer.innerHTML = '<div class="flex justify-center p-4"><div class="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div></div>';
-        }
+    async initializeChatSection(channelId) {
+        console.log('[SimpleChannelSwitcher] Initializing chat section for channel:', channelId);
         
         this.updateChannelHeader(channelId);
         
-        try {
-            const response = await fetch(`/api/chat/channel/${channelId}/messages?limit=50`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                await this.renderMessages(data.data?.messages || []);
-                this.joinSocketRoom(channelId);
+        if (window.chatSection) {
+            console.log('[SimpleChannelSwitcher] Cleaning up existing chat section');
+            if (typeof window.chatSection.cleanup === 'function') {
+                window.chatSection.cleanup();
             }
-        } catch (error) {
-            console.error('[SimpleChannelSwitcher] Error loading messages:', error);
-            if (messagesContainer) {
-                messagesContainer.innerHTML = '<div class="text-center p-4 text-red-400">Failed to load messages</div>';
+            window.chatSection = null;
+        }
+        
+        if (window.globalSocketManager?.isReady()) {
+            console.log('[SimpleChannelSwitcher] Leaving previous socket rooms');
+            const previousRooms = Array.from(window.globalSocketManager.joinedRooms || []);
+            previousRooms.forEach(room => {
+                if (room.startsWith('channel-')) {
+                    window.globalSocketManager.leaveRoom(room);
+                }
+            });
+        }
+        
+        const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
+        const chatIdMeta = document.querySelector('meta[name="chat-id"]');
+        
+        if (chatTypeMeta) chatTypeMeta.setAttribute('content', 'channel');
+        if (chatIdMeta) chatIdMeta.setAttribute('content', channelId);
+        
+        await this.waitForChatElements();
+        
+        if (typeof window.initializeChatSection === 'function') {
+            console.log('[SimpleChannelSwitcher] Calling initializeChatSection');
+            await window.initializeChatSection();
+        } else if (typeof window.ChatSection === 'function') {
+            console.log('[SimpleChannelSwitcher] Creating new ChatSection instance');
+            try {
+                window.chatSection = new window.ChatSection({
+                    chatType: 'channel',
+                    targetId: channelId
+                });
+                await window.chatSection.init();
+            } catch (error) {
+                console.error('[SimpleChannelSwitcher] Error creating chat section:', error);
             }
         }
+        
+        setTimeout(() => {
+            if (window.chatSection && window.chatSection.targetId !== channelId) {
+                console.log('[SimpleChannelSwitcher] Updating chat section target ID');
+                window.chatSection.targetId = channelId;
+                window.chatSection.chatType = 'channel';
+                window.chatSection.currentOffset = 0;
+                window.chatSection.hasMoreMessages = true;
+                
+                if (window.chatSection.loadMessages) {
+                    console.log('[SimpleChannelSwitcher] Loading messages for new channel');
+                    window.chatSection.loadMessages();
+                }
+            }
+        }, 100);
+    }
+    
+    async waitForChatElements() {
+        return new Promise((resolve) => {
+            let attempts = 0;
+            const maxAttempts = 20;
+            
+            const checkElements = () => {
+                const chatMessages = document.getElementById('chat-messages');
+                const messageForm = document.getElementById('message-form');
+                const messageInput = document.getElementById('message-input');
+                
+                if (chatMessages && messageForm && messageInput) {
+                    console.log('[SimpleChannelSwitcher] Chat elements ready');
+                    resolve();
+                    return;
+                }
+                
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    console.warn('[SimpleChannelSwitcher] Chat elements not ready after', maxAttempts, 'attempts');
+                    resolve();
+                    return;
+                }
+                
+                setTimeout(checkElements, 50);
+            };
+            
+            checkElements();
+        });
     }
     
     updateChannelHeader(channelId) {
@@ -124,118 +190,6 @@ class SimpleChannelSwitcher {
             channelName.textContent = nameText;
             if (iconElement) {
                 channelIcon.className = iconElement.className;
-            }
-        }
-    }
-    
-    async renderMessages(messages) {
-        const messagesContainer = document.querySelector('#chat-messages .messages-container');
-        if (!messagesContainer) return;
-        
-        if (messages.length === 0) {
-            messagesContainer.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-[#dcddde]">
-                    <i class="fas fa-comments text-6xl mb-4 text-[#4f545c]"></i>
-                    <p class="text-lg">No messages yet</p>
-                    <p class="text-sm text-[#a3a6aa]">Be the first to send a message!</p>
-                </div>
-            `;
-            return;
-        }
-        
-        const messagesHTML = [];
-        for (const message of messages) {
-            try {
-                const html = await this.renderSingleMessage(message);
-                if (html) {
-                    messagesHTML.push(html);
-                }
-            } catch (error) {
-                console.error('[SimpleChannelSwitcher] Error rendering message:', message.id, error);
-                messagesHTML.push(this.createFallbackMessageHTML(message));
-            }
-        }
-        
-        messagesContainer.innerHTML = messagesHTML.join('');
-        this.scrollToBottom();
-    }
-    
-    async renderSingleMessage(message) {
-        const formattedMessage = {
-            id: message.id,
-            user_id: message.user_id,
-            username: message.username,
-            avatar_url: message.avatar_url || '/public/assets/common/default-profile-picture.png',
-            content: message.content || '',
-            sent_at: message.created_at,
-            edited_at: message.edited_at,
-            message_type: 'text',
-            attachments: message.attachments || [],
-            reactions: message.reactions || [],
-            reply_message_id: message.reply_message_id,
-            reply_data: message.reply_data
-        };
-        
-        try {
-            const response = await fetch('/api/messages/render-bubble', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message_data: formattedMessage
-                })
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success && result.html) {
-                    return result.html;
-                }
-            }
-        } catch (error) {
-            console.error('[SimpleChannelSwitcher] Bubble render API error:', error);
-        }
-        
-        return null;
-    }
-    
-    createFallbackMessageHTML(message) {
-        const avatar = message.avatar_url || '/public/assets/common/default-profile-picture.png';
-        const timestamp = new Date(message.created_at).toLocaleTimeString();
-        
-        return `
-            <div class="bubble-message-group" data-user-id="${message.user_id}" data-timestamp="${new Date(message.created_at).getTime()}">
-                <div class="bubble-avatar">
-                    <img src="${avatar}" alt="${message.username}" onerror="this.src='/public/assets/common/default-profile-picture.png';">
-                </div>
-                <div class="bubble-content-wrapper">
-                    <div class="bubble-header">
-                        <span class="bubble-username">${message.username}</span>
-                        <span class="bubble-timestamp">${timestamp}</span>
-                    </div>
-                    <div class="bubble-contents">
-                        <div class="bubble-message-content" data-message-id="${message.id}" data-user-id="${message.user_id}">
-                            <div class="bubble-message-text">${message.content}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    scrollToBottom() {
-        const chatMessages = document.getElementById('chat-messages');
-        if (chatMessages) {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-    }
-    
-    joinSocketRoom(channelId) {
-        if (window.globalSocketManager?.isReady()) {
-            const roomName = `channel-${channelId}`;
-            if (!window.globalSocketManager.joinedRooms?.has(roomName)) {
-                window.globalSocketManager.joinChannel(channelId);
             }
         }
     }

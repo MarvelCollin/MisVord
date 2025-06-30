@@ -201,11 +201,34 @@ class VideoSDKManager {
     }
     
     handleParticipantJoined(participant) {
-        console.log(`👤 [VideoSDK] Setting up handlers for joined participant: ${participant.id}`);
+        console.log(`👤 [VideoSDK] Setting up handlers for joined participant: ${participant.id} (${participant.displayName || participant.name || 'Unknown'})`);
         
         if (this.processedParticipants.has(participant.id)) {
             console.log(`👤 [VideoSDK] Participant ${participant.id} already processed, skipping`);
             return;
+        }
+        
+        const existingParticipantName = participant.displayName || participant.name;
+        if (existingParticipantName) {
+            for (const [processedId] of this.processedParticipants.entries()) {
+                const processedParticipant = this.meeting?.participants?.get(processedId);
+                if (processedParticipant && 
+                    (processedParticipant.displayName === existingParticipantName || 
+                     processedParticipant.name === existingParticipantName)) {
+                    console.log(`⚠️ [VideoSDK] Found duplicate participant name '${existingParticipantName}' - existing ID: ${processedId}, new ID: ${participant.id}`);
+                    
+                    if (processedId !== participant.id) {
+                        console.log(`🔄 [VideoSDK] Replacing old participant ${processedId} with new ${participant.id}`);
+                        this.processedParticipants.delete(processedId);
+                        this.cleanupParticipantResourcesById(processedId);
+                        
+                        window.dispatchEvent(new CustomEvent('videosdkParticipantLeft', {
+                            detail: { participant: processedId }
+                        }));
+                    }
+                    break;
+                }
+            }
         }
         
         this.processedParticipants.add(participant.id);
@@ -247,20 +270,16 @@ class VideoSDKManager {
                         return;
                     }
                     
-                    if (participant.id !== this.meeting.localParticipant?.id) {
-                        console.log(`👤 [VideoSDK] Setting up existing remote participant: ${participant.id}`);
-                        this.processedParticipants.add(participant.id);
-                        this.registerStreamEvents(participant);
-                        this.startStreamMonitoring(participant);
-                        
-                        setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
-                                detail: { participant: participant.id, participantObj: participant }
-                            }));
-                        }, 300);
-                    } else {
-                        console.log(`👤 [VideoSDK] Skipping local participant: ${participant.id}`);
-                    }
+                    console.log(`👤 [VideoSDK] Setting up participant: ${participant.id} (${participant.id === this.meeting.localParticipant?.id ? 'LOCAL' : 'REMOTE'})`);
+                    this.processedParticipants.add(participant.id);
+                    this.registerStreamEvents(participant);
+                    this.startStreamMonitoring(participant);
+                    
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
+                            detail: { participant: participant.id, participantObj: participant }
+                        }));
+                    }, 300);
                 });
             }, 1000);
         } catch (error) {

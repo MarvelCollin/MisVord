@@ -15,6 +15,7 @@ class NitroSection {
         
         this.setupEventListeners();
         this.setupConnectingLines();
+        this.initAnimations();
     }
     
     setupEventListeners() {
@@ -340,6 +341,102 @@ class NitroSection {
             }
         `;
         document.head.appendChild(style);
+    }
+
+    initAnimations() {
+        const section = document.querySelector('.nitro-section');
+        if (!section) return;
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        const animateElements = section.querySelectorAll('[data-animate]');
+        animateElements.forEach(el => observer.observe(el));
+        
+        this.initHexagonDotInteractions();
+    }
+
+    initHexagonDotInteractions() {
+        const hexagonFeatures = document.querySelectorAll('.hexagon-feature');
+        const targetDots = document.querySelectorAll('.target-dot');
+        
+        hexagonFeatures.forEach(hexagon => {
+            const targetId = hexagon.getAttribute('data-target');
+            const targetDot = document.getElementById(targetId);
+            
+            if (targetDot) {
+                hexagon.addEventListener('mouseenter', () => {
+                    targetDots.forEach(dot => {
+                        if (dot.id === targetId) {
+                            dot.style.opacity = '1';
+                            dot.style.transform = dot.style.transform.replace('scale(1)', 'scale(1.5)');
+                        } else {
+                            dot.style.opacity = '0.3';
+                        }
+                    });
+                });
+                
+                hexagon.addEventListener('mouseleave', () => {
+                    targetDots.forEach(dot => {
+                        dot.style.opacity = '0';
+                        dot.style.transform = dot.style.transform.replace('scale(1.5)', 'scale(1)');
+                    });
+                });
+            }
+        });
+        
+        const crownCenter = document.querySelector('.crown-center');
+        if (crownCenter) {
+            crownCenter.addEventListener('mouseenter', () => {
+                hexagonFeatures.forEach(hexagon => {
+                    const content = hexagon.querySelector('.hexagon-content');
+                    const border = hexagon.querySelector('.hexagon-border');
+                    const rotationStyle = hexagon.getAttribute('style');
+                    const rotationMatch = rotationStyle ? rotationStyle.match(/--rotation:\s*([^;]+)/) : null;
+                    const rotation = rotationMatch ? rotationMatch[1].trim() : '0deg';
+                    
+                    if (content) {
+                        content.style.transform = `rotate(calc(180deg + ${rotation}))`;
+                    }
+                    if (border) {
+                        border.style.transform = `rotate(calc(180deg + ${rotation}))`;
+                        border.style.opacity = '0.8';
+                        border.style.animationPlayState = 'paused';
+                    }
+                });
+                
+                targetDots.forEach(dot => {
+                    dot.style.opacity = '1';
+                    dot.style.transform = dot.style.transform.replace('scale(1)', 'scale(1.3)');
+                });
+            });
+            
+            crownCenter.addEventListener('mouseleave', () => {
+                hexagonFeatures.forEach(hexagon => {
+                    const content = hexagon.querySelector('.hexagon-content');
+                    const border = hexagon.querySelector('.hexagon-border');
+                    
+                    if (content) {
+                        content.style.transform = '';
+                    }
+                    if (border) {
+                        border.style.transform = '';
+                        border.style.opacity = '';
+                        border.style.animationPlayState = '';
+                    }
+                });
+                
+                targetDots.forEach(dot => {
+                    dot.style.opacity = '0';
+                    dot.style.transform = dot.style.transform.replace('scale(1.3)', 'scale(1)');
+                });
+            });
+        }
     }
 }
 

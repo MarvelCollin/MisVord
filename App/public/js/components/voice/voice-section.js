@@ -133,6 +133,7 @@ class VoiceSection {
         window.addEventListener(window.VOICE_EVENTS.VOICE_DISCONNECT, () => {
             this.isProcessing = false;
             this.autoJoinInProgress = false;
+            window.voiceJoinInProgress = false;
             
             if (this.elements.connectingView) {
                 this.elements.connectingView.classList.add('hidden');
@@ -168,7 +169,11 @@ class VoiceSection {
     }
     
     async handleJoinClick() {
-        if (this.isProcessing || this.elements.joinBtn?.getAttribute('data-processing') === 'true') {
+        if (this.isProcessing || 
+            this.elements.joinBtn?.getAttribute('data-processing') === 'true' ||
+            window.voiceJoinInProgress ||
+            window.voiceState?.isConnected) {
+            console.log('🎧 [VOICE-SECTION] Join click ignored - already processing or connected');
             return;
         }
         

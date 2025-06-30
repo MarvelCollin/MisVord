@@ -564,6 +564,34 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     border: 2px solid rgba(88, 101, 242, 0.5) !important;
     transform: translateY(-3px) !important;
 }
+
+/* Local Participant Styles */
+.voice-participant-avatar.local-participant {
+    background: #3ba55c !important;
+    border: 3px solid #43b05c !important;
+    box-shadow: 0 0 10px rgba(59, 165, 92, 0.3) !important;
+    animation: local-glow 2s ease-in-out infinite !important;
+}
+
+@keyframes local-glow {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(59, 165, 92, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(59, 165, 92, 0.6);
+    }
+}
+
+.voice-participant-card:has(.local-participant) {
+    background: linear-gradient(135deg, #2f3136 0%, #36393f 100%) !important;
+    border: 2px solid rgba(59, 165, 92, 0.3) !important;
+}
+
+.voice-participant-card:has(.local-participant):hover {
+    background: linear-gradient(135deg, #36393f 0%, #3c3f47 100%) !important;
+    border: 2px solid rgba(59, 165, 92, 0.5) !important;
+    transform: translateY(-2px) !important;
+}
 </style>
 
 <script>
@@ -623,13 +651,17 @@ class UnifiedParticipantManager {
             return;
         }
 
+        const isLocal = source === 'local' || (window.voiceCallManager?.localParticipantId === participantId);
+        const participantName = data.participantObj?.displayName || data.participantObj?.name || data.name || `User ${participantId.slice(-4)}`;
+        
         const participant = {
             id: participantId,
-            name: data.participantObj?.displayName || data.participantObj?.name || data.name || `User ${participantId.slice(-4)}`,
+            name: isLocal ? `${participantName} (You)` : participantName,
             hasVideo: false,
             isMuted: false,
             isSpeaking: false,
             isBot: false,
+            isLocal: isLocal,
             source: source
         };
 
@@ -760,6 +792,8 @@ class VoiceCallManager {
         
         this.eventListenersRegistered = true;
         window.voiceEventListenersRegistered = true;
+        
+        console.log('🎧 [VOICE-CALL-MANAGER] Setting up event listeners for participant management');
 
         window.addEventListener('videosdkParticipantJoined', (event) => {
             this.participantManager.processEvent({
@@ -783,6 +817,8 @@ class VoiceCallManager {
         });
 
         window.addEventListener('voiceConnect', (event) => {
+            console.log('🔗 [VOICE-CALL-MANAGER] Voice connect event received', event.detail);
+            
             this.isConnected = true;
             
             if (window.unifiedVoiceStateManager) {
@@ -797,6 +833,19 @@ class VoiceCallManager {
             
             if (window.videoSDKManager?.meeting?.localParticipant) {
                 this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
+                console.log('👤 [VOICE-CALL-MANAGER] Set local participant ID:', this.localParticipantId);
+                
+                setTimeout(() => {
+                    console.log('👤 [VOICE-CALL-MANAGER] Adding local participant to UI');
+                    this.participantManager.processEvent({
+                        type: 'participant_joined',
+                        data: {
+                            participantId: this.localParticipantId,
+                            participantObj: window.videoSDKManager.meeting.localParticipant,
+                            source: 'local'
+                        }
+                    });
+                }, 500);
             }
             
             if (event.detail?.meetingId) {
@@ -810,6 +859,8 @@ class VoiceCallManager {
         });
 
         window.addEventListener('voiceDisconnect', (event) => {
+            console.log('🔌 [VOICE-CALL-MANAGER] Voice disconnect event received');
+            
             this.isConnected = false;
             
             if (window.unifiedVoiceStateManager) {
@@ -828,6 +879,17 @@ class VoiceCallManager {
                 meetingIdDisplay.onclick = null;
                 meetingIdDisplay.style.cursor = 'default';
                 meetingIdDisplay.title = '';
+            }
+            
+            if (this.localParticipantId) {
+                console.log('🗑️ [VOICE-CALL-MANAGER] Removing local participant on disconnect');
+                this.participantManager.processEvent({
+                    type: 'participant_left',
+                    data: {
+                        participantId: this.localParticipantId,
+                        source: 'local'
+                    }
+                });
             }
             
             this.cleanup();
@@ -953,15 +1015,17 @@ class VoiceCallManager {
         element.style.cursor = 'pointer';
         element.style.transition = 'all 0.2s ease';
 
-        const avatarColor = participant.isBot ? '#5865f2' : this.getAvatarColor(participant.name);
+        const avatarColor = participant.isBot ? '#5865f2' : (participant.isLocal ? '#3ba55c' : this.getAvatarColor(participant.name));
         const initial = participant.name.charAt(0).toUpperCase();
         const botIndicator = participant.isBot ? '<i class="fas fa-robot text-xs text-[#5865f2] ml-1"></i>' : '';
+        const localIndicator = participant.isLocal ? '<i class="fas fa-user text-xs text-[#3ba55c] ml-1"></i>' : '';
+        const borderColor = participant.isBot ? '#5865f2' : (participant.isLocal ? '#3ba55c' : 'transparent');
 
         element.innerHTML = `
-            <div class="voice-participant-avatar ${participant.isBot ? 'bot-participant' : ''}" style="background: ${avatarColor}; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px; margin-bottom: 8px; border: 3px solid ${participant.isBot ? '#5865f2' : 'transparent'};">
+            <div class="voice-participant-avatar ${participant.isBot ? 'bot-participant' : ''} ${participant.isLocal ? 'local-participant' : ''}" style="background: ${avatarColor}; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px; margin-bottom: 8px; border: 3px solid ${borderColor};">
                 ${participant.isBot ? '<i class="fas fa-robot text-white"></i>' : initial}
             </div>
-            <span style="color: white; font-size: 12px; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; justify-content: center;">${participant.name}${botIndicator}</span>
+            <span style="color: white; font-size: 12px; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; justify-content: center;">${participant.name}${botIndicator}${localIndicator}</span>
         `;
 
         container.appendChild(element);
@@ -970,11 +1034,11 @@ class VoiceCallManager {
     }
 
     removeParticipantElement(participantId) {
-        const element = document.querySelector(`[data-participant-id="${participantId}"]`);
-        if (element) {
+        const elements = document.querySelectorAll(`[data-participant-id="${participantId}"]`);
+        elements.forEach(element => {
             element.remove();
             console.log(`🗑️ [DEBUG] Removed participant element for ${participantId}`);
-        }
+        });
         
         this.removeVideoParticipantCard(participantId);
     }
@@ -993,6 +1057,8 @@ class VoiceCallManager {
     }
 
     cleanup() {
+        console.log('🧹 [VOICE-CALL-MANAGER] Cleaning up participants and UI');
+        
         this.participantManager.clear();
         
         const container = document.getElementById('participantGrid');
@@ -1001,6 +1067,11 @@ class VoiceCallManager {
         }
         
         this.updateParticipantCount();
+        
+        this.isConnected = false;
+        this.localParticipantId = null;
+        this.isVideoOn = false;
+        this.isScreenSharing = false;
     }
 
     get participants() {
@@ -1590,10 +1661,24 @@ function toggleVideoLayout() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    if (!window.voiceCallManager) {
-        window.voiceCallManager = new VoiceCallManager();
+const initializeVoiceCallSystem = () => {
+    if (window.voiceCallManager) {
+        console.log('⚠️ [VOICE-CALL] VoiceCallManager already exists, skipping duplicate creation');
+        return;
     }
+    
+    if (!window.localStorageManager) {
+        setTimeout(initializeVoiceCallSystem, 100);
+        return;
+    }
+    
+    if (!window.unifiedVoiceStateManager) {
+        setTimeout(initializeVoiceCallSystem, 100);
+        return;
+    }
+    
+    console.log('🚀 [VOICE-CALL] Creating single VoiceCallManager instance');
+    window.voiceCallManager = new VoiceCallManager();
     
     const gridViewBtn = document.getElementById('gridViewBtn');
     const speakerViewBtn = document.getElementById('speakerViewBtn');
@@ -1605,31 +1690,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (speakerViewBtn) {
         speakerViewBtn.addEventListener('click', toggleVideoLayout);
     }
-});
-
-const initializeUnifiedVoiceSystem = () => {
-    if (!window.localStorageManager) {
-        setTimeout(initializeUnifiedVoiceSystem, 100);
-        return;
-    }
-    
-    if (!window.unifiedVoiceStateManager) {
-        setTimeout(initializeUnifiedVoiceSystem, 100);
-        return;
-    }
-    
-    if (!window.voiceCallManager) {
-        window.voiceCallManager = new VoiceCallManager();
-        console.log('✅ [UNIFIED-VOICE-SYSTEM] Voice call manager initialized with unified state management');
-    }
     
     if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-        console.log('✅ [UNIFIED-VOICE-SYSTEM] Socket manager ready, voice system fully operational');
+        console.log('✅ [VOICE-CALL] Socket manager ready, voice call system operational');
     } else {
-        console.log('⏳ [UNIFIED-VOICE-SYSTEM] Waiting for socket manager...');
+        console.log('⏳ [VOICE-CALL] Waiting for socket manager...');
         const checkSocket = () => {
             if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-                console.log('✅ [UNIFIED-VOICE-SYSTEM] Socket manager ready, voice system now fully operational');
+                console.log('✅ [VOICE-CALL] Socket manager ready, voice call system now operational');
             } else {
                 setTimeout(checkSocket, 500);
             }
@@ -1638,7 +1706,5 @@ const initializeUnifiedVoiceSystem = () => {
     }
 };
 
-document.addEventListener('DOMContentLoaded', initializeUnifiedVoiceSystem);
-
-setTimeout(initializeUnifiedVoiceSystem, 500);
+document.addEventListener('DOMContentLoaded', initializeVoiceCallSystem);
 </script>

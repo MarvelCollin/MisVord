@@ -210,7 +210,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const joinBtn = document.getElementById('joinBtn');
     
-    if (joinBtn) {
+    if (joinBtn && !joinBtn.hasAttribute('data-voice-listener-attached')) {
+        joinBtn.setAttribute('data-voice-listener-attached', 'true');
         joinBtn.addEventListener('click', async function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -220,6 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 resetJoinState();
             }
         });
+        console.log('🎧 [VOICE-NOT-JOIN] Join button event listener attached');
     }
     
     window.dispatchEvent(new CustomEvent('voiceUIReady'));

@@ -810,7 +810,12 @@ $content = ob_get_clean();
             text-shadow: 
                 0 0 3px rgba(88, 101, 242, 0.6),
                 0 0 6px rgba(88, 101, 242, 0.4);
-            animation: suffixGlow 2.5s ease-in-out infinite alternate;
+            animation: 
+                suffixGlow 2.5s ease-in-out infinite alternate,
+                suffixFloat 3s ease-in-out infinite,
+                suffixRotate 8s linear infinite;
+            transform-origin: center;
+            display: inline-block;
         }
 
         @keyframes suffixGlow {
@@ -826,6 +831,39 @@ $content = ob_get_clean();
                     0 0 15px rgba(88, 101, 242, 0.6),
                     0 0 20px rgba(88, 101, 242, 0.3);
                 transform: scale(1.05);
+            }
+        }
+
+        @keyframes suffixFloat {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+            }
+            25% {
+                transform: translateY(-3px) translateX(1px);
+            }
+            50% {
+                transform: translateY(2px) translateX(-1px);
+            }
+            75% {
+                transform: translateY(-1px) translateX(2px);
+            }
+        }
+
+        @keyframes suffixRotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            25% {
+                transform: rotate(2deg);
+            }
+            50% {
+                transform: rotate(0deg);
+            }
+            75% {
+                transform: rotate(-2deg);
+            }
+            100% {
+                transform: rotate(0deg);
             }
         }
 
