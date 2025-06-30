@@ -1232,9 +1232,14 @@ function initPasswordChangeForms() {
                     closeModal();
                 }, 1000);
             } else {
-                const errorMsg = response?.error || response?.message || 'Failed to change password';
+                const errorMsg = response?.error?.message || response?.error || response?.message || 'Failed to change password';
                 console.error('Password change failed:', errorMsg);
-                showPasswordError(errorMsg);
+                
+                if (errorMsg.includes('cannot be the same as your current password')) {
+                    showPasswordError('❌ New password must be different from your current password');
+                } else {
+                    showPasswordError(errorMsg);
+                }
             }
         } catch (error) {
             console.error('Error changing password:', error);

@@ -1,3 +1,5 @@
+import { loadServerPage } from './load-server-page.js';
+
 function loadCSS(cssFiles) {
     if (!cssFiles || !Array.isArray(cssFiles)) return Promise.resolve();
     
@@ -241,6 +243,9 @@ function initializeExploreComponents() {
     };
     
     initServerDetail();
+    
+    console.log('[Explore Loader] Setting up server navigation handlers');
+    setupExploreServerNavigation();
 }
 
 function debugExploreState() {
@@ -319,4 +324,139 @@ function getCurrentChannelId() {
     return activeChannelInput ? activeChannelInput.value : null;
 }
 
-window.loadExplorePage = loadExplorePage; 
+function setupExploreServerNavigation() {
+    console.log('[Explore Navigation] Setting up server navigation handlers');
+    
+    setTimeout(() => {
+        const serverLinks = document.querySelectorAll('a[href^="/server/"]');
+        console.log('[Explore Navigation] Found', serverLinks.length, 'server links');
+        
+        serverLinks.forEach(link => {
+            const newLink = link.cloneNode(true);
+            link.parentNode.replaceChild(newLink, link);
+            
+            newLink.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const href = this.getAttribute('href');
+                const serverMatch = href.match(/\/server\/(\d+)/);
+                
+                if (serverMatch) {
+                    const serverId = serverMatch[1];
+                    console.log('[Explore Navigation] Server link clicked, navigating to server:', serverId);
+                    
+                    try {
+                        if (loadServerPage) {
+                            console.log('[Explore Navigation] Using loadServerPage function');
+                            await loadServerPage(serverId);
+                            
+                            if (typeof window.updateActiveServer === 'function') {
+                                window.updateActiveServer('server', serverId);
+                            }
+                        } else {
+                            console.log('[Explore Navigation] loadServerPage not available, using fallback');
+                            window.location.href = href;
+                        }
+                    } catch (error) {
+                        console.error('[Explore Navigation] Error navigating to server:', error);
+                        window.location.href = href;
+                    }
+                } else {
+                    console.warn('[Explore Navigation] Invalid server link:', href);
+                    window.location.href = href;
+                }
+            });
+        });
+        
+        const joinButtons = document.querySelectorAll('button[data-server-id]');
+        console.log('[Explore Navigation] Found', joinButtons.length, 'join server buttons');
+        
+        joinButtons.forEach(button => {
+            if (button.textContent.includes('Join') || button.textContent.includes('Visit')) {
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                
+                newButton.addEventListener('click', async function(e) {
+                    const serverId = this.getAttribute('data-server-id');
+                    
+                    if (serverId && !this.textContent.includes('Join')) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        console.log('[Explore Navigation] Visit server button clicked, navigating to server:', serverId);
+                        
+                        try {
+                            if (loadServerPage) {
+                                console.log('[Explore Navigation] Using loadServerPage function');
+                                await loadServerPage(serverId);
+                                
+                                if (typeof window.updateActiveServer === 'function') {
+                                    window.updateActiveServer('server', serverId);
+                                }
+                            } else {
+                                console.log('[Explore Navigation] loadServerPage not available, using fallback');
+                                window.location.href = `/server/${serverId}`;
+                            }
+                        } catch (error) {
+                            console.error('[Explore Navigation] Error navigating to server:', error);
+                            window.location.href = `/server/${serverId}`;
+                        }
+                    }
+                });
+            }
+        });
+        
+        const serverCards = document.querySelectorAll('.explore-server-card, .server-card');
+        console.log('[Explore Navigation] Found', serverCards.length, 'server cards');
+        
+        serverCards.forEach(card => {
+            const serverId = card.getAttribute('data-server-id');
+            if (serverId) {
+                const newCard = card.cloneNode(true);
+                card.parentNode.replaceChild(newCard, card);
+                
+                newCard.addEventListener('click', async function(e) {
+                    if (!e.target.closest('button')) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        console.log('[Explore Navigation] Server card clicked, navigating to server:', serverId);
+                        
+                        try {
+                            if (loadServerPage) {
+                                console.log('[Explore Navigation] Using loadServerPage function');
+                                await loadServerPage(serverId);
+                                
+                                if (typeof window.updateActiveServer === 'function') {
+                                    window.updateActiveServer('server', serverId);
+                                }
+                            } else {
+                                console.log('[Explore Navigation] loadServerPage not available, using fallback');
+                                window.location.href = `/server/${serverId}`;
+                            }
+                        } catch (error) {
+                            console.error('[Explore Navigation] Error navigating to server:', error);
+                            window.location.href = `/server/${serverId}`;
+                        }
+                    }
+                });
+            }
+        });
+        
+    }, 300);
+}
+
+function debugExploreServerNavigation() {
+    console.log('=== EXPLORE SERVER NAVIGATION DEBUG ===');
+    console.log('loadServerPage available:', typeof loadServerPage === 'function');
+    console.log('Server links:', document.querySelectorAll('a[href^="/server/"]').length);
+    console.log('Server cards:', document.querySelectorAll('.explore-server-card, .server-card').length);
+    console.log('Join buttons:', document.querySelectorAll('button[data-server-id]').length);
+    console.log('updateActiveServer available:', typeof window.updateActiveServer === 'function');
+    console.log('=== END DEBUG ===');
+}
+
+window.loadExplorePage = loadExplorePage;
+window.loadServerPage = loadServerPage;
+window.debugExploreServerNavigation = debugExploreServerNavigation; 

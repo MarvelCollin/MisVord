@@ -1,3 +1,5 @@
+import { loadServerPage } from './load-server-page.js';
+
 export function loadHomePage(pageType = 'friends') {
     console.log('[Home Loader] Starting loadHomePage with pageType:', pageType);
     
@@ -76,6 +78,9 @@ export function loadHomePage(pageType = 'friends') {
                         window.initDirectMessageNavigation();
                         console.log('[Home AJAX] Direct message navigation initialized');
                     }
+                    
+                    console.log('[Home AJAX] Setting up server navigation handlers');
+                    setupHomeServerNavigation();
                     
                     const event = new CustomEvent('HomePageChanged', { 
                         detail: { 
@@ -280,4 +285,217 @@ function executeInlineScripts(doc) {
     });
 }
 
-window.loadHomePage = loadHomePage; 
+function setupHomeServerNavigation() {
+    console.log('[Home Navigation] Setting up server navigation handlers');
+    
+    // Disable any auto-redirect logic during server navigation
+    window.homeNavigationInProgress = false;
+    
+    setTimeout(() => {
+        const serverLinks = document.querySelectorAll('a[href^="/server/"]');
+        console.log('[Home Navigation] Found', serverLinks.length, 'server links');
+        
+        serverLinks.forEach(link => {
+            // Remove all existing event listeners
+            const newLink = link.cloneNode(true);
+            link.parentNode.replaceChild(newLink, link);
+            
+            newLink.addEventListener('click', async function(e) {
+                console.log('[Home Navigation] Server link clicked - preventing all defaults');
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                if (window.homeNavigationInProgress) {
+                    console.log('[Home Navigation] Navigation already in progress, ignoring');
+                    return false;
+                }
+                
+                window.homeNavigationInProgress = true;
+                
+                const href = this.getAttribute('href');
+                const serverMatch = href.match(/\/server\/(\d+)/);
+                
+                if (serverMatch) {
+                    const serverId = serverMatch[1];
+                    console.log('[Home Navigation] Server link clicked, navigating to server:', serverId);
+                    
+                    try {
+                        if (loadServerPage) {
+                            console.log('[Home Navigation] Using loadServerPage function');
+                            await loadServerPage(serverId);
+                            
+                            if (typeof window.updateActiveServer === 'function') {
+                                window.updateActiveServer('server', serverId);
+                            }
+                            
+                            console.log('[Home Navigation] Server navigation completed successfully');
+                        } else {
+                            console.log('[Home Navigation] loadServerPage not available, using fallback');
+                            window.location.href = href;
+                        }
+                    } catch (error) {
+                        console.error('[Home Navigation] Error navigating to server:', error);
+                        window.location.href = href;
+                    } finally {
+                        setTimeout(() => {
+                            window.homeNavigationInProgress = false;
+                        }, 1000);
+                    }
+                } else {
+                    console.warn('[Home Navigation] Invalid server link:', href);
+                    window.homeNavigationInProgress = false;
+                    window.location.href = href;
+                }
+                
+                return false;
+            }, true); // Use capture phase
+        });
+        
+        const serverButtons = document.querySelectorAll('button[data-server-id]');
+        console.log('[Home Navigation] Found', serverButtons.length, 'server buttons');
+        
+        serverButtons.forEach(button => {
+            // Remove all existing event listeners
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            newButton.addEventListener('click', async function(e) {
+                console.log('[Home Navigation] Server button clicked - preventing all defaults');
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                if (window.homeNavigationInProgress) {
+                    console.log('[Home Navigation] Navigation already in progress, ignoring');
+                    return false;
+                }
+                
+                window.homeNavigationInProgress = true;
+                
+                const serverId = this.getAttribute('data-server-id');
+                console.log('[Home Navigation] Server button clicked, navigating to server:', serverId);
+                
+                try {
+                    if (loadServerPage) {
+                        console.log('[Home Navigation] Using loadServerPage function');
+                        await loadServerPage(serverId);
+                        
+                        if (typeof window.updateActiveServer === 'function') {
+                            window.updateActiveServer('server', serverId);
+                        }
+                        
+                        console.log('[Home Navigation] Server navigation completed successfully');
+                    } else {
+                        console.log('[Home Navigation] loadServerPage not available, using fallback');
+                        window.location.href = `/server/${serverId}`;
+                    }
+                } catch (error) {
+                    console.error('[Home Navigation] Error navigating to server:', error);
+                    window.location.href = `/server/${serverId}`;
+                } finally {
+                    setTimeout(() => {
+                        window.homeNavigationInProgress = false;
+                    }, 1000);
+                }
+                
+                return false;
+            }, true); // Use capture phase
+        });
+        
+        // Prevent any competing navigation handlers
+        preventCompetingHandlers();
+        
+    }, 200);
+}
+
+function preventCompetingHandlers() {
+    console.log('[Home Navigation] Setting up navigation protection');
+    
+    // Monitor for unexpected home redirects
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    
+    window.history.pushState = function(...args) {
+        if (window.homeNavigationInProgress && args[2] && (args[2].includes('/home') || args[2] === '/')) {
+            console.warn('[Home Navigation] Blocked unexpected redirect to home during server navigation:', args[2]);
+            return;
+        }
+        return originalPushState.apply(this, args);
+    };
+    
+    window.history.replaceState = function(...args) {
+        if (window.homeNavigationInProgress && args[2] && (args[2].includes('/home') || args[2] === '/')) {
+            console.warn('[Home Navigation] Blocked unexpected replace to home during server navigation:', args[2]);
+            return;
+        }
+        return originalReplaceState.apply(this, args);
+    };
+    
+    // Monitor for location changes
+    let lastUrl = window.location.href;
+    const checkUrlChange = () => {
+        if (window.location.href !== lastUrl) {
+            if (window.homeNavigationInProgress && (window.location.pathname === '/home' || window.location.pathname === '/')) {
+                console.warn('[Home Navigation] Detected unexpected redirect back to home, preventing...');
+                window.history.back();
+                return;
+            }
+            lastUrl = window.location.href;
+        }
+    };
+    
+    setInterval(checkUrlChange, 100);
+}
+
+function debugHomeServerNavigation() {
+    console.log('=== HOME SERVER NAVIGATION DEBUG ===');
+    console.log('loadServerPage available:', typeof loadServerPage === 'function');
+    console.log('Server links:', document.querySelectorAll('a[href^="/server/"]').length);
+    console.log('Server buttons:', document.querySelectorAll('button[data-server-id]').length);
+    console.log('updateActiveServer available:', typeof window.updateActiveServer === 'function');
+    console.log('homeNavigationInProgress:', window.homeNavigationInProgress);
+    console.log('Current URL:', window.location.href);
+    
+    // Check for competing event handlers
+    const serverLinks = document.querySelectorAll('a[href^="/server/"]');
+    serverLinks.forEach((link, index) => {
+        console.log(`Server link ${index}:`, {
+            href: link.href,
+            hasListeners: link.onclick || link.addEventListener,
+            parentListeners: link.parentElement?.onclick || link.parentElement?.addEventListener
+        });
+    });
+    
+    console.log('=== END DEBUG ===');
+}
+
+function debugNavigationEvents() {
+    console.log('=== NAVIGATION EVENTS DEBUG ===');
+    
+    // Monitor all navigation events
+    window.addEventListener('beforeunload', () => console.log('[Nav Event] beforeunload'));
+    window.addEventListener('unload', () => console.log('[Nav Event] unload'));
+    window.addEventListener('popstate', (e) => console.log('[Nav Event] popstate:', e.state));
+    window.addEventListener('hashchange', () => console.log('[Nav Event] hashchange'));
+    
+    // Monitor all clicks on the page
+    document.addEventListener('click', function(e) {
+        if (window.homeNavigationInProgress) {
+            console.log('[Click Monitor] Click during home navigation:', {
+                target: e.target.tagName,
+                classList: e.target.classList.toString(),
+                href: e.target.href,
+                prevented: e.defaultPrevented
+            });
+        }
+    }, true);
+    
+    console.log('Navigation event monitoring enabled');
+    console.log('=== END DEBUG ===');
+}
+
+window.loadHomePage = loadHomePage;
+window.loadServerPage = loadServerPage;
+window.debugHomeServerNavigation = debugHomeServerNavigation;
+window.debugNavigationEvents = debugNavigationEvents; 

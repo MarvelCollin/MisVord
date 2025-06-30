@@ -366,7 +366,7 @@ class MessageHandler {
     color: #a3a6aa;
 }
 
-.mention {
+.mention, .bubble-mention {
     color: #4f9cff;
     background-color: rgba(79, 156, 255, 0.2);
     padding: 2px 4px;
@@ -376,17 +376,27 @@ class MessageHandler {
     transition: all 0.15s ease;
 }
 
-.mention:hover {
+.mention:hover, .bubble-mention:hover {
     background-color: rgba(79, 156, 255, 0.3);
 }
 
-.mention-all {
+.mention-all, .bubble-mention-all {
     color: #faa61a;
     background-color: rgba(250, 166, 26, 0.2);
 }
 
-.mention-all:hover {
+.mention-all:hover, .bubble-mention-all:hover {
     background-color: rgba(250, 166, 26, 0.3);
+}
+
+.bubble-mention-user {
+    color: #5865f2;
+    background-color: rgba(88, 101, 242, 0.1);
+}
+
+.bubble-mention-user:hover {
+    background-color: rgba(88, 101, 242, 0.2);
+    text-decoration: underline;
 }
 `;
             

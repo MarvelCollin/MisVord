@@ -54,6 +54,22 @@ class UserRepository extends Repository {
         return false;
     }
     
+    public function verifyCurrentPassword($userId, $password) {
+        $user = $this->find($userId);
+        if ($user && isset($user->password) && !empty($user->password)) {
+            return password_verify($password, $user->password);
+        }
+        return false;
+    }
+    
+    public function isSameAsCurrentPassword($userId, $newPassword) {
+        $user = $this->find($userId);
+        if ($user && isset($user->password) && !empty($user->password)) {
+            return password_verify($newPassword, $user->password);
+        }
+        return false;
+    }
+    
     public function hasSecurityQuestion($userId) {
         $user = $this->find($userId);
         return $user && isset($user->security_question) && !empty($user->security_question);

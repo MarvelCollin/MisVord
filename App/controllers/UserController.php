@@ -781,6 +781,10 @@ class UserController extends BaseController
                 return $this->error('Password must contain at least one number', 400);
             }
             
+            if ($this->userRepository->isSameAsCurrentPassword($user->id, $newPassword)) {
+                return $this->error('New password cannot be the same as your current password', 400);
+            }
+            
             $verified = $this->userRepository->verifySecurityAnswer($user->id, $input['security_answer']);
             
             if (!$verified) {
@@ -1050,6 +1054,10 @@ class UserController extends BaseController
             
             if (!preg_match('/[0-9]/', $newPassword)) {
                 return $this->error('Password must contain at least one number', 400);
+            }
+            
+            if ($this->userRepository->isSameAsCurrentPassword($user->id, $newPassword)) {
+                return $this->error('New password cannot be the same as your current password', 400);
             }
             
             $verified = $this->userRepository->verifySecurityAnswer($user->id, $input['security_answer']);

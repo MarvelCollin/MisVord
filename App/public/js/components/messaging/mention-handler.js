@@ -534,12 +534,12 @@ class MentionHandler {
         // Fallback formatting if rich text handler is not available
         let formattedContent = content;
         
-        formattedContent = formattedContent.replace(this.allMentionRegex, '<span class="mention mention-all text-orange-400 bg-orange-900/30 px-1 rounded font-medium">@all</span>');
+        formattedContent = formattedContent.replace(this.allMentionRegex, '<span class="mention mention-all bubble-mention bubble-mention-all user-profile-trigger text-orange-400 bg-orange-900/30 px-1 rounded font-medium" data-mention-type="all" title="Mention everyone">@all</span>');
         
         formattedContent = formattedContent.replace(this.mentionRegex, (match, username) => {
             const user = this.availableUsers.get(username.toLowerCase());
             if (user) {
-                return `<span class="mention mention-user text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-user-id="${user.id}">@${user.username}</span>`;
+                return `<span class="mention mention-user bubble-mention bubble-mention-user user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="user" data-user-id="${user.id}" data-username="${user.username}" title="@${user.username}">@${user.username}</span>`;
             }
             return match;
         });

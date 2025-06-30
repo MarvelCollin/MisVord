@@ -3,7 +3,7 @@ class ChannelSwitchManager {
         if (window.channelSwitchManager && window.channelSwitchManager !== this) {
             console.log('[ChannelSwitchManager] Cleaning up existing instance before creating new one');
             if (typeof window.channelSwitchManager.cleanup === 'function') {
-                window.channelSwitchManager.cleanup();
+            window.channelSwitchManager.cleanup();
             }
         }
         
@@ -1018,10 +1018,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         if (window.location.pathname.includes('/server/') && !window.channelSwitchManager) {
             console.log('[ChannelSwitchManager] On server page, no existing manager found, initializing channel switch manager');
-            window.channelSwitchManager = new ChannelSwitchManager();
+        window.channelSwitchManager = new ChannelSwitchManager();
         } else if (window.channelSwitchManager) {
             console.log('[ChannelSwitchManager] Channel switch manager already exists, skipping auto-initialization');
-        }
+    }
     }, 100);
 });
 

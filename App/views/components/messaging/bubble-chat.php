@@ -41,7 +41,7 @@ if (!function_exists('formatBubbleTimestamp')) {
 }
 
 if (!function_exists('formatBubbleContent')) {
-    function formatBubbleContent($content) {
+    function formatBubbleContent($content, $mentionData = []) {
         if (empty($content)) return '';
         
         $formatted = htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
@@ -51,9 +51,24 @@ if (!function_exists('formatBubbleContent')) {
         $formatted = preg_replace('/~~(.*?)~~/', '<del>$1</del>', $formatted);
         $formatted = preg_replace('/`(.*?)`/', '<code class="bg-[#2f3136] text-[#dcddde] px-1 py-0.5 rounded text-sm">$1</code>', $formatted);
         
-        $formatted = preg_replace('/@all\b/', '<span class="bubble-mention bubble-mention-all" data-mention-type="all">@all</span>', $formatted);
+        $formatted = preg_replace('/@all\b/', '<span class="mention mention-all bubble-mention bubble-mention-all user-profile-trigger" data-mention-type="all" title="Mention everyone">@all</span>', $formatted);
         
-        $formatted = preg_replace('/@(\w+)/', '<span class="bubble-mention bubble-mention-user" data-mention-type="user" data-username="$1">@$1</span>', $formatted);
+        $formatted = preg_replace_callback('/@(\w+)/', function($matches) use ($mentionData) {
+            $username = $matches[1];
+            $userId = null;
+            
+            if (!empty($mentionData)) {
+                foreach ($mentionData as $mention) {
+                    if (isset($mention['username']) && strtolower($mention['username']) === strtolower($username) && isset($mention['user_id'])) {
+                        $userId = $mention['user_id'];
+                        break;
+                    }
+                }
+            }
+            
+            $userIdAttr = $userId ? ' data-user-id="' . htmlspecialchars($userId) . '"' : '';
+            return '<span class="mention mention-user bubble-mention bubble-mention-user user-profile-trigger" data-mention-type="user" data-username="' . htmlspecialchars($username) . '"' . $userIdAttr . ' title="@' . htmlspecialchars($username) . '">@' . htmlspecialchars($username) . '</span>';
+        }, $formatted);
         
         $formatted = nl2br($formatted);
         
@@ -456,7 +471,7 @@ if (!function_exists('isBubbleVideoFile')) {
                 <?php if ($content): ?>
                 <!-- Message Text -->
                 <div class="bubble-message-text">
-                    <?= formatBubbleContent($content) ?>
+                    <?= formatBubbleContent($content, $messageData['mentions'] ?? []) ?>
                     <?php if ($editedAt): ?>
                         <span class="bubble-edited-badge">(edited)</span>
                     <?php endif; ?>
@@ -601,16 +616,26 @@ function jumpToMessage(messageId) {
 }
 
 document.addEventListener('click', function(e) {
-    const mention = e.target.closest('.bubble-mention-user');
+    const mention = e.target.closest('.mention-user, .bubble-mention-user');
     if (!mention) return;
     
     e.preventDefault();
     e.stopPropagation();
     
+    const userId = mention.dataset.userId;
     const username = mention.dataset.username;
+    
     if (!username) return;
     
-    console.log('🔍 [MENTION-CLICK] Looking up user:', username);
+    console.log('🔍 [MENTION-CLICK] Processing mention click:', { userId, username });
+    
+    if (userId && userId !== 'null' && userId !== '') {
+        console.log('✅ [MENTION-CLICK] Using existing user ID:', userId);
+        showUserDetailFromMention(userId, mention);
+        return;
+    }
+    
+    console.log('🔍 [MENTION-CLICK] Looking up user by username:', username);
     
     if (window.chatSection?.mentionHandler?.availableUsers) {
         const user = window.chatSection.mentionHandler.availableUsers.get(username.toLowerCase());
@@ -621,10 +646,10 @@ document.addEventListener('click', function(e) {
         }
     }
     
-    lookupUserByUsername(username).then(userId => {
-        if (userId) {
-            console.log('✅ [MENTION-CLICK] Found user via API:', userId);
-            showUserDetailFromMention(userId, mention);
+    lookupUserByUsername(username).then(foundUserId => {
+        if (foundUserId) {
+            console.log('✅ [MENTION-CLICK] Found user via API:', foundUserId);
+            showUserDetailFromMention(foundUserId, mention);
         } else {
             console.warn('❌ [MENTION-CLICK] User not found:', username);
         }

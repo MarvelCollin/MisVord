@@ -29,13 +29,13 @@ class RichTextHandler {
 
     formatMentions(content, availableUsers = new Map()) {
         content = content.replace(this.allMentionRegex, 
-            '<span class="mention mention-all text-orange-400 bg-orange-900/30 px-1 rounded font-medium">@all</span>'
+            '<span class="mention mention-all bubble-mention bubble-mention-all user-profile-trigger text-orange-400 bg-orange-900/30 px-1 rounded font-medium" data-mention-type="all" title="Mention everyone">@all</span>'
         );
 
         content = content.replace(this.mentionRegex, (match, username) => {
             const user = availableUsers.get(username.toLowerCase());
             if (user) {
-                return `<span class="mention mention-user text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-user-id="${user.id}" title="@${user.username}">@${user.username}</span>`;
+                return `<span class="mention mention-user bubble-mention bubble-mention-user user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="user" data-user-id="${user.id}" data-username="${user.username}" title="@${user.username}">@${user.username}</span>`;
             }
             return match;
         });
@@ -215,16 +215,19 @@ class RichTextHandler {
 
     createMentionElement(username, userId, type = 'user') {
         const span = document.createElement('span');
-        span.className = `mention mention-${type}`;
+        span.className = `mention mention-${type} bubble-mention bubble-mention-${type} user-profile-trigger`;
         
         if (type === 'all') {
             span.className += ' text-orange-400 bg-orange-900/30 px-1 rounded font-medium';
             span.textContent = '@all';
             span.title = 'Mention everyone';
+            span.setAttribute('data-mention-type', 'all');
         } else {
             span.className += ' text-blue-400 bg-blue-900/30 px-1 rounded font-medium';
             span.textContent = `@${username}`;
             span.title = `@${username}`;
+            span.setAttribute('data-mention-type', 'user');
+            span.setAttribute('data-username', username);
             if (userId) {
                 span.setAttribute('data-user-id', userId);
             }

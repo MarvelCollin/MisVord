@@ -1137,20 +1137,41 @@ class UserDetailModal {
 
 const userDetailModal = new UserDetailModal();
 
+window.userDetailModal = userDetailModal;
+
 document.addEventListener('click', (e) => {
     const trigger = e.target.closest('.user-profile-trigger');
 
     if (trigger) {
-        const userId = trigger.dataset.userId;
+        let userId = trigger.dataset.userId;
         const serverId = trigger.dataset.serverId;
+        const username = trigger.dataset.username;
 
-        if (userId) {
+        if (userId && userId !== 'null' && userId !== '') {
             e.preventDefault();
             userDetailModal.show({
                 userId,
                 serverId,
                 triggerElement: trigger
             });
+        } else if (username && trigger.classList.contains('mention-user')) {
+            e.preventDefault();
+            console.log('🔍 [USER-DETAIL] Mention clicked without user ID, looking up:', username);
+            
+            if (window.chatSection?.mentionHandler?.availableUsers) {
+                const user = window.chatSection.mentionHandler.availableUsers.get(username.toLowerCase());
+                if (user && user.id) {
+                    console.log('✅ [USER-DETAIL] Found user in cache:', user);
+                    userDetailModal.show({
+                        userId: user.id,
+                        serverId,
+                        triggerElement: trigger
+                    });
+                    return;
+                }
+            }
+            
+            console.log('🔍 [USER-DETAIL] User not in cache, attempting API lookup');
         }
     }
 });

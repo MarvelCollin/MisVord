@@ -556,7 +556,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="password" id="new-password-input" 
                                class="w-full bg-discord-dark border border-gray-600 rounded-md px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                                placeholder="Enter new password">
-                        <div class="text-xs text-gray-400 mt-1">Must be at least 8 characters with uppercase, number</div>
+                        <div class="text-xs text-gray-400 mt-1">
+                            • At least 8 characters • One uppercase letter • One number<br>
+                            • Must be different from your current password
+                        </div>
                     </div>
                     
                     <div class="space-y-3">

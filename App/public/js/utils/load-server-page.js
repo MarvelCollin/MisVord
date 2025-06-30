@@ -166,8 +166,8 @@ export function loadServerPage(serverId, channelId = null) {
                 console.error('[Server AJAX] Global switch lock released due to error');
                 
                 setTimeout(() => {
-                    console.error('[Server AJAX] FALLBACK - Redirecting to /server/' + serverId);
-                    window.location.href = `/server/${serverId}`;
+                console.error('[Server AJAX] FALLBACK - Redirecting to /server/' + serverId);
+                window.location.href = `/server/${serverId}`;
                 }, 100);
             }
             });
@@ -252,14 +252,16 @@ function updateServerLayout(html, serverId, channelId) {
             console.log('[Server Layout] Executing inline scripts');
             executeInlineScripts(doc);
             
+            const actualChannelId = getActiveChannelFromLayout(currentLayout) || channelId;
             let url = `/server/${serverId}`;
-            if (channelId) {
-                url += `?channel=${channelId}`;
+            if (actualChannelId) {
+                url += `?channel=${actualChannelId}`;
             }
             
             console.log('[Server Layout] Updating browser history to:', url);
+            console.log('[Server Layout] Active channel ID:', actualChannelId);
             history.pushState(
-                { pageType: 'server', serverId, channelId }, 
+                { pageType: 'server', serverId, channelId: actualChannelId }, 
                 `misvord - Server`, 
                 url
             );
@@ -354,6 +356,40 @@ function executeInlineScripts(doc) {
             }
         }
     });
+}
+
+function getActiveChannelFromLayout(layoutContainer) {
+    if (!layoutContainer) return null;
+    
+    const activeChannelInput = layoutContainer.querySelector('#active-channel-id');
+    if (activeChannelInput && activeChannelInput.value) {
+        console.log('[Server Layout] Found active channel from input:', activeChannelInput.value);
+        return activeChannelInput.value;
+    }
+    
+    const activeChannelElement = layoutContainer.querySelector('.channel-item.active-channel, .channel-item.active');
+    if (activeChannelElement) {
+        const channelId = activeChannelElement.getAttribute('data-channel-id');
+        console.log('[Server Layout] Found active channel from element:', channelId);
+        return channelId;
+    }
+    
+    const firstTextChannel = layoutContainer.querySelector('.channel-item[data-channel-type="text"]');
+    if (firstTextChannel) {
+        const channelId = firstTextChannel.getAttribute('data-channel-id');
+        console.log('[Server Layout] Using first text channel as active:', channelId);
+        return channelId;
+    }
+    
+    const chatSection = layoutContainer.querySelector('.chat-section[data-channel-id]');
+    if (chatSection) {
+        const channelId = chatSection.getAttribute('data-channel-id');
+        console.log('[Server Layout] Found active channel from chat section:', channelId);
+        return channelId;
+    }
+    
+    console.log('[Server Layout] No active channel found in layout');
+    return null;
 }
 
 function initServerDropdownManual() {

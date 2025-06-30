@@ -98,29 +98,33 @@ class FriendsManager {
         }
 
         try {
-            const response = await window.FriendAPI.getPendingRequests();
+            const response = await window.userAPI.getPendingRequests();
             
             let pending = { incoming: [], outgoing: [] };
             
-            if (response && typeof response === 'object') {
-                if (response.success && response.data) {
+            if (response && response.success && response.data) {
                     pending = {
                         incoming: Array.isArray(response.data.incoming) ? response.data.incoming : [],
-                        outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : []
+                    outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : [],
+                    count: response.data.count || 0,
+                    total_count: response.data.total_count || 0
                     };
-                } else if (response.data) {
+            } else if (response && response.data) {
                     pending = {
                         incoming: Array.isArray(response.data.incoming) ? response.data.incoming : [],
-                        outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : []
+                    outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : [],
+                    count: response.data.count || 0,
+                    total_count: response.data.total_count || 0
                     };
-                } else if (response.incoming !== undefined && response.outgoing !== undefined) {
+            } else if (response && response.incoming !== undefined && response.outgoing !== undefined) {
                     pending = {
                         incoming: Array.isArray(response.incoming) ? response.incoming : [],
-                        outgoing: Array.isArray(response.outgoing) ? response.outgoing : []
+                    outgoing: Array.isArray(response.outgoing) ? response.outgoing : [],
+                    count: response.count || 0,
+                    total_count: response.total_count || 0
                     };
-                } else if (response.success === false) {
+            } else if (response && response.success === false) {
                     console.warn('Pending requests API returned error:', response.error || response.message);
-                }
             }
             
             this.cache.pendingRequests = pending;
@@ -153,25 +157,25 @@ class FriendsManager {
     }
 
     async sendFriendRequest(username) {
-        const result = await window.FriendAPI.sendFriendRequest(username);
+        const result = await window.userAPI.sendFriendRequest(username);
         this.invalidateCache('pending');
         return result;
     }
 
     async acceptFriendRequest(friendshipId) {
-        const result = await window.FriendAPI.acceptFriendRequest(friendshipId);
+        const result = await window.userAPI.acceptFriendRequest(friendshipId);
         this.invalidateCache(['friends', 'pending']);
         return result;
     }
 
     async declineFriendRequest(friendshipId) {
-        const result = await window.FriendAPI.declineFriendRequest(friendshipId);
+        const result = await window.userAPI.declineFriendRequest(friendshipId);
         this.invalidateCache('pending');
         return result;
     }
 
     async removeFriend(userId) {
-        const result = await window.FriendAPI.removeFriend(userId);
+        const result = await window.userAPI.cancelFriendRequest(userId);
         this.invalidateCache('friends');
         return result;
     }

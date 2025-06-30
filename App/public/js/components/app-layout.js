@@ -1,16 +1,14 @@
 import '../api/friend-api.js';
+import '../api/user-api.js';
 import '../utils/friends-manager.js';
+import '../core/ui/toast.js';
 
 const friendAPI = window.FriendAPI;
 
 document.addEventListener('DOMContentLoaded', function () {
-    initServerModal();
-    initDirectMessageModal();
     initTabHandling();
     initFriendRequestForm();
-    initResponsiveHandling();
-    initMobileMenu();
-            
+    
     if (window.location.pathname === '/home/friends' || window.location.pathname === '/home') {
         const urlParams = new URLSearchParams(window.location.search);
         const tab = urlParams.get('tab') || 'online';
@@ -18,38 +16,43 @@ document.addEventListener('DOMContentLoaded', function () {
         activateTab(tab);
     }
 
-    const createServerButtons = document.querySelectorAll('[data-action="create-server"]');
-    if (createServerButtons.length > 0) {
-        console.log('Found create server buttons in app-layout.js:', createServerButtons.length);
+    requestAnimationFrame(() => {
+        initServerModal();
+        initDirectMessageModal();
+        initResponsiveHandling();
+        initMobileMenu();
         
-        createServerButtons.forEach(button => {
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
+        const createServerButtons = document.querySelectorAll('[data-action="create-server"]');
+        if (createServerButtons.length > 0) {
+            console.log('Found create server buttons in app-layout.js:', createServerButtons.length);
             
-            newButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Create server button clicked from app-layout.js');
+            createServerButtons.forEach(button => {
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
                 
-                const modal = document.getElementById('create-server-modal');
-                if (modal) {
-                    console.log('Modal found, opening directly');
-                    modal.classList.remove('hidden');
-                    modal.style.display = 'flex';
+                newButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Create server button clicked from app-layout.js');
                     
-                    requestAnimationFrame(() => {
-                        modal.classList.remove('opacity-0');
-                    });
-                } else {
-                    console.error('Modal not found in the DOM from app-layout.js');
-                }
+                    const modal = document.getElementById('create-server-modal');
+                    if (modal) {
+                        console.log('Modal found, opening directly');
+                        modal.classList.remove('hidden');
+                        modal.style.display = 'flex';
+                        
+                        requestAnimationFrame(() => {
+                            modal.classList.remove('opacity-0');
+                        });
+                    } else {
+                        console.error('Modal not found in the DOM from app-layout.js');
+                    }
+                });
             });
-        });
-    }
-
-    const friendsManager = window.FriendsManager.getInstance();
-    
-    initializeOnPageLoad();
+        }
+        
+        initializeOnPageLoad();
+    });
 });
 
 function initServerModal() {
@@ -146,7 +149,7 @@ function loadFriendsForDM() {
 
     if (!friendsList) return;
 
-    friendsList.innerHTML = generateSkeletonItems(5);
+    friendsList.innerHTML = generateSkeletonItems(3);
 
     friendAPI.getFriends()
         .then(friends => {
@@ -346,13 +349,10 @@ async function loadAllFriends() {
     
     const friendsManager = window.FriendsManager.getInstance();
     
-    container.innerHTML = generateSkeletonFriends(5);
+    container.innerHTML = generateSkeletonFriends(3);
     
     try {
-        const [friends, onlineUsers] = await Promise.all([
-            friendsManager.getFriends(),
-            friendsManager.getOnlineUsers()
-        ]);
+        const friends = await friendsManager.getFriends();
 
         if (!friends || friends.length === 0) {
             container.innerHTML = `
@@ -375,10 +375,7 @@ async function loadAllFriends() {
         }
         
         friends.forEach(friend => {
-            const isOnlineInSocket = onlineUsers[friend.id] !== undefined;
-            const socketStatus = isOnlineInSocket ? onlineUsers[friend.id].status || 'online' : 'offline';
-            
-            const status = isOnlineInSocket ? socketStatus : 'offline';
+            const status = 'offline';
             const statusColor = friendsManager.getStatusColor(status);
             const statusText = friendsManager.getStatusText(status);
             
@@ -416,28 +413,24 @@ async function loadAllFriends() {
     }
 }
 
-function generateSkeletonFriends(count) {
-    let skeletonHtml = '';
-
-    for (let i = 0; i < count; i++) {
-        skeletonHtml += `
-            <div class="skeleton-item flex justify-between items-center p-2">
-                <div class="flex items-center">
-                    <div class="skeleton skeleton-avatar mr-3"></div>
-                    <div>
-                        <div class="skeleton skeleton-text mb-1"></div>
-                        <div class="skeleton skeleton-text-sm"></div>
-                    </div>
-                </div>
-                <div class="flex space-x-2">
-                    <div class="skeleton w-8 h-8 rounded-full"></div>
-                    <div class="skeleton w-8 h-8 rounded-full"></div>
+function generateSkeletonFriends(count = 3) {
+    const skeletonItems = Array(count).fill().map(() => `
+        <div class="skeleton-item flex justify-between items-center p-2">
+            <div class="flex items-center">
+                <div class="skeleton skeleton-avatar mr-3"></div>
+                <div>
+                    <div class="skeleton skeleton-text mb-1"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
                 </div>
             </div>
-        `;
-    }
+            <div class="flex space-x-2">
+                <div class="skeleton w-8 h-8 rounded-full"></div>
+                <div class="skeleton w-8 h-8 rounded-full"></div>
+            </div>
+        </div>
+    `).join('');
 
-    return skeletonHtml;
+    return skeletonItems;
 }
 
 async function loadPendingRequests() {
@@ -480,9 +473,9 @@ async function loadPendingRequests() {
                                     </div>
                                 </div>
                                 <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
-                                    <button class="bg-discord-green hover:bg-discord-green/90 text-white rounded-md px-3 py-2 sm:py-1 text-sm order-1 sm:order-none"
+                                    <button class="bg-discord-green hover:bg-discord-green/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm order-1 sm:order-none transition-colors"
                                             onclick="acceptFriendRequest('${user.friendship_id}')">Accept</button>
-                                    <button class="bg-discord-dark hover:bg-discord-light text-white rounded-md px-3 py-2 sm:py-1 text-sm border border-gray-600 order-2 sm:order-none"
+                                    <button class="bg-discord-dark hover:bg-discord-light disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm border border-gray-600 order-2 sm:order-none transition-colors"
                                             onclick="ignoreFriendRequest('${user.friendship_id}')">Ignore</button>
                                 </div>
                             </div>
@@ -509,7 +502,7 @@ async function loadPendingRequests() {
                                     </div>
                                 </div>
                                 <div class="self-start sm:self-auto">
-                                    <button class="bg-discord-red hover:bg-discord-red/90 text-white rounded-md px-3 py-2 sm:py-1 text-sm w-full sm:w-auto"
+                                    <button class="bg-discord-red hover:bg-discord-red/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm w-full sm:w-auto transition-colors"
                                             onclick="cancelFriendRequest('${user.id}')">Cancel</button>
                                 </div>
                             </div>
@@ -552,111 +545,105 @@ async function loadPendingRequests() {
 function generateSkeletonPending() {
     return `
         <h3 class="skeleton w-32 h-4 mb-4"></h3>
-        ${generateSkeletonPendingItems(2)}
+        ${generateSkeletonPendingItems(1)}
         
         <h3 class="skeleton w-32 h-4 my-4"></h3>
         ${generateSkeletonPendingItems(1)}
     `;
 }
 
-function generateSkeletonPendingItems(count) {
-    let html = '<div class="space-y-2">';
-
-    for (let i = 0; i < count; i++) {
-        html += `
-            <div class="skeleton-item flex items-center justify-between p-2">
-                <div class="flex items-center">
-                    <div class="skeleton skeleton-avatar mr-3" style="width: 40px; height: 40px;"></div>
-                    <div>
-                        <div class="skeleton skeleton-text mb-1"></div>
-                        <div class="skeleton skeleton-text-sm"></div>
-                    </div>
-                </div>
-                <div class="flex space-x-2">
-                    <div class="skeleton w-16 h-8 rounded"></div>
-                    <div class="skeleton w-16 h-8 rounded"></div>
+function generateSkeletonPendingItems(count = 1) {
+    const skeletonItems = Array(count).fill().map(() => `
+        <div class="skeleton-item flex items-center justify-between p-2">
+            <div class="flex items-center">
+                <div class="skeleton skeleton-avatar mr-3" style="width: 40px; height: 40px;"></div>
+                <div>
+                    <div class="skeleton skeleton-text mb-1"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
                 </div>
             </div>
-        `;
-    }
+            <div class="flex space-x-2">
+                <div class="skeleton w-16 h-8 rounded"></div>
+                <div class="skeleton w-16 h-8 rounded"></div>
+            </div>
+        </div>
+    `).join('');
 
-    html += '</div>';
-    return html;
+    return `<div class="space-y-2">${skeletonItems}</div>`;
 }
 
 async function acceptFriendRequest(friendshipId) {
+    const button = event.target;
+    const originalText = button.textContent;
+    
     try {
-        const response = await fetch(`/api/friends/accept?id=${friendshipId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            credentials: 'include'
-        });
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Accepting...';
         
-        const data = await response.json();
+        const result = await window.userAPI.acceptFriendRequest(friendshipId);
         
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to accept friend request');
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to accept friend request');
         }
         
-        showToast('Friend request accepted!', 'success');
+        window.showToast('Friend request accepted!', 'success');
         loadPendingRequests();
     } catch (error) {
         console.error('Error accepting friend request:', error);
-        showToast(error.message || 'Failed to accept friend request', 'error');
+        window.showToast(error.message || 'Failed to accept friend request', 'error');
+        
+        button.disabled = false;
+        button.textContent = originalText;
     }
 }
 
 async function ignoreFriendRequest(friendshipId) {
+    const button = event.target;
+    const originalText = button.textContent;
+    
     try {
-        const response = await fetch(`/api/friends/decline?id=${friendshipId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            credentials: 'include'
-        });
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Ignoring...';
         
-        const data = await response.json();
+        const result = await window.userAPI.declineFriendRequest(friendshipId);
         
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to ignore friend request');
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to ignore friend request');
         }
         
-        showToast('Friend request ignored', 'info');
+        window.showToast('Friend request ignored', 'info');
         loadPendingRequests();
     } catch (error) {
         console.error('Error ignoring friend request:', error);
-        showToast(error.message || 'Failed to ignore friend request', 'error');
+        window.showToast(error.message || 'Failed to ignore friend request', 'error');
+        
+        button.disabled = false;
+        button.textContent = originalText;
     }
 }
 
 async function cancelFriendRequest(userId) {
+    const button = event.target;
+    const originalText = button.textContent;
+    
     try {
-        const response = await fetch('/api/friends', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({ user_id: userId })
-        });
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Canceling...';
         
-        const data = await response.json();
+        const result = await window.userAPI.cancelFriendRequest(userId);
         
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to cancel friend request');
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to cancel friend request');
         }
         
-        showToast('Friend request cancelled', 'info');
+        window.showToast('Friend request cancelled', 'info');
         loadPendingRequests();
     } catch (error) {
         console.error('Error cancelling friend request:', error);
-        showToast(error.message || 'Failed to cancel friend request', 'error');
+        window.showToast(error.message || 'Failed to cancel friend request', 'error');
+        
+        button.disabled = false;
+        button.textContent = originalText;
     }
 }
 
@@ -710,7 +697,7 @@ function initFriendRequestForm() {
                 errorDiv.textContent = validation.message;
                 errorDiv.classList.remove('hidden');
             }
-        }, 300);
+        }, 100);
     });
 
     sendFriendRequestBtn.addEventListener('click', async function () {
@@ -719,31 +706,27 @@ function initFriendRequestForm() {
         const username = friendUsernameInput.value.trim();
         if (!username) return;
 
+        const originalText = this.textContent;
         updateButtonState(false);
         clearMessages();
+        
+        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Sending...';
 
         try {
-            const response = await fetch('/api/friends', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify({ username })
-            });
+            const result = await window.userAPI.sendFriendRequest(username);
             
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to send friend request');
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to send friend request');
             }
 
+            window.showToast('Friend request sent!', 'success');
+            
             if (successDiv) {
                 successDiv.textContent = 'Friend request sent!';
                 successDiv.classList.remove('hidden');
             }
             friendUsernameInput.value = '';
+            this.textContent = originalText;
             updateButtonState(false);
 
             if (window.FriendsManager) {
@@ -753,16 +736,18 @@ function initFriendRequestForm() {
 
         } catch (error) {
             console.error('Error sending friend request:', error);
+            window.showToast(error.message || 'Failed to send friend request', 'error');
+            
             if (errorDiv) {
                 errorDiv.textContent = error.message || 'Failed to send friend request';
                 errorDiv.classList.remove('hidden');
             }
+            
+            this.textContent = originalText;
             updateButtonState(!!friendUsernameInput.value.trim());
         }
     });
 }
-
-
 
 function updatePendingCountDisplay(count) {
     const pendingTab = document.querySelector('button[data-tab="pending"]');
@@ -776,8 +761,8 @@ function updatePendingCountDisplay(count) {
 }
 
 function showToast(message, type = 'info') {
-    if (typeof window.Toast === 'function') {
-        window.Toast(message, { type });
+    if (typeof window.showToast === 'function') {
+        window.showToast(message, type);
     } else {
         console.log(type + ': ' + message);
     }
@@ -847,6 +832,22 @@ function initMobileMenu() {
     
     if (!toggleBtn || !mobileMenu) return;
     
+    function closeMobileMenu() {
+        mobileMenu.style.maxHeight = '0px';
+        
+        setTimeout(() => {
+            mobileMenu.classList.add('hidden');
+            mobileMenu.style.maxHeight = '';
+            mobileMenu.style.overflow = '';
+            mobileMenu.style.transition = '';
+        }, 300);
+        
+        if (menuIcon) {
+            menuIcon.classList.remove('fa-times');
+            menuIcon.classList.add('fa-bars');
+        }
+    }
+    
     toggleBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -868,63 +869,26 @@ function initMobileMenu() {
                 menuIcon.classList.add('fa-times');
             }
         } else {
-            mobileMenu.style.maxHeight = '0px';
-            
-            setTimeout(() => {
-                mobileMenu.classList.add('hidden');
-                mobileMenu.style.maxHeight = '';
-                mobileMenu.style.overflow = '';
-                mobileMenu.style.transition = '';
-            }, 300);
-            
-            if (menuIcon) {
-                menuIcon.classList.remove('fa-times');
-                menuIcon.classList.add('fa-bars');
-            }
+            closeMobileMenu();
         }
     });
     
-    const mobileMenuLinks = mobileMenu.querySelectorAll('a[data-tab]');
-    mobileMenuLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            mobileMenu.style.maxHeight = '0px';
-            
-            setTimeout(() => {
-                mobileMenu.classList.add('hidden');
-                mobileMenu.style.maxHeight = '';
-                mobileMenu.style.overflow = '';
-                mobileMenu.style.transition = '';
-            }, 300);
-            
-            if (menuIcon) {
-                menuIcon.classList.remove('fa-times');
-                menuIcon.classList.add('fa-bars');
-            }
-        });
+    mobileMenu.addEventListener('click', function(e) {
+        if (e.target.closest('a[data-tab]')) {
+            closeMobileMenu();
+        }
     });
     
     document.addEventListener('click', function(e) {
         if (!toggleBtn.contains(e.target) && !mobileMenu.contains(e.target)) {
             if (!mobileMenu.classList.contains('hidden')) {
-                mobileMenu.style.maxHeight = '0px';
-                
-                setTimeout(() => {
-                    mobileMenu.classList.add('hidden');
-                    mobileMenu.style.maxHeight = '';
-                    mobileMenu.style.overflow = '';
-                    mobileMenu.style.transition = '';
-                }, 300);
-                
-                if (menuIcon) {
-                    menuIcon.classList.remove('fa-times');
-                    menuIcon.classList.add('fa-bars');
-                }
+                closeMobileMenu();
             }
         }
     });
     
     window.addEventListener('resize', function() {
-        if (window.innerWidth >= 768) {
+        if (window.innerWidth >= 768 && !mobileMenu.classList.contains('hidden')) {
             mobileMenu.classList.add('hidden');
             mobileMenu.style.maxHeight = '';
             mobileMenu.style.overflow = '';
@@ -941,14 +905,14 @@ function initMobileMenu() {
 function initializeOnPageLoad() {
     const currentPath = window.location.pathname;
     if (currentPath.includes('/friends')) {
-        const friendsManager = window.FriendsManager.getInstance();
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab') || 'online';
         
-        const debouncedLoadFriends = friendsManager.debounce(() => {
+        if (tab === 'all') {
             loadAllFriends();
+        } else if (tab === 'pending') {
             loadPendingRequests();
-        }, 100);
-        
-        debouncedLoadFriends();
+        }
     }
 }
 

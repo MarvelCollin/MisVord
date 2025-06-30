@@ -204,10 +204,10 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                                     </div>
                                 </div>
                                 <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
-                                    <button class="bg-discord-green hover:bg-discord-green/90 text-white rounded-md px-3 py-2 sm:py-1 text-sm order-1 sm:order-none"
+                                    <button class="bg-discord-green hover:bg-discord-green/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm order-1 sm:order-none transition-colors"
                                             onclick="acceptFriendRequest('<?php echo htmlspecialchars($request['friendship_id']); ?>')">Accept</button>
-                                    <button class="bg-discord-dark hover:bg-discord-light text-white rounded-md px-3 py-2 sm:py-1 text-sm border border-gray-600 order-2 sm:order-none"
-                                            onclick="declineFriendRequest('<?php echo htmlspecialchars($request['friendship_id']); ?>')">Ignore</button>
+                                    <button class="bg-discord-dark hover:bg-discord-light disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm border border-gray-600 order-2 sm:order-none transition-colors"
+                                            onclick="ignoreFriendRequest('<?php echo htmlspecialchars($request['friendship_id']); ?>')">Ignore</button>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -230,7 +230,7 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                                     </div>
                                 </div>
                                 <div class="self-start sm:self-auto">
-                                    <button class="bg-discord-red hover:bg-discord-red/90 text-white rounded-md px-3 py-2 sm:py-1 text-sm w-full sm:w-auto"
+                                    <button class="bg-discord-red hover:bg-discord-red/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm w-full sm:w-auto transition-colors"
                                             onclick="cancelFriendRequest('<?php echo htmlspecialchars($request['id']); ?>')">Cancel</button>
                                 </div>
                             </div>
@@ -262,7 +262,7 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                     <div class="flex flex-col sm:flex-row mt-2 gap-2 sm:gap-0">
                         <input type="text" class="flex-1 bg-discord-dark text-white px-3 py-2 sm:rounded-l rounded border border-gray-700 focus:outline-none focus:ring-1 focus:ring-discord-primary" 
                                placeholder="Username#XXXX" id="friend-username-input">
-                        <button class="bg-discord-primary text-white px-4 py-2 sm:rounded-r rounded font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base" disabled id="send-friend-request">
+                        <button class="bg-discord-primary hover:bg-discord-primary/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 sm:rounded-r rounded font-medium text-sm sm:text-base transition-colors" disabled id="send-friend-request">
                             Send Friend Request
                         </button>
                     </div>
