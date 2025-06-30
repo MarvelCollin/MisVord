@@ -339,6 +339,11 @@ Route::get('/api/servers/([0-9]+)/membership', function($serverId) {
     $controller->getUserServerMembership($serverId);
 });
 
+Route::get('/api/servers/([0-9]+)/debug-membership', function($serverId) {
+    $controller = new ServerController();
+    $controller->debugMembership($serverId);
+});
+
 Route::post('/api/channels/position', function() {
     $controller = new ChannelController();
     $controller->updateChannelPosition();

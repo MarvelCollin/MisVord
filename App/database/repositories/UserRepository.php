@@ -591,6 +591,7 @@ class UserRepository extends Repository {
         }
         
         return $builder
+            ->orderBy('has_nitro', 'ASC')
             ->orderBy('u.username', 'ASC')
             ->limit($limit)
             ->offset($offset)
@@ -612,7 +613,8 @@ class UserRepository extends Repository {
         }
         
         return $queryBuilder
-            ->orderBy('u.created_at', 'DESC')
+            ->orderBy('has_nitro', 'ASC')
+            ->orderBy('u.username', 'ASC')
             ->limit($limit)
             ->offset($offset)
             ->get();
