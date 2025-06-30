@@ -1108,13 +1108,21 @@ class UserController extends BaseController
 
     public function getAllUsers()
     {
-        $this->requireAuth();
+        error_log("getAllUsers called - checking authentication");
         
-        $currentUserId = $this->getCurrentUserId();
+        if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+            error_log("getAllUsers - No authentication found");
+            return $this->unauthorized('Authentication required');
+        }
+        
+        $currentUserId = $_SESSION['user_id'];
+        error_log("getAllUsers - User authenticated: " . $currentUserId);
         
         try {
             $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 50;
             $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+            
+            error_log("getAllUsers - Query params: limit=$limit, search='$search'");
             
             $query = new \Query();
             $queryBuilder = $query->table('users')
@@ -1134,6 +1142,8 @@ class UserController extends BaseController
                 ->limit($limit)
                 ->get();
             
+            error_log("getAllUsers - Found " . count($results) . " users");
+            
             $users = [];
             foreach ($results as $result) {
                 $users[] = [
@@ -1145,10 +1155,16 @@ class UserController extends BaseController
                 ];
             }
             
-            return $this->success([
+            $response = [
+                'success' => true,
                 'users' => $users,
-                'total' => count($users)
-            ]);
+                'total' => count($users),
+                'message' => 'Users retrieved successfully'
+            ];
+            
+            error_log("getAllUsers - Response: " . json_encode($response));
+            
+            return $this->jsonResponse($response);
         } catch (Exception $e) {
             error_log("Error getting all users: " . $e->getMessage());
             return $this->serverError('Failed to get users: ' . $e->getMessage());

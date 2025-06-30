@@ -54,6 +54,16 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script src="<?php echo js('api/media-api'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('api/user-api'); ?>?v=<?php echo time(); ?>"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.userAPI && window.userAPI.getAllUsers) {
+        console.log("✅ UserAPI getAllUsers method available");
+    } else {
+        console.error("❌ UserAPI getAllUsers method not available");
+        console.log("UserAPI object:", window.userAPI);
+    }
+});
+</script>
 <script src="<?php echo js('api/friend-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/channel-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/server-api'); ?>?v=<?php echo time(); ?>" type="module"></script>

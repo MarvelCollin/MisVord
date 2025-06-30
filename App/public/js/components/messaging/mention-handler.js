@@ -78,6 +78,20 @@ class MentionHandler {
             .mention-autocomplete-item {
                 transition: background-color 0.1s ease;
             }
+            .mention-autocomplete.hidden {
+                transition: opacity 0.1s ease, visibility 0s linear 0.1s;
+                opacity: 0;
+                visibility: hidden;
+            }
+            .mention-autocomplete:not(.hidden) {
+                transition: opacity 0.1s ease;
+                opacity: 1;
+                visibility: visible;
+            }
+            .mention-input-overlay {
+                font-weight: 500;
+                text-shadow: 0 0 3px rgba(88, 101, 242, 0.5);
+            }
         `;
         
         if (!document.querySelector('style[data-mention-styles]')) {
@@ -533,6 +547,8 @@ class MentionHandler {
     }
     
     selectCurrentMention() {
+        this.hideAutocomplete();
+        
         const items = this.autocompleteContainer.querySelectorAll('.mention-autocomplete-item');
         if (this.selectedIndex < 0 || this.selectedIndex >= items.length) return;
         
@@ -540,7 +556,6 @@ class MentionHandler {
         const mentionText = selectedItem.querySelector('span').textContent;
         
         this.insertMention(mentionText);
-        this.hideAutocomplete();
     }
     
     insertMention(mentionText) {
@@ -557,6 +572,72 @@ class MentionHandler {
         const newCursorPosition = this.mentionStartIndex + mentionText.length + 1;
         input.setSelectionRange(newCursorPosition, newCursorPosition);
         input.focus();
+        
+        this.applyInstantMentionStyling(input, this.mentionStartIndex, mentionText.length);
+    }
+    
+    applyInstantMentionStyling(input, startIndex, length) {
+        const inputRect = input.getBoundingClientRect();
+        const inputStyle = window.getComputedStyle(input);
+        
+        // Calculate text position
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.font = `${inputStyle.fontSize} ${inputStyle.fontFamily}`;
+        
+        const beforeText = input.value.substring(0, startIndex);
+        const beforeWidth = ctx.measureText(beforeText).width;
+        const mentionWidth = ctx.measureText(input.value.substring(startIndex, startIndex + length)).width;
+        
+        // Create styling overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'mention-input-overlay';
+        overlay.style.cssText = `
+            position: absolute;
+            left: ${inputRect.left + beforeWidth + 8}px;
+            top: ${inputRect.top + 8}px;
+            width: ${mentionWidth}px;
+            height: ${inputRect.height - 16}px;
+            background: rgba(88, 101, 242, 0.2);
+            color: #5865f2;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 1000;
+            font-family: ${inputStyle.fontFamily};
+            font-size: ${inputStyle.fontSize};
+            line-height: ${inputRect.height - 16}px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        `;
+        
+        overlay.textContent = input.value.substring(startIndex, startIndex + length);
+        document.body.appendChild(overlay);
+        
+        // Animate in
+        requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+        });
+        
+        // Remove after animation
+        setTimeout(() => {
+            if (overlay.parentNode) {
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 200);
+            }
+        }, 1500);
+        
+        // Apply visual feedback to input
+        input.style.transition = 'box-shadow 0.2s ease';
+        input.style.boxShadow = '0 0 0 2px rgba(88, 101, 242, 0.3)';
+        
+        setTimeout(() => {
+            input.style.boxShadow = '';
+        }, 800);
     }
     
     hideAutocomplete() {

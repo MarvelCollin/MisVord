@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const groupImageInput = document.getElementById('group-image-input');
     let selectedUserIds = new Set();
     let allUsers = [];
+    let searchTimeout = null;
 
     function loadAllUsers() {
         const usersList = document.getElementById('dm-users-list');
@@ -68,33 +69,64 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!usersList) return;
         
+        console.log('🔍 loadAllUsers called');
         usersList.innerHTML = generateSkeletonItems(5);
         
-        if (window.userAPI) {
-            window.userAPI.getAllUsers()
-                .then(response => {
-                    usersList.innerHTML = '';
+        if (!window.userAPI) {
+            console.error('❌ window.userAPI not available');
+            usersList.innerHTML = '<div class="text-gray-400 text-center py-2">User API not available</div>';
+            return;
+        }
+        
+        if (!window.userAPI.getAllUsers) {
+            console.error('❌ window.userAPI.getAllUsers method not available');
+            usersList.innerHTML = '<div class="text-gray-400 text-center py-2">getAllUsers method not found</div>';
+            return;
+        }
+        
+        console.log('🔗 Calling userAPI.getAllUsers()');
+        window.userAPI.getAllUsers()
+            .then(response => {
+                console.log('📥 getAllUsers response:', response);
+                usersList.innerHTML = '';
+                
+                if (response && response.success) {
+                    let users = null;
+                    let total = 0;
                     
-                    if (response && response.success && response.users && response.users.length > 0) {
-                        allUsers = response.users;
+                    if (response.data && response.data.users && Array.isArray(response.data.users)) {
+                        users = response.data.users;
+                        total = response.data.total || users.length;
+                    } else if (response.users && Array.isArray(response.users)) {
+                        users = response.users;
+                        total = response.total || users.length;
+                    }
+                    
+                    if (users && users.length > 0) {
+                        console.log(`✅ Found ${users.length} users`);
+                        allUsers = users;
                         renderUsers(allUsers);
                         
                         if (noUsersMsg) {
                             noUsersMsg.classList.add('hidden');
                         }
                     } else {
+                        console.warn('⚠️ No users found in response');
                         if (noUsersMsg) {
                             noUsersMsg.classList.remove('hidden');
                         }
+                        
+                        usersList.innerHTML = '<div class="text-gray-400 text-center py-2">No users found</div>';
                     }
-                })
-                .catch(error => {
-                    console.error('Error loading users:', error);
-                    usersList.innerHTML = '<div class="text-gray-400 text-center py-2">Failed to load users</div>';
-                });
-        } else {
-            usersList.innerHTML = '<div class="text-gray-400 text-center py-2">User API not available</div>';
-        }
+                } else {
+                    console.error('❌ Invalid response format:', response);
+                    usersList.innerHTML = '<div class="text-gray-400 text-center py-2">Invalid response format</div>';
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error loading users:', error);
+                usersList.innerHTML = `<div class="text-gray-400 text-center py-2">Failed to load users: ${error.message}</div>`;
+            });
     }
 
     function renderUsers(users) {
@@ -360,31 +392,62 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const query = this.value.toLowerCase();
-            const users = modal.querySelectorAll('.modal-user-item');
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.trim();
             
-            let hasVisibleUsers = false;
-            
-            users.forEach(user => {
-                const username = user.getAttribute('data-username').toLowerCase();
-                if (username.includes(query)) {
-                    user.classList.remove('hidden');
-                    hasVisibleUsers = true;
-                } else {
-                    user.classList.add('hidden');
-                }
-            });
-            
-            const noUsersMsg = document.getElementById('no-dm-users');
-            if (noUsersMsg) {
-                noUsersMsg.classList.toggle('hidden', hasVisibleUsers);
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
             }
+            
+            searchTimeout = setTimeout(() => {
+                if (searchTerm.length >= 2) {
+                    performSearch(searchTerm);
+                } else if (searchTerm.length === 0) {
+                    renderUsers(allUsers);
+                }
+            }, 300);
         });
     }
 
     if (createButton) {
         createButton.addEventListener('click', createChat);
+    }
+
+    function performSearch(searchTerm) {
+        if (!window.userAPI) return;
+        
+        const usersList = document.getElementById('dm-users-list');
+        usersList.innerHTML = generateSkeletonItems(3);
+        
+        window.userAPI.getAllUsers(searchTerm)
+            .then(response => {
+                console.log('🔍 Search response:', response);
+                usersList.innerHTML = '';
+                
+                if (response && response.success) {
+                    let users = null;
+                    
+                    if (response.data && response.data.users && Array.isArray(response.data.users)) {
+                        users = response.data.users;
+                    } else if (response.users && Array.isArray(response.users)) {
+                        users = response.users;
+                    }
+                    
+                    if (users && users.length > 0) {
+                        console.log(`🔍 Found ${users.length} users matching search`);
+                        renderUsers(users);
+                    } else {
+                        usersList.innerHTML = '<div class="text-gray-400 text-center py-2">No users found</div>';
+                    }
+                } else {
+                    console.error('❌ Search failed:', response);
+                    usersList.innerHTML = '<div class="text-gray-400 text-center py-2">Search failed</div>';
+                }
+            })
+            .catch(error => {
+                console.error('❌ Search error:', error);
+                usersList.innerHTML = '<div class="text-gray-400 text-center py-2">Search error</div>';
+            });
     }
 });
 </script>

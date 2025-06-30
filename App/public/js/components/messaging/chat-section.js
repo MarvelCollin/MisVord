@@ -705,16 +705,28 @@ class ChatSection {
     }
     
     updateLoadMoreButton() {
+        const messagesContainer = this.getMessagesContainer();
+        if (!messagesContainer) {
+            console.error('❌ [CHAT-SECTION] Cannot update load more button: messages container not found');
+            return;
+        }
+        
         if (!this.loadMoreButton) {
             this.loadMoreButton = document.createElement('div');
             this.loadMoreButton.id = 'load-more-messages';
             this.loadMoreButton.className = 'load-more-messages text-center p-2 text-[#949ba4] hover:text-[#dcddde] cursor-pointer hidden';
             this.loadMoreButton.innerHTML = 'Load more messages';
             
-            if (this.chatMessages && this.chatMessages.firstChild) {
-                this.chatMessages.insertBefore(this.loadMoreButton, this.chatMessages.firstChild);
-            } else if (this.chatMessages) {
-                this.chatMessages.appendChild(this.loadMoreButton);
+            try {
+                if (messagesContainer.firstChild) {
+                    messagesContainer.insertBefore(this.loadMoreButton, messagesContainer.firstChild);
+                } else {
+                    messagesContainer.appendChild(this.loadMoreButton);
+                }
+                console.log('✅ [CHAT-SECTION] Load more button created and added to messages container');
+            } catch (error) {
+                console.error('❌ [CHAT-SECTION] Failed to add load more button:', error);
+                return;
             }
             
             this.loadMoreButton.addEventListener('click', () => {
@@ -730,6 +742,12 @@ class ChatSection {
     }
     
     showLoadingIndicator() {
+        const messagesContainer = this.getMessagesContainer();
+        if (!messagesContainer) {
+            console.error('❌ [CHAT-SECTION] Cannot show loading indicator: messages container not found');
+            return;
+        }
+        
         if (!this.loadingIndicator) {
             this.loadingIndicator = document.createElement('div');
             this.loadingIndicator.id = 'loading-indicator';
@@ -737,9 +755,17 @@ class ChatSection {
             this.loadingIndicator.innerHTML = `
                 <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#5865f2]"></div>
             `;
-            this.chatMessages.appendChild(this.loadingIndicator);
+            
+            try {
+                messagesContainer.appendChild(this.loadingIndicator);
+                console.log('✅ [CHAT-SECTION] Loading indicator created and appended to messages container');
+            } catch (error) {
+                console.error('❌ [CHAT-SECTION] Failed to append loading indicator:', error);
+                return;
+            }
         } else {
             this.loadingIndicator.classList.remove('hidden');
+            console.log('✅ [CHAT-SECTION] Loading indicator shown');
         }
     }
     
@@ -750,12 +776,30 @@ class ChatSection {
     }
     
     showEmptyState(message = null) {
-        // Create empty state if it doesn't exist
+        const messagesContainer = this.getMessagesContainer();
+        if (!messagesContainer) {
+            console.error('❌ [CHAT-SECTION] Cannot show empty state: messages container not found');
+            return;
+        }
+        
         if (!this.emptyStateContainer) {
             this.emptyStateContainer = document.createElement('div');
             this.emptyStateContainer.id = 'empty-state-container';
             this.emptyStateContainer.className = 'flex flex-col items-center justify-center h-full text-[#dcddde] p-4';
-            this.chatMessages.appendChild(this.emptyStateContainer);
+            
+            try {
+                const messagesContainer = this.getMessagesContainer();
+                if (messagesContainer) {
+                    messagesContainer.appendChild(this.emptyStateContainer);
+                    console.log('✅ [CHAT-SECTION] Empty state container created and appended to messages container');
+                } else {
+                    console.error('❌ [CHAT-SECTION] No messages container found for empty state');
+                    return;
+                }
+            } catch (error) {
+                console.error('❌ [CHAT-SECTION] Failed to append empty state container:', error);
+                return;
+            }
         }
         
         const defaultMessage = 'No messages yet. Be the first to send a message!';
@@ -767,6 +811,7 @@ class ChatSection {
         `;
         
         this.emptyStateContainer.classList.remove('hidden');
+        console.log('✅ [CHAT-SECTION] Empty state displayed with message:', displayMessage);
     }
     
     hideEmptyState() {
@@ -1413,24 +1458,42 @@ class ChatSection {
     
     scrollToBottom() {
         if (!this.chatMessages) {
+            console.warn('⚠️ [CHAT-SECTION] Chat messages container not found for scrolling, attempting to find DOM elements');
             this.findDOMElements();
+            
+            if (!this.chatMessages) {
+                console.error('❌ [CHAT-SECTION] Cannot scroll: chat messages container still not found');
+                return;
+            }
         }
-        if (this.chatMessages) {
+        
+        try {
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        } catch (error) {
+            console.error('❌ [CHAT-SECTION] Failed to scroll to bottom:', error);
         }
     }
     
     scrollToBottomIfNeeded() {
         if (!this.chatMessages) {
+            console.warn('⚠️ [CHAT-SECTION] Chat messages container not found for conditional scrolling, attempting to find DOM elements');
             this.findDOMElements();
+            
+            if (!this.chatMessages) {
+                console.error('❌ [CHAT-SECTION] Cannot check scroll position: chat messages container still not found');
+                return;
+            }
         }
-        if (!this.chatMessages) return;
         
-        const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
-        const isNearBottom = scrollTop + clientHeight >= scrollHeight - 200;
-        
-        if (isNearBottom) {
-            this.scrollToBottom();
+        try {
+            const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
+            const isNearBottom = scrollTop + clientHeight >= scrollHeight - 200;
+            
+            if (isNearBottom) {
+                this.scrollToBottom();
+            }
+        } catch (error) {
+            console.error('❌ [CHAT-SECTION] Failed to check scroll position:', error);
         }
     }
     
@@ -1471,10 +1534,27 @@ class ChatSection {
     
     getMessagesContainer() {
         if (!this.chatMessages) {
-            console.log('⚠️ [CHAT-SECTION] Chat messages element not found, attempting to find it...');
+            console.warn('⚠️ [CHAT-SECTION] Chat messages element not found, attempting to find it...');
             this.findDOMElements();
+            
+            if (!this.chatMessages) {
+                console.error('❌ [CHAT-SECTION] Cannot get messages container: chat messages element still not found after search');
+                return null;
+            }
         }
-        return this.chatMessages;
+        
+        try {
+            const messagesContainer = this.chatMessages.querySelector('.messages-container');
+            if (messagesContainer) {
+                return messagesContainer;
+            } else {
+                console.warn('⚠️ [CHAT-SECTION] .messages-container not found inside #chat-messages, returning #chat-messages as fallback');
+                return this.chatMessages;
+            }
+        } catch (error) {
+            console.error('❌ [CHAT-SECTION] Error accessing chat messages container:', error);
+            return null;
+        }
     }
     
     formatMessageContent(content) {
@@ -1700,12 +1780,9 @@ class ChatSection {
     clearChatMessages() {
         console.log('🧹 [CHAT-SECTION] Clearing chat messages');
         
-        if (!this.chatMessages) {
-            this.findDOMElements();
-        }
-        
-        if (this.chatMessages) {
-            this.chatMessages.innerHTML = '';
+        const messagesContainer = this.getMessagesContainer();
+        if (messagesContainer) {
+            messagesContainer.innerHTML = '';
         }
         
         if (this.messageHandler) {
@@ -1747,12 +1824,10 @@ class ChatSection {
     }
     
     cleanupEmptyMessages() {
-        if (!this.chatMessages) {
-            this.findDOMElements();
-        }
-        if (!this.chatMessages) return;
+        const messagesContainer = this.getMessagesContainer();
+        if (!messagesContainer) return;
         
-        const emptyGroups = this.chatMessages.querySelectorAll('.bubble-message-group[data-user-id="0"][data-timestamp="0"]');
+        const emptyGroups = messagesContainer.querySelectorAll('.bubble-message-group[data-user-id="0"][data-timestamp="0"]');
         emptyGroups.forEach(group => {
             const messageId = group.querySelector('[data-message-id]')?.dataset.messageId;
             if (!messageId || messageId === '' || messageId === '0') {
@@ -1761,7 +1836,7 @@ class ChatSection {
             }
         });
         
-        const emptyMessages = this.chatMessages.querySelectorAll('[data-message-id=""], [data-message-id="0"]');
+        const emptyMessages = messagesContainer.querySelectorAll('[data-message-id=""], [data-message-id="0"]');
         emptyMessages.forEach(msg => {
             const messageGroup = msg.closest('.bubble-message-group');
             if (messageGroup) {
@@ -1770,7 +1845,7 @@ class ChatSection {
             }
         });
         
-        const remainingMessages = this.chatMessages.querySelectorAll('.bubble-message-group');
+        const remainingMessages = messagesContainer.querySelectorAll('.bubble-message-group');
         if (remainingMessages.length === 0) {
             this.showEmptyState();
         }
