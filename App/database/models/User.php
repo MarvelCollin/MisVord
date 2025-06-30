@@ -189,7 +189,6 @@ class User extends Model {
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         INDEX username_idx (username),
-                        INDEX username_discriminator_idx (username, discriminator),
                         INDEX email_idx (email),
                         INDEX google_id_idx (google_id)
                     )

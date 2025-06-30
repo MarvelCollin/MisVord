@@ -1,8 +1,10 @@
 class ChannelSwitchManager {
     constructor() {
-        if (window.channelSwitchManager) {
+        if (window.channelSwitchManager && window.channelSwitchManager !== this) {
             console.log('[ChannelSwitchManager] Cleaning up existing instance before creating new one');
-            window.channelSwitchManager.cleanup();
+            if (typeof window.channelSwitchManager.cleanup === 'function') {
+                window.channelSwitchManager.cleanup();
+            }
         }
         
         this.isLoading = false;
@@ -12,6 +14,7 @@ class ChannelSwitchManager {
         this.switchQueue = [];
         this.boundClickHandler = null;
         this.boundPopstateHandler = null;
+        this.isDestroyed = false;
         
         this.init();
         
@@ -146,6 +149,11 @@ class ChannelSwitchManager {
     }
 
     async switchToChannel(serverId, channelId, channelType = 'text', clickedElement = null, updateHistory = true) {
+        if (this.isDestroyed) {
+            console.warn('[ChannelSwitchManager] Instance destroyed, ignoring switch request');
+            return;
+        }
+        
         if (window.globalSwitchLock) {
             console.log('[ChannelSwitchManager] Global switch lock active, queuing request');
             this.switchQueue.push({ serverId, channelId, channelType, clickedElement, updateHistory });
@@ -969,7 +977,9 @@ class ChannelSwitchManager {
     cleanup() {
         console.log('[ChannelSwitchManager] Cleaning up channel switch manager');
         
+        this.isDestroyed = true;
         this.isLoading = false;
+        window.globalSwitchLock = false;
         
         if (this.boundClickHandler) {
             document.removeEventListener('click', this.boundClickHandler);
@@ -988,17 +998,31 @@ class ChannelSwitchManager {
         this.currentChannelType = 'text';
         this.currentServerId = null;
         
+        const styles = document.getElementById('channel-switch-styles');
+        if (styles) {
+            styles.remove();
+        }
+        
+        if (window.channelSwitchManager === this) {
+            window.channelSwitchManager = null;
+        }
+        
         console.log('[ChannelSwitchManager] Cleanup completed');
     }
 }
 
-// Initialize when on server page
+// Initialize when on server page - but only if not already handled
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[ChannelSwitchManager] DOM content loaded');
-    if (window.location.pathname.includes('/server/')) {
-        console.log('[ChannelSwitchManager] On server page, initializing channel switch manager');
-        window.channelSwitchManager = new ChannelSwitchManager();
-    }
+    
+    setTimeout(() => {
+        if (window.location.pathname.includes('/server/') && !window.channelSwitchManager) {
+            console.log('[ChannelSwitchManager] On server page, no existing manager found, initializing channel switch manager');
+            window.channelSwitchManager = new ChannelSwitchManager();
+        } else if (window.channelSwitchManager) {
+            console.log('[ChannelSwitchManager] Channel switch manager already exists, skipping auto-initialization');
+        }
+    }, 100);
 });
 
 // Make globally available

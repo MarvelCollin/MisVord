@@ -7,19 +7,20 @@ class FriendList extends Model {
     protected $fillable = ['id', 'user_id', 'user_id2', 'status', 'created_at', 'updated_at'];
       public static function findRelationship($userId1, $userId2) {
         $query = new Query();
-        
-        $sql = "SELECT * FROM " . static::$table . " 
-                WHERE (user_id = ? AND user_id2 = ?) 
-                   OR (user_id = ? AND user_id2 = ?) 
-                LIMIT 1";
-        
-        $result = $query->raw($sql, [$userId1, $userId2, $userId2, $userId1]);
-        
-        if ($result && count($result) > 0) {
-            return new static($result[0]);
+        $result = $query->table(static::$table)
+            ->where('user_id', $userId1)
+            ->where('user_id2', $userId2)
+            ->first();
+            
+        if (!$result) {
+            $query2 = new Query();
+            $result = $query2->table(static::$table)
+                ->where('user_id', $userId2)
+                ->where('user_id2', $userId1)
+                ->first();
         }
-        
-        return null;
+            
+        return $result ? new static($result) : null;
     }
       public static function getUserFriends($userId) {
         $query = new Query();
@@ -84,12 +85,6 @@ class FriendList extends Model {
                         status ENUM('pending', 'accepted', 'blocked') NOT NULL DEFAULT 'pending',
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                        INDEX idx_user_id (user_id),
-                        INDEX idx_user_id2 (user_id2),
-                        INDEX idx_status (status),
-                        INDEX idx_user_pair (user_id, user_id2),
-                        INDEX idx_user_status (user_id, status),
-                        INDEX idx_user2_status (user_id2, status),
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                         FOREIGN KEY (user_id2) REFERENCES users(id) ON DELETE CASCADE,
                         UNIQUE KEY unique_friendship (user_id, user_id2)
@@ -97,16 +92,6 @@ class FriendList extends Model {
                 ");
 
                 $tableExists = $query->tableExists('friend_list');
-            } else {
-                $query->raw("
-                    ALTER TABLE friend_list 
-                    ADD INDEX IF NOT EXISTS idx_user_id (user_id),
-                    ADD INDEX IF NOT EXISTS idx_user_id2 (user_id2),
-                    ADD INDEX IF NOT EXISTS idx_status (status),
-                    ADD INDEX IF NOT EXISTS idx_user_pair (user_id, user_id2),
-                    ADD INDEX IF NOT EXISTS idx_user_status (user_id, status),
-                    ADD INDEX IF NOT EXISTS idx_user2_status (user_id2, status)
-                ");
             }
 
             return $tableExists;

@@ -659,36 +659,59 @@ function initFriendRequestForm() {
 
     if (!friendUsernameInput || !sendFriendRequestBtn) return;
 
-    friendUsernameInput.addEventListener('input', function () {
-        const value = this.value.trim();
-        const validation = friendAPI.validateUsername(value);
-
-        sendFriendRequestBtn.disabled = !validation.valid;
-
-        if (validation.valid) {
+    let validationTimeout;
+    
+    function updateButtonState(isValid) {
+        sendFriendRequestBtn.disabled = !isValid;
+        
+        if (isValid) {
             sendFriendRequestBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
             sendFriendRequestBtn.classList.add('opacity-50', 'cursor-not-allowed');
         }
-
+    }
+    
+    function clearMessages() {
         if (errorDiv) errorDiv.classList.add('hidden');
         if (successDiv) successDiv.classList.add('hidden');
+    }
+
+    friendUsernameInput.addEventListener('input', function () {
+        const value = this.value.trim();
+        
+        clearTimeout(validationTimeout);
+        clearMessages();
+        
+        if (value.length === 0) {
+            updateButtonState(false);
+            return;
+        }
+        
+        if (value.length >= 2) {
+            updateButtonState(true);
+        } else {
+            updateButtonState(false);
+        }
+        
+        validationTimeout = setTimeout(() => {
+            const validation = friendAPI.validateUsername(value);
+            updateButtonState(validation.valid);
+            
+            if (!validation.valid && validation.message && errorDiv) {
+                errorDiv.textContent = validation.message;
+                errorDiv.classList.remove('hidden');
+            }
+        }, 300);
     });
 
     sendFriendRequestBtn.addEventListener('click', async function () {
+        if (this.disabled) return;
+        
         const username = friendUsernameInput.value.trim();
+        if (!username) return;
 
-        const validation = friendAPI.validateUsername(username);
-        if (!validation.valid) {
-            if (errorDiv) {
-                errorDiv.textContent = validation.message || 'Invalid username format';
-                errorDiv.classList.remove('hidden');
-            }
-            return;
-        }
-
-        sendFriendRequestBtn.disabled = true;
-        sendFriendRequestBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        updateButtonState(false);
+        clearMessages();
 
         try {
             if (!window.FriendsManager) {
@@ -702,13 +725,12 @@ function initFriendRequestForm() {
                 successDiv.textContent = 'Friend request sent!';
                 successDiv.classList.remove('hidden');
             }
-            if (errorDiv) errorDiv.classList.add('hidden');
             friendUsernameInput.value = '';
+            updateButtonState(false);
 
-            const debouncedUpdate = friendsManager.debounce(() => {
+            setTimeout(() => {
                 updatePendingCount();
-            }, 200);
-            debouncedUpdate();
+            }, 100);
 
         } catch (error) {
             console.error('Error sending friend request:', error);
@@ -716,13 +738,7 @@ function initFriendRequestForm() {
                 errorDiv.textContent = error.message || 'Failed to send friend request';
                 errorDiv.classList.remove('hidden');
             }
-            if (successDiv) successDiv.classList.add('hidden');
-        } finally {
-            const currentValidation = friendAPI.validateUsername(friendUsernameInput.value.trim());
-            sendFriendRequestBtn.disabled = !currentValidation.valid;
-            if (currentValidation.valid) {
-                sendFriendRequestBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
+            updateButtonState(!!friendUsernameInput.value.trim());
         }
     });
 }

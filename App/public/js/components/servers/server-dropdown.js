@@ -85,6 +85,8 @@ function initServerDropdown() {
     }, 100);
 }
 
+window.initServerDropdown = initServerDropdown;
+
 function initServerActions() {
     const dropdownItems = document.querySelectorAll('.server-dropdown-item');
 
@@ -936,3 +938,9 @@ function redirectToServerSettings() {
         showToast('Error: Could not determine server ID', 'error');
     }
 }
+
+window.showInvitePeopleModal = showInvitePeopleModal;
+window.redirectToServerSettings = redirectToServerSettings;
+window.showCreateChannelModal = showCreateChannelModal;
+window.showCreateCategoryModal = showCreateCategoryModal;
+window.showLeaveServerConfirmation = showLeaveServerConfirmation;

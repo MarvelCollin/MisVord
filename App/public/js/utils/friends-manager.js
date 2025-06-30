@@ -63,7 +63,6 @@ class FriendsManager {
 
         try {
             const response = await window.FriendAPI.getFriends();
-            console.log('🔍 DEBUG: FriendAPI.getFriends() raw response:', response);
             
             let friends = [];
             

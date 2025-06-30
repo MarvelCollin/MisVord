@@ -178,6 +178,24 @@ class UserAPI {
             })
         });
     }
+
+    async updateBio(bio) {
+        console.log('🔗 UserAPI: Updating bio');
+        const result = await this.makeRequest('/api/users/profile', {
+            method: 'POST',
+            body: JSON.stringify({
+                bio: bio
+            })
+        });
+        
+        if (!result.success) {
+            console.error('UserAPI: Failed to update bio:', result.error);
+        } else {
+            console.log('🔗 UserAPI: Successfully updated bio');
+        }
+        
+        return result;
+    }
 }
 
 const userAPI = new UserAPI();

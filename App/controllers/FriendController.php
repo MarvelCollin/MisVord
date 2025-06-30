@@ -14,15 +14,13 @@ class FriendController extends BaseController
         $this->friendListRepository = new FriendListRepository();
     }
 
-    private function notifyViaSocket($targetUserId, $event, $data)
+    private function notifyViaSocket($event, $data)
     {
         $curl = curl_init();
         curl_setopt_array($curl, [
             CURLOPT_URL => 'http://socket-server:3000/api/notify',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
-            CURLOPT_TIMEOUT => 1,
-            CURLOPT_CONNECTTIMEOUT => 1,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
             CURLOPT_POSTFIELDS => json_encode([
                 'event' => $event,
@@ -381,12 +379,12 @@ class FriendController extends BaseController
                 return;
             }
             
-            $currentUser = $this->getCurrentUser();
+            $currentUser = $this->userRepository->find($userId);
             
             $this->notifyViaSocket($targetUserId, 'friend-request-received', [
                 'friendship_id' => $result->id,
                 'sender_id' => $userId,
-                'sender_username' => $currentUser->username ?? 'Unknown',
+                'sender_username' => $currentUser->username,
                 'timestamp' => date('Y-m-d H:i:s')
             ]);
             

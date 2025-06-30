@@ -45,6 +45,7 @@ ob_start();
 <meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/common/default-profile-picture.png'); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($user->username ?? ''); ?>">
 <meta name="display-name" content="<?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?>">
+<meta name="user-bio" content="<?php echo htmlspecialchars($user->bio ?? ''); ?>">
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -198,6 +199,22 @@ document.addEventListener('DOMContentLoaded', function() {
                                     </button>
                                 </div>
                                 <p class="text-discord-lighter text-xs mt-1">This is how others see you. You can use any name you'd like.</p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bio" class="block text-sm font-medium text-white mb-2">About Me</label>
+                                <div class="flex flex-col">
+                                    <textarea id="bio" name="bio" class="form-input resize-none" rows="3" maxlength="1000" placeholder="Tell us about yourself..." data-original-value="<?php echo htmlspecialchars($user->bio ?? ''); ?>"><?php echo htmlspecialchars($user->bio ?? ''); ?></textarea>
+                                    <div class="flex justify-between items-center mt-1">
+                                        <p class="text-discord-lighter text-xs">You can use up to 1000 characters.</p>
+                                        <div class="flex items-center space-x-2">
+                                            <span id="bio-counter" class="text-discord-lighter text-xs">0/1000</span>
+                                            <button type="button" id="approve-bio" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-md text-sm hidden">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </section>
                         

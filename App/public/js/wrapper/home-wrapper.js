@@ -52,21 +52,7 @@ class HomeWrapper {
     }
 
     setupFriendRequestHandlers() {
-        const input = document.getElementById('friend-username-input');
-        const sendButton = document.getElementById('send-friend-request');
-        
-        if (input && sendButton) {
-            input.addEventListener('input', () => {
-                const isValid = input.value.trim().length > 0;
-                sendButton.disabled = !isValid;
-                sendButton.classList.toggle('opacity-50', !isValid);
-                sendButton.classList.toggle('cursor-not-allowed', !isValid);
-            });
-            
-            sendButton.addEventListener('click', () => {
-                this.sendFriendRequest();
-            });
-        }
+        console.log('[HomeWrapper] Friend request handlers disabled - using app-layout.js instead');
     }
 
     setupMobileMenuHandlers() {
@@ -151,146 +137,24 @@ class HomeWrapper {
         }
     }
 
-    async sendFriendRequest() {
-        const input = document.getElementById('friend-username-input');
-        const errorDiv = document.getElementById('friend-request-error');
-        const successDiv = document.getElementById('friend-request-success');
-        
-        if (!input) return;
-        
-        const username = input.value.trim();
-        if (!username) return;
-        
-        this.clearMessages(errorDiv, successDiv);
-        
-        try {
-                    const response = await $.ajax({
-            url: '/api/friends',
-            method: 'POST',
-            dataType: 'json',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            data: JSON.stringify({ username })
-        });
-            
-            if (response.success) {
-                this.showSuccess(successDiv, 'Friend request sent successfully!');
-                input.value = '';
-                this.updateSendButton(true);
-                this.refreshPendingCount();
-            } else {
-                this.showError(errorDiv, response.message || 'Failed to send friend request');
-            }
-        } catch (error) {
-            console.error('[HomeWrapper] Error sending friend request:', error);
-            this.showError(errorDiv, 'Error sending friend request. Please try again.');
-        }
+    sendFriendRequest() {
+        console.log('[HomeWrapper] sendFriendRequest delegated to app-layout.js');
     }
 
-    async acceptFriendRequest(requestId) {
-        try {
-                    const response = await $.ajax({
-            url: '/api/friends/accept',
-            method: 'POST',
-            dataType: 'json',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            data: JSON.stringify({ id: requestId })
-        });
-            
-            if (response.success) {
-                this.showToast('Friend request accepted!', 'success');
-                this.refreshPage();
-            } else {
-                this.showToast('Failed to accept friend request', 'error');
-            }
-        } catch (error) {
-            console.error('[HomeWrapper] Error accepting friend request:', error);
-            this.showToast('Error accepting friend request', 'error');
-        }
+    acceptFriendRequest(requestId) {
+        console.log('[HomeWrapper] acceptFriendRequest delegated to app-layout.js');
     }
 
-    async declineFriendRequest(requestId) {
-        try {
-                    const response = await $.ajax({
-            url: '/api/friends/decline',
-            method: 'POST',
-            dataType: 'json',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            data: JSON.stringify({ id: requestId })
-        });
-            
-            if (response.success) {
-                this.showToast('Friend request declined', 'info');
-                this.refreshPage();
-            } else {
-                this.showToast('Failed to decline friend request', 'error');
-            }
-        } catch (error) {
-            console.error('[HomeWrapper] Error declining friend request:', error);
-            this.showToast('Error declining friend request', 'error');
-        }
+    declineFriendRequest(requestId) {
+        console.log('[HomeWrapper] declineFriendRequest delegated to app-layout.js');
     }
 
-    async cancelFriendRequest(userId) {
-        try {
-                    const response = await $.ajax({
-            url: '/api/friends/cancel',
-            method: 'POST',
-            dataType: 'json',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            data: JSON.stringify({ user_id: userId })
-        });
-            
-            if (response.success) {
-                this.showToast('Friend request cancelled', 'info');
-                this.refreshPage();
-            } else {
-                this.showToast('Failed to cancel friend request', 'error');
-            }
-        } catch (error) {
-            console.error('[HomeWrapper] Error cancelling friend request:', error);
-            this.showToast('Error cancelling friend request', 'error');
-        }
+    cancelFriendRequest(userId) {
+        console.log('[HomeWrapper] cancelFriendRequest delegated to app-layout.js');
     }
 
-    async createDirectMessage(friendId) {
-        try {
-                    const response = await $.ajax({
-            url: '/api/chat/create-dm',
-            method: 'POST',
-            dataType: 'json',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            data: JSON.stringify({ friend_id: friendId })
-        });
-            
-            if (response.success && response.data) {
-                const roomId = response.data.room_id || response.data.channel_id;
-                if (roomId) {
-                    window.location.href = `/home/channels/dm/${roomId}`;
-                } else {
-                    this.showToast('Failed to create conversation: Invalid room ID', 'error');
-                }
-            } else {
-                this.showToast('Failed to create conversation: ' + (response.message || 'Unknown error'), 'error');
-            }
-        } catch (error) {
-            console.error('[HomeWrapper] Error creating direct message:', error);
-            this.showToast('Failed to create conversation. Please try again.', 'error');
-        }
+    createDirectMessage(friendId) {
+        console.log('[HomeWrapper] createDirectMessage delegated to app-layout.js');
     }
 
     handleSearch(query, inputElement) {
@@ -384,10 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
         homeWrapper = new HomeWrapper();
         window.homeWrapper = homeWrapper;
         
-        window.acceptFriendRequest = (requestId) => homeWrapper.acceptFriendRequest(requestId);
-        window.declineFriendRequest = (requestId) => homeWrapper.declineFriendRequest(requestId);
-        window.cancelFriendRequest = (userId) => homeWrapper.cancelFriendRequest(userId);
-        window.createDirectMessage = (friendId) => homeWrapper.createDirectMessage(friendId);
+        console.log('[HomeWrapper] Global friend functions delegated to app-layout.js');
     }
 });
 

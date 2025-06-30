@@ -51,6 +51,7 @@ function initUserSettingsPage() {
         initStatusSelector();
         initEmailReveal();
         initPasswordChangeForms();
+        initBioHandling();
         initProfileFormSubmit();
     } else if (activeSection === 'connections') {
         initConnectionToggles();
@@ -1527,6 +1528,137 @@ function initVoiceVideoSection() {
         })
         .catch(err => {
             console.error('Error loading voice video settings:', err);
+        });
+}
+
+function initBioHandling() {
+    const bioTextarea = document.getElementById('bio');
+    const bioCounter = document.getElementById('bio-counter');
+    const approveBioBtn = document.getElementById('approve-bio');
+    
+    if (!bioTextarea || !bioCounter || !approveBioBtn) return;
+    
+    bioTextarea.dataset.originalValue = bioTextarea.value.trim();
+    updateBioCounter();
+    checkForBioChanges();
+    
+    setTimeout(() => {
+        updateBioCounter();
+    }, 100);
+    
+    bioTextarea.addEventListener('input', function() {
+        updateBioCounter();
+        checkForBioChanges();
+    });
+    
+    bioTextarea.addEventListener('keyup', function() {
+        checkForBioChanges();
+    });
+    
+    bioTextarea.addEventListener('paste', function() {
+        setTimeout(() => {
+            updateBioCounter();
+            checkForBioChanges();
+        }, 10);
+    });
+    
+    approveBioBtn.addEventListener('click', function() {
+        const bio = bioTextarea.value.trim();
+        updateBio(bio);
+    });
+    
+    function updateBioCounter() {
+        const currentLength = bioTextarea.value.length;
+        bioCounter.textContent = `${currentLength}/1000`;
+        
+        if (currentLength > 900) {
+            bioCounter.classList.add('text-red-400');
+            bioCounter.classList.remove('text-discord-lighter');
+        } else if (currentLength > 800) {
+            bioCounter.classList.add('text-yellow-400');
+            bioCounter.classList.remove('text-discord-lighter', 'text-red-400');
+        } else {
+            bioCounter.classList.add('text-discord-lighter');
+            bioCounter.classList.remove('text-yellow-400', 'text-red-400');
+        }
+    }
+    
+    function checkForBioChanges() {
+        const currentValue = bioTextarea.value.trim();
+        const originalValue = (bioTextarea.dataset.originalValue || '').trim();
+        
+        if (currentValue !== originalValue) {
+            approveBioBtn.style.display = 'flex';
+            approveBioBtn.classList.remove('hidden');
+            setTimeout(() => {
+                approveBioBtn.classList.add('show');
+            }, 10);
+        } else {
+            approveBioBtn.classList.remove('show');
+            setTimeout(() => {
+                approveBioBtn.style.display = 'none';
+                approveBioBtn.classList.add('hidden');
+            }, 300);
+        }
+    }
+}
+
+function updateBio(bio) {
+    const approveBioBtn = document.getElementById('approve-bio');
+    const bioTextarea = document.getElementById('bio');
+    
+    if (bio.length > 1000) {
+        showToast('Bio must be no more than 1000 characters', 'error');
+        return;
+    }
+    
+    approveBioBtn.disabled = true;
+    const originalIcon = approveBioBtn.innerHTML;
+    approveBioBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    if (!window.userAPI) {
+        showToast('User API not loaded. Please refresh the page.', 'error');
+        approveBioBtn.disabled = false;
+        approveBioBtn.innerHTML = originalIcon;
+        return;
+    }
+    
+    window.userAPI.updateBio(bio)
+        .then(response => {
+            if (response.success) {
+                showToast('Bio updated successfully', 'success');
+                
+                if (bioTextarea) {
+                    bioTextarea.dataset.originalValue = bio;
+                    bioTextarea.value = bio;
+                }
+                
+                const bioMeta = document.querySelector('meta[name="user-bio"]');
+                if (bioMeta) {
+                    bioMeta.content = bio;
+                }
+                
+                const bioElements = document.querySelectorAll('.current-user-bio');
+                bioElements.forEach(el => {
+                    el.textContent = bio;
+                });
+                
+                approveBioBtn.classList.remove('show');
+                setTimeout(() => {
+                    approveBioBtn.style.display = 'none';
+                    approveBioBtn.classList.add('hidden');
+                }, 300);
+            } else {
+                throw new Error(response.error || 'Failed to update bio');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating bio:', error);
+            showToast(error.message || 'Error updating bio', 'error');
+        })
+        .finally(() => {
+            approveBioBtn.disabled = false;
+            approveBioBtn.innerHTML = originalIcon;
         });
 }
 

@@ -1,5 +1,6 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
 import { playDiscordoSound, playCallSound } from '../../utils/music-loader-static.js';
+import { loadServerPage } from '../../utils/load-server-page.js';
 
 let isRendering = false;
 let serverDataCache = null;
@@ -893,58 +894,66 @@ export async function handleServerClick(serverId, event) {
     }
 
     try {
-        const currentChannelId = new URLSearchParams(window.location.search).get('channel');
-        if (currentChannelId && window.globalSocketManager) {
-            console.log('[Server Navigation] Cleaning up socket for channel:', currentChannelId);
-            window.globalSocketManager.leaveChannel(currentChannelId);
-        }
-
-        // DON'T disconnect voice on navigation - keep it alive!
-        if (window.voiceManager && window.voiceManager.isConnected) {
-            console.log('[Server Navigation] Voice connection detected, keeping alive and showing global indicator');
-            if (window.globalVoiceIndicator) {
-                setTimeout(() => {
-                    window.globalVoiceIndicator.ensureIndicatorVisible();
-                }, 300);
-            }
-        }
-        
-        console.log('[Server Navigation] Loading server page with AJAX');
-        const response = await $.ajax({
-            url: `/server/${serverId}/layout`,
-            method: 'GET',
-            dataType: 'html',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-
-        // Target the entire layout container, same as home navigation
-        const layoutContainer = document.querySelector('.flex.flex-1.overflow-hidden') || 
-                              document.querySelector('#main-content') || 
-                              document.querySelector('.main-content') || 
-                              document.querySelector('#app-content') ||
-                              document.querySelector('.app-content') ||
-                              document.querySelector('main') ||
-                              document.querySelector('.content-wrapper');
-        
-        if (layoutContainer && response) {
-            console.log('[Server Navigation] Found layout container:', layoutContainer.className || layoutContainer.id);
-            layoutContainer.innerHTML = response;
-            console.log('[Server Navigation] Server page content loaded successfully');
+        if (loadServerPage) {
+            console.log('[Server Navigation] Using loadServerPage function');
+            await loadServerPage(serverId);
+            updateActiveServer('server', serverId);
+            console.log('[Server Navigation] SUCCESS - Server navigation completed via loadServerPage');
         } else {
-            console.error('[Server Navigation] Could not find layout container or no response');
+            console.warn('[Server Navigation] loadServerPage not available, using fallback AJAX method');
+            await handleServerClickFallback(serverId);
         }
-
-        window.history.pushState({ pageType: 'server', serverId: serverId }, `Server ${serverId}`, `/server/${serverId}`);
-        updateActiveServer('server', serverId);
-
-        window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
-
-        console.log('[Server Navigation] SUCCESS - Server navigation completed');
-
     } catch (error) {
         console.error('[Server Navigation] ERROR in handleServerClick:', error);
         throw error;
     }
+}
+
+async function handleServerClickFallback(serverId) {
+    const currentChannelId = new URLSearchParams(window.location.search).get('channel');
+    if (currentChannelId && window.globalSocketManager) {
+        console.log('[Server Navigation] Cleaning up socket for channel:', currentChannelId);
+        window.globalSocketManager.leaveChannel(currentChannelId);
+    }
+
+    if (window.voiceManager && window.voiceManager.isConnected) {
+        console.log('[Server Navigation] Voice connection detected, keeping alive and showing global indicator');
+        if (window.globalVoiceIndicator) {
+            setTimeout(() => {
+                window.globalVoiceIndicator.ensureIndicatorVisible();
+            }, 300);
+        }
+    }
+    
+    console.log('[Server Navigation] Loading server page with fallback AJAX');
+    const response = await $.ajax({
+        url: `/server/${serverId}/layout`,
+        method: 'GET',
+        dataType: 'html',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+
+    const layoutContainer = document.querySelector('.flex.flex-1.overflow-hidden') || 
+                          document.querySelector('#main-content') || 
+                          document.querySelector('.main-content') || 
+                          document.querySelector('#app-content') ||
+                          document.querySelector('.app-content') ||
+                          document.querySelector('main') ||
+                          document.querySelector('.content-wrapper');
+    
+    if (layoutContainer && response) {
+        console.log('[Server Navigation] Found layout container:', layoutContainer.className || layoutContainer.id);
+        layoutContainer.innerHTML = response;
+        console.log('[Server Navigation] Server page content loaded successfully');
+    } else {
+        console.error('[Server Navigation] Could not find layout container or no response');
+    }
+
+    window.history.pushState({ pageType: 'server', serverId: serverId }, `Server ${serverId}`, `/server/${serverId}`);
+    updateActiveServer('server', serverId);
+
+    window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
+    console.log('[Server Navigation] SUCCESS - Server navigation completed via fallback');
 }
 
 export async function handleExploreClick(event) {
@@ -1084,8 +1093,9 @@ export function refreshServerGroups() {
     performCompleteRender();
 }
 
-// Make updateActiveServer globally available
+// Make functions globally available
 window.updateActiveServer = updateActiveServer;
+window.loadServerPage = loadServerPage;
 
 export const ServerSidebar = {
     updateActiveServer,

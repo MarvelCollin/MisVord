@@ -9,6 +9,13 @@ export function loadServerPage(serverId, channelId = null) {
     window.globalSwitchLock = true;
     console.log('[Server Loader] Global switch lock acquired for server loading');
     
+    setTimeout(() => {
+        if (window.globalSwitchLock) {
+            console.warn('[Server Loader] Global switch lock timeout - force releasing after 30 seconds');
+            window.globalSwitchLock = false;
+        }
+    }, 30000);
+    
     const mainContent = document.querySelector('.flex-1') ||
         document.querySelector('[class*="server-content"]') ||
         document.querySelector('main');
@@ -92,6 +99,14 @@ export function loadServerPage(serverId, channelId = null) {
                         console.warn('[Server AJAX] ChannelSwitchManager class not available');
                     }
                     
+                    if (typeof window.initServerDropdown === 'function') {
+                        console.log('[Server AJAX] Re-initializing server dropdown');
+                        window.initServerDropdown();
+                    } else {
+                        console.log('[Server AJAX] Manually initializing server dropdown');
+                        initServerDropdownManual();
+                    }
+                    
                     if (typeof window.initializeParticipantSection === 'function') {
                         window.initializeParticipantSection();
                         console.log('[Server AJAX] Participant section initialized');
@@ -142,10 +157,18 @@ export function loadServerPage(serverId, channelId = null) {
                     window.handleSkeletonLoading(false);
                 }
                 
+                if (window.channelSwitchManager && typeof window.channelSwitchManager.cleanup === 'function') {
+                    console.log('[Server AJAX] Cleaning up channel switch manager due to error');
+                    window.channelSwitchManager.cleanup();
+                }
+                
                 window.globalSwitchLock = false;
                 console.error('[Server AJAX] Global switch lock released due to error');
-                console.error('[Server AJAX] FALLBACK - Redirecting to /server/' + serverId);
-                window.location.href = `/server/${serverId}`;
+                
+                setTimeout(() => {
+                    console.error('[Server AJAX] FALLBACK - Redirecting to /server/' + serverId);
+                    window.location.href = `/server/${serverId}`;
+                }, 100);
             }
             });
     } else {
@@ -331,6 +354,84 @@ function executeInlineScripts(doc) {
             }
         }
     });
+}
+
+function initServerDropdownManual() {
+    console.log('[Server Loader] Manual server dropdown initialization');
+    
+    setTimeout(() => {
+        const dropdownBtn = document.getElementById('server-dropdown-btn');
+        const dropdown = document.getElementById('server-dropdown');
+        
+        console.log('[Server Loader] Dropdown elements:', { 
+            dropdownBtn: !!dropdownBtn, 
+            dropdown: !!dropdown 
+        });
+        
+        if (dropdownBtn && dropdown) {
+            const newBtn = dropdownBtn.cloneNode(true);
+            dropdownBtn.parentNode.replaceChild(newBtn, dropdownBtn);
+            
+            newBtn.addEventListener('click', function(e) {
+                console.log('[Server Loader] Dropdown button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                dropdown.classList.toggle('hidden');
+            });
+            
+            document.addEventListener('click', function(e) {
+                if (!dropdown.contains(e.target) && !newBtn.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+            
+            const dropdownItems = document.querySelectorAll('.server-dropdown-item');
+            dropdownItems.forEach(item => {
+                const newItem = item.cloneNode(true);
+                item.parentNode.replaceChild(newItem, item);
+                
+                newItem.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const actionText = this.querySelector('span').textContent.trim();
+                    dropdown.classList.add('hidden');
+                    
+                    console.log('[Server Loader] Dropdown action:', actionText);
+                    
+                    switch(actionText) {
+                        case 'Invite People':
+                            if (typeof window.showInvitePeopleModal === 'function') {
+                                window.showInvitePeopleModal();
+                            }
+                            break;
+                        case 'Server Settings':
+                            if (typeof window.redirectToServerSettings === 'function') {
+                                window.redirectToServerSettings();
+                            }
+                            break;
+                        case 'Create Channel':
+                            if (typeof window.showCreateChannelModal === 'function') {
+                                window.showCreateChannelModal();
+                            }
+                            break;
+                        case 'Create Category':
+                            if (typeof window.showCreateCategoryModal === 'function') {
+                                window.showCreateCategoryModal();
+                            }
+                            break;
+                        case 'Leave Server':
+                            if (typeof window.showLeaveServerConfirmation === 'function') {
+                                window.showLeaveServerConfirmation();
+                            }
+                            break;
+                    }
+                });
+            });
+            
+            console.log('[Server Loader] Server dropdown initialized successfully');
+        } else {
+            console.error('[Server Loader] Server dropdown elements not found');
+        }
+    }, 150);
 }
 
 window.loadServerPage = loadServerPage; 
