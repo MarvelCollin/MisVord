@@ -36,9 +36,9 @@ class SendReceiveHandler {
             let mentions = [];
             if (this.chatSection.mentionHandler) {
                 mentions = this.chatSection.mentionHandler.parseMentions(content);
-                if (mentions.length > 0) {
-                    options.mentions = mentions;
-                    console.log('💬 Including mentions:', mentions.length, 'mentions');
+            if (mentions.length > 0) {
+                options.mentions = mentions;
+                console.log('💬 Including mentions:', mentions.length, 'mentions');
                 }
             } else {
                 console.warn('⚠️ [SEND-RECEIVE] MentionHandler not ready, skipping mention parsing');

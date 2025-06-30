@@ -1,7 +1,7 @@
 class CarouselSection {
     constructor() {
         this.currentPage = 0;
-        this.totalPages = 4;
+        this.totalPages = 3;
         this.isAnimating = false;
         
         this.init();
@@ -17,25 +17,10 @@ class CarouselSection {
         
         if (!this.bookContent) return;
         
-        this.initializePages();
         this.setupEventListeners();
+        this.updatePageStates();
         this.updatePageIndicator();
         this.showNavigation();
-    }
-    
-    initializePages() {
-        this.pages.forEach((page, index) => {
-            page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
-            page.style.zIndex = '';
-            page.style.opacity = '1';
-            page.style.visibility = 'visible';
-            
-            if (index === this.currentPage) {
-                page.classList.add('active');
-            } else if (index < this.currentPage) {
-                page.classList.add('behind');
-            }
-        });
     }
     
     setupEventListeners() {
@@ -116,72 +101,58 @@ class CarouselSection {
     flipPageTo(targetPage) {
         if (this.isAnimating || targetPage < 0 || targetPage >= this.totalPages || targetPage === this.currentPage) return;
         
+        console.log(`Flipping from page ${this.currentPage} to page ${targetPage}`);
+        
         this.isAnimating = true;
         const currentPageEl = this.pages[this.currentPage];
         const targetPageEl = this.pages[targetPage];
         const direction = targetPage > this.currentPage ? 'forward' : 'backward';
         
         if (direction === 'forward') {
-            targetPageEl.style.opacity = '0';
-            targetPageEl.style.visibility = 'hidden';
-            
             currentPageEl.style.zIndex = '25';
             currentPageEl.classList.add('flipping-forward');
             
             setTimeout(() => {
-                currentPageEl.classList.remove('flipping-forward');
-                currentPageEl.classList.remove('active');
-                currentPageEl.classList.add('behind');
-                currentPageEl.style.zIndex = '';
-                
-                setTimeout(() => {
-                    targetPageEl.style.opacity = '1';
-                    targetPageEl.style.visibility = 'visible';
-                    targetPageEl.classList.add('active');
-                    targetPageEl.classList.remove('behind');
-                    targetPageEl.style.zIndex = '';
-                    
-                    this.currentPage = targetPage;
-                    this.updatePageStates();
-                    this.updatePageIndicator();
-                    this.isAnimating = false;
-                }, 50);
+                this.currentPage = targetPage;
+                console.log(`Animation finished, now on page ${this.currentPage}`);
+                this.finishFlipAnimation();
             }, 800);
         } else {
-            currentPageEl.style.opacity = '0';
-            currentPageEl.style.visibility = 'hidden';
-            
             targetPageEl.style.zIndex = '25';
             targetPageEl.classList.add('flipping-backward');
             
             setTimeout(() => {
-                targetPageEl.classList.remove('flipping-backward');
-                targetPageEl.classList.remove('behind');
-                targetPageEl.classList.add('active');
-                targetPageEl.style.zIndex = '';
-                
-                setTimeout(() => {
-                    currentPageEl.style.opacity = '1';
-                    currentPageEl.style.visibility = 'visible';
-                    currentPageEl.classList.remove('active');
-                    currentPageEl.classList.add('behind');
-                    currentPageEl.style.zIndex = '';
-                    
-                    this.currentPage = targetPage;
-                    this.updatePageStates();
-                    this.updatePageIndicator();
-                    this.isAnimating = false;
-                }, 50);
+                this.currentPage = targetPage;
+                console.log(`Animation finished, now on page ${this.currentPage}`);
+                this.finishFlipAnimation();
             }, 800);
         }
+    }
+    
+    finishFlipAnimation() {
+        this.pages.forEach((page, index) => {
+            page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
+            page.style.zIndex = '';
+            
+            if (index === this.currentPage) {
+                page.classList.add('active');
+                console.log(`Setting page ${index} as ACTIVE`);
+            } else if (index < this.currentPage) {
+                page.classList.add('behind');
+                console.log(`Setting page ${index} as BEHIND`);
+            } else {
+                console.log(`Page ${index} is NEUTRAL`);
+            }
+        });
+        
+        this.updatePageIndicator();
+        this.isAnimating = false;
     }
     
     updatePageStates() {
         this.pages.forEach((page, index) => {
             page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
             page.style.zIndex = '';
-            page.style.opacity = '1';
-            page.style.visibility = 'visible';
             
             if (index === this.currentPage) {
                 page.classList.add('active');

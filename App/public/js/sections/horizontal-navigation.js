@@ -63,6 +63,25 @@ class LandingNavigation {
         const wasInHorizontal = this.inHorizontalMode;
         this.inHorizontalMode = heroRect.bottom <= 100 && wrapperRect.top <= 100;
         
+        const sectionNav = document.querySelector('.section-navigation');
+        const swipeHint = document.querySelector('.swipe-hint');
+        
+        if (sectionNav) {
+            if (this.inHorizontalMode) {
+                sectionNav.classList.add('show-navigation');
+            } else {
+                sectionNav.classList.remove('show-navigation');
+            }
+        }
+        
+        if (swipeHint) {
+            if (this.inHorizontalMode) {
+                swipeHint.classList.add('show-navigation');
+            } else {
+                swipeHint.classList.remove('show-navigation');
+            }
+        }
+        
         if (!wasInHorizontal && this.inHorizontalMode) {
             this.currentIndex = 0;
             this.transitionToHorizontal(0);

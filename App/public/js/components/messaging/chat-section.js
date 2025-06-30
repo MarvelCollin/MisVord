@@ -347,9 +347,9 @@ class ChatSection {
     async init() {
         try {
             console.log('🔄 [CHAT-SECTION] Starting initialization...');
-            
+        
             await this.waitForRequiredElements();
-            
+        
             if (!this.targetId) {
                 console.log('🔄 [CHAT-SECTION] Target ID not detected initially, retrying...');
                 this.targetId = this.detectTargetId();
@@ -363,9 +363,9 @@ class ChatSection {
                         console.log('⏳ [CHAT-SECTION] Final retry for target ID detection...');
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         this.targetId = this.detectTargetId();
-                    }
-                }
-                
+            }
+        }
+        
                 if (this.targetId) {
                     console.log('✅ [CHAT-SECTION] Target ID detected on retry:', this.targetId);
                 } else {
@@ -383,17 +383,17 @@ class ChatSection {
                 console.log(`🎯 [CHAT-SECTION] Valid target found, loading messages for ${this.chatType}:${this.targetId}`);
                 
                 this.setupHandlers();
-                
+            
                 if (this.messageHandler) {
                     this.messageHandler.ensureFallbackStyles();
-                }
-                
+            }
+            
                 this.joinSocketRoom();
                 
                 await this.loadMessages();
-                
-                this.initializeExistingMessages();
-                
+            
+            this.initializeExistingMessages();
+            
                 this.updateChannelHeader();
             } else {
                 console.warn('⚠️ [CHAT-SECTION] No valid target found:', {
@@ -971,10 +971,10 @@ class ChatSection {
                     user_id: this.userId,
                     username: this.username
                 }, 'channel', this.targetId);
-            } else {
+                        } else {
                 window.globalSocketManager.emitToRoom('typing', {
                     room_id: this.targetId,
-                    user_id: this.userId,
+                user_id: this.userId,
                     username: this.username
                 }, 'dm', this.targetId);
             }

@@ -935,7 +935,7 @@ $content = ob_get_clean();
         <?php else: ?>
             <div class="login-icon" id="loginIcon">
                 <i class="fas fa-user-circle"></i>
-                <span class="login-text">Login</span>
+                <span class="login-text">Home / Login</span>
             </div>
         <?php endif; ?>
     </div>
@@ -955,7 +955,7 @@ $content = ob_get_clean();
     </div>
 
     <div class="swipe-hint">
-        <i class="fas fa-chevron-left"></i> Scroll or swipe horizontally to navigate <i class="fas fa-chevron-right"></i>
+        <i class="fas fa-chevron-left"></i> Scroll to navigate <i class="fas fa-chevron-right"></i>
     </div>
 
     <script src="<?php echo js('sections/scramble-text'); ?>?v=<?php echo time(); ?>"></script>

@@ -53,24 +53,48 @@ class ActivityManager {
 
         const button = document.createElement('button');
         button.id = 'tic-tac-toe-button';
-        button.className = 'flex items-center gap-2 w-full px-3 py-2 rounded-md text-[#949ba4] hover:text-white hover:bg-[#404249] transition-colors duration-200';
+        button.className = 'group flex items-center gap-3 w-full px-4 py-3 rounded-lg text-[#949ba4] hover:text-white transition-all duration-300 relative overflow-hidden border border-transparent hover:border-[#5865f2]/30 hover:shadow-lg hover:shadow-[#5865f2]/20';
         button.innerHTML = `
-            <i class="fas fa-chess-board text-lg"></i>
-            <span class="font-medium">Tic Mac Voe</span>
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[#5865f2]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div class="relative flex items-center gap-3 w-full">
+                <div class="relative">
+                    <i class="fas fa-chess-board text-lg transition-all duration-300 group-hover:text-[#5865f2] group-hover:scale-110"></i>
+                    <div class="absolute inset-0 bg-[#5865f2] opacity-0 group-hover:opacity-20 rounded-full blur-md transition-opacity duration-300"></div>
+                </div>
+                <div class="flex flex-col items-start">
+                    <span class="font-medium transition-all duration-300 group-hover:text-white">Tic Mac Voe</span>
+                    <span class="text-xs opacity-70 group-hover:opacity-100 transition-opacity duration-300">Play with friends</span>
+                </div>
+                <div class="ml-auto opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-1 group-hover:translate-x-0">
+                    <i class="fas fa-play text-xs text-[#5865f2]"></i>
+                </div>
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
         `;
         
         button.addEventListener('click', () => this.openTicTacToe());
         
+        button.addEventListener('mouseenter', () => {
+            if (window.globalSocketManager?.isReady()) {
+                button.style.transform = 'translateX(4px)';
+            }
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            button.style.transform = 'translateX(0)';
+        });
+        
         const insertPoint = serverSidebar.querySelector('.channels-list') || serverSidebar.querySelector('.channel-list') || serverSidebar;
         
         if (insertPoint.classList.contains('channels-list') || insertPoint.classList.contains('channel-list')) {
+            const divider = document.createElement('div');
+            divider.className = 'w-full h-px bg-gradient-to-r from-transparent via-[#404249] to-transparent my-2';
+            insertPoint.appendChild(divider);
             insertPoint.appendChild(button);
         } else {
             insertPoint.insertBefore(button, insertPoint.firstChild);
         }
     }
-
-
 
     openTicTacToe() {
         if (!this.serverId || !window.globalSocketManager?.isReady()) {
@@ -81,10 +105,6 @@ class ActivityManager {
             window.TicTacToeModal.createTicTacToeModal(this.serverId, this.userId, this.username);
         }
     }
-
-
-
-
 }
 
 document.addEventListener('DOMContentLoaded', function() {

@@ -108,47 +108,94 @@ class TicTacToeGame {
         
         if (!gameResult || !winnerText) return;
 
-        gameResult.classList.remove('hidden');
-        
-        if (result.is_draw) {
-            winnerText.textContent = "It's a draw!";
-            winnerText.className = 'text-xl font-bold mb-4 text-yellow-400';
-            this.showMessage("Game ended in a draw!", 'info');
-        } else if (result.winner_user_id === this.activityManager.userId) {
-            winnerText.textContent = 'You won! 🎉';
-            winnerText.className = 'text-xl font-bold mb-4 text-green-400';
-            this.showMessage('Congratulations! You won!', 'success');
-        } else {
-            const winner = this.gameState.players.find(p => p.user_id === result.winner_user_id);
-            winnerText.textContent = `${winner ? winner.username : 'Unknown'} won!`;
-            winnerText.className = 'text-xl font-bold mb-4 text-red-400';
-            this.showMessage(`${winner ? winner.username : 'Unknown'} won the game!`, 'info');
+        if (result.winning_positions) {
+            this.highlightWinningCombination(result.board, result.winning_positions);
         }
+
+        setTimeout(() => {
+            gameResult.classList.remove('hidden');
+            
+            if (result.is_draw) {
+                winnerText.textContent = "It's a draw!";
+                winnerText.className = 'text-xl font-bold mb-4 text-yellow-400 animate-pulse';
+                this.showMessage("Game ended in a draw!", 'info');
+            } else if (result.winner_user_id === this.activityManager.userId) {
+                winnerText.textContent = 'You won!';
+                winnerText.className = 'text-xl font-bold mb-4 text-green-400 animate-bounce';
+                this.showMessage('Congratulations! You won!', 'success');
+                this.createConfetti();
+            } else {
+                const winner = this.gameState.players.find(p => p.user_id === result.winner_user_id);
+                winnerText.textContent = `${winner ? winner.username : 'Unknown'} won!`;
+                winnerText.className = 'text-xl font-bold mb-4 text-red-400';
+                this.showMessage(`${winner ? winner.username : 'Unknown'} won the game!`, 'info');
+            }
+        }, 500);
         
-        this.highlightWinningCombination(result.board);
         this.renderBoard();
     }
 
-    highlightWinningCombination(board) {
-        const winningCombinations = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],
-            [0, 4, 8], [2, 4, 6]
-        ];
+    highlightWinningCombination(board, winningPositions = null) {
+        const gameBoard = document.querySelector('#game-board');
+        if (!gameBoard) return;
 
-        for (let combination of winningCombinations) {
-            const [a, b, c] = combination;
-            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                const gameBoard = document.querySelector('#game-board');
-                if (gameBoard) {
-                    const cells = gameBoard.querySelectorAll('button');
-                    combination.forEach(index => {
-                        cells[index].classList.add('bg-green-600', 'text-white');
+        const cells = gameBoard.querySelectorAll('button');
+        
+        if (winningPositions) {
+            winningPositions.forEach((index, i) => {
+                setTimeout(() => {
+                    cells[index].classList.add('winning-cell', 'animate-pulse');
+                    cells[index].style.animation = 'winningPulse 0.6s ease-in-out';
+                }, i * 200);
+            });
+        } else {
+            const winningCombinations = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+
+            for (let combination of winningCombinations) {
+                const [a, b, c] = combination;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    combination.forEach((index, i) => {
+                        setTimeout(() => {
+                            cells[index].classList.add('winning-cell', 'animate-pulse');
+                            cells[index].style.animation = 'winningPulse 0.6s ease-in-out';
+                        }, i * 200);
                     });
+                    break;
                 }
-                break;
             }
         }
+    }
+
+    createConfetti() {
+        const confettiContainer = document.createElement('div');
+        confettiContainer.className = 'fixed inset-0 pointer-events-none z-50';
+        confettiContainer.id = 'confetti-container';
+        document.body.appendChild(confettiContainer);
+
+        for (let i = 0; i < 50; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = 'absolute w-3 h-3 rounded-full animate-bounce';
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = '0%';
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                confettiContainer.appendChild(confetti);
+
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }, i * 50);
+        }
+
+        setTimeout(() => {
+            confettiContainer.remove();
+        }, 6000);
     }
 
     resetGame() {
@@ -256,63 +303,396 @@ class TicTacToeModal {
     render() {
         const modal = document.createElement('div');
         modal.id = 'tic-tac-toe-modal';
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.className = 'fixed inset-0 flex items-center justify-center z-50';
         modal.innerHTML = `
-            <div class="bg-[#313338] rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-white">Tic Mac Voe</h2>
+            <div class="tic-tac-toe-modal-content bg-[#313338] rounded-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden relative">
+                <div class="floating-particles">
+                    ${this.generateParticles()}
+                </div>
+                
+                <div class="drag-handle"></div>
+                
+                <div class="modal-header flex justify-between items-center p-6 pb-4">
+                    <h2 class="tic-tac-toe-title text-3xl font-bold">TIC MAC VOE</h2>
                     <div class="flex items-center gap-2">
-                        <button id="minimize-tic-tac-toe" class="text-[#949ba4] hover:text-white text-lg transition-colors">
-                            <i class="fas fa-window-minimize"></i>
+                        <button id="minimize-tic-tac-toe" class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300">
+                            <i class="fas fa-window-minimize text-sm"></i>
                         </button>
-                        <button id="close-tic-tac-toe" class="text-[#949ba4] hover:text-white text-xl transition-colors">
-                        <i class="fas fa-times"></i>
-                    </button>
+                        <button id="close-tic-tac-toe" class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300">
+                            <i class="fas fa-times text-sm"></i>
+                        </button>
                     </div>
                 </div>
                 
-                <div id="tic-tac-toe-content">
+                <div id="tic-tac-toe-content" class="px-6 pb-6">
                     <div id="welcome-section" class="text-center">
-                        <div class="mb-4">
-                            <h3 class="text-lg font-medium text-white mb-2">Welcome to Tic Mac Voe!</h3>
-                            <p class="text-[#949ba4] text-sm">Waiting for players to join...</p>
+                        <div class="mb-6">
+                            <div class="relative mb-4">
+                                <div class="w-20 h-20 mx-auto bg-gradient-to-br from-[#5865f2] to-[#a855f7] rounded-full flex items-center justify-center shadow-lg">
+                                    <i class="fas fa-chess-board text-2xl text-white"></i>
+                                </div>
+                                <div class="absolute inset-0 bg-[#5865f2] opacity-30 rounded-full blur-xl animate-pulse"></div>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-3 bg-gradient-to-r from-white to-[#b9bbbe] bg-clip-text text-transparent">
+                                Welcome to the Arena!
+                            </h3>
+                            <p class="text-[#b9bbbe] text-sm">Prepare for epic battles...</p>
                         </div>
                         
                         <div id="player-list" class="space-y-3 mb-6">
                         </div>
                         
-                        <div id="game-controls" class="space-y-3">
-                            <button id="ready-button" class="w-full bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-4 rounded-md transition-colors duration-200">
-                                Ready
+                        <div id="game-controls" class="space-y-4">
+                            <button id="ready-button" class="ready-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-300">
+                                <span class="relative z-10">Ready for Battle</span>
                             </button>
-                            <button id="play-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 hidden">
-                                Play
+                            <button id="play-button" class="play-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-300 hidden">
+                                <span class="relative z-10">Enter the Arena</span>
                             </button>
                         </div>
                     </div>
                     
                     <div id="game-section" class="hidden">
-                        <div id="game-info" class="text-center mb-4">
-                            <div id="current-turn" class="text-[#949ba4] text-sm mb-2"></div>
-                            <div id="game-players" class="flex justify-center gap-4 mb-4">
+                        <div id="game-info" class="text-center mb-6">
+                            <div id="current-turn" class="text-[#b9bbbe] text-lg mb-4 font-semibold"></div>
+                            <div id="game-players" class="flex justify-center gap-4 mb-6">
                             </div>
                         </div>
                         
-                        <div id="game-board" class="grid grid-cols-3 gap-2 mb-4 max-w-xs mx-auto">
+                        <div class="flex justify-center mb-6">
+                            <div id="game-board" class="grid grid-cols-3 gap-3 p-4 rounded-xl">
+                            </div>
                         </div>
                         
                         <div id="game-result" class="text-center hidden">
-                            <div id="winner-text" class="text-xl font-bold mb-4"></div>
-                            <button id="new-game-button" class="bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-4 rounded-md transition-colors duration-200">
-                                New Game
+                            <div id="winner-text" class="text-2xl font-bold mb-6"></div>
+                            <button id="new-game-button" class="new-game-button py-3 px-8 rounded-lg font-bold text-white transition-all duration-300">
+                                <span class="relative z-10">Play Again</span>
                             </button>
                         </div>
                     </div>
                 </div>
+                
+                <div class="resize-handle"></div>
             </div>
         `;
         
         document.body.appendChild(modal);
+        this.setupDragAndResize(modal);
+        this.startParticleAnimation();
+    }
+
+    generateParticles() {
+        let particles = '';
+        for (let i = 0; i < 15; i++) {
+            const delay = Math.random() * 6;
+            const duration = 4 + Math.random() * 4;
+            const left = Math.random() * 100;
+            
+            particles += `
+                <div class="particle" style="
+                    left: ${left}%;
+                    animation-delay: ${delay}s;
+                    animation-duration: ${duration}s;
+                "></div>
+            `;
+        }
+        return particles;
+    }
+
+    startParticleAnimation() {
+        const container = document.querySelector('#tic-tac-toe-modal .floating-particles');
+        if (!container) return;
+
+        setInterval(() => {
+            if (container.children.length < 20) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = '0s';
+                particle.style.animationDuration = (4 + Math.random() * 4) + 's';
+                container.appendChild(particle);
+
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.remove();
+                    }
+                }, 8000);
+            }
+        }, 2000);
+    }
+
+    setupDragAndResize(modal) {
+        const modalContent = modal.querySelector('.tic-tac-toe-modal-content');
+        const dragHandle = modal.querySelector('.drag-handle');
+        const modalHeader = modal.querySelector('.modal-header');
+        const resizeHandle = modal.querySelector('.resize-handle');
+        
+        let isDragging = false;
+        let isResizing = false;
+        let dragOffset = { x: 0, y: 0 };
+        let startSize = { width: 0, height: 0 };
+        let startPos = { x: 0, y: 0 };
+
+        const startDrag = (e) => {
+            if (isResizing) return;
+            isDragging = true;
+            const rect = modalContent.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            modalContent.style.transition = 'none';
+            modalContent.style.position = 'fixed';
+            modalContent.style.zIndex = '10000';
+            document.body.style.userSelect = 'none';
+        };
+
+        const startResize = (e) => {
+            e.stopPropagation();
+            isResizing = true;
+            const rect = modalContent.getBoundingClientRect();
+            startSize.width = rect.width;
+            startSize.height = rect.height;
+            startPos.x = e.clientX;
+            startPos.y = e.clientY;
+            modalContent.style.transition = 'none';
+            document.body.style.userSelect = 'none';
+        };
+
+        const handleMouseMove = (e) => {
+            if (isDragging) {
+                const x = e.clientX - dragOffset.x;
+                const y = e.clientY - dragOffset.y;
+                
+                const maxX = window.innerWidth - modalContent.offsetWidth;
+                const maxY = window.innerHeight - modalContent.offsetHeight;
+                
+                const boundedX = Math.max(0, Math.min(x, maxX));
+                const boundedY = Math.max(0, Math.min(y, maxY));
+                
+                modalContent.style.left = boundedX + 'px';
+                modalContent.style.top = boundedY + 'px';
+                modalContent.style.margin = '0';
+            } else if (isResizing) {
+                const deltaX = e.clientX - startPos.x;
+                const deltaY = e.clientY - startPos.y;
+                
+                const newWidth = Math.max(400, startSize.width + deltaX);
+                const newHeight = Math.max(500, startSize.height + deltaY);
+                
+                modalContent.style.width = newWidth + 'px';
+                modalContent.style.height = newHeight + 'px';
+                modalContent.style.maxWidth = 'none';
+                modalContent.style.maxHeight = 'none';
+            }
+        };
+
+        const stopDragResize = () => {
+            if (isDragging || isResizing) {
+                modalContent.style.transition = '';
+                document.body.style.userSelect = '';
+                isDragging = false;
+                isResizing = false;
+            }
+        };
+
+        dragHandle.addEventListener('mousedown', startDrag);
+        modalHeader.addEventListener('mousedown', startDrag);
+        resizeHandle.addEventListener('mousedown', startResize);
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', stopDragResize);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.closeModal();
+            }
+        });
+    }
+
+    closeModal() {
+        const modal = document.getElementById('tic-tac-toe-modal');
+        if (modal) {
+            modal.style.animation = 'modalExit 0.4s ease-in forwards';
+            setTimeout(() => {
+                if (window.globalSocketManager.isReady()) {
+                    window.globalSocketManager.io.emit('leave-tic-tac-toe', { server_id: this.serverId });
+                }
+                modal.remove();
+                window.activeTicTacToeModal = null;
+            }, 400);
+        }
+    }
+
+    updatePlayerList(players) {
+        const playerList = document.getElementById('player-list');
+        if (!playerList) return;
+        
+        playerList.innerHTML = '';
+        players.forEach((player, index) => {
+            const playerDiv = document.createElement('div');
+            playerDiv.className = 'flex items-center gap-4 p-4 rounded-lg transition-all duration-400 hover:scale-105';
+            playerDiv.innerHTML = `
+                <div class="relative">
+                    <img src="${player.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                         alt="${player.username}" 
+                         class="w-12 h-12 rounded-full border-2 border-[#5865f2] shadow-lg">
+                    <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${player.ready ? 'bg-green-400' : 'bg-yellow-400'} border-2 border-[#1e2124] animate-pulse"></div>
+                </div>
+                <div class="flex-1 text-left">
+                    <div class="text-white font-bold text-lg">${player.username}</div>
+                    <div class="text-sm ${player.ready ? 'text-green-400' : 'text-yellow-400'} font-medium">
+                        ${player.ready ? 'Ready to Fight!' : 'Getting Prepared...'}
+                    </div>
+                </div>
+                <div class="text-2xl">
+                    ${player.ready ? 'READY' : 'WAIT'}
+                </div>
+            `;
+            playerList.appendChild(playerDiv);
+        });
+    }
+
+    createGameBoard() {
+        const gameBoard = document.getElementById('game-board');
+        if (!gameBoard) return;
+        
+        gameBoard.innerHTML = '';
+        for (let i = 0; i < 9; i++) {
+            const cell = document.createElement('button');
+            cell.className = 'w-20 h-20 text-3xl font-bold rounded-xl transition-all duration-300 hover:scale-105 focus:outline-none';
+            cell.addEventListener('click', () => this.makeMove(i));
+            gameBoard.appendChild(cell);
+        }
+        this.updateGameBoard();
+    }
+
+    updateGameBoard() {
+        if (!this.currentGameData) return;
+        
+        const cells = document.querySelectorAll('#game-board button');
+        cells.forEach((cell, index) => {
+            const value = this.currentGameData.board[index];
+            cell.textContent = value || '';
+            cell.disabled = value !== null;
+            
+            if (value) {
+                cell.classList.add('cursor-not-allowed');
+                if (value === 'X') {
+                    cell.style.color = '#60a5fa';
+                    cell.style.textShadow = '0 0 10px #60a5fa';
+                } else {
+                    cell.style.color = '#f87171';
+                    cell.style.textShadow = '0 0 10px #f87171';
+                }
+            } else {
+                cell.classList.remove('cursor-not-allowed');
+                cell.style.color = '';
+                cell.style.textShadow = '';
+            }
+        });
+    }
+
+    makeMove(position) {
+        if (!this.currentGameData || this.currentGameData.current_turn != this.userId) {
+            alert('Not your turn!');
+            return;
+        }
+        
+        if (this.currentGameData.board[position] !== null) {
+            alert('Invalid move!');
+            return;
+        }
+        
+        window.globalSocketManager.io.emit('tic-tac-toe-move', { position: position });
+    }
+
+    showGameResult(data) {
+        const gameResult = document.getElementById('game-result');
+        const winnerText = document.getElementById('winner-text');
+        
+        if (gameResult) gameResult.classList.remove('hidden');
+        
+        if (data.is_draw) {
+            winnerText.textContent = "Epic Draw!";
+            winnerText.className = 'text-2xl font-bold mb-6 text-yellow-400 animate-pulse';
+            this.createFireworks('yellow');
+        } else if (data.winner_user_id == this.userId) {
+            winnerText.textContent = 'VICTORY!';
+            winnerText.className = 'text-2xl font-bold mb-6 text-green-400 animate-bounce';
+            this.createFireworks('green');
+            this.createConfetti();
+        } else {
+            const winner = this.currentGameData.players.find(p => p.user_id == data.winner_user_id);
+            winnerText.textContent = `${winner ? winner.username : 'Opponent'} Wins!`;
+            winnerText.className = 'text-2xl font-bold mb-6 text-red-400';
+            this.createFireworks('red');
+        }
+
+        if (data.winning_positions) {
+            this.highlightWinningCells(data.winning_positions);
+        }
+        
+        this.updateGameBoard();
+    }
+    
+    highlightWinningCells(positions) {
+        const cells = document.querySelectorAll('#game-board button');
+        positions.forEach((position, i) => {
+            setTimeout(() => {
+                if (cells[position]) {
+                    cells[position].classList.add('winning-cell');
+                    cells[position].style.animation = 'winningPulse 0.6s ease-in-out infinite';
+                }
+            }, i * 200);
+        });
+    }
+    
+    createFireworks(color) {
+        const colors = {
+            green: ['#10b981', '#059669', '#34d399'],
+            red: ['#ef4444', '#dc2626', '#f87171'],
+            yellow: ['#eab308', '#ca8a04', '#fbbf24']
+        };
+        
+        const fireworkColors = colors[color] || colors.green;
+        
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                this.createSingleFirework(fireworkColors);
+            }, i * 200);
+        }
+    }
+
+    createSingleFirework(colors) {
+        const container = document.createElement('div');
+        container.className = 'fixed inset-0 pointer-events-none z-50';
+        document.body.appendChild(container);
+
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
+        for (let i = 0; i < 12; i++) {
+            const spark = document.createElement('div');
+            spark.className = 'absolute w-2 h-2 rounded-full';
+            spark.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            spark.style.left = centerX + 'px';
+            spark.style.top = centerY + 'px';
+            
+            const angle = (i * 30) * Math.PI / 180;
+            const distance = 100 + Math.random() * 100;
+            const endX = centerX + Math.cos(angle) * distance;
+            const endY = centerY + Math.sin(angle) * distance;
+            
+            spark.style.animation = `firework 0.8s ease-out forwards`;
+            spark.style.setProperty('--end-x', endX + 'px');
+            spark.style.setProperty('--end-y', endY + 'px');
+            
+            container.appendChild(spark);
+        }
+
+        setTimeout(() => {
+            container.remove();
+        }, 1000);
     }
 
     setupEventListeners() {
@@ -392,6 +772,7 @@ class TicTacToeModal {
             this.currentGameData.current_turn = data.current_turn;
             this.updateGameBoard();
             this.updateGameInfo();
+            this.animateMove(data.position);
         });
         io.on('tic-tac-toe-game-end', (data) => {
             this.showGameResult(data);
@@ -401,24 +782,15 @@ class TicTacToeModal {
         });
     }
 
-    updatePlayerList(players) {
-        const playerList = document.getElementById('player-list');
-        if (!playerList) return;
-        
-        playerList.innerHTML = '';
-        players.forEach(player => {
-            const playerDiv = document.createElement('div');
-            playerDiv.className = 'flex items-center gap-3 p-3 bg-[#2b2d31] rounded-md';
-            playerDiv.innerHTML = `
-                <img src="${player.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="${player.username}" class="w-8 h-8 rounded-full">
-                <div class="flex-1 text-left">
-                    <div class="text-white font-medium">${player.username}</div>
-                    <div class="text-[#949ba4] text-sm">${player.ready ? 'Ready' : 'Not Ready'}</div>
-                </div>
-                ${player.ready ? '<i class="fas fa-check text-green-400"></i>' : '<i class="fas fa-clock text-yellow-400"></i>'}
-            `;
-            playerList.appendChild(playerDiv);
-        });
+    animateMove(position) {
+        const cells = document.querySelectorAll('#game-board button');
+        if (cells[position]) {
+            cells[position].style.transform = 'scale(1.2)';
+            cells[position].style.transition = 'transform 0.2s ease';
+            setTimeout(() => {
+                cells[position].style.transform = 'scale(1)';
+            }, 200);
+        }
     }
 
     updateGameInfo() {
@@ -453,91 +825,31 @@ class TicTacToeModal {
         }
     }
 
-    createGameBoard() {
-        const gameBoard = document.getElementById('game-board');
-        if (!gameBoard) return;
-        
-        gameBoard.innerHTML = '';
-        for (let i = 0; i < 9; i++) {
-            const cell = document.createElement('button');
-            cell.className = 'w-16 h-16 bg-[#2b2d31] hover:bg-[#404249] text-white text-2xl font-bold rounded-md transition-colors duration-200';
-            cell.addEventListener('click', () => this.makeMove(i));
-            gameBoard.appendChild(cell);
-        }
-        this.updateGameBoard();
-    }
-
-    updateGameBoard() {
-        if (!this.currentGameData) return;
-        
-        const cells = document.querySelectorAll('#game-board button');
-        cells.forEach((cell, index) => {
-            const value = this.currentGameData.board[index];
-            cell.textContent = value || '';
-            cell.disabled = value !== null;
-            
-            if (value) {
-                cell.className = 'w-16 h-16 bg-[#404249] text-white text-2xl font-bold rounded-md cursor-not-allowed';
-                if (value === 'X') {
-                    cell.classList.add('text-blue-400');
-                } else {
-                    cell.classList.add('text-red-400');
-                }
-            }
-        });
-    }
-
-    makeMove(position) {
-        if (!this.currentGameData || this.currentGameData.current_turn != this.userId) {
-            alert('Not your turn!');
-            return;
-        }
-        
-        if (this.currentGameData.board[position] !== null) {
-            alert('Invalid move!');
-            return;
-        }
-        
-        window.globalSocketManager.io.emit('tic-tac-toe-move', { position: position });
-    }
-
-    showGameResult(data) {
-        const gameResult = document.getElementById('game-result');
-        const winnerText = document.getElementById('winner-text');
-        
-        if (gameResult) gameResult.classList.remove('hidden');
-        
-        if (data.is_draw) {
-            winnerText.textContent = "It's a draw!";
-            winnerText.className = 'text-xl font-bold mb-4 text-yellow-400';
-        } else if (data.winner_user_id == this.userId) {
-            winnerText.textContent = 'You won! 🎉';
-            winnerText.className = 'text-xl font-bold mb-4 text-green-400';
-        } else {
-            const winner = this.currentGameData.players.find(p => p.user_id == data.winner_user_id);
-            winnerText.textContent = `${winner ? winner.username : 'Unknown'} won!`;
-            winnerText.className = 'text-xl font-bold mb-4 text-red-400';
-        }
-        
-        this.updateGameBoard();
-    }
-    
     toggleMinimize() {
         const modal = document.getElementById('tic-tac-toe-modal');
         if (!modal) return;
         
         if (this.isMinimized) {
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.style.display = 'flex';
+            modal.className = 'fixed inset-0 flex items-center justify-center z-50';
             modal.style.width = '';
             modal.style.height = '';
             modal.style.top = '';
             modal.style.left = '';
+            modal.style.background = '';
+            modal.style.borderRadius = '';
+            modal.style.border = '';
             
-            const content = modal.querySelector('div[class*="bg-[#313338]"]');
+            const content = modal.querySelector('.tic-tac-toe-modal-content');
             if (content) {
                 content.style.transform = '';
                 content.style.width = '';
                 content.style.height = '';
+                content.style.position = '';
+                content.style.display = '';
+                content.style.alignItems = '';
+                content.style.justifyContent = '';
+                content.style.padding = '';
             }
             
             const minimizeBtn = modal.querySelector('#minimize-tic-tac-toe i');
@@ -547,91 +859,9 @@ class TicTacToeModal {
             
             this.isMinimized = false;
         } else {
-            this.minimizedPosition.x = Math.min(this.minimizedPosition.x, window.innerWidth - 320);
-            this.minimizedPosition.y = Math.min(this.minimizedPosition.y, window.innerHeight - 60);
-            
-            modal.className = 'fixed z-50';
-            modal.style.width = '300px';
-            modal.style.height = '50px';
-            modal.style.top = this.minimizedPosition.y + 'px';
-            modal.style.left = this.minimizedPosition.x + 'px';
-            modal.style.background = 'rgba(0, 0, 0, 0.8)';
-            modal.style.borderRadius = '8px';
-            modal.style.border = '1px solid #404249';
-            
-            const content = modal.querySelector('div[class*="bg-[#313338]"]');
-            if (content) {
-                content.style.transform = 'scale(0)';
-                content.style.width = '100%';
-                content.style.height = '100%';
-                content.style.display = 'flex';
-                content.style.alignItems = 'center';
-                content.style.justifyContent = 'space-between';
-                content.style.padding = '8px 12px';
-            }
-            
-            const title = modal.querySelector('h2');
-            if (title) {
-                title.style.fontSize = '14px';
-                title.style.margin = '0';
-            }
-            
-            const minimizeBtn = modal.querySelector('#minimize-tic-tac-toe i');
-            if (minimizeBtn) {
-                minimizeBtn.className = 'fas fa-window-maximize';
-            }
-            
+            modal.style.display = 'none';
             this.isMinimized = true;
-            this.makeDraggable(modal);
         }
-    }
-    
-    makeDraggable(element) {
-        let isDragging = false;
-        let currentX;
-        let currentY;
-        let initialX;
-        let initialY;
-        let xOffset = 0;
-        let yOffset = 0;
-        
-        element.addEventListener('mousedown', (e) => {
-            if (e.target.closest('#minimize-tic-tac-toe') || e.target.closest('#close-tic-tac-toe')) {
-                return;
-            }
-            
-            initialX = e.clientX - xOffset;
-            initialY = e.clientY - yOffset;
-            
-            if (e.target === element || e.target.closest('h2')) {
-                isDragging = true;
-                element.style.cursor = 'grabbing';
-            }
-        });
-        
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                e.preventDefault();
-                currentX = e.clientX - initialX;
-                currentY = e.clientY - initialY;
-                xOffset = currentX;
-                yOffset = currentY;
-                
-                const newX = Math.max(0, Math.min(currentX, window.innerWidth - element.offsetWidth));
-                const newY = Math.max(0, Math.min(currentY, window.innerHeight - element.offsetHeight));
-                
-                element.style.left = newX + 'px';
-                element.style.top = newY + 'px';
-                
-                this.minimizedPosition.x = newX;
-                this.minimizedPosition.y = newY;
-            }
-        });
-        
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            element.style.cursor = 'default';
-        });
     }
 }
 

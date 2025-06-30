@@ -151,6 +151,17 @@ class ActivityHandler {
                 }
             });
         }
+
+        io.to(roomName).emit('tic-tac-toe-move-made', {
+            position: position,
+            symbol: symbol,
+            board: gameData.board,
+            current_turn: gameData.current_turn,
+            player: {
+                user_id: client.data.user_id,
+                username: client.data.username
+            }
+        });
         
         const winner = this.checkWinner(gameData.board);
         const isDraw = !winner && gameData.board.every(cell => cell !== null);
@@ -161,34 +172,26 @@ class ActivityHandler {
             gameData.is_draw = isDraw;
             gameData.finished_at = Date.now();
             
-            io.to(roomName).emit('tic-tac-toe-game-end', {
-                board: gameData.board,
-                winner: winner,
-                is_draw: isDraw,
-                winner_user_id: winner ? gameData.players[winner === 'X' ? 0 : 1].user_id : null,
-                game_data: gameData
-            });
-            
-            if (roomClients) {
-                roomClients.forEach(socketId => {
-                    const socket = io.sockets.sockets.get(socketId);
-                    if (socket) {
-                        socket.data.ticTacToeReady = false;
-                        socket.data.ticTacToeGameData = null;
-                    }
+            setTimeout(() => {
+                io.to(roomName).emit('tic-tac-toe-game-end', {
+                    board: gameData.board,
+                    winner: winner,
+                    is_draw: isDraw,
+                    winner_user_id: winner ? gameData.players[winner === 'X' ? 0 : 1].user_id : null,
+                    game_data: gameData,
+                    winning_positions: winner ? this.getWinningPositions(gameData.board) : null
                 });
-            }
-        } else {
-            io.to(roomName).emit('tic-tac-toe-move-made', {
-                position: position,
-                symbol: symbol,
-                board: gameData.board,
-                current_turn: gameData.current_turn,
-                player: {
-                    user_id: client.data.user_id,
-                    username: client.data.username
+                
+                if (roomClients) {
+                    roomClients.forEach(socketId => {
+                        const socket = io.sockets.sockets.get(socketId);
+                        if (socket) {
+                            socket.data.ticTacToeReady = false;
+                            socket.data.ticTacToeGameData = null;
+                        }
+                    });
                 }
-            });
+            }, 800);
         }
     }
     
@@ -238,6 +241,23 @@ class ActivityHandler {
             const [a, b, c] = line;
             if (board[a] && board[a] === board[b] && board[a] === board[c]) {
                 return board[a];
+            }
+        }
+        
+        return null;
+    }
+
+    static getWinningPositions(board) {
+        const lines = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+        
+        for (let line of lines) {
+            const [a, b, c] = line;
+            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                return line;
             }
         }
         
