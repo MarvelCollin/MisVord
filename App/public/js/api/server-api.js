@@ -431,7 +431,12 @@ const serverAPI = {
         });
     },
     
-    transferOwnershipAndLeave: function(serverId, newOwnerId) {
+    transferOwnershipAndLeave: function(serverId, newOwnerId = null) {
+        const body = { server_id: serverId };
+        if (newOwnerId) {
+            body.new_owner_id = newOwnerId;
+        }
+        
         return fetch(`/api/servers/transfer-ownership`, {
             method: 'POST',
             credentials: 'include',
@@ -440,10 +445,7 @@ const serverAPI = {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                server_id: serverId,
-                new_owner_id: newOwnerId
-            })
+            body: JSON.stringify(body)
         })
         .then(response => {
             if (!response.ok) {

@@ -230,13 +230,23 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                 </div>
                 
                 <div class="space-y-4">
-                    <div class="text-center">
+                    <div class="text-center" id="transfer-content">
                         <i class="fas fa-crown text-yellow-500 text-4xl mb-4"></i>
                         <p class="text-white mb-2">You're about to leave your own server!</p>
                         <p class="text-gray-400 text-sm mb-4">You must transfer ownership to another member before leaving.</p>
                     </div>
                     
-                    <div>
+                    <div class="text-center hidden" id="delete-content">
+                        <i class="fas fa-trash-alt text-red-500 text-4xl mb-4"></i>
+                        <p class="text-white mb-2">You're about to leave your own server!</p>
+                        <p class="text-gray-400 text-sm mb-4">Since there are no other members, the server will be permanently deleted.</p>
+                        <div class="bg-red-900/20 border border-red-500/50 rounded-lg p-3 mt-4">
+                            <p class="text-red-400 text-sm font-medium">⚠️ This action cannot be undone!</p>
+                            <p class="text-gray-400 text-xs mt-1">All channels, messages, and server data will be lost forever.</p>
+                        </div>
+                    </div>
+                    
+                    <div id="member-selection">
                         <label class="block text-sm font-medium text-gray-300 mb-2">Select New Owner</label>
                         <select id="new-owner-select" class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary">
                             <option value="">Loading members...</option>
@@ -251,6 +261,10 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                         <button type="button" id="confirm-transfer-ownership" 
                                 class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded" disabled>
                             Transfer & Leave
+                        </button>
+                        <button type="button" id="confirm-delete-server" 
+                                class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded hidden">
+                            Delete Server & Leave
                         </button>
                     </div>
                 </div>
@@ -358,6 +372,26 @@ document.addEventListener('DOMContentLoaded', function() {
         
         modal.classList.add('hidden');
         modal.style.display = 'none';
+        
+        resetTransferOwnershipModal();
+        
+        const newOwnerSelect = document.getElementById('new-owner-select');
+        if (newOwnerSelect) {
+            newOwnerSelect.innerHTML = '<option value="">Loading members...</option>';
+        }
+    }
+    
+    function resetTransferOwnershipModal() {
+        document.getElementById('transfer-content').classList.remove('hidden');
+        document.getElementById('delete-content').classList.add('hidden');
+        document.getElementById('member-selection').classList.remove('hidden');
+        document.getElementById('confirm-transfer-ownership').classList.remove('hidden');
+        document.getElementById('confirm-delete-server').classList.add('hidden');
+        
+        const confirmTransferBtn = document.getElementById('confirm-transfer-ownership');
+        if (confirmTransferBtn) {
+            confirmTransferBtn.disabled = true;
+        }
     }
 
     function closeLeaveServerModal() {

@@ -369,6 +369,14 @@ async function loadAllFriends() {
         }
         
         let friendsHtml = '';
+        
+        console.log('Friends data for rendering:', friends, 'Type:', typeof friends, 'Is Array:', Array.isArray(friends));
+        
+        if (!Array.isArray(friends)) {
+            console.error('Friends is not an array:', friends);
+            friends = [];
+        }
+        
         friends.forEach(friend => {
             const isOnlineInSocket = onlineUsers[friend.id] !== undefined;
             const socketStatus = isOnlineInSocket ? onlineUsers[friend.id].status || 'online' : 'offline';

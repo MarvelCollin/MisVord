@@ -62,11 +62,30 @@ class FriendsManager {
         }
 
         try {
-            const friends = await window.FriendAPI.getFriends();
-            this.cache.friends = friends || [];
+            const response = await window.FriendAPI.getFriends();
+            
+            let friends = [];
+            
+            if (Array.isArray(response)) {
+                friends = response;
+            } else if (response && response.success && response.data) {
+                friends = Array.isArray(response.data) ? response.data : [];
+            } else if (response && response.data) {
+                friends = Array.isArray(response.data) ? response.data : [];
+            } else if (response && Array.isArray(response.friends)) {
+                friends = response.friends;
+            } else if (response && response.success === false) {
+                console.warn('Friends API returned error:', response.error || response.message);
+                friends = [];
+            } else {
+                console.warn('Unexpected friends API response format:', response);
+                friends = [];
+            }
+            
+            this.cache.friends = friends;
             this.lastUpdated.friends = Date.now();
             this.notify('friends-updated', friends);
-            return friends || [];
+            return friends;
         } catch (error) {
             console.error('Error loading friends:', error);
             return this.cache.friends || [];
@@ -79,11 +98,34 @@ class FriendsManager {
         }
 
         try {
-            const pending = await window.FriendAPI.getPendingRequests();
-            this.cache.pendingRequests = pending || { incoming: [], outgoing: [] };
+            const response = await window.FriendAPI.getPendingRequests();
+            console.log('FriendAPI.getPendingRequests() response:', response);
+            
+            let pending = { incoming: [], outgoing: [] };
+            
+            if (response && typeof response === 'object') {
+                if (response.incoming && response.outgoing) {
+                    pending = {
+                        incoming: Array.isArray(response.incoming) ? response.incoming : [],
+                        outgoing: Array.isArray(response.outgoing) ? response.outgoing : []
+                    };
+                } else if (response.data && response.data.incoming && response.data.outgoing) {
+                    pending = {
+                        incoming: Array.isArray(response.data.incoming) ? response.data.incoming : [],
+                        outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : []
+                    };
+                } else if (response.success && response.data) {
+                    pending = {
+                        incoming: Array.isArray(response.data.incoming) ? response.data.incoming : [],
+                        outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : []
+                    };
+                }
+            }
+            
+            this.cache.pendingRequests = pending;
             this.lastUpdated.pending = Date.now();
             this.notify('pending-updated', pending);
-            return pending || { incoming: [], outgoing: [] };
+            return pending;
         } catch (error) {
             console.error('Error loading pending requests:', error);
             return this.cache.pendingRequests || { incoming: [], outgoing: [] };

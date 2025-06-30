@@ -99,15 +99,11 @@ class ChatController extends BaseController
     private function respondMessages($type, $targetId, $messages, $hasMore = false)
     {
         return $this->success([
-            'data' => [
-                'type' => $type,
-                'target_id' => $targetId,
-                'messages' => $messages,
-                'has_more' => $hasMore
-            ],
-            'timestamp' => date('Y-m-d H:i:s'),
-            'message' => 'Messages retrieved successfully'
-        ]);
+            'type' => $type,
+            'target_id' => $targetId,
+            'messages' => $messages,
+            'has_more' => $hasMore
+        ], 'Messages retrieved successfully');
     }
 
     private function getDirectMessages($chatRoomId, $userId)

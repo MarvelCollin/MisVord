@@ -1948,9 +1948,12 @@ class ServerController extends BaseController
             }
             
             $eligibleMembers = $this->userServerMembershipRepository->getEligibleNewOwners($serverId, $this->getCurrentUserId());
+            $shouldDeleteServer = empty($eligibleMembers);
             
             return $this->success([
-                'members' => $eligibleMembers
+                'members' => $eligibleMembers,
+                'should_delete_server' => $shouldDeleteServer,
+                'server_name' => $server->name
             ]);
             
         } catch (Exception $e) {
@@ -1969,11 +1972,8 @@ class ServerController extends BaseController
         $serverId = $input['server_id'] ?? null;
         $newOwnerId = $input['new_owner_id'] ?? null;
         
-        if (!$serverId || !$newOwnerId) {
-            return $this->validationError([
-                'server_id' => 'Server ID is required',
-                'new_owner_id' => 'New owner ID is required'
-            ]);
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
         }
         
         try {
@@ -1984,6 +1984,15 @@ class ServerController extends BaseController
             
             if (!$this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId)) {
                 return $this->forbidden('Only server owner can transfer ownership');
+            }
+            
+            if (!$newOwnerId) {
+                $eligibleMembers = $this->userServerMembershipRepository->getEligibleNewOwners($serverId, $this->getCurrentUserId());
+                if (empty($eligibleMembers)) {
+                    return $this->deleteServerAndLeave($serverId, $server);
+                } else {
+                    return $this->validationError(['new_owner_id' => 'New owner ID is required']);
+                }
             }
             
             $newOwnerMembership = $this->userServerMembershipRepository->findByUserAndServer($newOwnerId, $serverId);
@@ -2020,6 +2029,37 @@ class ServerController extends BaseController
                 'error' => $e->getMessage()
             ]);
             return $this->serverError('Failed to transfer ownership: ' . $e->getMessage());
+        }
+    }
+    
+    private function deleteServerAndLeave($serverId, $server) {
+        try {
+            $serverName = $server->name;
+            
+            $deleted = $this->serverRepository->delete($serverId);
+            if (!$deleted) {
+                return $this->serverError('Failed to delete server');
+            }
+            
+            $this->logActivity('server_deleted_no_members', [
+                'server_id' => $serverId,
+                'server_name' => $serverName,
+                'owner_id' => $this->getCurrentUserId(),
+                'reason' => 'Owner left and no other members available'
+            ]);
+            
+            return $this->success([
+                'message' => 'Server deleted successfully as there were no other members',
+                'server_deleted' => true,
+                'redirect' => '/home'
+            ]);
+            
+        } catch (Exception $e) {
+            $this->logActivity('server_deletion_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to delete server: ' . $e->getMessage());
         }
     }
 

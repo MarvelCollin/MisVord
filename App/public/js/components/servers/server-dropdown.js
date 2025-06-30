@@ -655,10 +655,11 @@ function showTransferOwnershipModal(serverId) {
     modal.classList.remove('hidden');
     
     const newOwnerSelect = document.getElementById('new-owner-select');
-    const confirmBtn = document.getElementById('confirm-transfer-ownership');
+    const confirmTransferBtn = document.getElementById('confirm-transfer-ownership');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-server');
     
-    if (confirmBtn) {
-        confirmBtn.disabled = true;
+    if (confirmTransferBtn) {
+        confirmTransferBtn.disabled = true;
     }
     
     if (newOwnerSelect) {
@@ -666,18 +667,14 @@ function showTransferOwnershipModal(serverId) {
         
         window.serverAPI.getEligibleNewOwners(serverId)
             .then(data => {
-                if (data.success && data.members) {
-                    newOwnerSelect.innerHTML = '<option value="">Select new owner...</option>';
-                    
-                    data.members.forEach(member => {
-                        const option = document.createElement('option');
-                        option.value = member.id;
-                        option.textContent = `${member.display_name || member.username} (${member.role})`;
-                        newOwnerSelect.appendChild(option);
-                    });
-                    
-                    if (data.members.length === 0) {
-                        newOwnerSelect.innerHTML = '<option value="">No eligible members found</option>';
+                if (data.success) {
+                    if (data.should_delete_server) {
+                        showDeleteServerMode(data.server_name);
+                    } else if (data.members && data.members.length > 0) {
+                        showTransferOwnershipMode();
+                        populateMembersList(data.members);
+                    } else {
+                        showDeleteServerMode(data.server_name);
                     }
                 } else {
                     newOwnerSelect.innerHTML = '<option value="">Error loading members</option>';
@@ -690,8 +687,48 @@ function showTransferOwnershipModal(serverId) {
             });
     }
     
+    setupTransferOwnershipListeners(serverId);
+    setupDeleteServerListeners(serverId);
+}
+
+function showTransferOwnershipMode() {
+    document.getElementById('transfer-content').classList.remove('hidden');
+    document.getElementById('delete-content').classList.add('hidden');
+    document.getElementById('member-selection').classList.remove('hidden');
+    document.getElementById('confirm-transfer-ownership').classList.remove('hidden');
+    document.getElementById('confirm-delete-server').classList.add('hidden');
+}
+
+function showDeleteServerMode(serverName) {
+    document.getElementById('transfer-content').classList.add('hidden');
+    document.getElementById('delete-content').classList.remove('hidden');
+    document.getElementById('member-selection').classList.add('hidden');
+    document.getElementById('confirm-transfer-ownership').classList.add('hidden');
+    document.getElementById('confirm-delete-server').classList.remove('hidden');
+    
+    const confirmDeleteBtn = document.getElementById('confirm-delete-server');
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.disabled = false;
+    }
+}
+
+function populateMembersList(members) {
+    const newOwnerSelect = document.getElementById('new-owner-select');
+    
+    newOwnerSelect.innerHTML = '<option value="">Select new owner...</option>';
+    
+    members.forEach(member => {
+        const option = document.createElement('option');
+        option.value = member.id;
+        option.textContent = `${member.display_name || member.username} (${member.role})`;
+        newOwnerSelect.appendChild(option);
+    });
+}
+
+function setupTransferOwnershipListeners(serverId) {
     const confirmTransferBtn = document.getElementById('confirm-transfer-ownership');
-    if (confirmTransferBtn && !confirmTransferBtn.hasAttribute('data-listener')) {
+    
+    if (confirmTransferBtn && !confirmTransferBtn.hasAttribute('data-transfer-listener')) {
         confirmTransferBtn.addEventListener('click', function() {
             const newOwnerId = document.getElementById('new-owner-select').value;
             
@@ -702,8 +739,66 @@ function showTransferOwnershipModal(serverId) {
             
             transferOwnershipAndLeave(serverId, newOwnerId);
         });
-        confirmTransferBtn.setAttribute('data-listener', 'true');
+        confirmTransferBtn.setAttribute('data-transfer-listener', 'true');
     }
+}
+
+function setupDeleteServerListeners(serverId) {
+    const confirmDeleteBtn = document.getElementById('confirm-delete-server');
+    
+    if (confirmDeleteBtn && !confirmDeleteBtn.hasAttribute('data-delete-listener')) {
+        confirmDeleteBtn.addEventListener('click', function() {
+            deleteServerAndLeave(serverId);
+        });
+        confirmDeleteBtn.setAttribute('data-delete-listener', 'true');
+    }
+}
+
+function deleteServerAndLeave(serverId) {
+    const deleteBtn = document.getElementById('confirm-delete-server');
+    
+    if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = 'Deleting Server...';
+    }
+    
+    if (!window.serverAPI) {
+        showToast('Server API not available', 'error');
+        return;
+    }
+    
+    window.serverAPI.transferOwnershipAndLeave(serverId, null)
+        .then(response => {
+            if (response.success) {
+                if (response.server_deleted) {
+                    showToast('Server deleted successfully', 'success');
+                } else {
+                    showToast(response.message || 'Server deleted successfully', 'success');
+                }
+                
+                closeModal('transfer-ownership-modal');
+                
+                setTimeout(() => {
+                    if (response.redirect) {
+                        window.location.href = response.redirect;
+                    } else {
+                        window.location.href = '/home';
+                    }
+                }, 1000);
+            } else {
+                showToast(response.message || 'Failed to delete server', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting server:', error);
+            showToast('Failed to delete server: ' + error.message, 'error');
+        })
+        .finally(() => {
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = 'Delete Server & Leave';
+            }
+        });
 }
 
 function transferOwnershipAndLeave(serverId, newOwnerId) {
