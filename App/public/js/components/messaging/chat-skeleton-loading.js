@@ -71,17 +71,17 @@ class ChatSkeletonLoader {
     }
 
     hideLoadMoreButton() {
-        const loadMoreButton = document.getElementById('load-more-messages');
-        if (loadMoreButton) {
-            loadMoreButton.style.display = 'none';
-        }
+        const loadMoreButtons = document.querySelectorAll('#load-more-messages, .load-more-messages');
+        loadMoreButtons.forEach(button => {
+            button.style.display = 'none';
+        });
     }
 
     showLoadMoreButton() {
-        const loadMoreButton = document.getElementById('load-more-messages');
-        if (loadMoreButton) {
-            loadMoreButton.style.display = 'block';
-        }
+        const loadMoreButtons = document.querySelectorAll('#load-more-messages, .load-more-messages');
+        loadMoreButtons.forEach(button => {
+            button.style.display = 'block';
+        });
     }
 
     clear() {

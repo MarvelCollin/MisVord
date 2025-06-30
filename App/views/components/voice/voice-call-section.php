@@ -52,46 +52,8 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
             </div>
         </div>
 
-
-
-        <!-- SCREEN SHARE VIEW (Full priority like Discord) -->
-        <div id="screenShareView" class="hidden flex-1 flex flex-col">
-            <!-- Screen Share Main Area -->
-            <div class="flex-1 relative bg-black">
-                <video id="screenShareVideo" class="w-full h-full object-contain" autoplay playsinline></video>
-                
-                <!-- Screen Share Controls Overlay -->
-                <div class="absolute top-4 left-4 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center space-x-3">
-                    <div class="w-6 h-6 bg-[#ed4245] rounded-full flex items-center justify-center">
-                        <i class="fas fa-desktop text-white text-xs"></i>
-                    </div>
-                    <div>
-                        <span class="text-white text-sm font-medium" id="screenShareUsername">Your Screen</span>
-                        <div class="text-[#b9bbbe] text-xs">Screen sharing</div>
-                    </div>
-                </div>
-
-                <!-- Picture-in-Picture Camera (when same user has both) -->
-                <div id="pipCamera" class="hidden absolute bottom-4 right-4 w-48 h-32 bg-[#36393f] rounded-lg overflow-hidden border-2 border-[#5865f2] shadow-xl">
-                    <video id="pipCameraVideo" class="w-full h-full object-cover" autoplay playsinline muted></video>
-                    <div class="absolute bottom-1 left-1 bg-black/80 rounded px-2 py-1">
-                        <span class="text-white text-xs font-medium">You</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Participants Strip (Discord style bottom strip) -->
-            <div class="bg-[#36393f] border-t border-[#202225] p-3">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-[#b9bbbe] text-xs font-medium">Participants</span>
-                    <button onclick="stopScreenShare()" class="bg-[#ed4245] hover:bg-[#da373c] px-3 py-1 rounded text-white text-xs transition-colors">
-                        <i class="fas fa-stop mr-1"></i>Stop Sharing
-                    </button>
-                </div>
-                <div id="screenShareParticipants" class="flex space-x-3 overflow-x-auto">
-                    <!-- Participants during screen share will be added here -->
-                </div>
-            </div>
+        <!-- SCREEN SHARE VIEW (No longer used - now using grid-based approach) -->
+        <div id="screenShareView" class="hidden">
         </div>
     </div>
 
@@ -192,7 +154,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     backdrop-filter: blur(4px) !important;
 }
 
-/* Voice Participants Grid */
+/* Voice Participants Grid - Enhanced with Scrollable */
 #participantGrid {
     display: grid !important;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
@@ -201,10 +163,38 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     height: 100% !important;
     padding: 8px !important;
     box-sizing: border-box !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #5865f2 #2f3136 !important;
+}
+
+#participantGrid::-webkit-scrollbar {
+    width: 8px !important;
+}
+
+#participantGrid::-webkit-scrollbar-track {
+    background: #2f3136 !important;
+    border-radius: 4px !important;
+}
+
+#participantGrid::-webkit-scrollbar-thumb {
+    background: #5865f2 !important;
+    border-radius: 4px !important;
+    transition: background 0.3s ease !important;
+}
+
+#participantGrid::-webkit-scrollbar-thumb:hover {
+    background: #7289da !important;
+}
+
+#participantGrid::-webkit-scrollbar-corner {
+    background: #2f3136 !important;
 }
 
 #participantGrid[data-count="1"] {
     grid-template-columns: 1fr !important;
+    justify-items: center !important;
 }
 
 #participantGrid[data-count="2"] {
@@ -212,27 +202,53 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 }
 
 #participantGrid[data-count="3"] {
-    grid-template-columns: 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr !important;
-}
-
-#participantGrid[data-count="3"] .participant-card:first-child {
-    grid-column: 1 / -1 !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
 }
 
 #participantGrid[data-count="4"] {
     grid-template-columns: 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr !important;
 }
 
-#participantGrid[data-count="5"], #participantGrid[data-count="6"] {
+#participantGrid[data-count="5"], 
+#participantGrid[data-count="6"] {
     grid-template-columns: 1fr 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr !important;
 }
 
-#participantGrid[data-count="7"], #participantGrid[data-count="8"], #participantGrid[data-count="9"] {
+#participantGrid[data-count="7"], 
+#participantGrid[data-count="8"], 
+#participantGrid[data-count="9"] {
     grid-template-columns: 1fr 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr 1fr !important;
+}
+
+#participantGrid[data-count="10"],
+#participantGrid[data-count="11"],
+#participantGrid[data-count="12"] {
+    grid-template-columns: 1fr 1fr 1fr 1fr !important;
+}
+
+#unifiedGridView {
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.scroll-indicator {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(88, 101, 242, 0.8);
+    color: white;
+    padding: 8px;
+    border-radius: 20px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.scroll-indicator.visible {
+    opacity: 1;
 }
 
 .participant-card {
@@ -343,18 +359,30 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     #participantGrid {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
         gap: 8px !important;
-        padding: 4px !important;
+        padding: 8px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        max-height: calc(100vh - 200px) !important;
     }
     
-    #participantGrid[data-count="2"], 
-    #participantGrid[data-count="3"], 
-    #participantGrid[data-count="4"] {
+    #participantGrid::-webkit-scrollbar {
+        width: 6px !important;
+    }
+    
+    #participantGrid[data-count="1"] {
+        grid-template-columns: 1fr !important;
+        justify-items: center !important;
+    }
+    
+    #participantGrid[data-count="2"] {
         grid-template-columns: 1fr 1fr !important;
-        grid-template-rows: repeat(auto, 1fr) !important;
     }
     
-    #participantGrid[data-count="3"] .participant-card:first-child {
-        grid-column: 1 !important;
+    #participantGrid[data-count="3"], 
+    #participantGrid[data-count="4"],
+    #participantGrid[data-count="5"],
+    #participantGrid[data-count="6"] {
+        grid-template-columns: 1fr 1fr !important;
     }
     
     .participant-card {
@@ -386,6 +414,12 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     
     .voice-tooltip {
         display: none !important;
+    }
+    
+    .scroll-indicator {
+        right: 5px !important;
+        padding: 6px !important;
+        font-size: 10px !important;
     }
 }
 
@@ -591,6 +625,24 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     background: linear-gradient(135deg, #36393f 0%, #3c3f47 100%) !important;
     border: 2px solid rgba(59, 165, 92, 0.5) !important;
     transform: translateY(-2px) !important;
+}
+
+.screen-share-card {
+    border: 2px solid #5865f2 !important;
+    box-shadow: 0 0 10px rgba(88, 101, 242, 0.3) !important;
+}
+
+.screen-share-card:hover {
+    border-color: #7289da !important;
+    box-shadow: 0 0 15px rgba(88, 101, 242, 0.5) !important;
+}
+
+.screen-share-card video {
+    object-fit: contain !important;
+}
+
+.screen-share-card .video-participant-overlay {
+    background: rgba(88, 101, 242, 0.9) !important;
 }
 </style>
 
@@ -911,7 +963,7 @@ class VoiceCallManager {
             if (kind === 'video') {
                 this.handleCameraDisabled(participant);
             } else if (kind === 'share') {
-                this.handleScreenShareStopped();
+                this.handleScreenShareStopped(participant);
             }
         });
 
@@ -984,9 +1036,15 @@ class VoiceCallManager {
             return;
         }
 
-        const existingElement = document.querySelector(`[data-participant-id="${participant.id}"]`);
+        const existingVideoCard = document.querySelector(`[data-participant-id="${participant.id}"].video-participant-card`);
+        if (existingVideoCard) {
+            console.log(`⚠️ [VOICE-MANAGER] Video card exists for ${participant.id}, skipping voice card creation`);
+            return;
+        }
+
+        const existingElement = document.querySelector(`[data-participant-id="${participant.id}"].voice-participant-card`);
         if (existingElement) {
-            console.log(`⚠️ [VOICE-MANAGER] Element for participant ${participant.id} already exists`);
+            console.log(`⚠️ [VOICE-MANAGER] Voice card for participant ${participant.id} already exists`);
             return;
         }
 
@@ -1030,7 +1088,29 @@ class VoiceCallManager {
 
         container.appendChild(element);
         
+        if (!participant.isLocal) {
+            this.scrollToNewParticipant(element);
+        }
+        
         console.log(`🔊 [DEBUG] Voice participant element created for: ${participant.name}`);
+    }
+
+    scrollToNewParticipant(element) {
+        const participantGrid = document.getElementById('participantGrid');
+        if (!participantGrid || !element) return;
+        
+        setTimeout(() => {
+            const elementRect = element.getBoundingClientRect();
+            const containerRect = participantGrid.getBoundingClientRect();
+            
+            if (elementRect.bottom > containerRect.bottom) {
+                element.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'end',
+                    inline: 'nearest'
+                });
+            }
+        }, 200);
     }
 
     removeParticipantElement(participantId) {
@@ -1054,6 +1134,10 @@ class VoiceCallManager {
         if (container) {
             container.setAttribute('data-count', count);
         }
+        
+        setTimeout(() => {
+            this.setupScrollIndicator();
+        }, 100);
     }
 
     cleanup() {
@@ -1139,47 +1223,99 @@ class VoiceCallManager {
     handleScreenShare(participantId, stream) {
         console.log(`🖥️ Handling screen share for ${participantId}`, stream);
         
-        const video = document.getElementById('screenShareVideo');
-        const username = document.getElementById('screenShareUsername');
+        this.removeVoiceParticipantCard(participantId);
         
-        if (video && stream) {
-            this.attachStreamToVideo(video, stream);
-            
-            const participant = this.participantManager.getParticipant(participantId);
-            const displayName = participantId === this.localParticipantId ? 'Your Screen' : 
-                              (participant ? `${participant.name}'s Screen` : `${participantId}'s Screen`);
-            
-            if (username) username.textContent = displayName;
-            
-            if (participantId === this.localParticipantId) {
-                this.isScreenSharing = true;
-            }
-            
-            console.log('✅ Screen share stream attached');
+        this.createScreenShareParticipantCard(participantId, stream);
+        
+        if (participantId === this.localParticipantId) {
+            this.isScreenSharing = true;
         }
         
+        console.log('✅ Screen share created as participant card');
         this.updateView();
     }
 
-    handleScreenShareStopped() {
-        console.log(`🖥️❌ Handling screen share stopped`);
+    handleScreenShareStopped(participantId = null) {
+        console.log(`🖥️❌ Handling screen share stopped for ${participantId || 'unknown'}`);
         
-        const video = document.getElementById('screenShareVideo');
-        const pipCamera = document.getElementById('pipCamera');
-        
-        if (video && video.srcObject) {
-            const tracks = video.srcObject.getTracks();
-            tracks.forEach(track => track.stop());
-            video.srcObject = null;
+        const screenCard = document.querySelector(`[data-participant-id="${participantId}"].screen-share-card`);
+        if (screenCard) {
+            screenCard.remove();
         }
         
-        if (pipCamera) {
-            pipCamera.classList.add('hidden');
+        if (participantId === this.localParticipantId || !participantId) {
+            this.isScreenSharing = false;
         }
         
-        this.isScreenSharing = false;
+        const participant = this.participantManager.getParticipant(participantId);
+        if (participant) {
+            this.createParticipantElement(participant);
+        }
         
-        console.log('✅ Screen share stopped');
+        console.log('✅ Screen share stopped, restored to voice card');
+        this.updateView();
+    }
+
+    createScreenShareParticipantCard(participantId, stream) {
+        const container = document.getElementById('participantGrid');
+        if (!container) {
+            return;
+        }
+
+        let existingCard = document.querySelector(`[data-participant-id="${participantId}"].screen-share-card`);
+        if (existingCard) {
+            const video = existingCard.querySelector('video');
+            if (video && stream) {
+                this.attachStreamToVideo(video, stream);
+            }
+            return;
+        }
+
+        let participant = this.participantManager.getParticipant(participantId);
+        if (!participant) {
+            participant = {
+                id: participantId,
+                name: `User ${participantId.slice(-4)}`,
+                hasVideo: false,
+                isMuted: false,
+                isSpeaking: false
+            };
+        }
+
+        const card = document.createElement('div');
+        card.className = 'screen-share-card video-participant-card';
+        card.dataset.participantId = participantId;
+        card.style.width = '100%';
+        card.style.height = '100%';
+        card.style.minHeight = '180px';
+        card.style.maxHeight = '400px';
+        card.style.border = '2px solid #5865f2';
+
+        const isLocal = participantId === this.localParticipantId;
+        const localIndicator = isLocal ? ' (You)' : '';
+
+        card.innerHTML = `
+            <video autoplay playsinline ${isLocal ? '' : 'muted'} style="width: 100%; height: 100%; object-fit: contain; background: #000;" data-participant-id="${participantId}"></video>
+            <div class="video-participant-overlay">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-desktop text-[#5865f2]"></i>
+                    <span>${participant.name}${localIndicator} - Screen</span>
+                </div>
+                ${participant.isMuted ? '<i class="fas fa-microphone-slash ml-2"></i>' : ''}
+            </div>
+        `;
+
+        const video = card.querySelector('video');
+        if (video && stream) {
+            this.attachStreamToVideo(video, stream);
+        }
+
+        container.appendChild(card);
+        
+        if (!participant.isLocal) {
+            this.scrollToNewParticipant(card);
+        }
+        
         this.updateView();
     }
 
@@ -1189,7 +1325,9 @@ class VoiceCallManager {
             return;
         }
 
-        let existingCard = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card`);
+        this.removeVoiceParticipantCard(participantId);
+
+        let existingCard = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card:not(.screen-share-card)`);
         if (existingCard) {
             const video = existingCard.querySelector('video');
             if (video && stream) {
@@ -1217,10 +1355,13 @@ class VoiceCallManager {
         card.style.minHeight = '180px';
         card.style.maxHeight = '400px';
 
+        const isLocal = participantId === this.localParticipantId;
+        const localIndicator = isLocal ? ' (You)' : '';
+
         card.innerHTML = `
-            <video autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; background: #000;" data-participant-id="${participantId}"></video>
+            <video autoplay playsinline ${isLocal ? '' : 'muted'} style="width: 100%; height: 100%; object-fit: cover; background: #000;" data-participant-id="${participantId}"></video>
             <div class="video-participant-overlay">
-                <span>${participant.name}</span>
+                <span>${participant.name}${localIndicator}</span>
                 ${participant.isMuted ? '<i class="fas fa-microphone-slash ml-2"></i>' : ''}
             </div>
         `;
@@ -1232,6 +1373,37 @@ class VoiceCallManager {
 
         container.appendChild(card);
         participant.hasVideo = true;
+        
+        if (!participant.isLocal) {
+            this.scrollToNewParticipant(card);
+        }
+        
+        this.updateView();
+    }
+
+    removeVoiceParticipantCard(participantId) {
+        const voiceCard = document.querySelector(`[data-participant-id="${participantId}"].voice-participant-card`);
+        if (voiceCard) {
+            voiceCard.remove();
+        }
+    }
+
+    removeVideoParticipantCard(participantId) {
+        const videoCard = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card:not(.screen-share-card)`);
+        const screenCard = document.querySelector(`[data-participant-id="${participantId}"].screen-share-card`);
+        
+        if (videoCard) {
+            videoCard.remove();
+        }
+        if (screenCard) {
+            screenCard.remove();
+        }
+        
+        const participant = this.participantManager.getParticipant(participantId);
+        if (participant) {
+            participant.hasVideo = false;
+            this.createParticipantElement(participant);
+        }
         
         this.updateView();
     }
@@ -1313,6 +1485,73 @@ class VoiceCallManager {
         participantGrid.style.width = '100%';
         participantGrid.style.height = '100%';
         participantGrid.style.padding = '8px';
+        
+        this.setupScrollIndicator();
+        this.handleGridScrolling();
+    }
+
+    setupScrollIndicator() {
+        const unifiedGridView = document.getElementById('unifiedGridView');
+        const participantGrid = document.getElementById('participantGrid');
+        
+        if (!unifiedGridView || !participantGrid) return;
+        
+        let scrollIndicator = unifiedGridView.querySelector('.scroll-indicator');
+        if (!scrollIndicator) {
+            scrollIndicator = document.createElement('div');
+            scrollIndicator.className = 'scroll-indicator';
+            scrollIndicator.innerHTML = '<i class="fas fa-chevron-down"></i>';
+            unifiedGridView.appendChild(scrollIndicator);
+        }
+        
+        const checkScrollable = () => {
+            const isScrollable = participantGrid.scrollHeight > participantGrid.clientHeight;
+            const participantCount = this.participantManager.getParticipantCount();
+            
+            if (isScrollable && participantCount > 6) {
+                scrollIndicator.classList.add('visible');
+                scrollIndicator.textContent = `${participantCount} participants`;
+            } else {
+                scrollIndicator.classList.remove('visible');
+            }
+        };
+        
+        setTimeout(checkScrollable, 100);
+        
+        participantGrid.addEventListener('scroll', () => {
+            const { scrollTop, scrollHeight, clientHeight } = participantGrid;
+            const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+            
+            if (isAtBottom) {
+                scrollIndicator.classList.remove('visible');
+            } else {
+                const participantCount = this.participantManager.getParticipantCount();
+                if (participantCount > 6) {
+                    scrollIndicator.classList.add('visible');
+                }
+            }
+        });
+    }
+
+    handleGridScrolling() {
+        const participantGrid = document.getElementById('participantGrid');
+        if (!participantGrid) return;
+        
+        participantGrid.style.scrollBehavior = 'smooth';
+        
+        let isScrolling = false;
+        participantGrid.addEventListener('scroll', () => {
+            if (!isScrolling) {
+                isScrolling = true;
+                setTimeout(() => {
+                    isScrolling = false;
+                }, 100);
+            }
+        });
+        
+        participantGrid.addEventListener('wheel', (e) => {
+            e.stopPropagation();
+        });
     }
 
     updateView() {
@@ -1330,24 +1569,11 @@ class VoiceCallManager {
             }
         });
 
-        if (this.isScreenSharing) {
-            this.currentView = 'screen-share';
-            unifiedGridView?.classList.add('hidden');
-            screenShareView?.classList.remove('hidden');
-            this.updateScreenShareParticipants();
-            console.log('📺 [DEBUG] Showing screen share view');
-            
-            if (this.isVideoOn) {
-                this.showPictureInPicture();
-            }
-            
-        } else {
-            this.currentView = 'unified';
-            screenShareView?.classList.add('hidden');
-            unifiedGridView?.classList.remove('hidden');
-            this.updateGrid();
-            console.log('🎤 [DEBUG] Showing unified grid view');
-        }
+        this.currentView = 'unified';
+        screenShareView?.classList.add('hidden');
+        unifiedGridView?.classList.remove('hidden');
+        this.updateGrid();
+        console.log('🎤 [DEBUG] Showing unified grid view');
 
         this.updateButtonStates();
         this.updateParticipantCount();
@@ -1482,29 +1708,11 @@ class VoiceCallManager {
     }
 
     updateScreenShareParticipants() {
-        const container = document.getElementById('screenShareParticipants');
-        if (!container) return;
-
-        container.innerHTML = '';
         
-        Array.from(this.participantManager.participants.values()).forEach(participant => {
-            const element = this.createScreenShareParticipantElement(participant);
-            container.appendChild(element);
-        });
     }
 
     showPictureInPicture() {
-        const pipCamera = document.getElementById('pipCamera');
-        const pipVideo = document.getElementById('pipCameraVideo');
         
-        if (pipCamera && pipVideo) {
-            pipCamera.classList.remove('hidden');
-            
-            const localVideo = document.querySelector('#participantGrid video[data-participant-id="' + this.localParticipantId + '"]');
-            if (localVideo && localVideo.srcObject) {
-                pipVideo.srcObject = localVideo.srcObject;
-            }
-        }
     }
 
     updateButtonStates() {
@@ -1570,18 +1778,7 @@ class VoiceCallManager {
     }
 
     createScreenShareParticipantElement(participant) {
-        const element = document.createElement('div');
-        element.className = 'screen-share-participant';
         
-        const avatarColor = this.getAvatarColor(participant.name);
-        const initial = participant.name.charAt(0).toUpperCase();
-        
-        element.innerHTML = `
-            <div class="avatar ${participant.isSpeaking ? 'speaking' : ''}" style="background: ${avatarColor}">${initial}</div>
-            <div class="name">${participant.name}</div>
-        `;
-        
-        return element;
     }
 
     displayMeetingId(meetingId) {
@@ -1614,20 +1811,6 @@ class VoiceCallManager {
         } else {
             console.log(`[${type.toUpperCase()}] ${message}`);
         }
-    }
-
-    removeVideoParticipantCard(participantId) {
-        const card = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card`);
-        if (card) {
-            card.remove();
-        }
-        
-        const participant = this.participantManager.getParticipant(participantId);
-        if (participant) {
-            participant.hasVideo = false;
-        }
-        
-        this.updateView();
     }
 }
 

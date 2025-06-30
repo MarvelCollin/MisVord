@@ -80,17 +80,7 @@ function initializeServerComponents() {
         console.warn('[Server Page] No server dropdown function available');
     }
     
-    console.log('[Server Page] Initializing chat section');
-    if (typeof window.initializeChatSection === 'function') {
-        try {
-            window.initializeChatSection();
-            console.log('[Server Page] ✅ Chat section initialized');
-        } catch (error) {
-            console.error('[Server Page] Error initializing chat section:', error);
-        }
-    } else {
-        console.warn('[Server Page] initializeChatSection function not available');
-    }
+    console.log('[Server Page] Chat section initialization is handled by SimpleChannelSwitcher');
     
     console.log('[Server Page] Initializing participant section');
     if (typeof window.initializeParticipantSection === 'function') {
@@ -450,10 +440,7 @@ function coordinateSystemInitialization() {
                 });
             }
             
-            if (!window.chatSection && typeof window.initializeChatSection === 'function') {
-                console.log('[Server Page] Ensuring chat section is initialized after server change');
-                window.initializeChatSection();
-            }
+            console.log('[Server Page] Chat section is managed by SimpleChannelSwitcher');
         }, 100);
     }, { once: true });
     

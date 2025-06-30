@@ -46,19 +46,51 @@ class SimpleChannelSwitcher {
         this.currentChannelType = channelType;
         
         try {
+            const channelData = this.extractChannelData(channelId);
+            
             this.updateActiveChannel(channelId);
             this.showSection(channelType);
+            this.updateChannelHeader(channelData);
+            this.updateMetaTags(channelData);
             
             if (channelType === 'text') {
-                await this.initializeChatSection(channelId);
+                await this.reinitializeChatSection(channelData);
             }
             
             this.updateURL(channelId, channelType);
+            
+            this.dispatchChannelChangeEvent(channelData);
+            
         } catch (error) {
             console.error('[SimpleChannelSwitcher] Error switching channel:', error);
         } finally {
             this.isLoading = false;
         }
+    }
+    
+    extractChannelData(channelId) {
+        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        if (!channelElement) {
+            console.warn('[SimpleChannelSwitcher] Channel element not found for ID:', channelId);
+            return {
+                id: channelId,
+                name: 'Unknown Channel',
+                type: 'text',
+                description: '',
+                server_id: this.getServerIdFromURL()
+            };
+        }
+        
+        const channelData = {
+            id: channelId,
+            name: channelElement.getAttribute('data-channel-name') || 'Channel',
+            type: channelElement.getAttribute('data-channel-type') || 'text',
+            server_id: channelElement.getAttribute('data-server-id') || this.getServerIdFromURL(),
+            description: channelElement.getAttribute('data-channel-description') || ''
+        };
+        
+        console.log('[SimpleChannelSwitcher] Extracted channel data:', channelData);
+        return channelData;
     }
     
     updateActiveChannel(channelId) {
@@ -85,11 +117,68 @@ class SimpleChannelSwitcher {
         }
     }
     
-    async initializeChatSection(channelId) {
-        console.log('[SimpleChannelSwitcher] Initializing chat section for channel:', channelId);
+    updateChannelHeader(channelData) {
+        const channelIcon = document.getElementById('channel-icon');
+        const channelName = document.getElementById('channel-name');
         
-        this.updateChannelHeader(channelId);
+        if (channelIcon && channelName) {
+            const iconMap = {
+                'text': 'fas fa-hashtag',
+                'voice': 'fas fa-volume-high',
+                'announcement': 'fas fa-bullhorn',
+                'forum': 'fas fa-users'
+            };
+            
+            channelIcon.className = iconMap[channelData.type] || 'fas fa-hashtag';
+            channelName.textContent = channelData.name;
+            
+            const chatTitle = channelData.type === 'voice' ? channelData.name : `# ${channelData.name}`;
+            document.title = `${chatTitle} - MisVord`;
+            
+            console.log('[SimpleChannelSwitcher] Updated channel header:', {
+                name: channelData.name,
+                type: channelData.type,
+                icon: channelIcon.className
+            });
+        }
+    }
+    
+    updateMetaTags(channelData) {
+        const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
+        const chatIdMeta = document.querySelector('meta[name="chat-id"]');
+        const channelIdMeta = document.querySelector('meta[name="channel-id"]');
+        const chatTitleMeta = document.querySelector('meta[name="chat-title"]');
+        const chatPlaceholderMeta = document.querySelector('meta[name="chat-placeholder"]');
         
+        if (chatTypeMeta) chatTypeMeta.setAttribute('content', 'channel');
+        if (chatIdMeta) chatIdMeta.setAttribute('content', channelData.id);
+        if (channelIdMeta) channelIdMeta.setAttribute('content', channelData.id);
+        if (chatTitleMeta) chatTitleMeta.setAttribute('content', channelData.name);
+        
+        const placeholder = `Message #${channelData.name}`;
+        if (chatPlaceholderMeta) chatPlaceholderMeta.setAttribute('content', placeholder);
+        
+        const messageInput = document.getElementById('message-input');
+        if (messageInput) {
+            messageInput.setAttribute('placeholder', placeholder);
+        }
+        
+        console.log('[SimpleChannelSwitcher] Updated meta tags for channel:', channelData.name);
+    }
+    
+    async reinitializeChatSection(channelData) {
+        console.log('[SimpleChannelSwitcher] Reinitializing chat section for channel:', channelData.id);
+        
+        await this.cleanupChatSection();
+        await this.cleanupSocketRooms();
+        this.removeExistingLoadMoreButtons();
+        
+        await this.waitForChatElements();
+        
+        await this.initializeNewChatSection(channelData);
+    }
+    
+    async cleanupChatSection() {
         if (window.chatSection) {
             console.log('[SimpleChannelSwitcher] Cleaning up existing chat section');
             if (typeof window.chatSection.cleanup === 'function') {
@@ -97,7 +186,9 @@ class SimpleChannelSwitcher {
             }
             window.chatSection = null;
         }
-        
+    }
+    
+    async cleanupSocketRooms() {
         if (window.globalSocketManager?.isReady()) {
             console.log('[SimpleChannelSwitcher] Leaving previous socket rooms');
             const previousRooms = Array.from(window.globalSocketManager.joinedRooms || []);
@@ -107,24 +198,27 @@ class SimpleChannelSwitcher {
                 }
             });
         }
-        
-        const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
-        const chatIdMeta = document.querySelector('meta[name="chat-id"]');
-        
-        if (chatTypeMeta) chatTypeMeta.setAttribute('content', 'channel');
-        if (chatIdMeta) chatIdMeta.setAttribute('content', channelId);
-        
-        await this.waitForChatElements();
-        
+    }
+    
+    removeExistingLoadMoreButtons() {
+        const existingButtons = document.querySelectorAll('#load-more-messages, .load-more-messages');
+        existingButtons.forEach(button => {
+            console.log('[SimpleChannelSwitcher] Removing existing load more button');
+            button.remove();
+        });
+    }
+    
+    async initializeNewChatSection(channelData) {
         if (typeof window.initializeChatSection === 'function') {
-            console.log('[SimpleChannelSwitcher] Calling initializeChatSection');
+            console.log('[SimpleChannelSwitcher] Calling global initializeChatSection');
             await window.initializeChatSection();
         } else if (typeof window.ChatSection === 'function') {
             console.log('[SimpleChannelSwitcher] Creating new ChatSection instance');
             try {
                 window.chatSection = new window.ChatSection({
                     chatType: 'channel',
-                    targetId: channelId
+                    targetId: channelData.id,
+                    channelData: channelData
                 });
                 await window.chatSection.init();
             } catch (error) {
@@ -133,12 +227,16 @@ class SimpleChannelSwitcher {
         }
         
         setTimeout(() => {
-            if (window.chatSection && window.chatSection.targetId !== channelId) {
-                console.log('[SimpleChannelSwitcher] Updating chat section target ID');
-                window.chatSection.targetId = channelId;
+            if (window.chatSection && window.chatSection.targetId !== channelData.id) {
+                console.log('[SimpleChannelSwitcher] Updating chat section properties');
+                window.chatSection.targetId = channelData.id;
                 window.chatSection.chatType = 'channel';
                 window.chatSection.currentOffset = 0;
                 window.chatSection.hasMoreMessages = true;
+                
+                if (window.chatSection.removeExistingLoadMoreButtons) {
+                    window.chatSection.removeExistingLoadMoreButtons();
+                }
                 
                 if (window.chatSection.loadMessages) {
                     console.log('[SimpleChannelSwitcher] Loading messages for new channel');
@@ -178,20 +276,17 @@ class SimpleChannelSwitcher {
         });
     }
     
-    updateChannelHeader(channelId) {
-        const channelIcon = document.getElementById('channel-icon');
-        const channelName = document.getElementById('channel-name');
-        
-        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-        if (channelElement && channelIcon && channelName) {
-            const nameText = channelElement.querySelector('.channel-name')?.textContent || 'Channel';
-            const iconElement = channelElement.querySelector('i');
-            
-            channelName.textContent = nameText;
-            if (iconElement) {
-                channelIcon.className = iconElement.className;
+    dispatchChannelChangeEvent(channelData) {
+        const event = new CustomEvent('channelChanged', {
+            detail: {
+                channelId: channelData.id,
+                channelData: channelData,
+                channelType: channelData.type,
+                timestamp: Date.now()
             }
-        }
+        });
+        document.dispatchEvent(event);
+        console.log('[SimpleChannelSwitcher] Dispatched channelChanged event');
     }
     
     updateURL(channelId, channelType) {

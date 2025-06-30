@@ -163,14 +163,13 @@
     }
 }
 
-.nitro-title, .nitro-subtitle {
+.nitro-title {
     opacity: 0;
     transform: translateY(30px);
     transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.nitro-section.is-active .nitro-title.revealed,
-.nitro-section.is-active .nitro-subtitle.revealed {
+.nitro-section.is-active .nitro-title.revealed {
     opacity: 1;
     transform: translateY(0);
 }
@@ -373,23 +372,24 @@
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 4rem;
+    height: 100vh;
 }
 
 .title-section {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 3;
+    padding-left: 2rem;
 }
 
 .rotated-title {
-    transform: rotate(90deg) translateX(50%);
-    transform-origin: right center;
-    text-align: left;
-    width: max-content;
+    transform: none;
+    text-align: center;
+    width: 100%;
 }
 
 .crown-center {
@@ -452,11 +452,12 @@
 
 .hexagon-container {
     position: relative;
-    width: 600px;
-    height: 600px;
+    width: 500px;
+    height: 500px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .hexagon-grid {
@@ -543,21 +544,64 @@
     z-index: 5;
 }
 
-.hexagon-feature:hover .hexagon-content {
-    transform: rotate(calc(180deg + var(--rotation)));
-    transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 0deg"] .hexagon-content {
+    transform: rotate(180deg);
 }
 
-.hexagon-feature:hover .hexagon-border {
-    transform: rotate(calc(180deg + var(--rotation)));
-    opacity: 0.8;
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 60deg"] .hexagon-content {
+    transform: rotate(120deg);
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 120deg"] .hexagon-content {
+    transform: rotate(60deg);
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 180deg"] .hexagon-content {
+    transform: rotate(0deg);
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 240deg"] .hexagon-content {
+    transform: rotate(-60deg);
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 300deg"] .hexagon-content {
+    transform: rotate(-120deg);
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 0deg"] .hexagon-border {
+    transform: rotate(180deg);
+    opacity: 0.7;
     animation-play-state: paused;
-    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.hexagon-feature:hover {
-    transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-200px) rotate(calc(var(--rotation))) scale(1.1);
-    z-index: 15;
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 60deg"] .hexagon-border {
+    transform: rotate(120deg);
+    opacity: 0.7;
+    animation-play-state: paused;
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 120deg"] .hexagon-border {
+    transform: rotate(60deg);
+    opacity: 0.7;
+    animation-play-state: paused;
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 180deg"] .hexagon-border {
+    transform: rotate(0deg);
+    opacity: 0.7;
+    animation-play-state: paused;
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 240deg"] .hexagon-border {
+    transform: rotate(-60deg);
+    opacity: 0.7;
+    animation-play-state: paused;
+}
+
+.crown-center:hover ~ .rotating-hexagons .hexagon-feature[style*="--rotation: 300deg"] .hexagon-border {
+    transform: rotate(-120deg);
+    opacity: 0.7;
+    animation-play-state: paused;
 }
 
 .hexagon-border {
@@ -573,36 +617,6 @@
     animation: borderGlow 2s linear infinite;
     transform: rotate(var(--rotation));
 }
-
-.target-dots {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.target-dot {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    background: linear-gradient(135deg, #ffd700, #ff69b4);
-    border-radius: 50%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(calc(-1 * var(--dot-rotation))) translateY(320px) rotate(calc(var(--dot-rotation)));
-    opacity: 0;
-    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-    box-shadow: 
-        0 0 8px rgba(255, 215, 0, 0.6),
-        0 0 16px rgba(255, 105, 180, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    animation: dotPulse 2s ease-in-out infinite alternate;
-}
-
-
 
 .feature-icon {
     font-size: 1.75rem;
@@ -643,69 +657,46 @@
     }
 }
 
-@keyframes dotPulse {
-    0% {
-        box-shadow: 
-            0 0 8px rgba(255, 215, 0, 0.6),
-            0 0 16px rgba(255, 105, 180, 0.4),
-            inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    }
-    100% {
-        box-shadow: 
-            0 0 12px rgba(255, 215, 0, 0.8),
-            0 0 24px rgba(255, 105, 180, 0.6),
-            inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    }
-}
-
-
-
 @media screen and (max-width: 1024px) {
     .nitro-content {
         flex-direction: column;
         gap: 2rem;
+        height: auto;
+        padding: 2rem 0;
     }
 
     .title-section {
-        position: relative;
-        right: auto;
-        top: auto;
-        transform: none;
-        margin-bottom: 2rem;
-    }
-
-    .rotated-title {
-        transform: none;
-        text-align: center;
-        width: 100%;
+        padding-left: 0;
+        order: 1;
     }
 
     .hexagon-container {
-        width: 500px;
-        height: 500px;
+        width: 400px;
+        height: 400px;
+        order: 2;
     }
 
     .hexagon-feature {
         width: 110px;
         height: 130px;
-        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-140px) rotate(calc(var(--rotation)));
+        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-120px) rotate(calc(var(--rotation)));
     }
 
     .crown-center:hover ~ .rotating-hexagons .hexagon-feature {
-        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-220px) rotate(calc(var(--rotation))) scale(1.2) !important;
+        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-180px) rotate(calc(var(--rotation))) scale(1.2) !important;
     }
 }
 
 @media screen and (max-width: 768px) {
     .hexagon-container {
-        width: 400px;
-        height: 400px;
+        width: 350px;
+        height: 350px;
     }
 
     .hexagon-feature {
         width: 90px;
         height: 110px;
-        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-110px) rotate(calc(var(--rotation)));
+        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-100px) rotate(calc(var(--rotation)));
     }
 
     .feature-icon {
@@ -722,20 +713,20 @@
     }
 
     .crown-center:hover ~ .rotating-hexagons .hexagon-feature {
-        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-180px) rotate(calc(var(--rotation))) scale(1.15) !important;
+        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-150px) rotate(calc(var(--rotation))) scale(1.15) !important;
     }
 }
 
 @media screen and (max-width: 480px) {
     .hexagon-container {
-        width: 300px;
-        height: 300px;
+        width: 280px;
+        height: 280px;
     }
 
     .hexagon-feature {
         width: 80px;
         height: 100px;
-        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-90px) rotate(calc(var(--rotation)));
+        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-80px) rotate(calc(var(--rotation)));
     }
 
     .feature-icon {
@@ -752,6 +743,6 @@
     }
 
     .crown-center:hover ~ .rotating-hexagons .hexagon-feature {
-        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-150px) rotate(calc(var(--rotation))) scale(1.1) !important;
+        transform: translate(-50%, -50%) rotate(calc(-1 * var(--rotation))) translateY(-130px) rotate(calc(var(--rotation))) scale(1.1) !important;
     }
 }

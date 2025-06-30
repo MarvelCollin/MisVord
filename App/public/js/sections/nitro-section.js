@@ -14,8 +14,6 @@ class NitroSection {
         if (!this.section) return;
         
         this.setupEventListeners();
-        this.setupConnectingLines();
-        this.initAnimations();
     }
     
     setupEventListeners() {
@@ -54,73 +52,7 @@ class NitroSection {
         });
     }
     
-    setupConnectingLines() {
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        `;
-        
-        this.hexagons.forEach((hexagon, i) => {
-            if (i < this.hexagons.length - 1) {
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('class', 'connecting-line');
-                line.style.cssText = `
-                    stroke: url(#gradient);
-                    stroke-width: 2;
-                    opacity: 0.3;
-                `;
-                svg.appendChild(line);
-            }
-        });
-        
-        const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-        gradient.setAttribute('id', 'gradient');
-        gradient.innerHTML = `
-            <stop offset="0%" stop-color="#ffd700"/>
-            <stop offset="50%" stop-color="#ff69b4"/>
-            <stop offset="100%" stop-color="#9370db"/>
-        `;
-        svg.appendChild(gradient);
-        
-        const hexagonGrid = this.section.querySelector('.hexagon-grid');
-        if (hexagonGrid) {
-            hexagonGrid.appendChild(svg);
-            this.updateConnectingLines();
-        }
-        
-        window.addEventListener('resize', () => this.updateConnectingLines());
-    }
     
-    updateConnectingLines() {
-        const lines = document.querySelectorAll('.connecting-line');
-        const hexagonGrid = this.section.querySelector('.hexagon-grid');
-        
-        if (!hexagonGrid) return;
-        
-        this.hexagons.forEach((hexagon, i) => {
-            if (i < this.hexagons.length - 1) {
-                const rect1 = hexagon.getBoundingClientRect();
-                const rect2 = this.hexagons[i + 1].getBoundingClientRect();
-                const gridRect = hexagonGrid.getBoundingClientRect();
-                
-                const x1 = rect1.left + rect1.width / 2 - gridRect.left;
-                const y1 = rect1.top + rect1.height / 2 - gridRect.top;
-                const x2 = rect2.left + rect2.width / 2 - gridRect.left;
-                const y2 = rect2.top + rect2.height / 2 - gridRect.top;
-                
-                lines[i].setAttribute('x1', x1);
-                lines[i].setAttribute('y1', y1);
-                lines[i].setAttribute('x2', x2);
-                lines[i].setAttribute('y2', y2);
-            }
-        });
-    }
     
     onSectionVisible() {
         if (this.animationTriggered) return;
@@ -135,18 +67,11 @@ class NitroSection {
     
     animateTitle() {
         const title = document.querySelector('.nitro-title');
-        const subtitle = document.querySelector('.nitro-subtitle');
         
         if (title) {
             setTimeout(() => {
                 title.classList.add('revealed');
             }, 300);
-        }
-        
-        if (subtitle) {
-            setTimeout(() => {
-                subtitle.classList.add('revealed');
-            }, 700);
         }
     }
     
@@ -203,44 +128,53 @@ class NitroSection {
         }
     }
     
-    animateHexagonHover(hexagon) {
+        animateHexagonHover(hexagon) {
         const icon = hexagon.querySelector('.feature-icon');
+        const content = hexagon.querySelector('.hexagon-content');
+        const border = hexagon.querySelector('.hexagon-border');
+        
         if (icon) {
-            icon.style.transform = 'scale(1.1) rotate(5deg)';
+            icon.style.transform = 'scale(1.2) rotate(10deg)';
         }
         
+        if (content) {
+            content.style.transform = content.style.transform + ' scale(1.1)';
+            content.style.background = 'rgba(255, 255, 255, 0.1)';
+        }
+        
+        if (border) {
+            border.style.opacity = '0.8';
+            border.style.transform = border.style.transform + ' scale(1.05)';
+        }
+        
+        hexagon.style.transform = hexagon.style.transform.replace(/scale\([^)]*\)/, '') + ' scale(1.15)';
+        hexagon.style.zIndex = '100';
+        hexagon.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        
         this.createHoverSparkles(hexagon);
-        this.pulseConnectedHexagons(hexagon);
     }
-    
+
     resetHexagonHover(hexagon) {
         const icon = hexagon.querySelector('.feature-icon');
+        const content = hexagon.querySelector('.hexagon-content');
+        const border = hexagon.querySelector('.hexagon-border');
+        
         if (icon) {
             icon.style.transform = '';
         }
-    }
-    
-    pulseConnectedHexagons(hexagon) {
-        const index = Array.from(this.hexagons).indexOf(hexagon);
-        const connectedIndexes = [];
         
-        if (index % 2 === 0) {
-            if (index > 0) connectedIndexes.push(index - 1);
-            if (index < this.hexagons.length - 1) connectedIndexes.push(index + 1);
+        if (content) {
+            content.style.transform = content.style.transform.replace(/scale\([^)]*\)/g, '');
+            content.style.background = 'rgba(255, 255, 255, 0.05)';
         }
         
-        connectedIndexes.forEach(i => {
-            const connectedHexagon = this.hexagons[i];
-            const border = connectedHexagon.querySelector('.hexagon-border');
-            if (border) {
-                border.style.opacity = '0.6';
-                border.style.filter = 'blur(8px)';
-                setTimeout(() => {
-                    border.style.opacity = '0.3';
-                    border.style.filter = 'blur(4px)';
-                }, 300);
-            }
-        });
+        if (border) {
+            border.style.opacity = '0.3';
+            border.style.transform = border.style.transform.replace(/scale\([^)]*\)/g, '');
+        }
+        
+        hexagon.style.transform = hexagon.style.transform.replace(/scale\([^)]*\)/, '');
+        hexagon.style.zIndex = '';
     }
     
     createHoverSparkles(hexagon) {
@@ -341,102 +275,6 @@ class NitroSection {
             }
         `;
         document.head.appendChild(style);
-    }
-
-    initAnimations() {
-        const section = document.querySelector('.nitro-section');
-        if (!section) return;
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('animate-in');
-                }
-            });
-        }, { threshold: 0.1 });
-
-        const animateElements = section.querySelectorAll('[data-animate]');
-        animateElements.forEach(el => observer.observe(el));
-        
-        this.initHexagonDotInteractions();
-    }
-
-    initHexagonDotInteractions() {
-        const hexagonFeatures = document.querySelectorAll('.hexagon-feature');
-        const targetDots = document.querySelectorAll('.target-dot');
-        
-        hexagonFeatures.forEach(hexagon => {
-            const targetId = hexagon.getAttribute('data-target');
-            const targetDot = document.getElementById(targetId);
-            
-            if (targetDot) {
-                hexagon.addEventListener('mouseenter', () => {
-                    targetDots.forEach(dot => {
-                        if (dot.id === targetId) {
-                            dot.style.opacity = '1';
-                            dot.style.transform = dot.style.transform.replace('scale(1)', 'scale(1.5)');
-                        } else {
-                            dot.style.opacity = '0.3';
-                        }
-                    });
-                });
-                
-                hexagon.addEventListener('mouseleave', () => {
-                    targetDots.forEach(dot => {
-                        dot.style.opacity = '0';
-                        dot.style.transform = dot.style.transform.replace('scale(1.5)', 'scale(1)');
-                    });
-                });
-            }
-        });
-        
-        const crownCenter = document.querySelector('.crown-center');
-        if (crownCenter) {
-            crownCenter.addEventListener('mouseenter', () => {
-                hexagonFeatures.forEach(hexagon => {
-                    const content = hexagon.querySelector('.hexagon-content');
-                    const border = hexagon.querySelector('.hexagon-border');
-                    const rotationStyle = hexagon.getAttribute('style');
-                    const rotationMatch = rotationStyle ? rotationStyle.match(/--rotation:\s*([^;]+)/) : null;
-                    const rotation = rotationMatch ? rotationMatch[1].trim() : '0deg';
-                    
-                    if (content) {
-                        content.style.transform = `rotate(calc(180deg + ${rotation}))`;
-                    }
-                    if (border) {
-                        border.style.transform = `rotate(calc(180deg + ${rotation}))`;
-                        border.style.opacity = '0.8';
-                        border.style.animationPlayState = 'paused';
-                    }
-                });
-                
-                targetDots.forEach(dot => {
-                    dot.style.opacity = '1';
-                    dot.style.transform = dot.style.transform.replace('scale(1)', 'scale(1.3)');
-                });
-            });
-            
-            crownCenter.addEventListener('mouseleave', () => {
-                hexagonFeatures.forEach(hexagon => {
-                    const content = hexagon.querySelector('.hexagon-content');
-                    const border = hexagon.querySelector('.hexagon-border');
-                    
-                    if (content) {
-                        content.style.transform = '';
-                    }
-                    if (border) {
-                        border.style.transform = '';
-                        border.style.opacity = '';
-                        border.style.animationPlayState = '';
-                    }
-                });
-                
-                targetDots.forEach(dot => {
-                    dot.style.opacity = '0';
-                    dot.style.transform = dot.style.transform.replace('scale(1.3)', 'scale(1)');
-                });
-            });
-        }
     }
 }
 

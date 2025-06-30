@@ -411,14 +411,15 @@ class NavigationManager {
         
         setTimeout(() => {
             if (window.SimpleChannelSwitcher) {
-                new window.SimpleChannelSwitcher();
-                console.log('[Navigation] SimpleChannelSwitcher created successfully');
+                if (!window.simpleChannelSwitcher) {
+                    new window.SimpleChannelSwitcher();
+                    console.log('[Navigation] SimpleChannelSwitcher created successfully');
+                } else {
+                    console.log('[Navigation] SimpleChannelSwitcher already exists');
+                }
             }
             
-            if (typeof window.initializeChatSection === 'function') {
-                console.log('[Navigation] Initializing chat section');
-                window.initializeChatSection();
-            }
+            console.log('[Navigation] Chat section initialization is handled by SimpleChannelSwitcher');
             
             if (typeof window.updateActiveServer === 'function') {
                 window.updateActiveServer('server', serverId);

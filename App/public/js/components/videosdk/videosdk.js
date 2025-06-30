@@ -364,40 +364,12 @@ class VideoSDKManager {
                 }
                 
                 if (kind === 'unknown' && stream) {
-                    if (stream instanceof MediaStream) {
-                        const videoTracks = stream.getVideoTracks();
-                        if (videoTracks.length > 0) {
-                            const track = videoTracks[0];
-                            kind = track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
-                        } else {
-                            kind = 'audio';
-                        }
-                    } else if (stream.stream instanceof MediaStream) {
-                        const videoTracks = stream.stream.getVideoTracks();
-                        if (videoTracks.length > 0) {
-                            const track = videoTracks[0];
-                            kind = track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
-                        } else {
-                            kind = 'audio';
-                        }
-                    } else if (stream.track?.kind === 'video') {
-                        kind = stream.track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
-                    } else if (stream.track?.kind === 'audio') {
-                        kind = 'audio';
-                    }
+                    kind = this.detectStreamKind(stream, data);
                 }
                 
                 if (kind === 'video') {
-                    let label = '';
-                    if (data.track && data.track.label) {
-                        label = data.track.label.toLowerCase();
-                    } else if (stream instanceof MediaStream) {
-                        const vt = stream.getVideoTracks()[0];
-                        if (vt && vt.label) label = vt.label.toLowerCase();
-                    } else if (stream && stream.track && stream.track.label) {
-                        label = stream.track.label.toLowerCase();
-                    }
-                    if (label.includes('screen') || label.includes('share')) {
+                    const isScreenShare = this.isScreenShareStream(stream, data);
+                    if (isScreenShare) {
                         kind = 'share';
                     }
                 }
@@ -416,7 +388,8 @@ class VideoSDKManager {
                     hasStream: !!stream,
                     streamType: typeof stream,
                     isMediaStream: stream instanceof MediaStream,
-                    trackCount: stream instanceof MediaStream ? stream.getTracks().length : 'N/A'
+                    trackCount: stream instanceof MediaStream ? stream.getTracks().length : 'N/A',
+                    isLocal: participant.id === this.meeting.localParticipant?.id
                 });
                 
                 window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', { 
@@ -447,6 +420,47 @@ class VideoSDKManager {
         } catch (error) {
             console.error("Error registering stream events:", error);
         }
+    }
+    
+    detectStreamKind(stream, data) {
+        if (stream instanceof MediaStream) {
+            const videoTracks = stream.getVideoTracks();
+            if (videoTracks.length > 0) {
+                const track = videoTracks[0];
+                return track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
+            } else {
+                return 'audio';
+            }
+        } else if (stream.stream instanceof MediaStream) {
+            const videoTracks = stream.stream.getVideoTracks();
+            if (videoTracks.length > 0) {
+                const track = videoTracks[0];
+                return track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
+            } else {
+                return 'audio';
+            }
+        } else if (stream.track?.kind === 'video') {
+            return stream.track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
+        } else if (stream.track?.kind === 'audio') {
+            return 'audio';
+        }
+        return 'unknown';
+    }
+
+    isScreenShareStream(stream, data) {
+        const checkMethods = [
+            () => data.track?.label?.toLowerCase().includes('screen'),
+            () => data.track?.label?.toLowerCase().includes('share'),
+            () => stream instanceof MediaStream && stream.getVideoTracks()[0]?.label?.toLowerCase().includes('screen'),
+            () => stream instanceof MediaStream && stream.getVideoTracks()[0]?.label?.toLowerCase().includes('share'),
+            () => stream.stream instanceof MediaStream && stream.stream.getVideoTracks()[0]?.label?.toLowerCase().includes('screen'),
+            () => stream.track?.label?.toLowerCase().includes('screen'),
+            () => data.kind === 'share'
+        ];
+
+        return checkMethods.some(check => {
+            try { return check(); } catch { return false; }
+        });
     }
     
     startStreamMonitoring(participant) {

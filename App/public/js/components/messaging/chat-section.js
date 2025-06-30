@@ -73,28 +73,77 @@ function isChatPage() {
 }
 
 async function initializeChatSection() {
-    if (typeof window.ChatAPI === 'undefined') {
-        console.log('ChatAPI not ready, retrying...');
-        setTimeout(initializeChatSection, 100);
+    console.log('🚀 [INIT-CHAT-SECTION] Starting chat section initialization');
+    
+    if (window.chatSection && window.chatSection.isInitialized) {
+        console.log('✅ [INIT-CHAT-SECTION] Chat section already initialized and active');
+        return;
+    }
+
+    if (isExcludedPage()) {
+        console.log('🚫 [INIT-CHAT-SECTION] Excluded page, skipping initialization');
         return;
     }
     
-    console.log('✅ Initializing ChatSection with ChatAPI ready');
+    if (!isChatPage()) {
+        console.log('⏭️ [INIT-CHAT-SECTION] Not a chat page, waiting for valid page');
+        setTimeout(initializeChatSection, 100);
+        return;
+    }
+
     try {
-        const chatSection = new ChatSection();
-        await chatSection.init();
-        window.chatSection = chatSection;
+        const chatType = document.querySelector('meta[name="chat-type"]')?.getAttribute('content') || 'channel';
+        const targetId = document.querySelector('meta[name="chat-id"]')?.getAttribute('content');
+        const userId = document.querySelector('meta[name="user-id"]')?.getAttribute('content');
+        const username = document.querySelector('meta[name="username"]')?.getAttribute('content');
         
-        if (typeof window.emojiReactions === 'undefined' || !window.emojiReactions.initialized) {
-            console.log('Ensuring emoji reactions system is initialized from ChatSection');
-            if (typeof window.initializeEmojiReactions === 'function') {
-                window.initializeEmojiReactions();
+        if (!targetId) {
+            console.warn('⚠️ [INIT-CHAT-SECTION] No target ID found, cannot initialize');
+            return;
+        }
+
+        const channelData = {
+            id: targetId,
+            name: document.querySelector('meta[name="chat-title"]')?.getAttribute('content') || 'Channel',
+            type: chatType
+        };
+
+        console.log('📝 [INIT-CHAT-SECTION] Initializing with configuration:', {
+            chatType,
+            targetId,
+            userId,
+            username,
+            channelData
+        });
+
+        if (window.chatSection) {
+            console.log('🧹 [INIT-CHAT-SECTION] Cleaning up existing chat section');
+            if (typeof window.chatSection.cleanup === 'function') {
+                window.chatSection.cleanup();
             }
         }
+
+        window.chatSection = new ChatSection({
+            chatType,
+            targetId,
+            userId,
+            username,
+            channelData
+        });
+        
+        console.log('✅ [INIT-CHAT-SECTION] Chat section initialized successfully');
+        
+        document.dispatchEvent(new CustomEvent('chatSectionInitialized', {
+            detail: { chatType, targetId, channelData }
+        }));
+        
     } catch (error) {
-        if (!isExcludedPage()) {
-            console.error('❌ Failed to initialize ChatSection:', error);
-        }
+        console.error('❌ [INIT-CHAT-SECTION] Failed to initialize chat section:', error);
+        
+        setTimeout(() => {
+            console.log('🔄 [INIT-CHAT-SECTION] Retrying initialization after error');
+            initializeChatSection();
+        }, 1000);
     }
 }
 
@@ -117,6 +166,7 @@ class ChatSection {
         this.userId = options.userId || null;
         this.username = options.username || null;
         this.currentServerId = options.currentServerId || null;
+        this.channelData = options.channelData || null;
         
         this.isInitialized = false;
         this.isLoading = false;
@@ -251,53 +301,21 @@ class ChatSection {
     async init() {
         console.log('🚀 [CHAT-SECTION] Initializing ChatSection...');
         
+        this.cleanupAllLoadMoreButtons();
+        
         if (this.messageHandler) {
             this.messageHandler.clearProcessedMessages();
         }
         
-        if (!this.chatType || this.chatType === '') {
-            const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
-            if (chatTypeMeta) {
-                this.chatType = chatTypeMeta.getAttribute('content');
-            }
-        }
-        
-        if (!this.targetId || this.targetId === '') {
-            const chatIdMeta = document.querySelector('meta[name="chat-id"]');
-            if (chatIdMeta) {
-                this.targetId = chatIdMeta.getAttribute('content');
-            }
-        }
-        
-        if (!this.userId || this.userId === '') {
-            const userIdMeta = document.querySelector('meta[name="user-id"]');
-            if (userIdMeta) {
-                this.userId = userIdMeta.getAttribute('content');
-            }
-        }
-        
-        if (!this.username || this.username === '') {
-            const usernameMeta = document.querySelector('meta[name="username"]');
-            if (usernameMeta) {
-                this.username = usernameMeta.getAttribute('content');
-            }
-        }
-        
-        const currentUrl = window.location.pathname;
-        const isDMUrl = currentUrl.includes('/home/channels/dm/');
-        const isChannelUrl = currentUrl.includes('/server/') && currentUrl.includes('channel=');
-        
-        if (isDMUrl && this.chatType !== 'direct' && this.chatType !== 'dm') {
-            this.chatType = 'direct';
-        } else if (isChannelUrl && this.chatType !== 'channel') {
-            this.chatType = 'channel';
-        }
+        this.loadConfigurationFromMeta();
+        this.loadConfigurationFromChannelData();
         
         console.log('📝 [CHAT-SECTION] Configuration loaded:', {
             chatType: this.chatType,
             targetId: this.targetId,
             userId: this.userId,
-            username: this.username
+            username: this.username,
+            channelData: this.channelData
         });
         
         try {
@@ -306,6 +324,7 @@ class ChatSection {
             this.mentionHandler = new MentionHandler(this);
             
             this.setupEventListeners();
+            this.setupChannelChangeListener();
             
             if (this.socketHandler) {
                 this.socketHandler.setupIoListeners();
@@ -354,6 +373,81 @@ class ChatSection {
                 console.error('❌ [CHAT-SECTION] ChatSection will not be functional');
             }
         }
+    }
+    
+    loadConfigurationFromMeta() {
+        if (!this.chatType || this.chatType === '') {
+            const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
+            if (chatTypeMeta) {
+                this.chatType = chatTypeMeta.getAttribute('content');
+            }
+        }
+        
+        if (!this.targetId || this.targetId === '') {
+            const chatIdMeta = document.querySelector('meta[name="chat-id"]');
+            if (chatIdMeta) {
+                this.targetId = chatIdMeta.getAttribute('content');
+            }
+        }
+        
+        if (!this.userId || this.userId === '') {
+            const userIdMeta = document.querySelector('meta[name="user-id"]');
+            if (userIdMeta) {
+                this.userId = userIdMeta.getAttribute('content');
+            }
+        }
+        
+        if (!this.username || this.username === '') {
+            const usernameMeta = document.querySelector('meta[name="username"]');
+            if (usernameMeta) {
+                this.username = usernameMeta.getAttribute('content');
+            }
+        }
+        
+        const currentUrl = window.location.pathname;
+        const isDMUrl = currentUrl.includes('/home/channels/dm/');
+        const isChannelUrl = currentUrl.includes('/server/') && currentUrl.includes('channel=');
+        
+        if (isDMUrl && this.chatType !== 'direct' && this.chatType !== 'dm') {
+            this.chatType = 'direct';
+        } else if (isChannelUrl && this.chatType !== 'channel') {
+            this.chatType = 'channel';
+        }
+    }
+    
+    loadConfigurationFromChannelData() {
+        if (this.channelData) {
+            this.targetId = this.channelData.id || this.targetId;
+            this.chatType = 'channel';
+            
+            console.log('📦 [CHAT-SECTION] Using channel data:', this.channelData);
+        }
+    }
+    
+    setupChannelChangeListener() {
+        document.addEventListener('channelChanged', (event) => {
+            const { channelId, channelData } = event.detail;
+            
+            if (channelId !== this.targetId) {
+                console.log('🔄 [CHAT-SECTION] Channel changed, updating chat section');
+                this.handleChannelChange(channelData);
+            }
+        });
+    }
+    
+    handleChannelChange(channelData) {
+        this.targetId = channelData.id;
+        this.channelData = channelData;
+        this.currentOffset = 0;
+        this.hasMoreMessages = true;
+        
+        this.clearChatMessages();
+        
+        setTimeout(() => {
+            this.loadMessages();
+        }, 100);
+        
+        console.log('✅ [CHAT-SECTION] Chat section updated for new channel:', channelData.name);
     }
     
     joinSocketRoom() {
@@ -1685,6 +1779,12 @@ class ChatSection {
             this.messageHandler.clearProcessedMessages();
         }
         
+        this.removeExistingLoadMoreButtons();
+        
+        if (this.skeletonLoader) {
+            this.skeletonLoader.clearAll();
+        }
+        
         this.hasMoreMessages = true;
         this.currentOffset = 0;
     }
@@ -1738,6 +1838,13 @@ class ChatSection {
                 this.messageHandler.clearProcessedMessages();
             }
             
+            this.removeExistingLoadMoreButtons();
+            
+            if (this.skeletonLoader) {
+                this.skeletonLoader.clearAll();
+                this.skeletonLoader = null;
+            }
+            
             if (this.targetId && window.globalSocketManager?.isReady()) {
                 const roomName = this.chatType === 'channel' ? `channel-${this.targetId}` : `dm-${this.targetId}`;
                 if (window.globalSocketManager.joinedRooms?.has(roomName)) {
@@ -1751,8 +1858,13 @@ class ChatSection {
             }
             
             this.isInitialized = false;
-            console.log('✅ [CHAT-SECTION] Cleanup completed');
+            this.isLoading = false;
+            this.currentOffset = 0;
+            this.hasMoreMessages = true;
+            this.replyingTo = null;
+            this.editingMessageId = null;
             
+            console.log('✅ [CHAT-SECTION] Cleanup completed');
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Error during cleanup:', error);
         }
@@ -1764,6 +1876,8 @@ class ChatSection {
             console.error('❌ [CHAT-SECTION] Cannot update load more button: messages container not found');
             return;
         }
+        
+        this.removeExistingLoadMoreButtons();
         
         if (!this.loadMoreButton) {
             this.loadMoreButton = document.createElement('div');
@@ -1801,6 +1915,27 @@ class ChatSection {
             this.loadMoreButton.classList.add('hidden');
             console.log('🚫 [CHAT-SECTION] Load more button hidden');
         }
+    }
+
+    removeExistingLoadMoreButtons() {
+        const existingButtons = document.querySelectorAll('#load-more-messages, .load-more-messages');
+        existingButtons.forEach(button => {
+            console.log('🧹 [CHAT-SECTION] Removing existing load more button');
+            button.remove();
+        });
+        
+        if (this.loadMoreButton && this.loadMoreButton.parentNode) {
+            this.loadMoreButton.remove();
+            this.loadMoreButton = null;
+        }
+    }
+
+    cleanupAllLoadMoreButtons() {
+        const allLoadMoreButtons = document.querySelectorAll('#load-more-messages, .load-more-messages');
+        allLoadMoreButtons.forEach(button => {
+            console.log('🧹 [CHAT-SECTION] Removing existing load more button from DOM');
+            button.remove();
+        });
     }
 }
 
