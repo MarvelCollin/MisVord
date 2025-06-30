@@ -401,10 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                             </div>
 
-                            <p class="text-sm text-discord-lighter mt-4">
-                                Need help with voice or video? Check out our 
-                                <a href="#" class="text-blue-400 hover:text-blue-300">troubleshooting guide</a>.
-                            </p>
+
                         </div>
                     </div>
 

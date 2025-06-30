@@ -271,6 +271,10 @@ function initTabHandling() {
     if (!tabs.length) return;
 
     tabs.forEach(tab => {
+        if (tab.closest('.settings-page') || tab.classList.contains('voice-tab')) {
+            return;
+        }
+        
         tab.addEventListener('click', function (e) {
             e.preventDefault();
             const tabName = this.getAttribute('data-tab');

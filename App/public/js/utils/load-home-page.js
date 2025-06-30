@@ -9,11 +9,10 @@ export function loadHomePage(pageType = 'friends') {
 
     console.log('[Home Loader] Found main content:', !!mainContent);
     if (mainContent) {
-            console.log('[Home Loader] Starting skeleton loading for home content');
-    handleHomeSkeletonLoading(true);
-    
-    // Track when skeleton started for minimum display time
-    window.homeSkeletonStartTime = Date.now();
+        console.log('[Home Loader] Starting skeleton loading for home content');
+        handleHomeSkeletonLoading(true);
+        
+        window.homeSkeletonStartTime = Date.now();
 
         const currentChannelId = getCurrentChannelId();
         if (currentChannelId && window.globalSocketManager) {
@@ -54,51 +53,22 @@ export function loadHomePage(pageType = 'friends') {
                 
                 if (typeof response === 'string') {
                     console.log('[Home AJAX] Processing string response');
-                    updateHomeLayout(response);
                     
-                    console.log('[Home AJAX] Validating layout update');
-                    validateHomeLayoutRendering();
+                    const minDisplayTime = 800;
+                    const startTime = window.homeSkeletonStartTime || 0;
+                    const elapsedTime = Date.now() - startTime;
+                    const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
                     
-                    console.log('[Home AJAX] Disabling skeleton loading');
-                    handleHomeSkeletonLoading(false);
+                    console.log('[Home Skeleton] Response ready - Elapsed time:', elapsedTime + 'ms', 'Remaining time:', remainingTime + 'ms');
                     
-                    if (typeof window.initHomePage === 'function') {
-                        window.initHomePage();
-                        console.log('[Home AJAX] Home page initialized');
+                    if (remainingTime > 0) {
+                        console.log('[Home Skeleton] Delaying content replacement to ensure minimum display time');
+                        setTimeout(() => {
+                            performHomeLayoutUpdate(response, pageType, currentChannelId);
+                        }, remainingTime);
+                    } else {
+                        performHomeLayoutUpdate(response, pageType, currentChannelId);
                     }
-                    
-                    console.log('[Home AJAX] Initializing home components');
-                    if (typeof window.initFriendsTabManager === 'function') {
-                        window.initFriendsTabManager();
-                        console.log('[Home AJAX] Friends tab manager initialized');
-                    }
-                    if (typeof window.initDirectMessageNavigation === 'function') {
-                        window.initDirectMessageNavigation();
-                        console.log('[Home AJAX] Direct message navigation initialized');
-                    }
-                    
-                    console.log('[Home AJAX] Setting up server navigation handlers');
-                    
-                    // Disable any competing server navigation handlers
-                    if (typeof window.handleServerClick === 'function') {
-                        console.log('[Home AJAX] Temporarily disabling global handleServerClick');
-                        window.originalHandleServerClick = window.handleServerClick;
-                        window.handleServerClick = function(serverId) {
-                            console.log('[Home AJAX] Intercepted handleServerClick, using loadServerPage instead');
-                            return loadServerPage(serverId);
-                        };
-                    }
-                    
-                    setupHomeServerNavigation();
-                    
-                    const event = new CustomEvent('HomePageChanged', { 
-                        detail: { 
-                            pageType,
-                            previousChannelId: currentChannelId 
-                        } 
-                    });
-                    document.dispatchEvent(event);
-                    console.log('[Home AJAX] HomePageChanged event dispatched');
                     
                 } else if (response && response.data && response.data.redirect) {
                     console.log('[Home AJAX] Redirect response:', response.data.redirect);
@@ -254,22 +224,7 @@ function showHomeSkeletonLoading() {
 
 function hideHomeSkeletonLoading() {
     console.log('[Home Skeleton] Hiding home skeleton loading');
-    
-    const minDisplayTime = 800; // Minimum 800ms display time
-    const startTime = window.homeSkeletonStartTime || 0;
-    const elapsedTime = Date.now() - startTime;
-    const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
-    
-    console.log('[Home Skeleton] Elapsed time:', elapsedTime + 'ms', 'Remaining time:', remainingTime + 'ms');
-    
-    if (remainingTime > 0) {
-        console.log('[Home Skeleton] Delaying hide to ensure minimum display time');
-        setTimeout(() => {
-            actuallyHideHomeSkeleton();
-        }, remainingTime);
-    } else {
-        actuallyHideHomeSkeleton();
-    }
+    actuallyHideHomeSkeleton();
 }
 
 function actuallyHideHomeSkeleton() {
@@ -746,6 +701,55 @@ function testHomeServerNavigation() {
         canNavigate: (serverLinks.length > 0 || serverButtons.length > 0),
         state: 'ready'
     };
+}
+
+function performHomeLayoutUpdate(response, pageType, currentChannelId) {
+    console.log('[Home Layout] Performing delayed layout update');
+    
+    updateHomeLayout(response);
+    
+    console.log('[Home AJAX] Validating layout update');
+    validateHomeLayoutRendering();
+    
+    console.log('[Home AJAX] Disabling skeleton loading');
+    handleHomeSkeletonLoading(false);
+    
+    if (typeof window.initHomePage === 'function') {
+        window.initHomePage();
+        console.log('[Home AJAX] Home page initialized');
+    }
+    
+    console.log('[Home AJAX] Initializing home components');
+    if (typeof window.initFriendsTabManager === 'function') {
+        window.initFriendsTabManager();
+        console.log('[Home AJAX] Friends tab manager initialized');
+    }
+    if (typeof window.initDirectMessageNavigation === 'function') {
+        window.initDirectMessageNavigation();
+        console.log('[Home AJAX] Direct message navigation initialized');
+    }
+    
+    console.log('[Home AJAX] Setting up server navigation handlers');
+    
+    if (typeof window.handleServerClick === 'function') {
+        console.log('[Home AJAX] Temporarily disabling global handleServerClick');
+        window.originalHandleServerClick = window.handleServerClick;
+        window.handleServerClick = function(serverId) {
+            console.log('[Home AJAX] Intercepted handleServerClick, using loadServerPage instead');
+            return loadServerPage(serverId);
+        };
+    }
+    
+    setupHomeServerNavigation();
+    
+    const event = new CustomEvent('HomePageChanged', { 
+        detail: { 
+            pageType,
+            previousChannelId: currentChannelId 
+        } 
+    });
+    document.dispatchEvent(event);
+    console.log('[Home AJAX] HomePageChanged event dispatched');
 }
 
 window.loadHomePage = loadHomePage;

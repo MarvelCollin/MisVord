@@ -1,6 +1,7 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
 import { playDiscordoSound, playCallSound } from '../../utils/music-loader-static.js';
 import { loadServerPage } from '../../utils/load-server-page.js';
+import { loadHomePage } from '../../utils/load-home-page.js';
 
 let isRendering = false;
 let serverDataCache = null;
@@ -798,13 +799,6 @@ export async function handleHomeClick(event) {
     }
     
     try {
-        const currentChannelId = new URLSearchParams(window.location.search).get('channel');
-        if (currentChannelId && window.globalSocketManager) {
-            console.log('[Home Navigation] Cleaning up socket for channel:', currentChannelId);
-            window.globalSocketManager.leaveChannel(currentChannelId);
-        }
-
-        // DON'T disconnect voice on navigation - keep it alive!
         if (window.voiceManager && window.voiceManager.isConnected) {
             console.log('[Home Navigation] Voice connection detected, keeping alive and showing global indicator');
             if (window.globalVoiceIndicator) {
@@ -814,68 +808,13 @@ export async function handleHomeClick(event) {
             }
         }
 
-        console.log('[Home Navigation] Loading home page with AJAX');
-        const response = await $.ajax({
-            url: '/home/layout',
-            method: 'GET',
-            dataType: 'html',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-
-        // Target the entire layout container, not just main-content
-        const layoutContainer = document.querySelector('.flex.flex-1.overflow-hidden') || 
-                              document.querySelector('#main-content') || 
-                              document.querySelector('.main-content') || 
-                              document.querySelector('#app-content') ||
-                              document.querySelector('.app-content') ||
-                              document.querySelector('main') ||
-                              document.querySelector('.content-wrapper');
-        
-        if (layoutContainer && response) {
-            console.log('[Home Navigation] Found layout container:', layoutContainer.className || layoutContainer.id);
-            layoutContainer.innerHTML = response;
-            console.log('[Home Navigation] Home page content loaded successfully');
-            
-            // Find and execute any embedded scripts
-            const scriptTags = layoutContainer.querySelectorAll('script');
-            scriptTags.forEach(script => {
-                if (script.type === 'module' || script.type === 'text/javascript' || !script.type) {
-                    try {
-                        if (script.src) {
-                            // External script
-                            const newScript = document.createElement('script');
-                            newScript.src = script.src;
-                            newScript.type = script.type || 'text/javascript';
-                            document.head.appendChild(newScript);
-                        } else {
-                            // Inline script
-                            eval(script.textContent);
-                        }
-                        console.log('[Home Navigation] Executed script:', script.type || 'inline');
-                    } catch (error) {
-                        console.error('[Home Navigation] Error executing script:', error);
-                    }
-                }
-            });
+        console.log('[Home Navigation] Using loadHomePage for consistent skeleton loading');
+        if (typeof loadHomePage === 'function') {
+            await loadHomePage('friends');
         } else {
-            console.error('[Home Navigation] Could not find layout container or no response');
-            console.log('[Home Navigation] Available containers:', {
-                'flex-container': !!document.querySelector('.flex.flex-1.overflow-hidden'),
-                'main-content': !!document.getElementById('main-content'),
-                'main': !!document.querySelector('main'),
-                'body': !!document.body
-            });
+            console.error('[Home Navigation] loadHomePage not available, using fallback');
+            window.location.href = '/home';
         }
-
-        window.history.pushState({ pageType: 'home' }, 'Home', '/home');
-        updateActiveServer('home');
-
-        window.dispatchEvent(new CustomEvent('HomePageChanged', { 
-            detail: { 
-                pageType: 'friends',
-                previousChannelId: currentChannelId 
-            } 
-        }));
 
         console.log('[Home Navigation] SUCCESS - Home navigation completed');
 

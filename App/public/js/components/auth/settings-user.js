@@ -1544,20 +1544,6 @@ function initVoiceVideoSection() {
             window.addEventListener('beforeunload', () => {
                 module.destroyVoiceVideoSettings();
             });
-
-            document.querySelectorAll('.voice-tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const tabName = this.getAttribute('data-tab');
-                    document.querySelectorAll('.voice-tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-                    
-                    this.classList.add('active');
-                    const contentElement = document.getElementById(`${tabName}-content`);
-                    if (contentElement) {
-                        contentElement.classList.remove('hidden');
-                    }
-                });
-            });
         })
         .catch(err => {
             console.error('Error loading voice video settings:', err);
