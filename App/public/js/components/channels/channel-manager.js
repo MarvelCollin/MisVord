@@ -154,13 +154,11 @@ function renderChannelList(rawData) {
     console.log('✅ Channel state updated');
 }
 
-
-
 function initChannelEventListeners() {
     console.log('🎯 Setting up channel event listeners');
 
     if (!window.channelSwitchManager) {
-        console.warn('⚠️ channelSwitchManager not available, waiting and retrying...');
+        console.warn('⚠️ channelSwitchManager not available, waiting for it...');
         
         let retries = 0;
         const maxRetries = 10;
@@ -172,8 +170,7 @@ function initChannelEventListeners() {
             } else if (retries < maxRetries) {
                 setTimeout(checkForManager, 200);
             } else {
-                console.warn('⚠️ channelSwitchManager still not available, setting up basic handlers');
-                setupBasicChannelHandlers();
+                console.warn('⚠️ ChannelSwitchManager not available - channel navigation may not work');
             }
         };
         
@@ -186,22 +183,6 @@ function initChannelEventListeners() {
     initDeleteChannelButtons();
     
     console.log('✅ Event listeners setup complete');
-}
-
-function setupBasicChannelHandlers() {
-    document.querySelectorAll('.channel-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            if (e.target.closest('.channel-actions')) return;
-            
-            const channelId = item.dataset.channelId;
-            const serverId = document.getElementById('current-server-id')?.value;
-            
-            if (channelId && serverId) {
-                console.warn('Basic channel navigation fallback disabled - use channelSwitchManager instead');
-            }
-        });
-    });
-    console.log('✅ Basic channel handlers set up (disabled fallback navigation)');
 }
 
 function getServerId() {

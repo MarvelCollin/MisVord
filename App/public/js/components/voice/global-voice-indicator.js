@@ -91,6 +91,13 @@ class GlobalVoiceIndicator {
                 this.updateVisibility();
             });
         }
+
+        if (window.unifiedVoiceStateManager) {
+            window.unifiedVoiceStateManager.storageManager.addVoiceStateListener(() => {
+                this.updateControls();
+                this.updateVisibility();
+            });
+        }
     }
     
     setupMutationObserver() {
@@ -552,7 +559,18 @@ class GlobalVoiceIndicator {
     }
 
     getVoiceState() {
-        let state = {
+        if (window.unifiedVoiceStateManager) {
+            const state = window.unifiedVoiceStateManager.getState();
+            
+            if (window.voiceCallManager) {
+                state.isVideoOn = window.voiceCallManager.isVideoOn || false;
+                state.isScreenSharing = window.voiceCallManager.isScreenSharing || false;
+            }
+            
+            return state;
+        }
+        
+        return {
             isConnected: false,
             isMuted: false,
             isDeafened: false,
@@ -563,34 +581,6 @@ class GlobalVoiceIndicator {
             channelName: null,
             meetingId: null
         };
-        
-        if (window.localStorageManager) {
-            const localState = window.localStorageManager.getVoiceState();
-            if (localState) {
-                state = { ...state, ...localState };
-            }
-        }
-        
-        if (window.voiceManager) {
-            state.isConnected = state.isConnected || window.voiceManager.isConnected;
-            state.channelName = state.channelName || window.voiceManager.currentChannelName;
-            state.meetingId = state.meetingId || window.voiceManager.currentMeetingId;
-        }
-        
-        if (window.videoSDKManager) {
-            state.isConnected = state.isConnected || window.videoSDKManager.isConnected;
-            state.channelName = state.channelName || window.videoSDKManager.currentChannelName;
-            state.meetingId = state.meetingId || window.videoSDKManager.currentMeetingId;
-        }
-        
-        if (window.voiceCallManager) {
-            state.isMuted = state.isMuted || window.voiceCallManager.isMuted;
-            state.isDeafened = state.isDeafened || window.voiceCallManager.isDeafened;
-            state.isVideoOn = state.isVideoOn || window.voiceCallManager.isVideoOn;
-            state.isScreenSharing = state.isScreenSharing || window.voiceCallManager.isScreenSharing;
-        }
-        
-        return state;
     }
     
     forceUpdateIndicator() {
@@ -611,14 +601,10 @@ class GlobalVoiceIndicator {
         }
 
         const voiceState = this.getVoiceState();
-        const voiceManagerConnected = window.voiceManager?.isConnected;
-        const videoSDKConnected = window.videoSDKManager?.isConnected;
-        const localStorageConnected = voiceState?.isConnected;
-        
-        const isConnectedAnywhere = this.isConnected || voiceManagerConnected || videoSDKConnected || localStorageConnected;
+        const isConnected = voiceState?.isConnected || this.isConnected;
         const isOnVoicePage = this.isOnVoiceChannelPage();
         
-        if (isConnectedAnywhere && !isOnVoicePage) {
+        if (isConnected && !isOnVoicePage) {
             this.indicator.style.display = 'flex';
             this.showIndicator();
         } else {

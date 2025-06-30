@@ -7,6 +7,8 @@ class LandingNavigation {
         this.touchStartX = 0;
         this.touchStartY = 0;
         this.threshold = 50;
+        this.lockedScrollPosition = null;
+        this.horizontalModeStable = false;
         
         this.init();
     }
@@ -52,6 +54,13 @@ class LandingNavigation {
     
     handleScroll() {
         this.checkPosition();
+        
+        if (this.inHorizontalMode && this.horizontalModeStable && this.lockedScrollPosition !== null) {
+            const currentScroll = window.scrollY;
+            if (currentScroll < this.lockedScrollPosition - 10) {
+                window.scrollTo(0, this.lockedScrollPosition);
+            }
+        }
     }
     
     checkPosition() {
@@ -65,34 +74,45 @@ class LandingNavigation {
         
         if (!wasInHorizontal && this.inHorizontalMode) {
             this.currentIndex = 0;
+            this.lockedScrollPosition = window.scrollY;
+            this.horizontalModeStable = false;
+            
+            setTimeout(() => {
+                this.horizontalModeStable = true;
+            }, 1000);
+            
             this.transitionToHorizontal(0);
         } else if (wasInHorizontal && !this.inHorizontalMode) {
             this.currentIndex = 0;
+            this.lockedScrollPosition = null;
+            this.horizontalModeStable = false;
             this.updateInterface();
         }
     }
     
     handleWheel(e) {
-        if (!this.inHorizontalMode || this.isTransitioning || window.innerWidth <= 768) return;
-        
-        const deltaX = Math.abs(e.deltaX);
-        const deltaY = Math.abs(e.deltaY);
-        
-        if (deltaX > deltaY && deltaX > 30) {
-            e.preventDefault();
-            
-            if (e.deltaX > 0) {
-                this.goToNext();
-            } else {
-                this.goToPrevious();
+        if (this.inHorizontalMode && this.horizontalModeStable) {
+            if (e.deltaY < 0) {
+                e.preventDefault();
+                return false;
             }
-        } else if (deltaY > 30) {
-            e.preventDefault();
             
-            if (e.deltaY > 0) {
+            if (this.isTransitioning || window.innerWidth <= 768) return;
+            
+            const deltaX = Math.abs(e.deltaX);
+            const deltaY = Math.abs(e.deltaY);
+            
+            if (deltaX > deltaY && deltaX > 30) {
+                e.preventDefault();
+                
+                if (e.deltaX > 0) {
+                    this.goToNext();
+                } else {
+                    this.goToPrevious();
+                }
+            } else if (deltaY > 30 && e.deltaY > 0) {
+                e.preventDefault();
                 this.goToNext();
-            } else {
-                this.goToPrevious();
             }
         }
     }
@@ -113,16 +133,32 @@ class LandingNavigation {
         if (deltaX > deltaY) {
             e.preventDefault();
         }
+        
+        if (this.horizontalModeStable) {
+            const touchCurrentY = e.touches[0].clientY;
+            const deltaYMove = touchCurrentY - this.touchStartY;
+            
+            if (deltaYMove > 0) {
+                e.preventDefault();
+            }
+        }
     }
     
     handleTouchEnd(e) {
         if (!this.inHorizontalMode) return;
         
         const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
         const deltaX = this.touchStartX - touchEndX;
-        const deltaY = Math.abs(this.touchStartY - e.changedTouches[0].clientY);
+        const deltaY = this.touchStartY - touchEndY;
         
-        if (Math.abs(deltaX) > this.threshold && Math.abs(deltaX) > deltaY) {
+        if (this.horizontalModeStable && deltaY > this.threshold) {
+            return;
+        }
+        
+        const deltaYAbs = Math.abs(deltaY);
+        
+        if (Math.abs(deltaX) > this.threshold && Math.abs(deltaX) > deltaYAbs) {
             if (deltaX > 0) {
                 this.goToNext();
             } else {
@@ -132,12 +168,20 @@ class LandingNavigation {
     }
     
     handleKeyDown(e) {
-        if (!this.inHorizontalMode || this.isTransitioning || window.innerWidth <= 768) return;
+        if (!this.inHorizontalMode || !this.horizontalModeStable || this.isTransitioning || window.innerWidth <= 768) return;
+        
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            return false;
+        }
         
         if (e.key === 'ArrowLeft') {
             e.preventDefault();
             this.goToPrevious();
         } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            this.goToNext();
+        } else if (e.key === 'ArrowDown') {
             e.preventDefault();
             this.goToNext();
         }
@@ -231,6 +275,8 @@ class LandingNavigation {
         
         if (window.innerWidth <= 768) {
             this.wrapper.style.transform = 'translateX(0)';
+            this.lockedScrollPosition = null;
+            this.horizontalModeStable = false;
         } else {
             this.transitionToHorizontal(this.currentIndex);
         }

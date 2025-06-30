@@ -205,9 +205,11 @@ class VideoSDKManager {
         this.registerStreamEvents(participant);
         this.startStreamMonitoring(participant);
         
-        window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
-            detail: { participant: participant.id, participantObj: participant }
-        }));
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
+                detail: { participant: participant.id, participantObj: participant }
+            }));
+        }, 200);
     }
     
     handleParticipantLeft(participant) {
@@ -228,21 +230,25 @@ class VideoSDKManager {
         console.log(`👥 [VideoSDK] Local participant ID: ${this.meeting.localParticipant?.id}`);
         
         try {
-            this.meeting.participants.forEach((participant, participantId) => {
-                console.log(`👤 [VideoSDK] Processing participant: ${participant.id} (${participant.displayName || participant.name || 'Unknown'})`);
-                
-                if (participant.id !== this.meeting.localParticipant?.id) {
-                    console.log(`👤 [VideoSDK] Setting up existing remote participant: ${participant.id}`);
-                    this.registerStreamEvents(participant);
-                    this.startStreamMonitoring(participant);
+            setTimeout(() => {
+                this.meeting.participants.forEach((participant, participantId) => {
+                    console.log(`👤 [VideoSDK] Processing participant: ${participant.id} (${participant.displayName || participant.name || 'Unknown'})`);
                     
-                    window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
-                        detail: { participant: participant.id, participantObj: participant }
-                    }));
-                } else {
-                    console.log(`👤 [VideoSDK] Skipping local participant: ${participant.id}`);
-                }
-            });
+                    if (participant.id !== this.meeting.localParticipant?.id) {
+                        console.log(`👤 [VideoSDK] Setting up existing remote participant: ${participant.id}`);
+                        this.registerStreamEvents(participant);
+                        this.startStreamMonitoring(participant);
+                        
+                        setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
+                                detail: { participant: participant.id, participantObj: participant }
+                            }));
+                        }, 300);
+                    } else {
+                        console.log(`👤 [VideoSDK] Skipping local participant: ${participant.id}`);
+                    }
+                });
+            }, 500);
         } catch (error) {
             console.error('Error setting up existing participants:', error);
         }

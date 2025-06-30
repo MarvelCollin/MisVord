@@ -349,15 +349,21 @@ class NavigationManager {
     }
 
     cleanupComponents() {
+        console.log('[Navigation] Cleaning up components');
+        
+        if (window.channelSwitchManager && typeof window.channelSwitchManager.cleanup === 'function') {
+            console.log('[Navigation] Cleaning up existing ChannelSwitchManager');
+            window.channelSwitchManager.cleanup();
+            window.channelSwitchManager = null;
+        }
+        
         if (window.chatSection && typeof window.chatSection.cleanup === 'function') {
+            console.log('[Navigation] Cleaning up existing chat section');
             window.chatSection.cleanup();
             window.chatSection = null;
         }
         
-        if (window.voiceSection && typeof window.voiceSection.cleanup === 'function') {
-            window.voiceSection.cleanup();
-            window.voiceSection = null;
-        }
+        console.log('[Navigation] Component cleanup completed');
     }
 
     initializeComponents(config) {
@@ -403,17 +409,37 @@ class NavigationManager {
     initializeServerComponents(serverId, channelId) {
         console.log('[Navigation] Initializing server components:', { serverId, channelId });
         
-        if (typeof window.initializeChatSection === 'function') {
-            window.initializeChatSection();
-        }
+        this.cleanupComponents();
         
-        if (typeof window.updateActiveServer === 'function') {
-            window.updateActiveServer('server', serverId);
-        }
-        
-        document.dispatchEvent(new CustomEvent('ServerPageChanged', {
-            detail: { serverId, channelId }
-        }));
+        setTimeout(() => {
+            console.log('[Navigation] Creating new ChannelSwitchManager');
+            if (window.ChannelSwitchManager) {
+                window.channelSwitchManager = new window.ChannelSwitchManager();
+                console.log('[Navigation] ChannelSwitchManager created successfully');
+            } else {
+                console.warn('[Navigation] ChannelSwitchManager class not available');
+            }
+            
+            if (typeof window.initializeChatSection === 'function') {
+                console.log('[Navigation] Initializing chat section');
+                window.initializeChatSection();
+            }
+            
+            if (typeof window.initializeParticipantSection === 'function') {
+                console.log('[Navigation] Initializing participant section');
+                window.initializeParticipantSection();
+            }
+            
+            if (typeof window.updateActiveServer === 'function') {
+                window.updateActiveServer('server', serverId);
+            }
+            
+            document.dispatchEvent(new CustomEvent('ServerPageChanged', {
+                detail: { serverId, channelId }
+            }));
+            
+            console.log('[Navigation] Server components initialized');
+        }, 200);
     }
 
     initializeExploreComponents() {

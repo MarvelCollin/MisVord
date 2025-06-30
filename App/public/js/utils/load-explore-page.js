@@ -310,93 +310,41 @@ function setupExploreServerNavigation() {
     console.log('[Explore Navigation] Setting up server navigation handlers');
     
     setTimeout(() => {
-        const serverLinks = document.querySelectorAll('a[href^="/server/"]');
-        console.log('[Explore Navigation] Found', serverLinks.length, 'server links');
+        const visitServerButtons = document.querySelectorAll('button[data-action="visit-server"]');
+        console.log('[Explore Navigation] Found', visitServerButtons.length, 'visit server buttons');
         
-        serverLinks.forEach(link => {
-            const newLink = link.cloneNode(true);
-            link.parentNode.replaceChild(newLink, link);
+        visitServerButtons.forEach(button => {
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
             
-            newLink.addEventListener('click', async function(e) {
+            newButton.addEventListener('click', async function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                const href = this.getAttribute('href');
-                const serverMatch = href.match(/\/server\/(\d+)/);
+                const serverId = this.getAttribute('data-server-id');
+                console.log('[Explore Navigation] Visit server button clicked, navigating to server:', serverId);
                 
-                if (serverMatch) {
-                    const serverId = serverMatch[1];
-                    console.log('[Explore Navigation] Server link clicked, navigating to server:', serverId);
+                try {
+                    const defaultChannelId = await getDefaultChannelForServer(serverId);
                     
-                    try {
-                        const defaultChannelId = await getDefaultChannelForServer(serverId);
-                        console.log('[Explore Navigation] Default channel ID:', defaultChannelId);
+                    if (window.loadServerPage) {
+                        await window.loadServerPage(serverId, defaultChannelId);
                         
-                        if (loadServerPage) {
-                            console.log('[Explore Navigation] Using loadServerPage function with channel:', defaultChannelId);
-                            await loadServerPage(serverId, defaultChannelId);
-                            
-                            if (typeof window.updateActiveServer === 'function') {
-                                window.updateActiveServer('server', serverId);
-                            }
-                        } else {
-                            console.log('[Explore Navigation] loadServerPage not available, using fallback');
-                            const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : href;
-                            window.location.href = fallbackUrl;
+                        if (typeof window.updateActiveServer === 'function') {
+                            window.updateActiveServer('server', serverId);
                         }
-                    } catch (error) {
-                        console.error('[Explore Navigation] Error navigating to server:', error);
-                        window.location.href = href;
+                    } else {
+                        const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : `/server/${serverId}`;
+                        window.location.href = fallbackUrl;
                     }
-                } else {
-                    console.warn('[Explore Navigation] Invalid server link:', href);
-                    window.location.href = href;
+                } catch (error) {
+                    console.error('[Explore Navigation] Error navigating to server:', error);
+                    window.location.href = `/server/${serverId}`;
                 }
             });
         });
         
-        const visitServerButtons = document.querySelectorAll('button[data-server-id]:contains("Visit Server"), .visit-server-btn');
-        console.log('[Explore Navigation] Found', visitServerButtons.length, 'visit server buttons');
-        
-        visitServerButtons.forEach(button => {
-            const serverId = button.getAttribute('data-server-id');
-            if (serverId) {
-                const newButton = button.cloneNode(true);
-                button.parentNode.replaceChild(newButton, button);
-                
-                newButton.addEventListener('click', async function(e) {
-                    if (this.textContent.trim().includes('Visit') || this.classList.contains('visit-server-btn')) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        console.log('[Explore Navigation] Visit server button clicked, navigating to server:', serverId);
-                        
-                        try {
-                            const defaultChannelId = await getDefaultChannelForServer(serverId);
-                            console.log('[Explore Navigation] Default channel ID:', defaultChannelId);
-                            
-                            if (loadServerPage) {
-                                console.log('[Explore Navigation] Using loadServerPage function with channel:', defaultChannelId);
-                                await loadServerPage(serverId, defaultChannelId);
-                                
-                                if (typeof window.updateActiveServer === 'function') {
-                                    window.updateActiveServer('server', serverId);
-                                }
-                            } else {
-                                console.log('[Explore Navigation] loadServerPage not available, using fallback');
-                                const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : `/server/${serverId}`;
-                                window.location.href = fallbackUrl;
-                            }
-                        } catch (error) {
-                            console.error('[Explore Navigation] Error navigating to server:', error);
-                            window.location.href = `/server/${serverId}`;
-                        }
-                    }
-                });
-            }
-        });
-        
-        const serverCards = document.querySelectorAll('.explore-server-card, .server-card');
+        const serverCards = document.querySelectorAll('.server-card, .explore-server-card');
         console.log('[Explore Navigation] Found', serverCards.length, 'server cards');
         
         serverCards.forEach(card => {
@@ -414,17 +362,14 @@ function setupExploreServerNavigation() {
                         
                         try {
                             const defaultChannelId = await getDefaultChannelForServer(serverId);
-                            console.log('[Explore Navigation] Default channel ID:', defaultChannelId);
                             
-                            if (loadServerPage) {
-                                console.log('[Explore Navigation] Using loadServerPage function with channel:', defaultChannelId);
-                                await loadServerPage(serverId, defaultChannelId);
+                            if (window.loadServerPage) {
+                                await window.loadServerPage(serverId, defaultChannelId);
                                 
                                 if (typeof window.updateActiveServer === 'function') {
                                     window.updateActiveServer('server', serverId);
                                 }
                             } else {
-                                console.log('[Explore Navigation] loadServerPage not available, using fallback');
                                 const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : `/server/${serverId}`;
                                 window.location.href = fallbackUrl;
                             }

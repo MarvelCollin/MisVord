@@ -610,15 +610,28 @@ function handleRegisterVoiceMeeting(io, client, data) {
         voiceMeetings.set(channel_id, {
             meeting_id,
             channel_id,
-            participants: new Set()
+            participants: new Set(),
+            created_at: Date.now()
         });
         console.log(`✅ [VOICE-REGISTER-HANDLER] Created new voice meeting for channel ${channel_id}`);
     }
 
-    voiceMeetings.get(channel_id).participants.add(client.id);
+    const meeting = voiceMeetings.get(channel_id);
+    
+    if (meeting.participants.has(client.id)) {
+        console.log(`⚠️ [VOICE-REGISTER-HANDLER] Client ${client.id} already registered for channel ${channel_id}, skipping duplicate`);
+        return;
+    }
+
+    meeting.participants.add(client.id);
     console.log(`👤 [VOICE-REGISTER-HANDLER] Added participant ${client.id} to voice meeting in channel ${channel_id}`);
     
     if (user_id) {
+        if (VoiceConnectionTracker.getUserVoiceStatus(user_id)) {
+            console.log(`⚠️ [VOICE-REGISTER-HANDLER] User ${user_id} already in voice, updating channel`);
+            VoiceConnectionTracker.removeUserFromVoice(user_id);
+        }
+        
         VoiceConnectionTracker.addUserToVoice(user_id, channel_id, meeting_id);
         console.log(`🎤 [VOICE-REGISTER-HANDLER] Added user ${user_id} to voice connection tracker`);
         
@@ -626,14 +639,16 @@ function handleRegisterVoiceMeeting(io, client, data) {
         console.log(`🚪 [VOICE-REGISTER-HANDLER] User ${user_id} joined voice channel room: voice-channel-${channel_id}`);
     }
     
-    const participantCount = voiceMeetings.get(channel_id).participants.size;
+    const participantCount = meeting.participants.size;
     console.log(`📡 [VOICE-REGISTER-HANDLER] Broadcasting voice meeting update for channel ${channel_id}, participants: ${participantCount}`);
     
     io.emit('voice-meeting-update', {
         channel_id,
         meeting_id,
         participant_count: participantCount,
-        action: 'join'
+        action: 'join',
+        user_id: user_id,
+        username: client.data?.username
     });
 }
 
@@ -655,6 +670,11 @@ function handleUnregisterVoiceMeeting(io, client, data) {
 
     const meeting = voiceMeetings.get(channel_id);
     if (meeting) {
+        if (!meeting.participants.has(client.id)) {
+            console.log(`⚠️ [VOICE-UNREGISTER-HANDLER] Client ${client.id} not found in voice meeting for channel ${channel_id}`);
+            return;
+        }
+        
         meeting.participants.delete(client.id);
         console.log(`👤 [VOICE-UNREGISTER-HANDLER] Removed participant ${client.id} from voice meeting in channel ${channel_id}`);
         
@@ -666,25 +686,28 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             console.log(`🚪 [VOICE-UNREGISTER-HANDLER] User ${user_id} left voice channel room: voice-channel-${channel_id}`);
             
             const titiBotId = BotHandler.getTitiBotId();
-            if (titiBotId) {
+            if (titiBotId && meeting.participants.size === 0) {
                 BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
                 console.log(`🤖 [VOICE-UNREGISTER-HANDLER] Removed bot from voice channel ${channel_id}`);
             }
         }
         
-        if (meeting.participants.size === 0) {
+        const participantCount = meeting.participants.size;
+        
+        if (participantCount === 0) {
             voiceMeetings.delete(channel_id);
             console.log(`🗑️ [VOICE-UNREGISTER-HANDLER] Removed empty voice meeting for channel ${channel_id}`);
         }
         
-        const participantCount = meeting.participants.size;
         console.log(`📡 [VOICE-UNREGISTER-HANDLER] Broadcasting voice meeting update for channel ${channel_id}, participants: ${participantCount}`);
         
         io.emit('voice-meeting-update', {
             channel_id,
             meeting_id: meeting.meeting_id,
             participant_count: participantCount,
-            action: 'leave'
+            action: 'leave',
+            user_id: user_id,
+            username: client.data?.username
         });
     } else {
         console.warn(`⚠️ [VOICE-UNREGISTER-HANDLER] No voice meeting found for channel ${channel_id}`);

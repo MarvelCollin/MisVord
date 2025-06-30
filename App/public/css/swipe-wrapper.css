@@ -34,8 +34,7 @@ body {
 }
 
 .scroll-section {
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
+    scroll-snap-align: none;
 }
 
 .hero-section {
@@ -43,13 +42,6 @@ body {
     scroll-snap-stop: always;
     position: relative;
     z-index: 1;
-}
-
-.swipe-wrapper {
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-    position: relative;
-    z-index: 2;
 }
 
 .section-navigation {

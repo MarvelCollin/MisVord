@@ -322,11 +322,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     background-position: center;
 }
 
-#videoGrid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
-    aspect-ratio: unset !important;
-    min-height: 200px !important;
-}
+
 
 #screenShareSection {
     position: relative;
@@ -467,58 +463,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     }
 }
 
-#videoGrid {
-    display: grid !important;
-    gap: 8px !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-height: 300px !important;
-}
 
-#videoGrid[data-count="1"] {
-    grid-template-columns: 1fr !important;
-    grid-template-rows: 1fr !important;
-}
-
-#videoGrid[data-count="2"] {
-    grid-template-columns: 1fr 1fr !important;
-    grid-template-rows: 1fr !important;
-}
-
-#videoGrid[data-count="3"] {
-    grid-template-columns: 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr !important;
-}
-
-#videoGrid[data-count="3"] .video-participant-card:first-child {
-    grid-column: 1 / -1 !important;
-}
-
-#videoGrid[data-count="4"] {
-    grid-template-columns: 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr !important;
-}
-
-#videoGrid[data-count="5"], #videoGrid[data-count="6"] {
-    grid-template-columns: 1fr 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr !important;
-}
-
-#videoGrid[data-count="7"], #videoGrid[data-count="8"], #videoGrid[data-count="9"] {
-    grid-template-columns: 1fr 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr 1fr !important;
-}
-
-@media (max-width: 768px) {
-    #videoGrid[data-count="2"], #videoGrid[data-count="3"], #videoGrid[data-count="4"] {
-        grid-template-columns: 1fr !important;
-        grid-template-rows: repeat(auto, 1fr) !important;
-    }
-    
-    #videoGrid[data-count="3"] .video-participant-card:first-child {
-        grid-column: 1 !important;
-    }
-}
 
 /* Participant Cards */
 .voice-only-participant {
@@ -622,9 +567,151 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 </style>
 
 <script>
-class VoiceCallManager {
+class UnifiedParticipantManager {
     constructor() {
         this.participants = new Map();
+        this.eventSources = new Set();
+        this.isProcessingEvent = false;
+        this.pendingEvents = [];
+    }
+
+    async processEvent(event) {
+        if (this.isProcessingEvent) {
+            this.pendingEvents.push(event);
+            return;
+        }
+
+        this.isProcessingEvent = true;
+
+        try {
+            switch (event.type) {
+                case 'participant_joined':
+                    await this.handleParticipantJoined(event.data);
+                    break;
+                case 'participant_left':
+                    await this.handleParticipantLeft(event.data);
+                    break;
+                case 'bot_joined':
+                    await this.handleBotJoined(event.data);
+                    break;
+                case 'bot_left':
+                    await this.handleBotLeft(event.data);
+                    break;
+            }
+        } finally {
+            this.isProcessingEvent = false;
+            
+            if (this.pendingEvents.length > 0) {
+                const nextEvent = this.pendingEvents.shift();
+                setTimeout(() => this.processEvent(nextEvent), 50);
+            }
+        }
+    }
+
+    async handleParticipantJoined(data) {
+        const { participantId, participantObj, source } = data;
+        
+        if (this.participants.has(participantId)) {
+            console.log(`⚠️ [UNIFIED-MANAGER] Participant ${participantId} already exists from source: ${this.participants.get(participantId).source}, ignoring duplicate from: ${source}`);
+            return;
+        }
+
+        let participantName = `User ${participantId.slice(-4)}`;
+        if (participantObj) {
+            participantName = participantObj.displayName || participantObj.name || participantObj.username || participantName;
+        }
+
+        const participant = {
+            id: participantId,
+            name: participantName,
+            source: source,
+            isLocal: participantId === window.voiceCallManager?.localParticipantId,
+            isBot: source === 'bot',
+            joinedAt: Date.now(),
+            hasVideo: false,
+            isMuted: false,
+            isSpeaking: false
+        };
+
+        this.participants.set(participantId, participant);
+        console.log(`✅ [UNIFIED-MANAGER] Added participant ${participantId} (${participantName}) from source: ${source}`);
+
+        if (window.voiceCallManager) {
+            window.voiceCallManager.createParticipantElement(participant);
+            window.voiceCallManager.updateParticipantCount();
+        }
+    }
+
+    async handleParticipantLeft(data) {
+        const { participantId, source } = data;
+        
+        const participant = this.participants.get(participantId);
+        if (!participant) {
+            console.log(`⚠️ [UNIFIED-MANAGER] Participant ${participantId} not found for removal from source: ${source}`);
+            return;
+        }
+
+        this.participants.delete(participantId);
+        console.log(`✅ [UNIFIED-MANAGER] Removed participant ${participantId} from source: ${source}`);
+
+        if (window.voiceCallManager) {
+            window.voiceCallManager.removeParticipantElement(participantId);
+            window.voiceCallManager.updateParticipantCount();
+        }
+    }
+
+    async handleBotJoined(data) {
+        const { participant } = data;
+        const botId = `bot-${participant.user_id}`;
+        
+        if (this.participants.has(botId)) {
+            console.log(`⚠️ [UNIFIED-MANAGER] Bot ${botId} already exists, ignoring duplicate`);
+            return;
+        }
+
+        await this.handleParticipantJoined({
+            participantId: botId,
+            participantObj: {
+                name: participant.username,
+                username: participant.username,
+                isBot: true
+            },
+            source: 'bot'
+        });
+    }
+
+    async handleBotLeft(data) {
+        const { participant } = data;
+        const botId = `bot-${participant.user_id}`;
+        
+        await this.handleParticipantLeft({
+            participantId: botId,
+            source: 'bot'
+        });
+    }
+
+    getParticipant(participantId) {
+        return this.participants.get(participantId);
+    }
+
+    getAllParticipants() {
+        return Array.from(this.participants.values());
+    }
+
+    getParticipantCount() {
+        return this.participants.size;
+    }
+
+    clear() {
+        this.participants.clear();
+        this.eventSources.clear();
+        this.pendingEvents = [];
+    }
+}
+
+class VoiceCallManager {
+    constructor() {
+        this.participantManager = new UnifiedParticipantManager();
         this.isConnected = false;
         this.isMuted = false;
         this.isDeafened = false;
@@ -681,12 +768,25 @@ class VoiceCallManager {
 
         window.addEventListener('videosdkParticipantJoined', (event) => {
             const { participant, participantObj } = event.detail;
-            this.addRemoteParticipant(participant, participantObj);
+            this.participantManager.processEvent({
+                type: 'participant_joined',
+                data: {
+                    participantId: participant,
+                    participantObj: participantObj,
+                    source: 'videosdk'
+                }
+            });
         });
 
         window.addEventListener('videosdkParticipantLeft', (event) => {
             const { participant } = event.detail;
-            this.removeRemoteParticipant(participant);
+            this.participantManager.processEvent({
+                type: 'participant_left',
+                data: {
+                    participantId: participant,
+                    source: 'videosdk'
+                }
+            });
         });
 
         window.addEventListener('voiceConnect', (event) => {
@@ -695,11 +795,17 @@ class VoiceCallManager {
             if (window.videoSDKManager?.meeting?.localParticipant) {
                 this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
                 
-                if (!this.participants.has(this.localParticipantId)) {
-                    const localParticipant = window.videoSDKManager.meeting.localParticipant;
-                    const localName = localParticipant.displayName || localParticipant.name || document.querySelector('meta[name="username"]')?.content || 'You';
-                    this.addParticipant(this.localParticipantId, localName, true);
-                }
+                this.participantManager.processEvent({
+                    type: 'participant_joined',
+                    data: {
+                        participantId: this.localParticipantId,
+                        participantObj: {
+                            name: document.querySelector('meta[name="username"]')?.content || 'You',
+                            displayName: document.querySelector('meta[name="username"]')?.content || 'You'
+                        },
+                        source: 'local'
+                    }
+                });
             }
             
             if (event.detail?.meetingId) {
@@ -727,17 +833,17 @@ class VoiceCallManager {
             const io = window.globalSocketManager.io;
             
             io.on('bot-voice-participant-joined', (data) => {
-                const { participant } = data;
-                if (participant && participant.username) {
-                    this.addBotParticipant(participant);
-                }
+                this.participantManager.processEvent({
+                    type: 'bot_joined',
+                    data: data
+                });
             });
 
             io.on('bot-voice-participant-left', (data) => {
-                const { participant } = data;
-                if (participant && participant.user_id) {
-                    this.removeBotParticipant(participant.user_id);
-                }
+                this.participantManager.processEvent({
+                    type: 'bot_left',
+                    data: data
+                });
             });
         }
     }
@@ -751,79 +857,6 @@ class VoiceCallManager {
         document.getElementById('disconnectBtn').addEventListener('click', () => this.disconnect());
     }
 
-    addRemoteParticipant(participantId, participantObj) {
-        console.log(`👤 [DEBUG] Adding remote participant ${participantId} to UI`);
-        
-        // Check if participant already exists
-        if (this.participants.has(participantId)) {
-            console.log(`⚠️ [DEBUG] Participant ${participantId} already exists, skipping duplicate`);
-            return;
-        }
-        
-        // Extract name from participant object if available
-        let participantName = `User ${participantId.slice(-4)}`;
-        if (participantObj && participantObj.displayName) {
-            participantName = participantObj.displayName;
-        } else if (participantObj && participantObj.name) {
-            participantName = participantObj.name;
-        }
-        
-        // Add to participants map
-        this.addParticipant(participantId, participantName, false);
-        
-        console.log(`✅ [DEBUG] Remote participant ${participantId} (${participantName}) added to UI`);
-    }
-
-    removeRemoteParticipant(participantId) {
-        console.log(`👋 [DEBUG] Removing remote participant ${participantId} from UI`);
-        
-        // Remove from participants map
-        this.participants.delete(participantId);
-        
-        // Remove participant element from voice view
-        const participantCard = document.querySelector(`[data-participant-id="${participantId}"].voice-participant-card`);
-        if (participantCard) {
-            participantCard.remove();
-            console.log(`🗑️ [DEBUG] Removed voice participant card for ${participantId}`);
-        }
-        
-        // Remove video participant card if exists
-        this.removeVideoParticipantCard(participantId);
-        
-        this.updateParticipantCount();
-        console.log(`✅ [DEBUG] Remote participant ${participantId} removed from UI`);
-    }
-
-    ensureParticipantInUI(participantId) {
-        if (!this.participants.has(participantId) && participantId !== this.localParticipantId) {
-            console.log(`⚠️ [DEBUG] Participant ${participantId} not in UI, adding them now`);
-            
-            // Try to get participant object from VideoSDK
-            let participantObj = null;
-            if (window.videoSDKManager?.meeting?.participants) {
-                participantObj = window.videoSDKManager.meeting.participants.get(participantId);
-            }
-            
-            this.addRemoteParticipant(participantId, participantObj);
-        }
-    }
-
-    addParticipant(id, name, isLocal = false) {
-        const participant = {
-            id,
-            name,
-            isLocal,
-            isMuted: false,
-            isDeafened: false,
-            isSpeaking: false,
-            hasVideo: false
-        };
-
-        this.participants.set(id, participant);
-        this.createParticipantElement(participant);
-        this.updateParticipantCount();
-    }
-
     createParticipantElement(participant) {
         const container = document.getElementById('participantGrid');
         if (!container) {
@@ -831,9 +864,14 @@ class VoiceCallManager {
             return;
         }
 
+        const existingElement = document.querySelector(`[data-participant-id="${participant.id}"]`);
+        if (existingElement) {
+            console.log(`⚠️ [VOICE-MANAGER] Element for participant ${participant.id} already exists`);
+            return;
+        }
+
         console.log(`🔊 [DEBUG] Creating voice participant element for: ${participant.name}`);
 
-        // Force grid display styles on container
         container.style.display = 'grid';
         container.style.gridTemplateColumns = 'repeat(auto-fit, minmax(140px, 1fr))';
         container.style.gap = '16px';
@@ -845,7 +883,6 @@ class VoiceCallManager {
         element.className = 'voice-participant-card';
         element.dataset.participantId = participant.id;
 
-        // Force participant card styles
         element.style.display = 'flex';
         element.style.flexDirection = 'column';
         element.style.alignItems = 'center';
@@ -872,17 +909,44 @@ class VoiceCallManager {
         container.appendChild(element);
         
         console.log(`🔊 [DEBUG] Voice participant element created for: ${participant.name}`);
+    }
+
+    removeParticipantElement(participantId) {
+        const element = document.querySelector(`[data-participant-id="${participantId}"]`);
+        if (element) {
+            element.remove();
+            console.log(`🗑️ [DEBUG] Removed participant element for ${participantId}`);
+        }
         
-        // Log container styles after adding element
-        setTimeout(() => {
-            const computedStyle = window.getComputedStyle(container);
-            console.log(`🔊 [DEBUG] Voice grid styles after adding ${participant.name}:`, {
-                display: computedStyle.display,
-                gridTemplateColumns: computedStyle.gridTemplateColumns,
-                gap: computedStyle.gap,
-                childCount: container.children.length
-            });
-        }, 100);
+        this.removeVideoParticipantCard(participantId);
+    }
+
+    updateParticipantCount() {
+        const count = this.participantManager.getParticipantCount();
+        const countElement = document.getElementById('voiceParticipantCount');
+        if (countElement) {
+            countElement.textContent = count;
+        }
+        
+        const container = document.getElementById('participantGrid');
+        if (container) {
+            container.setAttribute('data-count', count);
+        }
+    }
+
+    cleanup() {
+        this.participantManager.clear();
+        
+        const container = document.getElementById('participantGrid');
+        if (container) {
+            container.innerHTML = '';
+        }
+        
+        this.updateParticipantCount();
+    }
+
+    get participants() {
+        return this.participantManager.participants;
     }
 
     handleCameraStream(participantId, stream) {
@@ -895,23 +959,20 @@ class VoiceCallManager {
             streamTracks: stream instanceof MediaStream ? stream.getTracks().length : 'N/A',
             localParticipantId: this.localParticipantId,
             isLocalParticipant: participantId === this.localParticipantId,
-            participantInMap: this.participants.has(participantId),
-            totalParticipants: this.participants.size
+            participantInMap: this.participantManager.participants.has(participantId),
+            totalParticipants: this.participantManager.participants.size
         });
         
         if (participantId === this.localParticipantId) {
-            // Handle local participant camera
             console.log(`🎥 [DEBUG] Handling local participant camera stream`);
             
             this.isVideoOn = true;
             
-            // Update participant data
-            const localParticipant = this.participants.get(participantId);
+            const localParticipant = this.participantManager.getParticipant(participantId);
             if (localParticipant) {
                 localParticipant.hasVideo = true;
             }
             
-            // Create video card for local participant
             this.createVideoParticipantCard(participantId, stream);
             
             console.log('✅ [DEBUG] Local camera stream handled - SUCCESS');
@@ -919,10 +980,7 @@ class VoiceCallManager {
         } else {
             console.log(`🎥 [DEBUG] Remote participant detected - ${participantId}!`);
             console.log(`🎥 [DEBUG] About to create video participant card...`);
-            console.log(`🎥 [DEBUG] Current participants in Map:`, Array.from(this.participants.keys()));
-            
-            // Ensure participant is in the UI before handling their stream
-            this.ensureParticipantInUI(participantId);
+            console.log(`🎥 [DEBUG] Current participants in Map:`, Array.from(this.participantManager.participants.keys()));
             
             this.createVideoParticipantCard(participantId, stream);
         }
@@ -934,8 +992,7 @@ class VoiceCallManager {
     handleCameraDisabled(participantId) {
         console.log(`🎥❌ Handling camera disabled for ${participantId}`);
         
-        // Update participant data
-        const participant = this.participants.get(participantId);
+        const participant = this.participantManager.getParticipant(participantId);
         if (participant) {
             participant.hasVideo = false;
         }
@@ -945,7 +1002,6 @@ class VoiceCallManager {
             console.log('✅ Local camera disabled');
         }
         
-        // Remove video card
         this.removeVideoParticipantCard(participantId);
         
         this.updateView();
@@ -960,7 +1016,7 @@ class VoiceCallManager {
         if (video && stream) {
             this.attachStreamToVideo(video, stream);
             
-            const participant = this.participants.get(participantId);
+            const participant = this.participantManager.getParticipant(participantId);
             const displayName = participantId === this.localParticipantId ? 'Your Screen' : 
                               (participant ? `${participant.name}'s Screen` : `${participantId}'s Screen`);
             
@@ -988,7 +1044,6 @@ class VoiceCallManager {
             video.srcObject = null;
         }
         
-        // Hide picture-in-picture camera
         if (pipCamera) {
             pipCamera.classList.add('hidden');
         }
@@ -1000,7 +1055,7 @@ class VoiceCallManager {
     }
 
     createVideoParticipantCard(participantId, stream) {
-        const container = document.getElementById('videoGrid');
+        const container = document.getElementById('participantGrid');
         if (!container) {
             return;
         }
@@ -1014,7 +1069,7 @@ class VoiceCallManager {
             return;
         }
 
-        let participant = this.participants.get(participantId);
+        let participant = this.participantManager.getParticipant(participantId);
         if (!participant) {
             participant = {
                 id: participantId,
@@ -1023,7 +1078,6 @@ class VoiceCallManager {
                 isMuted: false,
                 isSpeaking: false
             };
-            this.participants.set(participantId, participant);
         }
 
         const card = document.createElement('div');
@@ -1049,20 +1103,6 @@ class VoiceCallManager {
 
         container.appendChild(card);
         participant.hasVideo = true;
-        
-        this.updateView();
-    }
-
-    removeVideoParticipantCard(participantId) {
-        const card = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card`);
-        if (card) {
-            card.remove();
-        }
-        
-        const participant = this.participants.get(participantId);
-        if (participant) {
-            participant.hasVideo = false;
-        }
         
         this.updateView();
     }
@@ -1119,9 +1159,9 @@ class VoiceCallManager {
     }
 
     hasOtherVideo() {
-        const result = Array.from(this.participants.values()).some(p => p.hasVideo && p.id !== this.localParticipantId);
+        const result = Array.from(this.participantManager.participants.values()).some(p => p.hasVideo && p.id !== this.localParticipantId);
         console.log(`🔍 [DEBUG] hasOtherVideo() check:`, {
-            participants: Array.from(this.participants.values()).map(p => ({
+            participants: Array.from(this.participantManager.participants.values()).map(p => ({
                 id: p.id,
                 hasVideo: p.hasVideo,
                 isLocalParticipant: p.id === this.localParticipantId
@@ -1136,7 +1176,7 @@ class VoiceCallManager {
         const participantGrid = document.getElementById('participantGrid');
         if (!participantGrid) return;
 
-        const participantCount = this.participants.size;
+        const participantCount = this.participantManager.getParticipantCount();
         participantGrid.setAttribute('data-count', participantCount.toString());
         
         participantGrid.style.display = 'grid';
@@ -1147,8 +1187,7 @@ class VoiceCallManager {
     }
 
     updateView() {
-        const voiceOnlyView = document.getElementById('voiceOnlyView');
-        const videoGridView = document.getElementById('videoGridView');
+        const unifiedGridView = document.getElementById('unifiedGridView');
         const screenShareView = document.getElementById('screenShareView');
 
         console.log(`🔄 [DEBUG] updateView() called with state:`, {
@@ -1157,57 +1196,32 @@ class VoiceCallManager {
             hasOtherVideo: this.hasOtherVideo(),
             currentView: this.currentView,
             elementsFound: {
-                voiceOnlyView: !!voiceOnlyView,
-                videoGridView: !!videoGridView,
+                unifiedGridView: !!unifiedGridView,
                 screenShareView: !!screenShareView
             }
         });
 
-        // Hide all views first
-        voiceOnlyView?.classList.add('hidden');
-        videoGridView?.classList.add('hidden');
-        screenShareView?.classList.add('hidden');
-
         if (this.isScreenSharing) {
-            // Screen Share View (Highest Priority)
             this.currentView = 'screen-share';
+            unifiedGridView?.classList.add('hidden');
             screenShareView?.classList.remove('hidden');
             this.updateScreenShareParticipants();
             console.log('📺 [DEBUG] Showing screen share view');
             
-            // Handle PiP camera if same user has both camera and screen share
             if (this.isVideoOn) {
                 this.showPictureInPicture();
             }
             
-        } else if (this.isVideoOn || this.hasOtherVideo()) {
-            // Video Grid View
-            this.currentView = 'video';
-            videoGridView?.classList.remove('hidden');
-            this.updateVideoGrid();
-            this.updateVideoParticipantCount();
-            console.log('🎥 [DEBUG] Showing video grid view');
-            
         } else {
-            // Voice Only View (Default)
-            this.currentView = 'voice-only';
-            voiceOnlyView?.classList.remove('hidden');
-            console.log('🎤 [DEBUG] Showing voice-only view');
+            this.currentView = 'unified';
+            screenShareView?.classList.add('hidden');
+            unifiedGridView?.classList.remove('hidden');
+            this.updateGrid();
+            console.log('🎤 [DEBUG] Showing unified grid view');
         }
 
-        // Update button states
         this.updateButtonStates();
         this.updateParticipantCount();
-
-        // Final state check
-        setTimeout(() => {
-            console.log(`🔄 [DEBUG] Final view state:`, {
-                currentView: this.currentView,
-                voiceOnlyVisible: voiceOnlyView && !voiceOnlyView.classList.contains('hidden'),
-                videoGridVisible: videoGridView && !videoGridView.classList.contains('hidden'),
-                screenShareVisible: screenShareView && !screenShareView.classList.contains('hidden')
-            });
-        }, 100);
     }
 
     async toggleMic() {
@@ -1273,8 +1287,6 @@ class VoiceCallManager {
         }
     }
 
-
-
     openTicTacToe() {
         const serverId = document.querySelector('meta[name="server-id"]')?.content;
         const userId = document.querySelector('meta[name="user-id"]')?.content;
@@ -1326,66 +1338,13 @@ class VoiceCallManager {
         this.showToast('Disconnected from voice channel', 'info');
     }
 
-    updateParticipantCount() {
-        const count = this.participants.size;
-        const mainCount = document.getElementById('voiceParticipantCount');
-        
-        if (mainCount) mainCount.textContent = count;
-    }
-
-    updateVideoParticipantCount() {
-        const videoCount = Array.from(this.participants.values()).filter(p => p.hasVideo).length;
-        const countElement = document.getElementById('videoParticipantCount');
-        
-        if (countElement) {
-            const text = videoCount === 1 ? '1 participant with video' : `${videoCount} participants with video`;
-            countElement.textContent = text;
-        }
-    }
-
-    updateVideoGrid() {
-        const videoGrid = document.getElementById('videoGrid');
-        if (!videoGrid) {
-            return;
-        }
-
-        const videoParticipants = Array.from(this.participants.values()).filter(p => p.hasVideo);
-        const count = videoParticipants.length;
-        
-        videoGrid.setAttribute('data-count', count.toString());
-        
-        videoGrid.style.display = 'grid';
-        videoGrid.style.gap = '8px';
-        videoGrid.style.width = '100%';
-        videoGrid.style.height = '100%';
-        videoGrid.style.minHeight = '300px';
-        
-        const voiceOnlyParticipants = Array.from(this.participants.values()).filter(p => !p.hasVideo);
-        const voiceOnlyStrip = document.getElementById('voiceOnlyStrip');
-        const voiceOnlyContainer = document.getElementById('voiceOnlyParticipants');
-        
-        if (voiceOnlyParticipants.length > 0 && count > 0) {
-            voiceOnlyStrip?.classList.remove('hidden');
-            
-            if (voiceOnlyContainer) {
-                voiceOnlyContainer.innerHTML = '';
-                voiceOnlyParticipants.forEach(participant => {
-                    const element = this.createVoiceOnlyParticipantElement(participant);
-                    voiceOnlyContainer.appendChild(element);
-                });
-            }
-        } else {
-            voiceOnlyStrip?.classList.add('hidden');
-        }
-    }
-
     updateScreenShareParticipants() {
         const container = document.getElementById('screenShareParticipants');
         if (!container) return;
 
         container.innerHTML = '';
         
-        Array.from(this.participants.values()).forEach(participant => {
+        Array.from(this.participantManager.participants.values()).forEach(participant => {
             const element = this.createScreenShareParticipantElement(participant);
             container.appendChild(element);
         });
@@ -1398,8 +1357,7 @@ class VoiceCallManager {
         if (pipCamera && pipVideo) {
             pipCamera.classList.remove('hidden');
             
-            // Copy local video stream to PiP
-            const localVideo = document.querySelector('#videoGrid video[data-participant-id="' + this.localParticipantId + '"]');
+            const localVideo = document.querySelector('#participantGrid video[data-participant-id="' + this.localParticipantId + '"]');
             if (localVideo && localVideo.srcObject) {
                 pipVideo.srcObject = localVideo.srcObject;
             }
@@ -1468,21 +1426,6 @@ class VoiceCallManager {
         }
     }
 
-    createVoiceOnlyParticipantElement(participant) {
-        const element = document.createElement('div');
-        element.className = 'voice-only-participant';
-        
-        const avatarColor = this.getAvatarColor(participant.name);
-        const initial = participant.name.charAt(0).toUpperCase();
-        
-        element.innerHTML = `
-            <div class="avatar" style="background: ${avatarColor}">${initial}</div>
-            <span>${participant.name}</span>
-        `;
-        
-        return element;
-    }
-
     createScreenShareParticipantElement(participant) {
         const element = document.createElement('div');
         element.className = 'screen-share-participant';
@@ -1530,64 +1473,16 @@ class VoiceCallManager {
         }
     }
 
-    addBotParticipant(botParticipant) {
-        const botData = {
-            id: botParticipant.user_id,
-            name: botParticipant.username,
-            isLocal: false,
-            isMuted: false,
-            isDeafened: false,
-            isSpeaking: false,
-            hasVideo: false,
-            isBot: true
-        };
-
-        this.participants.set(botParticipant.user_id, botData);
-        this.createParticipantElement(botData);
-        this.updateParticipantCount();
-    }
-
-    removeBotParticipant(botUserId) {
-        this.participants.delete(botUserId);
-        
-        const participantCard = document.querySelector(`[data-participant-id="${botUserId}"].voice-participant-card`);
-        if (participantCard) {
-            participantCard.remove();
+    removeVideoParticipantCard(participantId) {
+        const card = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card`);
+        if (card) {
+            card.remove();
         }
         
-        this.updateParticipantCount();
-    }
-
-    cleanup() {
-        const videos = document.querySelectorAll('#screenShareVideo, #pipCameraVideo, .video-participant-card video');
-        videos.forEach(video => {
-            if (video.srcObject) {
-                const tracks = video.srcObject.getTracks();
-                tracks.forEach(track => track.stop());
-                video.srcObject = null;
-            }
-        });
-
-        const videoGrid = document.getElementById('videoGrid');
-        const participantGrid = document.getElementById('participantGrid');
-        const screenShareParticipants = document.getElementById('screenShareParticipants');
-        const voiceOnlyParticipants = document.getElementById('voiceOnlyParticipants');
-
-        if (videoGrid) videoGrid.innerHTML = '';
-        if (participantGrid) participantGrid.innerHTML = '';
-        if (screenShareParticipants) screenShareParticipants.innerHTML = '';
-        if (voiceOnlyParticipants) voiceOnlyParticipants.innerHTML = '';
-
-        const pipCamera = document.getElementById('pipCamera');
-        if (pipCamera) pipCamera.classList.add('hidden');
-
-        this.participants.clear();
-        this.isVideoOn = false;
-        this.isScreenSharing = false;
-        this.isMuted = false;
-        this.isDeafened = false;
-        this.currentView = 'voice-only';
-        this.localParticipantId = null;
+        const participant = this.participantManager.getParticipant(participantId);
+        if (participant) {
+            participant.hasVideo = false;
+        }
         
         this.updateView();
     }
@@ -1636,6 +1531,30 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (speakerViewBtn) {
         speakerViewBtn.addEventListener('click', toggleVideoLayout);
+    }
+});
+
+window.voiceCallManager = new VoiceCallManager();
+
+console.log('✅ [VOICE-SYSTEM] Unified voice call manager initialized with deduplication');
+
+if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+    console.log('✅ [VOICE-SYSTEM] Socket manager ready, voice system fully operational');
+} else {
+    console.log('⏳ [VOICE-SYSTEM] Waiting for socket manager...');
+    const checkSocket = () => {
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            console.log('✅ [VOICE-SYSTEM] Socket manager ready, voice system now fully operational');
+        } else {
+            setTimeout(checkSocket, 500);
+        }
+    };
+    checkSocket();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (!window.voiceCallManager) {
+        window.voiceCallManager = new VoiceCallManager();
     }
 });
 </script>

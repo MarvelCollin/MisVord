@@ -27,6 +27,11 @@ class VoiceConnectionTracker {
         console.log(`✅ [VOICE-TRACKER] User ${userKey} voice status: DISCONNECTED`);
     }
 
+    static getUserVoiceStatus(userId) {
+        const userKey = userId.toString();
+        return this.userVoiceStatus.get(userKey) || false;
+    }
+
     static isUserInVoice(userId) {
         const userKey = userId.toString();
         const connection = this.connections.get(userKey);

@@ -119,14 +119,14 @@ class VoiceSection {
                 this.updateChannelNames(details.channelName);
             }
             
-            if (details.meetingId && details.channelName) {
-                localStorage.setItem("voiceConnectionState", JSON.stringify({
+            if (window.unifiedVoiceStateManager && details.meetingId && details.channelName) {
+                window.unifiedVoiceStateManager.setState({
                     isConnected: true,
                     channelName: details.channelName,
                     meetingId: details.meetingId,
-                    currentChannelId: details.channelId,
+                    channelId: details.channelId,
                     connectionTime: Date.now()
-                }));
+                });
             }
         });
         
@@ -154,7 +154,16 @@ class VoiceSection {
             }
             
             window.voiceState.isConnected = false;
-            localStorage.removeItem("voiceConnectionState");
+            
+            if (window.unifiedVoiceStateManager) {
+                window.unifiedVoiceStateManager.setState({
+                    isConnected: false,
+                    channelId: null,
+                    channelName: null,
+                    meetingId: null,
+                    connectionTime: null
+                });
+            }
         });
     }
     
@@ -246,7 +255,9 @@ class VoiceSection {
             window.showToast('Failed to connect to voice', 'error', 3000);
         }
         
-        localStorage.removeItem("voiceConnectionState");
+        if (window.unifiedVoiceStateManager) {
+            window.unifiedVoiceStateManager.reset();
+        }
     }
     
     updateChannelNames(channelName) {

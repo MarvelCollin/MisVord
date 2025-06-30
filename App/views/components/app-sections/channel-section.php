@@ -432,41 +432,15 @@ function closeAllChannelDropdowns() {
     });
 }
 
-function initChannelClicks() {
-    document.querySelectorAll('.channel-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            if (e.target.closest('.channel-menu')) {
-                return;
-            }
-            
-            const channelId = this.getAttribute('data-channel-id');
-            const serverId = this.getAttribute('data-server-id');
-            const channelType = this.getAttribute('data-channel-type');
-            
-            if (channelId && serverId) {
-                if (typeof window.channelAPI?.switchToChannel === 'function') {
-                    window.channelAPI.switchToChannel(serverId, channelId, channelType);
-                } else {
-                    window.location.href = `/server/${serverId}?channel=${channelId}`;
-                }
-            }
-        });
-    });
-}
-
 document.addEventListener('channelListUpdated', function() {
     initChannelMenus();
-    initChannelClicks();
     checkUserRoleAndUpdateMenus();
 });
 
-initChannelClicks();
-
 window.refreshChannelMenus = function() {
     initChannelMenus();
-    initChannelClicks();
     checkUserRoleAndUpdateMenus();
 };
 
-console.log('✅ Channel menu system initialized');
+console.log('✅ Channel menu system initialized (ChannelSwitchManager handles navigation)');
 </script>

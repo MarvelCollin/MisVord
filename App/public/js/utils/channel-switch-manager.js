@@ -36,11 +36,24 @@ class ChannelSwitchManager {
             const checkDOM = () => {
                 const hasChannels = document.querySelectorAll('.channel-item').length > 0;
                 const hasSections = document.querySelector('.chat-section') || document.querySelector('.voice-section');
+                const hasMainContent = document.querySelector('#main-content') || document.querySelector('.main-content-area');
                 
-                if (hasChannels && hasSections) {
+                console.log('[ChannelSwitchManager] DOM check:', {
+                    hasChannels,
+                    hasSections: !!hasSections,
+                    hasMainContent: !!hasMainContent,
+                    totalChannels: document.querySelectorAll('.channel-item').length,
+                    sectionsFound: {
+                        chatSection: !!document.querySelector('.chat-section'),
+                        voiceSection: !!document.querySelector('.voice-section')
+                    }
+                });
+                
+                if (hasChannels && (hasSections || hasMainContent)) {
+                    console.log('[ChannelSwitchManager] DOM is ready for initialization');
                     resolve();
                 } else {
-                    setTimeout(checkDOM, 200);
+                    setTimeout(checkDOM, 100);
                 }
             };
             checkDOM();
@@ -204,13 +217,64 @@ class ChannelSwitchManager {
     }
     
     initializeChatSection(channelId) {
+        console.log('[ChannelSwitchManager] Initializing chat section for channel:', channelId);
+        
+        this.updateChatMetaTags(channelId);
+        
         if (window.chatSection) {
             if (typeof window.chatSection.switchTarget === 'function') {
+                console.log('[ChannelSwitchManager] Switching existing chat section to channel:', channelId);
                 window.chatSection.switchTarget('channel', channelId);
+            } else {
+                console.warn('[ChannelSwitchManager] ChatSection exists but switchTarget method not available');
+                window.chatSection.targetId = channelId;
+                window.chatSection.chatType = 'channel';
+                if (typeof window.chatSection.loadMessages === 'function') {
+                    window.chatSection.loadMessages();
+                }
             }
         } else if (typeof window.initializeChatSection === 'function') {
+            console.log('[ChannelSwitchManager] Creating new chat section for channel:', channelId);
             window.initializeChatSection();
+        } else {
+            console.warn('[ChannelSwitchManager] No chat section available');
         }
+    }
+    
+    updateChatMetaTags(channelId) {
+        console.log('[ChannelSwitchManager] Updating chat meta tags for channel:', channelId);
+        
+        let chatIdMeta = document.querySelector('meta[name="chat-id"]');
+        if (chatIdMeta) {
+            chatIdMeta.setAttribute('content', channelId);
+        } else {
+            chatIdMeta = document.createElement('meta');
+            chatIdMeta.setAttribute('name', 'chat-id');
+            chatIdMeta.setAttribute('content', channelId);
+            document.head.appendChild(chatIdMeta);
+        }
+        
+        let channelIdMeta = document.querySelector('meta[name="channel-id"]');
+        if (channelIdMeta) {
+            channelIdMeta.setAttribute('content', channelId);
+        } else {
+            channelIdMeta = document.createElement('meta');
+            channelIdMeta.setAttribute('name', 'channel-id');
+            channelIdMeta.setAttribute('content', channelId);
+            document.head.appendChild(channelIdMeta);
+        }
+        
+        let chatTypeMeta = document.querySelector('meta[name="chat-type"]');
+        if (chatTypeMeta) {
+            chatTypeMeta.setAttribute('content', 'channel');
+        } else {
+            chatTypeMeta = document.createElement('meta');
+            chatTypeMeta.setAttribute('name', 'chat-type');
+            chatTypeMeta.setAttribute('content', 'channel');
+            document.head.appendChild(chatTypeMeta);
+        }
+        
+        console.log('[ChannelSwitchManager] Meta tags updated successfully');
     }
     
     getServerIdFromURL() {
@@ -284,6 +348,7 @@ window.ChannelSwitchManager = ChannelSwitchManager;
 
 function ensureChannelSwitchManager() {
     if (window.location.pathname.includes('/server/') && !window.channelSwitchManager) {
+        console.log('[ChannelSwitchManager] Auto-creating instance');
         new ChannelSwitchManager();
     }
 }
@@ -296,4 +361,14 @@ if (document.readyState === 'loading') {
 
 window.addEventListener('load', () => {
     setTimeout(ensureChannelSwitchManager, 100);
+});
+
+document.addEventListener('ServerChanged', () => {
+    console.log('[ChannelSwitchManager] ServerChanged event detected');
+    setTimeout(() => {
+        if (window.location.pathname.includes('/server/') && !window.channelSwitchManager) {
+            console.log('[ChannelSwitchManager] Creating instance after server change');
+            new ChannelSwitchManager();
+        }
+    }, 100);
 }); 

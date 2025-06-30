@@ -185,11 +185,7 @@ class VoiceManager {
                 }
             }
             
-            // 🎯 STEP 3b: ALWAYS register with socket (whether joining existing or created new)
-            console.log(`📝 [VOICE-MANAGER] Registering with socket for meeting: ${meetingId}...`);
-            await this.registerMeetingWithSocket(channelId, meetingId);
-            
-            // 🎯 STEP 4: Join the VideoSDK meeting (existing or new)
+            // 🎯 STEP 3b: Join the VideoSDK meeting first (existing or new)
             console.log(`🚪 [VOICE-MANAGER] Joining VideoSDK meeting: ${meetingId}`);
             // Get proper username from multiple sources
             const userName = this.getUsernameFromMultipleSources();
@@ -203,6 +199,10 @@ class VoiceManager {
             });
             
             await this.videoSDKManager.joinMeeting();
+            
+            // 🎯 STEP 4: Register with socket after VideoSDK join to avoid race conditions
+            console.log(`📝 [VOICE-MANAGER] Registering with socket for meeting: ${meetingId}...`);
+            await this.registerMeetingWithSocket(channelId, meetingId);
             
             await new Promise((resolve) => {
                 const checkReady = () => {

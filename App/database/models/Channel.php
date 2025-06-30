@@ -17,19 +17,17 @@ class Channel extends Model {
             foreach ($channels as &$channel) {
                 if (isset($channel['type'])) {
                     $type = $channel['type'];
-                    if (!isset($channel['type_name'])) {
-                        $channel['type_name'] = match($type) {
-                            'voice', '2', 2 => 'voice',
-                            'text', '1', 1 => 'text',
-                            'category', '3', 3 => 'category',
-                            'announcement', '4', 4 => 'announcement',
-                            'forum', '5', 5 => 'forum',
-                            default => 'text'
-                        };
-                    }
-                    $channel['type'] = is_numeric($type) ? (int)$type : $type;
+                    $channel['type_name'] = match($type) {
+                        'voice', '2', 2 => 'voice',
+                        'text', '1', 1 => 'text',
+                        'category', '3', 3 => 'category',
+                        'announcement', '4', 4 => 'announcement',
+                        'forum', '5', 5 => 'forum',
+                        default => 'text'
+                    };
+                    $channel['type'] = $channel['type_name'];
                 } else {
-                    $channel['type'] = 1;
+                    $channel['type'] = 'text';
                     $channel['type_name'] = 'text';
                 }
             }
@@ -231,20 +229,18 @@ class Channel extends Model {
         error_log("Fetching channels for server ID: $serverId");
 
         try {
-
             $channel_types_exists = $query->tableExists('channel_types');
 
             if ($channel_types_exists) {
-
                 $channels = $query->table('channels c')
                     ->select('c.*, t.name as type_name')
                     ->join('channel_types t', 'c.type', '=', 't.id')
                     ->where('c.server_id', $serverId)
+                    ->orderBy('c.position')
                     ->get();
             } else {
-
                 $channels = $query->table('channels c')
-                    ->select('c.*, c.type as type_name')
+                    ->select('c.*')
                     ->where('c.server_id', $serverId)
                     ->orderBy('c.position')
                     ->get();
@@ -254,8 +250,19 @@ class Channel extends Model {
 
             foreach ($channels as &$channel) {
                 if (isset($channel['type'])) {
-
-                    $channel['type'] = intval($channel['type']);
+                    $type = $channel['type'];
+                    $channel['type_name'] = match($type) {
+                        'voice', '2', 2 => 'voice',
+                        'text', '1', 1 => 'text', 
+                        'category', '3', 3 => 'category',
+                        'announcement', '4', 4 => 'announcement',
+                        'forum', '5', 5 => 'forum',
+                        default => 'text'
+                    };
+                    $channel['type'] = $channel['type_name'];
+                } else {
+                    $channel['type'] = 'text';
+                    $channel['type_name'] = 'text';
                 }
             }
 

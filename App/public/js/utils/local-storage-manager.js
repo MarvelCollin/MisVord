@@ -8,34 +8,36 @@ class LocalStorageManager {
             THEME_SETTINGS: 'misvord_theme_settings',
             SERVER_GROUPS: 'misvord_server_groups',
             COLLAPSED_CATEGORIES: 'misvord_collapsed_categories',
-            DRAFT_MESSAGES: 'misvord_draft_messages'
+            DRAFT_MESSAGES: 'misvord_draft_messages',
+            UNIFIED_VOICE_STATE: 'misvord_unified_voice_state'
         };
         
         this.voiceStateListeners = new Set();
         this.debounceTimers = new Map();
         
-        this.setupVoiceStateListener();
+        this.migrateOldVoiceState();
     }
 
-    setupVoiceStateListener() {
-        window.addEventListener('voiceStateChanged', (event) => {
-            const { type, state } = event.detail;
-            console.log('[LocalStorageManager] Voice state changed:', { type, state });
+    migrateOldVoiceState() {
+        const oldState = this.get('misvord_voice_state');
+        const oldConnectionState = this.get('voiceConnectionState');
+        
+        if (oldState || oldConnectionState) {
+            const unified = {
+                isMuted: oldState?.isMuted || false,
+                isDeafened: oldState?.isDeafened || false,
+                volume: oldState?.volume || 100,
+                isConnected: oldConnectionState?.isConnected || false,
+                channelId: oldConnectionState?.currentChannelId || oldState?.channelId || null,
+                channelName: oldConnectionState?.channelName || oldState?.channelName || null,
+                meetingId: oldConnectionState?.meetingId || null,
+                connectionTime: oldConnectionState?.connectionTime || Date.now()
+            };
             
-            const currentVoiceState = this.getVoiceState();
-            let updatedState = { ...currentVoiceState };
-            
-            if (type === 'mic') {
-                updatedState.isMuted = !state;
-            } else if (type === 'deafen') {
-                updatedState.isDeafened = state;
-                if (state) {
-                    updatedState.isMuted = true;
-                }
-            }
-            
-            this.setVoiceState(updatedState);
-        });
+            this.set(this.keys.UNIFIED_VOICE_STATE, unified);
+            this.remove('misvord_voice_state');
+            this.remove('voiceConnectionState');
+        }
     }
 
     get(key, defaultValue = null) {
@@ -182,45 +184,45 @@ class LocalStorageManager {
         return this.setDraftMessage(channelId, '');
     }
 
-    getVoiceState() {
-        return this.get('misvord_voice_state', {
+    getUnifiedVoiceState() {
+        return this.get(this.keys.UNIFIED_VOICE_STATE, {
             isMuted: false,
             isDeafened: false,
             volume: 100,
+            isConnected: false,
             channelId: null,
-            channelName: null
+            channelName: null,
+            meetingId: null,
+            connectionTime: null
         });
     }
 
-    setVoiceState(state) {
-        const current = this.getVoiceState();
+    setUnifiedVoiceState(state) {
+        const current = this.getUnifiedVoiceState();
         const updated = { ...current, ...state };
-        const success = this.set('misvord_voice_state', updated);
+        
+        const success = this.set(this.keys.UNIFIED_VOICE_STATE, updated);
         
         if (success) {
-            this.dispatchVoiceStateChange(updated);
-            this.updateAllVoiceControls(updated);
+            this.notifyVoiceStateListeners(updated);
         }
+        
         return success;
     }
 
-    dispatchVoiceStateChange(state) {
-        const debounceKey = 'voiceStateChange';
+    notifyVoiceStateListeners(state) {
+        const debounceKey = 'unifiedVoiceStateChange';
         
         if (this.debounceTimers.has(debounceKey)) {
             clearTimeout(this.debounceTimers.get(debounceKey));
         }
         
         this.debounceTimers.set(debounceKey, setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('voiceStateChanged', { 
-                detail: state 
-            }));
-            
             this.voiceStateListeners.forEach(callback => {
                 try {
                     callback(state);
                 } catch (error) {
-                    console.error('Error in voice state listener:', error);
+                    console.error('Error in unified voice state listener:', error);
                 }
             });
             
@@ -236,56 +238,13 @@ class LocalStorageManager {
         this.voiceStateListeners.delete(callback);
     }
 
-    updateAllVoiceControls(state) {
-        this.updateMicControls(state);
-        this.updateDeafenControls(state);
+    getVoiceState() {
+        return this.getUnifiedVoiceState();
     }
 
-    updateMicControls(state) {
-        const micButtons = document.querySelectorAll('.mic-btn, #micBtn, button[title*="Mute"], button[title*="mute"]');
-        micButtons.forEach(btn => {
-            const icon = btn.querySelector('i');
-            if (!icon) return;
-
-            if (state.isMuted || state.isDeafened) {
-                icon.className = 'fas fa-microphone-slash text-lg';
-                btn.classList.add('text-[#ed4245]');
-                btn.classList.remove('text-discord-lighter', 'text-[#b9bbbe]', 'text-gray-300');
-                btn.title = 'Unmute';
-            } else {
-                icon.className = 'fas fa-microphone text-lg';
-                btn.classList.remove('text-[#ed4245]');
-                btn.classList.add('text-discord-lighter');
-                btn.title = 'Mute';
-            }
-        });
+    setVoiceState(state) {
+        return this.setUnifiedVoiceState(state);
     }
-
-    updateDeafenControls(state) {
-        const deafenButtons = document.querySelectorAll('.deafen-btn, #deafenBtn, button[title*="Deafen"], button[title*="deafen"]');
-        deafenButtons.forEach(btn => {
-            const icon = btn.querySelector('i');
-            if (!icon) return;
-
-            if (state.isDeafened) {
-                icon.className = 'fas fa-volume-xmark text-lg';
-                btn.classList.add('text-[#ed4245]');
-                btn.classList.remove('text-discord-lighter', 'text-[#b9bbbe]', 'text-gray-300');
-                btn.title = 'Undeafen';
-            } else {
-                icon.className = 'fas fa-headphones text-lg';
-                btn.classList.remove('text-[#ed4245]');
-                btn.classList.add('text-discord-lighter');
-                btn.title = 'Deafen';
-            }
-        });
-    }
-
-
-
-
-
-
 
     showToast(message, type = 'info') {
         if (window.showToast) {
@@ -398,6 +357,10 @@ class LocalStorageManager {
 }
 
 const localStorageManager = new LocalStorageManager();
+
+if (!window.localStorageManager) {
+    window.localStorageManager = localStorageManager;
+}
 
 export { LocalStorageManager };
 export default localStorageManager;

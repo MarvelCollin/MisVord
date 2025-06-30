@@ -129,74 +129,30 @@ function performServerLayoutUpdate(response, serverId, channelId, currentChannel
     console.log('[Server AJAX] Disabling skeleton loading');
     handleServerSkeletonLoading(false);
     
-    console.log('[Server AJAX] Waiting for AJAX dependencies to load...');
+    console.log('[Server AJAX] Starting component initialization');
     
-    function performInitialization() {
-        console.log('[Server AJAX] Starting component initialization');
-        
-        if (typeof window.initServerPage === 'function') {
-            window.initServerPage();
-            console.log('[Server AJAX] Server page initialized');
-        }
-        
-        console.log('[Server AJAX] Initializing core server components');
-        
-
-        
-        cleanupForServerSwitch();
-        
-        console.log('[Server AJAX] Initializing voice systems');
-        initializeVoiceSystems();
-        
-        console.log('[Server AJAX] Initializing chat systems');
-        initializeChatSystems();
-        
-        if (typeof window.initializeServerDropdown === 'function') {
-            console.log('[Server AJAX] Re-initializing server dropdown');
-            window.initializeServerDropdown();
-        } else {
-            console.log('[Server AJAX] Manually initializing server dropdown');
-            initServerDropdownManual();
-        }
-        
-        if (typeof window.initializeParticipantSection === 'function') {
-            window.initializeParticipantSection();
-            console.log('[Server AJAX] Participant section initialized');
-        }
-        
-        if (typeof window.updateActiveServer === 'function') {
-            window.updateActiveServer('server', serverId);
-            console.log('[Server AJAX] Active server state updated');
-        }
-        
-        const event = new CustomEvent('ServerChanged', { 
-            detail: { 
-                serverId,
-                channelId,
-                previousChannelId: currentChannelId 
-            } 
-        });
-        document.dispatchEvent(event);
-        console.log('[Server AJAX] ServerChanged event dispatched');
+    cleanupForServerSwitch();
+    initializeServerSystems();
+    
+    if (typeof window.initializeServerDropdown === 'function') {
+        console.log('[Server AJAX] Re-initializing server dropdown');
+        window.initializeServerDropdown();
     }
     
-    let initializationCompleted = false;
+    if (typeof window.updateActiveServer === 'function') {
+        window.updateActiveServer('server', serverId);
+        console.log('[Server AJAX] Active server state updated');
+    }
     
-    document.addEventListener('ServerLayoutAjaxComplete', function(event) {
-        if (!initializationCompleted) {
-            console.log('[Server AJAX] AJAX dependencies loaded, proceeding with initialization');
-            initializationCompleted = true;
-            performInitialization();
-        }
-    }, { once: true });
-    
-    setTimeout(() => {
-        if (!initializationCompleted) {
-            console.log('[Server AJAX] Timeout reached, proceeding with initialization without AJAX dependencies');
-            initializationCompleted = true;
-            performInitialization();
-        }
-    }, 3000);
+    const event = new CustomEvent('ServerChanged', { 
+        detail: { 
+            serverId,
+            channelId,
+            previousChannelId: currentChannelId 
+        } 
+    });
+    document.dispatchEvent(event);
+    console.log('[Server AJAX] ServerChanged event dispatched');
 }
 
 function initializeVoiceSystems() {
@@ -727,17 +683,10 @@ function reinitializeChannelSwitchManager() {
 function cleanupForServerSwitch() {
     console.log('[Server AJAX] Cleaning up for server switch');
     
-    const currentServerId = window.location.pathname.match(/\/server\/(\d+)/)?.[1];
-    const isActualServerSwitch = window._lastServerId && window._lastServerId !== currentServerId;
-    
-    if (isActualServerSwitch) {
-        console.log('[Server AJAX] Actual server switch detected, cleaning up channel switch manager');
-        if (window.channelSwitchManager && typeof window.channelSwitchManager.cleanup === 'function') {
-            window.channelSwitchManager.cleanup();
-            window.channelSwitchManager = null;
-        }
-    } else {
-        console.log('[Server AJAX] Same server navigation, preserving channel switch manager');
+    if (window.channelSwitchManager && typeof window.channelSwitchManager.cleanup === 'function') {
+        console.log('[Server AJAX] Cleaning up existing channel switch manager');
+        window.channelSwitchManager.cleanup();
+        window.channelSwitchManager = null;
     }
     
     if (window.chatSection && typeof window.chatSection.cleanup === 'function') {
@@ -746,8 +695,33 @@ function cleanupForServerSwitch() {
         window.chatSection = null;
     }
     
-    window._lastServerId = currentServerId;
-    console.log('[Server AJAX] Cleanup completed - preserving global socket manager');
+    console.log('[Server AJAX] Cleanup completed');
+}
+
+function initializeServerSystems() {
+    console.log('[Server AJAX] Initializing server systems');
+    
+    setTimeout(() => {
+        console.log('[Server AJAX] Creating new ChannelSwitchManager');
+        if (window.ChannelSwitchManager) {
+            window.channelSwitchManager = new window.ChannelSwitchManager();
+            console.log('[Server AJAX] ChannelSwitchManager created successfully');
+        } else {
+            console.warn('[Server AJAX] ChannelSwitchManager class not available');
+        }
+        
+        if (typeof window.initializeChatSection === 'function') {
+            console.log('[Server AJAX] Initializing chat section');
+            window.initializeChatSection();
+        }
+        
+        if (typeof window.initializeParticipantSection === 'function') {
+            console.log('[Server AJAX] Initializing participant section');
+            window.initializeParticipantSection();
+        }
+        
+        console.log('[Server AJAX] Server systems initialized');
+    }, 200);
 }
 
 window.loadServerPage = loadServerPage; 

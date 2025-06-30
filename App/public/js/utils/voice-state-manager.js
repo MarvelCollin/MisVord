@@ -1,127 +1,214 @@
 import { LocalStorageManager } from './local-storage-manager.js';
 
-class VoiceStateManager {
+class UnifiedVoiceStateManager {
     constructor() {
-        this.storageManager = new LocalStorageManager();
-        this.listeners = new Set();
+        this.storageManager = window.localStorageManager || new LocalStorageManager();
+        this.isProcessingEvent = false;
+        this.eventQueue = [];
         
         this.init();
     }
 
     init() {
-        this.setupStorageListener();
-        this.setupVideoSDKListeners();
+        this.setupEventListeners();
+        this.cleanupConflictingStorage();
     }
 
-    setupStorageListener() {
-        window.addEventListener('voiceStateChanged', (e) => {
-            this.notifyListeners(e.detail);
+    cleanupConflictingStorage() {
+        try {
+            localStorage.removeItem('misvord_voice_state');
+            localStorage.removeItem('voiceConnectionState');
+        } catch (error) {
+            console.warn('Could not clean up old voice storage:', error);
+        }
+    }
+
+    setupEventListeners() {
+        window.addEventListener('voiceConnect', (event) => {
+            this.queueEvent('connect', event.detail);
+        });
+
+        window.addEventListener('voiceDisconnect', () => {
+            this.queueEvent('disconnect');
+        });
+
+        window.addEventListener('voiceStateChanged', (event) => {
+            if (event.detail && typeof event.detail === 'object') {
+                this.queueEvent('stateChange', event.detail);
+            }
         });
 
         window.addEventListener('storage', (e) => {
-            if (e.key === 'misvord_voice_state' && e.newValue) {
+            if (e.key === 'misvord_unified_voice_state' && e.newValue) {
                 try {
                     const state = JSON.parse(e.newValue);
-                    this.notifyListeners(state);
+                    this.syncAcrossTabs(state);
                 } catch (error) {
-                    console.error('Error parsing voice state from storage:', error);
+                    console.error('Error parsing unified voice state from storage:', error);
                 }
             }
         });
     }
 
-    setupVideoSDKListeners() {
-        window.addEventListener('voiceConnect', () => {
-            this.syncWithVideoSDK();
-        });
-
-        window.addEventListener('voiceDisconnect', () => {
-            this.reset();
-        });
+    queueEvent(type, data = null) {
+        this.eventQueue.push({ type, data, timestamp: Date.now() });
+        this.processEventQueue();
     }
 
-    syncWithVideoSDK() {
-        if (window.videoSDKManager && window.videosdkMeeting && window.videosdkMeeting.localParticipant) {
-            try {
-                const currentState = this.storageManager.getVoiceState();
-                const updatedState = {
-                    ...currentState,
-                    isMuted: !window.videoSDKManager.getMicState(),
-                    isDeafened: window.videoSDKManager.getDeafenState ? window.videoSDKManager.getDeafenState() : currentState.isDeafened
-                };
+    async processEventQueue() {
+        if (this.isProcessingEvent || this.eventQueue.length === 0) {
+            return;
+        }
+
+        this.isProcessingEvent = true;
+
+        try {
+            while (this.eventQueue.length > 0) {
+                const event = this.eventQueue.shift();
+                await this.handleEvent(event);
                 
-                this.storageManager.setVoiceState(updatedState);
-                console.log('[VoiceStateManager] Synced with VideoSDK:', updatedState);
-            } catch (error) {
-                console.error('Error syncing with VideoSDK:', error);
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
+        } finally {
+            this.isProcessingEvent = false;
         }
     }
 
+    async handleEvent(event) {
+        const { type, data } = event;
 
+        switch (type) {
+            case 'connect':
+                await this.handleConnect(data);
+                break;
+            case 'disconnect':
+                await this.handleDisconnect();
+                break;
+            case 'stateChange':
+                await this.handleStateChange(data);
+                break;
+        }
+    }
 
+    async handleConnect(detail) {
+        const currentState = this.storageManager.getUnifiedVoiceState();
+        
+        const updatedState = {
+            ...currentState,
+            isConnected: true,
+            channelId: detail?.channelId || currentState.channelId,
+            channelName: detail?.channelName || currentState.channelName,
+            meetingId: detail?.meetingId || currentState.meetingId,
+            connectionTime: Date.now()
+        };
 
+        this.storageManager.setUnifiedVoiceState(updatedState);
+        console.log('✅ [UNIFIED-VOICE] Connected:', updatedState);
+    }
+
+    async handleDisconnect() {
+        const currentState = this.storageManager.getUnifiedVoiceState();
+        
+        const updatedState = {
+            ...currentState,
+            isConnected: false,
+            channelId: null,
+            channelName: null,
+            meetingId: null,
+            connectionTime: null
+        };
+
+        this.storageManager.setUnifiedVoiceState(updatedState);
+        console.log('✅ [UNIFIED-VOICE] Disconnected');
+    }
+
+    async handleStateChange(detail) {
+        const currentState = this.storageManager.getUnifiedVoiceState();
+        let updatedState = { ...currentState };
+
+        if (detail.type === 'mic') {
+            updatedState.isMuted = !detail.state;
+        } else if (detail.type === 'deafen') {
+            updatedState.isDeafened = detail.state;
+            if (detail.state) {
+                updatedState.isMuted = true;
+            }
+        } else if (detail.type === 'video') {
+            updatedState.isVideoOn = detail.state;
+        } else if (detail.type === 'screenShare') {
+            updatedState.isScreenSharing = detail.state;
+        }
+
+        this.storageManager.setUnifiedVoiceState(updatedState);
+    }
+
+    syncAcrossTabs(state) {
+        if (window.voiceCallManager) {
+            window.voiceCallManager.isMuted = state.isMuted || false;
+            window.voiceCallManager.isDeafened = state.isDeafened || false;
+            window.voiceCallManager.isConnected = state.isConnected || false;
+        }
+
+        if (window.globalVoiceIndicator && state.isConnected && state.channelName) {
+            window.globalVoiceIndicator.channelName = state.channelName;
+            window.globalVoiceIndicator.meetingId = state.meetingId;
+            window.globalVoiceIndicator.connectionTime = state.connectionTime;
+            window.globalVoiceIndicator.updateVisibility();
+        }
+    }
 
     getState() {
-        return this.storageManager.getVoiceState();
+        return this.storageManager.getUnifiedVoiceState();
     }
 
     setState(newState) {
-        return this.storageManager.setVoiceState(newState);
+        return this.storageManager.setUnifiedVoiceState(newState);
+    }
+
+    isConnected() {
+        const state = this.getState();
+        return state.isConnected || false;
     }
 
     disconnectVoice() {
-        if (window.videoSDKManager && window.videosdkMeeting) {
+        if (window.videoSDKManager && window.videoSDKManager.isConnected) {
             try {
                 window.videoSDKManager.leaveMeeting();
-                window.videosdkMeeting = null;
             } catch (error) {
                 console.error('Error disconnecting from VideoSDK:', error);
             }
         }
         
-        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
-        this.showToast('Disconnected from voice channel');
-    }
-
-    addListener(callback) {
-        this.listeners.add(callback);
-    }
-
-    removeListener(callback) {
-        this.listeners.delete(callback);
-    }
-
-    notifyListeners(state) {
-        this.listeners.forEach(callback => {
+        if (window.voiceManager && window.voiceManager.isConnected) {
             try {
-                callback(state);
+                window.voiceManager.leaveVoice();
             } catch (error) {
-                console.error('Error in voice state listener:', error);
+                console.error('Error disconnecting from VoiceManager:', error);
             }
-        });
-    }
-
-    showToast(message, type = 'info') {
-        if (window.showToast) {
-            window.showToast(message, type, 3000);
-        } else {
-            console.log(`Toast (${type}): ${message}`);
         }
+        
+        this.handleDisconnect();
+        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
     }
 
     reset() {
-        this.storageManager.setVoiceState({
+        this.storageManager.setUnifiedVoiceState({
             isMuted: false,
             isDeafened: false,
-            volume: 100
+            volume: 100,
+            isConnected: false,
+            channelId: null,
+            channelName: null,
+            meetingId: null,
+            connectionTime: null
         });
     }
 }
 
-const voiceStateManager = new VoiceStateManager();
+const unifiedVoiceStateManager = new UnifiedVoiceStateManager();
 
-window.voiceStateManager = voiceStateManager;
+window.voiceStateManager = unifiedVoiceStateManager;
+window.unifiedVoiceStateManager = unifiedVoiceStateManager;
 
-export { VoiceStateManager };
-export default voiceStateManager;
+export { UnifiedVoiceStateManager };
+export default unifiedVoiceStateManager;
