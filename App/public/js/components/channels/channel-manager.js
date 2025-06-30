@@ -109,7 +109,7 @@ function refreshChannelList() {
                 console.error('Error refreshing channels:', error);
             });
     } else {
-        window.location.reload();
+        console.warn('No server ID found, cannot refresh channel list');
     }
 }
 
@@ -197,12 +197,11 @@ function setupBasicChannelHandlers() {
             const serverId = document.getElementById('current-server-id')?.value;
             
             if (channelId && serverId) {
-                const newUrl = `/server/${serverId}?channel=${channelId}`;
-                window.location.href = newUrl;
+                console.warn('Basic channel navigation fallback disabled - use channelSwitchManager instead');
             }
         });
     });
-    console.log('✅ Basic channel handlers set up');
+    console.log('✅ Basic channel handlers set up (disabled fallback navigation)');
 }
 
 function getServerId() {

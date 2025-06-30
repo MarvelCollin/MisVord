@@ -55,6 +55,12 @@ ob_start();
             <div class="floating-asset wumpus" style="bottom: 25%; left: 8%;">
                 <img src="<?php echo asset('landing-page/wumpus_happy.webp'); ?>" alt="Happy Wumpus">
             </div>
+            <div class="floating-asset leaf leaf-1" style="top: 70%; right: 25%;">
+                <img src="<?php echo asset('landing-page/leaf.webp'); ?>" alt="Leaf">
+            </div>
+            <div class="floating-asset leaf leaf-2" style="top: 25%; left: 25%;">
+                <img src="<?php echo asset('landing-page/leaf.webp'); ?>" alt="Leaf">
+            </div>
         </div>
 
         <div class="parallax-layer assets-layer-2" data-depth="0.25">
@@ -67,14 +73,32 @@ ob_start();
             <div class="floating-asset green-egg" style="top: 60%; left: 15%;">
                 <img src="<?php echo asset('landing-page/green-egg.webp'); ?>" alt="Green Egg">
             </div>
+            <div class="floating-asset leaf leaf-3" style="top: 80%; left: 30%;">
+                <img src="<?php echo asset('landing-page/leaf.webp'); ?>" alt="Leaf">
+            </div>
+            <div class="floating-asset leaf leaf-4" style="top: 10%; right: 30%;">
+                <img src="<?php echo asset('landing-page/leaf.webp'); ?>" alt="Leaf">
+            </div>
+            <div class="floating-asset leaf leaf-5" style="bottom: 50%; left: 5%;">
+                <img src="<?php echo asset('landing-page/leaf.webp'); ?>" alt="Leaf">
+            </div>
         </div>
 
         <div class="parallax-layer assets-layer-3" data-depth="0.35">
-            <div class="floating-asset leaf" style="top: 45%; left: 5%;">
+            <div class="floating-asset leaf leaf-6" style="top: 45%; left: 5%;">
                 <img src="<?php echo asset('landing-page/leaf.webp'); ?>" alt="Leaf">
             </div>
             <div class="floating-asset pan" style="bottom: 15%; right: 20%;">
                 <img src="<?php echo asset('landing-page/pan.png'); ?>" alt="Pan">
+            </div>
+            <div class="floating-asset leaf leaf-7" style="top: 35%; right: 5%;">
+                <img src="<?php echo asset('landing-page/leaf.webp'); ?>" alt="Leaf">
+            </div>
+            <div class="floating-asset leaf leaf-8" style="bottom: 40%; left: 20%;">
+                <img src="<?php echo asset('landing-page/leaf.webp'); ?>" alt="Leaf">
+            </div>
+            <div class="floating-asset leaf leaf-9" style="top: 75%; right: 15%;">
+                <img src="<?php echo asset('landing-page/leaf.webp'); ?>" alt="Leaf">
             </div>
         </div>
     </div>
@@ -539,6 +563,51 @@ $content = ob_get_clean();
             animation: leafSway 3s ease-in-out infinite;
         }
 
+        .floating-asset.leaf-1 {
+            animation-delay: -0.5s;
+            animation-duration: 3.2s;
+        }
+
+        .floating-asset.leaf-2 {
+            animation-delay: -1s;
+            animation-duration: 2.8s;
+        }
+
+        .floating-asset.leaf-3 {
+            animation-delay: -1.5s;
+            animation-duration: 3.5s;
+        }
+
+        .floating-asset.leaf-4 {
+            animation-delay: -0.8s;
+            animation-duration: 2.5s;
+        }
+
+        .floating-asset.leaf-5 {
+            animation-delay: -2s;
+            animation-duration: 4s;
+        }
+
+        .floating-asset.leaf-6 {
+            animation-delay: -0.3s;
+            animation-duration: 3.8s;
+        }
+
+        .floating-asset.leaf-7 {
+            animation-delay: -1.2s;
+            animation-duration: 3.3s;
+        }
+
+        .floating-asset.leaf-8 {
+            animation-delay: -1.8s;
+            animation-duration: 2.7s;
+        }
+
+        .floating-asset.leaf-9 {
+            animation-delay: -0.7s;
+            animation-duration: 3.6s;
+        }
+
         .floating-asset.pan {
             width: 65px;
             height: 65px;
@@ -607,7 +676,7 @@ $content = ob_get_clean();
             .floating-asset.flying-cat { width: 80px; height: 80px; }
             .floating-asset.box { width: 45px; height: 45px; }
             .floating-asset.green-egg { width: 35px; height: 35px; }
-            .floating-asset.leaf { width: 30px; height: 30px; }
+            .floating-asset.leaf { width: 25px; height: 25px; }
             .floating-asset.pan { width: 50px; height: 50px; }
         }
     </style>

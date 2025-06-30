@@ -83,13 +83,12 @@ export async function loadServerPage(serverId, channelId = null) {
                     }, 100);
                 } else if (response && response.data && response.data.redirect) {
                     console.log('[Server AJAX] Redirect response:', response.data.redirect);
-                    window.location.href = response.data.redirect;
+                    console.warn('[Server AJAX] Redirect responses disabled - staying in AJAX mode');
                 } else {
                     console.error('[Server AJAX] INVALID RESPONSE FORMAT');
                     console.error('[Server AJAX] Expected string, got:', typeof response);
                     console.error('[Server AJAX] Response content:', response);
-                    const fallbackUrl = channelId ? `/server/${serverId}?channel=${channelId}` : `/server/${serverId}`;
-                    window.location.href = fallbackUrl;
+                    console.warn('[Server AJAX] Fallback redirects disabled - handling error gracefully');
                 }
             },
             error: function(xhr, status, error) {
@@ -110,18 +109,12 @@ export async function loadServerPage(serverId, channelId = null) {
                 }
                 
                 console.error('[Server AJAX] Server loading failed');
-                
-                setTimeout(() => {
-                const fallbackUrl = channelId ? `/server/${serverId}?channel=${channelId}` : `/server/${serverId}`;
-                console.error('[Server AJAX] FALLBACK - Redirecting to', fallbackUrl);
-                window.location.href = fallbackUrl;
-                }, 100);
+                console.warn('[Server AJAX] Error fallback redirects disabled - staying in AJAX mode');
             }
         });
     } else {
         console.error('[Server Loader] No main content container found');
-        const fallbackUrl = channelId ? `/server/${serverId}?channel=${channelId}` : `/server/${serverId}`;
-        window.location.href = fallbackUrl;
+        console.warn('[Server Loader] Container fallback redirects disabled - cannot load server');
     }
 }
 

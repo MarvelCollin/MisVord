@@ -932,8 +932,8 @@ export async function handleHomeClick(event) {
         }
         
         if (!success) {
-            console.error('[Home Navigation] All navigation methods failed, forcing page reload');
-            window.location.href = '/home';
+            console.error('[Home Navigation] All navigation methods failed');
+            console.warn('[Home Navigation] Page reload fallbacks disabled - navigation failed');
             return;
         }
 
@@ -946,10 +946,10 @@ export async function handleHomeClick(event) {
                 await window.loadHomePage('friends');
             } catch (fallbackError) {
                 console.error('[Home Navigation] Fallback also failed:', fallbackError);
-                window.location.href = '/home';
+                console.warn('[Home Navigation] Page reload fallbacks disabled - navigation failed');
             }
         } else {
-            window.location.href = '/home';
+            console.warn('[Home Navigation] Page reload fallbacks disabled - navigation failed');
         }
     } finally {
         hideHomeLoadingIndicator();
@@ -1030,7 +1030,7 @@ export async function handleServerClick(serverId, event) {
             await handleServerClickFallback(serverId);
         } catch (fallbackError) {
             console.error('[Server Navigation] Fallback also failed:', fallbackError);
-            window.location.href = `/server/${serverId}`;
+            console.warn('[Server Navigation] Page reload fallbacks disabled - server navigation failed');
         }
     } finally {
         hideServerLoadingIndicator(serverId);
@@ -1038,58 +1038,9 @@ export async function handleServerClick(serverId, event) {
 }
 
 async function handleServerClickFallback(serverId, channelId = null) {
-        const currentChannelId = new URLSearchParams(window.location.search).get('channel');
-        if (currentChannelId && window.globalSocketManager) {
-            console.log('[Server Navigation] Cleaning up socket for channel:', currentChannelId);
-            window.globalSocketManager.leaveChannel(currentChannelId);
-        }
-
-        if (window.voiceManager && window.voiceManager.isConnected) {
-            console.log('[Server Navigation] Voice connection detected, keeping alive and showing global indicator');
-            if (window.globalVoiceIndicator) {
-                setTimeout(() => {
-                    window.globalVoiceIndicator.ensureIndicatorVisible();
-                }, 300);
-            }
-        }
-        
-    console.log('[Server Navigation] Loading server page with fallback AJAX, channel:', channelId);
-    
-    let url = `/server/${serverId}/layout`;
-    if (channelId) {
-        url += `?channel=${channelId}`;
-    }
-    
-        const response = await $.ajax({
-            url: url,
-            method: 'GET',
-            dataType: 'html',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-
-        const layoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden') || 
-                              document.querySelector('#main-content') || 
-                              document.querySelector('.main-content') || 
-                              document.querySelector('#app-content') ||
-                              document.querySelector('.app-content') ||
-                              document.querySelector('main') ||
-                              document.querySelector('.content-wrapper');
-        
-        if (layoutContainer && response) {
-            console.log('[Server Navigation] Found layout container:', layoutContainer.className || layoutContainer.id);
-            layoutContainer.innerHTML = response;
-            console.log('[Server Navigation] Server page content loaded successfully');
-        } else {
-            console.error('[Server Navigation] Could not find layout container or no response');
-        }
-
-        const actualChannelId = getActiveChannelFromResponse(layoutContainer) || channelId;
-    const finalUrl = actualChannelId ? `/server/${serverId}?channel=${actualChannelId}` : `/server/${serverId}`;
-    window.history.pushState({ pageType: 'server', serverId: serverId, channelId: actualChannelId }, `Server ${serverId}`, finalUrl);
-        updateActiveServer('server', serverId);
-
-        window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
-    console.log('[Server Navigation] SUCCESS - Server navigation completed via fallback with URL:', finalUrl);
+    console.warn('[Server Navigation] handleServerClickFallback disabled - routes were removed');
+    console.warn('[Server Navigation] Fallback AJAX navigation not available for server:', serverId);
+    throw new Error('Server fallback navigation disabled');
 }
 
 export async function handleExploreClick(event) {
@@ -1140,8 +1091,8 @@ export async function handleExploreClick(event) {
         }
         
         if (!success) {
-            console.error('[Explore Navigation] All navigation methods failed, forcing page reload');
-            window.location.href = '/explore-servers';
+            console.error('[Explore Navigation] All navigation methods failed');
+            console.warn('[Explore Navigation] Page reload fallbacks disabled - navigation failed');
             return;
         }
 
@@ -1154,10 +1105,10 @@ export async function handleExploreClick(event) {
                 await window.loadExplorePage();
             } catch (fallbackError) {
                 console.error('[Explore Navigation] Fallback also failed:', fallbackError);
-                window.location.href = '/explore-servers';
+                console.warn('[Explore Navigation] Page reload fallbacks disabled - navigation failed');
             }
         } else {
-            window.location.href = '/explore-servers';
+            console.warn('[Explore Navigation] Page reload fallbacks disabled - navigation failed');
         }
     } finally {
         hideExploreLoadingIndicator();

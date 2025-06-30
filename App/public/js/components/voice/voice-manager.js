@@ -1,5 +1,3 @@
-import { playJoinVoiceSound, playDisconnectVoiceSound } from '../../utils/music-loader-static.js';
-
 class VoiceManager {
     constructor() {
         this.isConnected = false;
@@ -256,7 +254,9 @@ class VoiceManager {
                 action: existingMeeting ? 'JOINED_EXISTING' : 'CREATED_NEW'
             });
 
-            playJoinVoiceSound();
+            if (window.MusicLoaderStatic?.playJoinVoiceSound) {
+                window.MusicLoaderStatic.playJoinVoiceSound();
+            }
             return Promise.resolve();
         } catch (error) {
             console.error('❌ [VOICE-MANAGER] Failed to join voice:', error);
@@ -347,7 +347,9 @@ class VoiceManager {
         this.dispatchEvent(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect');
         this.showToast('Disconnected from voice', 'info');
 
-        playDisconnectVoiceSound();
+        if (window.MusicLoaderStatic?.playDisconnectVoiceSound) {
+            window.MusicLoaderStatic.playDisconnectVoiceSound();
+        }
     }
     
     addParticipant(participant) {
