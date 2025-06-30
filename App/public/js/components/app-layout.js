@@ -575,6 +575,7 @@ function generateSkeletonPendingItems(count = 1) {
 async function acceptFriendRequest(friendshipId) {
     const button = event.target;
     const originalText = button.textContent;
+    const requestElement = button.closest('div[class*="flex"][class*="flex-col"]');
     
     try {
         button.disabled = true;
@@ -587,7 +588,24 @@ async function acceptFriendRequest(friendshipId) {
         }
         
         window.showToast('Friend request accepted!', 'success');
-        loadPendingRequests();
+        
+        if (requestElement) {
+            requestElement.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+            requestElement.style.opacity = '0';
+            requestElement.style.transform = 'translateX(20px)';
+            
+            setTimeout(() => {
+                requestElement.remove();
+                updatePendingCountAfterRemoval();
+                checkIfNoPendingRequests();
+            }, 300);
+        }
+        
+        if (window.FriendsManager) {
+            const friendsManager = window.FriendsManager.getInstance();
+            friendsManager.invalidateCache(['friends', 'pending']);
+        }
+        
     } catch (error) {
         console.error('Error accepting friend request:', error);
         window.showToast(error.message || 'Failed to accept friend request', 'error');
@@ -600,6 +618,7 @@ async function acceptFriendRequest(friendshipId) {
 async function ignoreFriendRequest(friendshipId) {
     const button = event.target;
     const originalText = button.textContent;
+    const requestElement = button.closest('div[class*="flex"][class*="flex-col"]');
     
     try {
         button.disabled = true;
@@ -612,7 +631,24 @@ async function ignoreFriendRequest(friendshipId) {
         }
         
         window.showToast('Friend request ignored', 'info');
-        loadPendingRequests();
+        
+        if (requestElement) {
+            requestElement.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+            requestElement.style.opacity = '0';
+            requestElement.style.transform = 'translateX(-20px)';
+            
+            setTimeout(() => {
+                requestElement.remove();
+                updatePendingCountAfterRemoval();
+                checkIfNoPendingRequests();
+            }, 300);
+        }
+        
+        if (window.FriendsManager) {
+            const friendsManager = window.FriendsManager.getInstance();
+            friendsManager.invalidateCache('pending');
+        }
+        
     } catch (error) {
         console.error('Error ignoring friend request:', error);
         window.showToast(error.message || 'Failed to ignore friend request', 'error');
@@ -625,6 +661,7 @@ async function ignoreFriendRequest(friendshipId) {
 async function cancelFriendRequest(userId) {
     const button = event.target;
     const originalText = button.textContent;
+    const requestElement = button.closest('div[class*="flex"][class*="flex-col"]');
     
     try {
         button.disabled = true;
@@ -637,13 +674,81 @@ async function cancelFriendRequest(userId) {
         }
         
         window.showToast('Friend request cancelled', 'info');
-        loadPendingRequests();
+        
+        if (requestElement) {
+            requestElement.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+            requestElement.style.opacity = '0';
+            requestElement.style.transform = 'translateX(-20px)';
+            
+            setTimeout(() => {
+                requestElement.remove();
+                updatePendingCountAfterRemoval();
+                checkIfNoPendingRequests();
+            }, 300);
+        }
+        
+        if (window.FriendsManager) {
+            const friendsManager = window.FriendsManager.getInstance();
+            friendsManager.invalidateCache('pending');
+        }
+        
     } catch (error) {
         console.error('Error cancelling friend request:', error);
         window.showToast(error.message || 'Failed to cancel friend request', 'error');
         
         button.disabled = false;
         button.textContent = originalText;
+    }
+}
+
+function updatePendingCountAfterRemoval() {
+    const pendingContainer = document.getElementById('pending-requests');
+    if (!pendingContainer) return;
+    
+    const incomingCount = Array.from(pendingContainer.children).filter(el => 
+        el.classList && el.classList.contains('flex') && 
+        el.textContent.includes('Incoming Friend Request')
+    ).length;
+    
+    updatePendingCountDisplay(incomingCount);
+    
+    const incomingHeader = Array.from(pendingContainer.querySelectorAll('h3')).find(el => 
+        el.textContent.includes('Incoming Friend Requests')
+    );
+    if (incomingHeader) {
+        incomingHeader.textContent = `Incoming Friend Requests — ${incomingCount}`;
+    }
+    
+    const outgoingCount = Array.from(pendingContainer.children).filter(el => 
+        el.classList && el.classList.contains('flex') && 
+        el.textContent.includes('Outgoing Friend Request')
+    ).length;
+    
+    const outgoingHeader = Array.from(pendingContainer.querySelectorAll('h3')).find(el => 
+        el.textContent.includes('Outgoing Friend Requests')
+    );
+    if (outgoingHeader) {
+        outgoingHeader.textContent = `Outgoing Friend Requests — ${outgoingCount}`;
+    }
+}
+
+function checkIfNoPendingRequests() {
+    const pendingContainer = document.getElementById('pending-requests');
+    if (!pendingContainer) return;
+    
+    const requestElements = pendingContainer.querySelectorAll('div[class*="flex"][class*="flex-col"]');
+    
+    if (requestElements.length === 0) {
+        pendingContainer.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-8">
+                <div class="mb-4 text-gray-400">
+                    <i class="fas fa-user-plus text-4xl"></i>
+                </div>
+                <div class="text-white font-medium mb-1">Wumpus is waiting on friends</div>
+                <div class="text-gray-400 text-sm text-center">You don't have any pending friend requests. Here's Wumpus for now.</div>
+            </div>
+        `;
+        updatePendingCountDisplay(0);
     }
 }
 

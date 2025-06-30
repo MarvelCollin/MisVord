@@ -291,9 +291,15 @@ class ChatSection {
             }
             
             if (this.targetId && this.mentionHandler) {
+                console.log('🔍 [CHAT-SECTION] Loading mention users for target:', this.targetId, 'type:', this.chatType);
                 setTimeout(() => {
                     this.mentionHandler.loadAvailableUsers();
                 }, 500);
+            } else {
+                console.warn('⚠️ [CHAT-SECTION] Cannot load mention users:', {
+                    hasTargetId: !!this.targetId,
+                    hasMentionHandler: !!this.mentionHandler
+                });
             }
             
             this.cleanupEmptyMessages();

@@ -149,8 +149,11 @@ class MentionHandler {
             targetId = targetId || this.chatSection.targetId;
             
             if (!targetId) {
+                console.warn('⚠️ [MENTION-HANDLER] No target ID provided for loading channel members');
                 return;
             }
+            
+            console.log(`🔍 [MENTION-HANDLER] Loading channel members for channel ${targetId}`);
             
             const response = await fetch(`/api/channels/${targetId}/members`, {
                 method: 'GET',
@@ -159,28 +162,54 @@ class MentionHandler {
                 }
             });
             
+            console.log(`📡 [MENTION-HANDLER] API response status: ${response.status} ${response.statusText}`);
+            
             if (response.ok) {
                 const result = await response.json();
+                console.log('📋 [MENTION-HANDLER] API response data:', result);
                 
                 let members = null;
                 if (result.success && result.data) {
                     if (Array.isArray(result.data)) {
                         members = result.data;
+                        console.log(`✅ [MENTION-HANDLER] Found ${members.length} members in response.data`);
+                    } else {
+                        console.warn('⚠️ [MENTION-HANDLER] result.data is not an array:', typeof result.data, result.data);
                     }
+                } else {
+                    console.warn('⚠️ [MENTION-HANDLER] Invalid response format:', {
+                        success: result.success,
+                        hasData: !!result.data,
+                        dataType: typeof result.data
+                    });
                 }
                 
                 if (members && members.length > 0) {
+                    console.log('👥 [MENTION-HANDLER] Processing members:', members);
+                    let addedCount = 0;
                     members.forEach(member => {
-                        this.availableUsers.set(member.username.toLowerCase(), {
-                            id: member.user_id,
-                            username: member.username,
-                            avatar_url: member.avatar_url || '/public/assets/common/default-profile-picture.png'
-                        });
+                        if (member.username && member.user_id) {
+                            this.availableUsers.set(member.username.toLowerCase(), {
+                                id: member.user_id,
+                                username: member.username,
+                                avatar_url: member.avatar_url || '/public/assets/common/default-profile-picture.png'
+                            });
+                            addedCount++;
+                        } else {
+                            console.warn('⚠️ [MENTION-HANDLER] Invalid member data:', member);
+                        }
                     });
+                    console.log(`✅ [MENTION-HANDLER] Successfully added ${addedCount} users to availableUsers map`);
+                    console.log('📊 [MENTION-HANDLER] Total available users:', this.availableUsers.size);
+                } else {
+                    console.warn('❌ [MENTION-HANDLER] No valid members found in response');
                 }
+            } else {
+                const errorText = await response.text();
+                console.error(`❌ [MENTION-HANDLER] API error ${response.status}:`, errorText);
             }
         } catch (error) {
-            console.error('Exception loading channel members:', error);
+            console.error('❌ [MENTION-HANDLER] Exception loading channel members:', error);
         }
     }
     
@@ -295,18 +324,30 @@ class MentionHandler {
     }
     
     async showAutocomplete(searchTerm, mentionStartIndex) {
+        console.log('🎯 [MENTION-HANDLER] Show autocomplete triggered:', {
+            searchTerm: `"${searchTerm}"`,
+            mentionStartIndex,
+            targetId: this.chatSection.targetId,
+            usersLoaded: this.usersLoaded,
+            isLoading: this.isLoading,
+            availableUsersCount: this.availableUsers.size
+        });
+        
         this.mentionStartIndex = mentionStartIndex;
         
         if (!this.chatSection.targetId) {
+            console.warn('⚠️ [MENTION-HANDLER] No target ID, hiding autocomplete');
             this.hideAutocomplete();
             return;
         }
         
         if (!this.usersLoaded && !this.isLoading) {
+            console.log('🔄 [MENTION-HANDLER] Users not loaded, loading now...');
             await this.loadAvailableUsers();
         }
         
         if (this.isLoading) {
+            console.log('⏳ [MENTION-HANDLER] Still loading, showing loading state');
             this.renderLoadingState();
             this.isAutocompleteVisible = true;
             return;
@@ -315,10 +356,12 @@ class MentionHandler {
         const matches = this.findMatchingUsers(searchTerm);
         
         if (matches.length === 0) {
+            console.warn('❌ [MENTION-HANDLER] No matches found, hiding autocomplete');
             this.hideAutocomplete();
             return;
         }
         
+        console.log('✅ [MENTION-HANDLER] Showing autocomplete with', matches.length, 'matches');
         this.renderAutocomplete(matches);
         this.isAutocompleteVisible = true;
         this.selectedIndex = 0;
@@ -326,6 +369,9 @@ class MentionHandler {
     }
     
     findMatchingUsers(searchTerm) {
+        console.log(`🔍 [MENTION-HANDLER] Finding matching users for search term: "${searchTerm}"`);
+        console.log(`📊 [MENTION-HANDLER] Available users count: ${this.availableUsers.size}`);
+        
         const matches = [];
         const currentUsername = (window.globalSocketManager?.username || '').toLowerCase();
         
@@ -337,14 +383,21 @@ class MentionHandler {
                 isSpecial: true,
                 priority: 0
             });
+            console.log('✅ [MENTION-HANDLER] Added @all option');
         }
         
         const userMatches = [];
+        let skippedCount = 0;
+        let matchedCount = 0;
+        
         for (const [username, user] of this.availableUsers) {
-            if (username === currentUsername) continue;
+            if (username === currentUsername) {
+                skippedCount++;
+                continue;
+            }
             
             let priority = 2;
-            if (username.startsWith(searchTerm)) {
+            if (searchTerm === '' || username.startsWith(searchTerm)) {
                 priority = 1;
             } else if (!username.includes(searchTerm)) {
                 continue;
@@ -358,7 +411,15 @@ class MentionHandler {
                 isSpecial: false,
                 priority: priority
             });
+            matchedCount++;
         }
+        
+        console.log(`👥 [MENTION-HANDLER] User matching results:`, {
+            totalAvailable: this.availableUsers.size,
+            skippedSelf: skippedCount,
+            matched: matchedCount,
+            currentUsername: currentUsername
+        });
         
         userMatches.sort((a, b) => {
             if (a.priority !== b.priority) return a.priority - b.priority;
@@ -366,6 +427,8 @@ class MentionHandler {
         });
         
         matches.push(...userMatches);
+        
+        console.log(`📋 [MENTION-HANDLER] Final matches:`, matches.length, matches);
         
         return matches.slice(0, 10);
     }

@@ -80,6 +80,17 @@ export function loadHomePage(pageType = 'friends') {
                     }
                     
                     console.log('[Home AJAX] Setting up server navigation handlers');
+                    
+                    // Disable any competing server navigation handlers
+                    if (typeof window.handleServerClick === 'function') {
+                        console.log('[Home AJAX] Temporarily disabling global handleServerClick');
+                        window.originalHandleServerClick = window.handleServerClick;
+                        window.handleServerClick = function(serverId) {
+                            console.log('[Home AJAX] Intercepted handleServerClick, using loadServerPage instead');
+                            return loadServerPage(serverId);
+                        };
+                    }
+                    
                     setupHomeServerNavigation();
                     
                     const event = new CustomEvent('HomePageChanged', { 
