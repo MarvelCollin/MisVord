@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function () {
     initDirectMessageModal();
     initTabHandling();
     initFriendRequestForm();
-    updatePendingCount();
     initResponsiveHandling();
     initMobileMenu();
             

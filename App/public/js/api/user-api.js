@@ -188,6 +188,85 @@ class UserAPI {
         });
     }
 
+    async sendFriendRequest(username) {
+        console.log('🔗 UserAPI: Sending friend request to:', username);
+        const result = await this.makeRequest('/api/friends', {
+            method: 'POST',
+            body: JSON.stringify({
+                username: username
+            })
+        });
+        
+        if (!result.success) {
+            console.error('UserAPI: Failed to send friend request:', result.error);
+        } else {
+            console.log('🔗 UserAPI: Successfully sent friend request to:', username);
+        }
+        
+        return result;
+    }
+
+    async acceptFriendRequest(friendshipId) {
+        console.log('🔗 UserAPI: Accepting friend request:', friendshipId);
+        const result = await this.makeRequest(`/api/friends/accept?id=${friendshipId}`, {
+            method: 'POST'
+        });
+        
+        if (!result.success) {
+            console.error('UserAPI: Failed to accept friend request:', result.error);
+        } else {
+            console.log('🔗 UserAPI: Successfully accepted friend request:', friendshipId);
+        }
+        
+        return result;
+    }
+
+    async declineFriendRequest(friendshipId) {
+        console.log('�� UserAPI: Declining friend request:', friendshipId);
+        const result = await this.makeRequest(`/api/friends/decline?id=${friendshipId}`, {
+            method: 'POST'
+        });
+        
+        if (!result.success) {
+            console.error('UserAPI: Failed to decline friend request:', result.error);
+        } else {
+            console.log('🔗 UserAPI: Successfully declined friend request:', friendshipId);
+        }
+        
+        return result;
+    }
+
+    async cancelFriendRequest(userId) {
+        console.log('🔗 UserAPI: Canceling friend request to user:', userId);
+        const result = await this.makeRequest('/api/friends', {
+            method: 'DELETE',
+            body: JSON.stringify({
+                user_id: userId
+            })
+        });
+        
+        if (!result.success) {
+            console.error('UserAPI: Failed to cancel friend request:', result.error);
+        } else {
+            console.log('🔗 UserAPI: Successfully canceled friend request to user:', userId);
+        }
+        
+        return result;
+    }
+
+    async getPendingRequests() {
+        console.log('🔗 UserAPI: Fetching pending friend requests');
+        const result = await this.makeRequest('/api/friends/pending');
+        
+        if (!result.success) {
+            console.error('UserAPI: Failed to fetch pending requests:', result.error);
+        } else {
+            console.log('🔗 UserAPI: Successfully fetched pending requests');
+        }
+        
+        return result;
+    }
+
     async updateBio(bio) {
         console.log('🔗 UserAPI: Updating bio');
         const result = await this.makeRequest('/api/users/profile', {
