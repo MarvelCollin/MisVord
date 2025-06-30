@@ -35,18 +35,23 @@ function getUserRole(serverId) {
             if (data.success && data.data && data.data.membership) {
                 const role = data.data.membership.role || 'member';
                 currentUserRole = role;
+                console.log('User role fetched:', role, 'for server:', serverId);
                 return role;
             }
+            console.warn('No membership data found, defaulting to member role');
+            currentUserRole = 'member';
             return 'member';
         })
         .catch(error => {
             console.error('Error fetching user role:', error);
+            currentUserRole = 'member';
             return 'member';
         });
 }
 
 function isAdminOrOwner(role) {
-    return role === 'admin' || role === 'owner';
+    const validRole = role || currentUserRole || 'member';
+    return validRole === 'admin' || validRole === 'owner';
 }
 
 function applyRoleBasedVisibility(userRole) {
@@ -60,16 +65,26 @@ function applyRoleBasedVisibility(userRole) {
     const dropdownItems = document.querySelectorAll('.server-dropdown-item');
     
     dropdownItems.forEach(item => {
-        const actionText = item.querySelector('span').textContent.trim();
+        const spanElement = item.querySelector('span');
+        if (!spanElement) return;
+        
+        const actionText = spanElement.textContent.trim();
         
         if (adminOnlyItems.includes(actionText)) {
             if (isAdminOrOwner(userRole)) {
                 item.style.display = 'flex';
+                item.setAttribute('data-role-restricted', 'false');
             } else {
                 item.style.display = 'none';
+                item.setAttribute('data-role-restricted', 'true');
             }
+        } else {
+            item.style.display = 'flex';
+            item.setAttribute('data-role-restricted', 'false');
         }
     });
+    
+    console.log('Role-based visibility applied. User role:', userRole);
 }
 
 window.testDropdown = function() {
@@ -151,16 +166,27 @@ function initServerActions() {
     dropdownItems.forEach(item => {
         item.addEventListener('click', function(e) {
             e.preventDefault();
-            const actionText = this.querySelector('span').textContent.trim();
+            
+            const spanElement = this.querySelector('span');
+            if (!spanElement) return;
+            
+            const actionText = spanElement.textContent.trim();
 
             const dropdown = document.getElementById('server-dropdown');
             if (dropdown) dropdown.classList.add('hidden');
 
             const adminOnlyActions = ['Invite People', 'Server Settings', 'Create Channel', 'Create Category'];
             
-            if (adminOnlyActions.includes(actionText) && !isAdminOrOwner(currentUserRole)) {
-                showToast('You do not have permission to perform this action', 'error');
-                return;
+            if (adminOnlyActions.includes(actionText)) {
+                if (!isAdminOrOwner(currentUserRole)) {
+                    showToast('You do not have permission to perform this action', 'error');
+                    return;
+                }
+                
+                if (this.getAttribute('data-role-restricted') === 'true') {
+                    showToast('Access denied: Insufficient permissions', 'error');
+                    return;
+                }
             }
 
             switch(actionText) {
@@ -182,6 +208,17 @@ function initServerActions() {
             }
         });
     });
+}
+
+function refreshRoleVisibility() {
+    const serverId = getCurrentServerId();
+    if (serverId && currentUserRole) {
+        applyRoleBasedVisibility(currentUserRole);
+    } else if (serverId) {
+        getUserRole(serverId).then(role => {
+            applyRoleBasedVisibility(role);
+        });
+    }
 }
 
 function showInvitePeopleModal() {
@@ -999,3 +1036,5 @@ window.redirectToServerSettings = redirectToServerSettings;
 window.showCreateChannelModal = showCreateChannelModal;
 window.showCreateCategoryModal = showCreateCategoryModal;
 window.showLeaveServerConfirmation = showLeaveServerConfirmation;
+window.refreshRoleVisibility = refreshRoleVisibility;
+window.getCurrentUserRole = () => currentUserRole;

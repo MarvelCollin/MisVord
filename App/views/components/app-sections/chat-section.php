@@ -233,20 +233,6 @@ if (!function_exists('renderMessage')) {
 
             <div class="flex items-center pr-[2px] gap-1">
                 <button
-                    type="button"
-                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-1"
-                    title="Send gift"
-                >
-                    <i class="fas fa-gift text-[20px]"></i>
-                </button>
-                <button
-                    type="button"
-                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1"
-                    title="Add emoji"
-                >
-                    <i class="fas fa-face-smile text-[20px]"></i>
-                </button>
-                <button
                     id="send-button"
                     type="submit"
                     class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1 opacity-50 cursor-not-allowed"
