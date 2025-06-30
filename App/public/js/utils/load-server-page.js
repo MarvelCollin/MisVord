@@ -142,66 +142,170 @@ function performServerLayoutUpdate(response, serverId, channelId, currentChannel
     
     console.log('[Server AJAX] Disabling skeleton loading');
     handleServerSkeletonLoading(false);
-                    
-                    if (typeof window.initServerPage === 'function') {
-                        window.initServerPage();
-                        console.log('[Server AJAX] Server page initialized');
-                    }
-                    
-                    if (typeof window.ChannelSwitchManager !== 'undefined') {
-                        if (window.channelSwitchManager) {
-                            console.log('[Server AJAX] Cleaning up existing channel switch manager');
-                            try {
-                                window.channelSwitchManager.cleanup();
-                            } catch (cleanupError) {
-                                console.warn('[Server AJAX] Error during cleanup:', cleanupError);
-                            }
-                            window.channelSwitchManager = null;
-                        }
-                        
-                        setTimeout(() => {
-                            if (!window.channelSwitchManager) {
-                                console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
-                                window.channelSwitchManager = new window.ChannelSwitchManager();
-                                console.log('[Server AJAX] Channel switch manager initialized');
-                            } else {
-                                console.log('[Server AJAX] Channel switch manager already exists, skipping creation');
-                            }
-                        }, 100);
-                    } else {
-                        console.warn('[Server AJAX] ChannelSwitchManager class not available');
-                    }
-                    
-                    if (typeof window.initServerDropdown === 'function') {
-                        console.log('[Server AJAX] Re-initializing server dropdown');
-                        window.initServerDropdown();
-                    } else {
-                        console.log('[Server AJAX] Manually initializing server dropdown');
-                        initServerDropdownManual();
-                    }
-                    
-                    if (typeof window.initializeParticipantSection === 'function') {
-                        window.initializeParticipantSection();
-                        console.log('[Server AJAX] Participant section initialized');
-                    }
-                    
-                    if (typeof window.updateActiveServer === 'function') {
-                        window.updateActiveServer('server', serverId);
-                        console.log('[Server AJAX] Active server state updated');
-                    }
-                    
-                    const event = new CustomEvent('ServerChanged', { 
-                        detail: { 
-                            serverId,
-                            channelId,
-                            previousChannelId: currentChannelId 
-                        } 
-                    });
-                    document.dispatchEvent(event);
-                    console.log('[Server AJAX] ServerChanged event dispatched');
-                    
-                    window.globalSwitchLock = false;
-                    console.log('[Server AJAX] Global switch lock released after server loading');
+    
+    if (typeof window.initServerPage === 'function') {
+        window.initServerPage();
+        console.log('[Server AJAX] Server page initialized');
+    }
+    
+    console.log('[Server AJAX] Initializing core server components');
+    
+    if (typeof window.ChannelSwitchManager !== 'undefined') {
+        if (window.channelSwitchManager) {
+            console.log('[Server AJAX] Cleaning up existing channel switch manager');
+            try {
+                window.channelSwitchManager.cleanup();
+            } catch (cleanupError) {
+                console.warn('[Server AJAX] Error during cleanup:', cleanupError);
+            }
+            window.channelSwitchManager = null;
+        }
+        
+        setTimeout(() => {
+            if (!window.channelSwitchManager) {
+                console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
+                window.channelSwitchManager = new window.ChannelSwitchManager();
+                console.log('[Server AJAX] Channel switch manager initialized');
+            }
+        }, 100);
+    } else {
+        console.warn('[Server AJAX] ChannelSwitchManager class not available');
+    }
+    
+    console.log('[Server AJAX] Initializing voice systems');
+    initializeVoiceSystems();
+    
+    console.log('[Server AJAX] Initializing chat systems');
+    initializeChatSystems();
+    
+    if (typeof window.initializeServerDropdown === 'function') {
+        console.log('[Server AJAX] Re-initializing server dropdown');
+        window.initializeServerDropdown();
+    } else {
+        console.log('[Server AJAX] Manually initializing server dropdown');
+        initServerDropdownManual();
+    }
+    
+    if (typeof window.initializeParticipantSection === 'function') {
+        window.initializeParticipantSection();
+        console.log('[Server AJAX] Participant section initialized');
+    }
+    
+    if (typeof window.updateActiveServer === 'function') {
+        window.updateActiveServer('server', serverId);
+        console.log('[Server AJAX] Active server state updated');
+    }
+    
+    const event = new CustomEvent('ServerChanged', { 
+        detail: { 
+            serverId,
+            channelId,
+            previousChannelId: currentChannelId 
+        } 
+    });
+    document.dispatchEvent(event);
+    console.log('[Server AJAX] ServerChanged event dispatched');
+    
+    window.globalSwitchLock = false;
+    console.log('[Server AJAX] Global switch lock released after server loading');
+}
+
+function initializeVoiceSystems() {
+    console.log('[Voice Systems] Starting voice system initialization');
+    
+    if (!window.voiceManager) {
+        console.log('[Voice Systems] Creating new voice manager instance');
+        if (typeof window.VoiceManager === 'function') {
+            window.voiceManager = new window.VoiceManager();
+            if (window.voiceManager.preloadResources) {
+                window.voiceManager.preloadResources();
+            }
+        } else {
+            console.warn('[Voice Systems] VoiceManager constructor not available');
+        }
+    } else {
+        console.log('[Voice Systems] Voice manager already exists, ensuring proper state');
+        if (typeof window.voiceManager.resetState === 'function') {
+            window.voiceManager.resetState();
+        }
+    }
+    
+    if (!window.globalVoiceIndicator) {
+        console.log('[Voice Systems] Creating global voice indicator');
+        if (typeof window.GlobalVoiceIndicator === 'function') {
+            window.globalVoiceIndicator = new window.GlobalVoiceIndicator();
+        }
+    } else {
+        console.log('[Voice Systems] Ensuring voice indicator visibility');
+        if (window.globalVoiceIndicator.ensureIndicatorVisible) {
+            window.globalVoiceIndicator.ensureIndicatorVisible();
+        }
+    }
+    
+    setTimeout(() => {
+        if (typeof window.waitForVoiceManager === 'function') {
+            window.waitForVoiceManager().then(() => {
+                console.log('[Voice Systems] Voice manager ready for use');
+            }).catch(error => {
+                console.warn('[Voice Systems] Voice manager initialization timeout:', error);
+            });
+        }
+    }, 500);
+    
+    console.log('[Voice Systems] Voice system initialization completed');
+}
+
+function initializeChatSystems() {
+    console.log('[Chat Systems] Starting chat system initialization');
+    
+    if (!window.ChatAPI) {
+        console.log('[Chat Systems] ChatAPI not available, waiting...');
+        setTimeout(() => {
+            if (window.ChatAPI) {
+                console.log('[Chat Systems] ChatAPI now available');
+                proceedWithChatInitialization();
+            } else {
+                console.warn('[Chat Systems] ChatAPI still not available after timeout');
+            }
+        }, 200);
+    } else {
+        console.log('[Chat Systems] ChatAPI already available');
+        proceedWithChatInitialization();
+    }
+}
+
+function proceedWithChatInitialization() {
+    console.log('[Chat Systems] Proceeding with chat initialization');
+    
+    if (window.chatSection) {
+        console.log('[Chat Systems] Existing chat section found, cleaning up');
+        try {
+            if (window.chatSection._roomCheckInterval) {
+                clearInterval(window.chatSection._roomCheckInterval);
+            }
+            window.chatSection = null;
+        } catch (error) {
+            console.warn('[Chat Systems] Error during chat cleanup:', error);
+        }
+    }
+    
+    setTimeout(() => {
+        if (typeof window.initializeChatSection === 'function') {
+            console.log('[Chat Systems] Calling global chat section initializer');
+            window.initializeChatSection();
+        } else if (typeof window.ChatSection === 'function') {
+            console.log('[Chat Systems] Creating new chat section instance');
+            try {
+                window.chatSection = new window.ChatSection();
+            } catch (error) {
+                console.error('[Chat Systems] Error creating chat section:', error);
+            }
+        } else {
+            console.warn('[Chat Systems] No chat initialization methods available');
+        }
+    }, 300);
+    
+    console.log('[Chat Systems] Chat system initialization completed');
 }
 
 function handleServerSkeletonLoading(show) {

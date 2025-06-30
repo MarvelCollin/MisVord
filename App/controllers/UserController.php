@@ -1144,6 +1144,12 @@ class UserController extends BaseController
             
             error_log("getAllUsers - Found " . count($results) . " users");
             
+            if (!empty($results)) {
+                error_log("getAllUsers - First 3 users: " . json_encode(array_slice($results, 0, 3)));
+                $userIds = array_column($results, 'id');
+                error_log("getAllUsers - All user IDs returned: " . implode(', ', $userIds));
+            }
+            
             $users = [];
             foreach ($results as $result) {
                 $users[] = [

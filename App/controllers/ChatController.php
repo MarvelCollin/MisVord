@@ -410,16 +410,36 @@ class ChatController extends BaseController
             $this->validate($input, ['user_id' => 'required']);
             $friendId = $input['user_id'];
 
+            error_log("ChatController: Attempting to create DM with user ID: " . $friendId);
+            error_log("ChatController: Current user ID: " . $userId);
+
             if ($friendId == $userId) {
                 return $this->validationError(['user_id' => 'Cannot create chat with yourself']);
             }
 
             $friend = $this->userRepository->find($friendId);
+            error_log("ChatController: Find result for user ID $friendId: " . ($friend ? 'FOUND' : 'NOT_FOUND'));
+            
+            if ($friend) {
+                error_log("ChatController: User $friendId exists - Username: " . $friend->username . ", Status: " . $friend->status);
+            } else {
+                error_log("ChatController: User $friendId not found in database");
+                
+                $query = new \Query();
+                $directCheck = $query->table('users')->where('id', $friendId)->first();
+                if ($directCheck) {
+                    error_log("ChatController: Direct query found user $friendId: " . json_encode($directCheck));
+                } else {
+                    error_log("ChatController: Direct query also found no user $friendId");
+                }
+            }
+            
             if (!$friend) {
                 return $this->notFound('User not found');
             }
 
-            if ($friend->status === 'banned' || $friend->status === 'deleted') {
+            if ($friend->status === 'banned' || $friend->status === 'deleted' || $friend->status === 'bot') {
+                error_log("ChatController: Cannot message user $friendId due to status: " . $friend->status);
                 return $this->forbidden('Cannot message this user');
             }
 

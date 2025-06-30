@@ -67,8 +67,6 @@ class MessageHandler {
             this.temporaryMessages.set(messageData.id, messageData);
         }
         
-        this.addMessageEventListeners(messageData.id);
-        
         // Process reactions for non-temporary messages (database-loaded messages)
         if (!isTemporary && messageData.reactions && messageData.reactions.length > 0) {
             console.log('🎯 [MESSAGE-HANDLER] Processing reactions for database-loaded message:', messageData.id);

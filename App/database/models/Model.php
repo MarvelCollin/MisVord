@@ -32,10 +32,18 @@ abstract class Model {
     }
     
     public static function find($id) {
+        error_log("Model::find called with ID: " . var_export($id, true) . " (type: " . gettype($id) . ") for table: " . static::$table);
+        
         $query = new Query();
         $result = $query->table(static::$table)
             ->where('id', $id)
             ->first();
+        
+        if ($result) {
+            error_log("Model::find - Found result for ID $id: " . json_encode($result));
+        } else {
+            error_log("Model::find - No result found for ID $id in table " . static::$table);
+        }
             
         return $result ? new static($result) : null;
     }

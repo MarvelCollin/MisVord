@@ -504,10 +504,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const userIdsArray = Array.from(selectedUserIds);
         
+        console.log('🔄 Creating chat with users:', userIdsArray);
+        console.log('🔄 User IDs types:', userIdsArray.map(id => typeof id));
+        
         let requestData;
         
         if (userIdsArray.length === 1) {
-            requestData = { user_id: userIdsArray[0] };
+            const userId = parseInt(userIdsArray[0]);
+            console.log('🔄 Creating DM with user ID:', userId, '(type:', typeof userId, ')');
+            requestData = { user_id: userId };
         } else {
             const groupName = groupNameInput.value.trim();
             if (!groupName) {
@@ -517,12 +522,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            const parsedUserIds = userIdsArray.map(id => parseInt(id));
+            console.log('🔄 Creating group chat with user IDs:', parsedUserIds);
+            
             requestData = {
-                user_ids: userIdsArray,
+                user_ids: parsedUserIds,
                 group_name: groupName,
                 group_image: groupImageFile || null
             };
         }
+        
+        console.log('📤 Sending chat creation request:', requestData);
         
         fetch('/api/chat/create', {
             method: 'POST',
@@ -532,19 +542,26 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify(requestData)
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('📥 Chat creation response status:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('📥 Chat creation response data:', data);
+            
             if (modal) {
                 modal.classList.add('hidden');
             }
             
             if (data.success && data.data && data.data.room_id) {
+                console.log('✅ Chat created successfully, redirecting to:', `/home/channels/dm/${data.data.room_id}`);
                 window.location.href = `/home/channels/dm/${data.data.room_id}`;
             } else if (data.error && data.error.includes('already exists')) {
                 if (window.showToast) {
                     window.showToast('Conversation already exists', 'info');
                 }
             } else {
+                console.error('❌ Chat creation failed:', data);
                 if (window.showToast) {
                     window.showToast('Failed to create conversation: ' + (data.message || data.error || 'Unknown error'), 'error');
                 }

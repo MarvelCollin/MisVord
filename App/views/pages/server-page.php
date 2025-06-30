@@ -27,6 +27,7 @@ $additional_css = ['tic-tac-toe'];
 $page_js = 'pages/app';
 $head_scripts = ['logger-init'];
 $additional_js = [
+    'components/bot/bot',
     'components/messaging/chat-section',
     'components/servers/server-dropdown',
     'components/channels/channel-manager',

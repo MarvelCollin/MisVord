@@ -85,6 +85,18 @@ async function initializeChatSection() {
     
     console.log('✅ Initializing ChatSection with ChatAPI ready');
     try {
+        if (window.chatSection && typeof window.chatSection.switchTarget === 'function') {
+            const channelId = document.querySelector('meta[name="channel-id"]')?.content || 
+                             new URLSearchParams(window.location.search).get('channel');
+            const chatType = document.querySelector('meta[name="chat-type"]')?.content || 'channel';
+            
+            if (channelId) {
+                console.log('[Chat Section] Existing chat section found, switching target');
+                window.chatSection.switchTarget(chatType, channelId);
+                return;
+            }
+        }
+        
         const chatSection = new ChatSection();
         await chatSection.init();
         window.chatSection = chatSection;

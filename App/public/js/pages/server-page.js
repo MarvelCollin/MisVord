@@ -85,16 +85,47 @@ function initializeServerComponents() {
         return;
     }
     
+    console.log('[Server Page] Initializing server dropdown');
     if (typeof window.initializeServerDropdown === 'function') {
-        window.initializeServerDropdown();
+        try {
+            window.initializeServerDropdown();
+            console.log('[Server Page] ✅ Server dropdown initialized');
+        } catch (error) {
+            console.error('[Server Page] Error initializing server dropdown:', error);
+        }
+    } else if (typeof window.initServerDropdown === 'function') {
+        try {
+            window.initServerDropdown();
+            console.log('[Server Page] ✅ Server dropdown initialized (fallback)');
+        } catch (error) {
+            console.error('[Server Page] Error initializing server dropdown (fallback):', error);
+        }
+    } else {
+        console.warn('[Server Page] No server dropdown function available');
     }
     
+    console.log('[Server Page] Initializing chat section');
     if (typeof window.initializeChatSection === 'function') {
-        window.initializeChatSection();
+        try {
+            window.initializeChatSection();
+            console.log('[Server Page] ✅ Chat section initialized');
+        } catch (error) {
+            console.error('[Server Page] Error initializing chat section:', error);
+        }
+    } else {
+        console.warn('[Server Page] initializeChatSection function not available');
     }
     
+    console.log('[Server Page] Initializing participant section');
     if (typeof window.initializeParticipantSection === 'function') {
-        window.initializeParticipantSection();
+        try {
+            window.initializeParticipantSection();
+            console.log('[Server Page] ✅ Participant section initialized');
+        } catch (error) {
+            console.error('[Server Page] Error initializing participant section:', error);
+        }
+    } else {
+        console.warn('[Server Page] initializeParticipantSection function not available');
     }
     
     console.log('[Server Page] Server components initialized');
@@ -462,19 +493,95 @@ function initServerPage() {
 }
 
 function performDelayedServerInitialization() {
-  console.log('[Server Page] Performing delayed server initialization');
-  
-  try {
-    initializeServerComponents();
-    loadServerContent();
-    setupPopStateListener();
-    setupChannelListObserver();
-    initializeServerModals();
+    console.log('[Server Page] Performing delayed server initialization');
     
-    console.log('[Server Page] Server page initialization completed');
-  } catch (error) {
-    console.error('[Server Page] Error during server page initialization:', error);
-  }
+    try {
+        console.log('[Server Page] Step 1: Initialize server components');
+        initializeServerComponents();
+        
+        console.log('[Server Page] Step 2: Load server content');
+        loadServerContent();
+        
+        console.log('[Server Page] Step 3: Setup navigation listeners');
+        setupPopStateListener();
+        setupChannelListObserver();
+        
+        console.log('[Server Page] Step 4: Coordinate with system initializers');
+        coordinateSystemInitialization();
+        
+        console.log('[Server Page] Step 5: Initialize server modals');
+        initializeServerModals();
+        
+        console.log('[Server Page] Server initialization completed successfully');
+        
+    } catch (error) {
+        console.error('[Server Page] Error during server initialization:', error);
+    }
+}
+
+function coordinateSystemInitialization() {
+    console.log('[Server Page] Coordinating with voice and chat systems');
+    
+    document.addEventListener('ServerChanged', function(event) {
+        console.log('[Server Page] ServerChanged event received:', event.detail);
+        
+        setTimeout(() => {
+            if (window.voiceManager && !window.voiceManager.initialized) {
+                console.log('[Server Page] Re-initializing voice manager after server change');
+                window.voiceManager.init().catch(error => {
+                    console.warn('[Server Page] Voice manager initialization failed:', error);
+                });
+            }
+            
+            if (!window.chatSection && typeof window.initializeChatSection === 'function') {
+                console.log('[Server Page] Ensuring chat section is initialized after server change');
+                window.initializeChatSection();
+            }
+        }, 100);
+    }, { once: true });
+    
+    setTimeout(() => {
+        if (window.globalVoiceIndicator && window.globalVoiceIndicator.forceUpdateIndicator) {
+            window.globalVoiceIndicator.forceUpdateIndicator();
+        }
+        
+        if (window.chatSection && window.chatSection.targetId && window.chatSection.mentionHandler) {
+            window.chatSection.mentionHandler.loadAvailableUsers();
+        }
+    }, 1000);
+}
+
+function initializeBotSystems() {
+    console.log('[Server Page] Initializing bot systems');
+    
+    if (window.chatSection && window.chatSection.chatBot) {
+        console.log('[Server Page] Chat bot already available in chat section');
+        return;
+    }
+    
+    if (typeof window.BotComponent === 'function' && !window.botComponent) {
+        console.log('[Server Page] Creating bot component');
+        try {
+            window.botComponent = new window.BotComponent();
+            console.log('[Server Page] ✅ Bot component initialized');
+        } catch (error) {
+            console.error('[Server Page] Error initializing bot component:', error);
+        }
+    }
+    
+    const serverIdMeta = document.querySelector('meta[name="server-id"]');
+    if (serverIdMeta && window.globalSocketManager?.isReady()) {
+        const serverId = serverIdMeta.content;
+        console.log('[Server Page] Ensuring bot initialization for server:', serverId);
+        
+        setTimeout(() => {
+            if (window.globalSocketManager.isReady()) {
+                window.globalSocketManager.io.emit('server-bot-status', {
+                    server_id: serverId
+                });
+            }
+        }, 1000);
+    }
 }
 
 window.initServerPage = initServerPage;

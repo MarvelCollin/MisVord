@@ -1154,38 +1154,19 @@ class ChannelSwitchManager {
     cleanup() {
         console.log('[ChannelSwitchManager] Cleaning up channel switch manager');
         
-        this.isDestroyed = true;
-        this.isLoading = false;
-        window.globalSwitchLock = false;
-        
-        this.hideChannelSkeleton();
-        
-        if (this.boundClickHandler) {
-            document.removeEventListener('click', this.boundClickHandler);
-            this.boundClickHandler = null;
-            console.log('[ChannelSwitchManager] Removed click event listener');
+        if (this._roomCheckInterval) {
+            clearInterval(this._roomCheckInterval);
+            this._roomCheckInterval = null;
         }
         
-        if (this.boundPopstateHandler) {
-            window.removeEventListener('popstate', this.boundPopstateHandler);
-            this.boundPopstateHandler = null;
-            console.log('[ChannelSwitchManager] Removed popstate event listener');
+        if (this.currentChannelId && window.globalSocketManager?.isReady()) {
+            console.log('[ChannelSwitchManager] Leaving current channel socket room:', this.currentChannelId);
+            window.globalSocketManager.leaveChannel(this.currentChannelId);
         }
         
-        this.switchQueue = [];
         this.currentChannelId = null;
-        this.currentChannelType = 'text';
+        this.currentChannelType = null;
         this.currentServerId = null;
-        this.channelSkeletonStartTime = null;
-        
-        const styles = document.getElementById('channel-switch-styles');
-        if (styles) {
-            styles.remove();
-        }
-        
-        if (window.channelSwitchManager === this) {
-            window.channelSwitchManager = null;
-        }
         
         console.log('[ChannelSwitchManager] Cleanup completed');
     }
@@ -1199,11 +1180,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     setTimeout(() => {
         if (window.location.pathname.includes('/server/') && !window.channelSwitchManager) {
-            console.log('[ChannelSwitchManager] On server page, no existing manager found, initializing channel switch manager');
-        window.channelSwitchManager = new ChannelSwitchManager();
+            const isLoadedViaAjax = document.querySelector('#app-container')?.getAttribute('data-ajax-loaded') === 'true';
+            
+            if (!isLoadedViaAjax) {
+                console.log('[ChannelSwitchManager] Direct server page load, initializing channel switch manager');
+                window.channelSwitchManager = new ChannelSwitchManager();
+            } else {
+                console.log('[ChannelSwitchManager] AJAX-loaded server page, skipping auto-initialization (will be handled by server loader)');
+            }
         } else if (window.channelSwitchManager) {
             console.log('[ChannelSwitchManager] Channel switch manager already exists, skipping auto-initialization');
-    }
+        }
     }, 100);
 });
 
