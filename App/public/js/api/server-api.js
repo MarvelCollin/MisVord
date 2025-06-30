@@ -341,24 +341,7 @@ const serverAPI = {
         });
     },
 
-    updatePerServerProfile: function(serverId, data) {
-        return fetch(`/api/servers/${serverId}/profile`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        });
-    },
+
 
     joinServer: function(data) {
         const formData = new FormData();

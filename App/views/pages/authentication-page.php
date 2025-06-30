@@ -358,12 +358,12 @@ try {
                         >
                     </div>
 
-                    <div class="flex space-x-3">
-                        <button type="button" id="prev-step-btn" class="w-1/3 py-2.5 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-all">
-                            Back
+                    <div class="flex gap-3 mt-6">
+                        <button type="button" id="prev-step-btn" class="flex-1 h-11 sm:h-12 py-2.5 sm:py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-all text-sm sm:text-base flex items-center justify-center">
+                            <i class="fa-solid fa-arrow-left mr-2"></i>Back
                         </button>
-                        <button type="submit" class="w-2/3 py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
-                            Register
+                        <button type="submit" class="flex-1 h-11 sm:h-12 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all text-sm sm:text-base flex items-center justify-center">
+                            Register<i class="fa-solid fa-arrow-right ml-2"></i>
                         </button>
                     </div>
                 </div>

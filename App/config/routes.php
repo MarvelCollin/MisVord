@@ -634,10 +634,7 @@ Route::get('/api/servers/([0-9]+)/profile', function($serverId) {
     $controller->getPerServerProfile($serverId);
 });
 
-Route::post('/api/servers/([0-9]+)/profile', function($serverId) {
-    $controller = new ServerController();
-    $controller->updatePerServerProfile($serverId);
-});
+
 
 Route::get('/explore-servers/layout', function() {
     $controller = new ExploreController();

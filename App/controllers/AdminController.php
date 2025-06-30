@@ -615,7 +615,7 @@ class AdminController extends BaseController
                     'username' => $member['username'] ?? 'Unknown User',
                     'discriminator' => $member['discriminator'] ?? '0000',
                     'display_name' => $member['display_name'] ?? $member['username'] ?? 'Unknown User',
-                    'nickname' => $member['nickname'] ?? null,
+    
                     'email' => $member['email'] ?? '',
                     'avatar_url' => $member['avatar_url'] ?? null,
                     'banner_url' => $member['banner_url'] ?? null,

@@ -335,28 +335,19 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                     </button>
                 </div>
                 
-                <form id="edit-profile-form" class="space-y-4">
-                    <div>
-                        <label for="profile-nickname" class="block text-sm font-medium text-gray-300 mb-1">
-                            NICKNAME
-                        </label>
-                        <input type="text" id="profile-nickname" name="nickname" 
-                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
-                               placeholder="Enter nickname (leave empty to use global username)">
-                        <div class="text-xs text-gray-400 mt-1">This nickname will only be visible in this server</div>
+                <div class="space-y-4">
+                    <div class="text-center py-8">
+                        <p class="text-gray-400">Your username will be displayed in this server.</p>
+                        <p class="text-white font-medium mt-2"><?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></p>
                     </div>
                     
-                    <div class="pt-4 flex space-x-3">
+                    <div class="pt-4 flex justify-center">
                         <button type="button" id="cancel-edit-profile" 
-                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
-                            Cancel
-                        </button>
-                        <button type="submit" 
-                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
-                            Save Profile
+                                class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded">
+                            Close
                         </button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>

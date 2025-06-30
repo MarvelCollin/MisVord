@@ -508,46 +508,89 @@ class ChatSection {
                 { limit, before, offset: options.offset || 0 }
             );
             
-            console.log('📨 Messages response:', response);
+            console.log('📨 Messages API Response:', response);
             
             if (!response) {
                 throw new Error('No response received from server');
             }
             
-            if (response.success && response.data && Array.isArray(response.data.messages)) {
-                const messages = response.data.messages;
-                
-                console.log(`📬 Loaded ${messages.length} messages for ${this.chatType}:${this.targetId}`);
-                
-                if (messages.length === 0 && !before) {
-                    this.showEmptyState();
+            let messages = [];
+            let hasMore = false;
+            
+            if (response.success === true && response.data) {
+                if (response.data.messages && Array.isArray(response.data.messages)) {
+                    messages = response.data.messages;
+                    hasMore = response.data.has_more || false;
+                    console.log('📨 Using response.data.messages format');
+                } else if (response.data.messages === null || response.data.messages === undefined) {
+                    messages = [];
+                    hasMore = false;
+                    console.log('📨 Messages is null/undefined, using empty array');
+                } else if (Array.isArray(response.data)) {
+                    messages = response.data;
+                    hasMore = messages.length >= limit;
+                    console.log('📨 Using response.data as array format');
                 } else {
-                    this.hideEmptyState();
-                    
-                    if (this.messageHandler) {
-                        if (before) {
-                            this.messageHandler.prependMessages(messages);
-                        } else {
-                            this.messageHandler.clearProcessedMessages();
-                            this.messageHandler.displayMessages(messages);
-                        }
-                    }
-                    
-                    this.hasMoreMessages = response.data.has_more || messages.length >= limit;
-                    this.updateLoadMoreButton();
-                    
-                    if (!before) {
-                        setTimeout(() => {
-                            this.scrollToBottom();
-                        }, 100);
-                    }
+                    console.error('📨 Unexpected messages format:', {
+                        messagesValue: response.data.messages,
+                        messagesType: typeof response.data.messages,
+                        dataKeys: Object.keys(response.data)
+                    });
+                    messages = [];
+                    hasMore = false;
                 }
+            } else if (response.data && Array.isArray(response.data.messages)) {
+                messages = response.data.messages;
+                hasMore = response.data.has_more || false;
+                console.log('📨 Using fallback response.data.messages format');
+            } else if (response.data && Array.isArray(response.data)) {
+                messages = response.data;
+                hasMore = messages.length >= limit;
+                console.log('📨 Using fallback response.data format');
+            } else if (Array.isArray(response)) {
+                messages = response;
+                hasMore = messages.length >= limit;
+                console.log('📨 Using direct response array format');
             } else if (response.success === false) {
-                console.error('❌ Failed to load messages:', response.message || response.error);
+                console.error('❌ API returned error:', response.message || response.error);
                 throw new Error(response.message || response.error || 'Failed to load messages');
             } else {
-                console.error('❌ Invalid response format:', response);
+                console.error('❌ Unrecognized response format:', {
+                    response: response,
+                    hasSuccess: 'success' in response,
+                    successValue: response.success,
+                    hasData: 'data' in response,
+                    dataType: typeof response.data,
+                    responseKeys: Object.keys(response),
+                    responseType: typeof response
+                });
                 throw new Error('Invalid response format from server');
+            }
+            
+            console.log(`📬 Parsed ${messages.length} messages for ${this.chatType}:${this.targetId}`);
+            
+            if (messages.length === 0 && !before) {
+                this.showEmptyState();
+            } else {
+                this.hideEmptyState();
+                
+                if (this.messageHandler) {
+                    if (before) {
+                        await this.messageHandler.prependMessages(messages);
+                    } else {
+                        this.messageHandler.clearProcessedMessages();
+                        await this.messageHandler.displayMessages(messages);
+                    }
+                }
+                
+                this.hasMoreMessages = hasMore;
+                this.updateLoadMoreButton();
+                
+                if (!before) {
+                    setTimeout(() => {
+                        this.scrollToBottom();
+                    }, 100);
+                }
             }
         } catch (error) {
             console.error('❌ Error loading messages:', error);

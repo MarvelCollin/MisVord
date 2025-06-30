@@ -466,9 +466,7 @@ class UserDetailModal {
             
             if (this.nameElement) {
                 this.nameElement.innerHTML = '';
-                const displayName = (this.currentServerId && userData.server_profile?.nickname) 
-                    ? userData.server_profile.nickname 
-                    : user.username || 'Unknown User';
+                const displayName = user.display_name || user.username || 'Unknown User';
                 this.nameElement.textContent = displayName;
                 this.nameElement.classList.add('fade-in');
             }
@@ -645,9 +643,7 @@ class UserDetailModal {
 
         if (this.messageInput) {
             this.messageInput.disabled = isSelf;
-            const displayName = (this.currentServerId && this.userData?.server_profile?.nickname) 
-                ? this.userData.server_profile.nickname 
-                : user.username || 'user';
+            const displayName = user.display_name || user.username || 'user';
             this.messageInput.placeholder = `Message @${displayName}`;
             this.messageInput.classList.add('fade-in');
         }

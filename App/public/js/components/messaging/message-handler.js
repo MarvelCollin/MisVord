@@ -793,10 +793,10 @@ class MessageHandler {
     }
 
     clearProcessedMessages() {
-        console.log(`🧹 [MESSAGE-HANDLER] Clearing ${this.processedMessageIds.size} processed message IDs and ${this.temporaryMessages.size} temporary messages`);
         this.processedMessageIds.clear();
         this.temporaryMessages.clear();
         this.lastMessageGroup = null;
+        console.log('🧹 [MESSAGE-HANDLER] Processed messages cleared');
     }
     
     removeMessage(messageId) {
@@ -833,6 +833,109 @@ class MessageHandler {
         }, 3000);
         
         console.log('✅ [REPLY-JUMP] Successfully jumped to message:', messageId);
+    }
+    
+    async displayMessages(messages) {
+        console.log(`📨 [MESSAGE-HANDLER] Displaying ${messages.length} messages`);
+        
+        if (!Array.isArray(messages)) {
+            console.error('❌ [MESSAGE-HANDLER] displayMessages called with non-array:', messages);
+            return;
+        }
+        
+        if (messages.length === 0) {
+            console.log('📭 [MESSAGE-HANDLER] No messages to display');
+            return;
+        }
+        
+        const messagesContainer = this.chatSection.getMessagesContainer();
+        if (!messagesContainer) {
+            console.error('❌ [MESSAGE-HANDLER] Messages container not found');
+            return;
+        }
+        
+        this.chatSection.hideEmptyState();
+        
+        for (const message of messages) {
+            try {
+                await this.addMessage(message);
+            } catch (error) {
+                console.error(`❌ [MESSAGE-HANDLER] Error displaying message ${message.id}:`, error);
+            }
+        }
+        
+        console.log(`✅ [MESSAGE-HANDLER] Successfully displayed ${messages.length} messages`);
+    }
+    
+    async prependMessages(messages) {
+        console.log(`📨 [MESSAGE-HANDLER] Prepending ${messages.length} messages`);
+        
+        if (!Array.isArray(messages)) {
+            console.error('❌ [MESSAGE-HANDLER] prependMessages called with non-array:', messages);
+            return;
+        }
+        
+        if (messages.length === 0) {
+            console.log('📭 [MESSAGE-HANDLER] No messages to prepend');
+            return;
+        }
+        
+        const messagesContainer = this.chatSection.getMessagesContainer();
+        if (!messagesContainer) {
+            console.error('❌ [MESSAGE-HANDLER] Messages container not found');
+            return;
+        }
+        
+        this.chatSection.hideEmptyState();
+        
+        const firstChild = messagesContainer.firstChild;
+        const currentScrollHeight = messagesContainer.scrollHeight;
+        const currentScrollTop = messagesContainer.scrollTop;
+        
+        for (const message of messages.reverse()) {
+            try {
+                const formattedMessage = this.formatMessageForBubble(message);
+                
+                if (!this.isValidFormattedMessage(formattedMessage)) {
+                    console.error('❌ [MESSAGE-HANDLER] Formatted message failed validation:', formattedMessage);
+                    continue;
+                }
+                
+                const bubbleHtml = await this.renderBubbleMessage(formattedMessage);
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = bubbleHtml;
+                const messageGroup = tempDiv.querySelector('.bubble-message-group');
+                
+                if (messageGroup) {
+                    this.ensureBubbleStyles(tempDiv);
+                    messagesContainer.insertBefore(messageGroup, firstChild);
+                    this.processedMessageIds.add(message.id);
+                } else {
+                    this.fallbackPrependMessage(formattedMessage, messagesContainer, firstChild);
+                }
+            } catch (error) {
+                console.error(`❌ [MESSAGE-HANDLER] Error prepending message ${message.id}:`, error);
+                const formattedMessage = this.formatMessageForBubble(message);
+                this.fallbackPrependMessage(formattedMessage, messagesContainer, firstChild);
+            }
+        }
+        
+        const newScrollHeight = messagesContainer.scrollHeight;
+        messagesContainer.scrollTop = currentScrollTop + (newScrollHeight - currentScrollHeight);
+        
+        console.log(`✅ [MESSAGE-HANDLER] Successfully prepended ${messages.length} messages`);
+    }
+    
+    fallbackPrependMessage(formattedMessage, messagesContainer, firstChild) {
+        console.log('🔧 [MESSAGE-HANDLER] Using fallback prepend for message:', formattedMessage.id);
+        
+        this.ensureFallbackStyles();
+        
+        const messageGroup = this.createMessageGroup(formattedMessage);
+        if (messageGroup) {
+            messagesContainer.insertBefore(messageGroup, firstChild);
+            this.processedMessageIds.add(formattedMessage.id);
+        }
     }
 }
 

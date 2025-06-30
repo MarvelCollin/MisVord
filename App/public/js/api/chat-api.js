@@ -69,7 +69,6 @@ class ChatAPI {
 
     async makeRequest(url, options = {}) {
         try {
-            // Log the request
             console.log('📡 API Request:', url);
             
             const defaultOptions = {
@@ -81,10 +80,8 @@ class ChatAPI {
                 credentials: 'same-origin'
             };
             
-            // Merge options
             const fetchOptions = { ...defaultOptions, ...options };
             
-            // Make request
             const response = await fetch(url, fetchOptions);
             console.log('📡 Response received:', {
                 url,
@@ -92,7 +89,6 @@ class ChatAPI {
                 statusText: response.statusText
             });
             
-            // Handle response
             if (!response.ok) {
                 console.error('API Request failed with status:', {
                     url,
@@ -100,11 +96,15 @@ class ChatAPI {
                     statusText: response.statusText
                 });
                 
+                const errorText = await response.text();
+                console.error('Error response body:', errorText);
+                
                 throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
             }
             
-            // Parse JSON response
             const data = await response.json();
+            console.log('📡 API Response data:', data);
+            
             return data;
         } catch (error) {
             console.error('API Request failed:', error);
