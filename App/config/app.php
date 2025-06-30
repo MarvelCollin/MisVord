@@ -1,17 +1,23 @@
 <?php
 
+date_default_timezone_set('Asia/Jakarta');
+
 require_once __DIR__ . '/env.php';
 
 require_once __DIR__ . '/db.php';
 
+require_once __DIR__ . '/session.php';
+
 require_once __DIR__ . '/helpers.php';
+
+require_once __DIR__ . '/route_manager.php';
+
+require_once __DIR__ . '/config_manager.php';
 
 require_once __DIR__ . '/../utils/AppLogger.php';
 
 define('APP_NAME', 'MisVord');
 define('APP_VERSION', '1.0.0');
-
-date_default_timezone_set('Asia/Jakarta');
 
 $isProduction = EnvLoader::get('APP_ENV') === 'production';
 if ($isProduction) {

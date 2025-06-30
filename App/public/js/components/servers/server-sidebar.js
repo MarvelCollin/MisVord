@@ -1,7 +1,6 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
 import { playDiscordoSound, playCallSound } from '../../utils/music-loader-static.js';
-import { loadServerPage } from '../../utils/load-server-page.js';
-import { loadHomePage } from '../../utils/load-home-page.js';
+import { NavigationManager } from '../../utils/navigation-manager.js';
 
 let isRendering = false;
 let serverDataCache = null;
@@ -918,11 +917,15 @@ export async function handleHomeClick(event) {
             }
         }
 
-        console.log('[Home Navigation] Using loadHomePage for consistent skeleton loading');
-        if (typeof loadHomePage === 'function') {
-            await loadHomePage('friends');
+        console.log('[Home Navigation] Using navigation manager');
+        if (window.navigationManager) {
+            const success = await window.navigationManager.navigateToHome('friends');
+            if (!success) {
+                console.warn('[Home Navigation] Navigation manager failed, using fallback');
+                window.location.href = '/home';
+            }
         } else {
-            console.error('[Home Navigation] loadHomePage not available, using fallback');
+            console.error('[Home Navigation] Navigation manager not available, using fallback');
             window.location.href = '/home';
         }
 
@@ -956,14 +959,18 @@ export async function handleServerClick(serverId, event) {
     showServerLoadingIndicator(serverId);
 
     try {
-        if (loadServerPage) {
-            console.log('[Server Navigation] Using loadServerPage function');
-            await loadServerPage(serverId);
-            updateActiveServer('server', serverId);
-            console.log('[Server Navigation] SUCCESS - Server navigation completed via loadServerPage');
+        if (window.navigationManager) {
+            console.log('[Server Navigation] Using navigation manager');
+            const success = await window.navigationManager.navigateToServer(serverId);
+            if (success) {
+                console.log('[Server Navigation] SUCCESS - Server navigation completed via navigation manager');
+            } else {
+                console.warn('[Server Navigation] Navigation manager failed, using fallback');
+                window.location.href = `/server/${serverId}`;
+            }
         } else {
-            console.warn('[Server Navigation] loadServerPage not available, using fallback AJAX method');
-            await handleServerClickFallback(serverId);
+            console.warn('[Server Navigation] Navigation manager not available, using fallback');
+            window.location.href = `/server/${serverId}`;
         }
     } catch (error) {
         console.error('[Server Navigation] ERROR in handleServerClick:', error);
@@ -1047,13 +1054,6 @@ export async function handleExploreClick(event) {
     showExploreLoadingIndicator();
     
     try {
-        const currentChannelId = new URLSearchParams(window.location.search).get('channel');
-        if (currentChannelId && window.globalSocketManager) {
-            console.log('[Explore Navigation] Cleaning up socket for channel:', currentChannelId);
-            window.globalSocketManager.leaveChannel(currentChannelId);
-        }
-
-        // DON'T disconnect voice on navigation - keep it alive!
         if (window.voiceManager && window.voiceManager.isConnected) {
             console.log('[Explore Navigation] Voice connection detected, keeping alive and showing global indicator');
             if (window.globalVoiceIndicator) {
@@ -1063,78 +1063,17 @@ export async function handleExploreClick(event) {
             }
         }
 
-        console.log('[Explore Navigation] Loading explore page with AJAX');
-        
-        function loadExploreCSS() {
-            const cssFiles = ['explore-servers', 'server-detail'];
-            cssFiles.forEach(cssFile => {
-                const href = `/public/css/${cssFile}.css`;
-                if (!document.querySelector(`link[href="${href}"]`)) {
-                    const link = document.createElement('link');
-                    link.rel = 'stylesheet';
-                    link.type = 'text/css';
-                    link.href = href;
-                    document.head.appendChild(link);
-                    console.log('[Explore Navigation] CSS loaded:', href);
-                }
-            });
-        }
-        
-        loadExploreCSS();
-        const response = await $.ajax({
-            url: '/explore-servers/layout',
-            method: 'GET',
-            dataType: 'html',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-
-        const layoutContainer = document.querySelector('.flex.flex-1.overflow-hidden') || 
-                              document.querySelector('#main-content') || 
-                              document.querySelector('.main-content') || 
-                              document.querySelector('#app-content') ||
-                              document.querySelector('.app-content') ||
-                              document.querySelector('main') ||
-                              document.querySelector('.content-wrapper');
-        
-        if (layoutContainer && response) {
-            console.log('[Explore Navigation] Found layout container:', layoutContainer.className || layoutContainer.id);
-            layoutContainer.innerHTML = response;
-            console.log('[Explore Navigation] Explore page content loaded successfully');
-            
-            // Find and execute any embedded scripts
-            const scriptTags = layoutContainer.querySelectorAll('script');
-            scriptTags.forEach(script => {
-                if (script.type === 'module' || script.type === 'text/javascript' || !script.type) {
-                    try {
-                        if (script.src) {
-                            // External script
-                            const newScript = document.createElement('script');
-                            newScript.src = script.src;
-                            newScript.type = script.type || 'text/javascript';
-                            document.head.appendChild(newScript);
-                        } else {
-                            // Inline script
-                            eval(script.textContent);
-                        }
-                        console.log('[Explore Navigation] Executed script:', script.type || 'inline');
-                    } catch (error) {
-                        console.error('[Explore Navigation] Error executing script:', error);
-                    }
-                }
-            });
+        console.log('[Explore Navigation] Using navigation manager');
+        if (window.navigationManager) {
+            const success = await window.navigationManager.navigateToExplore();
+            if (!success) {
+                console.warn('[Explore Navigation] Navigation manager failed, using fallback');
+                window.location.href = '/explore-servers';
+            }
         } else {
-            console.error('[Explore Navigation] Could not find layout container or no response');
+            console.error('[Explore Navigation] Navigation manager not available, using fallback');
+            window.location.href = '/explore-servers';
         }
-
-        window.history.pushState({ pageType: 'explore' }, 'Explore Servers', '/explore-servers');
-        updateActiveServer('explore');
-
-        window.dispatchEvent(new CustomEvent('ExplorePageChanged', { 
-            detail: { 
-                pageType: 'explore',
-                previousChannelId: currentChannelId 
-            } 
-        }));
 
         console.log('[Explore Navigation] SUCCESS - Explore navigation completed');
 
@@ -1209,12 +1148,15 @@ function formatTimestamp(timestamp) {
     
     try {
         const date = new Date(timestamp);
+        date.setTime(date.getTime() + (7 * 60 * 60 * 1000));
+        
         const now = new Date();
+        now.setTime(now.getTime() + (7 * 60 * 60 * 1000));
         
         if (date.toDateString() === now.toDateString()) {
-            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
         } else {
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return date.toLocaleDateString('id-ID', { month: 'short', day: 'numeric', timeZone: 'Asia/Jakarta' });
         }
     } catch (e) {
         console.error('Error formatting timestamp:', e);

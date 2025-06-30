@@ -1854,7 +1854,11 @@ class ServerController extends BaseController
             $membershipDetails = $this->userServerMembershipRepository->getUserServerMembershipDetails($this->getCurrentUserId(), $serverId);
             
             if (!$membershipDetails) {
-                return $this->forbidden('You are not a member of this server');
+                return $this->success([
+                    'is_member' => false,
+                    'membership' => null,
+                    'message' => 'User is not a member of this server'
+                ]);
             }
 
             $this->logActivity('user_server_membership_retrieved', [
@@ -1863,6 +1867,7 @@ class ServerController extends BaseController
             ]);
 
             return $this->success([
+                'is_member' => true,
                 'membership' => $membershipDetails
             ]);
         } catch (Exception $e) {

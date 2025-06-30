@@ -601,15 +601,19 @@ class MessageHandler {
         if (!timestamp) return '';
         
         const date = new Date(timestamp);
+        date.setTime(date.getTime() + (7 * 60 * 60 * 1000));
+        
         const now = new Date();
+        now.setTime(now.getTime() + (7 * 60 * 60 * 1000));
+        
         const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
         
         if (diffDays === 0) {
-            return 'Today at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return 'Today at ' + date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
         } else if (diffDays === 1) {
-            return 'Yesterday at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return 'Yesterday at ' + date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
         } else {
-            return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' at ' + date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
         }
     }
     

@@ -190,9 +190,9 @@ class MessageController extends BaseController
                 'user_id' => $userId,
                 'message_type' => $messageType,
                 'attachment_url' => $attachmentUrl,
-                'sent_at' => date('Y-m-d H:i:s'),
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+                'sent_at' => indonesiaTime(),
+                'created_at' => indonesiaTime(),
+                'updated_at' => indonesiaTime()
             ];
             
             if ($replyMessageId) {
@@ -562,9 +562,9 @@ class MessageController extends BaseController
                 $pinId = $query->table('pinned_messages')->insert([
                     'message_id' => $messageId,
                     'pinned_by' => $userId,
-                    'pinned_at' => date('Y-m-d H:i:s'),
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'pinned_at' => indonesiaTime(),
+                    'created_at' => indonesiaTime(),
+                    'updated_at' => indonesiaTime()
                 ]);
 
                 if ($pinId) {
@@ -618,7 +618,7 @@ class MessageController extends BaseController
                     'user_message_count' => 'N/A'
                 ],
                 'recent_messages' => $recentMessages,
-                'timestamp' => date('Y-m-d H:i:s')
+                'timestamp' => indonesiaTime()
             ]);
         } catch (Exception $e) {
             return $this->serverError('Failed to retrieve debug information');

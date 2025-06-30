@@ -14,8 +14,8 @@ class ChannelMessageRepository extends Repository {
         $channelMessage = new ChannelMessage([
             'channel_id' => $channelId,
             'message_id' => $messageId,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
+            'created_at' => indonesiaTime(),
+            'updated_at' => indonesiaTime()
         ]);
         
         return $channelMessage->save();

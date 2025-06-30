@@ -19,7 +19,7 @@ class MessageRepository extends Repository {
     
     public function createWithSentAt($data) {
         if (!isset($data['sent_at'])) {
-            $data['sent_at'] = date('Y-m-d H:i:s');
+            $data['sent_at'] = indonesiaTime();
         }
         return $this->create($data);
     }
@@ -33,7 +33,7 @@ class MessageRepository extends Repository {
     }
     
     public function markAsEdited($messageId) {
-        return $this->update($messageId, ['edited_at' => date('Y-m-d H:i:s')]);
+        return $this->update($messageId, ['edited_at' => indonesiaTime()]);
     }    public function getReplies($messageId) {
         return $this->getAllBy('reply_message_id', $messageId);
     }

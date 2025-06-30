@@ -82,8 +82,9 @@ class Message extends Model {
             return 'Just now';
         }
         
-        $sentAt = new DateTime($this->sent_at);
-        $now = new DateTime();
+        $timezone = new DateTimeZone('Asia/Jakarta');
+        $sentAt = new DateTime($this->sent_at, $timezone);
+        $now = new DateTime('now', $timezone);
         
         $diff = $now->diff($sentAt);
         

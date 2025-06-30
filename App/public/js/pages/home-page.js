@@ -228,8 +228,12 @@ function createActivityItem(data) {
 }
 
 function getElapsedTime(startTime) {
-    const start = new Date(startTime).getTime();
-    const now = Date.now();
+    const start = new Date(startTime);
+    start.setTime(start.getTime() + (7 * 60 * 60 * 1000));
+    
+    const now = new Date();
+    now.setTime(now.getTime() + (7 * 60 * 60 * 1000));
+    
     const diff = now - start;
 
     const hours = Math.floor(diff / (1000 * 60 * 60));

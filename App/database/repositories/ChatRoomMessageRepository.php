@@ -14,8 +14,8 @@ class ChatRoomMessageRepository extends Repository {
         $chatRoomMessage = new ChatRoomMessage([
             'room_id' => $roomId,
             'message_id' => $messageId,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
+            'created_at' => indonesiaTime(),
+            'updated_at' => indonesiaTime()
         ]);
         
         return $chatRoomMessage->save();

@@ -244,9 +244,9 @@ class ChatController extends BaseController
                 'user_id' => $userId,
                 'message_type' => $messageType,
                 'attachment_url' => !empty($attachments) ? json_encode(array_values($attachments)) : null,
-                'sent_at' => date('Y-m-d H:i:s'),
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+                'sent_at' => indonesiaTime(),
+                'created_at' => indonesiaTime(),
+                'updated_at' => indonesiaTime()
             ];
             
             if ($replyMessageId) {
@@ -319,9 +319,9 @@ class ChatController extends BaseController
                 'user_id' => $userId,
                 'message_type' => $messageType,
                 'attachment_url' => !empty($attachments) ? json_encode(array_values($attachments)) : null,
-                'sent_at' => date('Y-m-d H:i:s'),
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+                'sent_at' => indonesiaTime(),
+                'created_at' => indonesiaTime(),
+                'updated_at' => indonesiaTime()
             ];
             
             if ($replyMessageId) {
@@ -960,7 +960,7 @@ class ChatController extends BaseController
 
         try {
             $message->content = $content;
-            $message->edited_at = date('Y-m-d H:i:s');
+            $message->edited_at = indonesiaTime();
 
             if ($message->save()) {
                 require_once __DIR__ . '/../database/models/ChannelMessage.php';

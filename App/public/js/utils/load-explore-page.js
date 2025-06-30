@@ -1,4 +1,4 @@
-import { loadServerPage } from './load-server-page.js';
+import { NavigationManager } from './navigation-manager.js';
 
 function loadCSS(cssFiles) {
     if (!cssFiles || !Array.isArray(cssFiles)) return Promise.resolve();
@@ -100,22 +100,12 @@ function ensureServerAPI() {
 }
 
 export function loadExplorePage() {
-    const requiredCSS = ['explore-servers', 'server-detail'];
-    const requiredJS = ['components/servers/server-detail'];
+    if (window.navigationManager) {
+        return window.navigationManager.navigateToExplore();
+    }
     
-    console.log('[Explore Loader] Starting to load required assets...');
-    
-    Promise.all([
-        loadCSS(requiredCSS),
-        loadJS(requiredJS),
-        ensureServerAPI()
-    ]).then(() => {
-        console.log('[Explore Loader] All assets loaded successfully, starting AJAX call...');
-        startExploreAjaxLoad();
-    }).catch(error => {
-        console.error('[Explore Loader] Failed to load assets:', error);
-        startExploreAjaxLoad();
-    });
+    console.error('[Explore Loader] Navigation manager not available, falling back to direct navigation');
+    window.location.href = '/explore-servers';
 }
 
 function startExploreAjaxLoad() {

@@ -162,11 +162,21 @@ function studly_case($string) {
     return str_replace(' ', '', $string);
 }
 
+function indonesiaTime($format = 'Y-m-d H:i:s') {
+    $timezone = new DateTimeZone('Asia/Jakarta');
+    $date = new DateTime('now', $timezone);
+    return $date->format($format);
+}
+
 function formatDate($date, $format = 'd M Y') {
+    $timezone = new DateTimeZone('Asia/Jakarta');
     if (is_numeric($date)) {
-        return date($format, $date);
+        $dateObj = new DateTime('@' . $date);
+        $dateObj->setTimezone($timezone);
+        return $dateObj->format($format);
     }
-    return date($format, strtotime($date));
+    $dateObj = new DateTime($date, $timezone);
+    return $dateObj->format($format);
 }
 
 function truncateText($text, $length = 100, $append = '...') {

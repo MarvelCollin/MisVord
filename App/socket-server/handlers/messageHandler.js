@@ -419,7 +419,8 @@ class MessageHandler {
         
         try {    
             const temp_message_id = data.temp_message_id || `temp-${Date.now()}`;
-            const currentTimestamp = new Date().toISOString();
+            const indonesiaTime = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
+            const currentTimestamp = indonesiaTime.toISOString();
 
             let broadcastData = {
                 id: temp_message_id,

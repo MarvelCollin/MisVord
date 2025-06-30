@@ -1,20 +1,11 @@
 export function loadServerPage(serverId, channelId = null) {
-    console.log('[Server Loader] Starting loadServerPage with serverId:', serverId, 'channelId:', channelId);
-    
-    if (window.globalSwitchLock) {
-        console.log('[Server Loader] Global switch lock active, server switch blocked');
-        return;
+    if (window.navigationManager) {
+        return window.navigationManager.navigateToServer(serverId, channelId);
     }
     
-    window.globalSwitchLock = true;
-    console.log('[Server Loader] Global switch lock acquired for server loading');
-    
-    setTimeout(() => {
-        if (window.globalSwitchLock) {
-            console.warn('[Server Loader] Global switch lock timeout - force releasing after 30 seconds');
-            window.globalSwitchLock = false;
-        }
-    }, 30000);
+    console.error('[Server Loader] Navigation manager not available, falling back to direct navigation');
+    window.location.href = `/server/${serverId}`;
+    return;
     
     const mainContent = document.querySelector('.flex-1') ||
         document.querySelector('[class*="server-content"]') ||

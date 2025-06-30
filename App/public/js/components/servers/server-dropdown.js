@@ -32,31 +32,38 @@ function getUserRole(serverId) {
 
     return window.serverAPI.getUserServerMembership(serverId)
         .then(data => {
-            if (data.success && data.data && data.data.membership) {
-                const role = data.data.membership.role || 'member';
-                currentUserRole = role;
-                console.log('User role fetched:', role, 'for server:', serverId);
-                return role;
+            if (data.success) {
+                if (data.data && data.data.is_member && data.data.membership) {
+                    const role = data.data.membership.role || 'member';
+                    currentUserRole = role;
+                    console.log('User role fetched:', role, 'for server:', serverId);
+                    return role;
+                } else if (data.data && data.data.is_member === false) {
+                    console.log('User is not a member of server', serverId);
+                    currentUserRole = 'non-member';
+                    return 'non-member';
+                } else {
+                    console.warn('No membership data found, defaulting to member role');
+                    currentUserRole = 'member';
+                    return 'member';
+                }
+            } else {
+                console.warn('API request unsuccessful, defaulting to member role');
+                currentUserRole = 'member';
+                return 'member';
             }
-            console.warn('No membership data found, defaulting to member role');
-            currentUserRole = 'member';
-            return 'member';
         })
         .catch(error => {
             console.error('Error fetching user role:', error);
             
-            if (error.message && error.message.includes('403')) {
-                console.warn('User is not a member of server', serverId, '- hiding admin options');
-                currentUserRole = 'non-member';
-                return 'non-member';
-            } else if (error.message && error.message.includes('404')) {
+            if (error.message && error.message.includes('404')) {
                 console.warn('Server not found:', serverId);
                 currentUserRole = 'member';
                 return 'member';
             }
             
-            currentUserRole = 'member';
-            return 'member';
+            currentUserRole = 'non-member';
+            return 'non-member';
         });
 }
 

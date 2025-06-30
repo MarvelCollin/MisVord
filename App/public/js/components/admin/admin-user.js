@@ -711,7 +711,8 @@ export class UserManager {
   formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    date.setTime(date.getTime() + (7 * 60 * 60 * 1000));
+    return date.toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Jakarta' });
   }
   
   debounce(func, wait) {

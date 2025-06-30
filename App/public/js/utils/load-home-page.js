@@ -1,7 +1,13 @@
-import { loadServerPage } from './load-server-page.js';
+import { NavigationManager } from './navigation-manager.js';
 
 export function loadHomePage(pageType = 'friends') {
-    console.log('[Home Loader] Starting loadHomePage with pageType:', pageType);
+    if (window.navigationManager) {
+        return window.navigationManager.navigateToHome(pageType);
+    }
+    
+    console.error('[Home Loader] Navigation manager not available, falling back to direct navigation');
+    window.location.href = '/home';
+    return;
     
     const mainContent = document.querySelector('.flex-1') ||
         document.querySelector('[class*="server-content"]') ||

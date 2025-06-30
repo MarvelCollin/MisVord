@@ -672,7 +672,8 @@ export class NitroManager {
   formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    date.setTime(date.getTime() + (7 * 60 * 60 * 1000));
+    return date.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' ' + date.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
   }
   
   debounce(func, wait) {

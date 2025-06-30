@@ -158,6 +158,7 @@ $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';
 $page_js = 'pages/home-page';
 $additional_js = [
+    'utils/navigation-manager',
     'components/servers/server-dropdown', 
     'components/servers/server-sidebar',
     'components/messaging/chat-section',

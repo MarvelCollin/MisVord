@@ -26,8 +26,9 @@ if (!function_exists('formatBubbleTimestamp')) {
     function formatBubbleTimestamp($sentAt) {
         if (empty($sentAt)) return '';
         
-        $date = new DateTime($sentAt);
-        $now = new DateTime();
+        $timezone = new DateTimeZone('Asia/Jakarta');
+        $date = new DateTime($sentAt, $timezone);
+        $now = new DateTime('now', $timezone);
         $diffDays = $now->diff($date)->days;
         
         if ($diffDays === 0) {
