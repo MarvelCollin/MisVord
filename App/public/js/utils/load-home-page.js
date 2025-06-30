@@ -714,6 +714,9 @@ function performHomeLayoutUpdate(response, pageType, currentChannelId) {
     console.log('[Home AJAX] Disabling skeleton loading');
     handleHomeSkeletonLoading(false);
     
+    console.log('[Home AJAX] Ensuring userAPI availability');
+    ensureUserAPIAvailability();
+    
     if (typeof window.initHomePage === 'function') {
         window.initHomePage();
         console.log('[Home AJAX] Home page initialized');
@@ -750,6 +753,72 @@ function performHomeLayoutUpdate(response, pageType, currentChannelId) {
     });
     document.dispatchEvent(event);
     console.log('[Home AJAX] HomePageChanged event dispatched');
+}
+
+function ensureUserAPIAvailability() {
+    console.log('[Home API] Checking userAPI availability');
+    
+    if (window.userAPI && typeof window.userAPI.getAllUsers === 'function') {
+        console.log('[Home API] ✅ UserAPI already available');
+        return Promise.resolve();
+    }
+    
+    console.log('[Home API] ⚠️ UserAPI not available, initializing...');
+    
+    return new Promise((resolve) => {
+        const checkUserAPI = () => {
+            if (window.userAPI && typeof window.userAPI.getAllUsers === 'function') {
+                console.log('[Home API] ✅ UserAPI now available');
+                resolve();
+                return true;
+            }
+            return false;
+        };
+        
+        if (checkUserAPI()) {
+            return;
+        }
+        
+        if (typeof UserAPI === 'function') {
+            console.log('[Home API] Creating new UserAPI instance');
+            const userAPI = new UserAPI();
+            window.userAPI = userAPI;
+            resolve();
+            return;
+        }
+        
+        console.log('[Home API] Loading user-api.js dynamically');
+        const script = document.createElement('script');
+        script.src = `/public/js/api/user-api.js?v=${Date.now()}`;
+        script.onload = () => {
+            console.log('[Home API] user-api.js loaded successfully');
+            setTimeout(() => {
+                if (checkUserAPI()) {
+                    resolve();
+                } else {
+                    console.error('[Home API] UserAPI still not available after loading script');
+                    resolve();
+                }
+            }, 100);
+        };
+        script.onerror = () => {
+            console.error('[Home API] Failed to load user-api.js');
+            resolve();
+        };
+        document.head.appendChild(script);
+        
+        let attempts = 0;
+        const checkInterval = setInterval(() => {
+            attempts++;
+            if (checkUserAPI()) {
+                clearInterval(checkInterval);
+            } else if (attempts > 50) {
+                clearInterval(checkInterval);
+                console.warn('[Home API] UserAPI check timeout');
+                resolve();
+            }
+        }, 100);
+    });
 }
 
 window.loadHomePage = loadHomePage;

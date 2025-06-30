@@ -27,8 +27,19 @@
                     <input type="text" placeholder="Enter group name" class="w-full bg-[#1e1f22] text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-[#404249]" id="group-name-input">
                 </div>
                 <div class="mb-3">
-                    <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Group Image (Optional)</label>
-                    <input type="url" placeholder="Enter image URL" class="w-full bg-[#1e1f22] text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-[#404249]" id="group-image-input">
+                    <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Group Image</label>
+                    <div class="flex items-center space-x-3">
+                        <div id="group-image-preview" class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden cursor-pointer border-2 border-[#404249] hover:border-[#5865f2] transition-colors">
+                            <i class="fas fa-camera text-gray-400"></i>
+                        </div>
+                        <div class="flex-1">
+                            <input type="file" accept="image/*" class="hidden" id="group-image-input">
+                            <button type="button" class="w-full bg-[#4e5058] hover:bg-[#5c5e66] text-white px-3 py-2 rounded transition-colors" id="group-image-select-btn">
+                                Select Image
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">Click to select and crop group image</div>
                 </div>
             </div>
 
@@ -59,9 +70,99 @@ document.addEventListener('DOMContentLoaded', function() {
     const groupOptions = document.getElementById('group-options');
     const groupNameInput = document.getElementById('group-name-input');
     const groupImageInput = document.getElementById('group-image-input');
+    const groupImagePreview = document.getElementById('group-image-preview');
+    const groupImageSelectBtn = document.getElementById('group-image-select-btn');
     let selectedUserIds = new Set();
     let allUsers = [];
+    let filteredUsers = [];
     let searchTimeout = null;
+    let groupImageFile = null;
+    let imageCutter = null;
+    let jaroWinkler = null;
+
+    if (window.JaroWinkler) {
+        jaroWinkler = new window.JaroWinkler();
+    }
+
+    function initializeImageCutter() {
+        if (window.ImageCutter && groupImagePreview) {
+            imageCutter = new window.ImageCutter({
+                container: groupImagePreview,
+                type: 'profile',
+                modalTitle: 'Crop Group Image',
+                onCrop: function(result) {
+                    if (result.error) {
+                        if (window.showToast) {
+                            window.showToast('Error processing image: ' + (result.message || 'Unknown error'), 'error');
+                        }
+                        return;
+                    }
+                    
+                    groupImageFile = result.dataUrl;
+                    updateGroupImagePreview(result.dataUrl);
+                    
+                    if (window.showToast) {
+                        window.showToast('Group image updated successfully', 'success');
+                    }
+                }
+            });
+        }
+    }
+
+    function updateGroupImagePreview(imageUrl) {
+        groupImagePreview.innerHTML = `<img src="${imageUrl}" alt="Group Image" class="w-full h-full object-cover">`;
+    }
+
+    function resetGroupImage() {
+        groupImageFile = null;
+        groupImagePreview.innerHTML = '<i class="fas fa-camera text-gray-400"></i>';
+    }
+
+    function setupImageInputHandlers() {
+        if (groupImageSelectBtn) {
+            groupImageSelectBtn.addEventListener('click', function() {
+                groupImageInput.click();
+            });
+        }
+
+        if (groupImageInput) {
+            groupImageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    if (!file.type.match('image.*')) {
+                        if (window.showToast) {
+                            window.showToast('Please select an image file', 'error');
+                        }
+                        return;
+                    }
+                    
+                    if (file.size > 5 * 1024 * 1024) {
+                        if (window.showToast) {
+                            window.showToast('Image size must be less than 5MB', 'error');
+                        }
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        if (imageCutter) {
+                            imageCutter.loadImage(e.target.result);
+                        } else {
+                            groupImageFile = e.target.result;
+                            updateGroupImagePreview(e.target.result);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        if (groupImagePreview) {
+            groupImagePreview.addEventListener('click', function() {
+                groupImageInput.click();
+            });
+        }
+    }
 
     function loadAllUsers() {
         const usersList = document.getElementById('dm-users-list');
@@ -105,7 +206,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (users && users.length > 0) {
                         console.log(`✅ Found ${users.length} users`);
                         allUsers = users;
-                        renderUsers(allUsers);
+                        filteredUsers = [...allUsers];
+                        renderUsers(filteredUsers);
                         
                         if (noUsersMsg) {
                             noUsersMsg.classList.add('hidden');
@@ -132,6 +234,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderUsers(users) {
         const usersList = document.getElementById('dm-users-list');
         usersList.innerHTML = '';
+
+        if (!users || users.length === 0) {
+            usersList.innerHTML = '<div class="text-gray-400 text-center py-2">No users found</div>';
+            return;
+        }
 
         users.forEach(user => {
             const statusColor = getStatusColor(user.status || 'offline');
@@ -255,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             groupOptions.classList.add('hidden');
             groupNameInput.value = '';
-            groupImageInput.value = '';
+            resetGroupImage();
         }
     }
 
@@ -292,7 +399,7 @@ document.addEventListener('DOMContentLoaded', function() {
             requestData = {
                 user_ids: userIdsArray,
                 group_name: groupName,
-                group_image: groupImageInput.value.trim() || null
+                group_image: groupImageFile || null
             };
         }
         
@@ -328,6 +435,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.showToast('Failed to create conversation. Please try again.', 'error');
             }
         });
+    }
+
+    function performAdvancedSearch(searchTerm) {
+        if (!jaroWinkler || !allUsers || allUsers.length === 0) {
+            return performBasicSearch(searchTerm);
+        }
+
+        console.log('🔍 Performing advanced search with JaroWinkler for:', searchTerm);
+        
+        try {
+            const searchResults = jaroWinkler.searchUsers(allUsers, searchTerm, {
+                threshold: 0.3,
+                maxResults: 20,
+                fields: ['username', 'display_name'],
+                weights: { username: 1.0, display_name: 0.8 }
+            });
+            
+            console.log(`✅ JaroWinkler found ${searchResults.length} results`);
+            filteredUsers = searchResults;
+            renderUsers(filteredUsers);
+        } catch (error) {
+            console.error('❌ JaroWinkler search failed, falling back to basic search:', error);
+            performBasicSearch(searchTerm);
+        }
+    }
+
+    function performBasicSearch(searchTerm) {
+        console.log('🔍 Performing basic search for:', searchTerm);
+        
+        const searchTermLower = searchTerm.toLowerCase();
+        filteredUsers = allUsers.filter(user => {
+            const username = (user.username || '').toLowerCase();
+            const displayName = (user.display_name || '').toLowerCase();
+            
+            return username.includes(searchTermLower) || 
+                   displayName.includes(searchTermLower) ||
+                   username.startsWith(searchTermLower) ||
+                   displayName.startsWith(searchTermLower);
+        });
+        
+        console.log(`✅ Basic search found ${filteredUsers.length} results`);
+        renderUsers(filteredUsers);
     }
 
     function getStatusColor(status) {
@@ -367,6 +516,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateCreateButton();
             updateModalTitle();
             updateGroupOptions();
+            resetGroupImage();
             loadAllUsers();
         });
     }
@@ -401,9 +551,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             searchTimeout = setTimeout(() => {
                 if (searchTerm.length >= 2) {
-                    performSearch(searchTerm);
+                    performAdvancedSearch(searchTerm);
                 } else if (searchTerm.length === 0) {
-                    renderUsers(allUsers);
+                    filteredUsers = [...allUsers];
+                    renderUsers(filteredUsers);
                 }
             }, 300);
         });
@@ -413,41 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
         createButton.addEventListener('click', createChat);
     }
 
-    function performSearch(searchTerm) {
-        if (!window.userAPI) return;
-        
-        const usersList = document.getElementById('dm-users-list');
-        usersList.innerHTML = generateSkeletonItems(3);
-        
-        window.userAPI.getAllUsers(searchTerm)
-            .then(response => {
-                console.log('🔍 Search response:', response);
-                usersList.innerHTML = '';
-                
-                if (response && response.success) {
-                    let users = null;
-                    
-                    if (response.data && response.data.users && Array.isArray(response.data.users)) {
-                        users = response.data.users;
-                    } else if (response.users && Array.isArray(response.users)) {
-                        users = response.users;
-                    }
-                    
-                    if (users && users.length > 0) {
-                        console.log(`🔍 Found ${users.length} users matching search`);
-                        renderUsers(users);
-                    } else {
-                        usersList.innerHTML = '<div class="text-gray-400 text-center py-2">No users found</div>';
-                    }
-                } else {
-                    console.error('❌ Search failed:', response);
-                    usersList.innerHTML = '<div class="text-gray-400 text-center py-2">Search failed</div>';
-                }
-            })
-            .catch(error => {
-                console.error('❌ Search error:', error);
-                usersList.innerHTML = '<div class="text-gray-400 text-center py-2">Search error</div>';
-            });
-    }
+    initializeImageCutter();
+    setupImageInputHandlers();
 });
 </script>

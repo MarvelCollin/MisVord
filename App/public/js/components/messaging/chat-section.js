@@ -788,14 +788,8 @@ class ChatSection {
             this.emptyStateContainer.className = 'flex flex-col items-center justify-center h-full text-[#dcddde] p-4';
             
             try {
-                const messagesContainer = this.getMessagesContainer();
-                if (messagesContainer) {
-                    messagesContainer.appendChild(this.emptyStateContainer);
-                    console.log('✅ [CHAT-SECTION] Empty state container created and appended to messages container');
-                } else {
-                    console.error('❌ [CHAT-SECTION] No messages container found for empty state');
-                    return;
-                }
+                messagesContainer.appendChild(this.emptyStateContainer);
+                console.log('✅ [CHAT-SECTION] Empty state container created and appended to messages container');
             } catch (error) {
                 console.error('❌ [CHAT-SECTION] Failed to append empty state container:', error);
                 return;

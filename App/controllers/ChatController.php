@@ -482,8 +482,18 @@ class ChatController extends BaseController
                         return $this->validationError(['group_name' => 'Group name is required for group chats']);
                     }
 
+                    $processedGroupImage = null;
+                    if ($groupImage) {
+                        try {
+                            $processedGroupImage = $this->processGroupImage($groupImage);
+                        } catch (Exception $e) {
+                            error_log('Error processing group image: ' . $e->getMessage());
+                            return $this->validationError(['group_image' => 'Failed to process group image: ' . $e->getMessage()]);
+                        }
+                    }
+
                     $allParticipants = array_merge([$userId], $userIds);
-                    $chatRoom = $this->chatRoomRepository->createGroupChatRoom($allParticipants, $groupName, $groupImage);
+                    $chatRoom = $this->chatRoomRepository->createGroupChatRoom($allParticipants, $groupName, $processedGroupImage);
                 }
 
                 if (!$chatRoom || !$chatRoom->id) {
