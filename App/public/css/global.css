@@ -1123,3 +1123,80 @@ button[type="submit"]:hover,
     opacity: 1;
     max-height: 200px;
 }
+
+.nitro-crown {
+  color: #ffd700;
+  font-size: 12px;
+  margin-left: 4px;
+  filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.6));
+  animation: crown-subtle-glow 3s ease-in-out infinite alternate;
+  transition: all 0.2s ease;
+}
+
+.nitro-crown:hover {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.9));
+  animation: crown-hover-glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes crown-subtle-glow {
+  0% {
+    filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.6));
+  }
+  100% {
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));
+  }
+}
+
+@keyframes crown-hover-glow {
+  0% {
+    filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.9));
+    transform: scale(1.1);
+  }
+  100% {
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 1));
+    transform: scale(1.15);
+  }
+}
+
+.nitro-crown-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.nitro-crown-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #18191c;
+  color: #ffd700;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 99999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  pointer-events: none;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.nitro-crown-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #18191c;
+}
+
+.nitro-crown-wrapper:hover .nitro-crown-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0.3s;
+}

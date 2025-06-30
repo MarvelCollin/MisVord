@@ -64,7 +64,7 @@ if ($hasTooltip) {
     </div>
     
     <div class="flex-1 min-w-0">
-        <div class="text-sm text-white font-medium truncate"><?php echo htmlspecialchars(($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'User')); ?></div>
+        <div class="text-sm text-white font-medium truncate" id="current-user-name" data-user-id="<?php echo htmlspecialchars($_SESSION['user_id'] ?? ''); ?>"><?php echo htmlspecialchars(($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'User')); ?></div>
         <div class="text-xs text-discord-lighter truncate">#<?php echo htmlspecialchars($_SESSION['discriminator'] ?? rand(1000, 9999)); ?></div>
     </div>
     
@@ -181,5 +181,24 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     checkAndUpdate();
+    
+    function initializeCurrentUserCrown() {
+        const currentUserElement = document.getElementById('current-user-name');
+        if (currentUserElement && window.nitroCrownManager) {
+            const userId = currentUserElement.dataset.userId;
+            if (userId && userId !== '') {
+                window.nitroCrownManager.updateUserElement(currentUserElement, userId);
+            }
+        }
+    }
+    
+    if (window.nitroCrownManager) {
+        initializeCurrentUserCrown();
+    } else {
+        const script = document.createElement('script');
+        script.src = '/public/js/utils/nitro-crown-manager.js';
+        script.onload = initializeCurrentUserCrown;
+        document.head.appendChild(script);
+    }
 });
 </script> 

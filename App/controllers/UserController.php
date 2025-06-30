@@ -552,6 +552,10 @@ class UserController extends BaseController
             $currentUserId = $this->getCurrentUserId();
             $serverId = $_GET['server_id'] ?? null;
             
+            require_once __DIR__ . '/../database/repositories/NitroRepository.php';
+            $nitroRepository = new NitroRepository();
+            $hasNitro = $nitroRepository->getUserNitroStatus($userId);
+            
             $userData = [
                 'id' => $user->id,
                 'username' => $user->username,
@@ -564,7 +568,8 @@ class UserController extends BaseController
                 'created_at' => $user->created_at,
                 'is_self' => ($userId == $currentUserId),
                 'is_friend' => $this->friendListRepository->areFriends($currentUserId, $userId),
-                'friend_request_sent' => $this->friendListRepository->hasPendingRequest($currentUserId, $userId)
+                'friend_request_sent' => $this->friendListRepository->hasPendingRequest($currentUserId, $userId),
+                'has_nitro' => $hasNitro
             ];
             
             if ($serverId) {
@@ -1174,6 +1179,35 @@ class UserController extends BaseController
         } catch (Exception $e) {
             error_log("Error getting all users: " . $e->getMessage());
             return $this->serverError('Failed to get users: ' . $e->getMessage());
+        }
+    }
+
+    public function getBulkNitroStatus()
+    {
+        $this->requireAuth();
+        
+        try {
+            $input = $this->getInput();
+            $userIds = $input['user_ids'] ?? [];
+            
+            if (!is_array($userIds) || empty($userIds)) {
+                return $this->error('User IDs array is required');
+            }
+            
+            require_once __DIR__ . '/../database/repositories/NitroRepository.php';
+            $nitroRepository = new NitroRepository();
+            
+            $nitroStatuses = [];
+            foreach ($userIds as $userId) {
+                $nitroStatuses[$userId] = $nitroRepository->getUserNitroStatus($userId);
+            }
+            
+            return $this->success([
+                'nitro_statuses' => $nitroStatuses
+            ]);
+            
+        } catch (Exception $e) {
+            return $this->serverError('Failed to get bulk nitro status: ' . $e->getMessage());
         }
     }
 } 

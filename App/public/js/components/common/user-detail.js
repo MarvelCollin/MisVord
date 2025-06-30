@@ -429,6 +429,10 @@ class UserDetailModal {
                 const displayName = user.display_name || user.username || 'Unknown User';
                 this.nameElement.textContent = displayName;
                 this.nameElement.classList.add('fade-in');
+                
+                if (user.has_nitro && window.nitroCrownManager) {
+                    window.nitroCrownManager.addCrownToElement(this.nameElement, 'inline');
+                }
             }
 
             if (this.discriminatorElement) {

@@ -73,10 +73,13 @@ class UserAdminAPI {
         return await this.makeRequest(`${this.baseURL}/stats`);
     }
 
-    async listUsers(page = 1, limit = 10, search = '') {
+    async listUsers(page = 1, limit = 10, search = '', status = 'all') {
         let url = `${this.baseURL}/users?page=${page}&limit=${limit}`;
         if (search) {
             url += `&q=${encodeURIComponent(search)}`;
+        }
+        if (status && status !== 'all') {
+            url += `&status=${encodeURIComponent(status)}`;
         }
         return await this.makeRequest(url);
     }

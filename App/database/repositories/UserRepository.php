@@ -174,15 +174,22 @@ class UserRepository extends Repository {
      *
      * @param int $page Page number
      * @param int $limit Items per page
+     * @param string $status Filter status
      * @return array List of users
      */
-    public function paginate($page = 1, $limit = 10) {
+    public function paginate($page = 1, $limit = 10, $status = 'all') {
         $offset = ($page - 1) * $limit;
         
         $query = new Query();
-        $results = $query->table(User::getTable())
+        $queryBuilder = $query->table(User::getTable())
             ->where('status', '!=', 'bot')
-            ->where('email', '!=', 'admin@admin.com')
+            ->where('email', '!=', 'admin@admin.com');
+            
+        if ($status !== 'all') {
+            $queryBuilder->where('status', $status);
+        }
+        
+        $results = $queryBuilder
             ->orderBy('created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
@@ -202,13 +209,14 @@ class UserRepository extends Repository {
      * @param string $query Search query
      * @param int $page Page number
      * @param int $limit Items per page
+     * @param string $status Filter status
      * @return array List of matching users
      */
-    public function search($query, $page = 1, $limit = 10) {
+    public function search($query, $page = 1, $limit = 10, $status = 'all') {
         $offset = ($page - 1) * $limit;
         
         $queryBuilder = new Query();
-        $results = $queryBuilder->table(User::getTable())
+        $builder = $queryBuilder->table(User::getTable())
             ->select('id, username, discriminator, email, display_name, avatar_url, status, created_at')
             ->where(function($q) use ($query) {
                 $q->whereLike('username', "%$query%")
@@ -216,7 +224,13 @@ class UserRepository extends Repository {
                   ->orWhereLike('display_name', "%$query%");
             })
             ->where('status', '!=', 'bot')
-            ->where('email', '!=', 'admin@admin.com')
+            ->where('email', '!=', 'admin@admin.com');
+            
+        if ($status !== 'all') {
+            $builder->where('status', $status);
+        }
+        
+        $results = $builder
             ->orderBy('username', 'ASC')
             ->limit($limit)
             ->offset($offset)
@@ -234,19 +248,25 @@ class UserRepository extends Repository {
      * Count users matching a search query
      *
      * @param string $query Search query
+     * @param string $status Filter status
      * @return int Number of matching users
      */
-    public function countSearch($query) {
+    public function countSearch($query, $status = 'all') {
         $queryBuilder = new Query();
-        return $queryBuilder->table(User::getTable())
+        $builder = $queryBuilder->table(User::getTable())
             ->where(function($q) use ($query) {
                 $q->whereLike('username', "%$query%")
                   ->orWhereLike('email', "%$query%")
                   ->orWhereLike('display_name', "%$query%");
             })
             ->where('status', '!=', 'bot')
-            ->where('email', '!=', 'admin@admin.com')
-            ->count();
+            ->where('email', '!=', 'admin@admin.com');
+            
+        if ($status !== 'all') {
+            $builder->where('status', $status);
+        }
+        
+        return $builder->count();
     }
     
     /**
@@ -388,12 +408,17 @@ class UserRepository extends Repository {
      *
      * @return int Number of regular users
      */
-    public function countRegularUsers() {
+    public function countRegularUsers($status = 'all') {
         $query = new Query();
-        return $query->table(User::getTable())
+        $builder = $query->table(User::getTable())
             ->where('status', '!=', 'bot')
-            ->where('email', '!=', 'admin@admin.com')
-            ->count();
+            ->where('email', '!=', 'admin@admin.com');
+            
+        if ($status !== 'all') {
+            $builder->where('status', $status);
+        }
+        
+        return $builder->count();
     }
     
     /**

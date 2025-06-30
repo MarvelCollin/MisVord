@@ -242,10 +242,6 @@ ob_start();
                 <div class="flex justify-between items-center mb-6">
                     <div class="flex items-center">
                         <select class="user-filter-dropdown mr-4" id="user-status-filter">
-                            <option value="all">All Users</option>
-                            <option value="online">Online</option>
-                            <option value="offline">Offline</option>
-                            <option value="banned">Banned</option>
                         </select>
                     </div>
                     <div class="user-search-container">

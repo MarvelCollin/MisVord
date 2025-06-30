@@ -134,7 +134,7 @@ foreach ($members as $member) {
                                     </div>
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
-                                <span class="<?php echo $textColorClass; ?> text-sm truncate font-bold"><?php echo htmlspecialchars($member['display_name'] ?? $member['username'] ?? 'Unknown'); ?></span>
+                                <span class="<?php echo $textColorClass; ?> text-sm truncate font-bold member-username" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>"><?php echo htmlspecialchars($member['display_name'] ?? $member['username'] ?? 'Unknown'); ?></span>
                                 <?php if ($member['status'] === 'bot'): ?>
                                     <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>
                                 <?php endif; ?>
@@ -375,4 +375,30 @@ window.initializeParticipantSection = function() {
 window.toggleParticipantLoading = function(loading = true) {
     console.log('Participant loading toggle called but using simple DOM - no skeleton');
 };
+
+function initializeParticipantCrowns() {
+    const memberUsernames = document.querySelectorAll('.member-username[data-user-id]');
+    const elements = Array.from(memberUsernames).map(el => ({
+        element: el,
+        userId: el.dataset.userId
+    })).filter(({ userId }) => userId && userId !== 'null' && userId !== '0');
+    
+    if (elements.length > 0 && window.nitroCrownManager) {
+        console.log(`🎯 [PARTICIPANT] Initializing crowns for ${elements.length} members`);
+        window.nitroCrownManager.updateBulkUserElements(elements);
+    }
+}
+
+if (window.nitroCrownManager) {
+    initializeParticipantCrowns();
+} else {
+    const checkNitroCrownManager = () => {
+        if (window.nitroCrownManager) {
+            initializeParticipantCrowns();
+        } else {
+            setTimeout(checkNitroCrownManager, 100);
+        }
+    };
+    checkNitroCrownManager();
+}
 </script>

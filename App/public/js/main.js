@@ -5,6 +5,7 @@ import PageLoader from './core/page-loader.js';
 import * as Components from './components/index.js';
 import { LazyLoader } from './utils/lazy-loader.js';
 import { loadCSS, unloadCSS } from './utils/css-loader.js';
+import NitroCrownManager from './utils/nitro-crown-manager.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Main application loaded');
@@ -16,10 +17,15 @@ document.addEventListener('DOMContentLoaded', function() {
         window.loadCSS = loadCSS;
         window.unloadCSS = unloadCSS;
         
+        if (!window.nitroCrownManager) {
+            window.nitroCrownManager = new NitroCrownManager();
+        }
+        
         logger.info('general', 'Global utilities loaded:', {
             showToast: typeof showToast,
             logger: typeof logger,
-            globalSocketManager: typeof globalSocketManager
+            globalSocketManager: typeof globalSocketManager,
+            nitroCrownManager: typeof window.nitroCrownManager
         });
         
         const currentPage = window.location.pathname;
@@ -43,12 +49,14 @@ document.addEventListener('DOMContentLoaded', function() {
     initGlobalUI();
     initGlobalSocketManager();
     initPageSpecificComponents();
+    initNitroCrowns();
     
     window.dispatchEvent(new CustomEvent('MainModulesReady', {
         detail: {
             LazyLoader: window.LazyLoader,
             showToast,
-            logger
+            logger,
+            nitroCrownManager: window.nitroCrownManager
         }
     }));
 });
@@ -196,6 +204,21 @@ function initSocketAfterLoad() {
     } catch (error) {
         logger.error('socket', 'Failed to initialize socket manager:', error);
     }
+}
+
+function initNitroCrowns() {
+    if (!window.nitroCrownManager) {
+        logger.warn('nitro', 'Nitro Crown Manager not available');
+        return;
+    }
+    
+    logger.info('nitro', 'Initializing Nitro crown system');
+    
+    setTimeout(() => {
+        window.nitroCrownManager.scanAndUpdateExistingElements();
+        window.nitroCrownManager.observeUserElements();
+        logger.info('nitro', 'Nitro crown system initialized');
+    }, 100);
 }
 
 function getUserDataFromPage() {

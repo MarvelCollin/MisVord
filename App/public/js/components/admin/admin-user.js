@@ -232,10 +232,8 @@ export class UserManager {
     const statusFilter = document.getElementById('user-status-filter');
     
     if (statusFilter) {
-      // Clear existing options
       statusFilter.innerHTML = '';
       
-      // Add only the options we want
       const options = [
         { value: 'all', text: 'All Users' },
         { value: 'active', text: 'Active Users' },
@@ -277,7 +275,6 @@ export class UserManager {
   }
   
   loadUserStats() {
-    // Check if userAdminAPI exists
     if (!window.userAdminAPI) {
       console.warn('userAdminAPI not available yet, retrying in 500ms');
       return new Promise(resolve => {
@@ -289,7 +286,6 @@ export class UserManager {
     
     return window.userAdminAPI.getStats()
       .then(response => {
-        // Handle different response formats
         let stats;
         if (response.success && response.data && response.data.stats) {
           stats = response.data.stats;
@@ -301,9 +297,8 @@ export class UserManager {
           stats = response;
         }
         
-        // Set defaults if values don't exist
-        const active = stats.active || stats.online || 0;
-        const total = stats.total || 0;
+        const active = stats.users?.active || stats.users?.online || 0;
+        const total = stats.users?.total || 0;
         
         const activeUserCount = document.getElementById('active-user-count');
         const totalUserCount = document.getElementById('total-user-count');
@@ -327,7 +322,6 @@ export class UserManager {
   loadUsers() {
     if (this.isLoading) return;
     
-    // Check if userAdminAPI exists
     if (!window.userAdminAPI) {
       console.warn('userAdminAPI not available yet, retrying in 500ms');
       setTimeout(() => this.loadUsers(), 500);
@@ -337,30 +331,22 @@ export class UserManager {
     this.isLoading = true;
     const searchQuery = document.getElementById('user-search')?.value || "";
     
-    window.userAdminAPI.listUsers(this.currentUserPage, this.usersPerPage, searchQuery)
+    window.userAdminAPI.listUsers(this.currentUserPage, this.usersPerPage, searchQuery, this.statusFilter)
       .then(response => {
         if (response.success) {
-          // Get users and normalize them
           let users = [];
           let pagination = { total: 0, page: this.currentUserPage, limit: this.usersPerPage, pages: 1 };
           
-          // Extract users from response
           if (response.data && response.data.users) {
             users = response.data.users;
             pagination = response.data.pagination || pagination;
-          } else if (Array.isArray(response.users)) {
+          } else if (response.users) {
             users = response.users;
             pagination = response.pagination || pagination;
-          } else if (Array.isArray(response)) {
-            users = response;
-          } else if (typeof response === 'object') {
-            users = Object.values(response).filter(item => typeof item === 'object');
           }
           
-          // Ensure each user has all required properties
           if (users && Array.isArray(users)) {
             users = users.map(user => {
-              // Use normalizeUser if available, or do basic normalization
               if (window.userAdminAPI.normalizeUser) {
                 return window.userAdminAPI.normalizeUser(user);
               } else {
@@ -369,7 +355,7 @@ export class UserManager {
                   username: user.username || 'Unknown User',
                   discriminator: user.discriminator || '0000',
                   email: user.email || 'No Email',
-                  status: user.status || 'offline',
+                  status: user.status || 'active',
                   display_name: user.display_name || user.username || 'Unknown User',
                   created_at: user.created_at || null,
                   ...user
@@ -386,7 +372,7 @@ export class UserManager {
             showToast("Unexpected data format received from server", "error");
           }
         } else {
-          showToast(response.message || "Failed to load users", "error");
+          showToast(response.message || response.error || "Failed to load users", "error");
         }
       })
       .catch(error => {
@@ -403,28 +389,20 @@ export class UserManager {
     this.originalTotal = total;
     this.originalShowing = showing;
     
-    let filteredUsers = [...users];
-    
-    if (this.statusFilter !== 'all') {
-      filteredUsers = filteredUsers.filter(user => user.status === this.statusFilter);
-    }
-    
-    const filteredShowing = filteredUsers.length;
-    
     const listContainer = document.getElementById('users-container');
     const gridContainer = document.getElementById('user-grid-view');
     
     if (listContainer) listContainer.innerHTML = '';
     if (gridContainer) gridContainer.innerHTML = '';
     
-    this.renderListView(filteredUsers);
-    this.renderGridView(filteredUsers);
+    this.renderListView(users);
+    this.renderGridView(users);
     
     const showingCount = document.getElementById('user-showing-count');
-    if (showingCount) showingCount.textContent = filteredShowing;
+    if (showingCount) showingCount.textContent = users.length;
     
     const totalCount = document.getElementById('user-total-count');
-    if (totalCount) totalCount.textContent = this.originalTotal;
+    if (totalCount) totalCount.textContent = total;
     
     const prevBtn = document.getElementById('user-prev-page');
     if (prevBtn) {
@@ -434,9 +412,9 @@ export class UserManager {
     
     const nextBtn = document.getElementById('user-next-page');
     if (nextBtn) {
-      const noMorePages = showing >= total && this.statusFilter === 'all';
-      nextBtn.disabled = noMorePages;
-      nextBtn.classList.toggle('opacity-50', noMorePages);
+      const hasMorePages = showing === this.usersPerPage && users.length === this.usersPerPage;
+      nextBtn.disabled = !hasMorePages;
+      nextBtn.classList.toggle('opacity-50', !hasMorePages);
     }
   }
   

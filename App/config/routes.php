@@ -447,6 +447,11 @@ Route::get('/api/users/all', function() {
     $controller->getAllUsers();
 });
 
+Route::post('/api/users/bulk-nitro-status', function() {
+    $controller = new UserController();
+    $controller->getBulkNitroStatus();
+});
+
 Route::get('/api/users/([0-9]+)/profile', function($userId) {
     $controller = new UserController();
     $controller->getUserProfile($userId);

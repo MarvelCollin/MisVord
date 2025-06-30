@@ -84,7 +84,7 @@ if (file_exists($tooltipPath)) {
                     </div>
                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> user-status-indicator" data-user-id="<?php echo htmlspecialchars($otherUserId); ?>"></span>
                 </div>
-                <span class="font-medium truncate"><?php echo htmlspecialchars($otherUsername); ?></span>
+                <span class="font-medium truncate dm-username" data-user-id="<?php echo htmlspecialchars($otherUserId); ?>"><?php echo htmlspecialchars($otherUsername); ?></span>
             </div>
         <?php endforeach; ?>
     </div>
@@ -206,6 +206,32 @@ document.addEventListener('DOMContentLoaded', function() {
     updateAllUserStatuses();
     
     setInterval(updateAllUserStatuses, 60000);
+    
+    function initializeDMCrowns() {
+        const dmUsernames = document.querySelectorAll('.dm-username[data-user-id]');
+        const elements = Array.from(dmUsernames).map(el => ({
+            element: el,
+            userId: el.dataset.userId
+        })).filter(({ userId }) => userId && userId !== 'null' && userId !== '');
+        
+        if (elements.length > 0 && window.nitroCrownManager) {
+            console.log(`🎯 [DM-SIDEBAR] Initializing crowns for ${elements.length} DM users`);
+            window.nitroCrownManager.updateBulkUserElements(elements);
+        }
+    }
+    
+    if (window.nitroCrownManager) {
+        initializeDMCrowns();
+    } else {
+        const checkNitroCrownManager = () => {
+            if (window.nitroCrownManager) {
+                initializeDMCrowns();
+            } else {
+                setTimeout(checkNitroCrownManager, 100);
+            }
+        };
+        checkNitroCrownManager();
+    }
 });
 </script>
 

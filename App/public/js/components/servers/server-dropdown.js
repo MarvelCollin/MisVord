@@ -44,6 +44,17 @@ function getUserRole(serverId) {
         })
         .catch(error => {
             console.error('Error fetching user role:', error);
+            
+            if (error.message && error.message.includes('403')) {
+                console.warn('User is not a member of server', serverId, '- hiding admin options');
+                currentUserRole = 'non-member';
+                return 'non-member';
+            } else if (error.message && error.message.includes('404')) {
+                console.warn('Server not found:', serverId);
+                currentUserRole = 'member';
+                return 'member';
+            }
+            
             currentUserRole = 'member';
             return 'member';
         });
@@ -71,12 +82,20 @@ function applyRoleBasedVisibility(userRole) {
         const actionText = spanElement.textContent.trim();
         
         if (adminOnlyItems.includes(actionText)) {
-            if (isAdminOrOwner(userRole)) {
-                item.style.display = 'flex';
-                item.setAttribute('data-role-restricted', 'false');
-            } else {
+            if (userRole === 'non-member' || !isAdminOrOwner(userRole)) {
                 item.style.display = 'none';
                 item.setAttribute('data-role-restricted', 'true');
+            } else {
+                item.style.display = 'flex';
+                item.setAttribute('data-role-restricted', 'false');
+            }
+        } else if (actionText === 'Leave Server') {
+            if (userRole === 'non-member') {
+                item.style.display = 'none';
+                item.setAttribute('data-role-restricted', 'true');
+            } else {
+                item.style.display = 'flex';
+                item.setAttribute('data-role-restricted', 'false');
             }
         } else {
             item.style.display = 'flex';
@@ -174,6 +193,11 @@ function initServerActions() {
 
             const dropdown = document.getElementById('server-dropdown');
             if (dropdown) dropdown.classList.add('hidden');
+
+            if (currentUserRole === 'non-member') {
+                showToast('You are not a member of this server', 'error');
+                return;
+            }
 
             const adminOnlyActions = ['Invite People', 'Server Settings', 'Create Channel', 'Create Category'];
             

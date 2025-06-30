@@ -8,6 +8,9 @@ let serverDataCache = null;
 let cacheExpiry = 0;
 let isHandlingClick = false;
 
+let lastServerSwitchTime = 0;
+const SERVER_SWITCH_DELAY = 500;
+
 let homeIconClickCount = 0;
 let lastClickTime = 0;
 const CLICK_TIMEOUT = 3000;
@@ -797,7 +800,17 @@ export async function handleHomeClick(event) {
         console.log('[Home Navigation] Already on home page, skipping navigation');
         return;
     }
+
+    const currentTime = Date.now();
+    const timeSinceLastSwitch = currentTime - lastServerSwitchTime;
     
+    if (timeSinceLastSwitch < SERVER_SWITCH_DELAY) {
+        console.log('[Home Navigation] Home navigation blocked - too soon after last switch');
+        return;
+    }
+    
+    lastServerSwitchTime = currentTime;
+
     try {
         if (window.voiceManager && window.voiceManager.isConnected) {
             console.log('[Home Navigation] Voice connection detected, keeping alive and showing global indicator');
@@ -831,6 +844,16 @@ export async function handleServerClick(serverId, event) {
         console.error('[Server Navigation] No server ID provided');
         throw new Error('No server ID provided');
     }
+
+    const currentTime = Date.now();
+    const timeSinceLastSwitch = currentTime - lastServerSwitchTime;
+    
+    if (timeSinceLastSwitch < SERVER_SWITCH_DELAY) {
+        console.log('[Server Navigation] Server switch blocked - too soon after last switch');
+        return;
+    }
+    
+    lastServerSwitchTime = currentTime;
 
     try {
         if (loadServerPage) {
@@ -909,6 +932,16 @@ export async function handleExploreClick(event) {
         console.log('[Explore Navigation] Already on explore page, skipping navigation');
         return;
     }
+
+    const currentTime = Date.now();
+    const timeSinceLastSwitch = currentTime - lastServerSwitchTime;
+    
+    if (timeSinceLastSwitch < SERVER_SWITCH_DELAY) {
+        console.log('[Explore Navigation] Explore navigation blocked - too soon after last switch');
+        return;
+    }
+    
+    lastServerSwitchTime = currentTime;
     
     try {
         const currentChannelId = new URLSearchParams(window.location.search).get('channel');

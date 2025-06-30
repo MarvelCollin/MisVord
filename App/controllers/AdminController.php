@@ -41,6 +41,7 @@ class AdminController extends BaseController
             'users' => [
                 'total' => intval($this->userRepository->count()),
                 'online' => intval($this->userRepository->countByStatus('online')),
+                'active' => intval($this->userRepository->countByStatus('online')),
                 'recent' => intval($this->userRepository->countRecentUsers(7))
             ],
             'servers' => [
@@ -53,7 +54,7 @@ class AdminController extends BaseController
         ];
         
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            return $this->success(['stats' => $stats]);
+            return $this->success(['stats' => $stats], 'Stats retrieved successfully');
         }
         
         return $stats;
@@ -66,14 +67,15 @@ class AdminController extends BaseController
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10;
         $query = isset($_GET['q']) ? trim($_GET['q']) : '';
+        $status = isset($_GET['status']) ? trim($_GET['status']) : 'all';
         
         try {
             if (!empty($query)) {
-                $users = $this->userRepository->search($query, $page, $limit);
-                $total = $this->userRepository->countSearch($query);
+                $users = $this->userRepository->search($query, $page, $limit, $status);
+                $total = $this->userRepository->countSearch($query, $status);
             } else {
-                $users = $this->userRepository->paginate($page, $limit);
-                $total = $this->userRepository->countRegularUsers();
+                $users = $this->userRepository->paginate($page, $limit, $status);
+                $total = $this->userRepository->countRegularUsers($status);
             }
             
             $normalizedUsers = [];
@@ -95,18 +97,18 @@ class AdminController extends BaseController
                 ];
             }
             
+            $responseData = [
+                'users' => $normalizedUsers,
+                'pagination' => [
+                    'total' => $total,
+                    'page' => $page,
+                    'limit' => $limit,
+                    'pages' => ceil($total / $limit)
+                ]
+            ];
+            
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                return $this->success([
-                    'data' => [
-                        'users' => $normalizedUsers
-                    ],
-                    'pagination' => [
-                        'total' => $total,
-                        'page' => $page,
-                        'limit' => $limit,
-                        'pages' => ceil($total / $limit)
-                    ]
-                ]);
+                return $this->success($responseData, 'Users retrieved successfully');
             }
             
             return $normalizedUsers;
