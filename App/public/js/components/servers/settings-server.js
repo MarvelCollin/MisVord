@@ -435,10 +435,20 @@ function initMemberManagementTab() {
         let filteredMembers = [...allMembers];
         
         if (filterType !== 'all') {
-            filteredMembers = filteredMembers.filter(member => member.role === filterType);
+            if (filterType === 'bot') {
+                filteredMembers = filteredMembers.filter(member => member.username.toLowerCase() === 'titibot');
+            } else {
+                filteredMembers = filteredMembers.filter(member => member.role === filterType && member.username.toLowerCase() !== 'titibot');
+            }
         }
         
         filteredMembers.sort((a, b) => {
+            const isABot = a.username.toLowerCase() === 'titibot';
+            const isBBot = b.username.toLowerCase() === 'titibot';
+            
+            if (isABot && !isBBot) return 1;
+            if (!isABot && isBBot) return -1;
+            
             const roleOrder = { 'owner': 0, 'admin': 1, 'member': 2 };
             const roleA = roleOrder[a.role] || 3;
             const roleB = roleOrder[b.role] || 3;
@@ -510,6 +520,8 @@ function initMemberManagementTab() {
         members.forEach(member => {
             const memberElement = document.importNode(memberTemplate.content, true).firstElementChild;
             
+            const isBot = member.username.toLowerCase() === 'titibot';
+            
             const avatarImg = memberElement.querySelector('.member-avatar img');
             if (avatarImg && member.avatar_url) {
                 avatarImg.src = member.avatar_url;
@@ -526,7 +538,11 @@ function initMemberManagementTab() {
             
             const usernameElement = memberElement.querySelector('.member-username');
             if (usernameElement) {
-                usernameElement.textContent = member.username;
+                const displayName = member.display_name || member.username;
+                usernameElement.textContent = displayName;
+                if (isBot) {
+                    usernameElement.innerHTML = `${displayName} <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>`;
+                }
             }
             
             const discriminatorElement = memberElement.querySelector('.member-discriminator');
@@ -536,8 +552,13 @@ function initMemberManagementTab() {
             
             const roleElement = memberElement.querySelector('.member-role-badge');
             if (roleElement) {
-                roleElement.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
-                roleElement.className = `member-role-badge ${member.role}`;
+                if (isBot) {
+                    roleElement.textContent = 'Bot';
+                    roleElement.className = 'member-role-badge bot';
+                } else {
+                    roleElement.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                    roleElement.className = `member-role-badge ${member.role}`;
+                }
             }
             
             const joinedElement = memberElement.querySelector('.member-joined');
@@ -552,25 +573,31 @@ function initMemberManagementTab() {
             const demoteBtn = memberElement.querySelector('.demote-btn');
             const kickBtn = memberElement.querySelector('.kick-btn');
             
-            if (member.role === 'owner') {
-                if (promoteBtn) promoteBtn.disabled = true;
-                if (demoteBtn) demoteBtn.disabled = true;
-                if (kickBtn) kickBtn.disabled = true;
+            if (isBot || member.role === 'owner') {
+                if (promoteBtn) {
+                    promoteBtn.style.display = 'none';
+                }
+                if (demoteBtn) {
+                    demoteBtn.style.display = 'none';
+                }
+                if (kickBtn) {
+                    kickBtn.style.display = 'none';
+                }
             } else if (member.role === 'admin') {
                 if (promoteBtn) promoteBtn.disabled = true;
             } else if (member.role === 'member') {
                 if (demoteBtn) demoteBtn.disabled = true;
             }
             
-            if (promoteBtn && !promoteBtn.disabled) {
+            if (promoteBtn && !promoteBtn.disabled && promoteBtn.style.display !== 'none') {
                 promoteBtn.addEventListener('click', () => showMemberActionModal('promote', member));
             }
             
-            if (demoteBtn && !demoteBtn.disabled) {
+            if (demoteBtn && !demoteBtn.disabled && demoteBtn.style.display !== 'none') {
                 demoteBtn.addEventListener('click', () => showMemberActionModal('demote', member));
             }
             
-            if (kickBtn && !kickBtn.disabled) {
+            if (kickBtn && !kickBtn.disabled && kickBtn.style.display !== 'none') {
                 kickBtn.addEventListener('click', () => showMemberActionModal('kick', member));
             }
             
@@ -607,7 +634,7 @@ function initMemberManagementTab() {
             `;
         }
         
-        memberName.textContent = member.username;
+                    memberName.textContent = member.display_name || member.username;
         memberCurrentRole.textContent = `Current Role: ${member.role.charAt(0).toUpperCase() + member.role.slice(1)}`;
         
         let actionHandler;
@@ -616,7 +643,7 @@ function initMemberManagementTab() {
             case 'promote':
                 modalIcon.className = 'fas fa-arrow-up';
                 modalTitle.textContent = 'Promote Member';
-                actionMessage.textContent = `Are you sure you want to promote ${member.username} to Admin? This will give them additional permissions to manage channels and kick members.`;
+                actionMessage.textContent = `Are you sure you want to promote ${member.display_name || member.username} to Admin? This will give them additional permissions to manage channels and kick members.`;
                 
                 roleChangePreview.classList.remove('hidden');
                 fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
@@ -633,7 +660,7 @@ function initMemberManagementTab() {
             case 'demote':
                 modalIcon.className = 'fas fa-arrow-down';
                 modalTitle.textContent = 'Demote Member';
-                actionMessage.textContent = `Are you sure you want to demote ${member.username} to Member? This will remove their administrative permissions.`;
+                actionMessage.textContent = `Are you sure you want to demote ${member.display_name || member.username} to Member? This will remove their administrative permissions.`;
                 
                 roleChangePreview.classList.remove('hidden');
                 fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
@@ -650,7 +677,7 @@ function initMemberManagementTab() {
             case 'kick':
                 modalIcon.className = 'fas fa-user-times';
                 modalTitle.textContent = 'Kick Member';
-                actionMessage.textContent = `Are you sure you want to kick ${member.username} from the server? They will be removed immediately and can only rejoin with a new invite.`;
+                actionMessage.textContent = `Are you sure you want to kick ${member.display_name || member.username} from the server? They will be removed immediately and can only rejoin with a new invite.`;
                 
                 confirmBtn.classList.add('danger');
                 confirmText.textContent = 'Kick';
@@ -697,7 +724,7 @@ function initMemberManagementTab() {
         try {
             const response = await window.serverAPI.promoteMember(serverId, member.id);
             if (response && response.success) {
-                showToast(`${member.username} has been promoted to ${response.new_role}`, 'success');
+                                    showToast(`${member.display_name || member.username} has been promoted to ${response.new_role}`, 'success');
                 loadMembers();
             } else {
                 throw new Error(response.message || 'Failed to promote member');
@@ -712,7 +739,7 @@ function initMemberManagementTab() {
         try {
             const response = await window.serverAPI.demoteMember(serverId, member.id);
             if (response && response.success) {
-                showToast(`${member.username} has been demoted to ${response.new_role}`, 'success');
+                                    showToast(`${member.display_name || member.username} has been demoted to ${response.new_role}`, 'success');
                 loadMembers();
             } else {
                 throw new Error(response.message || 'Failed to demote member');
@@ -727,7 +754,7 @@ function initMemberManagementTab() {
         try {
             const response = await window.serverAPI.kickMember(serverId, member.id);
             if (response && response.success) {
-                showToast(`${member.username} has been kicked from the server`, 'success');
+                                    showToast(`${member.display_name || member.username} has been kicked from the server`, 'success');
                 loadMembers();
             } else {
                 throw new Error(response.message || 'Failed to kick member');
@@ -748,9 +775,12 @@ function initMemberManagementTab() {
             }
             
             const filteredMembers = allMembers.filter(member => {
+                const isBot = member.username.toLowerCase() === 'titibot';
+                const roleToSearch = isBot ? 'bot' : member.role;
+                
                 return (
                     member.username.toLowerCase().includes(searchTerm) ||
-                    member.role.toLowerCase().includes(searchTerm)
+                    roleToSearch.toLowerCase().includes(searchTerm)
                 );
             });
             

@@ -54,7 +54,6 @@ if (document.readyState === 'complete' && !window.chatSection && !isExcludedPage
 
 class ChatSection {
     constructor(options = {}) {
-        // Core properties
         this.chatType = options.chatType || 'channel';
         this.targetId = options.targetId || null;
         this.userId = options.userId || null;
@@ -66,22 +65,18 @@ class ChatSection {
         this.replyingTo = null;
         this.currentEditingMessage = null;
         
-        // DOM elements (find these first)
         this.chatContainer = document.querySelector('.flex-1.flex.flex-col.bg-\\[\\#313338\\].h-screen.overflow-hidden') || document.getElementById('chat-container');
         this.chatMessages = document.getElementById('chat-messages');
         this.messageForm = document.getElementById('message-form');
         this.messageInput = document.getElementById('message-input');
         
-        // Initialize handlers (after DOM elements are found)
         this.messageHandler = new MessageHandler(this);
         this.socketHandler = new SocketHandler(this);
         this.uiHandler = new ChatUIHandler(this);
         this.fileUploadHandler = new FileUploadHandler(this);
         this.sendReceiveHandler = new SendReceiveHandler(this);
         this.chatBot = new ChatBot(this);
-        this.mentionHandler = new MentionHandler(this);
         
-        // Find send button (should now exist in HTML)
         this.sendButton = document.getElementById('send-button');
         if (!this.sendButton) {
             console.warn('⚠️ [CHAT-SECTION] Send button not found in HTML');
@@ -94,24 +89,14 @@ class ChatSection {
         this.fileUploadInput = document.getElementById('file-upload');
         this.filePreviewModal = document.getElementById('file-preview-modal');
         
-        // Initialize
         this.init();
     }
     
     init() {
-        console.log('🚀 [CHAT-SECTION] Initializing with:', {
-            chatType: this.chatType,
-            targetId: this.targetId,
-            userId: this.userId,
-            username: this.username
-        });
-        
-        // Clear any existing processed messages when initializing
         if (this.messageHandler) {
             this.messageHandler.clearProcessedMessages();
         }
         
-        // Load chat parameters from meta tags if not provided
         if (!this.chatType || this.chatType === '') {
             const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
             if (chatTypeMeta) {
@@ -140,88 +125,54 @@ class ChatSection {
             }
         }
         
-        console.log('📝 [CHAT-SECTION] Parameters after meta tags:', {
-            chatType: this.chatType,
-            targetId: this.targetId,
-            userId: this.userId,
-            username: this.username
-        });
-        
-        // Additional debug logging for chat type detection
         const currentUrl = window.location.pathname;
         const isDMUrl = currentUrl.includes('/home/channels/dm/');
         const isChannelUrl = currentUrl.includes('/server/') && currentUrl.includes('channel=');
         
-        console.log('🔍 [CHAT-SECTION] URL analysis:', {
-            currentUrl: currentUrl,
-            isDMUrl: isDMUrl,
-            isChannelUrl: isChannelUrl,
-            detectedChatType: this.chatType
-        });
-        
-        // Validate chat type matches URL context
         if (isDMUrl && this.chatType !== 'direct' && this.chatType !== 'dm') {
-            console.warn('⚠️ [CHAT-SECTION] Chat type mismatch! URL suggests DM but chat type is:', this.chatType);
             this.chatType = 'direct';
         } else if (isChannelUrl && this.chatType !== 'channel') {
-            console.warn('⚠️ [CHAT-SECTION] Chat type mismatch! URL suggests channel but chat type is:', this.chatType);
             this.chatType = 'channel';
         }
         
-        console.log('✅ [CHAT-SECTION] Final chat type after validation:', this.chatType);
-        
         if (!this.chatMessages) {
-            console.error('❌ [CHAT-SECTION] Required DOM element chat-messages not found');
-                    return;
+            console.error('Required DOM element chat-messages not found');
+            return;
         }
         
-        if (!this.targetId) {
-            console.warn('⚠️ [CHAT-SECTION] No target ID found, chat functionality will be limited');
-        }
+        this.mentionHandler = new MentionHandler(this);
         
-        // Setup event listeners
         this.setupEventListeners();
         
-        // Setup socket listeners
         if (this.socketHandler) {
             this.socketHandler.setupIoListeners();
-                } else {
-            console.warn('⚠️ [CHAT-SECTION] Socket handler not initialized');
         }
         
-        // Load initial messages if we have a target ID (with small delay to prevent race conditions)
         if (this.targetId) {
             setTimeout(() => {
                 this.loadMessages();
             }, 100);
         }
         
-        // Initialize event listeners for existing server-rendered messages
         this.initializeExistingMessages();
         
-        // Set initialized flag
         this.isInitialized = true;
         
-        // Make this instance available globally
         window.chatSection = this;
         
-        console.log('✅ [CHAT-SECTION] Initialization complete');
-        
-        // Join the appropriate socket room immediately
         if (window.globalSocketManager?.isReady()) {
             this.joinSocketRoom();
-                } else {
+        } else {
             window.addEventListener('globalSocketReady', () => this.joinSocketRoom());
         }
         
-        // Pre-load users for mentions if we have a target
         if (this.targetId && this.mentionHandler) {
             setTimeout(() => {
                 this.mentionHandler.loadAvailableUsers();
             }, 500);
         }
         
-        this.cleanupEmptyMessages(); // Clean up any existing empty messages
+        this.cleanupEmptyMessages();
         this.chatBot.init();
     }
     
@@ -481,11 +432,21 @@ class ChatSection {
         this.isLoading = true;
         this.showLoadingIndicator();
         
+        console.log('🔍 [CHAT-SECTION] Starting loadMessages with:', {
+            targetId: this.targetId, 
+            chatType: this.chatType,
+            before: before,
+            limit: limit,
+            ChatAPIExists: !!window.ChatAPI
+        });
+        
         try {
             if (!window.ChatAPI) {
+                console.log('⏳ [CHAT-SECTION] Waiting for ChatAPI to be available...');
                 await new Promise(resolve => {
                     const checkAPI = () => {
                         if (window.ChatAPI) {
+                            console.log('✅ [CHAT-SECTION] ChatAPI is now available');
                             resolve();
                         } else {
                             setTimeout(checkAPI, 100);
@@ -495,20 +456,21 @@ class ChatSection {
                 });
             }
             
-            console.log('🔍 Loading messages:', {
-                targetId: this.targetId, 
-                chatType: this.chatType,
-                before: before,
-                limit: limit
-            });
-            
+            console.log('📡 [CHAT-SECTION] Making API call to getMessages...');
             const response = await window.ChatAPI.getMessages(
                 this.targetId,
                 this.chatType,
                 { limit, before, offset: options.offset || 0 }
             );
             
-            console.log('📨 Messages API Response:', response);
+            console.log('📨 [CHAT-SECTION] API Response received:', {
+                responseType: typeof response,
+                hasSuccess: 'success' in response,
+                successValue: response?.success,
+                hasData: 'data' in response,
+                dataType: typeof response?.data,
+                messageCount: response?.data?.messages?.length || 'unknown'
+            });
             
             if (!response) {
                 throw new Error('No response received from server');
@@ -521,17 +483,17 @@ class ChatSection {
                 if (response.data.messages && Array.isArray(response.data.messages)) {
                     messages = response.data.messages;
                     hasMore = response.data.has_more || false;
-                    console.log('📨 Using response.data.messages format');
+                    console.log('✅ [CHAT-SECTION] Using response.data.messages format:', messages.length, 'messages');
                 } else if (response.data.messages === null || response.data.messages === undefined) {
                     messages = [];
                     hasMore = false;
-                    console.log('📨 Messages is null/undefined, using empty array');
+                    console.log('📭 [CHAT-SECTION] No messages found (null/undefined)');
                 } else if (Array.isArray(response.data)) {
                     messages = response.data;
                     hasMore = messages.length >= limit;
-                    console.log('📨 Using response.data as array format');
+                    console.log('✅ [CHAT-SECTION] Using response.data as array format:', messages.length, 'messages');
                 } else {
-                    console.error('📨 Unexpected messages format:', {
+                    console.error('❌ [CHAT-SECTION] Unexpected messages format:', {
                         messagesValue: response.data.messages,
                         messagesType: typeof response.data.messages,
                         dataKeys: Object.keys(response.data)
@@ -539,78 +501,58 @@ class ChatSection {
                     messages = [];
                     hasMore = false;
                 }
-            } else if (response.data && Array.isArray(response.data.messages)) {
-                messages = response.data.messages;
-                hasMore = response.data.has_more || false;
-                console.log('📨 Using fallback response.data.messages format');
-            } else if (response.data && Array.isArray(response.data)) {
-                messages = response.data;
-                hasMore = messages.length >= limit;
-                console.log('📨 Using fallback response.data format');
-            } else if (Array.isArray(response)) {
-                messages = response;
-                hasMore = messages.length >= limit;
-                console.log('📨 Using direct response array format');
             } else if (response.success === false) {
-                console.error('❌ API returned error:', response.message || response.error);
-                throw new Error(response.message || response.error || 'Failed to load messages');
+                console.error('❌ [CHAT-SECTION] API returned error:', response.message || 'Unknown error');
+                throw new Error(response.message || 'API request failed');
             } else {
-                console.error('❌ Unrecognized response format:', {
-                    response: response,
-                    hasSuccess: 'success' in response,
-                    successValue: response.success,
-                    hasData: 'data' in response,
-                    dataType: typeof response.data,
-                    responseKeys: Object.keys(response),
-                    responseType: typeof response
-                });
+                console.error('❌ [CHAT-SECTION] Unexpected response format:', response);
                 throw new Error('Invalid response format from server');
             }
+
+            this.hasMoreMessages = hasMore;
             
-            console.log(`📬 Parsed ${messages.length} messages for ${this.chatType}:${this.targetId}`);
-            
-            if (messages.length === 0 && !before) {
-                this.showEmptyState();
-            } else {
-                this.hideEmptyState();
-                
-                if (this.messageHandler) {
-                    if (before) {
-                        await this.messageHandler.prependMessages(messages);
-                    } else {
-                        this.messageHandler.clearProcessedMessages();
-                        await this.messageHandler.displayMessages(messages);
-                    }
+            console.log('🎯 [CHAT-SECTION] Processing messages:', {
+                messageCount: messages.length,
+                hasMore: hasMore,
+                append: !!before
+            });
+
+            if (messages.length > 0) {
+                if (before) {
+                    console.log('📜 [CHAT-SECTION] Prepending older messages');
+                    await this.messageHandler.prependMessages(messages);
+                } else {
+                    console.log('📝 [CHAT-SECTION] Displaying fresh messages');
+                    await this.messageHandler.displayMessages(messages);
                 }
-                
-                this.hasMoreMessages = hasMore;
-                this.updateLoadMoreButton();
                 
                 if (!before) {
-                    setTimeout(() => {
-                        this.scrollToBottom();
-                    }, 100);
+                    this.scrollToBottom();
                 }
-            }
-        } catch (error) {
-            console.error('❌ Error loading messages:', error);
-            
-            const errorMessage = error.message || 'Unknown error occurred';
-            
-            if (errorMessage.includes('not found') || errorMessage.includes('404')) {
-                this.showEmptyState('Channel not found or you don\'t have access');
-            } else if (errorMessage.includes('forbidden') || errorMessage.includes('403')) {
-                this.showEmptyState('You don\'t have permission to view this channel');
-            } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-                this.showEmptyState('Network error. Please check your connection and try again.');
+                
+                this.lastLoadedMessageId = messages[messages.length - 1]?.id || null;
+                this.hideEmptyState();
+                console.log('✅ [CHAT-SECTION] Messages processed successfully');
             } else {
-                this.showEmptyState(`Failed to load messages: ${errorMessage}`);
+                if (!before) {
+                    this.showEmptyState();
+                }
+                console.log('📭 [CHAT-SECTION] No messages to display');
             }
+
+            this.updateLoadMoreButton();
+
+        } catch (error) {
+            console.error('❌ [CHAT-SECTION] Error loading messages:', error);
+            this.showNotification('Failed to load messages. Please try again.', 'error');
             
-            this.showNotification(`Failed to load messages: ${errorMessage}`, 'error');
+            if (!before) {
+                this.showEmptyState('Failed to load messages. Please try again.');
+            }
         } finally {
             this.isLoading = false;
             this.hideLoadingIndicator();
+            console.log('🏁 [CHAT-SECTION] loadMessages completed');
         }
     }
     
@@ -1466,79 +1408,57 @@ class ChatSection {
     switchTarget(newChatType, newTargetId) {
         console.log(`🔄 [CHAT-SECTION] Switching target from ${this.chatType}:${this.targetId} to ${newChatType}:${newTargetId}`);
         
-        if (this.isLoading) {
-            console.log('⚠️ [CHAT-SECTION] Already loading, ignoring switch request');
-            return;
-        }
-        
         if (this.chatType === newChatType && this.targetId === newTargetId) {
             console.log('⚠️ [CHAT-SECTION] Already on the same target, skipping switch');
             return;
         }
         
-        this.isLoading = true;
+        console.log('🧹 [CHAT-SECTION] Starting target switch cleanup...');
         
-        try {
-            if (this._roomCheckInterval) {
-                clearInterval(this._roomCheckInterval);
-                this._roomCheckInterval = null;
-            }
-            
-            if (this.messageHandler) {
-                this.messageHandler.clearProcessedMessages();
-            }
-            
-            if (this.socketHandler) {
-                this.socketHandler.socketListenersSetup = false;
-            }
-            
-            this.showLoadingIndicator();
-            
-            if (this.chatMessages) {
-                this.chatMessages.innerHTML = '<div class="flex items-center justify-center h-64"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div></div>';
-            }
-            
-            this.chatType = newChatType;
-            this.targetId = newTargetId;
-            this.hasMoreMessages = true;
-            this.lastLoadedMessageId = null;
-            this.replyingTo = null;
-            this.currentEditingMessage = null;
-            
-            if (this.mentionHandler) {
-                this.mentionHandler.onTargetChanged();
-            }
-            
-            if (window.globalSocketManager?.isReady()) {
-                setTimeout(() => {
-                    this.joinSocketRoom();
-                }, 100);
-            }
-            
-            setTimeout(() => {
-                if (this.targetId) {
-                    this.loadMessages().then(() => {
-                        console.log(`✅ [CHAT-SECTION] Successfully switched to ${newChatType}:${newTargetId}`);
-                    }).catch((error) => {
-                        console.error(`❌ [CHAT-SECTION] Failed to load messages for ${newChatType}:${newTargetId}`, error);
-                        this.showEmptyState('Failed to load messages. Please try again.');
-                    }).finally(() => {
-                        this.isLoading = false;
-                        this.hideLoadingIndicator();
-                    });
-                } else {
-                    this.isLoading = false;
-                    this.hideLoadingIndicator();
-                    this.showEmptyState('No target selected');
-                }
-            }, 200);
-            
-        } catch (error) {
-            console.error(`❌ [CHAT-SECTION] Error during target switch:`, error);
-            this.isLoading = false;
-            this.hideLoadingIndicator();
-            this.showEmptyState('Error occurred while switching. Please try again.');
+        if (this._roomCheckInterval) {
+            clearInterval(this._roomCheckInterval);
+            this._roomCheckInterval = null;
         }
+        
+        if (this.messageHandler) {
+            this.messageHandler.clearProcessedMessages();
+        }
+        
+        if (this.socketHandler) {
+            this.socketHandler.socketListenersSetup = false;
+        }
+        
+        this.showLoadingIndicator();
+        this.clearChatMessages();
+        
+        console.log('📝 [CHAT-SECTION] Updating target properties...');
+        this.chatType = newChatType;
+        this.targetId = newTargetId;
+        this.hasMoreMessages = true;
+        this.lastLoadedMessageId = null;
+        this.replyingTo = null;
+        this.currentEditingMessage = null;
+        
+        if (this.mentionHandler) {
+            this.mentionHandler.onTargetChanged();
+        }
+        
+        console.log('🔌 [CHAT-SECTION] Setting up socket room...');
+        if (window.globalSocketManager?.isReady()) {
+            this.joinSocketRoom();
+        }
+        
+        console.log('📨 [CHAT-SECTION] Loading messages for new target...');
+        this.loadMessages()
+            .then(() => {
+                console.log(`✅ [CHAT-SECTION] Successfully switched to ${newChatType}:${newTargetId} and loaded messages`);
+                this.hideLoadingIndicator();
+            })
+            .catch((error) => {
+                console.error(`❌ [CHAT-SECTION] Failed to load messages for ${newChatType}:${newTargetId}`, error);
+                this.showEmptyState('Failed to load messages. Please try again.');
+                this.hideLoadingIndicator();
+            });
     }
     
     clearChatMessages() {

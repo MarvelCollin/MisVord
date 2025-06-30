@@ -1481,6 +1481,12 @@ input[type="radio"]:checked + .radio-dot:after {
   border: 1px solid rgba(153, 170, 181, 0.3);
 }
 
+.member-role-badge.bot {
+  background-color: rgba(88, 101, 242, 0.2);
+  color: #5865f2;
+  border: 1px solid rgba(88, 101, 242, 0.3);
+}
+
 .member-joined {
   color: var(--discord-interactive-normal);
   font-size: 13px;
@@ -1718,6 +1724,12 @@ input[type="radio"]:checked + .radio-dot:after {
   border: 1px solid rgba(153, 170, 181, 0.3);
 }
 
+.role-badge.bot {
+  background-color: rgba(88, 101, 242, 0.2);
+  color: #5865f2;
+  border: 1px solid rgba(88, 101, 242, 0.3);
+}
+
 .role-change-arrow {
   color: var(--discord-blurple);
   font-size: 16px;
@@ -1909,6 +1921,12 @@ input[type="radio"]:checked + .radio-dot:after {
 .role-badge.member {
   background-color: rgba(88, 101, 242, 0.2);
   color: var(--discord-blurple);
+  border: 1px solid rgba(88, 101, 242, 0.3);
+}
+
+.role-badge.bot {
+  background-color: rgba(88, 101, 242, 0.2);
+  color: #5865f2;
   border: 1px solid rgba(88, 101, 242, 0.3);
 }
 

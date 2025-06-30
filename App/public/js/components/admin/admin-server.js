@@ -570,8 +570,8 @@ export class ServerManager {
                       <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
                           ${member.avatar_url ? 
-                            `<img src="${member.avatar_url}" alt="${member.username}" class="w-10 h-10 rounded-full object-cover">` : 
-                            `<div class="w-10 h-10 bg-discord-primary rounded-full flex items-center justify-center text-sm font-bold text-white">${member.username.charAt(0).toUpperCase()}</div>`
+                            `<img src="${member.avatar_url}" alt="${member.display_name || member.username}" class="w-10 h-10 rounded-full object-cover">` : 
+                            `<div class="w-10 h-10 bg-discord-primary rounded-full flex items-center justify-center text-sm font-bold text-white">${(member.display_name || member.username).charAt(0).toUpperCase()}</div>`
                           }
                           <div>
                             <div class="flex items-center space-x-2">

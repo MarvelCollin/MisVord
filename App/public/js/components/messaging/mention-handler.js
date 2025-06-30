@@ -26,7 +26,6 @@ class MentionHandler {
     init() {
         this.setupMessageInputListeners();
         this.createAutocompleteContainer();
-        this.loadAvailableUsers();
     }
     
     setupMessageInputListeners() {
@@ -93,34 +92,18 @@ class MentionHandler {
     }
     
     async loadAvailableUsers(forceReload = false) {
-        const targetId = this.chatSection.targetId;
+        let targetId = this.chatSection.targetId;
         const chatType = this.chatSection.chatType;
         
-        console.log('🐛 [DEBUG] loadAvailableUsers called:', {
-            targetId: targetId,
-            chatType: chatType,
-            forceReload: forceReload,
-            isLoading: this.isLoading,
-            usersLoaded: this.usersLoaded
-        });
-        
         if (!targetId) {
-            console.error('❌ [DEBUG] No target ID available for loading users');
-            
-            // Fallback: Try to get channel ID from URL parameters if we're in a channel
             if (chatType === 'channel') {
-                console.log('🔧 [DEBUG] Attempting fallback to get channel ID from URL...');
                 const urlParams = new URLSearchParams(window.location.search);
                 const channelFromUrl = urlParams.get('channel');
                 
                 if (channelFromUrl) {
-                    console.log('🔧 [DEBUG] Found channel ID in URL:', channelFromUrl);
-                    // Update both this method's targetId and the chat section's targetId
                     targetId = channelFromUrl;
                     this.chatSection.targetId = targetId;
-                    console.log('🔧 [DEBUG] Updated targetId from URL, continuing with user loading...');
                 } else {
-                    console.error('❌ [DEBUG] No channel ID in URL parameters either');
                     return;
                 }
             } else {
@@ -133,12 +116,10 @@ class MentionHandler {
         if (!forceReload && this.userCache.has(cacheKey) && this.lastTargetId === targetId) {
             this.availableUsers = this.userCache.get(cacheKey);
             this.usersLoaded = true;
-            console.log(`📝 [DEBUG] Using cached users for ${cacheKey}:`, this.availableUsers.size, 'users');
             return;
         }
         
         if (this.isLoading) {
-            console.log('📝 [DEBUG] Already loading users, skipping...');
             return;
         }
         
@@ -146,25 +127,18 @@ class MentionHandler {
         this.usersLoaded = false;
         
         try {
-            console.log(`📝 [DEBUG] Loading users for ${cacheKey}...`);
-            
             if (chatType === 'channel') {
-                console.log('🐛 [DEBUG] Calling loadChannelMembers...');
                 await this.loadChannelMembers(targetId);
             } else if (chatType === 'dm' || chatType === 'direct') {
-                console.log('🐛 [DEBUG] Calling loadDMParticipants...');
                 await this.loadDMParticipants();
-            } else {
-                console.error('❌ [DEBUG] Unknown chat type:', chatType);
             }
             
             this.userCache.set(cacheKey, new Map(this.availableUsers));
             this.lastTargetId = targetId;
             this.usersLoaded = true;
             
-            console.log(`✅ [DEBUG] Loaded ${this.availableUsers.size} users for ${cacheKey}`);
         } catch (error) {
-            console.error('❌ [DEBUG] Error loading available users for mentions:', error);
+            console.error('Error loading available users for mentions:', error);
         } finally {
             this.isLoading = false;
         }
@@ -172,18 +146,9 @@ class MentionHandler {
     
     async loadChannelMembers(targetId = null) {
         try {
-            // Use passed targetId or fall back to chatSection targetId
             targetId = targetId || this.chatSection.targetId;
-            const chatType = this.chatSection.chatType;
-            
-            console.log('🐛 [DEBUG] Loading channel members:', {
-                targetId: targetId,
-                chatType: chatType,
-                url: `/api/channels/${targetId}/members`
-            });
             
             if (!targetId) {
-                console.error('❌ [DEBUG] No targetId available for loading channel members');
                 return;
             }
             
@@ -194,62 +159,28 @@ class MentionHandler {
                 }
             });
             
-            console.log('🐛 [DEBUG] Channel members response:', {
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok
-            });
-            
             if (response.ok) {
                 const result = await response.json();
-                console.log('🐛 [DEBUG] Channel members result:', result);
                 
-                // Handle nested data structure: result.data.data contains the actual user array
                 let members = null;
                 if (result.success && result.data) {
                     if (Array.isArray(result.data)) {
-                        // Direct array format (fallback)
                         members = result.data;
-                    } else if (result.data.data && Array.isArray(result.data.data)) {
-                        // Nested format: result.data.data contains the user array
-                        members = result.data.data;
                     }
                 }
                 
                 if (members && members.length > 0) {
-                    console.log('🐛 [DEBUG] Processing members:', members.length, 'members found');
-                    
                     members.forEach(member => {
-                        console.log('🐛 [DEBUG] Adding member:', member);
                         this.availableUsers.set(member.username.toLowerCase(), {
                             id: member.user_id,
                             username: member.username,
                             avatar_url: member.avatar_url || '/public/assets/common/default-profile-picture.png'
                         });
                     });
-                    
-                    console.log('🐛 [DEBUG] Total available users after loading:', this.availableUsers.size);
-                } else {
-                    console.error('❌ [DEBUG] Channel members data format issue:', {
-                        success: result.success,
-                        data: result.data,
-                        membersFound: members ? members.length : 0,
-                        dataType: typeof result.data,
-                        isArray: Array.isArray(result.data),
-                        hasNestedData: result.data && result.data.data ? Array.isArray(result.data.data) : false
-                    });
                 }
-            } else {
-                console.error('❌ [DEBUG] Failed to fetch channel members:', {
-                    status: response.status,
-                    statusText: response.statusText
-                });
-                
-                const errorText = await response.text();
-                console.error('❌ [DEBUG] Response body:', errorText);
             }
         } catch (error) {
-            console.error('❌ [DEBUG] Exception loading channel members:', error);
+            console.error('Exception loading channel members:', error);
         }
     }
     
@@ -365,6 +296,11 @@ class MentionHandler {
     
     async showAutocomplete(searchTerm, mentionStartIndex) {
         this.mentionStartIndex = mentionStartIndex;
+        
+        if (!this.chatSection.targetId) {
+            this.hideAutocomplete();
+            return;
+        }
         
         if (!this.usersLoaded && !this.isLoading) {
             await this.loadAvailableUsers();
@@ -664,16 +600,18 @@ class MentionHandler {
     onTargetChanged() {
         const newTargetId = this.chatSection.targetId;
         if (this.lastTargetId !== newTargetId) {
-            console.log(`📝 [MENTION] Target changed from ${this.lastTargetId} to ${newTargetId}`);
             this.usersLoaded = false;
             this.hideAutocomplete();
-            this.loadAvailableUsers();
+            if (newTargetId) {
+                this.loadAvailableUsers();
+            }
         }
     }
     
     refreshUsers() {
-        console.log('📝 [MENTION] Refreshing users...');
-        this.loadAvailableUsers(true);
+        if (this.chatSection.targetId) {
+            this.loadAvailableUsers(true);
+        }
     }
     
     destroy() {

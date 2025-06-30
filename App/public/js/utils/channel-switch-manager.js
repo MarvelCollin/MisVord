@@ -148,6 +148,14 @@ class ChannelSwitchManager {
             if (channelType === 'text') {
                 this.updateChatMetaTags(channelId, serverId);
                 
+                const messageInput = document.querySelector('#message-input');
+                if (messageInput) {
+                    messageInput.placeholder = `Message #${channelName}`;
+                    console.log('[ChannelSwitchManager] ✅ Updated message input placeholder to:', messageInput.placeholder);
+                } else {
+                    console.warn('[ChannelSwitchManager] ⚠️ Message input element not found');
+                }
+                
                 await new Promise(resolve => setTimeout(resolve, 100));
                 this.initializeChatSection(channelId);
                 
@@ -363,11 +371,38 @@ class ChannelSwitchManager {
     initializeChatSection(channelId) {
         console.log('[ChannelSwitchManager] Initializing chat section for channel:', channelId);
         
-        const channelNameElement = document.querySelector('#channel-name');
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
         const channelName = channelElement ? channelElement.textContent.trim().replace('#', '') : 'channel';
+        const channelType = channelElement ? (channelElement.getAttribute('data-channel-type') || 'text') : 'text';
+        
+        console.log('[ChannelSwitchManager] Channel details:', { channelId, channelName, channelType });
+        
+        const channelNameElement = document.querySelector('#channel-name');
+        const channelIconElement = document.querySelector('#channel-icon');
+        
         if (channelNameElement) {
             channelNameElement.textContent = channelName;
+            console.log('[ChannelSwitchManager] ✅ Updated channel name to:', channelName);
+        } else {
+            console.warn('[ChannelSwitchManager] ⚠️ Channel name element not found');
+        }
+        
+        if (channelIconElement) {
+            const iconClass = channelType === 'voice' ? 'fas fa-volume-high' : 'fas fa-hashtag';
+            channelIconElement.className = `${iconClass} text-[#949ba4] mr-2`;
+            console.log('[ChannelSwitchManager] ✅ Updated channel icon to:', iconClass);
+        } else {
+            console.warn('[ChannelSwitchManager] ⚠️ Channel icon element not found');
+        }
+        
+        this.updateChatMetaTags(channelId, this.currentServerId);
+        
+        const messageInput = document.querySelector('#message-input');
+        if (messageInput) {
+            messageInput.placeholder = `Message #${channelName}`;
+            console.log('[ChannelSwitchManager] ✅ Updated message input placeholder to:', messageInput.placeholder);
+        } else {
+            console.warn('[ChannelSwitchManager] ⚠️ Message input element not found');
         }
         
         if (window.chatSection && typeof window.chatSection.switchTarget === 'function') {

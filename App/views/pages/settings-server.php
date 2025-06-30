@@ -312,6 +312,13 @@ ob_start();
                                         </div>
                                         <span>Members</span>
                                     </div>
+                                    <div class="filter-option" data-filter="bot">
+                                        <div class="radio-container">
+                                            <input type="radio" name="filter" class="radio-input">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span>Bots</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

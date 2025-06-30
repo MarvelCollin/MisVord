@@ -86,7 +86,7 @@ function initSidebarNavigation(activeSection) {
             
             const url = new URL(window.location);
             url.searchParams.set('section', section);
-            window.history.pushState({}, '', url);
+            window.history.replaceState({}, '', url);
             
             sidebarItems.forEach(i => i.classList.remove('active'));
             this.classList.add('active');
@@ -619,13 +619,7 @@ function initCloseButton() {
     if (!closeButton) return;
     
     const goBack = () => {
-        if (document.referrer && document.referrer !== window.location.href) {
-            window.location.href = document.referrer;
-        } else if (window.history.length > 1) {
-            window.history.back();
-        } else {
-            window.location.href = '/home';
-        }
+        window.location.href = '/home';
     };
 
     closeButton.addEventListener('click', (e) => {

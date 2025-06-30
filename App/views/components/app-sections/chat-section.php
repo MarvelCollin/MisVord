@@ -158,8 +158,8 @@ if (!function_exists('renderMessage')) {
 <div class="flex-1 flex flex-col bg-[#313338] h-screen overflow-hidden">
     <?php if ($chatType): ?>
     <div class="h-12 min-h-[48px] px-4 border-b border-[#2d2f32] flex items-center shadow-sm z-10 bg-[#313338]">
-        <i class="<?php echo $chatIcon; ?> text-[#949ba4] mr-2"></i>
-        <span class="font-semibold text-white"><?php echo htmlspecialchars($chatTitle); ?></span>
+        <i id="channel-icon" class="<?php echo $chatIcon; ?> text-[#949ba4] mr-2"></i>
+        <span id="channel-name" class="font-semibold text-white"><?php echo htmlspecialchars($chatTitle); ?></span>
     </div>
     <?php endif; ?>
 
