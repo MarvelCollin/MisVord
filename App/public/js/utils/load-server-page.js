@@ -103,9 +103,9 @@ export async function loadServerPage(serverId, channelId = null) {
                 console.log('[Server AJAX] Disabling skeleton loading due to error');
                 handleServerSkeletonLoading(false);
                 
-                if (window.channelSwitchManager && typeof window.channelSwitchManager.cleanup === 'function') {
-                    console.log('[Server AJAX] Cleaning up channel switch manager due to error');
-                    window.channelSwitchManager.cleanup();
+                if (window.simpleChannelSwitcher) {
+                    console.log('[Server AJAX] Cleaning up simple channel switcher due to error');
+                    window.simpleChannelSwitcher = null;
                 }
                 
                 console.error('[Server AJAX] Server loading failed');
@@ -634,17 +634,14 @@ function initServerDropdownManual() {
     }, 150);
 }
 
-function reinitializeChannelSwitchManager() {
-    console.log('[Server AJAX] ChannelSwitchManager will auto-initialize when needed');
-}
+
 
 function cleanupForServerSwitch() {
     console.log('[Server AJAX] Cleaning up for server switch');
     
-    if (window.channelSwitchManager && typeof window.channelSwitchManager.cleanup === 'function') {
-        console.log('[Server AJAX] Cleaning up existing channel switch manager');
-        window.channelSwitchManager.cleanup();
-        window.channelSwitchManager = null;
+    if (window.simpleChannelSwitcher) {
+        console.log('[Server AJAX] Cleaning up existing simple channel switcher');
+        window.simpleChannelSwitcher = null;
     }
     
     if (window.chatSection && typeof window.chatSection.cleanup === 'function') {

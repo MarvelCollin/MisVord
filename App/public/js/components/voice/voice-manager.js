@@ -235,18 +235,6 @@ class VoiceManager {
             this.currentMeetingId = meetingId;
             this.isConnected = true;
             
-            const channelName = this.currentChannelName || 
-                               document.querySelector('meta[name="channel-name"]')?.content ||
-                               document.querySelector('.channel-name')?.textContent?.trim() ||
-                               document.querySelector('h2')?.textContent?.trim() ||
-                               'Voice Channel';
-            
-            this.dispatchEvent(window.VOICE_EVENTS?.VOICE_CONNECT || 'voiceConnect', {
-                channelId: this.currentChannelId,
-                channelName: channelName,
-                meetingId: meetingId
-            });
-
             console.log(`🎉 [VOICE-MANAGER] Successfully joined voice!`, {
                 meetingId: meetingId,
                 channelId: channelId,

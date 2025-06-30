@@ -4,11 +4,9 @@ class LandingNavigation {
         this.totalHorizontalSections = 3;
         this.isTransitioning = false;
         this.inHorizontalMode = false;
-        this.isLocked = false;
         this.touchStartX = 0;
         this.touchStartY = 0;
         this.threshold = 50;
-        this.scrollLocked = false;
         
         this.init();
     }
@@ -22,42 +20,13 @@ class LandingNavigation {
         this.navDots = document.querySelectorAll('.nav-dot');
         
         this.setupNavigation();
-        this.lockScrollBehavior();
         this.checkPosition();
-    }
-    
-    lockScrollBehavior() {
-        document.body.style.overflow = 'auto';
-        document.documentElement.style.overflow = 'auto';
-        
-        window.addEventListener('scroll', (e) => {
-            if (this.scrollLocked) {
-                e.preventDefault();
-                window.scrollTo(0, window.scrollY);
-                return false;
-            }
-        }, { passive: false });
-        
-        document.addEventListener('wheel', (e) => {
-            if (this.scrollLocked) {
-                e.preventDefault();
-                return false;
-            }
-        }, { passive: false });
-        
-        document.addEventListener('touchmove', (e) => {
-            if (this.scrollLocked) {
-                e.preventDefault();
-                return false;
-            }
-        }, { passive: false });
     }
     
     setupNavigation() {
         let scrollTimeout;
         
         window.addEventListener('scroll', () => {
-            if (this.scrollLocked) return;
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => {
                 this.handleScroll();
@@ -68,7 +37,7 @@ class LandingNavigation {
         
         if (this.wrapper) {
             this.wrapper.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
-            this.wrapper.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+        this.wrapper.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
             this.wrapper.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
         }
         
@@ -92,92 +61,40 @@ class LandingNavigation {
         const wrapperRect = this.wrapper.getBoundingClientRect();
         
         const wasInHorizontal = this.inHorizontalMode;
-        const shouldBeInHorizontal = heroRect.bottom <= 100 && wrapperRect.top <= 100;
+        this.inHorizontalMode = heroRect.bottom <= 100 && wrapperRect.top <= 100;
         
-        if (!wasInHorizontal && shouldBeInHorizontal) {
-            this.enterHorizontalMode();
-        } else if (wasInHorizontal && !shouldBeInHorizontal && this.currentIndex === 0) {
-            this.exitHorizontalMode();
+        if (!wasInHorizontal && this.inHorizontalMode) {
+            this.currentIndex = 0;
+            this.transitionToHorizontal(0);
+        } else if (wasInHorizontal && !this.inHorizontalMode) {
+            this.currentIndex = 0;
+            this.updateInterface();
         }
-    }
-    
-    enterHorizontalMode() {
-        this.inHorizontalMode = true;
-        this.scrollLocked = true;
-        this.currentIndex = 0;
-        this.isLocked = true;
-        
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
-        
-        const event = new CustomEvent('navigationLocked');
-        window.dispatchEvent(event);
-        
-        this.transitionToHorizontal(0);
-        console.log('🔒 Entered horizontal mode - scroll LOCKED');
-    }
-    
-    exitHorizontalMode() {
-        if (this.currentIndex !== 0) {
-            console.log('❌ Cannot exit horizontal mode - must be at section B first');
-            this.forceToFirstSection();
-            return;
-        }
-        
-        this.inHorizontalMode = false;
-        this.scrollLocked = false;
-        this.isLocked = false;
-        
-        document.body.style.overflow = 'auto';
-        document.documentElement.style.overflow = 'auto';
-        
-        const event = new CustomEvent('navigationUnlocked');
-        window.dispatchEvent(event);
-        
-        console.log('🔓 Exited horizontal mode - scroll UNLOCKED');
-        this.updateInterface();
-    }
-    
-    forceToFirstSection() {
-        console.log('🔄 Forcing back to section B');
-        this.currentIndex = 0;
-        this.transitionToHorizontal(0);
     }
     
     handleWheel(e) {
-        if (!this.inHorizontalMode) {
-            if (e.deltaY < 0) {
-                e.preventDefault();
-                return false;
-            }
-            return;
-        }
-        
-        if (this.isTransitioning || window.innerWidth <= 768) {
-            e.preventDefault();
-            return false;
-        }
-        
-        e.preventDefault();
+        if (!this.inHorizontalMode || this.isTransitioning || window.innerWidth <= 768) return;
         
         const deltaX = Math.abs(e.deltaX);
         const deltaY = Math.abs(e.deltaY);
         
         if (deltaX > deltaY && deltaX > 30) {
+            e.preventDefault();
+        
             if (e.deltaX > 0) {
                 this.goToNext();
             } else {
                 this.goToPrevious();
             }
         } else if (deltaY > 30) {
+            e.preventDefault();
+            
             if (e.deltaY > 0) {
                 this.goToNext();
             } else {
-                this.goToPreviousWithLock();
+                this.goToPrevious();
             }
         }
-        
-        return false;
     }
     
     handleTouchStart(e) {
@@ -223,12 +140,6 @@ class LandingNavigation {
         } else if (e.key === 'ArrowRight') {
             e.preventDefault();
             this.goToNext();
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            this.goToPreviousWithLock();
-        } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            this.goToNext();
         }
     }
     
@@ -236,8 +147,6 @@ class LandingNavigation {
         if (this.currentIndex < this.totalHorizontalSections - 1) {
             this.currentIndex++;
             this.transitionToHorizontal(this.currentIndex);
-        } else {
-            console.log('⚠️ Already at last section (D)');
         }
     }
     
@@ -245,40 +154,7 @@ class LandingNavigation {
         if (this.currentIndex > 0) {
             this.currentIndex--;
             this.transitionToHorizontal(this.currentIndex);
-        } else {
-            console.log('⚠️ Already at first section (B) - use up arrow/scroll to exit to A');
         }
-    }
-    
-    goToPreviousWithLock() {
-        if (this.currentIndex > 0) {
-            this.currentIndex--;
-            this.transitionToHorizontal(this.currentIndex);
-        } else if (this.currentIndex === 0) {
-            this.attemptExitToHero();
-        }
-    }
-    
-    attemptExitToHero() {
-        console.log('🚀 Attempting to exit to hero section...');
-        this.scrollLocked = false;
-        this.inHorizontalMode = false;
-        this.isLocked = false;
-        
-        document.body.style.overflow = 'auto';
-        document.documentElement.style.overflow = 'auto';
-        
-        const event = new CustomEvent('navigationUnlocked');
-        window.dispatchEvent(event);
-        
-        this.heroSection.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-        });
-        
-        setTimeout(() => {
-            this.updateInterface();
-        }, 100);
     }
     
     transitionToHorizontal(index) {
@@ -295,9 +171,6 @@ class LandingNavigation {
         
         const translateX = -index * 100;
         this.wrapper.style.transform = `translateX(${translateX}vw)`;
-        
-        const sectionNames = ['B (Featured)', 'C (Carousel)', 'D (Nitro)'];
-        console.log(`➡️ Transitioning to section ${sectionNames[index]}`);
         
         setTimeout(() => {
             this.isTransitioning = false;
@@ -348,9 +221,6 @@ class LandingNavigation {
     
     goToHorizontalSection(index) {
         if (index >= 0 && index < this.totalHorizontalSections) {
-            if (!this.inHorizontalMode) {
-                this.enterHorizontalMode();
-            }
             this.transitionToHorizontal(index);
         }
     }
@@ -361,13 +231,7 @@ class LandingNavigation {
         
         if (window.innerWidth <= 768) {
             this.wrapper.style.transform = 'translateX(0)';
-            this.scrollLocked = false;
-            document.body.style.overflow = 'auto';
-            document.documentElement.style.overflow = 'auto';
-            
-            const event = new CustomEvent('navigationUnlocked');
-            window.dispatchEvent(event);
-        } else if (this.inHorizontalMode) {
+        } else {
             this.transitionToHorizontal(this.currentIndex);
         }
     }

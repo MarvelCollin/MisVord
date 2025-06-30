@@ -311,7 +311,7 @@ function setupChannelListObserver() {
       if (window.channelHandlersInitialized) {
         console.log("Channel click handlers already initialized, skipping");
       } else {
-        console.log("Channel switching is handled by ChannelSwitchManager");
+        console.log("Channel switching is handled by SimpleChannelSwitcher");
         window.channelHandlersInitialized = true;
       }
     } finally {
@@ -369,7 +369,7 @@ function initVoicePage() {
   }
 }
 
-// These functions are now handled by ChannelSwitchManager
+// These functions are now handled by SimpleChannelSwitcher
 window.getServerIdFromURL = getServerIdFromURL;
 
 window.isServerPageReady = function() {

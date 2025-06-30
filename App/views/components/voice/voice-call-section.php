@@ -731,15 +731,21 @@ class UnifiedParticipantManager {
 
 class VoiceCallManager {
     constructor() {
-        this.participantManager = new UnifiedParticipantManager();
         this.isConnected = false;
+        this.participants = new Map();
+        this.localParticipantId = null;
         this.isMuted = false;
         this.isDeafened = false;
         this.isVideoOn = false;
         this.isScreenSharing = false;
-        this.localParticipantId = null;
-        this.screenShareParticipantId = null;
-        this.init();
+        this.currentView = 'unified';
+        this.eventListenersRegistered = false;
+        
+        this.participantManager = new UnifiedParticipantManager();
+        
+        setTimeout(() => {
+            this.init();
+        }, 100);
     }
 
     init() {
@@ -748,78 +754,30 @@ class VoiceCallManager {
     }
 
     setupEventListeners() {
-        window.addEventListener('videosdkStreamEnabled', (event) => {
-            const { kind, stream, participant } = event.detail;
-            
-            if (kind === 'video') {
-                this.handleCameraStream(participant, stream);
-            } else if (kind === 'share') {
-                this.handleScreenShare(participant, stream);
-            }
-        });
-
-        window.addEventListener('videosdkStreamDisabled', (event) => {
-            const { kind, participant } = event.detail;
-            
-            if (kind === 'video') {
-                this.handleCameraDisabled(participant);
-            } else if (kind === 'share') {
-                this.handleScreenShareStopped();
-            }
-        });
-
-        window.addEventListener('voiceStateChanged', (event) => {
-            const { type, state } = event.detail;
-            
-            if (type === 'mic') {
-                this.isMuted = !state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isMuted: this.isMuted });
-                }
-            } else if (type === 'video') {
-                this.isVideoOn = state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isVideoOn: this.isVideoOn });
-                }
-            } else if (type === 'screenShare') {
-                this.isScreenSharing = state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isScreenSharing: this.isScreenSharing });
-                }
-            } else if (type === 'deafen') {
-                this.isDeafened = state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isDeafened: this.isDeafened });
-                }
-            }
-        });
+        if (this.eventListenersRegistered || window.voiceEventListenersRegistered) {
+            console.log('⚠️ [VOICE-CALL-MANAGER] Event listeners already registered, skipping');
+            return;
+        }
+        
+        this.eventListenersRegistered = true;
+        window.voiceEventListenersRegistered = true;
 
         window.addEventListener('videosdkParticipantJoined', (event) => {
-            const { participant, participantObj } = event.detail;
             this.participantManager.processEvent({
                 type: 'participant_joined',
                 data: {
-                    participantId: participant,
-                    participantObj: participantObj,
+                    participantId: event.detail.participant,
+                    participantObj: event.detail.participantObj,
                     source: 'videosdk'
                 }
             });
         });
 
         window.addEventListener('videosdkParticipantLeft', (event) => {
-            const { participant } = event.detail;
             this.participantManager.processEvent({
                 type: 'participant_left',
                 data: {
-                    participantId: participant,
+                    participantId: event.detail.participant,
                     source: 'videosdk'
                 }
             });
@@ -874,6 +832,60 @@ class VoiceCallManager {
             }
             
             this.cleanup();
+        });
+
+        window.addEventListener('videosdkStreamEnabled', (event) => {
+            const { kind, stream, participant } = event.detail;
+            
+            if (kind === 'video') {
+                this.handleCameraStream(participant, stream);
+            } else if (kind === 'share') {
+                this.handleScreenShare(participant, stream);
+            }
+        });
+
+        window.addEventListener('videosdkStreamDisabled', (event) => {
+            const { kind, participant } = event.detail;
+            
+            if (kind === 'video') {
+                this.handleCameraDisabled(participant);
+            } else if (kind === 'share') {
+                this.handleScreenShareStopped();
+            }
+        });
+
+        window.addEventListener('voiceStateChanged', (event) => {
+            const { type, state } = event.detail;
+            
+            if (type === 'mic') {
+                this.isMuted = !state;
+                this.updateButtonStates();
+                
+                if (window.unifiedVoiceStateManager) {
+                    window.unifiedVoiceStateManager.setState({ isMuted: this.isMuted });
+                }
+            } else if (type === 'video') {
+                this.isVideoOn = state;
+                this.updateButtonStates();
+                
+                if (window.unifiedVoiceStateManager) {
+                    window.unifiedVoiceStateManager.setState({ isVideoOn: this.isVideoOn });
+                }
+            } else if (type === 'screenShare') {
+                this.isScreenSharing = state;
+                this.updateButtonStates();
+                
+                if (window.unifiedVoiceStateManager) {
+                    window.unifiedVoiceStateManager.setState({ isScreenSharing: this.isScreenSharing });
+                }
+            } else if (type === 'deafen') {
+                this.isDeafened = state;
+                this.updateButtonStates();
+                
+                if (window.unifiedVoiceStateManager) {
+                    window.unifiedVoiceStateManager.setState({ isDeafened: this.isDeafened });
+                }
+            }
         });
 
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
@@ -1566,9 +1578,10 @@ function toggleVideoLayout() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    window.voiceCallManager = new VoiceCallManager();
+    if (!window.voiceCallManager) {
+        window.voiceCallManager = new VoiceCallManager();
+    }
     
-    // Set up view toggle buttons
     const gridViewBtn = document.getElementById('gridViewBtn');
     const speakerViewBtn = document.getElementById('speakerViewBtn');
     

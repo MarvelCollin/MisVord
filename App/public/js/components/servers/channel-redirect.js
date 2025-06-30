@@ -20,8 +20,8 @@ async function loadDefaultChannel(serverId) {
         if (data.success && data.data && data.data.channels && data.data.channels.length > 0) {
             const firstChannel = data.data.channels[0];
             
-            if (window.channelSwitchManager) {
-                await window.channelSwitchManager.switchToChannel(serverId, firstChannel.id, 'text');
+            if (window.simpleChannelSwitcher) {
+                window.simpleChannelSwitcher.switchToChannel(firstChannel.id, 'text');
             }
         }
     } catch (error) {
