@@ -11,7 +11,7 @@ class ChatSkeletonLoader {
         this.hideEmptyState();
         
         const isChannelSwitching = this.container.getAttribute('data-channel-skeleton') === 'active';
-        const existingMessages = this.container.querySelectorAll('.message-group');
+        const existingMessages = this.container.querySelectorAll('.bubble-message-group:not(.animate-pulse)');
         
         if (existingMessages.length > 0 && !isChannelSwitching) {
             console.log('⚠️ Real messages exist, skipping skeleton loading');
@@ -31,7 +31,7 @@ class ChatSkeletonLoader {
     clear() {
         if (!this.container) return;
         
-        const skeletons = this.container.querySelectorAll('.message-group-item');
+        const skeletons = this.container.querySelectorAll('.bubble-message-group.animate-pulse');
         skeletons.forEach(skeleton => skeleton.remove());
         
         if (skeletons.length > 0) {
@@ -50,38 +50,40 @@ class ChatSkeletonLoader {
 
     createSkeleton(isAlternate = false) {
         const skeletonGroup = document.createElement('div');
-        skeletonGroup.className = 'message-group-item animate-pulse';
+        skeletonGroup.className = 'bubble-message-group animate-pulse';
         skeletonGroup.style.position = 'relative';
         skeletonGroup.style.zIndex = '20';
         
-        const groupWrapper = document.createElement('div');
-        groupWrapper.className = 'message-group-wrapper';
-        
-        const avatarWrapper = document.createElement('div');
-        avatarWrapper.className = 'message-avatar-wrapper';
-        
         const avatar = document.createElement('div');
-        avatar.className = 'w-full h-full rounded-full bg-[#3c3f45]';
+        avatar.className = 'bubble-avatar';
         
-        avatarWrapper.appendChild(avatar);
+        const avatarImg = document.createElement('div');
+        avatarImg.className = 'w-full h-full rounded-full bg-[#3c3f45]';
+        avatar.appendChild(avatarImg);
         
-        const contentArea = document.createElement('div');
-        contentArea.className = 'message-content-area';
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'bubble-content-wrapper';
         
-        const headerInfo = document.createElement('div');
-        headerInfo.className = 'message-header-info';
+        const header = document.createElement('div');
+        header.className = 'bubble-header';
         
         const usernameBar = document.createElement('div');
-        usernameBar.className = 'h-4 bg-[#3c3f45] rounded w-24 inline-block';
+        usernameBar.className = 'h-4 bg-[#3c3f45] rounded w-24 bubble-username';
         
         const timeBar = document.createElement('div');
-        timeBar.className = 'h-3 bg-[#3c3f45] rounded w-12 inline-block ml-2';
+        timeBar.className = 'h-3 bg-[#3c3f45] rounded w-12 bubble-timestamp';
         
-        headerInfo.appendChild(usernameBar);
-        headerInfo.appendChild(timeBar);
+        header.appendChild(usernameBar);
+        header.appendChild(timeBar);
+        
+        const contents = document.createElement('div');
+        contents.className = 'bubble-contents';
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'bubble-message-content';
         
         const messageText = document.createElement('div');
-        messageText.className = 'message-body-text';
+        messageText.className = 'bubble-message-text';
         
         const contentBar1 = document.createElement('div');
         contentBar1.className = 'h-4 bg-[#3c3f45] rounded w-full max-w-lg mb-1';
@@ -91,14 +93,13 @@ class ChatSkeletonLoader {
         
         messageText.appendChild(contentBar1);
         messageText.appendChild(contentBar2);
+        messageContent.appendChild(messageText);
+        contents.appendChild(messageContent);
+        contentWrapper.appendChild(header);
+        contentWrapper.appendChild(contents);
         
-        contentArea.appendChild(headerInfo);
-        contentArea.appendChild(messageText);
-        
-        groupWrapper.appendChild(avatarWrapper);
-        groupWrapper.appendChild(contentArea);
-        
-        skeletonGroup.appendChild(groupWrapper);
+        skeletonGroup.appendChild(avatar);
+        skeletonGroup.appendChild(contentWrapper);
         
         return skeletonGroup;
     }

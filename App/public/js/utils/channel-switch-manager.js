@@ -154,17 +154,30 @@ class SimpleChannelSwitcher {
         const timestamp = new Date(message.created_at).toLocaleTimeString();
         
         return `
-            <div class="bubble-message-group flex items-start p-2 hover:bg-[#2e3035]" data-user-id="${message.user_id}" data-timestamp="${message.created_at}">
-                <div class="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
-                    <img src="${avatar}" alt="${message.username}" class="w-full h-full object-cover">
+            <div class="bubble-message-group" data-user-id="${message.user_id}" data-timestamp="${message.created_at}">
+                <div class="bubble-avatar">
+                    <img src="${avatar}" alt="${message.username}" onerror="this.src='/public/assets/common/default-profile-picture.png';">
                 </div>
-                <div class="flex-1">
-                    <div class="flex items-center mb-1">
-                        <span class="font-semibold text-white mr-2">${message.username}</span>
-                        <span class="text-xs text-[#a3a6aa]">${timestamp}</span>
+                <div class="bubble-content-wrapper">
+                    <div class="bubble-header">
+                        <span class="bubble-username">${message.username}</span>
+                        <span class="bubble-timestamp">${timestamp}</span>
                     </div>
-                    <div class="message-content text-[#dcddde]" data-message-id="${message.id}">
-                        ${message.content}
+                    <div class="bubble-contents">
+                        <div class="bubble-message-content" data-message-id="${message.id}" data-user-id="${message.user_id}">
+                            <div class="bubble-message-text">${message.content}</div>
+                            <div class="bubble-message-actions">
+                                <button class="bubble-action-button" data-action="reply" data-message-id="${message.id}" title="Reply">
+                                    <i class="fas fa-reply"></i>
+                                </button>
+                                <button class="bubble-action-button" data-action="react" data-message-id="${message.id}" title="Add Reaction">
+                                    <i class="fas fa-smile"></i>
+                                </button>
+                                <button class="bubble-action-button" data-action="more" data-message-id="${message.id}" title="More Actions">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

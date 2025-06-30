@@ -24,13 +24,13 @@ if (!function_exists('asset')) {
         </div>
 
         <div class="simple-book">
-            <div class="book-cover" id="bookCover">
-                <h3>Success Stories</h3>
-                <p>Click to open</p>
-            </div>
-            
             <div class="book-content" id="bookContent">
-                <div class="page active" data-page="0">
+                <div class="page book-cover active" id="bookCover" data-page="cover">
+                    <div class="page-decoration"></div>
+                    <h4>📖 Success Stories</h4>
+                    <p>Click anywhere to open and explore how communities thrive on MisVord platform</p>
+                </div>
+                <div class="page" data-page="0">
                     <div class="page-decoration"></div>
                     <h4>🎮 Gaming Community</h4>
                     <p>Over 50,000 passionate gamers have found their digital home, connecting through crystal-clear voice channels and competitive tournaments.</p>

@@ -621,31 +621,28 @@ class MessageHandler {
         messageElement.classList.add('bubble-message-temporary');
         messageElement.style.opacity = '0.7';
         
-        // Disable reaction buttons for temporary messages
-        const reactionButton = messageElement.querySelector('.message-action-reaction');
+        const reactionButton = messageElement.querySelector('.message-action-reaction, .bubble-action-button[data-action="react"]');
         if (reactionButton) {
             reactionButton.style.pointerEvents = 'none';
             reactionButton.style.opacity = '0.4';
             reactionButton.disabled = true;
-            console.log('🚫 [MESSAGE-HANDLER] Disabled reaction button for temporary message');
         }
         
-        // Disable any emoji picker buttons
-        const emojiButtons = messageElement.querySelectorAll('.emoji-button, .reaction-add-button');
+        const emojiButtons = messageElement.querySelectorAll('.emoji-button, .reaction-add-button, .bubble-action-button');
         emojiButtons.forEach(button => {
             button.style.pointerEvents = 'none';
             button.style.opacity = '0.4';
             button.disabled = true;
         });
         
-        // Add temporary indicator
         if (!messageElement.querySelector('.temp-indicator')) {
             const tempIndicator = document.createElement('span');
             tempIndicator.className = 'temp-indicator text-xs text-gray-400 ml-2';
             tempIndicator.innerHTML = '<i class="fas fa-clock"></i>';
             tempIndicator.title = 'Message is being sent...';
             
-            const messageHeader = messageElement.querySelector('.message-header, .bubble-message-header');
+            const messageHeader = messageElement.querySelector('.bubble-header') || 
+                                 messageElement.closest('.bubble-message-group')?.querySelector('.bubble-header');
             if (messageHeader) {
                 messageHeader.appendChild(tempIndicator);
             }
@@ -656,25 +653,22 @@ class MessageHandler {
         messageElement.classList.remove('bubble-message-temporary');
         messageElement.style.opacity = '1';
         
-        // Re-enable reaction buttons
-        const reactionButton = messageElement.querySelector('.message-action-reaction');
+        const reactionButton = messageElement.querySelector('.message-action-reaction, .bubble-action-button[data-action="react"]');
         if (reactionButton) {
             reactionButton.style.pointerEvents = '';
             reactionButton.style.opacity = '';
             reactionButton.disabled = false;
-            console.log('✅ [MESSAGE-HANDLER] Re-enabled reaction button for confirmed message');
         }
         
-        // Re-enable emoji picker buttons
-        const emojiButtons = messageElement.querySelectorAll('.emoji-button, .reaction-add-button');
+        const emojiButtons = messageElement.querySelectorAll('.emoji-button, .reaction-add-button, .bubble-action-button');
         emojiButtons.forEach(button => {
             button.style.pointerEvents = '';
             button.style.opacity = '';
             button.disabled = false;
         });
         
-        // Remove temporary indicator
-        const tempIndicator = messageElement.querySelector('.temp-indicator');
+        const tempIndicator = messageElement.querySelector('.temp-indicator') ||
+                            messageElement.closest('.bubble-message-group')?.querySelector('.temp-indicator');
         if (tempIndicator) {
             tempIndicator.remove();
         }
@@ -999,22 +993,56 @@ class MessageHandler {
     fallbackCreateMessage(formattedMessage, isTemporary) {
         console.log('🔧 [MESSAGE-HANDLER] Using fallback message creation');
         
-        // Create a simple message element as fallback
         const messageGroup = document.createElement('div');
         messageGroup.className = 'bubble-message-group';
         messageGroup.dataset.userId = formattedMessage.user_id;
         messageGroup.dataset.timestamp = formattedMessage.timestamp;
         
+        const avatar = document.createElement('div');
+        avatar.className = 'bubble-avatar';
+        const avatarImg = document.createElement('img');
+        avatarImg.src = formattedMessage.avatar_url || '/public/assets/common/default-profile-picture.png';
+        avatarImg.alt = formattedMessage.username || 'User';
+        avatarImg.onerror = function() { this.src = '/public/assets/common/default-profile-picture.png'; };
+        avatar.appendChild(avatarImg);
+        
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'bubble-content-wrapper';
+        
+        const header = document.createElement('div');
+        header.className = 'bubble-header';
+        const username = document.createElement('span');
+        username.className = 'bubble-username';
+        username.textContent = formattedMessage.username || 'Unknown User';
+        const timestamp = document.createElement('span');
+        timestamp.className = 'bubble-timestamp';
+        timestamp.textContent = this.formatTimestamp(formattedMessage.sent_at || formattedMessage.timestamp);
+        header.appendChild(username);
+        header.appendChild(timestamp);
+        
+        const contents = document.createElement('div');
+        contents.className = 'bubble-contents';
+        
         const messageContent = document.createElement('div');
-        messageContent.className = 'message-content';
+        messageContent.className = 'bubble-message-content';
         messageContent.dataset.messageId = formattedMessage.id;
+        messageContent.dataset.userId = formattedMessage.user_id;
         
         const messageText = document.createElement('div');
-        messageText.className = 'message-main-text';
+        messageText.className = 'bubble-message-text';
         messageText.innerHTML = formattedMessage.content || '';
         
+        const actions = document.createElement('div');
+        actions.className = 'bubble-message-actions';
+        
         messageContent.appendChild(messageText);
-        messageGroup.appendChild(messageContent);
+        messageContent.appendChild(actions);
+        contents.appendChild(messageContent);
+        contentWrapper.appendChild(header);
+        contentWrapper.appendChild(contents);
+        
+        messageGroup.appendChild(avatar);
+        messageGroup.appendChild(contentWrapper);
         
         if (isTemporary) {
             this.markAsTemporary(messageContent);

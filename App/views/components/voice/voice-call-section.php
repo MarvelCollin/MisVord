@@ -427,6 +427,19 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
         min-height: 70vh !important;
         max-width: 95vw !important;
         max-height: 85vh !important;
+        width: 95vw !important;
+        height: 80vh !important;
+    }
+    
+    .fullscreen-participant .voice-participant-avatar {
+        width: 150px !important;
+        height: 150px !important;
+        font-size: 60px !important;
+        margin-bottom: 20px !important;
+    }
+    
+    .fullscreen-participant .voice-participant-card span {
+        font-size: 18px !important;
     }
     
     .minimize-btn {
@@ -685,20 +698,48 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 .fullscreen-participant {
     max-width: 90vw !important;
     max-height: 90vh !important;
-    min-width: 600px !important;
-    min-height: 400px !important;
+    min-width: 400px !important;
+    min-height: 300px !important;
+    width: 800px !important;
+    height: 600px !important;
     border-radius: 12px !important;
     overflow: hidden !important;
     border: 3px solid #5865f2 !important;
     box-shadow: 0 0 30px rgba(88, 101, 242, 0.5) !important;
     position: relative !important;
     background: #1e1f22 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .fullscreen-participant video {
     width: 100% !important;
     height: 100% !important;
     object-fit: contain !important;
+}
+
+.fullscreen-participant .voice-participant-card {
+    width: 100% !important;
+    height: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.fullscreen-participant .voice-participant-avatar {
+    width: 200px !important;
+    height: 200px !important;
+    font-size: 80px !important;
+    margin-bottom: 30px !important;
+}
+
+.fullscreen-participant .voice-participant-card span {
+    font-size: 24px !important;
+    font-weight: 600 !important;
 }
 
 .minimize-btn {
@@ -1176,6 +1217,37 @@ class VoiceCallManager {
         
         const clonedCard = targetCard.cloneNode(true);
         clonedCard.className = 'fullscreen-participant';
+        
+        const originalVideo = targetCard.querySelector('video');
+        const clonedVideo = clonedCard.querySelector('video');
+        
+        console.log('🔍 [FULLSCREEN] Debug info:', {
+            participantId,
+            hasOriginalVideo: !!originalVideo,
+            hasClonedVideo: !!clonedVideo,
+            hasVideoStream: !!(originalVideo?.srcObject),
+            originalVideoSrc: originalVideo?.src,
+            cardClasses: targetCard.className,
+            cardType: targetCard.classList.contains('video-participant-card') ? 'video' : 'voice'
+        });
+        
+        if (originalVideo && clonedVideo && originalVideo.srcObject) {
+            console.log('🔍 [FULLSCREEN] Copying video stream to fullscreen');
+            clonedVideo.srcObject = originalVideo.srcObject;
+            clonedVideo.autoplay = true;
+            clonedVideo.playsInline = true;
+            clonedVideo.muted = originalVideo.muted;
+            
+            clonedVideo.play().then(() => {
+                console.log('🔍 [FULLSCREEN] Video playing successfully in fullscreen');
+            }).catch(error => {
+                console.warn('🔍 [FULLSCREEN] Video play failed:', error);
+            });
+        } else if (originalVideo && !originalVideo.srcObject) {
+            console.log('🔍 [FULLSCREEN] Original video has no srcObject, might be voice-only participant');
+        } else {
+            console.log('🔍 [FULLSCREEN] No video element found, this is likely a voice-only participant');
+        }
         
         const minimizeBtn = document.createElement('button');
         minimizeBtn.className = 'minimize-btn';

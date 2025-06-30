@@ -524,28 +524,33 @@ class ChatUIHandler {
         const isOwnMessage = messageContent.dataset.userId === this.chatSection.userId;
         
         const actions = document.createElement('div');
-        actions.className = 'message-actions absolute -top-4 right-4 bg-[#2b2d31] rounded-md shadow-lg flex items-center p-1 space-x-1 z-10 hidden';
+        actions.className = 'bubble-message-actions';
         actions.style.opacity = '0';
         actions.style.visibility = 'hidden';
         
-        const createButton = (icon, title, actionClass) => {
+        const createButton = (icon, title, actionType) => {
             const button = document.createElement('button');
-            button.className = `${actionClass} w-8 h-8 flex items-center justify-center text-[#b9bbbe] hover:text-white rounded hover:bg-[#3c3f45] transition-colors`;
+            button.className = 'bubble-action-button';
             button.innerHTML = `<i class="fas ${icon}"></i>`;
             button.title = title;
+            button.dataset.action = actionType;
+            button.dataset.messageId = messageContent.dataset.messageId;
             return button;
         };
         
-        const reactionBtn = createButton('fa-face-smile', 'Add Reaction', 'message-action-reaction');
-        const replyBtn = createButton('fa-reply', 'Reply', 'message-action-reply');
-        const moreBtn = createButton('fa-ellipsis-h', 'More', 'message-action-more');
+        const replyBtn = createButton('fa-reply', 'Reply', 'reply');
+        const reactBtn = createButton('fa-smile', 'Add Reaction', 'react');
+        const moreBtn = createButton('fa-ellipsis-v', 'More', 'more');
         
-        actions.appendChild(reactionBtn);
         actions.appendChild(replyBtn);
+        actions.appendChild(reactBtn);
         
         if (isOwnMessage) {
-            const editBtn = createButton('fa-pen-to-square', 'Edit', 'message-action-edit');
+            const editBtn = createButton('fa-edit', 'Edit', 'edit');
+            const deleteBtn = createButton('fa-trash', 'Delete', 'delete');
+            deleteBtn.classList.add('delete-button');
             actions.appendChild(editBtn);
+            actions.appendChild(deleteBtn);
         }
         
         actions.appendChild(moreBtn);
@@ -563,8 +568,6 @@ class ChatUIHandler {
             console.error('❌ [CHAT-UI-HANDLER] ChatSection startReply method not available');
         }
     }
-    
-
     
     cancelReply() {
         console.log('❌ [CHAT-UI-HANDLER] Cancel reply requested, delegating to ChatSection');

@@ -1,169 +1,212 @@
 class CarouselSection {
     constructor() {
-        this.currentSlide = 0;
-        this.totalSlides = 4;
+        this.currentPage = 0;
+        this.totalPages = 4;
         this.isAnimating = false;
-        this.autoPlayInterval = null;
-        this.autoPlayDelay = 5000;
+        this.isBookOpen = false;
         
         this.init();
     }
     
     init() {
-        this.track = document.getElementById('carouselTrack');
-        this.slides = document.querySelectorAll('.carousel-slide');
-        this.indicators = document.querySelectorAll('.carousel-indicators .indicator');
-        this.prevBtn = document.getElementById('carouselPrev');
-        this.nextBtn = document.getElementById('carouselNext');
+        this.bookCover = document.getElementById('bookCover');
+        this.bookContent = document.getElementById('bookContent');
+        this.bookNav = document.getElementById('bookNav');
+        this.pages = document.querySelectorAll('.page');
+        this.contentPages = document.querySelectorAll('.page:not(.book-cover)');
+        this.prevBtn = document.getElementById('prevPage');
+        this.nextBtn = document.getElementById('nextPage');
+        this.pageIndicator = document.getElementById('pageIndicator');
         
-        if (!this.track) return;
+        if (!this.bookCover) return;
         
         this.setupEventListeners();
-        this.updateSlides();
-        this.startAutoPlay();
+        this.updatePageIndicator();
     }
     
     setupEventListeners() {
-        this.prevBtn?.addEventListener('click', () => this.prevSlide());
-        this.nextBtn?.addEventListener('click', () => this.nextSlide());
-        
-        this.indicators.forEach((indicator, index) => {
-            indicator.addEventListener('click', () => this.goToSlide(index));
+        this.bookCover?.addEventListener('click', () => {
+            if (!this.isBookOpen) {
+                this.openBook();
+            }
         });
         
-        this.track.addEventListener('mouseenter', () => this.stopAutoPlay());
-        this.track.addEventListener('mouseleave', () => this.startAutoPlay());
+        this.prevBtn?.addEventListener('click', () => this.prevPage());
+        this.nextBtn?.addEventListener('click', () => this.nextPage());
         
         document.addEventListener('carouselVisible', () => {
             this.onSectionVisible();
         });
         
         document.addEventListener('keydown', (e) => {
-            if (this.isCarouselActive()) {
-                if (e.key === 'ArrowLeft') {
-                    e.stopPropagation();
-                    this.prevSlide();
-                } else if (e.key === 'ArrowRight') {
-                    e.stopPropagation();
-                    this.nextSlide();
+            if (this.isBookActive()) {
+                if (this.isBookOpen) {
+                    if (e.key === 'ArrowLeft') {
+                        e.stopPropagation();
+                        this.prevPage();
+                    } else if (e.key === 'ArrowRight') {
+                        e.stopPropagation();
+                        this.nextPage();
+                    } else if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        this.closeBook();
+                    }
+                } else {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        this.openBook();
+                    }
                 }
             }
         });
+        
+        this.contentPages.forEach((page, index) => {
+            page.addEventListener('click', () => {
+                if (!this.isBookOpen) return;
+                const actualIndex = index + 1;
+                if (actualIndex < this.currentPage) {
+                    this.prevPage();
+                } else if (actualIndex > this.currentPage) {
+                    this.nextPage();
+                }
+            });
+        });
     }
     
-    isCarouselActive() {
+    isBookActive() {
         const carouselSection = document.querySelector('.carousel-section');
         return carouselSection && carouselSection.classList.contains('is-active');
     }
     
-    prevSlide() {
-        if (this.isAnimating) return;
-        
-        this.currentSlide = this.currentSlide > 0 ? this.currentSlide - 1 : this.totalSlides - 1;
-        this.updateSlides();
-    }
-    
-    nextSlide() {
-        if (this.isAnimating) return;
-        
-        this.currentSlide = this.currentSlide < this.totalSlides - 1 ? this.currentSlide + 1 : 0;
-        this.updateSlides();
-    }
-    
-    goToSlide(index) {
-        if (this.isAnimating || index === this.currentSlide) return;
-        
-        this.currentSlide = index;
-        this.updateSlides();
-    }
-    
-    updateSlides() {
-        if (this.isAnimating) return;
+    openBook() {
+        if (this.isAnimating || this.isBookOpen) return;
         
         this.isAnimating = true;
+        this.isBookOpen = true;
+        this.currentPage = 1;
         
-        this.slides.forEach((slide, index) => {
-            slide.classList.remove('active');
-            if (index === this.currentSlide) {
-                setTimeout(() => {
-                    slide.classList.add('active');
-                }, 50);
-            }
-        });
-        
-        this.updateIndicators();
-        this.animateSlideContent();
+        this.bookCover.classList.add('flipping-forward');
+        this.bookCover.classList.remove('active');
         
         setTimeout(() => {
+            this.bookCover.classList.remove('flipping-forward');
+            this.bookCover.classList.add('behind');
+            
+            this.pages[1].classList.add('active');
+            this.pages[1].classList.remove('behind');
+            
+            this.bookNav.style.opacity = '1';
+            this.bookNav.style.visibility = 'visible';
+            
+            this.updatePages();
+            this.updatePageIndicator();
             this.isAnimating = false;
-        }, 600);
+        }, 800);
     }
     
-    updateIndicators() {
-        this.indicators.forEach((indicator, index) => {
-            indicator.classList.toggle('active', index === this.currentSlide);
+    closeBook() {
+        if (this.isAnimating || !this.isBookOpen) return;
+        
+        this.isAnimating = true;
+        this.isBookOpen = false;
+        
+        this.bookNav.style.opacity = '0';
+        this.bookNav.style.visibility = 'hidden';
+        
+        const currentPageEl = this.pages[this.currentPage];
+        currentPageEl.classList.add('flipping-backward');
+        currentPageEl.classList.remove('active');
+        
+        setTimeout(() => {
+            this.pages.forEach(page => {
+                page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
+            });
+            
+            this.currentPage = 0;
+            this.bookCover.classList.add('active');
+            this.updatePageIndicator();
+            this.isAnimating = false;
+        }, 800);
+    }
+    
+    prevPage() {
+        if (this.isAnimating || !this.isBookOpen || this.currentPage <= 1) return;
+        
+        this.currentPage--;
+        this.turnPage('backward');
+    }
+    
+    nextPage() {
+        if (this.isAnimating || !this.isBookOpen || this.currentPage >= this.totalPages - 1) return;
+        
+        this.currentPage++;
+        this.turnPage('forward');
+    }
+    
+    turnPage(direction) {
+        this.isAnimating = true;
+        
+        const currentPageEl = this.pages[direction === 'forward' ? this.currentPage - 1 : this.currentPage + 1];
+        const targetPageEl = this.pages[this.currentPage];
+        
+        if (direction === 'forward') {
+            currentPageEl.classList.add('flipping-forward');
+            currentPageEl.classList.remove('active');
+            
+            setTimeout(() => {
+                currentPageEl.classList.remove('flipping-forward');
+                currentPageEl.classList.add('behind');
+                targetPageEl.classList.add('active');
+                targetPageEl.classList.remove('behind');
+                
+                this.updatePages();
+                this.updatePageIndicator();
+                this.isAnimating = false;
+            }, 800);
+        } else {
+            targetPageEl.classList.add('flipping-backward');
+            targetPageEl.classList.remove('behind');
+            
+            setTimeout(() => {
+                targetPageEl.classList.remove('flipping-backward');
+                targetPageEl.classList.add('active');
+                currentPageEl.classList.remove('active');
+                currentPageEl.classList.add('behind');
+                
+                this.updatePages();
+                this.updatePageIndicator();
+                this.isAnimating = false;
+            }, 800);
+        }
+    }
+    
+    updatePages() {
+        this.pages.forEach((page, index) => {
+            page.classList.remove('active', 'behind');
+            
+            if (index === this.currentPage) {
+                page.classList.add('active');
+            } else if (index < this.currentPage) {
+                page.classList.add('behind');
+            }
         });
     }
     
-    animateSlideContent() {
-        const activeSlide = this.slides[this.currentSlide];
-        if (!activeSlide) return;
-        
-        const title = activeSlide.querySelector('.slide-title');
-        const description = activeSlide.querySelector('.slide-description');
-        const stats = activeSlide.querySelectorAll('.stat-item');
-        const image = activeSlide.querySelector('.image-placeholder');
-        
-        if (title) {
-            title.style.opacity = '0';
-            title.style.transform = 'translateY(30px)';
-            setTimeout(() => {
-                title.style.transition = 'all 0.6s ease';
-                title.style.opacity = '1';
-                title.style.transform = 'translateY(0)';
-            }, 100);
+    updatePageIndicator() {
+        if (this.pageIndicator) {
+            if (this.isBookOpen) {
+                this.pageIndicator.textContent = `${this.currentPage} / ${this.totalPages - 1}`;
+            } else {
+                this.pageIndicator.textContent = `Cover`;
+            }
         }
         
-        if (description) {
-            description.style.opacity = '0';
-            description.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-                description.style.transition = 'all 0.6s ease';
-                description.style.opacity = '1';
-                description.style.transform = 'translateY(0)';
-            }, 200);
+        if (this.prevBtn) {
+            this.prevBtn.disabled = this.currentPage <= 1;
         }
         
-        stats.forEach((stat, index) => {
-            stat.style.opacity = '0';
-            stat.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-                stat.style.transition = 'all 0.6s ease';
-                stat.style.opacity = '1';
-                stat.style.transform = 'translateY(0)';
-            }, 300 + (index * 100));
-        });
-        
-        if (image) {
-            image.style.transform = 'scale(0.8) rotate(-5deg)';
-            setTimeout(() => {
-                image.style.transition = 'all 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
-                image.style.transform = 'scale(1) rotate(0deg)';
-            }, 150);
-        }
-    }
-    
-    startAutoPlay() {
-        this.stopAutoPlay();
-        this.autoPlayInterval = setInterval(() => {
-            this.nextSlide();
-        }, this.autoPlayDelay);
-    }
-    
-    stopAutoPlay() {
-        if (this.autoPlayInterval) {
-            clearInterval(this.autoPlayInterval);
-            this.autoPlayInterval = null;
+        if (this.nextBtn) {
+            this.nextBtn.disabled = this.currentPage >= this.totalPages - 1;
         }
     }
     
@@ -184,14 +227,27 @@ class CarouselSection {
         }
         
         setTimeout(() => {
-            this.animateSlideContent();
+            this.animateBookAppearance();
         }, 800);
-        
-        this.startAutoPlay();
+    }
+    
+    animateBookAppearance() {
+        if (this.bookCover) {
+            this.bookCover.style.transform = 'scale(0.8) rotateX(20deg)';
+            this.bookCover.style.opacity = '0';
+            
+            setTimeout(() => {
+                this.bookCover.style.transition = 'all 1s cubic-bezier(0.23, 1, 0.32, 1)';
+                this.bookCover.style.transform = 'scale(1) rotateX(0deg)';
+                this.bookCover.style.opacity = '1';
+            }, 100);
+        }
     }
     
     destroy() {
-        this.stopAutoPlay();
+        if (this.isBookOpen) {
+            this.closeBook();
+        }
     }
 }
 

@@ -225,15 +225,14 @@ class SocketHandler {
             
             console.log('🔄 Updating message:', data.message_id);
             
-            const messageTextElement = messageElement.querySelector('.message-main-text');
+            const messageTextElement = messageElement.querySelector('.bubble-message-text');
             if (messageTextElement && data.content) {
                 messageTextElement.innerHTML = this.chatSection.formatMessageContent(data.content);
                 
-                // Add edited indicator if not present
-                let editedBadge = messageElement.querySelector('.edited-badge');
+                let editedBadge = messageElement.querySelector('.bubble-edited-badge');
                 if (!editedBadge) {
                     editedBadge = document.createElement('span');
-                    editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                    editedBadge.className = 'bubble-edited-badge text-xs text-[#a3a6aa] ml-1';
                     editedBadge.textContent = '(edited)';
                     messageTextElement.appendChild(editedBadge);
                 }
@@ -408,14 +407,12 @@ class SocketHandler {
     
     updateReactionButtonForPermanentId(messageElement, permanentId) {
         try {
-            // Re-enable reaction button
-            const reactionButton = messageElement.querySelector('.message-action-reaction');
+            const reactionButton = messageElement.querySelector('.bubble-action-button[data-action="react"]');
             if (reactionButton) {
                 reactionButton.style.pointerEvents = '';
                 reactionButton.style.opacity = '';
                 reactionButton.disabled = false;
                 
-                // Update data attributes if needed
                 if (reactionButton.dataset.messageId) {
                     reactionButton.dataset.messageId = permanentId;
                 }
@@ -423,14 +420,12 @@ class SocketHandler {
                 console.log('🔄 Re-enabled reaction button for permanent message ID:', permanentId);
             }
             
-            // Also call the emoji reactions method if available
             if (window.emojiReactions && typeof window.emojiReactions.updateReactionButtonState === 'function') {
                 console.log('🔄 Updating reaction button state for permanent message ID via emoji system');
                 window.emojiReactions.updateReactionButtonState(messageElement, permanentId);
             }
             
-            // Find and re-enable any emoji picker buttons
-            const emojiButtons = messageElement.querySelectorAll('[data-message-id], .emoji-button, .reaction-add-button');
+            const emojiButtons = messageElement.querySelectorAll('[data-message-id], .emoji-button, .reaction-add-button, .bubble-action-button');
             emojiButtons.forEach(button => {
                 if (button.dataset.messageId) {
                     button.dataset.messageId = permanentId;
@@ -454,27 +449,24 @@ class SocketHandler {
             
             console.error('❌ Message save failed:', data);
             
-            // Find the temporary message element
             const tempElement = document.querySelector(`[data-message-id="${data.temp_message_id}"]`);
             if (tempElement) {
-                // Add error styling
-                tempElement.classList.add('message-error');
+                tempElement.classList.add('bubble-message-failed');
                 tempElement.style.opacity = '0.5';
                 tempElement.style.borderLeft = '3px solid #ed4245';
+                tempElement.style.paddingLeft = '8px';
                 
-                // Add error indicator
                 const errorIndicator = document.createElement('span');
-                errorIndicator.className = 'error-indicator text-red-500 text-xs ml-2';
+                errorIndicator.className = 'bubble-error-text';
                 errorIndicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed to save';
                 errorIndicator.title = data.error || 'Message failed to save';
                 
-                const messageText = tempElement.querySelector('.message-main-text');
-                if (messageText && !messageText.querySelector('.error-indicator')) {
+                const messageText = tempElement.querySelector('.bubble-message-text');
+                if (messageText && !messageText.querySelector('.bubble-error-text')) {
                     messageText.appendChild(errorIndicator);
                 }
             }
             
-            // Show notification
             if (this.chatSection && this.chatSection.showNotification) {
                 this.chatSection.showNotification('Message failed to save: ' + (data.error || 'Unknown error'), 'error');
             }
@@ -555,36 +547,31 @@ class SocketHandler {
                 content: data.content?.substring(0, 50) + (data.content?.length > 50 ? '...' : '')
             });
             
-            // Only show temp edit from other users, not yourself
             const isSender = data.user_id === window.globalSocketManager?.userId;
             if (isSender) {
                 console.log('🔄 [SOCKET-HANDLER] Ignoring own temp edit');
                 return;
             }
             
-            // Find the message element
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
             if (messageElement) {
-                // Update content
-                const messageTextElement = messageElement.querySelector('.message-main-text, .bubble-message-text');
+                const messageTextElement = messageElement.querySelector('.bubble-message-text');
                 if (messageTextElement && data.content) {
                     messageTextElement.innerHTML = this.chatSection.formatMessageContent(data.content);
                     
-                    // Add/update edited badge
-                    let editedBadge = messageElement.querySelector('.edited-badge, .bubble-edited-badge');
+                    let editedBadge = messageElement.querySelector('.bubble-edited-badge');
                     if (!editedBadge) {
                         editedBadge = document.createElement('span');
-                        editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                        editedBadge.className = 'bubble-edited-badge text-xs text-[#a3a6aa] ml-1';
                         editedBadge.textContent = '(edited)';
                         messageTextElement.appendChild(editedBadge);
                     }
                     
-                    // Mark as temp edit
                     this.chatSection.markMessageAsTempEdit(messageElement, data.temp_edit_id);
                 }
             }
         } catch (error) {
-            console.error('❌ [SOCKET-HANDLER] Error handling temp edit:', error);
+            console.error('❌ Error handling temp edit:', error);
         }
     }
     
