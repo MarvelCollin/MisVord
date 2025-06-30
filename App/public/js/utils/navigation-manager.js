@@ -382,10 +382,6 @@ class NavigationManager {
             window.initializeChatSection();
         }
         
-        if (typeof window.ChannelSwitchManager !== 'undefined' && !window.channelSwitchManager) {
-            window.channelSwitchManager = new window.ChannelSwitchManager();
-        }
-        
         if (typeof window.updateActiveServer === 'function') {
             window.updateActiveServer('server', serverId);
         }

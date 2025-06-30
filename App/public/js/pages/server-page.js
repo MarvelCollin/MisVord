@@ -40,23 +40,6 @@ async function loadServerContent() {
     }
     
     try {
-        if (!window.channelSwitchManager && window.ChannelSwitchManager) {
-            console.log('[Server Page] Creating new channel switch manager');
-            window.channelSwitchManager = new window.ChannelSwitchManager();
-            console.log('[Server Page] Channel switch manager created');
-        } else if (window.channelSwitchManager) {
-            console.log('[Server Page] Using existing channel switch manager');
-            window.channelSwitchManager.initializeCurrentChannel();
-        } else {
-            console.warn('[Server Page] ChannelSwitchManager not available yet, will retry');
-            setTimeout(() => {
-                if (window.ChannelSwitchManager && !window.channelSwitchManager) {
-                    console.log('[Server Page] Creating channel switch manager (delayed)');
-                    window.channelSwitchManager = new window.ChannelSwitchManager();
-                }
-            }, 500);
-        }
-        
         console.log('[Server Page] Server content initialization completed');
         
     } catch (error) {
@@ -265,7 +248,7 @@ function handlePopState(event) {
     if (window.channelSwitchManager) {
       const serverId = getServerIdFromURL();
       const channelType = state.channelType || 'text';
-      window.channelSwitchManager.switchToChannel(serverId, state.channelId, channelType, null, false);
+      window.channelSwitchManager.switchToChannel(serverId, state.channelId, channelType, false);
     } else {
       console.error('ChannelSwitchManager not available for popstate handling');
     }

@@ -101,9 +101,142 @@ $content = ob_get_clean();
     <link rel="stylesheet" href="<?php echo css('carousel-section'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('nitro-section'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('swipe-wrapper'); ?>?v=<?php echo time(); ?>">
+    
+    <style>
+        .login-icon-container {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 1000;
+            cursor: pointer;
+        }
+
+        .login-icon {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background: rgba(88, 101, 242, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(88, 101, 242, 0.3);
+            border-radius: 50px;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+            overflow: hidden;
+            width: 48px;
+            height: 48px;
+            justify-content: center;
+        }
+
+        .login-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .login-icon:hover::before {
+            left: 100%;
+        }
+
+        .login-icon:hover {
+            width: auto;
+            padding: 0.75rem 1.5rem 0.75rem 0.75rem;
+            transform: translateY(-2px) scale(1.05);
+            background: rgba(88, 101, 242, 0.2);
+            border-color: rgba(88, 101, 242, 0.6);
+            box-shadow: 0 10px 30px rgba(88, 101, 242, 0.3);
+        }
+
+        .login-icon i {
+            font-size: 1.25rem;
+            color: #5865F2;
+            transition: all 0.3s ease;
+        }
+
+        .login-icon:hover i {
+            transform: rotate(360deg);
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(88, 101, 242, 0.8);
+        }
+
+        .login-text {
+            font-weight: 600;
+            color: #B9BBBE;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            font-size: 0.875rem;
+            opacity: 0;
+            transform: translateX(-10px) scale(0.8);
+            white-space: nowrap;
+            width: 0;
+            overflow: hidden;
+        }
+
+        .login-icon:hover .login-text {
+            color: #ffffff;
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            width: auto;
+            margin-left: 0.5rem;
+        }
+
+        .login-icon:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 10px 30px rgba(88, 101, 242, 0.3);
+            }
+            50% {
+                box-shadow: 0 10px 30px rgba(88, 101, 242, 0.5);
+            }
+        }
+
+        .login-icon:hover {
+            animation: pulse-glow 2s infinite;
+        }
+
+        @media (max-width: 768px) {
+            .login-icon-container {
+                top: 1rem;
+                right: 1rem;
+            }
+            
+            .login-icon {
+                padding: 0.5rem;
+                width: 44px;
+                height: 44px;
+            }
+            
+            .login-icon:hover {
+                padding: 0.5rem;
+                width: 44px;
+                transform: translateY(-2px) scale(1.05);
+            }
+            
+            .login-text {
+                display: none !important;
+            }
+            
+            .login-icon i {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
 </head>
 
 <body class="<?php echo $body_class; ?>">
+    <div class="login-icon-container">
+        <div class="login-icon" id="loginIcon">
+            <i class="fas fa-user-circle"></i>
+            <span class="login-text">Login</span>
+        </div>
+    </div>
+    
     <?php echo $content; ?>
     
     <div id="swipe-wrapper" class="swipe-wrapper">

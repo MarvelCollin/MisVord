@@ -54,15 +54,12 @@ const channelAPI = {
     },
 
     switchToChannel: function(serverId, channelId, channelType = 'text') {
-        console.log(`📍 Channel API: switching to channel ${channelId} on server ${serverId}`);
-        
-        if (window.channelSwitchManager) {
-            const clickedElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-            return window.channelSwitchManager.switchToChannel(serverId, channelId, channelType, clickedElement, true);
-        } else {
-            console.error('Channel switch manager not available');
-            return Promise.reject(new Error('Channel switch manager not available'));
+        if (!window.channelSwitchManager) {
+            console.warn('[Channel API] ChannelSwitchManager not available');
+            return Promise.reject(new Error('ChannelSwitchManager not available'));
         }
+        
+        return window.channelSwitchManager.switchToChannel(serverId, channelId, channelType);
     },
 
     joinVoiceChannel: function(channelId) {

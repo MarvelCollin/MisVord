@@ -141,27 +141,7 @@ function performServerLayoutUpdate(response, serverId, channelId, currentChannel
             window.globalSwitchLock = false;
         }
         
-        if (typeof window.ChannelSwitchManager !== 'undefined') {
-            if (window.channelSwitchManager) {
-                console.log('[Server AJAX] Cleaning up existing channel switch manager');
-                try {
-                    window.channelSwitchManager.cleanup();
-                } catch (cleanupError) {
-                    console.warn('[Server AJAX] Error during cleanup:', cleanupError);
-                }
-                window.channelSwitchManager = null;
-            }
-            
-            setTimeout(() => {
-                if (!window.channelSwitchManager) {
-                    console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
-                    window.channelSwitchManager = new window.ChannelSwitchManager();
-                    console.log('[Server AJAX] Channel switch manager initialized');
-                }
-            }, 100);
-        } else {
-            console.warn('[Server AJAX] ChannelSwitchManager class not available');
-        }
+        cleanupForServerSwitch();
         
         console.log('[Server AJAX] Initializing voice systems');
         initializeVoiceSystems();
@@ -715,6 +695,28 @@ function initServerDropdownManual() {
             console.error('[Server Loader] Server dropdown elements not found');
         }
     }, 150);
+}
+
+function reinitializeChannelSwitchManager() {
+    console.log('[Server AJAX] ChannelSwitchManager will auto-initialize when needed');
+}
+
+function cleanupForServerSwitch() {
+    console.log('[Server AJAX] Cleaning up for server switch');
+    
+    if (window.channelSwitchManager && typeof window.channelSwitchManager.cleanup === 'function') {
+        console.log('[Server AJAX] Cleaning up existing channel switch manager');
+        window.channelSwitchManager.cleanup();
+        window.channelSwitchManager = null;
+    }
+    
+    if (window.chatSection && typeof window.chatSection.cleanup === 'function') {
+        console.log('[Server AJAX] Cleaning up existing chat section');
+        window.chatSection.cleanup();
+        window.chatSection = null;
+    }
+    
+    console.log('[Server AJAX] Cleanup completed');
 }
 
 window.loadServerPage = loadServerPage; 

@@ -21,8 +21,7 @@ async function loadDefaultChannel(serverId) {
             const firstChannel = data.data.channels[0];
             
             if (window.channelSwitchManager) {
-                const channelElement = document.querySelector(`[data-channel-id="${firstChannel.id}"]`);
-                await window.channelSwitchManager.switchToChannel(serverId, firstChannel.id, channelElement);
+                await window.channelSwitchManager.switchToChannel(serverId, firstChannel.id, 'text');
             }
         }
     } catch (error) {

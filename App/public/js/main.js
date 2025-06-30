@@ -321,7 +321,7 @@ async function initializeNavigation() {
             }
         }
         
-        window.globalSwitchLock = false;
+
         
         console.log('[Main] Navigation system initialized successfully');
         return true;

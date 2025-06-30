@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initSectionCoordination();
     handleLandingPageResize();
     initScrollEnhancements();
+    initLoginIcon();
     
     console.log('Landing page initialized successfully');
 });
@@ -248,6 +249,22 @@ function handleLandingPageResize() {
     }, 100);
 }
 
+function initLoginIcon() {
+    const loginIcon = document.getElementById('loginIcon');
+    
+    if (loginIcon) {
+        loginIcon.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            loginIcon.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 150);
+        });
+    }
+}
+
 window.addEventListener('resize', debounce(handleLandingPageResize, 150));
 
 function debounce(func, wait) {
@@ -267,5 +284,6 @@ window.landingPageAPI = {
     initScrollTransition,
     handleLandingPageResize,
     debounce,
-    triggerFeaturedCardsEnhancements
+    triggerFeaturedCardsEnhancements,
+    initLoginIcon
 };
