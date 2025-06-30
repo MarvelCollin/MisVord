@@ -720,17 +720,7 @@ button:active {
   background: transparent;
 }
 
-#save-changes-btn {
-  background-color: var(--discord-primary);
-  color: white;
-  padding: 2px 16px;
-  height: 38px;
-  font-weight: 500;
-}
 
-#save-changes-btn:hover {
-  background-color: var(--discord-primary-dark);
-}
 
 .close-button {
   position: fixed;
@@ -803,13 +793,7 @@ button:active {
   position: relative;
 }
 
-.flex.justify-end.pt-4 {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: var(--spacing-md);
-  border-top: 1px solid rgba(79, 84, 92, 0.3);
-  margin-top: var(--spacing-lg);
-}
+
 
 @media (max-width: 1200px) {
   .flex.min-h-screen {
@@ -1150,6 +1134,8 @@ button:active {
   transform: translateY(-10px);
   max-height: 0;
   overflow: hidden;
+  font-weight: 500;
+  font-size: 13px;
 }
 
 #security-answer-error:not(.hidden),
@@ -1158,6 +1144,14 @@ button:active {
   opacity: 1;
   transform: translateY(0);
   max-height: 60px;
+}
+
+#security-answer-error.text-green-400 {
+  color: #10b981 !important;
+}
+
+#security-answer-error.text-red-400 {
+  color: #ef4444 !important;
 }
 
 /* Close button */

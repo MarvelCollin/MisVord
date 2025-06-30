@@ -914,52 +914,7 @@ export async function handleServerClick(serverId, event) {
     }
 }
 
-async function handleServerClickFallback(serverId) {
-    const currentChannelId = new URLSearchParams(window.location.search).get('channel');
-    if (currentChannelId && window.globalSocketManager) {
-        console.log('[Server Navigation] Cleaning up socket for channel:', currentChannelId);
-        window.globalSocketManager.leaveChannel(currentChannelId);
-    }
 
-    if (window.voiceManager && window.voiceManager.isConnected) {
-        console.log('[Server Navigation] Voice connection detected, keeping alive and showing global indicator');
-        if (window.globalVoiceIndicator) {
-            setTimeout(() => {
-                window.globalVoiceIndicator.ensureIndicatorVisible();
-            }, 300);
-        }
-    }
-    
-    console.log('[Server Navigation] Loading server page with fallback AJAX');
-    const response = await $.ajax({
-        url: `/server/${serverId}/layout`,
-        method: 'GET',
-        dataType: 'html',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    });
-
-    const layoutContainer = document.querySelector('.flex.flex-1.overflow-hidden') || 
-                          document.querySelector('#main-content') || 
-                          document.querySelector('.main-content') || 
-                          document.querySelector('#app-content') ||
-                          document.querySelector('.app-content') ||
-                          document.querySelector('main') ||
-                          document.querySelector('.content-wrapper');
-    
-    if (layoutContainer && response) {
-        console.log('[Server Navigation] Found layout container:', layoutContainer.className || layoutContainer.id);
-        layoutContainer.innerHTML = response;
-        console.log('[Server Navigation] Server page content loaded successfully');
-    } else {
-        console.error('[Server Navigation] Could not find layout container or no response');
-    }
-
-    window.history.pushState({ pageType: 'server', serverId: serverId }, `Server ${serverId}`, `/server/${serverId}`);
-    updateActiveServer('server', serverId);
-
-    window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
-    console.log('[Server Navigation] SUCCESS - Server navigation completed via fallback');
-}
 
 export async function handleExploreClick(event) {
     console.log('[Explore Navigation] Explore Click Flow Started');
@@ -1100,7 +1055,7 @@ export function refreshServerGroups() {
 
 // Make functions globally available
 window.updateActiveServer = updateActiveServer;
-window.loadServerPage = loadServerPage;
+getLoadServerPage().then(fn => window.loadServerPage = fn);
 
 export const ServerSidebar = {
     updateActiveServer,

@@ -968,6 +968,15 @@ function initPasswordChangeForms() {
     function showSecurityError(message) {
         securityAnswerError.textContent = message;
         securityAnswerError.classList.remove('hidden');
+        securityAnswerError.classList.remove('text-green-400');
+        securityAnswerError.classList.add('text-red-400');
+    }
+    
+    function showSecuritySuccess(message) {
+        securityAnswerError.textContent = message;
+        securityAnswerError.classList.remove('hidden');
+        securityAnswerError.classList.remove('text-red-400');
+        securityAnswerError.classList.add('text-green-400');
     }
     
     function showPasswordError(message) {
@@ -1133,24 +1142,39 @@ function initPasswordChangeForms() {
             verifyBtn.classList.add('loading');
             verifyBtn.textContent = 'Verifying...';
             
+            console.log('🔐 Verifying security answer...');
             const response = await window.userAPI.verifySecurityAnswerForPasswordChange(answer);
+            console.log('🔐 Security verification response:', response);
             
-            if (response && response.success) {
+            if (response && (response.success === true || (response.data !== undefined && response.message))) {
+                showSecuritySuccess('✓ Security answer verified successfully');
+                
                 setTimeout(() => {
+                    hideErrors();
                     showStep('new-password');
-                }, 200);
+                }, 800);
             } else {
-                throw new Error(response.error || 'Incorrect security answer');
+                const errorMsg = response?.error || response?.message || 'Incorrect security answer';
+                console.error('Security verification failed:', errorMsg);
+                showSecurityError(errorMsg);
             }
         } catch (error) {
             console.error('Error verifying security answer:', error);
-            showSecurityError(error.message || 'Incorrect security answer');
+            showSecurityError(error.message || 'An error occurred during verification');
         } finally {
-            setTimeout(() => {
-                verifyBtn.disabled = false;
-                verifyBtn.classList.remove('loading');
-                verifyBtn.textContent = 'Verify';
-            }, 300);
+            if (!securityAnswerError.classList.contains('text-green-400')) {
+                setTimeout(() => {
+                    verifyBtn.disabled = false;
+                    verifyBtn.classList.remove('loading');
+                    verifyBtn.textContent = 'Verify';
+                }, 300);
+            } else {
+                setTimeout(() => {
+                    verifyBtn.disabled = false;
+                    verifyBtn.classList.remove('loading');
+                    verifyBtn.textContent = 'Verify';
+                }, 800);
+            }
         }
     }
     
@@ -1194,29 +1218,33 @@ function initPasswordChangeForms() {
             confirmBtn.classList.add('loading');
             confirmBtn.textContent = 'Changing...';
             
+            console.log('🔑 Changing password...');
             const response = await window.userAPI.changePasswordWithSecurity(
                 securityAnswerInput.value,
                 newPassword,
                 confirmPassword
             );
+            console.log('🔑 Password change response:', response);
             
-            if (response && response.success) {
+            if (response && (response.success === true || (response.data !== undefined && response.message))) {
                 showToast('Password changed successfully', 'success');
                 setTimeout(() => {
                     closeModal();
-                }, 500);
+                }, 1000);
             } else {
-                throw new Error(response.error || 'Failed to change password');
+                const errorMsg = response?.error || response?.message || 'Failed to change password';
+                console.error('Password change failed:', errorMsg);
+                showPasswordError(errorMsg);
             }
         } catch (error) {
             console.error('Error changing password:', error);
-            showPasswordError(error.message || 'Failed to change password');
+            showPasswordError(error.message || 'An error occurred while changing password');
         } finally {
             setTimeout(() => {
                 confirmBtn.disabled = false;
                 confirmBtn.classList.remove('loading');
                 confirmBtn.textContent = 'Change Password';
-            }, 300);
+            }, 500);
         }
     }
     
@@ -1699,7 +1727,6 @@ function initConnectionToggles() {
  */
 function initProfileFormSubmit() {
     const profileForm = document.getElementById('user-profile-form');
-    const saveBtn = document.getElementById('save-changes-btn');
     const approveUsernameBtn = document.getElementById('approve-username');
     const approveDisplayNameBtn = document.getElementById('approve-display-name');
     const usernameInput = document.getElementById('username');
@@ -1771,35 +1798,11 @@ function initProfileFormSubmit() {
         });
     }
     
-    if (!profileForm || !saveBtn) return;
-    
-    profileForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        if (!usernameInput) return;
-        
-        const username = usernameInput.value.trim();
-        const displayName = displayNameInput ? displayNameInput.value.trim() : '';
-        
-        if (!username) {
-            showToast('Username cannot be empty', 'error');
-            usernameInput.focus();
-            return;
-        }
-        
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Saving...';
-        
-        const profileData = {
-            username: username
-        };
-        
-        if (displayName) {
-            profileData.display_name = displayName;
-        }
-        
-        updateProfile(profileData, saveBtn);
-    });
+    if (profileForm) {
+        profileForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+        });
+    }
 }
 
 /**
@@ -2011,72 +2014,5 @@ function updateDisplayName(displayName) {
 /**
  * Update profile
  */
-function updateProfile(profileData, saveBtn) {
-    fetch('/api/users/profile', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify(profileData),
-        credentials: 'same-origin'
-    })
-    .then(async response => {
-        if (!response.ok) {
-            let errorMessage = `HTTP error! status: ${response.status}`;
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.message || errorData.error?.message || errorMessage;
-            } catch (parseError) {
-                console.warn('Could not parse error response as JSON:', parseError);
-            }
-            throw new Error(errorMessage);
-        }
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Server returned non-JSON response');
-        }
-        
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            showToast('Profile updated successfully', 'success');
-            
-            const username = profileData.username;
-            const displayName = profileData.display_name || username;
-            
-            const usernameMeta = document.querySelector('meta[name="username"]');
-            if (usernameMeta) {
-                usernameMeta.content = username;
-            }
-            
-            const displayNameMeta = document.querySelector('meta[name="display-name"]');
-            if (displayNameMeta) {
-                displayNameMeta.content = displayName;
-            }
-            
-            const usernameElements = document.querySelectorAll('.current-user-username');
-            usernameElements.forEach(el => {
-                el.textContent = username;
-            });
-            
-            const displayNameElements = document.querySelectorAll('.current-user-display-name');
-            displayNameElements.forEach(el => {
-                el.textContent = displayName;
-            });
-        } else {
-            throw new Error(data.message || data.error?.message || 'Failed to update profile');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating profile:', error);
-        showToast(error.message || 'Error updating profile', 'error');
-    })
-    .finally(() => {
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Changes';
-    });
-}
+
 

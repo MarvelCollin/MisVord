@@ -77,14 +77,23 @@ class UserAPI {
                 };
             }
 
-            if (data.data) {
-                return data;
+            if (data && typeof data === 'object') {
+                if (data.success === true || data.success === false) {
+                    return data;
+                } else if (data.data !== undefined) {
+                    return data;
+                } else {
+                    return {
+                        success: true,
+                        data: data,
+                        message: data.message || 'Request completed successfully'
+                    };
+                }
             } else {
                 return {
                     success: false,
-                    error: data.message || data.error || 'Request failed',
-                    status: response.status,
-                    data: data
+                    error: 'Invalid response format from server',
+                    status: response.status
                 };
             }
         } catch (error) {

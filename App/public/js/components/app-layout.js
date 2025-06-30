@@ -460,7 +460,9 @@ async function loadPendingRequests() {
         pendingContainer.innerHTML = '';
 
         if (pendingData) {
-            const { incoming, outgoing } = pendingData;
+            const { incoming, outgoing, count } = pendingData;
+            
+            updatePendingCountDisplay(count || incoming?.length || 0);
 
             if (incoming && incoming.length > 0) {
                 const incomingHtml = `
@@ -519,6 +521,7 @@ async function loadPendingRequests() {
             }
 
             if ((!incoming || incoming.length === 0) && (!outgoing || outgoing.length === 0)) {
+                updatePendingCountDisplay(0);
                 pendingContainer.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-8">
                         <div class="mb-4 text-gray-400">
@@ -530,6 +533,7 @@ async function loadPendingRequests() {
                 `;
             }
         } else {
+            updatePendingCountDisplay(0);
             pendingContainer.innerHTML = `
                 <div class="flex flex-col items-center justify-center py-8">
                     <div class="mb-4 text-gray-400">
@@ -600,7 +604,6 @@ async function acceptFriendRequest(friendshipId) {
         
         showToast('Friend request accepted!', 'success');
         loadPendingRequests();
-        updatePendingCount();
     } catch (error) {
         console.error('Error accepting friend request:', error);
         showToast(error.message || 'Failed to accept friend request', 'error');
@@ -626,7 +629,6 @@ async function ignoreFriendRequest(friendshipId) {
         
         showToast('Friend request ignored', 'info');
         loadPendingRequests();
-        updatePendingCount();
     } catch (error) {
         console.error('Error ignoring friend request:', error);
         showToast(error.message || 'Failed to ignore friend request', 'error');
@@ -722,12 +724,21 @@ function initFriendRequestForm() {
         clearMessages();
 
         try {
-            if (!window.FriendsManager) {
-                throw new Error('Friends system not ready');
-            }
+            const response = await fetch('/api/friends', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ username })
+            });
             
-            const friendsManager = window.FriendsManager.getInstance();
-            await friendsManager.sendFriendRequest(username);
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to send friend request');
+            }
 
             if (successDiv) {
                 successDiv.textContent = 'Friend request sent!';
@@ -736,9 +747,10 @@ function initFriendRequestForm() {
             friendUsernameInput.value = '';
             updateButtonState(false);
 
-            setTimeout(() => {
-                updatePendingCount();
-            }, 100);
+            if (window.FriendsManager) {
+                const friendsManager = window.FriendsManager.getInstance();
+                friendsManager.invalidateCache('pending');
+            }
 
         } catch (error) {
             console.error('Error sending friend request:', error);
@@ -751,20 +763,17 @@ function initFriendRequestForm() {
     });
 }
 
-function updatePendingCount() {
-    friendAPI.getPendingCount()
-        .then(count => {
-            const pendingTab = document.querySelector('button[data-tab="pending"]');
 
-            if (pendingTab) {
-                if (count > 0) {
-                    pendingTab.innerHTML = `Pending <span class="bg-discord-red px-1.5 py-0.5 rounded text-white ml-1">${count}</span>`;
-                } else {
-                    pendingTab.textContent = 'Pending';
-                }
-            }
-        })
-        .catch(error => console.error('Error updating pending count:', error));
+
+function updatePendingCountDisplay(count) {
+    const pendingTab = document.querySelector('button[data-tab="pending"]');
+    if (pendingTab) {
+        if (count > 0) {
+            pendingTab.innerHTML = `Pending <span class="bg-discord-red px-1.5 py-0.5 rounded text-white ml-1">${count}</span>`;
+        } else {
+            pendingTab.textContent = 'Pending';
+        }
+    }
 }
 
 function showToast(message, type = 'info') {

@@ -161,13 +161,21 @@ class FriendController extends BaseController
         try {
             $incomingRequests = $this->friendListRepository->getPendingRequests($userId);
             
-            $outgoingRequests = $this->friendListRepository->getSentRequests($userId);            $this->logActivity('pending_requests_viewed');
+            $outgoingRequests = $this->friendListRepository->getSentRequests($userId);
+            
+            $incomingCount = count($incomingRequests ?: []);
+            $outgoingCount = count($outgoingRequests ?: []);
+            $totalCount = $incomingCount + $outgoingCount;
+            
+            $this->logActivity('pending_requests_viewed');
 
             $this->jsonResponse([
                 'success' => true,
                 'data' => [
                     'incoming' => $incomingRequests ?: [],
-                    'outgoing' => $outgoingRequests ?: []
+                    'outgoing' => $outgoingRequests ?: [],
+                    'count' => $incomingCount,
+                    'total_count' => $totalCount
                 ],
                 'message' => 'Pending requests retrieved successfully'
             ]);

@@ -264,11 +264,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </section>
                         
-                        <div class="flex justify-end pt-4">
-                            <button type="submit" id="save-changes-btn">
-                                Save Changes
-                            </button>
-                        </div>
                     </form>
                 </div>
             </div>
