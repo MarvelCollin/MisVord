@@ -500,6 +500,11 @@ class MessageHandler {
             content.appendChild(messageText);
         }
         
+        if (messageData.attachments && messageData.attachments.length > 0) {
+            const attachmentsContainer = this.createAttachments(messageData.attachments);
+            content.appendChild(attachmentsContainer);
+        }
+        
         const actions = this.createMessageActions(messageData);
         content.appendChild(actions);
         
@@ -608,6 +613,164 @@ class MessageHandler {
         return actions;
     }
     
+    createAttachments(attachments) {
+        const attachmentsContainer = document.createElement('div');
+        attachmentsContainer.className = 'bubble-attachments';
+        attachmentsContainer.style.marginTop = '8px';
+        
+        attachments.forEach(attachment => {
+            const attachmentUrl = attachment.url || attachment;
+            const attachmentName = attachment.name || attachment.filename || 'attachment';
+            const attachmentSize = attachment.size || null;
+            
+            const attachmentDiv = document.createElement('div');
+            attachmentDiv.className = 'bubble-attachment';
+            attachmentDiv.style.marginBottom = '8px';
+            attachmentDiv.style.maxWidth = '400px';
+            
+            if (this.isImageFile(attachmentUrl)) {
+                const img = document.createElement('img');
+                img.src = attachmentUrl;
+                img.alt = attachmentName;
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.borderRadius = '8px';
+                img.style.cursor = 'pointer';
+                img.loading = 'lazy';
+                img.onclick = () => window.open(attachmentUrl, '_blank');
+                img.onerror = () => {
+                    img.style.display = 'none';
+                    attachmentDiv.innerHTML = '<div class="bubble-file-attachment"><i class="fas fa-image"></i> Image failed to load</div>';
+                };
+                attachmentDiv.appendChild(img);
+            } else if (this.isVideoFile(attachmentUrl)) {
+                const video = document.createElement('video');
+                video.src = attachmentUrl;
+                video.controls = true;
+                video.preload = 'metadata';
+                video.style.maxWidth = '100%';
+                video.style.height = 'auto';
+                video.style.borderRadius = '8px';
+                video.style.cursor = 'pointer';
+                video.onerror = () => {
+                    video.style.display = 'none';
+                    attachmentDiv.innerHTML = '<div class="bubble-file-attachment"><i class="fas fa-video"></i> Video failed to load</div>';
+                };
+                attachmentDiv.appendChild(video);
+            } else {
+                const fileAttachment = document.createElement('div');
+                fileAttachment.className = 'bubble-file-attachment';
+                fileAttachment.style.display = 'flex';
+                fileAttachment.style.alignItems = 'center';
+                fileAttachment.style.background = '#2f3136';
+                fileAttachment.style.border = '1px solid #40444b';
+                fileAttachment.style.borderRadius = '6px';
+                fileAttachment.style.padding = '12px';
+                fileAttachment.style.maxWidth = '400px';
+                
+                const fileIcon = document.createElement('div');
+                fileIcon.className = 'bubble-file-icon';
+                fileIcon.style.marginRight = '12px';
+                fileIcon.style.fontSize = '24px';
+                fileIcon.innerHTML = this.getFileIcon(attachmentName);
+                
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'bubble-file-info';
+                fileInfo.style.flex = '1';
+                fileInfo.style.overflow = 'hidden';
+                
+                const fileName = document.createElement('div');
+                fileName.className = 'bubble-file-name';
+                fileName.style.color = '#dcddde';
+                fileName.style.fontSize = '14px';
+                fileName.style.fontWeight = '500';
+                fileName.style.whiteSpace = 'nowrap';
+                fileName.style.overflow = 'hidden';
+                fileName.style.textOverflow = 'ellipsis';
+                fileName.textContent = attachmentName;
+                
+                fileInfo.appendChild(fileName);
+                
+                if (attachmentSize) {
+                    const fileSize = document.createElement('div');
+                    fileSize.className = 'bubble-file-size';
+                    fileSize.style.color = '#a3a6aa';
+                    fileSize.style.fontSize = '12px';
+                    fileSize.style.marginTop = '2px';
+                    fileSize.textContent = this.formatFileSize(attachmentSize);
+                    fileInfo.appendChild(fileSize);
+                }
+                
+                const downloadButton = document.createElement('button');
+                downloadButton.className = 'bubble-download-button';
+                downloadButton.style.background = '#4f545c';
+                downloadButton.style.border = 'none';
+                downloadButton.style.borderRadius = '4px';
+                downloadButton.style.padding = '8px';
+                downloadButton.style.color = '#dcddde';
+                downloadButton.style.cursor = 'pointer';
+                downloadButton.innerHTML = '<i class="fas fa-download"></i>';
+                downloadButton.onclick = () => this.downloadAttachment(attachmentUrl, attachmentName);
+                
+                fileAttachment.appendChild(fileIcon);
+                fileAttachment.appendChild(fileInfo);
+                fileAttachment.appendChild(downloadButton);
+                attachmentDiv.appendChild(fileAttachment);
+            }
+            
+            attachmentsContainer.appendChild(attachmentDiv);
+        });
+        
+        return attachmentsContainer;
+    }
+    
+    isImageFile(url) {
+        return /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
+    }
+    
+    isVideoFile(url) {
+        return /\.(mp4|webm|mov|avi|wmv)$/i.test(url);
+    }
+    
+    getFileIcon(filename) {
+        const extension = filename.split('.').pop()?.toLowerCase();
+        const icons = {
+            'pdf': '<i class="fas fa-file-pdf text-red-500"></i>',
+            'doc': '<i class="fas fa-file-word text-blue-500"></i>',
+            'docx': '<i class="fas fa-file-word text-blue-500"></i>',
+            'xls': '<i class="fas fa-file-excel text-green-500"></i>',
+            'xlsx': '<i class="fas fa-file-excel text-green-500"></i>',
+            'ppt': '<i class="fas fa-file-powerpoint text-orange-500"></i>',
+            'pptx': '<i class="fas fa-file-powerpoint text-orange-500"></i>',
+            'zip': '<i class="fas fa-file-archive text-yellow-500"></i>',
+            'rar': '<i class="fas fa-file-archive text-yellow-500"></i>',
+            'txt': '<i class="fas fa-file-alt text-gray-500"></i>',
+            'js': '<i class="fas fa-file-code text-purple-500"></i>',
+            'php': '<i class="fas fa-file-code text-purple-500"></i>',
+            'html': '<i class="fas fa-file-code text-purple-500"></i>',
+            'css': '<i class="fas fa-file-code text-purple-500"></i>',
+            'mp3': '<i class="fas fa-file-audio text-green-400"></i>',
+            'wav': '<i class="fas fa-file-audio text-green-400"></i>'
+        };
+        return icons[extension] || '<i class="fas fa-file"></i>';
+    }
+    
+    formatFileSize(bytes) {
+        if (!bytes || bytes === 0) return '0 B';
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    }
+    
+    downloadAttachment(url, filename) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
     formatTimestamp(timestamp) {
         if (!timestamp) return '';
         
@@ -645,15 +808,21 @@ class MessageHandler {
             button.disabled = true;
         });
         
-        // Add temporary indicator
+        // Add temporary indicator with no layout impact
         if (!messageElement.querySelector('.temp-indicator')) {
             const tempIndicator = document.createElement('span');
-            tempIndicator.className = 'temp-indicator text-xs text-gray-400 ml-2';
+            tempIndicator.className = 'temp-indicator text-xs text-gray-400';
             tempIndicator.innerHTML = '<i class="fas fa-clock"></i>';
             tempIndicator.title = 'Message is being sent...';
+            tempIndicator.style.position = 'absolute';
+            tempIndicator.style.right = '-20px';
+            tempIndicator.style.top = '50%';
+            tempIndicator.style.transform = 'translateY(-50%)';
+            tempIndicator.style.zIndex = '10';
             
-            const messageHeader = messageElement.querySelector('.message-header, .bubble-message-header');
+            const messageHeader = messageElement.querySelector('.message-header, .bubble-header');
             if (messageHeader) {
+                messageHeader.style.position = 'relative';
                 messageHeader.appendChild(tempIndicator);
             }
         }

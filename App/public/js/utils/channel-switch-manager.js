@@ -450,6 +450,150 @@ class ChannelSwitchManager {
         }
     }
 
+    showChannelSkeleton() {
+        console.log('[ChannelSwitchManager] Showing channel switch skeleton');
+        
+        this.channelSkeletonStartTime = Date.now();
+        
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages && window.ChatSkeletonLoader) {
+            const skeletonLoader = new window.ChatSkeletonLoader(chatMessages);
+            skeletonLoader.setSkeletonCount(4);
+            skeletonLoader.show();
+            
+            chatMessages.setAttribute('data-channel-skeleton', 'active');
+            console.log('[ChannelSwitchManager] ✅ Channel skeleton displayed');
+        } else {
+            console.warn('[ChannelSwitchManager] ⚠️ Chat messages container or ChatSkeletonLoader not found');
+        }
+    }
+    
+    hideChannelSkeleton() {
+        console.log('[ChannelSwitchManager] Hiding channel switch skeleton');
+        
+        const minDisplayTime = 500;
+        const startTime = this.channelSkeletonStartTime || 0;
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
+        
+        console.log('[ChannelSwitchManager] Skeleton timing:', {
+            elapsedTime: elapsedTime + 'ms',
+            remainingTime: remainingTime + 'ms'
+        });
+        
+        if (remainingTime > 0) {
+            console.log('[ChannelSwitchManager] Delaying skeleton hide for minimum display time');
+            setTimeout(() => {
+                this.actuallyHideChannelSkeleton();
+            }, remainingTime);
+        } else {
+            this.actuallyHideChannelSkeleton();
+        }
+    }
+    
+    actuallyHideChannelSkeleton() {
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            if (window.ChatSkeletonLoader) {
+                const skeletonLoader = new window.ChatSkeletonLoader(chatMessages);
+                skeletonLoader.clear();
+            }
+            
+            chatMessages.removeAttribute('data-channel-skeleton');
+            console.log('[ChannelSwitchManager] ✅ Channel skeleton hidden');
+        }
+        
+        this.channelSkeletonStartTime = null;
+    }
+    
+    async initializeChatSectionWithSkeleton(channelId) {
+        console.log('[ChannelSwitchManager] Initializing chat section with skeleton for channel:', channelId);
+        
+        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        const channelName = channelElement ? channelElement.textContent.trim().replace('#', '') : 'channel';
+        const channelType = channelElement ? (channelElement.getAttribute('data-channel-type') || 'text') : 'text';
+        
+        console.log('[ChannelSwitchManager] Channel details:', { channelId, channelName, channelType });
+        
+        const channelNameElement = document.querySelector('#channel-name');
+        const channelIconElement = document.querySelector('#channel-icon');
+        
+        if (channelNameElement) {
+            channelNameElement.textContent = channelName;
+            console.log('[ChannelSwitchManager] ✅ Updated channel name to:', channelName);
+        } else {
+            console.warn('[ChannelSwitchManager] ⚠️ Channel name element not found');
+        }
+        
+        if (channelIconElement) {
+            const iconClass = channelType === 'voice' ? 'fas fa-volume-high' : 'fas fa-hashtag';
+            channelIconElement.className = `${iconClass} text-[#949ba4] mr-2`;
+            console.log('[ChannelSwitchManager] ✅ Updated channel icon to:', iconClass);
+        } else {
+            console.warn('[ChannelSwitchManager] ⚠️ Channel icon element not found');
+        }
+        
+        this.updateChatMetaTags(channelId, this.currentServerId);
+        
+        const messageInput = document.querySelector('#message-input');
+        if (messageInput) {
+            messageInput.placeholder = `Message #${channelName}`;
+            console.log('[ChannelSwitchManager] ✅ Updated message input placeholder to:', messageInput.placeholder);
+        } else {
+            console.warn('[ChannelSwitchManager] ⚠️ Message input element not found');
+        }
+        
+        if (window.chatSection && typeof window.chatSection.switchTargetWithSkeleton === 'function') {
+            console.log('[ChannelSwitchManager] Using skeleton-aware switchTarget');
+            
+            try {
+                await window.chatSection.switchTargetWithSkeleton('channel', channelId, () => this.hideChannelSkeleton());
+                console.log('[ChannelSwitchManager] ✅ Successfully switched with skeleton coordination');
+                
+            } catch (error) {
+                console.error('[ChannelSwitchManager] ❌ Error switching with skeleton:', error);
+                this.hideChannelSkeleton();
+                await this.createChatSectionInstance(channelId);
+            }
+        } else if (window.chatSection && typeof window.chatSection.switchTarget === 'function') {
+            console.log('[ChannelSwitchManager] Using regular switchTarget with skeleton coordination');
+            
+            try {
+                window.chatSection.switchTarget('channel', channelId);
+                
+                if (window.chatSection.isLoading) {
+                    await new Promise(resolve => {
+                        const checkLoading = () => {
+                            if (!window.chatSection.isLoading) {
+                                resolve();
+                            } else {
+                                setTimeout(checkLoading, 100);
+                            }
+                        };
+                        checkLoading();
+                    });
+                }
+                
+                this.hideChannelSkeleton();
+                console.log('[ChannelSwitchManager] ✅ Successfully switched and hid skeleton');
+                
+            } catch (error) {
+                console.error('[ChannelSwitchManager] ❌ Error switching chat section target:', error);
+                this.hideChannelSkeleton();
+                await this.createChatSectionInstance(channelId);
+            }
+        } else {
+            console.log('[ChannelSwitchManager] Chat section not found, creating new instance');
+            await this.createChatSectionInstance(channelId);
+            this.hideChannelSkeleton();
+        }
+        
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            console.log('[ChannelSwitchManager] Joining channel socket room:', channelId);
+            window.globalSocketManager.joinChannel(channelId);
+        }
+    }
+
     async initializeChatSection(channelId) {
         console.log('[ChannelSwitchManager] Initializing chat section for channel:', channelId);
         
@@ -1014,6 +1158,8 @@ class ChannelSwitchManager {
         this.isLoading = false;
         window.globalSwitchLock = false;
         
+        this.hideChannelSkeleton();
+        
         if (this.boundClickHandler) {
             document.removeEventListener('click', this.boundClickHandler);
             this.boundClickHandler = null;
@@ -1030,6 +1176,7 @@ class ChannelSwitchManager {
         this.currentChannelId = null;
         this.currentChannelType = 'text';
         this.currentServerId = null;
+        this.channelSkeletonStartTime = null;
         
         const styles = document.getElementById('channel-switch-styles');
         if (styles) {
@@ -1043,6 +1190,8 @@ class ChannelSwitchManager {
         console.log('[ChannelSwitchManager] Cleanup completed');
     }
 }
+
+window.ChannelSwitchManager = ChannelSwitchManager;
 
 // Initialize when on server page - but only if not already handled
 document.addEventListener('DOMContentLoaded', () => {

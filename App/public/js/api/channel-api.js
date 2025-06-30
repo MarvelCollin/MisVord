@@ -58,7 +58,7 @@ const channelAPI = {
         
         if (window.channelSwitchManager) {
             const clickedElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-            return window.channelSwitchManager.switchToChannel(serverId, channelId, clickedElement);
+            return window.channelSwitchManager.switchToChannel(serverId, channelId, channelType, clickedElement, true);
         } else {
             console.error('Channel switch manager not available');
             return Promise.reject(new Error('Channel switch manager not available'));

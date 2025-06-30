@@ -10,8 +10,10 @@ class ChatSkeletonLoader {
         
         this.hideEmptyState();
         
+        const isChannelSwitching = this.container.getAttribute('data-channel-skeleton') === 'active';
         const existingMessages = this.container.querySelectorAll('.message-group');
-        if (existingMessages.length > 0) {
+        
+        if (existingMessages.length > 0 && !isChannelSwitching) {
             console.log('⚠️ Real messages exist, skipping skeleton loading');
             return;
         }
@@ -22,6 +24,8 @@ class ChatSkeletonLoader {
             const skeleton = this.createSkeleton(i % 3 === 0);
             this.container.appendChild(skeleton);
         }
+        
+        console.log(`🎨 [ChatSkeletonLoader] Displayed ${this.skeletonCount} skeleton messages`);
     }
 
     clear() {
@@ -29,6 +33,10 @@ class ChatSkeletonLoader {
         
         const skeletons = this.container.querySelectorAll('.message-group-item');
         skeletons.forEach(skeleton => skeleton.remove());
+        
+        if (skeletons.length > 0) {
+            console.log(`🧹 [ChatSkeletonLoader] Cleared ${skeletons.length} skeleton messages`);
+        }
     }
 
     hideEmptyState() {

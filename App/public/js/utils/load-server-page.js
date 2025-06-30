@@ -142,66 +142,66 @@ function performServerLayoutUpdate(response, serverId, channelId, currentChannel
     
     console.log('[Server AJAX] Disabling skeleton loading');
     handleServerSkeletonLoading(false);
-    
-    if (typeof window.initServerPage === 'function') {
-        window.initServerPage();
-        console.log('[Server AJAX] Server page initialized');
-    }
-    
-    if (typeof window.ChannelSwitchManager !== 'undefined') {
-        if (window.channelSwitchManager) {
-            console.log('[Server AJAX] Cleaning up existing channel switch manager');
-            try {
-                window.channelSwitchManager.cleanup();
-            } catch (cleanupError) {
-                console.warn('[Server AJAX] Error during cleanup:', cleanupError);
-            }
-            window.channelSwitchManager = null;
-        }
-        
-        setTimeout(() => {
-            if (!window.channelSwitchManager) {
-                console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
-                window.channelSwitchManager = new window.ChannelSwitchManager();
-                console.log('[Server AJAX] Channel switch manager initialized');
-            } else {
-                console.log('[Server AJAX] Channel switch manager already exists, skipping creation');
-            }
-        }, 100);
-    } else {
-        console.warn('[Server AJAX] ChannelSwitchManager class not available');
-    }
-    
-    if (typeof window.initServerDropdown === 'function') {
-        console.log('[Server AJAX] Re-initializing server dropdown');
-        window.initServerDropdown();
-    } else {
-        console.log('[Server AJAX] Manually initializing server dropdown');
-        initServerDropdownManual();
-    }
-    
-    if (typeof window.initializeParticipantSection === 'function') {
-        window.initializeParticipantSection();
-        console.log('[Server AJAX] Participant section initialized');
-    }
-    
-    if (typeof window.updateActiveServer === 'function') {
-        window.updateActiveServer('server', serverId);
-        console.log('[Server AJAX] Active server state updated');
-    }
-    
-    const event = new CustomEvent('ServerChanged', { 
-        detail: { 
-            serverId,
-            channelId,
-            previousChannelId: currentChannelId 
-        } 
-    });
-    document.dispatchEvent(event);
-    console.log('[Server AJAX] ServerChanged event dispatched');
-    
-    window.globalSwitchLock = false;
-    console.log('[Server AJAX] Global switch lock released after server loading');
+                    
+                    if (typeof window.initServerPage === 'function') {
+                        window.initServerPage();
+                        console.log('[Server AJAX] Server page initialized');
+                    }
+                    
+                    if (typeof window.ChannelSwitchManager !== 'undefined') {
+                        if (window.channelSwitchManager) {
+                            console.log('[Server AJAX] Cleaning up existing channel switch manager');
+                            try {
+                                window.channelSwitchManager.cleanup();
+                            } catch (cleanupError) {
+                                console.warn('[Server AJAX] Error during cleanup:', cleanupError);
+                            }
+                            window.channelSwitchManager = null;
+                        }
+                        
+                        setTimeout(() => {
+                            if (!window.channelSwitchManager) {
+                                console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
+                                window.channelSwitchManager = new window.ChannelSwitchManager();
+                                console.log('[Server AJAX] Channel switch manager initialized');
+                            } else {
+                                console.log('[Server AJAX] Channel switch manager already exists, skipping creation');
+                            }
+                        }, 100);
+                    } else {
+                        console.warn('[Server AJAX] ChannelSwitchManager class not available');
+                    }
+                    
+                    if (typeof window.initServerDropdown === 'function') {
+                        console.log('[Server AJAX] Re-initializing server dropdown');
+                        window.initServerDropdown();
+                    } else {
+                        console.log('[Server AJAX] Manually initializing server dropdown');
+                        initServerDropdownManual();
+                    }
+                    
+                    if (typeof window.initializeParticipantSection === 'function') {
+                        window.initializeParticipantSection();
+                        console.log('[Server AJAX] Participant section initialized');
+                    }
+                    
+                    if (typeof window.updateActiveServer === 'function') {
+                        window.updateActiveServer('server', serverId);
+                        console.log('[Server AJAX] Active server state updated');
+                    }
+                    
+                    const event = new CustomEvent('ServerChanged', { 
+                        detail: { 
+                            serverId,
+                            channelId,
+                            previousChannelId: currentChannelId 
+                        } 
+                    });
+                    document.dispatchEvent(event);
+                    console.log('[Server AJAX] ServerChanged event dispatched');
+                    
+                    window.globalSwitchLock = false;
+                    console.log('[Server AJAX] Global switch lock released after server loading');
 }
 
 function handleServerSkeletonLoading(show) {
@@ -209,7 +209,7 @@ function handleServerSkeletonLoading(show) {
     
     if (show) {
         showServerSkeletonLoading();
-    } else {
+                } else {
         hideServerSkeletonLoading();
     }
 }
@@ -618,6 +618,6 @@ function initServerDropdownManual() {
     }, 150);
 }
 
-window.loadServerPage = loadServerPage;
+window.loadServerPage = loadServerPage; 
 window.handleServerSkeletonLoading = handleServerSkeletonLoading;
 window.hideServerSkeletonLoading = hideServerSkeletonLoading; 

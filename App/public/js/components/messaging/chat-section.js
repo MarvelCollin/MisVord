@@ -1614,6 +1614,89 @@ class ChatSection {
             });
     }
     
+    async switchTargetWithSkeleton(newChatType, newTargetId, skeletonHideCallback) {
+        console.log(`🎨 [CHAT-SECTION] Switching target with skeleton coordination from ${this.chatType}:${this.targetId} to ${newChatType}:${newTargetId}`);
+        
+        if (this.chatType === newChatType && this.targetId === newTargetId) {
+            console.log('⚠️ [CHAT-SECTION] Already on the same target, hiding skeleton and skipping');
+            if (skeletonHideCallback) skeletonHideCallback();
+            return;
+        }
+        
+        console.log('🧹 [CHAT-SECTION] Starting skeleton-aware target switch cleanup...');
+        
+        if (this._roomCheckInterval) {
+            clearInterval(this._roomCheckInterval);
+            this._roomCheckInterval = null;
+        }
+        
+        if (this.messageHandler) {
+            this.messageHandler.clearProcessedMessages();
+        }
+        
+        if (this.socketHandler) {
+            this.socketHandler.socketListenersSetup = false;
+        }
+        
+        const chatMessages = document.getElementById('chat-messages');
+        const hasChannelSkeleton = chatMessages && chatMessages.getAttribute('data-channel-skeleton') === 'active';
+        
+        if (!hasChannelSkeleton) {
+            this.showLoadingIndicator();
+        }
+        
+        this.clearChatMessages();
+        
+        console.log('📝 [CHAT-SECTION] Updating target properties...');
+        this.chatType = newChatType;
+        this.targetId = newTargetId;
+        this.hasMoreMessages = true;
+        this.lastLoadedMessageId = null;
+        this.replyingTo = null;
+        this.currentEditingMessage = null;
+        
+        if (this.mentionHandler) {
+            this.mentionHandler.onTargetChanged();
+        }
+        
+        console.log('🔌 [CHAT-SECTION] Setting up socket room...');
+        if (window.globalSocketManager?.isReady()) {
+            this.joinSocketRoom();
+        }
+        
+        console.log('📨 [CHAT-SECTION] Loading messages for new target...');
+        
+        if (!this.chatMessages) {
+            console.log('⚠️ [CHAT-SECTION] Chat messages element not found during switch, finding DOM elements...');
+            this.findDOMElements();
+        }
+        
+        try {
+            await this.loadMessages();
+            console.log(`✅ [CHAT-SECTION] Successfully switched to ${newChatType}:${newTargetId} and loaded messages`);
+            
+            if (skeletonHideCallback) {
+                console.log('🎨 [CHAT-SECTION] Calling skeleton hide callback');
+                skeletonHideCallback();
+            }
+            
+            if (!hasChannelSkeleton) {
+                this.hideLoadingIndicator();
+            }
+            
+        } catch (error) {
+            console.error(`❌ [CHAT-SECTION] Failed to load messages for ${newChatType}:${newTargetId}`, error);
+            
+            if (skeletonHideCallback) {
+                console.log('🎨 [CHAT-SECTION] Calling skeleton hide callback due to error');
+                skeletonHideCallback();
+            }
+            
+            this.showEmptyState('Failed to load messages. Please try again.');
+            this.hideLoadingIndicator();
+        }
+    }
+    
     clearChatMessages() {
         console.log('🧹 [CHAT-SECTION] Clearing chat messages');
         
