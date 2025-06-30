@@ -16,6 +16,40 @@ let lastClickTime = 0;
 const CLICK_TIMEOUT = 3000;
 const CLICKS_NEEDED = 16; 
 
+function showServerLoadingIndicator(serverId) {
+    const serverIcon = document.querySelector(`a[data-server-id="${serverId}"]`)?.closest('.server-icon');
+    if (!serverIcon) return;
+    
+    const serverButton = serverIcon.querySelector('.server-button');
+    if (!serverButton) return;
+    
+    let loadingOverlay = serverButton.querySelector('.server-loading-overlay');
+    if (!loadingOverlay) {
+        loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'server-loading-overlay';
+        loadingOverlay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        serverButton.appendChild(loadingOverlay);
+    }
+    
+    loadingOverlay.style.display = 'flex';
+    serverButton.style.opacity = '0.7';
+}
+
+function hideServerLoadingIndicator(serverId) {
+    const serverIcon = document.querySelector(`a[data-server-id="${serverId}"]`)?.closest('.server-icon');
+    if (!serverIcon) return;
+    
+    const serverButton = serverIcon.querySelector('.server-button');
+    if (!serverButton) return;
+    
+    const loadingOverlay = serverButton.querySelector('.server-loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+    
+    serverButton.style.opacity = '1';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[Server Sidebar] DOMContentLoaded: Initializing server sidebar');
     initServerSidebar();
@@ -854,6 +888,7 @@ export async function handleServerClick(serverId, event) {
     }
     
     lastServerSwitchTime = currentTime;
+    showServerLoadingIndicator(serverId);
 
     try {
         if (loadServerPage) {
@@ -868,6 +903,8 @@ export async function handleServerClick(serverId, event) {
     } catch (error) {
         console.error('[Server Navigation] ERROR in handleServerClick:', error);
         throw error;
+    } finally {
+        hideServerLoadingIndicator(serverId);
     }
 }
 
