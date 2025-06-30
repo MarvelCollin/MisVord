@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     handleLandingPageResize();
     initScrollEnhancements();
     initAuthIcon();
+    initHeroAssets();
     
     console.log('Landing page initialized successfully');
 });
@@ -337,6 +338,55 @@ function debounce(func, wait) {
     };
 }
 
+function initHeroAssets() {
+    const assets = document.querySelectorAll('.floating-asset');
+    
+    assets.forEach((asset, index) => {
+        setTimeout(() => {
+            asset.classList.add('animate');
+        }, 1000 + (index * 200));
+    });
+
+    window.addEventListener('scroll', () => {
+        const scrolled = window.pageYOffset;
+        const parallax1 = document.querySelector('.assets-layer-1');
+        const parallax2 = document.querySelector('.assets-layer-2');
+        const parallax3 = document.querySelector('.assets-layer-3');
+        
+        if (parallax1) parallax1.style.transform = `translateY(${scrolled * 0.3}px)`;
+        if (parallax2) parallax2.style.transform = `translateY(${scrolled * 0.5}px)`;
+        if (parallax3) parallax3.style.transform = `translateY(${scrolled * 0.7}px)`;
+    });
+
+    setInterval(() => {
+        assets.forEach(asset => {
+            if (Math.random() < 0.1) {
+                addRandomSparkle(asset);
+            }
+        });
+    }, 2000);
+}
+
+function addRandomSparkle(asset) {
+    const sparkle = document.createElement('div');
+    sparkle.style.cssText = `
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background: linear-gradient(45deg, #fff, #5865F2);
+        border-radius: 50%;
+        pointer-events: none;
+        top: ${Math.random() * 100}%;
+        left: ${Math.random() * 100}%;
+        animation: assetSparkle 1s ease-out forwards;
+        z-index: 1000;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    `;
+    
+    asset.appendChild(sparkle);
+    setTimeout(() => sparkle.remove(), 1000);
+}
+
 window.landingPageAPI = {
     initParallax,
     initScrollTransition,
@@ -344,5 +394,7 @@ window.landingPageAPI = {
     debounce,
     triggerFeaturedCardsEnhancements,
     initAuthIcon,
-    handleLogout
+    handleLogout,
+    initHeroAssets,
+    addRandomSparkle
 };

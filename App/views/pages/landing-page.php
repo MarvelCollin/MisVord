@@ -44,6 +44,39 @@ ob_start();
             <div class="nebula nebula-2"></div>
             <div class="nebula nebula-3"></div>
         </div>
+
+        <div class="parallax-layer assets-layer-1" data-depth="0.15">
+            <div class="floating-asset robot" style="top: 15%; left: 10%;">
+                <img src="<?php echo asset('landing-page/robot.webp'); ?>" alt="Robot">
+            </div>
+            <div class="floating-asset trophy" style="top: 20%; right: 15%;">
+                <img src="<?php echo asset('landing-page/thropy.webp'); ?>" alt="Trophy">
+            </div>
+            <div class="floating-asset wumpus" style="bottom: 25%; left: 8%;">
+                <img src="<?php echo asset('landing-page/wumpus_happy.webp'); ?>" alt="Happy Wumpus">
+            </div>
+        </div>
+
+        <div class="parallax-layer assets-layer-2" data-depth="0.25">
+            <div class="floating-asset flying-cat" style="top: 30%; right: 8%;">
+                <img src="<?php echo asset('landing-page/flying-cat.webp'); ?>" alt="Flying Cat">
+            </div>
+            <div class="floating-asset box" style="bottom: 30%; right: 12%;">
+                <img src="<?php echo asset('landing-page/box.webp'); ?>" alt="Box">
+            </div>
+            <div class="floating-asset green-egg" style="top: 60%; left: 15%;">
+                <img src="<?php echo asset('landing-page/green-egg.webp'); ?>" alt="Green Egg">
+            </div>
+        </div>
+
+        <div class="parallax-layer assets-layer-3" data-depth="0.35">
+            <div class="floating-asset leaf" style="top: 45%; left: 5%;">
+                <img src="<?php echo asset('landing-page/leaf.webp'); ?>" alt="Leaf">
+            </div>
+            <div class="floating-asset pan" style="bottom: 15%; right: 20%;">
+                <img src="<?php echo asset('landing-page/pan.png'); ?>" alt="Pan">
+            </div>
+        </div>
     </div>
 
     <div class="text-center">
@@ -396,7 +429,7 @@ $content = ob_get_clean();
 
         @font-face {
             font-family: 'ABCGintoPlus';
-            src: url('/assets/fonts/ABCGintoPlusVariable-Trial-BF651b7b7ae8e89.woff') format('woff');
+            src: url('<?php echo asset('fonts/ABCGintoPlusVariable-Trial-BF651b7b7ae8e89.woff'); ?>') format('woff');
             font-weight: 100 900;
             font-style: normal;
             font-display: swap;
@@ -435,6 +468,147 @@ $content = ob_get_clean();
                 transform: translateY(-8px) rotateX(-5deg);
                 filter: drop-shadow(0 15px 25px rgba(88, 101, 242, 0.5));
             }
+        }
+
+        .assets-layer-1, .assets-layer-2, .assets-layer-3 {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .floating-asset {
+            position: absolute;
+            opacity: 0;
+            transform: translateY(20px) scale(0.8);
+            transition: all 1s ease-out;
+            will-change: transform, opacity;
+        }
+
+        .floating-asset.animate {
+            opacity: 0.9;
+            transform: translateY(0) scale(1);
+        }
+
+        .floating-asset img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+
+        .floating-asset.robot {
+            width: 80px;
+            height: 80px;
+            animation: robotFloat 4s ease-in-out infinite;
+        }
+
+        .floating-asset.trophy {
+            width: 70px;
+            height: 70px;
+            animation: trophyGlow 3s ease-in-out infinite;
+        }
+
+        .floating-asset.wumpus {
+            width: 90px;
+            height: 90px;
+            animation: wumpusBounce 2.5s ease-in-out infinite;
+        }
+
+        .floating-asset.flying-cat {
+            width: 100px;
+            height: 100px;
+            animation: catFly 3.5s ease-in-out infinite;
+        }
+
+        .floating-asset.box {
+            width: 60px;
+            height: 60px;
+            animation: boxTilt 4s ease-in-out infinite;
+        }
+
+        .floating-asset.green-egg {
+            width: 50px;
+            height: 50px;
+            animation: eggSpin 5s linear infinite;
+        }
+
+        .floating-asset.leaf {
+            width: 40px;
+            height: 40px;
+            animation: leafSway 3s ease-in-out infinite;
+        }
+
+        .floating-asset.pan {
+            width: 65px;
+            height: 65px;
+            animation: panRotate 4.5s ease-in-out infinite;
+        }
+
+        @keyframes robotFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
+        }
+
+        @keyframes trophyGlow {
+            0%, 100% { 
+                transform: scale(1);
+                filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2)) drop-shadow(0 0 0px rgba(255, 215, 0, 0));
+            }
+            50% { 
+                transform: scale(1.1);
+                filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+            }
+        }
+
+        @keyframes wumpusBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-12px) scale(1.05); }
+        }
+
+        @keyframes catFly {
+            0%, 100% { transform: translateX(0) translateY(0) rotate(0deg); }
+            25% { transform: translateX(10px) translateY(-8px) rotate(3deg); }
+            75% { transform: translateX(-5px) translateY(-5px) rotate(-2deg); }
+        }
+
+        @keyframes boxTilt {
+            0%, 100% { transform: rotate(0deg) translateY(0); }
+            50% { transform: rotate(10deg) translateY(-8px); }
+        }
+
+        @keyframes eggSpin {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(90deg) scale(1.1); }
+            50% { transform: rotate(180deg) scale(1); }
+            75% { transform: rotate(270deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        @keyframes leafSway {
+            0%, 100% { transform: rotate(-5deg) translateY(0); }
+            50% { transform: rotate(5deg) translateY(-10px); }
+        }
+
+        @keyframes panRotate {
+            0%, 100% { transform: rotate(0deg) translateY(0); }
+            25% { transform: rotate(-10deg) translateY(-5px); }
+            75% { transform: rotate(10deg) translateY(-8px); }
+        }
+
+        @media (max-width: 768px) {
+            .floating-asset {
+                transform: scale(0.7);
+            }
+            
+            .floating-asset.robot { width: 60px; height: 60px; }
+            .floating-asset.trophy { width: 50px; height: 50px; }
+            .floating-asset.wumpus { width: 70px; height: 70px; }
+            .floating-asset.flying-cat { width: 80px; height: 80px; }
+            .floating-asset.box { width: 45px; height: 45px; }
+            .floating-asset.green-egg { width: 35px; height: 35px; }
+            .floating-asset.leaf { width: 30px; height: 30px; }
+            .floating-asset.pan { width: 50px; height: 50px; }
         }
     </style>
 </head>

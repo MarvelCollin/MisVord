@@ -1401,17 +1401,7 @@ Route::get('/api/debug/database', function() {
     }
 });
 
-Route::get('/server/([0-9]+)/channel-section', function($serverId) {
-    require_once __DIR__ . '/../controllers/ServerController.php';
-    $controller = new ServerController();
-    $controller->getChannelSection($serverId);
-});
 
-Route::post('/server/([0-9]+)/channel-section', function($serverId) {
-    require_once __DIR__ . '/../controllers/ServerController.php';
-    $controller = new ServerController();
-    $controller->getChannelSection($serverId);
-});
 
 Route::get('/api/chat/channel/([0-9]+)', function($channelId) {
     $controller = new ChatController();
