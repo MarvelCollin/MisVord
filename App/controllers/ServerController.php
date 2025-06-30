@@ -2220,6 +2220,7 @@ class ServerController extends BaseController
             $activeChannelId = $_GET['channel'] ?? null;
             $activeChannel = null;
             $channelMessages = [];
+            $channelType = 'text';
 
             if (!$activeChannelId && !empty($channels)) {
                 foreach ($channels as $channel) {
@@ -2233,13 +2234,21 @@ class ServerController extends BaseController
             if ($activeChannelId) {
                 $activeChannel = $this->channelRepository->find($activeChannelId);
                 if ($activeChannel && $activeChannel->server_id == $serverId) {
-                    try {
-                        $channelMessages = $this->messageRepository->getForChannel($activeChannelId, 50, 0);
-                    } catch (Exception $e) {
-                        $this->logActivity('channel_messages_error', [
-                            'channel_id' => $activeChannelId,
-                            'error' => $e->getMessage()
-                        ]);
+                    if (isset($activeChannel->type_name) && $activeChannel->type_name === 'voice') {
+                        $channelType = 'voice';
+                    } elseif (isset($activeChannel->type) && ($activeChannel->type === 'voice' || $activeChannel->type === 2)) {
+                        $channelType = 'voice';
+                    }
+                    
+                    if ($channelType === 'text') {
+                        try {
+                            $channelMessages = $this->messageRepository->getForChannel($activeChannelId, 50, 0);
+                        } catch (Exception $e) {
+                            $this->logActivity('channel_messages_error', [
+                                'channel_id' => $activeChannelId,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
                     }
                 }
             }
@@ -2249,13 +2258,12 @@ class ServerController extends BaseController
             $GLOBALS['serverChannels'] = $channels;
             $GLOBALS['serverCategories'] = $categories;
             $GLOBALS['activeChannelId'] = $activeChannelId;
+            $GLOBALS['activeChannel'] = $activeChannel;
             $GLOBALS['channelMessages'] = $channelMessages;
             $GLOBALS['serverMembers'] = $serverMembers;
             $GLOBALS['contentType'] = 'server';
             
-            error_log("[Server Layout] GLOBALS set - serverChannels: " . count($GLOBALS['serverChannels']) . 
-                     ", activeChannelId: " . ($activeChannelId ?? 'none') . 
-                     ", channelMessages: " . count($channelMessages));
+            error_log("[Server Layout] GLOBALS set - activeChannelId: " . ($activeChannelId ?? 'none') . ", channelType: " . $channelType);
 
             ob_start();
             ?>
@@ -2263,7 +2271,12 @@ class ServerController extends BaseController
                 <?php include __DIR__ . '/../views/components/app-sections/channel-section.php'; ?>
                 
                 <div class="flex flex-col flex-1" id="main-content">
-                    <?php include __DIR__ . '/../views/components/app-sections/chat-section.php'; ?>
+                    <div class="chat-section <?php echo $channelType === 'voice' ? 'hidden' : ''; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
+                        <?php include __DIR__ . '/../views/components/app-sections/chat-section.php'; ?>
+                    </div>
+                    <div class="voice-section <?php echo $channelType === 'voice' ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
+                        <?php include __DIR__ . '/../views/components/app-sections/voice-section.php'; ?>
+                    </div>
                 </div>
 
                 <div class="w-60 bg-discord-background border-l border-gray-800 flex flex-col h-full max-h-screen">
@@ -2277,34 +2290,15 @@ class ServerController extends BaseController
                 console.log('[Server Layout AJAX] Ensuring critical dependencies are loaded...');
                 
                 const criticalScripts = [
-                    '/public/js/utils/page-utils.js',
-                    '/public/js/core/ui/toast.js',
                     '/public/js/core/socket/global-socket-manager.js',
                     '/public/js/api/chat-api.js',
-                    '/public/js/api/user-api.js',
-                    '/public/js/api/server-api.js',
-                    '/public/js/api/channel-api.js',
-                    '/public/js/api/bot-api.js',
-                    '/public/js/components/messaging/message-handler.js',
-                    '/public/js/components/messaging/socket-handler.js',
-                    '/public/js/components/messaging/chat-ui-handler.js',
-                    '/public/js/components/messaging/file-upload-handler.js',
-                    '/public/js/components/messaging/send-receive-handler.js',
-                    '/public/js/components/messaging/mention-handler.js',
-                    '/public/js/components/messaging/chat-bot.js',
                     '/public/js/components/messaging/chat-section.js',
-                    '/public/js/components/videosdk/videosdk.js',
-                    '/public/js/components/voice/voice-manager.js',
-                    '/public/js/components/voice/global-voice-indicator.js',
-                    '/public/js/components/bot/bot.js',
-                    '/public/js/components/servers/server-dropdown.js',
-                    '/public/js/utils/channel-switch-manager.js',
-                    '/public/js/pages/server-page.js'
+                    '/public/js/utils/channel-switch-manager.js'
                 ];
                 
                 function loadScript(src) {
                     return new Promise((resolve, reject) => {
-                        if (document.querySelector(`script[src="${src}"]`)) {
+                        if (document.querySelector(`script[src*="${src.split('/').pop().split('?')[0]}"]`)) {
                             console.log('[Server Layout AJAX] Script already loaded:', src);
                             resolve();
                             return;
@@ -2312,55 +2306,30 @@ class ServerController extends BaseController
                         
                         const script = document.createElement('script');
                         script.src = src + '?v=' + Date.now();
-                        script.type = 'module';
                         script.onload = () => {
                             console.log('[Server Layout AJAX] Script loaded:', src);
                             resolve();
                         };
                         script.onerror = () => {
                             console.warn('[Server Layout AJAX] Failed to load script:', src);
-                            reject(new Error(`Failed to load ${src}`));
+                            resolve();
                         };
                         document.head.appendChild(script);
                     });
                 }
                 
-                async function loadScriptsSequentially() {
-                    console.log('[Server Layout AJAX] Loading critical scripts sequentially...');
-                    for (const src of criticalScripts) {
-                        try {
-                            await loadScript(src);
-                            await new Promise(resolve => setTimeout(resolve, 50));
-                        } catch (error) {
-                            console.warn('[Server Layout AJAX] Script load error:', error);
-                        }
-                    }
-                    console.log('[Server Layout AJAX] All critical scripts loading initiated');
+                console.log('[Server Layout AJAX] Loading critical scripts...');
+                for (const src of criticalScripts) {
+                    await loadScript(src);
+                    await new Promise(resolve => setTimeout(resolve, 50));
                 }
                 
-                await loadScriptsSequentially();
-                
                 setTimeout(() => {
-                    console.log('[Server Layout AJAX] Triggering component initialization...');
-                    
-                    if (typeof window.initServerPage === 'function') {
-                        window.initServerPage();
-                        console.log('[Server Layout AJAX] Server page initialized');
-                    }
+                    console.log('[Server Layout AJAX] Initializing components...');
                     
                     if (typeof window.initializeChatSection === 'function') {
                         window.initializeChatSection();
                         console.log('[Server Layout AJAX] Chat section initialized');
-                    }
-                    
-                    if (typeof window.initializeParticipantSection === 'function') {
-                        window.initializeParticipantSection();
-                        console.log('[Server Layout AJAX] Participant section initialized');
-                    }
-                    
-                    if (typeof window.ChannelSwitchManager !== 'undefined' && !window.channelSwitchManager) {
-                        window.channelSwitchManager = new window.ChannelSwitchManager();
-                        console.log('[Server Layout AJAX] Channel switch manager created');
                     }
                     
                     const event = new CustomEvent('ServerLayoutAjaxComplete', {
@@ -2369,7 +2338,7 @@ class ServerController extends BaseController
                     document.dispatchEvent(event);
                     console.log('[Server Layout AJAX] Initialization complete');
                     
-                }, 1000);
+                }, 500);
                 
             })().catch(error => {
                 console.error('[Server Layout AJAX] Critical error during script loading:', error);
@@ -2381,8 +2350,8 @@ class ServerController extends BaseController
             $html = ob_get_clean();
             
             error_log("[Server Layout] HTML generated - Length: " . strlen($html) . 
-                     ", Contains channel-wrapper: " . (strpos($html, 'channel-wrapper') !== false ? 'YES' : 'NO') . 
-                     ", Contains channel-item: " . (strpos($html, 'channel-item') !== false ? 'YES' : 'NO'));
+                     ", Contains chat-section: " . (strpos($html, 'chat-section') !== false ? 'YES' : 'NO') . 
+                     ", Contains voice-section: " . (strpos($html, 'voice-section') !== false ? 'YES' : 'NO'));
 
             if ($this->isAjaxRequest()) {
                 error_log("[Server Layout] Sending AJAX response");

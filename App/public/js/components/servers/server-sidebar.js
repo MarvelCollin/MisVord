@@ -956,6 +956,24 @@ export async function handleHomeClick(event) {
     }
 }
 
+async function getDefaultChannelForServer(serverId) {
+    try {
+        const response = await fetch(`/api/servers/${serverId}/channels`);
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.channels && data.data.channels.length > 0) {
+            const textChannel = data.data.channels.find(channel => 
+                channel.type === 'text' || channel.type === 0 || channel.type_name === 'text'
+            );
+            return textChannel ? textChannel.id : data.data.channels[0].id;
+        }
+        return null;
+    } catch (error) {
+        console.error('[Server Navigation] Error getting default channel:', error);
+        return null;
+    }
+}
+
 export async function handleServerClick(serverId, event) {
     console.log('[Server Navigation] Server Click Flow Started');
     
@@ -976,27 +994,33 @@ export async function handleServerClick(serverId, event) {
     showServerLoadingIndicator(serverId);
 
     try {
+        let defaultChannelId = null;
+        
+        console.log('[Server Navigation] Getting default channel for server:', serverId);
+        defaultChannelId = await getDefaultChannelForServer(serverId);
+        console.log('[Server Navigation] Default channel ID:', defaultChannelId);
+        
         let success = false;
         
         if (window.navigationManager) {
-            console.log('[Server Navigation] Trying navigation manager');
-            success = await window.navigationManager.navigateToServer(serverId);
+            console.log('[Server Navigation] Trying navigation manager with channel:', defaultChannelId);
+            success = await window.navigationManager.navigateToServer(serverId, defaultChannelId);
         }
         
         if (!success && typeof window.loadServerPage === 'function') {
-            console.log('[Server Navigation] Navigation manager failed, trying loadServerPage');
-            await window.loadServerPage(serverId);
+            console.log('[Server Navigation] Navigation manager failed, trying loadServerPage with channel:', defaultChannelId);
+            await window.loadServerPage(serverId, defaultChannelId);
             success = true;
         }
         
         if (!success) {
-            console.log('[Server Navigation] All navigation methods failed, using direct AJAX fallback');
-            await handleServerClickFallback(serverId);
+            console.log('[Server Navigation] All navigation methods failed, using direct AJAX fallback with channel:', defaultChannelId);
+            await handleServerClickFallback(serverId, defaultChannelId);
             success = true;
         }
         
         if (success) {
-            console.log('[Server Navigation] SUCCESS - Server navigation completed');
+            console.log('[Server Navigation] SUCCESS - Server navigation completed with channel:', defaultChannelId);
         }
         
     } catch (error) {
@@ -1013,7 +1037,7 @@ export async function handleServerClick(serverId, event) {
     }
 }
 
-async function handleServerClickFallback(serverId) {
+async function handleServerClickFallback(serverId, channelId = null) {
         const currentChannelId = new URLSearchParams(window.location.search).get('channel');
         if (currentChannelId && window.globalSocketManager) {
             console.log('[Server Navigation] Cleaning up socket for channel:', currentChannelId);
@@ -1029,9 +1053,15 @@ async function handleServerClickFallback(serverId) {
             }
         }
         
-    console.log('[Server Navigation] Loading server page with fallback AJAX');
+    console.log('[Server Navigation] Loading server page with fallback AJAX, channel:', channelId);
+    
+    let url = `/server/${serverId}/layout`;
+    if (channelId) {
+        url += `?channel=${channelId}`;
+    }
+    
         const response = await $.ajax({
-            url: `/server/${serverId}/layout`,
+            url: url,
             method: 'GET',
             dataType: 'html',
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -1053,13 +1083,13 @@ async function handleServerClickFallback(serverId) {
             console.error('[Server Navigation] Could not find layout container or no response');
         }
 
-        const actualChannelId = getActiveChannelFromResponse(layoutContainer);
+        const actualChannelId = getActiveChannelFromResponse(layoutContainer) || channelId;
     const finalUrl = actualChannelId ? `/server/${serverId}?channel=${actualChannelId}` : `/server/${serverId}`;
     window.history.pushState({ pageType: 'server', serverId: serverId, channelId: actualChannelId }, `Server ${serverId}`, finalUrl);
         updateActiveServer('server', serverId);
 
         window.dispatchEvent(new CustomEvent('ServerChanged', { detail: { serverId } }));
-    console.log('[Server Navigation] SUCCESS - Server navigation completed via fallback');
+    console.log('[Server Navigation] SUCCESS - Server navigation completed via fallback with URL:', finalUrl);
 }
 
 export async function handleExploreClick(event) {

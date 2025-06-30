@@ -266,78 +266,55 @@ class VoiceManager {
     
     async checkExistingMeeting(channelId) {
         return new Promise((resolve) => {
-            console.log(`🔍 [VOICE-MANAGER] Sending check-voice-meeting for channel ${channelId}`);
+            if (!window.globalSocketManager?.io) {
+                resolve(null);
+                return;
+            }
             
-            // Set up one-time listener for response
             const handleResponse = (data) => {
                 if (data.channel_id === channelId) {
-                    window.globalSocketManager?.io?.off('voice-meeting-status', handleResponse);
-                    
-                    if (data.has_meeting) {
-                        console.log(`✅ [VOICE-MANAGER] Existing meeting found:`, data);
-                        resolve({
-                            meeting_id: data.meeting_id,
-                            participant_count: data.participant_count
-                        });
-                    } else {
-                        console.log(`📭 [VOICE-MANAGER] No existing meeting found for channel ${channelId}`);
-                        resolve(null);
-                    }
+                    window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
+                    resolve(data.has_meeting ? {
+                        meeting_id: data.meeting_id,
+                        participant_count: data.participant_count
+                    } : null);
                 }
             };
             
-            // Listen for response
-            window.globalSocketManager?.io?.on('voice-meeting-status', handleResponse);
+            window.globalSocketManager.io.on('voice-meeting-status', handleResponse);
+            window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
             
-            // Send check request
-            window.globalSocketManager?.io?.emit('check-voice-meeting', {
-                channel_id: channelId
-            });
-            
-            // Timeout after 5 seconds
             setTimeout(() => {
-                window.globalSocketManager?.io?.off('voice-meeting-status', handleResponse);
-                console.log(`⏰ [VOICE-MANAGER] Timeout checking meeting for channel ${channelId}, assuming no meeting`);
+                window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
                 resolve(null);
-            }, 5000);
+            }, 3000);
         });
     }
 
     async registerMeetingWithSocket(channelId, meetingId) {
-        return new Promise((resolve, reject) => {
-            console.log(`📝 [VOICE-MANAGER] Registering meeting ${meetingId} for channel ${channelId} with socket`);
-            
-            // Check if socket is ready
-            if (!window.globalSocketManager?.io || !window.globalSocketManager?.isReady()) {
-                console.warn(`⚠️ [VOICE-MANAGER] Socket not ready, proceeding without registration`);
+        return new Promise((resolve) => {
+            if (!window.globalSocketManager?.io || !window.globalSocketManager.isReady()) {
                 resolve({ meeting_id: meetingId, channel_id: channelId });
                 return;
             }
             
-            // Set up one-time listener for confirmation
             const handleUpdate = (data) => {
                 if (data.channel_id === channelId && data.action === 'join') {
                     window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
-                    console.log(`✅ [VOICE-MANAGER] Meeting registration confirmed:`, data);
                     resolve(data);
                 }
             };
             
-            // Listen for confirmation
             window.globalSocketManager.io.on('voice-meeting-update', handleUpdate);
-            
-            // Register meeting
             window.globalSocketManager.io.emit('register-voice-meeting', {
                 channel_id: channelId,
                 meeting_id: meetingId
             });
             
-            // Timeout after 3 seconds
             setTimeout(() => {
                 window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
-                console.log(`✅ [VOICE-MANAGER] Meeting registration timeout, assuming success for ${meetingId}`);
                 resolve({ meeting_id: meetingId, channel_id: channelId });
-            }, 3000);
+            }, 2000);
         });
     }
 
@@ -345,14 +322,11 @@ class VoiceManager {
         if (!this.isConnected) return;
         
         if (window.videoSDKJoiningInProgress) {
-            console.log('Ignoring disconnect request - joining in progress');
             return;
         }
         
-        // Unregister from socket meeting before leaving VideoSDK
-        if (this.currentChannelId) {
-            console.log(`📤 [VOICE-MANAGER] Unregistering from socket meeting for channel ${this.currentChannelId}`);
-            window.globalSocketManager?.io?.emit('unregister-voice-meeting', {
+        if (this.currentChannelId && window.globalSocketManager?.io) {
+            window.globalSocketManager.io.emit('unregister-voice-meeting', {
                 channel_id: this.currentChannelId
             });
         }

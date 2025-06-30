@@ -34,6 +34,24 @@ class NavigationManager {
         }
     }
 
+    async getDefaultChannelForServer(serverId) {
+        try {
+            const response = await fetch(`/api/servers/${serverId}/channels`);
+            const data = await response.json();
+            
+            if (data.success && data.data && data.data.channels && data.data.channels.length > 0) {
+                const textChannel = data.data.channels.find(channel => 
+                    channel.type === 'text' || channel.type === 0 || channel.type_name === 'text'
+                );
+                return textChannel ? textChannel.id : data.data.channels[0].id;
+            }
+            return null;
+        } catch (error) {
+            console.error('[Navigation] Error getting default channel:', error);
+            return null;
+        }
+    }
+
     async navigateToServer(serverId, channelId = null) {
         if (!this.canNavigate() || !serverId) return false;
         
@@ -41,6 +59,11 @@ class NavigationManager {
         this.showLoadingIndicator('server', serverId);
         
         try {
+            if (!channelId) {
+                console.log('[Navigation] Getting default channel for server:', serverId);
+                channelId = await this.getDefaultChannelForServer(serverId);
+            }
+            
             const url = `/server/${serverId}/layout` + (channelId ? `?channel=${channelId}` : '');
             
             await this.performNavigation({
@@ -270,7 +293,9 @@ class NavigationManager {
                 break;
             case 'server':
                 url = `/server/${config.serverId}`;
-                if (config.channelId) url += `?channel=${config.channelId}`;
+                if (config.channelId) {
+                    url += `?channel=${config.channelId}`;
+                }
                 title = `Server ${config.serverId} - misvord`;
                 break;
             case 'explore':

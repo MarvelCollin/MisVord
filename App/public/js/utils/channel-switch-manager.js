@@ -19,20 +19,40 @@ class ChannelSwitchManager {
     init() {
         if (this.isDestroyed || this.isInitialized) return;
         
-        this.setupEventHandlers();
-        this.injectCSS();
-        this.initializeCurrentChannel();
-        this.isInitialized = true;
-        
-        console.log('[ChannelSwitchManager] Initialized successfully');
+        this.waitForDOM().then(() => {
+            this.setupEventHandlers();
+            this.injectCSS();
+            this.initializeCurrentChannel();
+            this.isInitialized = true;
+            
+            console.log('[ChannelSwitchManager] Initialized successfully');
+        }).catch(error => {
+            console.error('[ChannelSwitchManager] Initialization failed:', error);
+        });
+    }
+    
+    waitForDOM() {
+        return new Promise((resolve) => {
+            const checkDOM = () => {
+                const hasChannels = document.querySelectorAll('.channel-item').length > 0;
+                const hasSections = document.querySelector('.chat-section') || document.querySelector('.voice-section');
+                
+                if (hasChannels && hasSections) {
+                    resolve();
+                } else {
+                    setTimeout(checkDOM, 200);
+                }
+            };
+            checkDOM();
+        });
     }
     
     setupEventHandlers() {
-        this.cleanup();
+        this.removeEventHandlers();
         
         this.clickHandler = (e) => {
             const channelItem = e.target.closest('.channel-item');
-            if (!channelItem || this.isLoading) return;
+            if (!channelItem || this.isLoading || this.isDestroyed) return;
             
             const channelId = channelItem.getAttribute('data-channel-id');
             const channelType = channelItem.getAttribute('data-channel-type') || 'text';
@@ -46,6 +66,7 @@ class ChannelSwitchManager {
         };
         
         this.popstateHandler = (event) => {
+            if (this.isDestroyed) return;
             if (event.state?.channelId) {
                 const { serverId, channelId, channelType } = event.state;
                 this.switchToChannel(serverId, channelId, channelType || 'text', false);
@@ -54,6 +75,18 @@ class ChannelSwitchManager {
         
         document.addEventListener('click', this.clickHandler, true);
         window.addEventListener('popstate', this.popstateHandler);
+    }
+    
+    removeEventHandlers() {
+        if (this.clickHandler) {
+            document.removeEventListener('click', this.clickHandler, true);
+            this.clickHandler = null;
+        }
+        
+        if (this.popstateHandler) {
+            window.removeEventListener('popstate', this.popstateHandler);
+            this.popstateHandler = null;
+        }
     }
     
     injectCSS() {
@@ -128,6 +161,11 @@ class ChannelSwitchManager {
     updateSections(channelType) {
         const chatSection = document.querySelector('.chat-section');
         const voiceSection = document.querySelector('.voice-section');
+        
+        if (!chatSection && !voiceSection) {
+            console.warn('[ChannelSwitchManager] No sections found in DOM');
+            return;
+        }
         
         if (channelType === 'voice') {
             if (chatSection) {
@@ -223,15 +261,7 @@ class ChannelSwitchManager {
         this.isDestroyed = true;
         this.isLoading = false;
         
-        if (this.clickHandler) {
-            document.removeEventListener('click', this.clickHandler, true);
-            this.clickHandler = null;
-        }
-        
-        if (this.popstateHandler) {
-            window.removeEventListener('popstate', this.popstateHandler);
-            this.popstateHandler = null;
-        }
+        this.removeEventHandlers();
         
         document.querySelectorAll('.channel-item').forEach(item => {
             item.classList.remove('switching', 'active-channel');

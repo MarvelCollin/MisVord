@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initSectionCoordination();
     handleLandingPageResize();
     initScrollEnhancements();
-    initLoginIcon();
+    initAuthIcon();
     
     console.log('Landing page initialized successfully');
 });
@@ -249,8 +249,12 @@ function handleLandingPageResize() {
     }, 100);
 }
 
-function initLoginIcon() {
+function initAuthIcon() {
     const loginIcon = document.getElementById('loginIcon');
+    const userIcon = document.getElementById('userIcon');
+    const userDropdown = document.getElementById('userDropdown');
+    const userDropdownContainer = document.querySelector('.user-dropdown-container');
+    const logoutItem = document.getElementById('logoutItem');
     
     if (loginIcon) {
         loginIcon.addEventListener('click', function(e) {
@@ -263,6 +267,60 @@ function initLoginIcon() {
             }, 150);
         });
     }
+    
+    if (userIcon && userDropdown && userDropdownContainer) {
+        let hoverTimeout;
+        
+        userDropdownContainer.addEventListener('mouseenter', function() {
+            clearTimeout(hoverTimeout);
+            userDropdown.classList.add('show');
+        });
+        
+        userDropdownContainer.addEventListener('mouseleave', function() {
+            hoverTimeout = setTimeout(() => {
+                userDropdown.classList.remove('show');
+            }, 100);
+        });
+        
+        if (logoutItem) {
+            logoutItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                handleLogout();
+            });
+        }
+    }
+}
+
+function handleLogout() {
+    const logoutItem = document.getElementById('logoutItem');
+    
+    if (logoutItem) {
+        logoutItem.style.opacity = '0.5';
+        logoutItem.style.pointerEvents = 'none';
+    }
+    
+    fetch('/logout', {
+        method: 'GET',
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.href = '/login';
+        } else {
+            console.error('Logout failed');
+            if (logoutItem) {
+                logoutItem.style.opacity = '1';
+                logoutItem.style.pointerEvents = 'auto';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Logout error:', error);
+        if (logoutItem) {
+            logoutItem.style.opacity = '1';
+            logoutItem.style.pointerEvents = 'auto';
+        }
+    });
 }
 
 window.addEventListener('resize', debounce(handleLandingPageResize, 150));
@@ -285,5 +343,6 @@ window.landingPageAPI = {
     handleLandingPageResize,
     debounce,
     triggerFeaturedCardsEnhancements,
-    initLoginIcon
+    initAuthIcon,
+    handleLogout
 };

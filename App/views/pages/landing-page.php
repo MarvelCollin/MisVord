@@ -1,5 +1,14 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
+
+$isAuthenticated = isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+$username = $_SESSION['username'] ?? '';
+$discriminator = $_SESSION['discriminator'] ?? '';
+$avatarUrl = $_SESSION['avatar_url'] ?? '';
 
 $page_title = 'misvord - Chat & Share with Friends';
 $body_class = 'bg-gray-900 text-white';
@@ -38,8 +47,8 @@ ob_start();
     </div>
 
     <div class="text-center">
-        <h1 class="hero-title floating scramble-text text-6xl md:text-8xl font-bold mb-8" data-text="IMAGINE A PLACE...">
-            IMAGINE A PLACE...
+        <h1 class="hero-title floating scramble-text text-6xl md:text-8xl font-bold mb-8" data-text="MisVord">
+            MisVord
         </h1>
     </div>
 
@@ -62,6 +71,7 @@ $content = ob_get_clean();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -108,7 +118,6 @@ $content = ob_get_clean();
             top: 2rem;
             right: 2rem;
             z-index: 1000;
-            cursor: pointer;
         }
 
         .login-icon {
@@ -125,6 +134,7 @@ $content = ob_get_clean();
             width: 48px;
             height: 48px;
             justify-content: center;
+            cursor: pointer;
         }
 
         .login-icon::before {
@@ -149,6 +159,7 @@ $content = ob_get_clean();
             background: rgba(88, 101, 242, 0.2);
             border-color: rgba(88, 101, 242, 0.6);
             box-shadow: 0 10px 30px rgba(88, 101, 242, 0.3);
+            animation: pulse-glow 2s infinite;
         }
 
         .login-icon i {
@@ -187,6 +198,151 @@ $content = ob_get_clean();
             transform: translateY(0) scale(0.98);
         }
 
+        .user-dropdown-container {
+            position: relative;
+        }
+
+        .user-icon {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: rgba(88, 101, 242, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(88, 101, 242, 0.3);
+            border-radius: 50px;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .user-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .user-icon:hover::before {
+            left: 100%;
+        }
+
+        .user-icon:hover {
+            transform: translateY(-2px) scale(1.05);
+            background: rgba(88, 101, 242, 0.2);
+            border-color: rgba(88, 101, 242, 0.6);
+            box-shadow: 0 10px 30px rgba(88, 101, 242, 0.3);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-avatar i {
+            font-size: 1.5rem;
+            color: #5865F2;
+        }
+
+        .username-text {
+            font-weight: 600;
+            color: #B9BBBE;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+        .user-icon:hover .username-text {
+            color: #ffffff;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.75rem;
+            color: #B9BBBE;
+            transition: all 0.3s ease;
+        }
+
+        .user-icon:hover .dropdown-arrow {
+            color: #ffffff;
+            transform: rotate(180deg);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            min-width: 200px;
+            background: rgba(32, 34, 37, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(88, 101, 242, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            overflow: hidden;
+        }
+
+        .user-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(88, 101, 242, 0.2);
+        }
+
+        .display-name {
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 0.875rem;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: rgba(88, 101, 242, 0.2);
+            margin: 0.5rem 0;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #B9BBBE;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(88, 101, 242, 0.1);
+            color: #ffffff;
+        }
+
+        .dropdown-item i {
+            font-size: 1rem;
+            width: 16px;
+            text-align: center;
+        }
+
         @keyframes pulse-glow {
             0%, 100% {
                 box-shadow: 0 10px 30px rgba(88, 101, 242, 0.3);
@@ -194,10 +350,6 @@ $content = ob_get_clean();
             50% {
                 box-shadow: 0 10px 30px rgba(88, 101, 242, 0.5);
             }
-        }
-
-        .login-icon:hover {
-            animation: pulse-glow 2s infinite;
         }
 
         @media (max-width: 768px) {
@@ -225,16 +377,60 @@ $content = ob_get_clean();
             .login-icon i {
                 font-size: 1.5rem;
             }
+
+            .user-icon {
+                padding: 0.5rem;
+            }
+
+            .username-text {
+                display: none;
+            }
+
+            .dropdown-arrow {
+                display: none;
+            }
+
+            .user-dropdown {
+                min-width: 160px;
+            }
         }
     </style>
 </head>
 
 <body class="<?php echo $body_class; ?>">
     <div class="login-icon-container">
-        <div class="login-icon" id="loginIcon">
-            <i class="fas fa-user-circle"></i>
-            <span class="login-text">Login</span>
-        </div>
+        <?php if ($isAuthenticated): ?>
+            <div class="user-dropdown-container">
+                <div class="user-icon" id="userIcon">
+                    <div class="user-avatar">
+                        <?php if ($avatarUrl): ?>
+                            <img src="<?php echo htmlspecialchars($avatarUrl); ?>" alt="Avatar">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle"></i>
+                        <?php endif; ?>
+                    </div>
+                    <span class="username-text"><?php echo htmlspecialchars($username); ?></span>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </div>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dropdown-header">
+                        <div class="user-info">
+                            <div class="display-name"><?php echo htmlspecialchars($username); ?>#<?php echo htmlspecialchars($discriminator); ?></div>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-item" id="logoutItem">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </div>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="login-icon" id="loginIcon">
+                <i class="fas fa-user-circle"></i>
+                <span class="login-text">Login</span>
+            </div>
+        <?php endif; ?>
     </div>
     
     <?php echo $content; ?>

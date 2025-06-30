@@ -56,6 +56,13 @@ $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name
                     Enter the voice channel
                 </span>
             </button>
+            
+            <button id="ticTacToeBtn" class="relative transition-all duration-300 bg-gradient-to-r from-[#ff6b6b]/20 to-[#4ecdc4]/20 border border-white/20 text-white font-medium py-3 px-10 rounded-xl hover:scale-105 cursor-pointer z-50" style="pointer-events: auto;" onclick="openTicTacToeFromVoice()">
+                <span class="relative z-10 flex items-center gap-3">
+                    <i class="fas fa-gamepad text-lg transition-transform group-hover:scale-110"></i>
+                    Play Tic Mac Voe
+                </span>
+            </button>
         </div>
     </div>
     
@@ -110,38 +117,29 @@ async function ensureVoiceScriptsLoaded() {
             await window.loadVoiceScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
         }
         
-        if (!window.videoSDKManager && !document.querySelector('script[src*="videosdk/videosdk.js"]')) {
-            console.log('[voice-not-join.php] Loading VideoSDK manager...');
+        if (!window.videoSDKManager) {
             await window.loadVoiceScript('/public/js/components/videosdk/videosdk.js?v=' + Date.now());
         }
         
-        if (!window.voiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
-            console.log('[voice-not-join.php] Loading voice manager...');
+        if (!window.voiceManager) {
             await window.loadVoiceScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
         }
         
-        if (!window.VoiceSection && !document.querySelector('script[src*="voice-section.js"]')) {
-            console.log('[voice-not-join.php] Loading voice section...');
+        if (!window.VoiceSection) {
             await window.loadVoiceScript('/public/js/components/voice/voice-section.js?v=' + Date.now());
         }
         
 
         
         await new Promise(resolve => {
-            if (window.voiceManager && window.videoSDKManager && window.VoiceSection) {
-                console.log('[voice-not-join.php] All components loaded, ensuring VideoSDK is initialized...');
-                resolve();
-            } else {
-                const checkReady = () => {
-                    if (window.voiceManager && window.videoSDKManager && window.VoiceSection) {
-                        console.log('[voice-not-join.php] All components loaded, ensuring VideoSDK is initialized...');
-                        resolve();
-                    } else {
-                        setTimeout(checkReady, 100);
-                    }
-                };
-                checkReady();
-            }
+            const checkReady = () => {
+                if (window.voiceManager && window.videoSDKManager && window.VoiceSection) {
+                    resolve();
+                } else {
+                    setTimeout(checkReady, 50);
+                }
+            };
+            checkReady();
         });
         
         if (window.videoSDKManager && !window.videoSDKManager.initialized) {
@@ -247,4 +245,34 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('[voice-not-join.php] Dispatching voiceUIReady event to start preloading');
     window.dispatchEvent(new CustomEvent('voiceUIReady'));
 });
+
+function openTicTacToeFromVoice() {
+    const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    const userId = document.querySelector('meta[name="user-id"]')?.content;
+    const username = document.querySelector('meta[name="username"]')?.content;
+    
+    if (!serverId || !userId || !username) {
+        if (window.showToast) {
+            window.showToast('Missing required information. Please refresh the page.', 'error');
+        }
+        return;
+    }
+    
+    if (!window.globalSocketManager?.isReady()) {
+        if (window.showToast) {
+            window.showToast('Connection not ready. Please wait a moment.', 'warning');
+        }
+        return;
+    }
+    
+    if (window.TicTacToeModal) {
+        window.TicTacToeModal.createTicTacToeModal(serverId, userId, username);
+    } else if (window.activityManager) {
+        window.activityManager.openTicTacToe();
+    } else {
+        if (window.showToast) {
+            window.showToast('Game not available. Please try again later.', 'error');
+        }
+    }
+}
 </script>

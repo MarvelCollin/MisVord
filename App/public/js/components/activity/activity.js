@@ -73,20 +73,12 @@ class ActivityManager {
 
 
     openTicTacToe() {
-        if (!this.serverId) {
-            console.error('Cannot open Tic-Tac-Toe: No server ID');
-            return;
-        }
-
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.error('Cannot open Tic-Tac-Toe: Socket not ready');
+        if (!this.serverId || !window.globalSocketManager?.isReady()) {
             return;
         }
 
         if (window.TicTacToeModal) {
             window.TicTacToeModal.createTicTacToeModal(this.serverId, this.userId, this.username);
-        } else {
-            console.error('TicTacToeModal not available');
         }
     }
 

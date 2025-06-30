@@ -149,25 +149,18 @@ class DebugController extends BaseController
             $userRepo = new UserRepository();
             $query = new Query();
             
-            // Test 1: Direct database query for titibot
             $directQuery = $query->query("SELECT * FROM users WHERE username = 'titibot'");
             
-            // Test 2: Case insensitive search
             $caseInsensitive = $query->query("SELECT * FROM users WHERE LOWER(username) = 'titibot'");
             
-            // Test 3: All users with 'titi' in name
             $similarUsers = $query->query("SELECT id, username, status, email FROM users WHERE username LIKE '%titi%'");
             
-            // Test 4: All bot users
             $allBots = $query->query("SELECT id, username, status, email FROM users WHERE status = 'bot'");
             
-            // Test 5: User repository method
             $repoResult = $userRepo->findByUsername('titibot');
             
-            // Test 6: Check if user 1004 exists
             $user1004 = $query->query("SELECT * FROM users WHERE id = 1004");
             
-            // Test 7: Database connection info
             $tables = $query->query("SHOW TABLES");
             $userTableInfo = $query->query("DESCRIBE users");
             

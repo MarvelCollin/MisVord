@@ -285,40 +285,38 @@ class GlobalSocketManager {
             this.error('Socket error', error);
         });
         
-        // Add debugging for user online/offline events
         this.io.on('user-online', (data) => {
-            console.log('👥 [SOCKET] Received user-online event:', data);
+            if (window.presenceManager) {
+                window.presenceManager.handleUserOnline(data);
+            }
         });
         
         this.io.on('user-offline', (data) => {
-            console.log('👥 [SOCKET] Received user-offline event:', data);
+            if (window.presenceManager) {
+                window.presenceManager.handleUserOffline(data);
+            }
         });
         
         this.io.on('user-presence-update', (data) => {
-            console.log('👥 [SOCKET] Received user-presence-update event:', data);
+            if (window.presenceManager) {
+                window.presenceManager.handlePresenceUpdate(data);
+            }
         });
         
         // NOTE: Message events are now handled by individual component socket-handlers
         // Removed duplicate listeners for 'user-message-dm' and 'new-channel-message'
         // to prevent double message processing
         
-        // Jump to message functionality
         this.io.on('jump-to-message-response', (data) => {
-            this.log('Jump to message response received:', data);
-            
-            if (window.jumpToMessage && typeof window.jumpToMessage === 'function') {
+            if (window.jumpToMessage) {
                 window.jumpToMessage(data.message_id);
-            } else if (window.messageHandler && typeof window.messageHandler.jumpToMessage === 'function') {
+            } else if (window.messageHandler?.jumpToMessage) {
                 window.messageHandler.jumpToMessage(data.message_id);
-            } else {
-                console.warn('⚠️ [SOCKET] No jumpToMessage function available');
             }
         });
         
         this.io.on('jump-to-message-failed', (data) => {
-            this.error('Jump to message failed:', data);
-            
-            if (window.showToast && typeof window.showToast === 'function') {
+            if (window.showToast) {
                 window.showToast('Message not found or not accessible', 'error');
             }
         });

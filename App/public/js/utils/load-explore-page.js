@@ -306,6 +306,24 @@ function getCurrentChannelId() {
     return activeChannelInput ? activeChannelInput.value : null;
 }
 
+async function getDefaultChannelForServer(serverId) {
+    try {
+        const response = await fetch(`/api/servers/${serverId}/channels`);
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.channels && data.data.channels.length > 0) {
+            const textChannel = data.data.channels.find(channel => 
+                channel.type === 'text' || channel.type === 0 || channel.type_name === 'text'
+            );
+            return textChannel ? textChannel.id : data.data.channels[0].id;
+        }
+        return null;
+    } catch (error) {
+        console.error('[Explore Navigation] Error getting default channel:', error);
+        return null;
+    }
+}
+
 function setupExploreServerNavigation() {
     console.log('[Explore Navigation] Setting up server navigation handlers');
     
@@ -329,16 +347,20 @@ function setupExploreServerNavigation() {
                     console.log('[Explore Navigation] Server link clicked, navigating to server:', serverId);
                     
                     try {
+                        const defaultChannelId = await getDefaultChannelForServer(serverId);
+                        console.log('[Explore Navigation] Default channel ID:', defaultChannelId);
+                        
                         if (loadServerPage) {
-                            console.log('[Explore Navigation] Using loadServerPage function');
-                            await loadServerPage(serverId);
+                            console.log('[Explore Navigation] Using loadServerPage function with channel:', defaultChannelId);
+                            await loadServerPage(serverId, defaultChannelId);
                             
                             if (typeof window.updateActiveServer === 'function') {
                                 window.updateActiveServer('server', serverId);
                             }
                         } else {
                             console.log('[Explore Navigation] loadServerPage not available, using fallback');
-                            window.location.href = href;
+                            const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : href;
+                            window.location.href = fallbackUrl;
                         }
                     } catch (error) {
                         console.error('[Explore Navigation] Error navigating to server:', error);
@@ -351,34 +373,37 @@ function setupExploreServerNavigation() {
             });
         });
         
-        const joinButtons = document.querySelectorAll('button[data-server-id]');
-        console.log('[Explore Navigation] Found', joinButtons.length, 'join server buttons');
+        const visitServerButtons = document.querySelectorAll('button[data-server-id]:contains("Visit Server"), .visit-server-btn');
+        console.log('[Explore Navigation] Found', visitServerButtons.length, 'visit server buttons');
         
-        joinButtons.forEach(button => {
-            if (button.textContent.includes('Join') || button.textContent.includes('Visit')) {
+        visitServerButtons.forEach(button => {
+            const serverId = button.getAttribute('data-server-id');
+            if (serverId) {
                 const newButton = button.cloneNode(true);
                 button.parentNode.replaceChild(newButton, button);
                 
                 newButton.addEventListener('click', async function(e) {
-                    const serverId = this.getAttribute('data-server-id');
-                    
-                    if (serverId && !this.textContent.includes('Join')) {
+                    if (this.textContent.trim().includes('Visit') || this.classList.contains('visit-server-btn')) {
                         e.preventDefault();
                         e.stopPropagation();
                         
                         console.log('[Explore Navigation] Visit server button clicked, navigating to server:', serverId);
                         
                         try {
+                            const defaultChannelId = await getDefaultChannelForServer(serverId);
+                            console.log('[Explore Navigation] Default channel ID:', defaultChannelId);
+                            
                             if (loadServerPage) {
-                                console.log('[Explore Navigation] Using loadServerPage function');
-                                await loadServerPage(serverId);
+                                console.log('[Explore Navigation] Using loadServerPage function with channel:', defaultChannelId);
+                                await loadServerPage(serverId, defaultChannelId);
                                 
                                 if (typeof window.updateActiveServer === 'function') {
                                     window.updateActiveServer('server', serverId);
                                 }
                             } else {
                                 console.log('[Explore Navigation] loadServerPage not available, using fallback');
-                                window.location.href = `/server/${serverId}`;
+                                const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : `/server/${serverId}`;
+                                window.location.href = fallbackUrl;
                             }
                         } catch (error) {
                             console.error('[Explore Navigation] Error navigating to server:', error);
@@ -406,16 +431,20 @@ function setupExploreServerNavigation() {
                         console.log('[Explore Navigation] Server card clicked, navigating to server:', serverId);
                         
                         try {
+                            const defaultChannelId = await getDefaultChannelForServer(serverId);
+                            console.log('[Explore Navigation] Default channel ID:', defaultChannelId);
+                            
                             if (loadServerPage) {
-                                console.log('[Explore Navigation] Using loadServerPage function');
-                                await loadServerPage(serverId);
+                                console.log('[Explore Navigation] Using loadServerPage function with channel:', defaultChannelId);
+                                await loadServerPage(serverId, defaultChannelId);
                                 
                                 if (typeof window.updateActiveServer === 'function') {
                                     window.updateActiveServer('server', serverId);
                                 }
                             } else {
                                 console.log('[Explore Navigation] loadServerPage not available, using fallback');
-                                window.location.href = `/server/${serverId}`;
+                                const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : `/server/${serverId}`;
+                                window.location.href = fallbackUrl;
                             }
                         } catch (error) {
                             console.error('[Explore Navigation] Error navigating to server:', error);

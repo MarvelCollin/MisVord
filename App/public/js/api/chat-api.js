@@ -5,11 +5,8 @@ class ChatAPI {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         };
-        
-        // Initialize tracking of sent messages
         if (!window._sentMessageIds) window._sentMessageIds = new Set();
         
-        // Set up periodic cleanup of sent message IDs (every 5 minutes)
         setInterval(() => this.cleanupSentMessageIds(), 5 * 60 * 1000);
     }
 

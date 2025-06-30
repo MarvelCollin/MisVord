@@ -397,6 +397,24 @@ function executeInlineScripts(doc) {
     });
 }
 
+async function getDefaultChannelForServer(serverId) {
+    try {
+        const response = await fetch(`/api/servers/${serverId}/channels`);
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.channels && data.data.channels.length > 0) {
+            const textChannel = data.data.channels.find(channel => 
+                channel.type === 'text' || channel.type === 0 || channel.type_name === 'text'
+            );
+            return textChannel ? textChannel.id : data.data.channels[0].id;
+        }
+        return null;
+    } catch (error) {
+        console.error('[Home Navigation] Error getting default channel:', error);
+        return null;
+    }
+}
+
 function setupHomeServerNavigation() {
     console.log('[Home Navigation] Setting up server navigation handlers');
     
@@ -420,16 +438,20 @@ function setupHomeServerNavigation() {
                     console.log('[Home Navigation] Server link clicked, navigating to server:', serverId);
                     
                     try {
+                        const defaultChannelId = await getDefaultChannelForServer(serverId);
+                        console.log('[Home Navigation] Default channel ID:', defaultChannelId);
+                        
                         if (loadServerPage) {
-                            console.log('[Home Navigation] Using loadServerPage function');
-                            await loadServerPage(serverId);
+                            console.log('[Home Navigation] Using loadServerPage function with channel:', defaultChannelId);
+                            await loadServerPage(serverId, defaultChannelId);
                             
                             if (typeof window.updateActiveServer === 'function') {
                                 window.updateActiveServer('server', serverId);
                             }
                         } else {
                             console.log('[Home Navigation] loadServerPage not available, using fallback');
-                            window.location.href = href;
+                            const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : href;
+                            window.location.href = fallbackUrl;
                         }
                     } catch (error) {
                         console.error('[Home Navigation] Error navigating to server:', error);
@@ -457,16 +479,20 @@ function setupHomeServerNavigation() {
                 console.log('[Home Navigation] Server button clicked, navigating to server:', serverId);
                 
                 try {
+                    const defaultChannelId = await getDefaultChannelForServer(serverId);
+                    console.log('[Home Navigation] Default channel ID:', defaultChannelId);
+                    
                     if (loadServerPage) {
-                        console.log('[Home Navigation] Using loadServerPage function');
-                        await loadServerPage(serverId);
+                        console.log('[Home Navigation] Using loadServerPage function with channel:', defaultChannelId);
+                        await loadServerPage(serverId, defaultChannelId);
                         
                         if (typeof window.updateActiveServer === 'function') {
                             window.updateActiveServer('server', serverId);
                         }
                     } else {
                         console.log('[Home Navigation] loadServerPage not available, using fallback');
-                        window.location.href = `/server/${serverId}`;
+                        const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : `/server/${serverId}`;
+                        window.location.href = fallbackUrl;
                     }
                 } catch (error) {
                     console.error('[Home Navigation] Error navigating to server:', error);
@@ -492,16 +518,20 @@ function setupHomeServerNavigation() {
                         console.log('[Home Navigation] Server card clicked, navigating to server:', serverId);
                         
                         try {
+                            const defaultChannelId = await getDefaultChannelForServer(serverId);
+                            console.log('[Home Navigation] Default channel ID:', defaultChannelId);
+                            
                             if (loadServerPage) {
-                                console.log('[Home Navigation] Using loadServerPage function');
-                                await loadServerPage(serverId);
+                                console.log('[Home Navigation] Using loadServerPage function with channel:', defaultChannelId);
+                                await loadServerPage(serverId, defaultChannelId);
                                 
                                 if (typeof window.updateActiveServer === 'function') {
                                     window.updateActiveServer('server', serverId);
                                 }
                             } else {
                                 console.log('[Home Navigation] loadServerPage not available, using fallback');
-                                window.location.href = `/server/${serverId}`;
+                                const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : `/server/${serverId}`;
+                                window.location.href = fallbackUrl;
                             }
                         } catch (error) {
                             console.error('[Home Navigation] Error navigating to server:', error);

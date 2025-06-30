@@ -1,4 +1,22 @@
-export function loadServerPage(serverId, channelId = null) {
+async function getDefaultChannelForServer(serverId) {
+    try {
+        const response = await fetch(`/api/servers/${serverId}/channels`);
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.channels && data.data.channels.length > 0) {
+            const textChannel = data.data.channels.find(channel => 
+                channel.type === 'text' || channel.type === 0 || channel.type_name === 'text'
+            );
+            return textChannel ? textChannel.id : data.data.channels[0].id;
+        }
+        return null;
+    } catch (error) {
+        console.error('[Server AJAX] Error getting default channel:', error);
+        return null;
+    }
+}
+
+export async function loadServerPage(serverId, channelId = null) {
     console.log('[Server AJAX] Starting direct AJAX server page load');
     
     const mainContent = document.querySelector('.flex-1') ||
@@ -23,6 +41,11 @@ export function loadServerPage(serverId, channelId = null) {
             window.voiceManager.leaveVoice();
         }
 
+        if (!channelId) {
+            console.log('[Server AJAX] Getting default channel for server:', serverId);
+            channelId = await getDefaultChannelForServer(serverId);
+        }
+
         let url = `/server/${serverId}/layout`;
         if (channelId) {
             url += `?channel=${channelId}`;
@@ -42,35 +65,22 @@ export function loadServerPage(serverId, channelId = null) {
         $.ajax({
             url: url,
             method: 'GET',
-            dataType: 'html',
+            dataType: 'text',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             success: function(response) {
                 console.log('[Server AJAX] SUCCESS - Response received');
                 console.log('[Server AJAX] Response type:', typeof response);
-                console.log('[Server AJAX] Response length:', response ? response.length : 'null');
-                console.log('[Server AJAX] Response preview:', response ? response.substring(0, 150) + '...' : 'empty');
-                
-                if (typeof response === 'string') {
-                    console.log('[Server AJAX] Processing string response');
+                console.log('[Server AJAX] Response length:', response ? response.length : 0);
+                console.log('[Server AJAX] Response preview:', response ? response.substring(0, 100) + '...' : 'empty');
+
+                if (typeof response === 'string' && response.trim().length > 0) {
+                    console.log('[Server AJAX] Valid HTML response received, processing...');
                     
-                    const minDisplayTime = 500;
-                    const startTime = window.serverSkeletonStartTime || 0;
-                    const elapsedTime = Date.now() - startTime;
-                    const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
-                    
-                    console.log('[Server Skeleton] Response ready - Elapsed time:', elapsedTime + 'ms', 'Remaining time:', remainingTime + 'ms');
-                    
-                    if (remainingTime > 0) {
-                        console.log('[Server Skeleton] Delaying content replacement to ensure minimum display time');
-                        setTimeout(() => {
-                            performServerLayoutUpdate(response, serverId, channelId, currentChannelId);
-                        }, remainingTime);
-                    } else {
+                    setTimeout(() => {
                         performServerLayoutUpdate(response, serverId, channelId, currentChannelId);
-                    }
-                    
+                    }, 100);
                 } else if (response && response.data && response.data.redirect) {
                     console.log('[Server AJAX] Redirect response:', response.data.redirect);
                     window.location.href = response.data.redirect;
@@ -78,7 +88,8 @@ export function loadServerPage(serverId, channelId = null) {
                     console.error('[Server AJAX] INVALID RESPONSE FORMAT');
                     console.error('[Server AJAX] Expected string, got:', typeof response);
                     console.error('[Server AJAX] Response content:', response);
-                    window.location.href = `/server/${serverId}`;
+                    const fallbackUrl = channelId ? `/server/${serverId}?channel=${channelId}` : `/server/${serverId}`;
+                    window.location.href = fallbackUrl;
                 }
             },
             error: function(xhr, status, error) {
@@ -98,18 +109,19 @@ export function loadServerPage(serverId, channelId = null) {
                     window.channelSwitchManager.cleanup();
                 }
                 
-                window.globalSwitchLock = false;
-                console.error('[Server AJAX] Global switch lock released due to error');
+                console.error('[Server AJAX] Server loading failed');
                 
                 setTimeout(() => {
-                console.error('[Server AJAX] FALLBACK - Redirecting to /server/' + serverId);
-                window.location.href = `/server/${serverId}`;
+                const fallbackUrl = channelId ? `/server/${serverId}?channel=${channelId}` : `/server/${serverId}`;
+                console.error('[Server AJAX] FALLBACK - Redirecting to', fallbackUrl);
+                window.location.href = fallbackUrl;
                 }, 100);
             }
-            });
+        });
     } else {
         console.error('[Server Loader] No main content container found');
-        window.location.href = `/server/${serverId}`;
+        const fallbackUrl = channelId ? `/server/${serverId}?channel=${channelId}` : `/server/${serverId}`;
+        window.location.href = fallbackUrl;
     }
 }
 
@@ -136,10 +148,7 @@ function performServerLayoutUpdate(response, serverId, channelId, currentChannel
         
         console.log('[Server AJAX] Initializing core server components');
         
-        if (window.globalSwitchLock) {
-            console.log('[Server AJAX] Clearing global switch lock');
-            window.globalSwitchLock = false;
-        }
+
         
         cleanupForServerSwitch();
         
@@ -704,10 +713,17 @@ function reinitializeChannelSwitchManager() {
 function cleanupForServerSwitch() {
     console.log('[Server AJAX] Cleaning up for server switch');
     
-    if (window.channelSwitchManager && typeof window.channelSwitchManager.cleanup === 'function') {
-        console.log('[Server AJAX] Cleaning up existing channel switch manager');
-        window.channelSwitchManager.cleanup();
-        window.channelSwitchManager = null;
+    const currentServerId = window.location.pathname.match(/\/server\/(\d+)/)?.[1];
+    const isActualServerSwitch = window._lastServerId && window._lastServerId !== currentServerId;
+    
+    if (isActualServerSwitch) {
+        console.log('[Server AJAX] Actual server switch detected, cleaning up channel switch manager');
+        if (window.channelSwitchManager && typeof window.channelSwitchManager.cleanup === 'function') {
+            window.channelSwitchManager.cleanup();
+            window.channelSwitchManager = null;
+        }
+    } else {
+        console.log('[Server AJAX] Same server navigation, preserving channel switch manager');
     }
     
     if (window.chatSection && typeof window.chatSection.cleanup === 'function') {
@@ -716,7 +732,8 @@ function cleanupForServerSwitch() {
         window.chatSection = null;
     }
     
-    console.log('[Server AJAX] Cleanup completed');
+    window._lastServerId = currentServerId;
+    console.log('[Server AJAX] Cleanup completed - preserving global socket manager');
 }
 
 window.loadServerPage = loadServerPage; 

@@ -332,51 +332,50 @@ class ChatSection {
             console.warn('⚠️ [CHAT-SECTION] Cannot join room: No target ID specified');
             return;
         }
-
+        
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.warn('⚠️ [CHAT-SECTION] Cannot join room: Socket not ready');
-            setTimeout(() => this.joinSocketRoom(), 1000);
+            console.warn('⚠️ [CHAT-SECTION] Cannot join room: Socket not ready, retrying in 1 second...');
+            setTimeout(() => {
+                this.joinSocketRoom();
+            }, 1000);
             return;
         }
-
+        
+        const chatType = this.chatType || 'channel';
         console.log(`🔌 [CHAT-SECTION] Joining socket room for ${this.chatType} with ID ${this.targetId}`);
         
-        // Make sure we have a consistent chat type
-        const chatType = this.chatType === 'direct' ? 'dm' : this.chatType;
+        if (window.globalSocketManager.joinChannel) {
+            window.globalSocketManager.joinChannel(this.targetId);
+        }
         
-        // Join the room using the global socket manager
-        window.globalSocketManager.joinRoom(chatType, this.targetId);
-        
-        // Also emit a direct join-room event for more reliable room registration
         if (window.globalSocketManager.io) {
-            // Try multiple times to ensure the join request is received
             for (let i = 0; i < 3; i++) {
                 setTimeout(() => {
-                    console.log(`📡 [CHAT-SECTION] Emitting join-room event (attempt ${i+1}) for ${chatType}-${this.targetId}`);
-                    window.globalSocketManager.io.emit('join-room', {
-                        room_type: chatType,
-                        room_id: this.targetId
-                    });
-                }, i * 1000); // Stagger attempts by 1 second
+                    if (window.globalSocketManager && window.globalSocketManager.io) {
+                        console.log(`📡 [CHAT-SECTION] Emitting join-room event (attempt ${i+1}) for ${chatType}-${this.targetId}`);
+                        window.globalSocketManager.io.emit('join-room', {
+                            room_type: chatType,
+                            room_id: this.targetId
+                        });
+                    }
+                }, i * 1000);
             }
         }
         
-        // Setup socket listeners if not already done
         if (this.socketHandler) {
             this.socketHandler.setupIoListeners();
         }
         
-        // Set up a periodic check to ensure we're still in the room
         if (!this._roomCheckInterval) {
             this._roomCheckInterval = setInterval(() => {
-                if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                if (window.globalSocketManager && window.globalSocketManager.isReady() && window.globalSocketManager.io) {
                     console.log(`🔍 [CHAT-SECTION] Periodic room check for ${chatType}-${this.targetId}`);
                     window.globalSocketManager.io.emit('join-room', {
                         room_type: chatType,
                         room_id: this.targetId
                     });
                 }
-            }, 30000); // Check every 30 seconds
+            }, 30000);
         }
     }
     

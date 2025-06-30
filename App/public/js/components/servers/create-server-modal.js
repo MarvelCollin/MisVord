@@ -553,24 +553,45 @@ function setActiveServer(serverItem) {
     }
 }
 
-function navigateToNewServer(serverId) {
-    const currentPath = window.location.pathname;
-    const newPath = `/server/${serverId}`;
-
-    if (currentPath !== newPath) {
-        history.pushState({ serverId: serverId }, `Server ${serverId}`, newPath);
-        if (window.loadServerPage) {
-            window.loadServerPage(serverId);
-        } else {
-            import('/public/js/utils/load-server-page.js')
-                .then(module => {
-                    module.loadServerPage(serverId);
-                })
-                .catch(error => {
-                    console.error('Error loading server page module:', error);
-                    window.location.href = `/server/${serverId}`;
-                });
+async function getDefaultChannelForServer(serverId) {
+    try {
+        const response = await fetch(`/api/servers/${serverId}/channels`);
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.channels && data.data.channels.length > 0) {
+            const textChannel = data.data.channels.find(channel => 
+                channel.type === 'text' || channel.type === 0 || channel.type_name === 'text'
+            );
+            return textChannel ? textChannel.id : data.data.channels[0].id;
         }
+        return null;
+    } catch (error) {
+        console.error('[Create Server] Error getting default channel:', error);
+        return null;
+    }
+}
+
+async function navigateToNewServer(serverId) {
+    const currentPath = window.location.pathname;
+    
+    try {
+        const defaultChannelId = await getDefaultChannelForServer(serverId);
+        console.log('[Create Server] Default channel ID:', defaultChannelId);
+        
+        const newPath = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : `/server/${serverId}`;
+
+        if (currentPath !== newPath) {
+            history.pushState({ serverId: serverId, channelId: defaultChannelId }, `Server ${serverId}`, newPath);
+            if (window.loadServerPage) {
+                await window.loadServerPage(serverId, defaultChannelId);
+            } else {
+                const module = await import('/public/js/utils/load-server-page.js');
+                await module.loadServerPage(serverId, defaultChannelId);
+            }
+        }
+    } catch (error) {
+        console.error('[Create Server] Error navigating to new server:', error);
+        window.location.href = `/server/${serverId}`;
     }
 }
 
