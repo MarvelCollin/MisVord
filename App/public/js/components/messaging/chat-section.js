@@ -99,11 +99,6 @@ async function initializeChatSection() {
         if (!isExcludedPage()) {
             console.error('❌ Failed to initialize ChatSection:', error);
         }
-        if (window.showToast) {
-            if (!isExcludedPage()) {
-                window.showToast('Failed to initialize chat. Please refresh the page.', 'error');
-            }
-        }
     }
 }
 
@@ -310,10 +305,6 @@ class ChatSection {
             if (!isExcludedPage()) {
                 console.error('❌ [CHAT-SECTION] Initialization failed:', error);
                 console.error('❌ [CHAT-SECTION] ChatSection will not be functional');
-            }
-            
-            if (window.showToast) {
-                window.showToast('Chat initialization failed. Please refresh the page.', 'error');
             }
         }
     }

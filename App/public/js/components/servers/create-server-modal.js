@@ -689,9 +689,9 @@ window.openCreateServerModal = openCreateServerModal;
 
 document.addEventListener('click', function (e) {
     const modal = document.getElementById('create-server-modal');
-    const closeBtn = document.getElementById('close-server-modal');
+    const closeBtn = document.getElementById('close-create-server-modal');
 
-    if (e.target === closeBtn || (e.target === modal)) {
+    if ((closeBtn && (e.target === closeBtn || closeBtn.contains(e.target))) || (e.target === modal)) {
         const form = document.getElementById('create-server-form');
         if (form) {
             FormValidator.clearErrors(form);

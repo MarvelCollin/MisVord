@@ -5,7 +5,7 @@ $additional_js[] = 'components/servers/create-server-modal';
     <div class="bg-discord-background rounded-lg w-full max-w-md p-6 shadow-xl transform scale-95">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-white text-xl font-bold">Create a Server</h2>
-            <button id="close-server-modal" class="text-gray-400 hover:text-white">
+            <button id="close-create-server-modal" class="text-gray-400 hover:text-white">
                 <i class="fas fa-times"></i>
             </button>
         </div>
