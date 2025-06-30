@@ -114,236 +114,47 @@ function refreshChannelList() {
 }
 
 function renderChannelList(rawData) {
-    // Unwrap nested data if response structure is { success, data: {...} }
+    console.log('🔄 renderChannelList called - PHP handles rendering, JS only updates state');
+    
     let data = rawData;
     if (data && !data.channels && !data.uncategorized && data.data) {
         data = data.data;
     }
 
-    // Extract incoming server id (supports various API formats)
-    const incomingServerId = data?.server_id || data?.serverId || data?.server?.id || null;
-    const currentUrlServerId = getServerId(); // Get server ID from URL
-
-    console.log('🔄 renderChannelList called:', {
-        incomingServerId,
-        currentUrlServerId,
-        dataKeys: Object.keys(data || {})
-    });
+    const currentUrlServerId = getServerId();
+    const currentChannelId = new URLSearchParams(window.location.search).get('channel');
     
-    const channelContainer = document.querySelector('.channel-wrapper .channel-list') || 
-                           document.querySelector('.channel-list');
-    
-    if (!channelContainer) {
-        console.error('❌ Channel container not found');
-        return;
-    }
-
-    // Get the server id currently rendered in the DOM (if any)
-    const currentRenderedServerId = channelContainer.getAttribute('data-server-id');
-    
-    // Determine if the currently rendered channel list is out-of-sync with the API response
-    const existingChannels = channelContainer.querySelectorAll('.channel-item');
-    const serverMismatch = (currentUrlServerId && currentRenderedServerId && currentUrlServerId !== currentRenderedServerId) ||
-                          (incomingServerId && currentRenderedServerId && incomingServerId !== currentRenderedServerId);
-
-    // Determine if the currently rendered channel list is out-of-sync with the API response
-    const existingChannelIds = Array.from(existingChannels).map(ch => ch.dataset.channelId);
-    const apiChannelIds = (data.channels || data.uncategorized || []).map(ch => String(ch.id));
-    const hasWrongChannels = !existingChannelIds.every(id => apiChannelIds.includes(id)) ||
-                              existingChannelIds.length !== apiChannelIds.length;
-
-    // Trigger a fresh render whenever there are no channels, a server mismatch, *or* the wrong channels are present
-    const needsFullRender = !existingChannels.length || serverMismatch || hasWrongChannels;
-
-    console.log('🔍 Render decision:', {
-        existingChannels: existingChannels.length,
-        currentRenderedServerId,
-        currentUrlServerId,
-        incomingServerId,
-        serverMismatch,
-        hasWrongChannels,
-        needsFullRender
+    console.log('📋 Data received:', {
+        serverId: currentUrlServerId,
+        activeChannelId: currentChannelId,
+        channelsCount: (data.channels || []).length
     });
 
-    // Always force re-render if server mismatch or wrong channels detected
-    const correctServerId = currentUrlServerId || incomingServerId;
-
-    if (serverMismatch || hasWrongChannels) {
-        console.log('🚨 FORCE RE-RENDER:', {
-            serverMismatch,
-            hasWrongChannels,
-            existingChannelIds,
-            apiChannelIds
-        });
+    initChannelEventListeners();
+    
+    if (currentChannelId) {
+        const channelContainer = document.querySelector('.channel-wrapper .channel-list') || 
+                               document.querySelector('.channel-list');
         
-        // Force clear everything
-        channelContainer.innerHTML = '';
-        
-        // Add server ID input with correct value
-        if (correctServerId) {
-            const newInput = document.createElement('input');
-            newInput.type = 'hidden';
-            newInput.id = 'current-server-id';
-            newInput.value = correctServerId;
-            channelContainer.appendChild(newInput);
-            channelContainer.setAttribute('data-server-id', correctServerId);
-        }
-    }
-
-    // If channels already rendered for SAME server, just refresh event listeners & highlighting
-    if (!needsFullRender) {
-        console.log(`📋 ${existingChannels.length} channels already rendered for server ${currentRenderedServerId}. Refreshing only.`);
-        initChannelEventListeners();
-
-        // Update active highlight
-        const currentChannelId = new URLSearchParams(window.location.search).get('channel');
-        if (currentChannelId) {
+        if (channelContainer) {
             document.querySelectorAll('.channel-item').forEach(ch => ch.classList.remove('active-channel'));
             const activeChannel = channelContainer.querySelector(`[data-channel-id="${currentChannelId}"]`);
             if (activeChannel) {
                 activeChannel.classList.add('active-channel');
-                console.log(`✅ Marked channel ${currentChannelId} as active (refresh only)`);
-            } else {
-                console.warn(`⚠️ Channel ${currentChannelId} not found in DOM for highlighting`);
+                console.log(`✅ Marked channel ${currentChannelId} as active`);
             }
         }
-        return;
     }
-
-    // --- FULL RENDER FOLLOWS ---
-
-    console.log('🧹 Performing full channel render');
-
-    // Ensure container is clean
-    if (channelContainer.children.length === 0 || serverMismatch) {
-        const correctServerId = currentUrlServerId || incomingServerId;
-        if (correctServerId) {
-            const newInput = document.createElement('input');
-            newInput.type = 'hidden';
-            newInput.id = 'current-server-id';
-            newInput.value = correctServerId;
-            channelContainer.appendChild(newInput);
-            channelContainer.setAttribute('data-server-id', correctServerId);
-        }
-    }
-
-    // Render all channels from data
-    const allChannels = data.channels || data.uncategorized || [];
-    console.log(`📋 Rendering ${allChannels.length} channels:`, allChannels.map(ch => `${ch.id}:${ch.name}`));
-
-    if (allChannels.length === 0) {
-        channelContainer.innerHTML += '<div class="p-4 text-gray-400 text-center text-sm">No channels available</div>';
-        return;
-    }
-
-    // Separate text and voice channels
-    const textChannels = allChannels.filter(ch => 
-        ch.type === 'text' || ch.type === 1 || ch.type_name === 'text'
-    );
-    
-    const voiceChannels = allChannels.filter(ch => 
-        ch.type === 'voice' || ch.type === 2 || ch.type_name === 'voice'
-    );
-
-    console.log(`📝 Text channels: ${textChannels.length}, 🎤 Voice channels: ${voiceChannels.length}`);
-
-    // Clear existing sections
-    const oldTextSection = channelContainer.querySelector('.channels-section');
-    const oldVoiceSection = channelContainer.querySelector('.voice-channels-section');
-    if (oldTextSection) oldTextSection.remove();
-    if (oldVoiceSection) oldVoiceSection.remove();
-
-    // Render text channels
-    if (textChannels.length > 0) {
-        const textSection = document.createElement('div');
-        textSection.className = 'channels-section group mb-4';
-        
-        textChannels.forEach(channel => {
-            const channelEl = createChannelElementPHP(channel);
-            textSection.appendChild(channelEl);
-        });
-        
-        channelContainer.appendChild(textSection);
-    }
-
-    // Render voice channels
-    if (voiceChannels.length > 0) {
-        const voiceSection = document.createElement('div');
-        voiceSection.className = 'voice-channels-section group mb-4';
-        
-        voiceChannels.forEach(channel => {
-            const channelEl = createChannelElementPHP(channel);
-            voiceSection.appendChild(channelEl);
-        });
-        
-        channelContainer.appendChild(voiceSection);
-    }
-
-    // Set up event listeners
-    initChannelEventListeners();
-    
-    // Mark current channel as active
-    const currentChannelId = new URLSearchParams(window.location.search).get('channel');
-    if (currentChannelId) {
-        const activeChannel = channelContainer.querySelector(`[data-channel-id="${currentChannelId}"]`);
-        if (activeChannel) {
-            activeChannel.classList.add('active-channel');
-            console.log(`✅ Marked channel ${currentChannelId} as active`);
-        } else {
-            console.warn(`⚠️ Channel ${currentChannelId} not found in rendered channels`);
-            console.log(`   Available channels:`, allChannels.map(ch => ch.id));
-        }
-    }
-
-    console.log('✅ Channel rendering complete');
     
     if (window.channelDragDropManager) {
         window.channelDragDropManager.initializeDragElements();
     }
     
     window.dispatchEvent(new CustomEvent('channelManagerUpdated'));
+    console.log('✅ Channel state updated');
 }
 
-function createChannelElementPHP(channel) {
-    console.log('🎯 Creating channel element for:', channel);
-    
-    const channelEl = document.createElement('div');
-    
-    // Use the same structure as PHP renderChannel function
-    const isActive = new URLSearchParams(window.location.search).get('channel') == channel.id;
-    const activeClass = isActive ? 'active-channel' : '';
-    
-    const type = channel.type_name || channel.type || 'text';
-    const icon = getChannelIconJS(type);
-    
-    channelEl.className = `channel-item flex items-center py-2 px-3 rounded cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-discord-lighten ${activeClass}`;
-    channelEl.setAttribute('data-channel-id', channel.id);
-    channelEl.setAttribute('data-channel-type', type);
-    channelEl.setAttribute('data-server-id', channel.server_id);
-    
-    channelEl.innerHTML = `
-        <i class="fas fa-${icon} text-xs mr-3 text-gray-500"></i>
-        <span class="text-sm">${channel.name}</span>
-        ${type === 'voice' ? '<span class="ml-auto text-xs text-gray-500">0</span>' : ''}
-    `;
-    
-    console.log(`✅ Created channel element: ${channel.name} (${type}) - Active: ${isActive}`);
-    return channelEl;
-}
 
-function getChannelIconJS(type) {
-    switch(String(type).toLowerCase()) {
-        case 'voice':
-        case '2':
-            return 'volume-high';
-        case 'announcement':
-            return 'bullhorn';
-        case 'forum':
-            return 'users';
-        default:
-            return 'hashtag';
-    }
-}
 
 function initChannelEventListeners() {
     console.log('🎯 Setting up channel event listeners');

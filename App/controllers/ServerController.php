@@ -2167,21 +2167,22 @@ class ServerController extends BaseController
                      ", Categories: " . count($GLOBALS['serverCategories']) . 
                      ", Active Channel: " . ($GLOBALS['activeChannelId'] ?? 'none'));
 
-            
-            ob_start();
-            include __DIR__ . '/../views/components/app-sections/channel-section.php';
-            $html = ob_get_clean();
-
-            error_log("[Channel Section] Generated HTML length: " . strlen($html));
-            error_log("[Channel Section] HTML preview: " . substr($html, 0, 200));
-
             if ($this->isAjaxRequest()) {
-                error_log("[Channel Section] Sending Ajax response");
-                echo $html;
-                exit;
+                error_log("[Channel Section] Sending Ajax response with data only");
+                return $this->success([
+                    'channels' => $channels,
+                    'categories' => $categories,
+                    'server' => $serverObj,
+                    'activeChannelId' => $activeChannelId
+                ]);
             }
 
-            return $html;
+            return [
+                'channels' => $channels,
+                'categories' => $categories,
+                'server' => $serverObj,
+                'activeChannelId' => $activeChannelId
+            ];
         } catch (Exception $e) {
             error_log("[Channel Section] Error: " . $e->getMessage());
             if ($this->isAjaxRequest()) {
@@ -2265,101 +2266,29 @@ class ServerController extends BaseController
             
             error_log("[Server Layout] GLOBALS set - activeChannelId: " . ($activeChannelId ?? 'none') . ", channelType: " . $channelType);
 
-            ob_start();
-            ?>
-            <div class="flex flex-1 overflow-hidden">
-                <?php include __DIR__ . '/../views/components/app-sections/channel-section.php'; ?>
-                
-                <div class="flex flex-col flex-1" id="main-content">
-                    <div class="chat-section <?php echo $channelType === 'voice' ? 'hidden' : ''; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
-                        <?php include __DIR__ . '/../views/components/app-sections/chat-section.php'; ?>
-                    </div>
-                    <div class="voice-section <?php echo $channelType === 'voice' ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
-                        <?php include __DIR__ . '/../views/components/app-sections/voice-section.php'; ?>
-                    </div>
-                </div>
-
-                <div class="w-60 bg-discord-background border-l border-gray-800 flex flex-col h-full max-h-screen">
-                    <?php include __DIR__ . '/../views/components/app-sections/participant-section.php'; ?>
-                </div>
-            </div>
-            
-            <?php if ($this->isAjaxRequest()): ?>
-            <script>
-            (async function() {
-                console.log('[Server Layout AJAX] Ensuring critical dependencies are loaded...');
-                
-                const criticalScripts = [
-                    '/public/js/core/socket/global-socket-manager.js',
-                    '/public/js/api/chat-api.js',
-                    '/public/js/components/messaging/chat-section.js',
-                    '/public/js/utils/channel-switch-manager.js'
-                ];
-                
-                function loadScript(src) {
-                    return new Promise((resolve, reject) => {
-                        if (document.querySelector(`script[src*="${src.split('/').pop().split('?')[0]}"]`)) {
-                            console.log('[Server Layout AJAX] Script already loaded:', src);
-                            resolve();
-                            return;
-                        }
-                        
-                        const script = document.createElement('script');
-                        script.src = src + '?v=' + Date.now();
-                        script.onload = () => {
-                            console.log('[Server Layout AJAX] Script loaded:', src);
-                            resolve();
-                        };
-                        script.onerror = () => {
-                            console.warn('[Server Layout AJAX] Failed to load script:', src);
-                            resolve();
-                        };
-                        document.head.appendChild(script);
-                    });
-                }
-                
-                console.log('[Server Layout AJAX] Loading critical scripts...');
-                for (const src of criticalScripts) {
-                    await loadScript(src);
-                    await new Promise(resolve => setTimeout(resolve, 50));
-                }
-                
-                setTimeout(() => {
-                    console.log('[Server Layout AJAX] Initializing components...');
-                    
-                    if (typeof window.initializeChatSection === 'function') {
-                        window.initializeChatSection();
-                        console.log('[Server Layout AJAX] Chat section initialized');
-                    }
-                    
-                    const event = new CustomEvent('ServerLayoutAjaxComplete', {
-                        detail: { serverId: <?php echo $serverId; ?>, activeChannelId: '<?php echo $activeChannelId; ?>' }
-                    });
-                    document.dispatchEvent(event);
-                    console.log('[Server Layout AJAX] Initialization complete');
-                    
-                }, 500);
-                
-            })().catch(error => {
-                console.error('[Server Layout AJAX] Critical error during script loading:', error);
-            });
-            </script>
-            <?php endif; ?>
-            
-            <?php
-            $html = ob_get_clean();
-            
-            error_log("[Server Layout] HTML generated - Length: " . strlen($html) . 
-                     ", Contains chat-section: " . (strpos($html, 'chat-section') !== false ? 'YES' : 'NO') . 
-                     ", Contains voice-section: " . (strpos($html, 'voice-section') !== false ? 'YES' : 'NO'));
-
             if ($this->isAjaxRequest()) {
-                error_log("[Server Layout] Sending AJAX response");
-                echo $html;
-                exit;
+                return $this->success([
+                    'server' => $this->formatServer($server),
+                    'channels' => $channels,
+                    'categories' => $categories,
+                    'members' => $serverMembers,
+                    'activeChannelId' => $activeChannelId,
+                    'activeChannel' => $activeChannel,
+                    'channelType' => $channelType,
+                    'channelMessages' => $channelMessages
+                ]);
             }
 
-            return $html;
+            return [
+                'server' => $this->formatServer($server),
+                'channels' => $channels,
+                'categories' => $categories,
+                'members' => $serverMembers,
+                'activeChannelId' => $activeChannelId,
+                'activeChannel' => $activeChannel,
+                'channelType' => $channelType,
+                'channelMessages' => $channelMessages
+            ];
         } catch (Exception $e) {
             if ($this->isAjaxRequest()) {
                 return $this->serverError('Failed to load server layout');
