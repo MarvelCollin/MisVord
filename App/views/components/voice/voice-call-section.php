@@ -543,9 +543,35 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     from { opacity: 0; }
     to { opacity: 1; }
 }
-</style>
 
-<script src="/public/js/components/videosdk/videosdk.js"></script>
+/* Bot Participant Styles */
+.voice-participant-avatar.bot-participant {
+    background: #5865f2 !important;
+    border: 3px solid #7289da !important;
+    box-shadow: 0 0 10px rgba(88, 101, 242, 0.3) !important;
+    animation: bot-glow 3s ease-in-out infinite !important;
+}
+
+@keyframes bot-glow {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(88, 101, 242, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(88, 101, 242, 0.6);
+    }
+}
+
+.voice-participant-card:has(.bot-participant) {
+    background: linear-gradient(135deg, #2f3136 0%, #36393f 100%) !important;
+    border: 2px solid rgba(88, 101, 242, 0.3) !important;
+}
+
+.voice-participant-card:has(.bot-participant):hover {
+    background: linear-gradient(135deg, #36393f 0%, #3c3f47 100%) !important;
+    border: 2px solid rgba(88, 101, 242, 0.5) !important;
+    transform: translateY(-3px) !important;
+}
+</style>
 
 <script>
 class VoiceCallManager {
@@ -661,7 +687,6 @@ class VoiceCallManager {
             console.log(`🔌 [DEBUG] voiceDisconnect event received:`, event.detail);
             this.isConnected = false;
             
-            // Clear meeting ID display
             const meetingIdDisplay = document.getElementById('meetingIdDisplay');
             if (meetingIdDisplay) {
                 meetingIdDisplay.textContent = '-';
@@ -672,6 +697,28 @@ class VoiceCallManager {
             
             this.cleanup();
         });
+
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            const io = window.globalSocketManager.io;
+            
+            io.on('bot-voice-participant-joined', (data) => {
+                console.log(`🤖 [VOICE-BOT] Bot participant joined:`, data);
+                const { participant } = data;
+                
+                if (participant && participant.username) {
+                    this.addBotParticipant(participant);
+                }
+            });
+
+            io.on('bot-voice-participant-left', (data) => {
+                console.log(`🤖 [VOICE-BOT] Bot participant left:`, data);
+                const { participant } = data;
+                
+                if (participant && participant.user_id) {
+                    this.removeBotParticipant(participant.user_id);
+                }
+            });
+        }
 
         console.log(`🎧 [DEBUG] VoiceCallManager event listeners set up complete`);
     }
@@ -791,14 +838,15 @@ class VoiceCallManager {
         element.style.cursor = 'pointer';
         element.style.transition = 'all 0.2s ease';
 
-        const avatarColor = this.getAvatarColor(participant.name);
+        const avatarColor = participant.isBot ? '#5865f2' : this.getAvatarColor(participant.name);
         const initial = participant.name.charAt(0).toUpperCase();
+        const botIndicator = participant.isBot ? '<i class="fas fa-robot text-xs text-[#5865f2] ml-1"></i>' : '';
 
         element.innerHTML = `
-            <div class="voice-participant-avatar" style="background: ${avatarColor}; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px; margin-bottom: 8px; border: 3px solid transparent;">
-                ${initial}
+            <div class="voice-participant-avatar ${participant.isBot ? 'bot-participant' : ''}" style="background: ${avatarColor}; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px; margin-bottom: 8px; border: 3px solid ${participant.isBot ? '#5865f2' : 'transparent'};">
+                ${participant.isBot ? '<i class="fas fa-robot text-white"></i>' : initial}
             </div>
-            <span style="color: white; font-size: 12px; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${participant.name}</span>
+            <span style="color: white; font-size: 12px; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; justify-content: center;">${participant.name}${botIndicator}</span>
         `;
 
         container.appendChild(element);
@@ -1257,101 +1305,73 @@ class VoiceCallManager {
 
     updateMicButton() {
         const btn = document.getElementById('micBtn');
-        if (!btn) {
-            console.error('❌ [ERROR] micBtn element not found');
-            return;
-        }
-        
         const icon = btn.querySelector('i');
-        const tooltip = btn.querySelector('.voice-tooltip');
+        const tooltip = btn.parentElement.querySelector('.mic-tooltip');
         
         if (this.isMuted) {
-            if (icon) icon.className = 'fas fa-microphone-slash text-sm';
-            if (tooltip) tooltip.textContent = 'Unmute';
-            btn.classList.add('muted');
-            btn.classList.remove('bg-[#4f545c]');
-            btn.classList.add('bg-[#ed4245]');
+            icon.className = 'fas fa-microphone-slash text-xl';
+            tooltip.textContent = 'Unmute';
+            btn.classList.add('bg-red-500');
+            btn.classList.remove('bg-[#2f3136]');
         } else {
-            if (icon) icon.className = 'fas fa-microphone text-sm';
-            if (tooltip) tooltip.textContent = 'Mute';
-            btn.classList.remove('muted');
-            btn.classList.remove('bg-[#ed4245]');
-            btn.classList.add('bg-[#4f545c]');
+            icon.className = 'fas fa-microphone text-xl';
+            tooltip.textContent = 'Mute';
+            btn.classList.remove('bg-red-500');
+            btn.classList.add('bg-[#2f3136]');
         }
     }
 
     updateDeafenButton() {
         const btn = document.getElementById('deafenBtn');
-        if (!btn) {
-            console.error('❌ [ERROR] deafenBtn element not found');
-            return;
-        }
-        
         const icon = btn.querySelector('i');
-        const tooltip = btn.querySelector('.voice-tooltip');
+        const tooltip = btn.parentElement.querySelector('.deafen-tooltip');
         
         if (this.isDeafened) {
-            if (icon) icon.className = 'fas fa-volume-mute text-sm';
-            if (tooltip) tooltip.textContent = 'Undeafen';
-            btn.classList.add('deafened');
-            btn.classList.remove('bg-[#4f545c]');
-            btn.classList.add('bg-[#ed4245]');
+            icon.className = 'fas fa-volume-mute text-xl';
+            tooltip.textContent = 'Undeafen';
+            btn.classList.add('bg-red-500');
+            btn.classList.remove('bg-[#2f3136]');
         } else {
-            if (icon) icon.className = 'fas fa-headphones text-sm';
-            if (tooltip) tooltip.textContent = 'Deafen';
-            btn.classList.remove('deafened');
-            btn.classList.remove('bg-[#ed4245]');
-            btn.classList.add('bg-[#4f545c]');
+            icon.className = 'fas fa-headphones text-xl';
+            tooltip.textContent = 'Deafen';
+            btn.classList.remove('bg-red-500');
+            btn.classList.add('bg-[#2f3136]');
         }
     }
 
     updateVideoButton() {
         const btn = document.getElementById('videoBtn');
-        if (!btn) {
-            console.error('❌ [ERROR] videoBtn element not found');
-            return;
-        }
-        
         const icon = btn.querySelector('i');
-        const tooltip = btn.querySelector('.voice-tooltip');
+        const tooltip = btn.parentElement.querySelector('.video-tooltip');
         
         if (this.isVideoOn) {
-            if (icon) icon.className = 'fas fa-video text-sm';
-            if (tooltip) tooltip.textContent = 'Turn Off Camera';
-            btn.classList.add('active');
-            btn.classList.remove('bg-[#4f545c]');
-            btn.classList.add('bg-[#3ba55c]');
+            icon.className = 'fas fa-video text-xl';
+            tooltip.textContent = 'Turn Off Camera';
+            btn.classList.add('bg-green-600');
+            btn.classList.remove('bg-[#2f3136]');
         } else {
-            if (icon) icon.className = 'fas fa-video-slash text-sm';
-            if (tooltip) tooltip.textContent = 'Turn On Camera';
-            btn.classList.remove('active');
-            btn.classList.remove('bg-[#3ba55c]');
-            btn.classList.add('bg-[#4f545c]');
+            icon.className = 'fas fa-video-slash text-xl';
+            tooltip.textContent = 'Turn On Camera';
+            btn.classList.remove('bg-green-600');
+            btn.classList.add('bg-[#2f3136]');
         }
     }
 
     updateScreenButton() {
         const btn = document.getElementById('screenBtn');
-        if (!btn) {
-            console.error('❌ [ERROR] screenBtn element not found');
-            return;
-        }
-        
         const icon = btn.querySelector('i');
-        const tooltip = btn.querySelector('.voice-tooltip');
+        const tooltip = btn.parentElement.querySelector('.screen-tooltip');
         
         if (this.isScreenSharing) {
-            if (icon) icon.className = 'fas fa-stop-circle text-sm';
-            if (tooltip) tooltip.textContent = 'Stop Sharing';
-            btn.classList.add('screen-sharing');
-            btn.classList.remove('bg-[#4f545c]');
-            btn.classList.add('bg-[#5865f2]');
+            icon.className = 'fas fa-stop-circle text-xl';
+            tooltip.textContent = 'Stop Sharing';
+            btn.classList.add('bg-blue-600');
+            btn.classList.remove('bg-[#2f3136]');
         } else {
-            if (icon) icon.className = 'fas fa-desktop text-sm';
-            if (tooltip) tooltip.textContent = 'Share Screen';
-            btn.classList.remove('screen-sharing');
-            btn.classList.remove('bg-[#5865f2]');
-            btn.classList.add('bg-[#4f545c]');
+            icon.className = 'fas fa-desktop text-xl';
+            tooltip.textContent = 'Share Screen';
+            btn.classList.remove('bg-blue-600');
+            btn.classList.add('bg-[#2f3136]');
         }
     }
 
@@ -1586,6 +1606,42 @@ class VoiceCallManager {
         }
     }
 
+    addBotParticipant(botParticipant) {
+        console.log(`🤖 [VOICE-BOT] Adding bot participant to voice UI:`, botParticipant);
+        
+        const botData = {
+            id: botParticipant.user_id,
+            name: botParticipant.username,
+            isLocal: false,
+            isMuted: false,
+            isDeafened: false,
+            isSpeaking: false,
+            hasVideo: false,
+            isBot: true
+        };
+
+        this.participants.set(botParticipant.user_id, botData);
+        this.createParticipantElement(botData);
+        this.updateParticipantCount();
+        
+        console.log(`✅ [VOICE-BOT] Bot ${botParticipant.username} added to voice channel UI`);
+    }
+
+    removeBotParticipant(botUserId) {
+        console.log(`🤖 [VOICE-BOT] Removing bot participant from voice UI:`, botUserId);
+        
+        this.participants.delete(botUserId);
+        
+        const participantCard = document.querySelector(`[data-participant-id="${botUserId}"].voice-participant-card`);
+        if (participantCard) {
+            participantCard.remove();
+            console.log(`🗑️ [VOICE-BOT] Removed bot participant card for ${botUserId}`);
+        }
+        
+        this.updateParticipantCount();
+        console.log(`✅ [VOICE-BOT] Bot ${botUserId} removed from voice channel UI`);
+    }
+
     cleanup() {
         console.log('🧹 Cleaning up voice call manager');
         
@@ -1620,62 +1676,6 @@ class VoiceCallManager {
         this.localParticipantId = null;
         
         this.updateView();
-    }
-
-    highlightParticipantActivity(userId, command) {
-        console.log(`🎯 [VoiceCallManager] Highlighting activity for user ${userId} with command: ${command}`);
-        
-        const participantCards = document.querySelectorAll(`[data-participant-id]`);
-        
-        participantCards.forEach(card => {
-            const participant = this.participants.get(card.dataset.participantId);
-            
-            if (participant && (participant.id === userId || 
-                window.globalSocketManager?.userId?.toString() === userId?.toString())) {
-                
-                console.log(`✨ [VoiceCallManager] Found participant card to highlight:`, participant.name);
-                
-                card.classList.add('participant-activity');
-                card.style.transition = 'all 0.3s ease';
-                card.style.transform = 'scale(1.05)';
-                card.style.boxShadow = '0 0 20px rgba(88, 101, 242, 0.6)';
-                card.style.border = '2px solid #5865f2';
-                
-                const commandBadge = document.createElement('div');
-                commandBadge.className = 'command-badge';
-                commandBadge.style.cssText = `
-                    position: absolute;
-                    top: -10px;
-                    right: -10px;
-                    background: #5865f2;
-                    color: white;
-                    padding: 4px 8px;
-                    border-radius: 12px;
-                    font-size: 10px;
-                    font-weight: bold;
-                    z-index: 10;
-                    animation: fadeInOut 3s ease-in-out;
-                `;
-                commandBadge.textContent = '🎵 BOT';
-                
-                card.style.position = 'relative';
-                card.appendChild(commandBadge);
-                
-                setTimeout(() => {
-                    card.classList.remove('participant-activity');
-                    card.style.transform = '';
-                    card.style.boxShadow = '';
-                    card.style.border = '';
-                    
-                    if (commandBadge && commandBadge.parentNode) {
-                        commandBadge.parentNode.removeChild(commandBadge);
-                    }
-                }, 3000);
-                
-                console.log(`✅ [VoiceCallManager] Participant activity highlight applied`);
-                break;
-            }
-        });
     }
 }
 

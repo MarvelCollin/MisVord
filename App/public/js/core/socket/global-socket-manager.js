@@ -15,6 +15,7 @@ class GlobalSocketManager {
         this.joinedChannels = new Set();
         this.joinedDMRooms = new Set();
         this.joinedRooms = new Set();
+        this.socketListenersSetup = false;
     }
     
     init(userData = null) {
@@ -321,6 +322,12 @@ class GlobalSocketManager {
                 window.showToast('Message not found or not accessible', 'error');
             }
         });
+        
+        this.io.on('stop-typing', this.handleStopTyping.bind(this));
+        this.io.on('mention_notification', this.handleMentionNotification.bind(this));
+        
+        this.socketListenersSetup = true;
+        console.log('✅ Socket handlers setup complete');
     }
     
     sendAuthentication() {
@@ -742,6 +749,166 @@ class GlobalSocketManager {
         } else {
             console.error(`%c[SOCKET ERROR ${timestamp}]`, 'color: #F44336; font-weight: bold;', ...args);
         }
+    }
+    
+    handleChannelMessage(data) {
+        // ... existing code ...
+    }
+    
+    handleGlobalMentionNotification(data) {
+        try {
+            const currentUserId = this.userId;
+            if (!currentUserId) {
+                console.warn('⚠️ [GLOBAL-SOCKET] No current user ID for mention notification');
+                return;
+            }
+            
+            console.log('💬 [GLOBAL-SOCKET] Global mention notification received:', data);
+            
+            let shouldNotify = false;
+            let mentionType = '';
+            
+            if (data.type === 'all') {
+                shouldNotify = true;
+                mentionType = '@all';
+                console.log('📢 [GLOBAL-SOCKET] @all mention detected globally');
+            } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
+                shouldNotify = true;
+                mentionType = `@${this.username}`;
+                console.log('👤 [GLOBAL-SOCKET] User mention detected globally for current user');
+            }
+            
+            if (shouldNotify) {
+                this.showGlobalMentionNotification(data, mentionType);
+                this.playGlobalMentionSound();
+                
+                window.dispatchEvent(new CustomEvent('globalMentionReceived', {
+                    detail: {
+                        data: data,
+                        mentionType: mentionType,
+                        timestamp: Date.now()
+                    }
+                }));
+            }
+        } catch (error) {
+            console.error('❌ [GLOBAL-SOCKET] Error handling global mention notification:', error);
+        }
+    }
+    
+    showGlobalMentionNotification(data, mentionType) {
+        try {
+            const isCurrentChat = this.isCurrentlyViewingChat(data);
+            
+            if (isCurrentChat) {
+                console.log('🔄 [GLOBAL-SOCKET] User is viewing the mentioned chat, skipping global notification');
+                return;
+            }
+            
+            const channelName = data.channel_name || `Channel ${data.channel_id || data.room_id}`;
+            const notificationText = `${data.username} mentioned you with ${mentionType} in ${channelName}`;
+            
+            console.log('🔔 [GLOBAL-SOCKET] Showing global mention notification:', notificationText);
+            
+            if (window.showToast) {
+                window.showToast(notificationText, 'mention', 8000);
+            }
+            
+            if (document.hidden && 'Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    const notification = new Notification('New Mention', {
+                        body: notificationText,
+                        icon: '/public/assets/common/main-logo.png',
+                        tag: `mention-${data.message_id || Date.now()}`,
+                        requireInteraction: false
+                    });
+                    
+                    notification.onclick = () => {
+                        window.focus();
+                        this.navigateToMention(data);
+                        notification.close();
+                    };
+                    
+                    setTimeout(() => notification.close(), 10000);
+                } else if (Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            this.showGlobalMentionNotification(data, mentionType);
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('❌ [GLOBAL-SOCKET] Error showing global mention notification:', error);
+        }
+    }
+    
+    isCurrentlyViewingChat(data) {
+        try {
+            if (!window.chatSection || !window.chatSection.targetId) {
+                return false;
+            }
+            
+            const currentChatType = window.chatSection.chatType;
+            const currentTargetId = String(window.chatSection.targetId);
+            
+            if (data.channel_id) {
+                return currentChatType === 'channel' && currentTargetId === String(data.channel_id);
+            } else if (data.room_id) {
+                return (currentChatType === 'dm' || currentChatType === 'direct') && currentTargetId === String(data.room_id);
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('❌ [GLOBAL-SOCKET] Error checking current chat:', error);
+            return false;
+        }
+    }
+    
+    navigateToMention(data) {
+        try {
+            console.log('🔗 [GLOBAL-SOCKET] Navigating to mention:', data);
+            
+            let targetUrl = '';
+            
+            if (data.channel_id && data.server_id) {
+                targetUrl = `/server/${data.server_id}?channel=${data.channel_id}`;
+            } else if (data.room_id) {
+                targetUrl = `/home/channels/dm/${data.room_id}`;
+            }
+            
+            if (targetUrl) {
+                if (data.message_id) {
+                    targetUrl += `#message-${data.message_id}`;
+                }
+                
+                console.log('🔗 [GLOBAL-SOCKET] Navigating to:', targetUrl);
+                window.location.href = targetUrl;
+            } else {
+                console.warn('⚠️ [GLOBAL-SOCKET] Could not determine navigation URL for mention');
+            }
+        } catch (error) {
+            console.error('❌ [GLOBAL-SOCKET] Error navigating to mention:', error);
+        }
+    }
+    
+    playGlobalMentionSound() {
+        try {
+            const audio = new Audio('/public/assets/sound/discordo_sound.mp3');
+            audio.volume = 0.7;
+            audio.play().catch(e => {
+                console.log('🔊 [GLOBAL-SOCKET] Could not play mention sound:', e);
+            });
+        } catch (error) {
+            console.log('🔊 [GLOBAL-SOCKET] Could not play mention sound:', error);
+        }
+    }
+    
+    handleMentionNotification(data) {
+        this.handleGlobalMentionNotification(data);
+    }
+    
+    handleStopTyping(data) {
+        console.log('⌨️ [GLOBAL-SOCKET] Stop typing event received:', data);
     }
 }
 

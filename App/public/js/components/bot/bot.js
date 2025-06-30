@@ -2,6 +2,7 @@ class BotComponent {
     constructor() {
         this.initialized = false;
         this.activeBots = new Map();
+        this.voiceBots = new Map();
     }
 
     init() {
@@ -63,6 +64,45 @@ class BotComponent {
             }
         });
 
+        io.on('bot-voice-participant-joined', (data) => {
+            console.log('🤖🎵 Bot joined voice channel:', data);
+            const { participant } = data;
+            
+            if (participant && participant.user_id && participant.username) {
+                this.voiceBots.set(participant.user_id, {
+                    user_id: participant.user_id,
+                    username: participant.username,
+                    channel_id: participant.channel_id,
+                    joinedAt: Date.now()
+                });
+
+                if (window.voiceCallManager) {
+                    window.voiceCallManager.addBotParticipant(participant);
+                }
+
+                if (window.showToast) {
+                    window.showToast(`🤖🎵 ${participant.username} joined voice channel!`, 'success');
+                }
+            }
+        });
+
+        io.on('bot-voice-participant-left', (data) => {
+            console.log('🤖👋 Bot left voice channel:', data);
+            const { participant } = data;
+            
+            if (participant && participant.user_id) {
+                this.voiceBots.delete(participant.user_id);
+
+                if (window.voiceCallManager) {
+                    window.voiceCallManager.removeBotParticipant(participant.user_id);
+                }
+
+                if (window.showToast) {
+                    window.showToast(`🤖👋 Bot left voice channel`, 'info');
+                }
+            }
+        });
+
         console.log('🔌 Socket listeners set up successfully');
     }
 
@@ -72,6 +112,14 @@ class BotComponent {
 
     getActiveBots() {
         return Array.from(this.activeBots.values());
+    }
+
+    getVoiceBots() {
+        return Array.from(this.voiceBots.values());
+    }
+
+    isBotInVoice(botId) {
+        return this.voiceBots.has(botId);
     }
 
     isInitialized() {

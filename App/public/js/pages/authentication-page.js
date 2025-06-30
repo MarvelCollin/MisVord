@@ -7,10 +7,6 @@ function initAuth() {
     }
     window.authPageInitialized = true;
 
-    if (window.logger) {
-        window.logger.info('auth', 'Authentication page initialized');
-    }
-
     const hasServerError = document.querySelector('#form-error-message') || 
                           document.querySelector('.bg-red-500') ||
                           document.querySelector('.text-red-500');
@@ -38,17 +34,6 @@ function initAuth() {
         matchIndicator: document.getElementById('passwordsMatch'),
         formToggles: document.querySelectorAll('.form-toggle')
     };
-
-    if (window.logger) {
-    window.logger.debug('auth', 'Auth elements loaded:', {
-        authContainer: !!elements.authContainer,
-        formsContainer: !!elements.formsContainer,
-        loginForm: !!elements.loginForm,
-        registerForm: !!elements.registerForm,
-        forgotForm: !!elements.forgotForm,
-        formToggles: elements.formToggles.length
-    });
-    }
 
     let currentForm = getCurrentVisibleForm();
     
@@ -523,16 +508,14 @@ function initAuth() {
             if (loginCaptchaContainer && !window.loginCaptchaInstance) {
                 window.loginCaptchaInstance = new TextCaptcha('login-captcha-container', {
                     length: 6,
-                    inputId: 'login_captcha',
-                    showDebug: true
+                    inputId: 'login_captcha'
                 });
             }
             
             if (registerCaptchaContainer && !window.registerCaptchaInstance) {
                 window.registerCaptchaInstance = new TextCaptcha('register-captcha-container', {
                     length: 6,
-                    inputId: 'register_captcha',
-                    showDebug: true
+                    inputId: 'register_captcha'
                 });
             }
         } catch (e) {

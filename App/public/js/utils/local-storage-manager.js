@@ -165,11 +165,7 @@ class LocalStorageManager {
             isDeafened: false,
             volume: 100,
             channelId: null,
-            channelName: null,
-            meetingId: null,
-            isConnected: false,
-            connectionTime: null,
-            participantId: null
+            channelName: null
         });
     }
 
@@ -183,98 +179,6 @@ class LocalStorageManager {
             this.updateAllVoiceControls(updated);
         }
         return success;
-    }
-
-    isVoiceChannelConnected() {
-        const state = this.getVoiceState();
-        const hasVideoSDK = window.videoSDKManager?.isVoiceChannelConnected?.();
-        
-        return state.isConnected && 
-               state.channelId && 
-               state.meetingId && 
-               (hasVideoSDK !== false);
-    }
-
-    canExecuteBotCommands() {
-        return this.isVoiceChannelConnected();
-    }
-
-    getVoiceChannelInfo() {
-        const state = this.getVoiceState();
-        
-        if (!this.isVoiceChannelConnected()) {
-            return null;
-        }
-        
-        return {
-            channelId: state.channelId,
-            channelName: state.channelName,
-            meetingId: state.meetingId,
-            participantId: state.participantId,
-            connectionTime: state.connectionTime,
-            isConnected: state.isConnected
-        };
-    }
-
-    validateVoiceConnection() {
-        const state = this.getVoiceState();
-        
-        if (state.isConnected) {
-            const hasVideoSDK = window.videoSDKManager?.isVoiceChannelConnected?.();
-            
-            if (hasVideoSDK === false) {
-                console.log('🧹 [LocalStorage] Voice connection validation failed, cleaning up');
-                this.forceCleanupVoiceState();
-                return false;
-            }
-        }
-        
-        return this.isVoiceChannelConnected();
-    }
-
-    forceCleanupVoiceState() {
-        console.log('🧹 [LocalStorage] Force cleanup voice state');
-        
-        this.setVoiceState({
-            isConnected: false,
-            isMuted: false,
-            isDeafened: false,
-            channelId: null,
-            channelName: null,
-            meetingId: null,
-            connectionTime: null,
-            participantId: null
-        });
-        
-        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
-    }
-
-    syncWithVideoSDK() {
-        if (!window.videoSDKManager) return;
-        
-        const videoSDKInfo = window.videoSDKManager.getVoiceChannelInfo?.();
-        const currentState = this.getVoiceState();
-        
-        if (videoSDKInfo && videoSDKInfo.isConnected) {
-            if (!currentState.isConnected || 
-                currentState.channelId !== videoSDKInfo.channelId ||
-                currentState.meetingId !== videoSDKInfo.meetingId) {
-                
-                console.log('🔄 [LocalStorage] Syncing with VideoSDK state');
-                
-                this.setVoiceState({
-                    isConnected: true,
-                    channelId: videoSDKInfo.channelId,
-                    channelName: videoSDKInfo.channelName,
-                    meetingId: videoSDKInfo.meetingId,
-                    participantId: videoSDKInfo.participantId,
-                    connectionTime: videoSDKInfo.connectionTime
-                });
-            }
-        } else if (currentState.isConnected && !videoSDKInfo) {
-            console.log('🔄 [LocalStorage] VideoSDK disconnected, cleaning up local state');
-            this.forceCleanupVoiceState();
-        }
     }
 
     dispatchVoiceStateChange(state) {
@@ -354,12 +258,9 @@ class LocalStorageManager {
         });
     }
 
+
+
     toggleVoiceMute() {
-        if (!this.isVoiceChannelConnected()) {
-            this.showToast('😒 Minimal masuk voice channel dulu bang', 'warning');
-            return false;
-        }
-        
         const state = this.getVoiceState();
         let newMutedState = !state.isMuted;
         
@@ -381,11 +282,6 @@ class LocalStorageManager {
     }
 
     toggleVoiceDeafen() {
-        if (!this.isVoiceChannelConnected()) {
-            this.showToast('😒 Minimal masuk voice channel dulu bang', 'warning');
-            return false;
-        }
-        
         const state = this.getVoiceState();
         let newDeafenState = !state.isDeafened;
         
@@ -407,6 +303,8 @@ class LocalStorageManager {
             isMuted: newDeafenState ? true : state.isMuted
         });
     }
+
+
 
     showToast(message, type = 'info') {
         if (window.showToast) {

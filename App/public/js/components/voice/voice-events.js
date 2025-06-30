@@ -1,4 +1,4 @@
-export const VOICE_EVENTS = {
+const VOICE_EVENTS = {
     // Connection events
     VOICE_CONNECT: 'voiceConnect',
     VOICE_DISCONNECT: 'voiceDisconnect',
@@ -14,13 +14,13 @@ export const VOICE_EVENTS = {
     VIDEO_GRID_UPDATE: 'videoGridUpdate'
 };
 
-export const STREAM_TYPES = {
+const STREAM_TYPES = {
     AUDIO: 'audio',
     VIDEO: 'video',
     SCREEN_SHARE: 'share'
 };
 
-export const CONNECTION_STATES = {
+const CONNECTION_STATES = {
     DISCONNECTED: 'disconnected',
     CONNECTING: 'connecting',
     CONNECTED: 'connected',

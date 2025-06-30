@@ -6,16 +6,11 @@ export class TextCaptcha {
             return;
         }
 
-        const isProduction = window.location.hostname !== 'localhost' && 
-                           !window.location.hostname.includes('127.0.0.1') && 
-                           !window.location.hostname.includes('dev');
-
         this.options = {
             length: options.length || 6,
             refreshButtonId: options.refreshButtonId || null,
             inputId: options.inputId || null,
             caseSensitive: options.caseSensitive || false,
-            showDebug: options.showDebug !== undefined ? options.showDebug : !isProduction,
             bypassCaptcha: options.bypassCaptcha !== undefined ? options.bypassCaptcha : (window.BYPASS_CAPTCHA || false),
         };
 
@@ -53,7 +48,6 @@ export class TextCaptcha {
                     <i class="fa-solid fa-rotate-right"></i>
                 </button>
             </div>
-            ${this.options.showDebug ? `<div class="captcha-debug" id="${this.container.id}-debug" style="margin-top: 4px; padding: 4px 8px; background: #36393f; border-radius: 4px; font-size: 12px; color: #b9bbbe; font-family: monospace;">Debug: Loading...</div>` : ''}
         `;
         
         const style = document.createElement('style');
@@ -118,11 +112,6 @@ export class TextCaptcha {
                 outline: none;
                 box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
             }
-            
-            .captcha-debug {
-                user-select: text;
-                cursor: text;
-            }
         `;
         document.head.appendChild(style);
     }
@@ -137,7 +126,6 @@ export class TextCaptcha {
         
         this.code = code.toLowerCase();
         this.displayCode(code);
-        this.updateDebugDisplay();
     }
 
     displayCode(displayCode) {
@@ -185,16 +173,6 @@ export class TextCaptcha {
         });
     }
 
-    updateDebugDisplay() {
-        if (!this.options.showDebug) return;
-        
-        const debugDisplay = document.getElementById(`${this.container.id}-debug`);
-        if (debugDisplay) {
-            debugDisplay.textContent = `Debug: Correct answer is "${this.code}" (case insensitive)`;
-            debugDisplay.style.color = '#4ade80';
-        }
-    }
-
     setupListeners() {
         const refreshBtn = document.getElementById(`${this.container.id}-refresh`);
         if (refreshBtn) {
@@ -212,7 +190,6 @@ export class TextCaptcha {
 
     verify(input) {
         if (this.options.bypassCaptcha) {
-            console.log('Captcha bypassed for testing - returning true');
             return true;
         }
         
@@ -221,19 +198,11 @@ export class TextCaptcha {
         
         const inputLower = input.toLowerCase().trim();
         
-        console.log('Captcha verification:', {
-            input: input,
-            inputLower: inputLower,
-            correctCode: this.code,
-            match: inputLower === this.code
-        });
-        
         return inputLower === this.code;
     }
 
     refresh() {
         if (this.options.bypassCaptcha) {
-            console.log('Captcha refresh bypassed for testing');
             return;
         }
         
@@ -241,14 +210,6 @@ export class TextCaptcha {
             const codeDisplay = document.getElementById(`${this.container.id}-code`);
             if (codeDisplay) {
                 codeDisplay.innerHTML = '<div style="text-align:center;padding:10px;">Loading...</div>';
-            }
-            
-            if (this.options.showDebug) {
-                const debugDisplay = document.getElementById(`${this.container.id}-debug`);
-                if (debugDisplay) {
-                    debugDisplay.textContent = 'Debug: Loading new captcha...';
-                    debugDisplay.style.color = '#b9bbbe';
-                }
             }
             
             this.generateCode();

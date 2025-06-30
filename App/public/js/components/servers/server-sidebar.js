@@ -803,10 +803,14 @@ export async function handleHomeClick(event) {
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
-        if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
-            console.log('[Home Navigation] Cleaning up voice manager');
-            window.voiceManager.leaveVoice();
-            window.voiceManager = null;
+        // DON'T disconnect voice on navigation - keep it alive!
+        if (window.voiceManager && window.voiceManager.isConnected) {
+            console.log('[Home Navigation] Voice connection detected, keeping alive and showing global indicator');
+            if (window.globalVoiceIndicator) {
+                setTimeout(() => {
+                    window.globalVoiceIndicator.ensureIndicatorVisible();
+                }, 300);
+            }
         }
 
         console.log('[Home Navigation] Loading home page with AJAX');
@@ -895,10 +899,14 @@ export async function handleServerClick(serverId, event) {
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
-        if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
-            console.log('[Server Navigation] Cleaning up voice manager');
-            window.voiceManager.leaveVoice();
-            window.voiceManager = null;
+        // DON'T disconnect voice on navigation - keep it alive!
+        if (window.voiceManager && window.voiceManager.isConnected) {
+            console.log('[Server Navigation] Voice connection detected, keeping alive and showing global indicator');
+            if (window.globalVoiceIndicator) {
+                setTimeout(() => {
+                    window.globalVoiceIndicator.ensureIndicatorVisible();
+                }, 300);
+            }
         }
         
         console.log('[Server Navigation] Loading server page with AJAX');
@@ -959,10 +967,14 @@ export async function handleExploreClick(event) {
             window.globalSocketManager.leaveChannel(currentChannelId);
         }
 
-        if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
-            console.log('[Explore Navigation] Cleaning up voice manager');
-            window.voiceManager.leaveVoice();
-            window.voiceManager = null;
+        // DON'T disconnect voice on navigation - keep it alive!
+        if (window.voiceManager && window.voiceManager.isConnected) {
+            console.log('[Explore Navigation] Voice connection detected, keeping alive and showing global indicator');
+            if (window.globalVoiceIndicator) {
+                setTimeout(() => {
+                    window.globalVoiceIndicator.ensureIndicatorVisible();
+                }, 300);
+            }
         }
 
         console.log('[Explore Navigation] Loading explore page with AJAX');

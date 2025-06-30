@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Voice Indicator Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-[#313338] text-white min-h-screen">
+    <div class="container mx-auto p-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold mb-6 text-[#5865f2]">Global Voice Indicator Test</h1>
+            
+            <div class="bg-[#2b2d31] rounded-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">Status</h2>
+                <div id="status-info" class="space-y-2 font-mono text-sm">
+                    <div class="text-yellow-400">Loading...</div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-[#2b2d31] rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4">Test Controls</h2>
+                    <div class="space-y-3">
+                        <button id="connect-voice" class="w-full bg-[#3ba55c] hover:bg-[#2d7d32] px-4 py-3 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-microphone mr-2"></i>
+                            Connect to Voice
+                        </button>
+                        <button id="toggle-mute" class="w-full bg-[#ed4245] hover:bg-[#c23327] px-4 py-3 rounded-lg font-medium transition-colors" disabled>
+                            <i class="fas fa-microphone-slash mr-2"></i>
+                            Toggle Mute
+                        </button>
+                        <button id="toggle-deafen" class="w-full bg-[#faa61a] hover:bg-[#e09015] px-4 py-3 rounded-lg font-medium transition-colors" disabled>
+                            <i class="fas fa-volume-xmark mr-2"></i>
+                            Toggle Deafen
+                        </button>
+                        <button id="disconnect-voice" class="w-full bg-[#ed4245] hover:bg-[#c23327] px-4 py-3 rounded-lg font-medium transition-colors" disabled>
+                            <i class="fas fa-phone-slash mr-2"></i>
+                            Disconnect Voice
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-[#2b2d31] rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4">Indicator Control</h2>
+                    <div class="space-y-3">
+                        <button id="force-update" class="w-full bg-[#5865f2] hover:bg-[#4752c4] px-4 py-3 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-sync-alt mr-2"></i>
+                            Force Update
+                        </button>
+                        <button id="show-indicator" class="w-full bg-[#5865f2] hover:bg-[#4752c4] px-4 py-3 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-eye mr-2"></i>
+                            Show Indicator
+                        </button>
+                        <button id="hide-indicator" class="w-full bg-[#6c757d] hover:bg-[#5a6268] px-4 py-3 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-eye-slash mr-2"></i>
+                            Hide Indicator
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-[#2b2d31] rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Console Log</h2>
+                <div id="console-log" class="bg-[#1e1f22] rounded-lg p-4 font-mono text-sm h-64 overflow-y-auto">
+                    <div class="text-[#3ba55c]">[INFO] Test page initialized</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        let isConnected = false;
+        let isMuted = false;
+        let isDeafened = false;
+
+        const consoleLog = document.getElementById('console-log');
+        const statusInfo = document.getElementById('status-info');
+
+        function log(message, level = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: 'text-[#3ba55c]',
+                warn: 'text-[#faa61a]',
+                error: 'text-[#ed4245]',
+                debug: 'text-[#5865f2]'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = colors[level] || colors.info;
+            logEntry.textContent = `[${level.toUpperCase()}] ${message}`;
+            consoleLog.appendChild(logEntry);
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+            
+            console.log(`[${level.toUpperCase()}] ${message}`);
+        }
+
+        function updateStatus() {
+            const hasIndicator = !!document.getElementById('global-voice-indicator');
+            const status = [
+                `Global Voice Indicator: ${typeof window.globalVoiceIndicator !== 'undefined' ? '✅ Available' : '❌ Not Available'}`,
+                `Indicator Element: ${hasIndicator ? '✅ Present' : '❌ Not Present'}`,
+                `Connection Status: ${isConnected ? '🔊 Connected' : '🔇 Disconnected'}`,
+                `Mute Status: ${isMuted ? '🔇 Muted' : '🎤 Unmuted'}`,
+                `Deafen Status: ${isDeafened ? '🔇 Deafened' : '👂 Listening'}`,
+                `Current Page Type: ${window.globalVoiceIndicator?.isOnVoiceChannelPage() ? 'Voice Channel Page' : 'Other Page'}`
+            ];
+            
+            statusInfo.innerHTML = status.map(s => `<div>${s}</div>`).join('');
+        }
+
+        function updateButtons() {
+            const connectBtn = document.getElementById('connect-voice');
+            const muteBtn = document.getElementById('toggle-mute');
+            const deafenBtn = document.getElementById('toggle-deafen');
+            const disconnectBtn = document.getElementById('disconnect-voice');
+
+            connectBtn.disabled = isConnected;
+            muteBtn.disabled = !isConnected;
+            deafenBtn.disabled = !isConnected;
+            disconnectBtn.disabled = !isConnected;
+
+            if (isConnected) {
+                muteBtn.innerHTML = isMuted 
+                    ? '<i class="fas fa-microphone mr-2"></i>Unmute' 
+                    : '<i class="fas fa-microphone-slash mr-2"></i>Mute';
+                deafenBtn.innerHTML = isDeafened 
+                    ? '<i class="fas fa-headphones mr-2"></i>Undeafen' 
+                    : '<i class="fas fa-volume-xmark mr-2"></i>Deafen';
+            }
+        }
+
+        document.getElementById('connect-voice').addEventListener('click', () => {
+            if (!isConnected) {
+                log('Connecting to voice channel...', 'info');
+                isConnected = true;
+                
+                window.dispatchEvent(new CustomEvent('voiceConnect', {
+                    detail: {
+                        channelName: 'Test Voice Channel',
+                        meetingId: 'test_meeting_' + Date.now(),
+                        channelId: 'test_channel_123'
+                    }
+                }));
+                
+                updateButtons();
+                updateStatus();
+                log('Voice connection event dispatched', 'debug');
+            }
+        });
+
+        document.getElementById('toggle-mute').addEventListener('click', () => {
+            if (isConnected) {
+                isMuted = !isMuted;
+                log(`${isMuted ? 'Muted' : 'Unmuted'} microphone`, 'info');
+                
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: {
+                        isMuted: isMuted,
+                        isDeafened: isDeafened
+                    }
+                }));
+                
+                updateButtons();
+                updateStatus();
+            }
+        });
+
+        document.getElementById('toggle-deafen').addEventListener('click', () => {
+            if (isConnected) {
+                isDeafened = !isDeafened;
+                if (isDeafened) isMuted = true;
+                log(`${isDeafened ? 'Deafened' : 'Undeafened'} audio`, 'info');
+                
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: {
+                        isMuted: isMuted,
+                        isDeafened: isDeafened
+                    }
+                }));
+                
+                updateButtons();
+                updateStatus();
+            }
+        });
+
+        document.getElementById('disconnect-voice').addEventListener('click', () => {
+            if (isConnected) {
+                log('Disconnecting from voice channel...', 'info');
+                isConnected = false;
+                isMuted = false;
+                isDeafened = false;
+                
+                window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+                
+                updateButtons();
+                updateStatus();
+                log('Voice disconnect event dispatched', 'debug');
+            }
+        });
+
+        document.getElementById('force-update').addEventListener('click', () => {
+            if (window.globalVoiceIndicator) {
+                log('Force updating global voice indicator...', 'debug');
+                window.globalVoiceIndicator.forceUpdateIndicator();
+                updateStatus();
+            } else {
+                log('Global voice indicator not available', 'error');
+            }
+        });
+
+        document.getElementById('show-indicator').addEventListener('click', () => {
+            if (window.globalVoiceIndicator) {
+                log('Showing global voice indicator...', 'debug');
+                window.globalVoiceIndicator.ensureIndicatorVisible();
+                updateStatus();
+            } else {
+                log('Global voice indicator not available', 'error');
+            }
+        });
+
+        document.getElementById('hide-indicator').addEventListener('click', () => {
+            const indicator = document.getElementById('global-voice-indicator');
+            if (indicator) {
+                log('Hiding global voice indicator...', 'debug');
+                indicator.style.display = 'none';
+                updateStatus();
+            } else {
+                log('No indicator element to hide', 'warn');
+            }
+        });
+
+        window.addEventListener('voiceConnect', (e) => {
+            log(`Voice connect event received: ${JSON.stringify(e.detail)}`, 'debug');
+        });
+
+        window.addEventListener('voiceDisconnect', () => {
+            log('Voice disconnect event received', 'debug');
+        });
+
+        window.addEventListener('voiceStateChanged', (e) => {
+            log(`Voice state changed: ${JSON.stringify(e.detail)}`, 'debug');
+        });
+
+        async function loadGlobalVoiceIndicator() {
+            try {
+                log('Loading global voice indicator module...', 'info');
+                const module = await import('./js/components/voice/global-voice-indicator.js');
+                log('Global voice indicator module loaded successfully', 'info');
+                
+                setTimeout(() => {
+                    updateStatus();
+                    updateButtons();
+                }, 500);
+                
+                return module;
+            } catch (error) {
+                log(`Failed to load global voice indicator: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            log('Test page DOM loaded', 'info');
+            
+            try {
+                await loadGlobalVoiceIndicator();
+                log('Global voice indicator initialization complete', 'info');
+            } catch (error) {
+                log('Failed to initialize global voice indicator', 'error');
+            }
+            
+            updateStatus();
+            updateButtons();
+            
+            setInterval(updateStatus, 2000);
+        });
+    </script>
+</body>
+</html> 

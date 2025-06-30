@@ -50,6 +50,11 @@ if (!function_exists('formatBubbleContent')) {
         $formatted = preg_replace('/\*(.*?)\*/', '<em>$1</em>', $formatted);
         $formatted = preg_replace('/~~(.*?)~~/', '<del>$1</del>', $formatted);
         $formatted = preg_replace('/`(.*?)`/', '<code class="bg-[#2f3136] text-[#dcddde] px-1 py-0.5 rounded text-sm">$1</code>', $formatted);
+        
+        $formatted = preg_replace('/@all\b/', '<span class="bubble-mention bubble-mention-all" data-mention-type="all">@all</span>', $formatted);
+        
+        $formatted = preg_replace('/@(\w+)/', '<span class="bubble-mention bubble-mention-user" data-mention-type="user" data-username="$1">@$1</span>', $formatted);
+        
         $formatted = nl2br($formatted);
         
         return $formatted;
@@ -373,6 +378,33 @@ if (!function_exists('isBubbleVideoFile')) {
     font-weight: 500;
 }
 
+.bubble-mention {
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.bubble-mention-all {
+    color: #faa61a;
+    background-color: rgba(250, 166, 26, 0.1);
+}
+
+.bubble-mention-all:hover {
+    background-color: rgba(250, 166, 26, 0.2);
+}
+
+.bubble-mention-user {
+    color: #5865f2;
+    background-color: rgba(88, 101, 242, 0.1);
+}
+
+.bubble-mention-user:hover {
+    background-color: rgba(88, 101, 242, 0.2);
+    text-decoration: underline;
+}
+
 @media (max-width: 768px) {
     .bubble-message-actions {
         right: 8px;
@@ -566,5 +598,102 @@ function jumpToMessage(messageId) {
     }, 3000);
     
     console.log('✅ [REPLY-JUMP] Successfully jumped to message:', messageId);
+}
+
+document.addEventListener('click', function(e) {
+    const mention = e.target.closest('.bubble-mention-user');
+    if (!mention) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const username = mention.dataset.username;
+    if (!username) return;
+    
+    console.log('🔍 [MENTION-CLICK] Looking up user:', username);
+    
+    if (window.chatSection?.mentionHandler?.availableUsers) {
+        const user = window.chatSection.mentionHandler.availableUsers.get(username.toLowerCase());
+        if (user && user.id) {
+            console.log('✅ [MENTION-CLICK] Found user in cache:', user);
+            showUserDetailFromMention(user.id, mention);
+            return;
+        }
+    }
+    
+    lookupUserByUsername(username).then(userId => {
+        if (userId) {
+            console.log('✅ [MENTION-CLICK] Found user via API:', userId);
+            showUserDetailFromMention(userId, mention);
+        } else {
+            console.warn('❌ [MENTION-CLICK] User not found:', username);
+        }
+    }).catch(error => {
+        console.error('❌ [MENTION-CLICK] Error looking up user:', error);
+    });
+});
+
+async function lookupUserByUsername(username) {
+    try {
+        const chatType = window.chatSection?.chatType;
+        const targetId = window.chatSection?.targetId;
+        
+        if (!chatType || !targetId) {
+            console.warn('🔍 [USER-LOOKUP] No chat context available');
+            return null;
+        }
+        
+        let endpoint;
+        if (chatType === 'channel') {
+            endpoint = `/api/channels/${targetId}/members`;
+        } else if (chatType === 'dm' || chatType === 'direct') {
+            endpoint = `/api/chat/dm/${targetId}/participants`;
+        } else {
+            console.warn('🔍 [USER-LOOKUP] Unknown chat type:', chatType);
+            return null;
+        }
+        
+        const response = await fetch(endpoint);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        let users = [];
+        
+        if (result.success && result.data) {
+            if (Array.isArray(result.data)) {
+                users = result.data;
+            } else if (result.data.data && Array.isArray(result.data.data)) {
+                users = result.data.data;
+            }
+        }
+        
+        const user = users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+        return user ? user.user_id || user.id : null;
+        
+    } catch (error) {
+        console.error('🔍 [USER-LOOKUP] API error:', error);
+        return null;
+    }
+}
+
+function showUserDetailFromMention(userId, triggerElement) {
+    if (!window.userDetailModal) {
+        console.error('❌ [MENTION-CLICK] User detail modal not available');
+        return;
+    }
+    
+    const serverId = window.chatSection?.currentServerId || 
+                     document.querySelector('meta[name="server-id"]')?.getAttribute('content') ||
+                     null;
+    
+    console.log('🎯 [MENTION-CLICK] Showing user detail:', { userId, serverId });
+    
+    window.userDetailModal.show({
+        userId: userId,
+        serverId: serverId,
+        triggerElement: triggerElement
+    });
 }
 </script>

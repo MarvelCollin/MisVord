@@ -11,190 +11,9 @@ class VideoSDKManager {
         this.sdkVersion = "0.2.7";
         this.tokenCache = null;
         this.tokenExpiry = 0;
-        this.currentChannelId = null;
-        this.currentChannelName = null;
-        this.currentMeetingId = null;
-        this.connectionStartTime = null;
-        this.validationEnabled = true;
         
         this.fallbackToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlrZXkiOiI4YWQyZGJjZC02MzhkLTRmYmItOTk5Yy05YTQ4YTgzY2FhMTUiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIiwiYWxsb3dfcHVibGlzaCJdLCJpYXQiOjE3NTEyMTU2MjEsImV4cCI6MTc1MzgwNzYyMX0.duF2XwBk9-glZTDWS8QyX4yGNaf6faZXUCLsc07QxJk";
         this._webcamToggling = false;
-        
-        this.setupConnectionValidation();
-    }
-
-    setupConnectionValidation() {
-        setInterval(() => {
-            this.validateConnection();
-        }, 5000);
-        
-        window.addEventListener('beforeunload', () => {
-            this.cleanup();
-        });
-        
-        this.setupVoiceValidationSocket();
-    }
-
-    setupVoiceValidationSocket() {
-        if (typeof window !== 'undefined') {
-            const setupSocketHandler = () => {
-                if (!window.globalSocketManager?.io) {
-                    setTimeout(setupSocketHandler, 1000);
-                    return;
-                }
-                
-                const io = window.globalSocketManager.io;
-                
-                io.on('voice-validation-request', (data) => {
-                    console.log('🔍 [VideoSDK] Voice validation request received:', data);
-                    
-                    const isConnected = this.isVoiceChannelConnected();
-                    const voiceInfo = this.getVoiceChannelInfo();
-                    
-                    const response = {
-                        user_id: data.user_id,
-                        isConnected: isConnected,
-                        voiceInfo: voiceInfo,
-                        timestamp: Date.now()
-                    };
-                    
-                    console.log('📋 [VideoSDK] Sending voice validation response:', response);
-                    
-                    io.emit('voice-validation-response', response);
-                });
-                
-                io.on('voice-participant-joined', (data) => {
-                    console.log('👤 [VideoSDK] Voice participant joined event:', data);
-                    
-                    if (data.action === 'join' && window.voiceCallManager) {
-                        window.voiceCallManager.addRemoteParticipant(data.participant_id, {
-                            displayName: data.username,
-                            name: data.username,
-                            id: data.participant_id
-                        });
-                    } else if (data.action === 'leave' && window.voiceCallManager) {
-                        window.voiceCallManager.removeRemoteParticipant(data.participant_id);
-                    }
-                });
-                
-                io.on('voice-participant-activity-broadcast', (data) => {
-                    console.log('🎯 [VideoSDK] Voice participant activity broadcast:', data);
-                    
-                    if (window.voiceCallManager && data.activity === 'bot_command') {
-                        window.voiceCallManager.highlightParticipantActivity(data.user_id, data.command);
-                    }
-                });
-                
-                console.log('✅ [VideoSDK] Voice validation socket handlers setup complete');
-            };
-            
-            setupSocketHandler();
-        }
-    }
-
-    validateConnection() {
-        if (!this.validationEnabled) return;
-        
-        const isValidConnection = this.isVoiceChannelConnected();
-        const storedState = this.getStoredVoiceState();
-        
-        if (storedState.isConnected && !isValidConnection) {
-            console.log('🧹 [VideoSDK] Connection validation failed, cleaning up stored state');
-            this.forceCleanup();
-        }
-    }
-
-    isVoiceChannelConnected() {
-        return this.initialized && 
-               this.meeting && 
-               this.isConnected && 
-               this.isMeetingJoined && 
-               this.currentChannelId &&
-               this.meeting.localParticipant &&
-               this.meeting.localParticipant.connectionStatus !== 'failed';
-    }
-
-    canExecuteCommands() {
-        return this.isVoiceChannelConnected();
-    }
-
-    getVoiceChannelInfo() {
-        if (!this.isVoiceChannelConnected()) {
-            return null;
-        }
-        
-        return {
-            channelId: this.currentChannelId,
-            channelName: this.currentChannelName,
-            meetingId: this.currentMeetingId,
-            participantId: this.meeting?.localParticipant?.id,
-            connectionTime: this.connectionStartTime,
-            isConnected: true
-        };
-    }
-
-    getStoredVoiceState() {
-        if (typeof window.localStorageManager !== 'undefined') {
-            return window.localStorageManager.getVoiceState();
-        }
-        
-        try {
-            const stored = localStorage.getItem('misvord_voice_state');
-            return stored ? JSON.parse(stored) : { isConnected: false };
-        } catch (error) {
-            console.error('Error reading voice state:', error);
-            return { isConnected: false };
-        }
-    }
-
-    updateStoredVoiceState(updates) {
-        if (typeof window.localStorageManager !== 'undefined') {
-            return window.localStorageManager.setVoiceState(updates);
-        }
-        
-        try {
-            const current = this.getStoredVoiceState();
-            const updated = { ...current, ...updates };
-            localStorage.setItem('misvord_voice_state', JSON.stringify(updated));
-            return true;
-        } catch (error) {
-            console.error('Error updating voice state:', error);
-            return false;
-        }
-    }
-
-    forceCleanup() {
-        console.log('🧹 [VideoSDK] Force cleanup initiated');
-        
-        this.isConnected = false;
-        this.isMeetingJoined = false;
-        this.isDeafened = false;
-        this.currentChannelId = null;
-        this.currentChannelName = null;
-        this.currentMeetingId = null;
-        this.connectionStartTime = null;
-        
-        if (this.meeting) {
-            try {
-                this.cleanupParticipantResources();
-                this.meeting.leave();
-            } catch (error) {
-                console.error('Error during meeting leave:', error);
-            }
-            this.meeting = null;
-        }
-        
-        this.updateStoredVoiceState({
-            isConnected: false,
-            isMuted: false,
-            isDeafened: false,
-            channelId: null,
-            channelName: null,
-            meetingId: null
-        });
-        
-        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
-        console.log('✅ [VideoSDK] Force cleanup completed');
     }
 
     async getAuthToken() {
@@ -652,27 +471,13 @@ class VideoSDKManager {
             
             this.isConnected = true;
             this.isDeafened = false;
-            this.connectionStartTime = Date.now();
-            
-            const channelId = document.querySelector('meta[name="channel-id"]')?.content;
-            const channelName = document.querySelector('.channel-name')?.textContent || 'Voice Channel';
-            
-            this.currentChannelId = channelId;
-            this.currentChannelName = channelName;
-            this.currentMeetingId = this.meeting.id;
-            
-            this.updateStoredVoiceState({
-                isConnected: true,
-                channelId: channelId,
-                channelName: channelName,
-                meetingId: this.meeting.id,
-                connectionTime: this.connectionStartTime
-            });
-            
             if (window.voiceState) window.voiceState.isConnected = true;
             if (window.voiceManager) window.voiceManager.isConnected = true;
             
             await this.waitForMeetingJoined();
+            
+            const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+            const channelName = document.querySelector('.channel-name')?.textContent || 'Voice Channel';
             
             window.dispatchEvent(new CustomEvent('voiceConnect', {
                 detail: { 
@@ -682,14 +487,16 @@ class VideoSDKManager {
                 }
             }));
             
-            this.emitParticipantJoined();
-            
             window.videoSDKJoiningInProgress = false;
             return true;
         } catch (error) {
             console.error("Failed to join meeting:", error);
             
-            this.forceCleanup();
+            this.isConnected = false;
+            this.isMeetingJoined = false;
+            this.isDeafened = false;
+            if (window.voiceState) window.voiceState.isConnected = false;
+            if (window.voiceManager) window.voiceManager.isConnected = false;
             
             window.videoSDKJoiningInProgress = false;
             window.dispatchEvent(new CustomEvent('voiceDisconnect'));
@@ -697,72 +504,38 @@ class VideoSDKManager {
         }
     }
 
-    emitParticipantJoined() {
-        if (!window.globalSocketManager?.isReady() || !this.currentChannelId) {
-            return;
-        }
-        
-        const participantData = {
-            participant_id: this.meeting?.localParticipant?.id,
-            channel_id: this.currentChannelId,
-            meeting_id: this.currentMeetingId,
-            username: document.querySelector('meta[name="username"]')?.content || 'User',
-            user_id: window.globalSocketManager.userId,
-            action: 'join',
-            timestamp: Date.now()
-        };
-        
-        console.log('📡 [VideoSDK] Emitting participant joined:', participantData);
-        
-        window.globalSocketManager.io.emit('voice-participant-update', participantData);
-    }
-
-    emitParticipantLeft() {
-        if (!window.globalSocketManager?.isReady() || !this.currentChannelId) {
-            return;
-        }
-        
-        const participantData = {
-            participant_id: this.meeting?.localParticipant?.id,
-            channel_id: this.currentChannelId,
-            meeting_id: this.currentMeetingId,
-            username: document.querySelector('meta[name="username"]')?.content || 'User',
-            user_id: window.globalSocketManager.userId,
-            action: 'leave',
-            timestamp: Date.now()
-        };
-        
-        console.log('📡 [VideoSDK] Emitting participant left:', participantData);
-        
-        window.globalSocketManager.io.emit('voice-participant-update', participantData);
+    async waitForMeetingJoined(timeout = 10000) {
+        return new Promise((resolve, reject) => {
+            if (this.isMeetingJoined) {
+                resolve();
+                return;
+            }
+            
+            const timeoutId = setTimeout(() => {
+                reject(new Error('Timeout waiting for meeting to be fully joined'));
+            }, timeout);
+            
+            const onMeetingJoined = () => {
+                clearTimeout(timeoutId);
+                window.removeEventListener('videosdkMeetingFullyJoined', onMeetingJoined);
+                resolve();
+            };
+            
+            window.addEventListener('videosdkMeetingFullyJoined', onMeetingJoined);
+        });
     }
 
     leaveMeeting() {
         if (this.meeting) {
             try {
-                this.emitParticipantLeft();
-                
                 this.cleanupParticipantResources();
                 
                 this.isDeafened = false;
                 this.isConnected = false;
                 this.isMeetingJoined = false;
-                this.currentChannelId = null;
-                this.currentChannelName = null;
-                this.currentMeetingId = null;
-                this.connectionStartTime = null;
                 
                 this.meeting.leave();
                 this.meeting = null;
-                
-                this.updateStoredVoiceState({
-                    isConnected: false,
-                    isMuted: false,
-                    isDeafened: false,
-                    channelId: null,
-                    channelName: null,
-                    meetingId: null
-                });
                 
                 window.dispatchEvent(new CustomEvent('voiceDisconnect'));
                 
@@ -770,7 +543,6 @@ class VideoSDKManager {
                 return true;
             } catch (error) {
                 console.error("Error leaving meeting:", error);
-                this.forceCleanup();
                 return false;
             }
         }
@@ -1095,38 +867,20 @@ class VideoSDKManager {
             screenShareState: this.getScreenShareState()
         };
     }
-
-    async waitForMeetingJoined(timeout = 10000) {
-        return new Promise((resolve, reject) => {
-            if (this.isMeetingJoined) {
-                resolve();
-                return;
-            }
-            
-            const timeoutId = setTimeout(() => {
-                reject(new Error('Timeout waiting for meeting to be fully joined'));
-            }, timeout);
-            
-            const onMeetingJoined = () => {
-                clearTimeout(timeoutId);
-                window.removeEventListener('videosdkMeetingFullyJoined', onMeetingJoined);
-                resolve();
-            };
-            
-            window.addEventListener('videosdkMeetingFullyJoined', onMeetingJoined);
-        });
-    }
 }
 
-// Create global instance
-const videoSDKManager = new VideoSDKManager();
-window.videoSDKManager = videoSDKManager;
-
-
+// Create global instance only if not already exists
+if (!window.videoSDKManager) {
+    const videoSDKManager = new VideoSDKManager();
+    window.videoSDKManager = videoSDKManager;
+    console.log('✅ VideoSDKManager instance created and attached to window');
+} else {
+    console.log('ℹ️ VideoSDKManager already exists, skipping creation');
+}
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = videoSDKManager;
+    module.exports = window.videoSDKManager;
 } else if (typeof exports !== 'undefined') {
-    exports.default = videoSDKManager;
+    exports.default = window.videoSDKManager;
 }

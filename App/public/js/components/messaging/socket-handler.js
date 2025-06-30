@@ -776,19 +776,21 @@ class SocketHandler {
             const currentUserId = window.globalSocketManager?.userId;
             if (!currentUserId) return;
             
-            console.log('💬 [SOCKET-HANDLER] Mention notification received:', data);
+            console.log('💬 [SOCKET-HANDLER] Local mention notification received:', data);
+            
+            const isCurrentChat = this.isCurrentChat(data);
             
             if (data.type === 'all') {
-                console.log('📢 [SOCKET-HANDLER] @all mention detected');
-                if (this.chatSection.mentionHandler) {
+                console.log('📢 [SOCKET-HANDLER] @all mention detected locally');
+                if (isCurrentChat && this.chatSection.mentionHandler) {
                     this.chatSection.mentionHandler.handleMentionNotification({
                         ...data,
                         mentions: [{ type: 'all', username: 'all', user_id: 'all' }]
                     });
                 }
             } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
-                console.log('👤 [SOCKET-HANDLER] User mention detected for current user');
-                if (this.chatSection.mentionHandler) {
+                console.log('👤 [SOCKET-HANDLER] User mention detected locally for current user');
+                if (isCurrentChat && this.chatSection.mentionHandler) {
                     this.chatSection.mentionHandler.handleMentionNotification({
                         ...data,
                         mentions: [{ type: 'user', username: data.mentioned_username, user_id: data.mentioned_user_id }]
@@ -796,7 +798,29 @@ class SocketHandler {
                 }
             }
         } catch (error) {
-            console.error('❌ [SOCKET-HANDLER] Error handling mention notification:', error);
+            console.error('❌ [SOCKET-HANDLER] Error handling local mention notification:', error);
+        }
+    }
+    
+    isCurrentChat(data) {
+        try {
+            if (!this.chatSection || !this.chatSection.targetId) {
+                return false;
+            }
+            
+            const currentChatType = this.chatSection.chatType;
+            const currentTargetId = String(this.chatSection.targetId);
+            
+            if (data.channel_id) {
+                return currentChatType === 'channel' && currentTargetId === String(data.channel_id);
+            } else if (data.room_id) {
+                return (currentChatType === 'dm' || currentChatType === 'direct') && currentTargetId === String(data.room_id);
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('❌ [SOCKET-HANDLER] Error checking current chat:', error);
+            return false;
         }
     }
 }

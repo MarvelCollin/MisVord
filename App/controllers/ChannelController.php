@@ -633,13 +633,25 @@ class ChannelController extends BaseController
 
             $participants = $this->membershipRepository->getServerMembers($channel->server_id);
 
+            // Format participants for mention handler compatibility
+            $formattedParticipants = array_map(function($participant) {
+                return [
+                    'user_id' => $participant['id'],
+                    'username' => $participant['username'],
+                    'avatar_url' => $participant['avatar_url'] ?? '/public/assets/common/default-profile-picture.png',
+                    'display_name' => $participant['display_name'] ?? $participant['username'],
+                    'role' => $participant['role'] ?? 'member'
+                ];
+            }, $participants);
+
             $this->logActivity('channel_participants_viewed', [
                 'channel_id' => $channelId,
                 'participant_count' => count($participants)
             ]);
 
             return $this->success([
-                'participants' => $participants,
+                'data' => $formattedParticipants,
+                'participants' => $participants, // Keep for backward compatibility
                 'channel_id' => $channelId,
                 'total' => count($participants)
             ]);

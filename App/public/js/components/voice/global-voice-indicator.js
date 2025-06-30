@@ -7,13 +7,47 @@ class GlobalVoiceIndicator {
         this.indicator = null;
         this.isDragging = false;
         this.dragOffset = { x: 0, y: 0 };
+        this.connectionTimer = null;
+        this.periodicCheckInterval = null;
+        this.mutationObserver = null;
         
         this.init();
     }
 
     init() {
         this.setupEventListeners();
-        this.loadPosition();
+        this.checkExistingConnection();
+        this.startPeriodicCheck();
+    }
+    
+    checkExistingConnection() {
+        setTimeout(() => {
+            const voiceState = this.getVoiceState();
+            const voiceManagerConnected = window.voiceManager?.isConnected;
+            const videoSDKConnected = window.videoSDKManager?.isConnected;
+            
+            if (voiceState?.isConnected || voiceManagerConnected || videoSDKConnected) {
+                this.isConnected = true;
+                this.channelName = voiceState?.channelName || window.voiceManager?.currentChannelName || 'Voice Channel';
+                this.meetingId = voiceState?.meetingId || window.voiceManager?.currentMeetingId || '';
+                this.connectionTime = voiceState?.connectionTime || Date.now();
+                
+                this.createIndicator();
+                this.updateVisibility();
+            }
+        }, 500);
+    }
+    
+    startPeriodicCheck() {
+        if (this.periodicCheckInterval) {
+            clearInterval(this.periodicCheckInterval);
+        }
+        
+        this.periodicCheckInterval = setInterval(() => {
+            if (this.isConnected || window.voiceManager?.isConnected || window.videoSDKManager?.isConnected) {
+                this.updateVisibility();
+            }
+        }, 2000);
     }
 
     setupEventListeners() {
@@ -25,9 +59,26 @@ class GlobalVoiceIndicator {
             this.handleDisconnect();
         });
 
-        window.addEventListener('voiceStateChanged', (e) => {
+        window.addEventListener('voiceStateChanged', () => {
             this.updateControls();
+            this.updateVisibility();
         });
+
+        window.addEventListener('popstate', () => {
+            setTimeout(() => this.updateVisibility(), 100);
+        });
+        
+        window.addEventListener('hashchange', () => {
+            setTimeout(() => this.updateVisibility(), 100);
+        });
+        
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                setTimeout(() => this.updateVisibility(), 100);
+            }
+        });
+        
+        this.setupMutationObserver();
 
         window.addEventListener('beforeunload', () => {
             this.cleanup();
@@ -36,31 +87,54 @@ class GlobalVoiceIndicator {
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener(() => {
                 this.updateControls();
+                this.updateVisibility();
+            });
+        }
+    }
+    
+    setupMutationObserver() {
+        if (typeof MutationObserver === 'undefined') return;
+        
+        this.mutationObserver = new MutationObserver((mutations) => {
+            let shouldUpdate = false;
+            
+            mutations.forEach((mutation) => {
+                if (mutation.target.id === 'main-content' || 
+                    mutation.target.classList?.contains('main-content') ||
+                    mutation.target.classList?.contains('app-content')) {
+                    shouldUpdate = true;
+                }
+            });
+            
+            if (shouldUpdate) {
+                setTimeout(() => this.updateVisibility(), 200);
+            }
+        });
+        
+        const mainContent = document.getElementById('main-content') || 
+                           document.querySelector('.main-content') ||
+                           document.querySelector('.app-content') ||
+                           document.body;
+                           
+        if (mainContent) {
+            this.mutationObserver.observe(mainContent, {
+                childList: true,
+                subtree: true
             });
         }
     }
 
     handleConnect(detail) {
-        console.log('🎤 Voice connected, showing global indicator');
-        
         this.isConnected = true;
         this.channelName = detail.channelName || 'Voice Channel';
         this.meetingId = detail.meetingId || '';
         this.connectionTime = Date.now();
         
-        // Check if we're on a voice channel page (don't show indicator there)
-        if (this.isOnVoiceChannelPage()) {
-            console.log('📍 On voice channel page, not showing indicator');
-            return;
-        }
-        
         this.createIndicator();
-        this.showIndicator();
+        this.updateVisibility();
     }
 
     handleDisconnect() {
-        console.log('🔇 Voice disconnected, hiding global indicator');
-        
         this.isConnected = false;
         this.hideIndicator();
         
@@ -70,20 +144,27 @@ class GlobalVoiceIndicator {
     }
 
     isOnVoiceChannelPage() {
-        // Check various indicators that we're on a voice channel page
         const voiceElements = [
             document.getElementById('voice-container'),
             document.getElementById('joinView'),
             document.getElementById('connectingView'),
+            document.getElementById('connectedView'),
             document.getElementById('joinBtn'),
+            document.querySelector('.voice-call-app'),
+            document.querySelector('.voice-controls'),
             document.querySelector('meta[name="meeting-id"]')
         ];
         
-        return voiceElements.some(el => el !== null);
+        const urlParams = new URLSearchParams(window.location.search);
+        const channelType = urlParams.get('type');
+        const isVoiceURL = channelType === 'voice';
+        
+        const hasVoiceElements = voiceElements.some(el => el !== null && !el.classList.contains('hidden'));
+        
+        return hasVoiceElements || isVoiceURL;
     }
 
     createIndicator() {
-        // Remove any existing indicator
         this.cleanup();
         
         this.indicator = document.createElement('div');
@@ -92,14 +173,17 @@ class GlobalVoiceIndicator {
         this.indicator.style.cssText = `
             display: flex;
             flex-direction: column;
-            min-width: 260px;
+            min-width: 280px;
             max-width: 320px;
             bottom: 20px;
             left: 20px;
             opacity: 0;
-            transform: scale(0.8);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transform: scale(0.9);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            pointer-events: auto;
+            user-select: none;
         `;
 
         this.indicator.innerHTML = this.getIndicatorHTML();
@@ -113,40 +197,34 @@ class GlobalVoiceIndicator {
 
     getIndicatorHTML() {
         return `
-            <!-- Header with drag handle -->
-            <div class="voice-indicator-header flex items-center justify-between p-3 bg-[#2b2d31] rounded-t-lg cursor-grab active:cursor-grabbing">
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 bg-[#3ba55c] rounded-full animate-pulse"></div>
-                    <span class="text-sm font-medium">Voice Connected</span>
+            <div class="voice-indicator-header flex items-center justify-between p-3 bg-gradient-to-r from-[#2b2d31] to-[#36393f] rounded-t-lg cursor-grab active:cursor-grabbing">
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 bg-[#3ba55c] rounded-full animate-pulse shadow-lg"></div>
+                    <span class="text-sm font-semibold">Voice Connected</span>
                 </div>
-                <button class="disconnect-btn text-[#ed4245] hover:text-[#fc5054] transition-colors p-1 rounded hover:bg-[#ed4245]/10">
+                <button class="disconnect-btn text-[#ed4245] hover:text-[#fc5054] transition-all duration-200 p-2 rounded-md hover:bg-[#ed4245]/10">
                     <i class="fas fa-phone-slash text-sm"></i>
                 </button>
             </div>
             
-            <!-- Connection Info -->
-            <div class="voice-indicator-info p-3 border-b border-[#40444b]">
-                <div class="text-xs text-[#b9bbbe] mb-1">Channel</div>
-                <div class="channel-name text-sm font-medium text-[#3ba55c] truncate">${this.channelName}</div>
-                <div class="connection-time text-xs text-[#72767d] mt-1">00:00</div>
+            <div class="voice-indicator-info p-4 border-b border-[#40444b]/50">
+                <div class="text-xs text-[#b9bbbe] mb-2 uppercase tracking-wide">Channel</div>
+                <div class="channel-name text-sm font-medium text-[#3ba55c] truncate mb-2">${this.channelName}</div>
+                <div class="connection-time text-xs text-[#72767d] font-mono">00:00</div>
             </div>
             
-            <!-- Controls -->
-            <div class="voice-indicator-controls p-3 bg-[#232428] rounded-b-lg">
-                <div class="grid grid-cols-3 gap-2">
-                    <!-- Microphone -->
-                    <button class="mic-btn control-btn bg-[#2f3136] hover:bg-[#3c3f47] p-3 rounded-md transition-all duration-200 group" title="Mute/Unmute">
-                        <i class="fas fa-microphone text-[#b9bbbe] group-hover:text-white transition-colors"></i>
+            <div class="voice-indicator-controls p-4 bg-gradient-to-b from-[#232428] to-[#1e1f22] rounded-b-lg">
+                <div class="grid grid-cols-3 gap-3">
+                    <button class="mic-btn control-btn bg-[#2f3136] hover:bg-[#3c3f47] p-3 rounded-lg transition-all duration-200 group border border-[#40444b]/30" title="Mute/Unmute">
+                        <i class="fas fa-microphone text-[#b9bbbe] group-hover:text-white transition-colors text-lg"></i>
                     </button>
                     
-                    <!-- Deafen -->
-                    <button class="deafen-btn control-btn bg-[#2f3136] hover:bg-[#3c3f47] p-3 rounded-md transition-all duration-200 group" title="Deafen/Undeafen">
-                        <i class="fas fa-headphones text-[#b9bbbe] group-hover:text-white transition-colors"></i>
+                    <button class="deafen-btn control-btn bg-[#2f3136] hover:bg-[#3c3f47] p-3 rounded-lg transition-all duration-200 group border border-[#40444b]/30" title="Deafen/Undeafen">
+                        <i class="fas fa-headphones text-[#b9bbbe] group-hover:text-white transition-colors text-lg"></i>
                     </button>
                     
-                    <!-- Info/Settings -->
-                    <button class="info-btn control-btn bg-[#2f3136] hover:bg-[#3c3f47] p-3 rounded-md transition-all duration-200 group" title="Connection Info">
-                        <i class="fas fa-info-circle text-[#b9bbbe] group-hover:text-white transition-colors"></i>
+                    <button class="info-btn control-btn bg-[#2f3136] hover:bg-[#3c3f47] p-3 rounded-lg transition-all duration-200 group border border-[#40444b]/30" title="Connection Info">
+                        <i class="fas fa-info-circle text-[#b9bbbe] group-hover:text-white transition-colors text-lg"></i>
                     </button>
                 </div>
             </div>
@@ -156,13 +234,8 @@ class GlobalVoiceIndicator {
     setupIndicatorEvents() {
         if (!this.indicator) return;
 
-        // Drag functionality
         this.setupDragAndDrop();
-        
-        // Control buttons
         this.setupControlButtons();
-        
-        // Update controls based on current state
         this.updateControls();
     }
 
@@ -181,7 +254,6 @@ class GlobalVoiceIndicator {
     }
 
     startDrag(e) {
-        // Don't drag if clicking on buttons
         if (e.target.closest('button')) return;
         
         this.isDragging = true;
@@ -201,7 +273,6 @@ class GlobalVoiceIndicator {
         let left = e.clientX - this.dragOffset.x;
         let top = e.clientY - this.dragOffset.y;
         
-        // Keep indicator within viewport
         const rect = this.indicator.getBoundingClientRect();
         left = Math.max(0, Math.min(left, window.innerWidth - rect.width));
         top = Math.max(0, Math.min(top, window.innerHeight - rect.height));
@@ -218,7 +289,7 @@ class GlobalVoiceIndicator {
         if (!this.isDragging || !this.indicator) return;
         
         this.isDragging = false;
-        this.indicator.style.transition = 'all 0.3s ease';
+        this.indicator.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
         this.indicator.style.cursor = 'grab';
         
         this.savePosition();
@@ -229,31 +300,36 @@ class GlobalVoiceIndicator {
 
         const micBtn = this.indicator.querySelector('.mic-btn');
         if (micBtn) {
-            micBtn.removeEventListener('click', this.handleMicClick);
             this.handleMicClick = () => {
-                if (window.localStorageManager) {
+                if (window.videoSDKManager && window.videoSDKManager.isConnected) {
+                    window.videoSDKManager.toggleMic();
+                } else if (window.voiceCallManager && typeof window.voiceCallManager.toggleMic === 'function') {
+                    window.voiceCallManager.toggleMic();
+                } else if (window.localStorageManager) {
                     window.localStorageManager.toggleVoiceMute();
                 }
+                this.updateControls();
             };
             micBtn.addEventListener('click', this.handleMicClick);
         }
 
         const deafenBtn = this.indicator.querySelector('.deafen-btn');
         if (deafenBtn) {
-            deafenBtn.removeEventListener('click', this.handleDeafenClick);
             this.handleDeafenClick = () => {
-                if (window.localStorageManager) {
+                if (window.videoSDKManager && window.videoSDKManager.isConnected) {
+                    window.videoSDKManager.toggleDeafen();
+                } else if (window.voiceCallManager && typeof window.voiceCallManager.toggleDeafen === 'function') {
+                    window.voiceCallManager.toggleDeafen();
+                } else if (window.localStorageManager) {
                     window.localStorageManager.toggleVoiceDeafen();
                 }
+                this.updateControls();
             };
             deafenBtn.addEventListener('click', this.handleDeafenClick);
         }
 
-
-
         const infoBtn = this.indicator.querySelector('.info-btn');
         if (infoBtn) {
-            infoBtn.removeEventListener('click', this.handleInfoClick);
             this.handleInfoClick = () => {
                 this.showConnectionInfo();
             };
@@ -262,13 +338,16 @@ class GlobalVoiceIndicator {
 
         const disconnectBtn = this.indicator.querySelector('.disconnect-btn');
         if (disconnectBtn) {
-            disconnectBtn.removeEventListener('click', this.handleDisconnectClick);
             this.handleDisconnectClick = () => {
-                if (window.voiceStateManager) {
-                    window.voiceStateManager.disconnectVoice();
-                } else if (window.voiceManager) {
+                if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
                     window.voiceManager.leaveVoice();
+                } else if (window.videoSDKManager && window.videoSDKManager.isConnected) {
+                    window.videoSDKManager.leaveMeeting();
+                } else if (window.voiceStateManager) {
+                    window.voiceStateManager.disconnectVoice();
                 }
+                
+                this.handleDisconnect();
             };
             disconnectBtn.addEventListener('click', this.handleDisconnectClick);
         }
@@ -277,7 +356,7 @@ class GlobalVoiceIndicator {
     updateControls() {
         if (!this.indicator) return;
 
-        this.updateIndicatorVisibility();
+        this.updateVisibility();
 
         const state = this.getVoiceState();
         if (!state) return;
@@ -286,13 +365,13 @@ class GlobalVoiceIndicator {
         const micIcon = micBtn?.querySelector('i');
         if (micBtn && micIcon) {
             if (state.isMuted || state.isDeafened) {
-                micIcon.className = 'fas fa-microphone-slash text-[#ed4245]';
-                micBtn.classList.add('bg-[#ed4245]/20');
-                micBtn.classList.remove('bg-[#2f3136]');
+                micIcon.className = 'fas fa-microphone-slash text-[#ed4245] text-lg';
+                micBtn.classList.add('bg-[#ed4245]/20', 'border-[#ed4245]/40');
+                micBtn.classList.remove('bg-[#2f3136]', 'border-[#40444b]/30');
             } else {
-                micIcon.className = 'fas fa-microphone text-[#b9bbbe] group-hover:text-white';
-                micBtn.classList.remove('bg-[#ed4245]/20');
-                micBtn.classList.add('bg-[#2f3136]');
+                micIcon.className = 'fas fa-microphone text-[#b9bbbe] group-hover:text-white transition-colors text-lg';
+                micBtn.classList.remove('bg-[#ed4245]/20', 'border-[#ed4245]/40');
+                micBtn.classList.add('bg-[#2f3136]', 'border-[#40444b]/30');
             }
         }
 
@@ -300,17 +379,15 @@ class GlobalVoiceIndicator {
         const deafenIcon = deafenBtn?.querySelector('i');
         if (deafenBtn && deafenIcon) {
             if (state.isDeafened) {
-                deafenIcon.className = 'fas fa-volume-xmark text-[#ed4245]';
-                deafenBtn.classList.add('bg-[#ed4245]/20');
-                deafenBtn.classList.remove('bg-[#2f3136]');
+                deafenIcon.className = 'fas fa-volume-xmark text-[#ed4245] text-lg';
+                deafenBtn.classList.add('bg-[#ed4245]/20', 'border-[#ed4245]/40');
+                deafenBtn.classList.remove('bg-[#2f3136]', 'border-[#40444b]/30');
             } else {
-                deafenIcon.className = 'fas fa-headphones text-[#b9bbbe] group-hover:text-white';
-                deafenBtn.classList.remove('bg-[#ed4245]/20');
-                deafenBtn.classList.add('bg-[#2f3136]');
+                deafenIcon.className = 'fas fa-headphones text-[#b9bbbe] group-hover:text-white transition-colors text-lg';
+                deafenBtn.classList.remove('bg-[#ed4245]/20', 'border-[#ed4245]/40');
+                deafenBtn.classList.add('bg-[#2f3136]', 'border-[#40444b]/30');
             }
         }
-
-
     }
 
     updateConnectionInfo() {
@@ -318,8 +395,8 @@ class GlobalVoiceIndicator {
 
         const channelNameEl = this.indicator.querySelector('.channel-name');
         if (channelNameEl) {
-            const displayName = this.channelName.length > 20 
-                ? this.channelName.substring(0, 17) + '...' 
+            const displayName = this.channelName.length > 25 
+                ? this.channelName.substring(0, 22) + '...' 
                 : this.channelName;
             channelNameEl.textContent = displayName;
         }
@@ -351,34 +428,33 @@ class GlobalVoiceIndicator {
     showConnectionInfo() {
         if (!this.indicator) return;
 
-        // Create info modal
         const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]';
+        modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] backdrop-blur-sm';
         modal.innerHTML = `
-            <div class="bg-[#2f3136] rounded-lg p-6 m-4 max-w-md w-full">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-white">Connection Info</h3>
-                    <button class="close-modal text-[#b9bbbe] hover:text-white">
-                        <i class="fas fa-times"></i>
+            <div class="bg-gradient-to-b from-[#2f3136] to-[#36393f] rounded-xl p-6 m-4 max-w-md w-full shadow-2xl border border-[#40444b]">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-white">Connection Info</h3>
+                    <button class="close-modal text-[#b9bbbe] hover:text-white p-1 rounded transition-colors">
+                        <i class="fas fa-times text-lg"></i>
                     </button>
                 </div>
-                <div class="space-y-3 text-sm">
-                    <div>
+                <div class="space-y-4 text-sm">
+                    <div class="flex justify-between">
                         <span class="text-[#b9bbbe]">Channel:</span>
-                        <span class="text-white ml-2">${this.channelName}</span>
+                        <span class="text-white font-medium">${this.channelName}</span>
                     </div>
-                    <div>
+                    <div class="flex justify-between">
                         <span class="text-[#b9bbbe]">Meeting ID:</span>
-                        <span class="text-white ml-2 font-mono text-xs">${this.meetingId}</span>
+                        <span class="text-white font-mono text-xs bg-[#1e1f22] px-2 py-1 rounded">${this.meetingId}</span>
                     </div>
-                    <div>
+                    <div class="flex justify-between">
                         <span class="text-[#b9bbbe]">Connected:</span>
-                        <span class="text-white ml-2">${new Date(this.connectionTime).toLocaleTimeString()}</span>
+                        <span class="text-white">${new Date(this.connectionTime).toLocaleTimeString()}</span>
                     </div>
-                    <div>
+                    <div class="flex justify-between">
                         <span class="text-[#b9bbbe]">Status:</span>
-                        <span class="text-[#3ba55c] ml-2">
-                            <i class="fas fa-circle text-xs"></i> Connected
+                        <span class="text-[#3ba55c] flex items-center gap-1">
+                            <i class="fas fa-circle text-xs animate-pulse"></i> Connected
                         </span>
                     </div>
                 </div>
@@ -387,7 +463,6 @@ class GlobalVoiceIndicator {
 
         document.body.appendChild(modal);
 
-        // Close modal handlers
         const closeBtn = modal.querySelector('.close-modal');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => modal.remove());
@@ -397,7 +472,6 @@ class GlobalVoiceIndicator {
             if (e.target === modal) modal.remove();
         });
 
-        // Auto-close after 10 seconds
         setTimeout(() => {
             if (modal.parentNode) modal.remove();
         }, 10000);
@@ -406,25 +480,19 @@ class GlobalVoiceIndicator {
     showIndicator() {
         if (!this.indicator) return;
 
-        // Load saved position
         this.loadPosition();
 
-        // Animate in
         requestAnimationFrame(() => {
             this.indicator.style.opacity = '1';
             this.indicator.style.transform = 'scale(1)';
         });
-
-        console.log('✅ Global voice indicator shown');
     }
 
     hideIndicator() {
         if (!this.indicator) return;
 
         this.indicator.style.opacity = '0';
-        this.indicator.style.transform = 'scale(0.8)';
-
-        console.log('🔇 Global voice indicator hidden');
+        this.indicator.style.transform = 'scale(0.9)';
     }
 
     savePosition() {
@@ -447,7 +515,6 @@ class GlobalVoiceIndicator {
             if (saved) {
                 const position = JSON.parse(saved);
                 
-                // Ensure position is within viewport
                 const maxLeft = window.innerWidth - this.indicator.offsetWidth;
                 const maxTop = window.innerHeight - this.indicator.offsetHeight;
                 
@@ -469,51 +536,104 @@ class GlobalVoiceIndicator {
             clearInterval(this.connectionTimer);
             this.connectionTimer = null;
         }
+        
+        if (this.periodicCheckInterval) {
+            clearInterval(this.periodicCheckInterval);
+            this.periodicCheckInterval = null;
+        }
+        
+        if (this.mutationObserver) {
+            this.mutationObserver.disconnect();
+            this.mutationObserver = null;
+        }
 
         if (this.indicator) {
             this.indicator.remove();
             this.indicator = null;
         }
 
-        // Clean up any info modals
-        const modals = document.querySelectorAll('.fixed.inset-0.bg-black\\/50');
+        const modals = document.querySelectorAll('.fixed.inset-0.bg-black\\/60');
         modals.forEach(modal => modal.remove());
     }
 
     getVoiceState() {
-        if (window.localStorageManager) {
-            return window.localStorageManager.getVoiceState();
-        }
-        return {
+        let state = {
+            isConnected: false,
             isMuted: false,
             isDeafened: false,
             isVideoOn: false,
             isScreenSharing: false,
-            volume: 100
+            volume: 100,
+            channelId: null,
+            channelName: null,
+            meetingId: null
         };
+        
+        if (window.localStorageManager) {
+            const localState = window.localStorageManager.getVoiceState();
+            if (localState) {
+                state = { ...state, ...localState };
+            }
+        }
+        
+        if (window.voiceManager) {
+            state.isConnected = state.isConnected || window.voiceManager.isConnected;
+            state.channelName = state.channelName || window.voiceManager.currentChannelName;
+            state.meetingId = state.meetingId || window.voiceManager.currentMeetingId;
+        }
+        
+        if (window.videoSDKManager) {
+            state.isConnected = state.isConnected || window.videoSDKManager.isConnected;
+            state.channelName = state.channelName || window.videoSDKManager.currentChannelName;
+            state.meetingId = state.meetingId || window.videoSDKManager.currentMeetingId;
+        }
+        
+        if (window.voiceCallManager) {
+            state.isMuted = state.isMuted || window.voiceCallManager.isMuted;
+            state.isDeafened = state.isDeafened || window.voiceCallManager.isDeafened;
+            state.isVideoOn = state.isVideoOn || window.voiceCallManager.isVideoOn;
+            state.isScreenSharing = state.isScreenSharing || window.voiceCallManager.isScreenSharing;
+        }
+        
+        return state;
+    }
+    
+    forceUpdateIndicator() {
+        this.checkExistingConnection();
+        this.updateVisibility();
+    }
+    
+    ensureIndicatorVisible() {
+        if (!this.indicator && (this.isConnected || window.voiceManager?.isConnected || window.videoSDKManager?.isConnected)) {
+            this.createIndicator();
+        }
+        this.updateVisibility();
     }
 
-    updateIndicatorVisibility() {
-        if (!this.indicator) return;
+    updateVisibility() {
+        if (!this.indicator) {
+            return;
+        }
 
         const voiceState = this.getVoiceState();
-        const isInVoiceChannel = voiceState && (this.isConnected || voiceState.channelId);
-        const voiceCallSection = document.querySelector('.voice-control-panel');
+        const voiceManagerConnected = window.voiceManager?.isConnected;
+        const videoSDKConnected = window.videoSDKManager?.isConnected;
+        const localStorageConnected = voiceState?.isConnected;
         
-        if (isInVoiceChannel && voiceCallSection) {
-            this.indicator.style.display = 'none';
-        } else if (isInVoiceChannel) {
+        const isConnectedAnywhere = this.isConnected || voiceManagerConnected || videoSDKConnected || localStorageConnected;
+        const isOnVoicePage = this.isOnVoiceChannelPage();
+        
+        if (isConnectedAnywhere && !isOnVoicePage) {
             this.indicator.style.display = 'flex';
+            this.showIndicator();
         } else {
             this.indicator.style.display = 'none';
         }
     }
 }
 
-// Create global instance
 if (!window.globalVoiceIndicator) {
     window.globalVoiceIndicator = new GlobalVoiceIndicator();
-    console.log('✅ GlobalVoiceIndicator initialized');
 }
 
 export default window.globalVoiceIndicator;

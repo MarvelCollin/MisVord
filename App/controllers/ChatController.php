@@ -1468,8 +1468,18 @@ class ChatController extends BaseController
 
             $participants = $this->chatRoomRepository->getParticipants($roomId);
 
+            // Format participants for mention handler compatibility
+            $formattedParticipants = array_map(function($participant) {
+                return [
+                    'user_id' => $participant['user_id'],
+                    'username' => $participant['username'],
+                    'avatar_url' => $participant['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'
+                ];
+            }, $participants);
+
             return $this->success([
-                'participants' => $participants,
+                'data' => $formattedParticipants,
+                'participants' => $participants, // Keep for backward compatibility
                 'room_id' => $roomId,
                 'total' => count($participants)
             ]);

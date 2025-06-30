@@ -185,13 +185,16 @@ class ChannelSwitchManager {
             window.globalSocketManager.leaveChannel(this.currentChannelId);
         }
         
-        // Cleanup voice manager if switching from voice
+        // DON'T cleanup voice manager when switching channels - keep voice alive!
+        // Voice should only disconnect when explicitly requested by user
         if (this.currentChannelType === 'voice' && window.voiceManager) {
-            console.log('[ChannelSwitchManager] Cleaning up voice manager');
-            if (typeof window.voiceManager.leaveVoice === 'function') {
-                window.voiceManager.leaveVoice();
+            console.log('[ChannelSwitchManager] Keeping voice connection alive during channel switch');
+            // Just update the voice state to reflect we're no longer on the voice channel page
+            if (window.globalVoiceIndicator) {
+                setTimeout(() => {
+                    window.globalVoiceIndicator.ensureIndicatorVisible();
+                }, 200);
             }
-            window.voiceManager = null;
         }
     }
 
@@ -274,21 +277,22 @@ class ChannelSwitchManager {
                 console.log('[ChannelSwitchManager] Chat section not found - will be created');
             }
             
-            // Cleanup voice manager and components
-            if (window.voiceManager) {
-                console.log('[ChannelSwitchManager] Cleaning up voice manager');
-                if (window.voiceManager.isConnected && typeof window.voiceManager.leaveVoice === 'function') {
-                    window.voiceManager.leaveVoice();
-                }
-                window.voiceManager = null;
-            }
-            
+            // DON'T cleanup voice manager - keep voice alive across channel switches!
+            // Just clean up the voice section UI components
             if (window.voiceSection) {
-                console.log('[ChannelSwitchManager] Cleaning up voice section instance');
+                console.log('[ChannelSwitchManager] Cleaning up voice section UI only');
                 if (typeof window.voiceSection.cleanup === 'function') {
                     window.voiceSection.cleanup();
                 }
                 window.voiceSection = null;
+            }
+            
+            // Show global voice indicator if voice is still connected
+            if (window.voiceManager && window.voiceManager.isConnected && window.globalVoiceIndicator) {
+                console.log('[ChannelSwitchManager] Voice still connected, showing global indicator');
+                setTimeout(() => {
+                    window.globalVoiceIndicator.ensureIndicatorVisible();
+                }, 300);
             }
             
             // Reset voice section UI to initial state

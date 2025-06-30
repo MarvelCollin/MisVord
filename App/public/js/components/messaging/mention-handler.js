@@ -14,6 +14,12 @@ class MentionHandler {
         this.lastTargetId = null;
         this.userCache = new Map();
         
+        // Initialize rich text handler if available
+        this.richTextHandler = window.richTextHandler || null;
+        if (!this.richTextHandler && window.RichTextHandler) {
+            this.richTextHandler = new window.RichTextHandler();
+        }
+        
         this.init();
     }
     
@@ -44,9 +50,41 @@ class MentionHandler {
     createAutocompleteContainer() {
         this.autocompleteContainer = document.createElement('div');
         this.autocompleteContainer.className = 'mention-autocomplete absolute z-50 bg-[#2f3136] border border-[#40444b] rounded-md shadow-lg max-h-60 overflow-y-auto hidden';
-        this.autocompleteContainer.style.bottom = '100%';
-        this.autocompleteContainer.style.left = '0';
-        this.autocompleteContainer.style.minWidth = '200px';
+        this.autocompleteContainer.style.cssText = `
+            bottom: 100%;
+            left: 0;
+            min-width: 200px;
+            max-width: 300px;
+            will-change: transform;
+            transform: translateZ(0);
+            scrollbar-width: thin;
+            scrollbar-color: #4f545c #2f3136;
+        `;
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            .mention-autocomplete::-webkit-scrollbar {
+                width: 8px;
+            }
+            .mention-autocomplete::-webkit-scrollbar-track {
+                background: #2f3136;
+            }
+            .mention-autocomplete::-webkit-scrollbar-thumb {
+                background: #4f545c;
+                border-radius: 4px;
+            }
+            .mention-autocomplete::-webkit-scrollbar-thumb:hover {
+                background: #5865f2;
+            }
+            .mention-autocomplete-item {
+                transition: background-color 0.1s ease;
+            }
+        `;
+        
+        if (!document.querySelector('style[data-mention-styles]')) {
+            style.setAttribute('data-mention-styles', 'true');
+            document.head.appendChild(style);
+        }
         
         if (this.chatSection.messageForm) {
             this.chatSection.messageForm.style.position = 'relative';
@@ -58,9 +96,36 @@ class MentionHandler {
         const targetId = this.chatSection.targetId;
         const chatType = this.chatSection.chatType;
         
+        console.log('🐛 [DEBUG] loadAvailableUsers called:', {
+            targetId: targetId,
+            chatType: chatType,
+            forceReload: forceReload,
+            isLoading: this.isLoading,
+            usersLoaded: this.usersLoaded
+        });
+        
         if (!targetId) {
-            console.warn('No target ID available for loading users');
-            return;
+            console.error('❌ [DEBUG] No target ID available for loading users');
+            
+            // Fallback: Try to get channel ID from URL parameters if we're in a channel
+            if (chatType === 'channel') {
+                console.log('🔧 [DEBUG] Attempting fallback to get channel ID from URL...');
+                const urlParams = new URLSearchParams(window.location.search);
+                const channelFromUrl = urlParams.get('channel');
+                
+                if (channelFromUrl) {
+                    console.log('🔧 [DEBUG] Found channel ID in URL:', channelFromUrl);
+                    // Update both this method's targetId and the chat section's targetId
+                    targetId = channelFromUrl;
+                    this.chatSection.targetId = targetId;
+                    console.log('🔧 [DEBUG] Updated targetId from URL, continuing with user loading...');
+                } else {
+                    console.error('❌ [DEBUG] No channel ID in URL parameters either');
+                    return;
+                }
+            } else {
+                return;
+            }
         }
         
         const cacheKey = `${chatType}-${targetId}`;
@@ -68,12 +133,12 @@ class MentionHandler {
         if (!forceReload && this.userCache.has(cacheKey) && this.lastTargetId === targetId) {
             this.availableUsers = this.userCache.get(cacheKey);
             this.usersLoaded = true;
-            console.log(`📝 [MENTION] Using cached users for ${cacheKey}:`, this.availableUsers.size, 'users');
+            console.log(`📝 [DEBUG] Using cached users for ${cacheKey}:`, this.availableUsers.size, 'users');
             return;
         }
         
         if (this.isLoading) {
-            console.log('📝 [MENTION] Already loading users, skipping...');
+            console.log('📝 [DEBUG] Already loading users, skipping...');
             return;
         }
         
@@ -81,49 +146,110 @@ class MentionHandler {
         this.usersLoaded = false;
         
         try {
-            console.log(`📝 [MENTION] Loading users for ${cacheKey}...`);
+            console.log(`📝 [DEBUG] Loading users for ${cacheKey}...`);
             
             if (chatType === 'channel') {
-                await this.loadChannelMembers();
+                console.log('🐛 [DEBUG] Calling loadChannelMembers...');
+                await this.loadChannelMembers(targetId);
             } else if (chatType === 'dm' || chatType === 'direct') {
+                console.log('🐛 [DEBUG] Calling loadDMParticipants...');
                 await this.loadDMParticipants();
+            } else {
+                console.error('❌ [DEBUG] Unknown chat type:', chatType);
             }
             
             this.userCache.set(cacheKey, new Map(this.availableUsers));
             this.lastTargetId = targetId;
             this.usersLoaded = true;
             
-            console.log(`✅ [MENTION] Loaded ${this.availableUsers.size} users for ${cacheKey}`);
+            console.log(`✅ [DEBUG] Loaded ${this.availableUsers.size} users for ${cacheKey}`);
         } catch (error) {
-            console.error('Error loading available users for mentions:', error);
+            console.error('❌ [DEBUG] Error loading available users for mentions:', error);
         } finally {
             this.isLoading = false;
         }
     }
     
-    async loadChannelMembers() {
+    async loadChannelMembers(targetId = null) {
         try {
-            const response = await fetch(`/api/channels/${this.chatSection.targetId}/members`, {
+            // Use passed targetId or fall back to chatSection targetId
+            targetId = targetId || this.chatSection.targetId;
+            const chatType = this.chatSection.chatType;
+            
+            console.log('🐛 [DEBUG] Loading channel members:', {
+                targetId: targetId,
+                chatType: chatType,
+                url: `/api/channels/${targetId}/members`
+            });
+            
+            if (!targetId) {
+                console.error('❌ [DEBUG] No targetId available for loading channel members');
+                return;
+            }
+            
+            const response = await fetch(`/api/channels/${targetId}/members`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
             
+            console.log('🐛 [DEBUG] Channel members response:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok
+            });
+            
             if (response.ok) {
                 const result = await response.json();
+                console.log('🐛 [DEBUG] Channel members result:', result);
+                
+                // Handle nested data structure: result.data.data contains the actual user array
+                let members = null;
                 if (result.success && result.data) {
-                    result.data.forEach(member => {
+                    if (Array.isArray(result.data)) {
+                        // Direct array format (fallback)
+                        members = result.data;
+                    } else if (result.data.data && Array.isArray(result.data.data)) {
+                        // Nested format: result.data.data contains the user array
+                        members = result.data.data;
+                    }
+                }
+                
+                if (members && members.length > 0) {
+                    console.log('🐛 [DEBUG] Processing members:', members.length, 'members found');
+                    
+                    members.forEach(member => {
+                        console.log('🐛 [DEBUG] Adding member:', member);
                         this.availableUsers.set(member.username.toLowerCase(), {
                             id: member.user_id,
                             username: member.username,
                             avatar_url: member.avatar_url || '/public/assets/common/default-profile-picture.png'
                         });
                     });
+                    
+                    console.log('🐛 [DEBUG] Total available users after loading:', this.availableUsers.size);
+                } else {
+                    console.error('❌ [DEBUG] Channel members data format issue:', {
+                        success: result.success,
+                        data: result.data,
+                        membersFound: members ? members.length : 0,
+                        dataType: typeof result.data,
+                        isArray: Array.isArray(result.data),
+                        hasNestedData: result.data && result.data.data ? Array.isArray(result.data.data) : false
+                    });
                 }
+            } else {
+                console.error('❌ [DEBUG] Failed to fetch channel members:', {
+                    status: response.status,
+                    statusText: response.statusText
+                });
+                
+                const errorText = await response.text();
+                console.error('❌ [DEBUG] Response body:', errorText);
             }
         } catch (error) {
-            console.error('Error loading channel members:', error);
+            console.error('❌ [DEBUG] Exception loading channel members:', error);
         }
     }
     
@@ -138,7 +264,7 @@ class MentionHandler {
             
             if (response.ok) {
                 const result = await response.json();
-                if (result.success && result.data) {
+                if (result.success && result.data && Array.isArray(result.data)) {
                     result.data.forEach(participant => {
                         this.availableUsers.set(participant.username.toLowerCase(), {
                             id: participant.user_id,
@@ -146,6 +272,8 @@ class MentionHandler {
                             avatar_url: participant.avatar_url || '/public/assets/common/default-profile-picture.png'
                         });
                     });
+                } else {
+                    console.warn('DM participants data is not an array:', result.data);
                 }
             }
         } catch (error) {
@@ -201,7 +329,38 @@ class MentionHandler {
                     this.hideAutocomplete();
                     break;
             }
+        } else {
+            // Quick mention with Ctrl/Cmd + @
+            if ((e.ctrlKey || e.metaKey) && e.key === '2' && e.shiftKey) {
+                e.preventDefault();
+                this.insertMentionTrigger();
+            }
         }
+    }
+    
+    insertMentionTrigger() {
+        const input = this.chatSection.messageInput;
+        const cursorPosition = input.selectionStart;
+        const value = input.value;
+        
+        const beforeCursor = value.substring(0, cursorPosition);
+        const afterCursor = value.substring(cursorPosition);
+        
+        // Add @ with a space before if needed
+        const needsSpace = beforeCursor.length > 0 && !beforeCursor.endsWith(' ');
+        const insertText = needsSpace ? ' @' : '@';
+        
+        const newValue = beforeCursor + insertText + afterCursor;
+        input.value = newValue;
+        
+        const newCursorPosition = cursorPosition + insertText.length;
+        input.setSelectionRange(newCursorPosition, newCursorPosition);
+        input.focus();
+        
+        // Trigger autocomplete
+        setTimeout(() => {
+            this.showAutocomplete('', cursorPosition + insertText.length - 1);
+        }, 50);
     }
     
     async showAutocomplete(searchTerm, mentionStartIndex) {
@@ -275,8 +434,25 @@ class MentionHandler {
         return matches.slice(0, 10);
     }
     
+    renderLoadingState() {
+        this.autocompleteContainer.innerHTML = `
+            <div class="mention-autocomplete-item flex items-center p-2">
+                <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center mr-2 animate-pulse">
+                    <i class="fas fa-spinner fa-spin text-white text-sm"></i>
+                </div>
+                <span class="text-gray-400">Loading users...</span>
+            </div>
+        `;
+        this.autocompleteContainer.classList.remove('hidden');
+    }
+    
     renderAutocomplete(matches) {
-        this.autocompleteContainer.innerHTML = '';
+        if (matches.length === 0) {
+            this.hideAutocomplete();
+            return;
+        }
+        
+        const fragment = document.createDocumentFragment();
         
         matches.forEach((match, index) => {
             const item = document.createElement('div');
@@ -292,7 +468,7 @@ class MentionHandler {
                 `;
             } else {
                 item.innerHTML = `
-                    <img src="${match.avatar_url}" alt="${match.username}" class="w-8 h-8 rounded-full mr-2">
+                    <img src="${match.avatar_url}" alt="${match.username}" class="w-8 h-8 rounded-full mr-2" loading="lazy">
                     <span class="text-white">${match.display}</span>
                 `;
             }
@@ -302,9 +478,11 @@ class MentionHandler {
                 this.selectCurrentMention();
             });
             
-            this.autocompleteContainer.appendChild(item);
+            fragment.appendChild(item);
         });
         
+        this.autocompleteContainer.innerHTML = '';
+        this.autocompleteContainer.appendChild(fragment);
         this.autocompleteContainer.classList.remove('hidden');
     }
     
@@ -368,6 +546,22 @@ class MentionHandler {
     }
     
     parseMentions(content) {
+        if (this.richTextHandler) {
+            const baseMentions = this.richTextHandler.parseMentions(content);
+            // Fill in user_id for user mentions
+            return baseMentions.map(mention => {
+                if (mention.type === 'user') {
+                    const user = this.availableUsers.get(mention.username.toLowerCase());
+                    return {
+                        ...mention,
+                        user_id: user ? user.id : null
+                    };
+                }
+                return mention;
+            });
+        }
+        
+        // Fallback parsing if rich text handler is not available
         const mentions = [];
         
         if (this.allMentionRegex.test(content)) {
@@ -397,14 +591,19 @@ class MentionHandler {
     }
     
     formatMessageWithMentions(content) {
+        if (this.richTextHandler) {
+            return this.richTextHandler.formatMentions(content, this.availableUsers);
+        }
+        
+        // Fallback formatting if rich text handler is not available
         let formattedContent = content;
         
-        formattedContent = formattedContent.replace(this.allMentionRegex, '<span class="mention mention-all text-blue-400 bg-blue-900/30 px-1 rounded">@all</span>');
+        formattedContent = formattedContent.replace(this.allMentionRegex, '<span class="mention mention-all text-orange-400 bg-orange-900/30 px-1 rounded font-medium">@all</span>');
         
         formattedContent = formattedContent.replace(this.mentionRegex, (match, username) => {
             const user = this.availableUsers.get(username.toLowerCase());
             if (user) {
-                return `<span class="mention mention-user text-blue-400 bg-blue-900/30 px-1 rounded" data-user-id="${user.id}">@${user.username}</span>`;
+                return `<span class="mention mention-user text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-user-id="${user.id}">@${user.username}</span>`;
             }
             return match;
         });
@@ -461,6 +660,175 @@ class MentionHandler {
         
         return participants;
     }
+    
+    onTargetChanged() {
+        const newTargetId = this.chatSection.targetId;
+        if (this.lastTargetId !== newTargetId) {
+            console.log(`📝 [MENTION] Target changed from ${this.lastTargetId} to ${newTargetId}`);
+            this.usersLoaded = false;
+            this.hideAutocomplete();
+            this.loadAvailableUsers();
+        }
+    }
+    
+    refreshUsers() {
+        console.log('📝 [MENTION] Refreshing users...');
+        this.loadAvailableUsers(true);
+    }
+    
+    destroy() {
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+        }
+        this.hideAutocomplete();
+        this.userCache.clear();
+        this.availableUsers.clear();
+    }
 }
+
+// Add global test function for debugging
+window.testChannelMembers = async function(channelId) {
+    console.log('🧪 [TEST] Testing channel members endpoint:', channelId);
+    
+    try {
+        const response = await fetch(`/api/channels/${channelId}/members`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('🧪 [TEST] Response status:', response.status, response.statusText);
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('🧪 [TEST] Success response:', result);
+            
+            if (result.success && result.data && Array.isArray(result.data)) {
+                console.log('🧪 [TEST] Found', result.data.length, 'members:');
+                result.data.forEach((member, index) => {
+                    console.log(`🧪 [TEST] Member ${index + 1}:`, member);
+                });
+            } else {
+                console.error('🧪 [TEST] Data format issue:', {
+                    success: result.success,
+                    data: result.data,
+                    isArray: Array.isArray(result.data)
+                });
+            }
+        } else {
+            const errorText = await response.text();
+            console.error('🧪 [TEST] Error response:', errorText);
+        }
+    } catch (error) {
+        console.error('🧪 [TEST] Exception:', error);
+    }
+};
+
+// Add global test function for current mention system
+window.testMentionSystem = function() {
+    const chatSection = window.chatSection;
+    
+    if (!chatSection) {
+        console.error('🧪 [TEST] No chatSection found');
+        return;
+    }
+    
+    console.log('🧪 [TEST] Chat section state:', {
+        targetId: chatSection.targetId,
+        chatType: chatSection.chatType,
+        userId: chatSection.userId,
+        username: chatSection.username
+    });
+    
+    const mentionHandler = chatSection.mentionHandler;
+    
+    if (!mentionHandler) {
+        console.error('🧪 [TEST] No mention handler found');
+        return;
+    }
+    
+    console.log('🧪 [TEST] Mention handler state:', {
+        isLoading: mentionHandler.isLoading,
+        usersLoaded: mentionHandler.usersLoaded,
+        availableUsersCount: mentionHandler.availableUsers.size,
+        lastTargetId: mentionHandler.lastTargetId
+    });
+    
+    console.log('🧪 [TEST] Available users:');
+    for (const [username, user] of mentionHandler.availableUsers) {
+        console.log(`🧪 [TEST] User: ${username}`, user);
+    }
+    
+    // Force reload users
+    console.log('🧪 [TEST] Force reloading users...');
+    mentionHandler.loadAvailableUsers(true);
+};
+
+window.testMentionParsing = function(content) {
+    const chatSection = window.chatSection;
+    
+    if (!chatSection || !chatSection.mentionHandler) {
+        console.error('🧪 [TEST] No chat section or mention handler found');
+        return;
+    }
+    
+    console.log('🧪 [TEST] Testing mention parsing for content:', content);
+    
+    const mentions = chatSection.mentionHandler.parseMentions(content);
+    
+    console.log('🧪 [TEST] Parsed mentions:', {
+        content: content,
+        mentionCount: mentions.length,
+        mentions: mentions
+    });
+    
+    mentions.forEach((mention, index) => {
+        console.log(`🧪 [TEST] Mention ${index + 1}:`, {
+            type: mention.type,
+            username: mention.username,
+            user_id: mention.user_id
+        });
+    });
+    
+    return mentions;
+};
+
+window.testMentionNotificationFlow = function() {
+    console.log('🧪 [TEST] Testing global mention notification setup...');
+    
+    const globalSocket = window.globalSocketManager;
+    
+    if (!globalSocket) {
+        console.error('🧪 [TEST] No global socket manager found');
+        return;
+    }
+    
+    console.log('🧪 [TEST] Global socket manager status:', {
+        connected: globalSocket.connected,
+        authenticated: globalSocket.authenticated,
+        userId: globalSocket.userId,
+        username: globalSocket.username,
+        hasIo: !!globalSocket.io
+    });
+    
+    if (globalSocket.io) {
+        console.log('🧪 [TEST] Simulating mention notification...');
+        
+        globalSocket.handleGlobalMentionNotification({
+            type: 'user',
+            mentioned_user_id: globalSocket.userId,
+            mentioned_username: globalSocket.username,
+            message_id: 'test-123',
+            content: 'Test mention message',
+            user_id: 'sender-123',
+            username: 'TestSender',
+            channel_id: '1',
+            timestamp: Date.now()
+        });
+    }
+    
+    return true;
+};
 
 export default MentionHandler; 

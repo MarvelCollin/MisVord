@@ -3,6 +3,7 @@ const RoomHandler = require('../handlers/roomHandler');
 const MessageHandler = require('../handlers/messageHandler');
 const BotHandler = require('../handlers/botHandler');
 const ActivityHandler = require('../handlers/activityHandler');
+const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
 const roomManager = require('../services/roomManager');
 const userService = require('../services/userService');
 const messageService = require('../services/messageService');
@@ -391,37 +392,38 @@ function setup(io) {
         });
         
         client.on('check-voice-meeting', (data) => {
-            console.log(`🎤 [VOICE-CHECK] Check voice meeting request from ${client.id}:`, data);
+            console.log(`🎤 [VOICE-CHECK] Voice meeting check from ${client.id}:`, {
+                channelId: data.channel_id,
+                userId: client.data?.user_id
+            });
             handleCheckVoiceMeeting(io, client, data);
         });
         
         client.on('register-voice-meeting', (data) => {
-            console.log(`🎤 [VOICE-REGISTER] Register voice meeting request from ${client.id}:`, data);
+            console.log(`🎤 [VOICE-REGISTER] Voice meeting registration from ${client.id}:`, {
+                channelId: data.channel_id,
+                meetingId: data.meeting_id,
+                userId: client.data?.user_id,
+                username: client.data?.username
+            });
+            
+            if (!client.data?.authenticated) {
+                console.warn('⚠️ [VOICE-REGISTER] Proceeding without authentication');
+            }
             handleRegisterVoiceMeeting(io, client, data);
         });
         
         client.on('unregister-voice-meeting', (data) => {
-            console.log(`🎤 [VOICE-UNREGISTER] Unregister voice meeting request from ${client.id}:`, data);
+            console.log(`🎤 [VOICE-UNREGISTER] Voice meeting unregistration from ${client.id}:`, {
+                channelId: data.channel_id,
+                userId: client.data?.user_id,
+                username: client.data?.username
+            });
+            
+            if (!client.data?.authenticated) {
+                console.warn('⚠️ [VOICE-UNREGISTER] Proceeding without authentication');
+            }
             handleUnregisterVoiceMeeting(io, client, data);
-        });
-
-        client.on('voice-participant-update', (data) => {
-            console.log(`🎤 [VOICE-PARTICIPANT] Voice participant update from ${client.id}:`, data);
-            handleVoiceParticipantUpdate(io, client, data);
-        });
-
-        client.on('voice-validation-request', (data) => {
-            console.log(`🔍 [VOICE-VALIDATION] Voice validation request from ${client.id}:`, data);
-            handleVoiceValidationRequest(io, client, data);
-        });
-
-        client.on('voice-validation-response', (data) => {
-            console.log(`📋 [VOICE-VALIDATION] Voice validation response from ${client.id}:`, data);
-        });
-        
-        client.on('voice-participant-activity', (data) => {
-            console.log(`🎯 [VOICE-ACTIVITY] Voice participant activity from ${client.id}:`, data);
-            handleVoiceParticipantActivity(io, client, data);
         });
         
         client.on('get-online-users', () => {
@@ -497,7 +499,9 @@ function setup(io) {
         client.on('disconnect', () => {
             console.log(`❌ [DISCONNECT] Client disconnected: ${client.id}`);
             if (client.data?.ticTacToeServerId) {
-                ActivityHandler.handleTicTacToeLeave(io, client, {});
+                ActivityHandler.handleTicTacToeLeave(io, client, { 
+                    server_id: client.data.ticTacToeServerId 
+                });
             }
             handleDisconnect(io, client);
         });
@@ -594,6 +598,7 @@ function handleRegisterVoiceMeeting(io, client, data) {
     });
     
     const { channel_id, meeting_id } = data;
+    const user_id = client.data?.user_id;
     
     if (!channel_id || !meeting_id) {
         console.warn(`⚠️ [VOICE-REGISTER-HANDLER] Channel ID and Meeting ID are required`);
@@ -612,6 +617,14 @@ function handleRegisterVoiceMeeting(io, client, data) {
 
     voiceMeetings.get(channel_id).participants.add(client.id);
     console.log(`👤 [VOICE-REGISTER-HANDLER] Added participant ${client.id} to voice meeting in channel ${channel_id}`);
+    
+    if (user_id) {
+        VoiceConnectionTracker.addUserToVoice(user_id, channel_id, meeting_id);
+        console.log(`🎤 [VOICE-REGISTER-HANDLER] Added user ${user_id} to voice connection tracker`);
+        
+        client.join(`voice-channel-${channel_id}`);
+        console.log(`🚪 [VOICE-REGISTER-HANDLER] User ${user_id} joined voice channel room: voice-channel-${channel_id}`);
+    }
     
     const participantCount = voiceMeetings.get(channel_id).participants.size;
     console.log(`📡 [VOICE-REGISTER-HANDLER] Broadcasting voice meeting update for channel ${channel_id}, participants: ${participantCount}`);
@@ -632,6 +645,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
     });
     
     const { channel_id } = data;
+    const user_id = client.data?.user_id;
     
     if (!channel_id) {
         console.warn(`⚠️ [VOICE-UNREGISTER-HANDLER] Channel ID is required`);
@@ -643,6 +657,20 @@ function handleUnregisterVoiceMeeting(io, client, data) {
     if (meeting) {
         meeting.participants.delete(client.id);
         console.log(`👤 [VOICE-UNREGISTER-HANDLER] Removed participant ${client.id} from voice meeting in channel ${channel_id}`);
+        
+        if (user_id) {
+            VoiceConnectionTracker.removeUserFromVoice(user_id);
+            console.log(`🔇 [VOICE-UNREGISTER-HANDLER] Removed user ${user_id} from voice connection tracker`);
+            
+            client.leave(`voice-channel-${channel_id}`);
+            console.log(`🚪 [VOICE-UNREGISTER-HANDLER] User ${user_id} left voice channel room: voice-channel-${channel_id}`);
+            
+            const titiBotId = BotHandler.getTitiBotId();
+            if (titiBotId) {
+                BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
+                console.log(`🤖 [VOICE-UNREGISTER-HANDLER] Removed bot from voice channel ${channel_id}`);
+            }
+        }
         
         if (meeting.participants.size === 0) {
             voiceMeetings.delete(channel_id);
@@ -718,12 +746,21 @@ function handleDisconnect(io, client) {
             }
         }
         
-        // Clean up voice meetings
+        // Clean up voice meetings and voice connection tracker
         let voiceMeetingsUpdated = [];
         for (const [channel_id, meeting] of voiceMeetings.entries()) {
             if (meeting.participants.has(client.id)) {
                 meeting.participants.delete(client.id);
                 console.log(`🎤 [DISCONNECT-HANDLER] Removed ${client.id} from voice meeting in channel ${channel_id}`);
+                
+                VoiceConnectionTracker.removeUserFromVoice(user_id);
+                console.log(`🔇 [DISCONNECT-HANDLER] Removed user ${user_id} from voice connection tracker`);
+                
+                const titiBotId = BotHandler.getTitiBotId();
+                if (titiBotId) {
+                    BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
+                    console.log(`🤖 [DISCONNECT-HANDLER] Removed bot from voice channel ${channel_id}`);
+                }
                 
                 if (meeting.participants.size === 0) {
                     voiceMeetings.delete(channel_id);
@@ -853,86 +890,6 @@ function handleTitiBotCommand(io, client, data) {
         console.error(`❌ [TITIBOT-CMD-HANDLER] Error processing command:`, error);
         client.emit('titibot-command-error', { message: 'Failed to process command' });
     }
-}
-
-function handleVoiceParticipantUpdate(io, client, data) {
-    console.log(`🎤 [VOICE-PARTICIPANT-HANDLER] Processing voice participant update:`, {
-        participantId: data.participant_id,
-        channelId: data.channel_id,
-        action: data.action,
-        username: data.username,
-        userId: data.user_id
-    });
-    
-    const { channel_id, participant_id, action, username, user_id } = data;
-    
-    if (!channel_id || !participant_id || !action) {
-        console.warn(`⚠️ [VOICE-PARTICIPANT-HANDLER] Missing required fields`);
-        return;
-    }
-    
-    const targetRoom = `channel-${channel_id}`;
-    
-    const participantUpdateData = {
-        channel_id,
-        participant_id,
-        action,
-        username: username || 'Unknown User',
-        user_id: user_id || participant_id,
-        timestamp: data.timestamp || Date.now()
-    };
-    
-    console.log(`📡 [VOICE-PARTICIPANT-HANDLER] Broadcasting participant update to room ${targetRoom}:`, participantUpdateData);
-    
-    io.to(targetRoom).emit('voice-participant-joined', participantUpdateData);
-    
-    console.log(`✅ [VOICE-PARTICIPANT-HANDLER] Voice participant update broadcast complete`);
-}
-
-function handleVoiceValidationRequest(io, client, data) {
-    console.log(`🔍 [VOICE-VALIDATION-HANDLER] Processing voice validation request:`, {
-        userId: data.user_id,
-        username: data.username,
-        requestingClient: client.id
-    });
-    
-    client.emit('voice-validation-request', {
-        user_id: data.user_id,
-        username: data.username,
-        timestamp: data.timestamp || Date.now()
-    });
-    
-    console.log(`✅ [VOICE-VALIDATION-HANDLER] Voice validation request forwarded to client`);
-}
-
-function handleVoiceParticipantActivity(io, client, data) {
-    console.log(`🎯 [VOICE-ACTIVITY-HANDLER] Processing voice participant activity:`, {
-        userId: data.user_id,
-        username: data.username,
-        activity: data.activity,
-        command: data.command
-    });
-    
-    const { user_id, username, activity, command } = data;
-    
-    if (!user_id || !activity) {
-        console.warn(`⚠️ [VOICE-ACTIVITY-HANDLER] Missing required fields`);
-        return;
-    }
-    
-    const activityData = {
-        user_id,
-        username: username || 'Unknown User',
-        activity,
-        command: command || null,
-        timestamp: data.timestamp || Date.now()
-    };
-    
-    console.log(`📡 [VOICE-ACTIVITY-HANDLER] Broadcasting participant activity:`, activityData);
-    
-    io.emit('voice-participant-activity-broadcast', activityData);
-    
-    console.log(`✅ [VOICE-ACTIVITY-HANDLER] Voice participant activity broadcast complete`);
 }
 
 module.exports = { setup };

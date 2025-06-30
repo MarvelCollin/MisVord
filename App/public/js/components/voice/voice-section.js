@@ -1,4 +1,13 @@
 if (typeof window.VoiceSection === 'undefined') {
+
+// Define global voice events if not already defined
+if (!window.VOICE_EVENTS) {
+    window.VOICE_EVENTS = {
+        VOICE_CONNECT: 'voiceConnect',
+        VOICE_DISCONNECT: 'voiceDisconnect',
+        VOICE_STATE_CHANGED: 'voiceStateChanged'
+    };
+}
     
 class VoiceSection {
     constructor() {
@@ -67,6 +76,15 @@ class VoiceSection {
         if (!this.elements.joinBtn) {
             console.warn("Join button not found, can't set up event listeners");
             return;
+        }
+        
+        // Ensure VOICE_EVENTS are defined
+        if (!window.VOICE_EVENTS) {
+            window.VOICE_EVENTS = {
+                VOICE_CONNECT: 'voiceConnect',
+                VOICE_DISCONNECT: 'voiceDisconnect',
+                VOICE_STATE_CHANGED: 'voiceStateChanged'
+            };
         }
         
         const oldJoinBtn = this.elements.joinBtn;

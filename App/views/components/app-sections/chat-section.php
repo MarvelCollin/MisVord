@@ -314,6 +314,7 @@ if (!function_exists('renderMessage')) {
 </div>
 
 <script src="<?php echo js('components/messaging/chat-skeleton-loading'); ?>?v=<?php echo time(); ?>"></script>
+<script src="<?php echo js('components/messaging/rich-text'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('components/messaging/chat-section'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('components/messaging/emoji'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script>
