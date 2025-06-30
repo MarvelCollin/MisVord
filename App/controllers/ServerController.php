@@ -2257,36 +2257,120 @@ class ServerController extends BaseController
                 <?php include __DIR__ . '/../views/components/app-sections/channel-section.php'; ?>
                 
                 <div class="flex flex-col flex-1" id="main-content">
-                    <div class="main-content-area flex-1">
-                        <?php
-                        $activeChannel = null;
-                        $channelType = isset($_GET['type']) ? $_GET['type'] : 'text';
-
-                        foreach ($channels as $channel) {
-                            if ($channel['id'] == $activeChannelId) {
-                                $activeChannel = $channel;
-                                if (isset($channel['type_name']) && $channel['type_name'] === 'voice') {
-                                    $channelType = 'voice';
-                                } elseif (isset($channel['type']) && ($channel['type'] === 'voice' || $channel['type'] === 2)) {
-                                    $channelType = 'voice';
-                                }
-                                $GLOBALS['activeChannel'] = $activeChannel;
-                                break;
-                            }
-                        }
-                        ?>
-                        
-                        <div class="chat-section <?php echo $channelType === 'text' ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
-                            <?php include __DIR__ . '/../views/components/app-sections/chat-section.php'; ?>
-                        </div>
-                        <div class="voice-section <?php echo $channelType === 'voice' ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
-                            <?php include __DIR__ . '/../views/components/app-sections/voice-section.php'; ?>
-                        </div>
-                    </div>
+                    <?php include __DIR__ . '/../views/components/app-sections/chat-section.php'; ?>
                 </div>
 
-                <?php include __DIR__ . '/../views/components/app-sections/participant-section.php'; ?>
+                <div class="w-60 bg-discord-background border-l border-gray-800 flex flex-col h-full max-h-screen">
+                    <?php include __DIR__ . '/../views/components/app-sections/participant-section.php'; ?>
+                </div>
             </div>
+            
+            <?php if ($this->isAjaxRequest()): ?>
+            <script>
+            (async function() {
+                console.log('[Server Layout AJAX] Ensuring critical dependencies are loaded...');
+                
+                const criticalScripts = [
+                    '/public/js/utils/page-utils.js',
+                    '/public/js/core/ui/toast.js',
+                    '/public/js/core/socket/global-socket-manager.js',
+                    '/public/js/api/chat-api.js',
+                    '/public/js/api/user-api.js',
+                    '/public/js/api/server-api.js',
+                    '/public/js/api/channel-api.js',
+                    '/public/js/api/bot-api.js',
+                    '/public/js/components/messaging/message-handler.js',
+                    '/public/js/components/messaging/socket-handler.js',
+                    '/public/js/components/messaging/chat-ui-handler.js',
+                    '/public/js/components/messaging/file-upload-handler.js',
+                    '/public/js/components/messaging/send-receive-handler.js',
+                    '/public/js/components/messaging/mention-handler.js',
+                    '/public/js/components/messaging/chat-bot.js',
+                    '/public/js/components/messaging/chat-section.js',
+                    '/public/js/components/videosdk/videosdk.js',
+                    '/public/js/components/voice/voice-manager.js',
+                    '/public/js/components/voice/global-voice-indicator.js',
+                    '/public/js/components/bot/bot.js',
+                    '/public/js/components/servers/server-dropdown.js',
+                    '/public/js/utils/channel-switch-manager.js',
+                    '/public/js/pages/server-page.js'
+                ];
+                
+                function loadScript(src) {
+                    return new Promise((resolve, reject) => {
+                        if (document.querySelector(`script[src="${src}"]`)) {
+                            console.log('[Server Layout AJAX] Script already loaded:', src);
+                            resolve();
+                            return;
+                        }
+                        
+                        const script = document.createElement('script');
+                        script.src = src + '?v=' + Date.now();
+                        script.type = 'module';
+                        script.onload = () => {
+                            console.log('[Server Layout AJAX] Script loaded:', src);
+                            resolve();
+                        };
+                        script.onerror = () => {
+                            console.warn('[Server Layout AJAX] Failed to load script:', src);
+                            reject(new Error(`Failed to load ${src}`));
+                        };
+                        document.head.appendChild(script);
+                    });
+                }
+                
+                async function loadScriptsSequentially() {
+                    console.log('[Server Layout AJAX] Loading critical scripts sequentially...');
+                    for (const src of criticalScripts) {
+                        try {
+                            await loadScript(src);
+                            await new Promise(resolve => setTimeout(resolve, 50));
+                        } catch (error) {
+                            console.warn('[Server Layout AJAX] Script load error:', error);
+                        }
+                    }
+                    console.log('[Server Layout AJAX] All critical scripts loading initiated');
+                }
+                
+                await loadScriptsSequentially();
+                
+                setTimeout(() => {
+                    console.log('[Server Layout AJAX] Triggering component initialization...');
+                    
+                    if (typeof window.initServerPage === 'function') {
+                        window.initServerPage();
+                        console.log('[Server Layout AJAX] Server page initialized');
+                    }
+                    
+                    if (typeof window.initializeChatSection === 'function') {
+                        window.initializeChatSection();
+                        console.log('[Server Layout AJAX] Chat section initialized');
+                    }
+                    
+                    if (typeof window.initializeParticipantSection === 'function') {
+                        window.initializeParticipantSection();
+                        console.log('[Server Layout AJAX] Participant section initialized');
+                    }
+                    
+                    if (typeof window.ChannelSwitchManager !== 'undefined' && !window.channelSwitchManager) {
+                        window.channelSwitchManager = new window.ChannelSwitchManager();
+                        console.log('[Server Layout AJAX] Channel switch manager created');
+                    }
+                    
+                    const event = new CustomEvent('ServerLayoutAjaxComplete', {
+                        detail: { serverId: <?php echo $serverId; ?>, activeChannelId: '<?php echo $activeChannelId; ?>' }
+                    });
+                    document.dispatchEvent(event);
+                    console.log('[Server Layout AJAX] Initialization complete');
+                    
+                }, 1000);
+                
+            })().catch(error => {
+                console.error('[Server Layout AJAX] Critical error during script loading:', error);
+            });
+            </script>
+            <?php endif; ?>
+            
             <?php
             $html = ob_get_clean();
             

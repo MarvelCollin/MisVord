@@ -361,6 +361,135 @@ body[data-page="nitro"] .bg-discord-darker:hover {
     box-shadow: 0 0 25px rgba(139, 92, 246, 0.6);
 }
 
+.nitro-already-redeemed input,
+.nitro-already-redeemed.code-input-container {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2)) !important;
+    border-color: rgba(139, 92, 246, 0.5) !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    cursor: not-allowed !important;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3) !important;
+}
+
+.nitro-already-redeemed input::placeholder {
+    color: rgba(139, 92, 246, 0.8) !important;
+    font-weight: 600;
+}
+
+.nitro-already-redeemed button {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(236, 72, 153, 0.6)) !important;
+    cursor: not-allowed !important;
+    opacity: 0.8;
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4) !important;
+}
+
+.nitro-already-redeemed {
+    position: relative;
+    overflow: hidden;
+}
+
+.nitro-already-redeemed::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
+    animation: shimmer-disabled 3s ease-in-out infinite;
+    z-index: 1;
+    pointer-events: none;
+}
+
+@keyframes shimmer-disabled {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.nitro-sparkle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: linear-gradient(45deg, #8b5cf6, #ec4899);
+    border-radius: 50%;
+    animation: sparkle-float 3s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 2;
+}
+
+@keyframes sparkle-float {
+    0%, 100% {
+        transform: translateY(0) scale(0);
+        opacity: 0;
+    }
+    10% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    90% {
+        transform: translateY(-20px) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-30px) scale(0);
+        opacity: 0;
+    }
+}
+
+.nitro-status-display {
+    position: relative;
+    z-index: 3;
+    animation: nitro-status-appear 0.6s ease-out;
+}
+
+@keyframes nitro-status-appear {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.nitro-status-display .w-12.h-12 {
+    position: relative;
+    overflow: hidden;
+}
+
+.nitro-status-display .w-12.h-12::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: crown-rotate 2s linear infinite;
+}
+
+@keyframes crown-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.nitro-status-display .fas.fa-crown {
+    position: relative;
+    z-index: 1;
+    animation: crown-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes crown-glow {
+    0% {
+        filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));
+        transform: scale(1);
+    }
+    100% {
+        filter: drop-shadow(0 0 15px rgba(255, 215, 0, 1));
+        transform: scale(1.1);
+    }
+}
+
 @media (max-width: 768px) {
     .nitro-hero-section {
         min-height: 300px;
@@ -382,5 +511,10 @@ body[data-page="nitro"] .bg-discord-darker:hover {
     .custom-cursor,
     .cursor-trail {
         display: none;
+    }
+    
+    .nitro-sparkle {
+        width: 3px;
+        height: 3px;
     }
 }

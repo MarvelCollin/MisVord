@@ -125,6 +125,15 @@ class NitroController extends BaseController {
                 return $this->error('Nitro code is required');
             }
             
+            $userId = $this->getCurrentUserId();
+            error_log("NitroController::redeem - User ID: " . $userId);
+            
+            $hasExistingNitro = $this->nitroRepository->getUserNitroStatus($userId);
+            if ($hasExistingNitro) {
+                error_log("NitroController::redeem - User already has nitro");
+                return $this->error('You already have Nitro active! You cannot redeem additional codes.');
+            }
+            
             error_log("NitroController::redeem - Looking for code: " . $code);
             
             $nitro = $this->nitroRepository->findUnusedByCode($code);
@@ -133,9 +142,6 @@ class NitroController extends BaseController {
             if (!$nitro) {
                 return $this->error('Invalid or already used nitro code');
             }
-            
-            $userId = $this->getCurrentUserId();
-            error_log("NitroController::redeem - User ID: " . $userId);
             
             $nitro->user_id = $userId;
             

@@ -143,71 +143,95 @@ function performServerLayoutUpdate(response, serverId, channelId, currentChannel
     console.log('[Server AJAX] Disabling skeleton loading');
     handleServerSkeletonLoading(false);
     
-    if (typeof window.initServerPage === 'function') {
-        window.initServerPage();
-        console.log('[Server AJAX] Server page initialized');
-    }
+    console.log('[Server AJAX] Waiting for AJAX dependencies to load...');
     
-    console.log('[Server AJAX] Initializing core server components');
-    
-    if (typeof window.ChannelSwitchManager !== 'undefined') {
-        if (window.channelSwitchManager) {
-            console.log('[Server AJAX] Cleaning up existing channel switch manager');
-            try {
-                window.channelSwitchManager.cleanup();
-            } catch (cleanupError) {
-                console.warn('[Server AJAX] Error during cleanup:', cleanupError);
-            }
-            window.channelSwitchManager = null;
+    function performInitialization() {
+        console.log('[Server AJAX] Starting component initialization');
+        
+        if (typeof window.initServerPage === 'function') {
+            window.initServerPage();
+            console.log('[Server AJAX] Server page initialized');
         }
         
-        setTimeout(() => {
-            if (!window.channelSwitchManager) {
-                console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
-                window.channelSwitchManager = new window.ChannelSwitchManager();
-                console.log('[Server AJAX] Channel switch manager initialized');
+        console.log('[Server AJAX] Initializing core server components');
+        
+        if (typeof window.ChannelSwitchManager !== 'undefined') {
+            if (window.channelSwitchManager) {
+                console.log('[Server AJAX] Cleaning up existing channel switch manager');
+                try {
+                    window.channelSwitchManager.cleanup();
+                } catch (cleanupError) {
+                    console.warn('[Server AJAX] Error during cleanup:', cleanupError);
+                }
+                window.channelSwitchManager = null;
             }
-        }, 100);
-    } else {
-        console.warn('[Server AJAX] ChannelSwitchManager class not available');
+            
+            setTimeout(() => {
+                if (!window.channelSwitchManager) {
+                    console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
+                    window.channelSwitchManager = new window.ChannelSwitchManager();
+                    console.log('[Server AJAX] Channel switch manager initialized');
+                }
+            }, 100);
+        } else {
+            console.warn('[Server AJAX] ChannelSwitchManager class not available');
+        }
+        
+        console.log('[Server AJAX] Initializing voice systems');
+        initializeVoiceSystems();
+        
+        console.log('[Server AJAX] Initializing chat systems');
+        initializeChatSystems();
+        
+        if (typeof window.initializeServerDropdown === 'function') {
+            console.log('[Server AJAX] Re-initializing server dropdown');
+            window.initializeServerDropdown();
+        } else {
+            console.log('[Server AJAX] Manually initializing server dropdown');
+            initServerDropdownManual();
+        }
+        
+        if (typeof window.initializeParticipantSection === 'function') {
+            window.initializeParticipantSection();
+            console.log('[Server AJAX] Participant section initialized');
+        }
+        
+        if (typeof window.updateActiveServer === 'function') {
+            window.updateActiveServer('server', serverId);
+            console.log('[Server AJAX] Active server state updated');
+        }
+        
+        const event = new CustomEvent('ServerChanged', { 
+            detail: { 
+                serverId,
+                channelId,
+                previousChannelId: currentChannelId 
+            } 
+        });
+        document.dispatchEvent(event);
+        console.log('[Server AJAX] ServerChanged event dispatched');
+        
+        window.globalSwitchLock = false;
+        console.log('[Server AJAX] Global switch lock released after server loading');
     }
     
-    console.log('[Server AJAX] Initializing voice systems');
-    initializeVoiceSystems();
+    let initializationCompleted = false;
     
-    console.log('[Server AJAX] Initializing chat systems');
-    initializeChatSystems();
+    document.addEventListener('ServerLayoutAjaxComplete', function(event) {
+        if (!initializationCompleted) {
+            console.log('[Server AJAX] AJAX dependencies loaded, proceeding with initialization');
+            initializationCompleted = true;
+            performInitialization();
+        }
+    }, { once: true });
     
-    if (typeof window.initializeServerDropdown === 'function') {
-        console.log('[Server AJAX] Re-initializing server dropdown');
-        window.initializeServerDropdown();
-    } else {
-        console.log('[Server AJAX] Manually initializing server dropdown');
-        initServerDropdownManual();
-    }
-    
-    if (typeof window.initializeParticipantSection === 'function') {
-        window.initializeParticipantSection();
-        console.log('[Server AJAX] Participant section initialized');
-    }
-    
-    if (typeof window.updateActiveServer === 'function') {
-        window.updateActiveServer('server', serverId);
-        console.log('[Server AJAX] Active server state updated');
-    }
-    
-    const event = new CustomEvent('ServerChanged', { 
-        detail: { 
-            serverId,
-            channelId,
-            previousChannelId: currentChannelId 
-        } 
-    });
-    document.dispatchEvent(event);
-    console.log('[Server AJAX] ServerChanged event dispatched');
-    
-    window.globalSwitchLock = false;
-    console.log('[Server AJAX] Global switch lock released after server loading');
+    setTimeout(() => {
+        if (!initializationCompleted) {
+            console.log('[Server AJAX] Timeout reached, proceeding with initialization without AJAX dependencies');
+            initializationCompleted = true;
+            performInitialization();
+        }
+    }, 3000);
 }
 
 function initializeVoiceSystems() {

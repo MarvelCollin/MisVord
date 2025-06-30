@@ -394,7 +394,13 @@ function initRedeemButton() {
     if (!redeemBtn || !codeInput) return;
 
     redeemBtn.addEventListener('click', async function() {
-        if (redeemBtn.disabled) return;
+        if (redeemBtn.disabled) {
+            if (redeemBtn.classList.contains('nitro-already-redeemed')) {
+                showToast('You already have Nitro active!', 'info');
+                createRippleEffect(redeemBtn);
+            }
+            return;
+        }
         
         const rawCode = codeInput.value.trim();
         const code = rawCode.replace(/-/g, '');
@@ -438,6 +444,10 @@ function initRedeemButton() {
                 showToast('Nitro code redeemed successfully!', 'success');
                 createSuccessAnimation(redeemBtn);
                 
+                setTimeout(() => {
+                    checkUserNitroStatus();
+                }, 1000);
+                
                 const emitNitroActivation = () => {
                     if (window.globalSocketManager?.isReady()) {
                         window.globalSocketManager.io.emit('nitro_activated', {
@@ -463,7 +473,9 @@ function initRedeemButton() {
             redeemBtn.disabled = false;
             shakeElement(redeemBtn);
         } finally {
-            redeemBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Redeem Code';
+            if (!redeemBtn.classList.contains('nitro-already-redeemed')) {
+                redeemBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Redeem Code';
+            }
         }
     });
 }
@@ -689,18 +701,105 @@ function createFireworks() {
 
 async function checkUserNitroStatus() {
     try {
-        const response = await fetch('/api/auth/check', {
+        const authResponse = await fetch('/api/auth/check', {
             credentials: 'same-origin'
         });
         
-        const data = await response.json();
+        const authData = await authResponse.json();
         
-        if (data.authenticated && data.user_id) {
-            window.currentUserId = data.user_id;
+        if (authData.authenticated && authData.user_id) {
+            window.currentUserId = authData.user_id;
+            
+            const nitroResponse = await fetch('/api/nitro/status', {
+                credentials: 'same-origin'
+            });
+            
+            const nitroData = await nitroResponse.json();
+            
+            if (nitroData.success && nitroData.data) {
+                handleNitroStatus(nitroData.data);
+            }
         }
     } catch (error) {
         console.error('Failed to check user status:', error);
     }
+}
+
+function handleNitroStatus(nitroData) {
+    const codeInput = document.getElementById('nitro-code-input');
+    const redeemBtn = document.getElementById('redeem-code-btn');
+    const container = document.getElementById('code-input-container');
+    const giftSection = codeInput?.closest('.bg-discord-darker');
+    
+    if (nitroData.has_nitro && nitroData.codes_redeemed > 0) {
+        if (codeInput) {
+            codeInput.disabled = true;
+            codeInput.placeholder = 'You already have Nitro!';
+            codeInput.classList.add('nitro-already-redeemed');
+        }
+        
+        if (redeemBtn) {
+            redeemBtn.disabled = true;
+            redeemBtn.innerHTML = '<i class="fas fa-crown mr-2"></i>Already Redeemed';
+            redeemBtn.classList.add('nitro-already-redeemed');
+        }
+        
+        if (container) {
+            container.classList.add('nitro-already-redeemed');
+        }
+        
+        if (giftSection) {
+            giftSection.classList.add('nitro-already-redeemed');
+            
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'nitro-status-display';
+            statusDiv.innerHTML = `
+                <div class="flex items-center gap-3 mb-4 p-4 bg-purple-600/20 border border-purple-500/30 rounded-lg">
+                    <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-crown text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-purple-300">Nitro Active</h4>
+                        <p class="text-sm text-gray-400">You have redeemed ${nitroData.codes_redeemed} code${nitroData.codes_redeemed > 1 ? 's' : ''}</p>
+                    </div>
+                </div>
+            `;
+            
+            const existingStatus = giftSection.querySelector('.nitro-status-display');
+            if (!existingStatus) {
+                const titleElement = giftSection.querySelector('h3');
+                if (titleElement) {
+                    titleElement.parentNode.insertBefore(statusDiv, titleElement.nextSibling);
+                }
+            }
+        }
+        
+        createNitroActiveEffect();
+    }
+}
+
+function createNitroActiveEffect() {
+    const giftSection = document.querySelector('.bg-discord-darker.nitro-already-redeemed');
+    if (!giftSection) return;
+    
+    const sparkles = [];
+    for (let i = 0; i < 6; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'nitro-sparkle';
+        sparkle.style.left = Math.random() * 100 + '%';
+        sparkle.style.top = Math.random() * 100 + '%';
+        sparkle.style.animationDelay = Math.random() * 2 + 's';
+        giftSection.appendChild(sparkle);
+        sparkles.push(sparkle);
+    }
+    
+    setTimeout(() => {
+        sparkles.forEach(sparkle => {
+            if (sparkle.parentNode) {
+                sparkle.parentNode.removeChild(sparkle);
+            }
+        });
+    }, 5000);
 }
 
 function showToast(message, type = 'info') {
