@@ -13,6 +13,29 @@ class LocalStorageManager {
         
         this.voiceStateListeners = new Set();
         this.debounceTimers = new Map();
+        
+        this.setupVoiceStateListener();
+    }
+
+    setupVoiceStateListener() {
+        window.addEventListener('voiceStateChanged', (event) => {
+            const { type, state } = event.detail;
+            console.log('[LocalStorageManager] Voice state changed:', { type, state });
+            
+            const currentVoiceState = this.getVoiceState();
+            let updatedState = { ...currentVoiceState };
+            
+            if (type === 'mic') {
+                updatedState.isMuted = !state;
+            } else if (type === 'deafen') {
+                updatedState.isDeafened = state;
+                if (state) {
+                    updatedState.isMuted = true;
+                }
+            }
+            
+            this.setVoiceState(updatedState);
+        });
     }
 
     get(key, defaultValue = null) {
@@ -260,49 +283,7 @@ class LocalStorageManager {
 
 
 
-    toggleVoiceMute() {
-        const state = this.getVoiceState();
-        let newMutedState = !state.isMuted;
-        
-        if (window.videoSDKManager && window.videosdkMeeting && window.videoSDKManager.isReady()) {
-            try {
-                const micEnabled = window.videoSDKManager.toggleMic();
-                newMutedState = !micEnabled;
-                console.log('[LocalStorageManager] Synced mic state with VideoSDK:', newMutedState);
-            } catch (error) {
-                console.error('Error syncing mic with VideoSDK:', error);
-                console.log('[LocalStorageManager] Falling back to local state management');
-            }
-        } else {
-            console.log('[LocalStorageManager] VideoSDK not ready, using local state only');
-        }
-        
-        this.showToast(newMutedState ? 'Muted' : 'Unmuted');
-        return this.setVoiceState({ isMuted: newMutedState });
-    }
 
-    toggleVoiceDeafen() {
-        const state = this.getVoiceState();
-        let newDeafenState = !state.isDeafened;
-        
-        if (window.videoSDKManager && window.videosdkMeeting && window.videoSDKManager.isReady()) {
-            try {
-                newDeafenState = window.videoSDKManager.toggleDeafen();
-                console.log('[LocalStorageManager] Synced deafen state with VideoSDK:', newDeafenState);
-            } catch (error) {
-                console.error('Error syncing deafen with VideoSDK:', error);
-                console.log('[LocalStorageManager] Falling back to local state management');
-            }
-        } else {
-            console.log('[LocalStorageManager] VideoSDK not ready, using local state only');
-        }
-        
-        this.showToast(newDeafenState ? 'Deafened' : 'Undeafened');
-        return this.setVoiceState({ 
-            isDeafened: newDeafenState,
-            isMuted: newDeafenState ? true : state.isMuted
-        });
-    }
 
 
 

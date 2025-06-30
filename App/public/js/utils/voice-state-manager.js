@@ -58,13 +58,7 @@ class VoiceStateManager {
         }
     }
 
-    toggleMic() {
-        return this.storageManager.toggleVoiceMute();
-    }
 
-    toggleDeafen() {
-        return this.storageManager.toggleVoiceDeafen();
-    }
 
 
 

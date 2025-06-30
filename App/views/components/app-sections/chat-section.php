@@ -319,7 +319,9 @@ if (!function_exists('renderMessage')) {
 <script src="<?php echo js('components/messaging/emoji'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('test/mention-debug'); ?>?v=<?php echo time(); ?>"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {    
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[Chat Section] DOM loaded, setting up chat section');
+    
     const messageInput = document.getElementById('message-input');
     if (messageInput) {
         messageInput.addEventListener('input', function() {
@@ -328,7 +330,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Initialize file upload button if not already handled by ChatSection
     const fileUploadButton = document.getElementById('file-upload-button');
     const fileUploadInput = document.getElementById('file-upload');
     
@@ -344,6 +345,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const serverMessages = document.querySelectorAll('.message-content[data-message-id]');
     const serverActions = document.querySelectorAll('.message-actions-js');
     console.log(`📊 [DEBUG] Found ${serverMessages.length} server messages and ${serverActions.length} action containers`);
+    
+    setTimeout(() => {
+        if (typeof window.initializeChatSection === 'function') {
+            console.log('[Chat Section] Calling chat section initializer');
+            window.initializeChatSection();
+        } else if (typeof window.ChatSection === 'function' && !window.chatSection) {
+            console.log('[Chat Section] Creating new chat section instance');
+            try {
+                window.chatSection = new window.ChatSection();
+            } catch (error) {
+                console.error('[Chat Section] Error creating chat section:', error);
+            }
+        }
+    }, 100);
       
     document.dispatchEvent(new CustomEvent('channelContentLoaded', {
         detail: {
@@ -352,6 +367,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }));
 });
+
+if (document.readyState === 'complete') {
+    console.log('[Chat Section] Document already loaded, running initialization immediately');
+    setTimeout(() => {
+        if (typeof window.initializeChatSection === 'function') {
+            console.log('[Chat Section] Calling immediate chat section initializer');
+            window.initializeChatSection();
+        }
+    }, 50);
+}
 
 function downloadAttachment(url, filename) {
     const link = document.createElement('a');

@@ -3,6 +3,9 @@ if (typeof window !== 'undefined' && window.logger) {
     window.logger.info('server', 'server-dropdown.js loaded successfully - UPDATED VERSION');
 }
 window.SERVER_DROPDOWN_VERSION = '2.0';
+
+let currentUserRole = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof window !== 'undefined' && window.logger) {
         window.logger.debug('server', 'server-dropdown.js DOMContentLoaded triggered - UPDATED VERSION');
@@ -20,6 +23,54 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Not on a server page, skipping server dropdown initialization');
     }
 });
+
+function getUserRole(serverId) {
+    if (!window.serverAPI) {
+        console.error('serverAPI not available');
+        return Promise.resolve('member');
+    }
+
+    return window.serverAPI.getUserServerMembership(serverId)
+        .then(data => {
+            if (data.success && data.data && data.data.membership) {
+                const role = data.data.membership.role || 'member';
+                currentUserRole = role;
+                return role;
+            }
+            return 'member';
+        })
+        .catch(error => {
+            console.error('Error fetching user role:', error);
+            return 'member';
+        });
+}
+
+function isAdminOrOwner(role) {
+    return role === 'admin' || role === 'owner';
+}
+
+function applyRoleBasedVisibility(userRole) {
+    const adminOnlyItems = [
+        'Invite People',
+        'Server Settings', 
+        'Create Channel',
+        'Create Category'
+    ];
+
+    const dropdownItems = document.querySelectorAll('.server-dropdown-item');
+    
+    dropdownItems.forEach(item => {
+        const actionText = item.querySelector('span').textContent.trim();
+        
+        if (adminOnlyItems.includes(actionText)) {
+            if (isAdminOrOwner(userRole)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        }
+    });
+}
 
 window.testDropdown = function() {
     console.log('Testing dropdown...');
@@ -61,6 +112,13 @@ function initServerDropdown() {
             const newBtn = dropdownBtn.cloneNode(true);
             dropdownBtn.parentNode.replaceChild(newBtn, dropdownBtn);
 
+            const serverId = getCurrentServerId();
+            if (serverId) {
+                getUserRole(serverId).then(role => {
+                    applyRoleBasedVisibility(role);
+                });
+            }
+
             newBtn.addEventListener('click', function(e) {
                 console.log('Dropdown button clicked!');
                 e.preventDefault();
@@ -97,6 +155,13 @@ function initServerActions() {
 
             const dropdown = document.getElementById('server-dropdown');
             if (dropdown) dropdown.classList.add('hidden');
+
+            const adminOnlyActions = ['Invite People', 'Server Settings', 'Create Channel', 'Create Category'];
+            
+            if (adminOnlyActions.includes(actionText) && !isAdminOrOwner(currentUserRole)) {
+                showToast('You do not have permission to perform this action', 'error');
+                return;
+            }
 
             switch(actionText) {
                 case 'Invite People':
@@ -178,8 +243,6 @@ function showInvitePeopleModal() {
         }
     }
 }
-
-
 
 function debounce(func, delay) {
     let timeout;
@@ -343,10 +406,6 @@ function showCreateCategoryModal() {
         console.error('Create category modal not found');
     }
 }
-
-
-
-
 
 function showLeaveServerConfirmation() {
     const serverId = getCurrentServerId();
@@ -607,10 +666,6 @@ function createCategory(e, serverId) {
             showToast('Failed to create category', 'error');
         });
 }
-
-
-
-
 
 function leaveServer(serverId) {
     if (!window.serverAPI) {

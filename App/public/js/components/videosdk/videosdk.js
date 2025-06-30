@@ -14,6 +14,9 @@ class VideoSDKManager {
         
         this.fallbackToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlrZXkiOiI4YWQyZGJjZC02MzhkLTRmYmItOTk5Yy05YTQ4YTgzY2FhMTUiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIiwiYWxsb3dfcHVibGlzaCJdLCJpYXQiOjE3NTEyMTU2MjEsImV4cCI6MTc1MzgwNzYyMX0.duF2XwBk9-glZTDWS8QyX4yGNaf6faZXUCLsc07QxJk";
         this._webcamToggling = false;
+        this._micState = false;
+        this._webcamState = false;
+        this._screenShareState = false;
     }
 
     async getAuthToken() {
@@ -101,14 +104,12 @@ class VideoSDKManager {
         try {
             console.log(`Initializing meeting with ID: ${config.meetingId}`);
             
-            // Additional validation
             if (this.meeting) {
                 console.log("Meeting already initialized, cleaning up old instance");
                 this.cleanupParticipantResources();
                 this.meeting = null;
             }
             
-            // Create meeting with error handling
             try {
                 this.meeting = VideoSDK.initMeeting(config);
             } catch (sdkError) {
@@ -120,7 +121,6 @@ class VideoSDKManager {
                 throw new Error("VideoSDK returned null meeting");
             }
             
-            // For safety, clean up any accidental "onn" property that might exist on VideoSDK objects
             if (this.meeting.onn !== undefined) {
                 console.warn("Cleaning up 'onn' property on meeting");
                 delete this.meeting.onn;
@@ -131,7 +131,10 @@ class VideoSDKManager {
                 delete this.meeting.localParticipant.onn;
             }
             
-            // Set up event handling
+            this._micState = config.micEnabled;
+            this._webcamState = config.webcamEnabled;
+            this._screenShareState = false;
+            
             this.setupEvents();
             
             return this.meeting;
@@ -233,7 +236,6 @@ class VideoSDKManager {
                     this.registerStreamEvents(participant);
                     this.startStreamMonitoring(participant);
                     
-                    // Dispatch event for UI to handle existing participant
                     window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
                         detail: { participant: participant.id, participantObj: participant }
                     }));
@@ -346,7 +348,6 @@ class VideoSDKManager {
                     }
                 }
                 
-                // After kind heuristic determination, refine screen share detection
                 if (kind === 'video') {
                     let label = '';
                     if (data.track && data.track.label) {
@@ -359,6 +360,16 @@ class VideoSDKManager {
                     }
                     if (label.includes('screen') || label.includes('share')) {
                         kind = 'share';
+                    }
+                }
+                
+                if (participant.id === this.meeting.localParticipant?.id) {
+                    if (kind === 'video') {
+                        this._webcamState = true;
+                    } else if (kind === 'share') {
+                        this._screenShareState = true;
+                    } else if (kind === 'audio') {
+                        this._micState = true;
                     }
                 }
                 
@@ -379,6 +390,16 @@ class VideoSDKManager {
                 
                 const kind = data.kind || 'unknown';
                 console.log(`🔇 [VideoSDK] Stream disabled: ${kind} for participant ${participant.id}`);
+                
+                if (participant.id === this.meeting.localParticipant?.id) {
+                    if (kind === 'video') {
+                        this._webcamState = false;
+                    } else if (kind === 'share') {
+                        this._screenShareState = false;
+                    } else if (kind === 'audio') {
+                        this._micState = false;
+                    }
+                }
                 
                 window.dispatchEvent(new CustomEvent('videosdkStreamDisabled', { 
                     detail: { kind, participant: participant.id } 
@@ -533,6 +554,9 @@ class VideoSDKManager {
                 this.isDeafened = false;
                 this.isConnected = false;
                 this.isMeetingJoined = false;
+                this._micState = false;
+                this._webcamState = false;
+                this._screenShareState = false;
                 
                 this.meeting.leave();
                 this.meeting = null;
@@ -551,7 +575,6 @@ class VideoSDKManager {
     
     cleanupParticipantResources() {
         try {
-            // Clean up all participants, not just local
             if (this.meeting?.participants) {
                 console.log(`🧹 [VideoSDK] Cleaning up resources for ${this.meeting.participants.size} participants`);
                 
@@ -572,7 +595,6 @@ class VideoSDKManager {
                 });
             }
             
-            // Also clean up local participant specifically
             if (this.meeting?.localParticipant) {
                 const participant = this.meeting.localParticipant;
                 
@@ -603,11 +625,17 @@ class VideoSDKManager {
             
             if (isMicOn) {
                 this.meeting.muteMic();
+                this._micState = false;
             } else {
                 this.meeting.unmuteMic();
+                this._micState = true;
             }
             
-            return !isMicOn;
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: { type: 'mic', state: this._micState }
+            }));
+            
+            return this._micState;
         } catch (error) {
             console.error("Error toggling mic:", error);
             return false;
@@ -616,9 +644,13 @@ class VideoSDKManager {
     
     toggleDeafen() {
         if (!this.meeting) {
-            // If no meeting, just toggle the local state
             this.isDeafened = !this.isDeafened;
             console.log('[VideoSDKManager] No meeting active, toggling local deafen state to:', this.isDeafened);
+            
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: { type: 'deafen', state: this.isDeafened }
+            }));
+            
             return this.isDeafened;
         }
         
@@ -626,48 +658,49 @@ class VideoSDKManager {
             const wasDeafened = this.getDeafenState();
             
             if (wasDeafened) {
-                // Undeafen - restore previous mic state (don't auto-unmute mic)
                 this.isDeafened = false;
                 console.log('[VideoSDKManager] Undeafened - audio reception restored');
             } else {
-                // Deafen - mute microphone and disable audio reception
                 this.meeting.muteMic();
+                this._micState = false;
                 this.isDeafened = true;
                 console.log('[VideoSDKManager] Deafened - microphone muted and audio reception disabled');
             }
             
-            // Notify voice state manager of the change
             if (window.voiceStateManager) {
                 setTimeout(() => {
                     window.voiceStateManager.syncWithVideoSDK();
                 }, 100);
             }
             
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: { type: 'deafen', state: this.isDeafened }
+            }));
+            
             console.log('[VideoSDKManager] Deafen toggled to:', this.isDeafened);
             return this.isDeafened;
         } catch (error) {
             console.error("Error toggling deafen:", error);
-            // Fallback to manual state management
             this.isDeafened = !this.getDeafenState();
+            
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: { type: 'deafen', state: this.isDeafened }
+            }));
+            
             return this.isDeafened;
         }
     }
     
     getDeafenState() {
-        // Return stored deafen state if available
         if (this.isDeafened !== undefined) {
             return this.isDeafened;
         }
         
-        // Try to determine from meeting state
         if (!this.meeting?.localParticipant) return false;
         
         try {
-            // Check if audio is muted (basic deafen detection)
             const participant = this.meeting.localParticipant;
             
-            // In VideoSDK, deafen is typically implemented as muting audio output
-            // We'll track this manually since VideoSDK doesn't have a direct deafen API
             return this.isDeafened || false;
         } catch (error) {
             console.error("Error getting deafen state:", error);
@@ -720,7 +753,13 @@ class VideoSDKManager {
             if (isWebcamOn) {
                 console.log('[VideoSDK] Disabling webcam...');
                 await this.meeting.disableWebcam();
+                this._webcamState = false;
                 console.log('[VideoSDK] Webcam disabled successfully');
+                
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'video', state: false }
+                }));
+                
                 return false;
             } else {
                 console.log('[VideoSDK] Enabling webcam...');
@@ -732,7 +771,13 @@ class VideoSDKManager {
                 
                 console.log('[VideoSDK] Camera permission OK, calling meeting.enableWebcam()...');
                 await this.meeting.enableWebcam();
+                this._webcamState = true;
                 console.log('[VideoSDK] Webcam enabled successfully');
+                
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'video', state: true }
+                }));
+                
                 return true;
             }
         } catch (error) {
@@ -775,11 +820,23 @@ class VideoSDKManager {
             
             if (isScreenSharing) {
                 await this.meeting.disableScreenShare();
+                this._screenShareState = false;
                 console.log('[VideoSDK] Screen sharing disabled');
+                
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'screenShare', state: false }
+                }));
+                
                 return false;
             } else {
                 await this.meeting.enableScreenShare();
+                this._screenShareState = true;
                 console.log('[VideoSDK] Screen sharing enabled');
+                
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'screenShare', state: true }
+                }));
+                
                 return true;
             }
         } catch (error) {
@@ -793,8 +850,11 @@ class VideoSDKManager {
         }
     }
     
-    // Simple state getters
     getWebcamState() {
+        if (this._webcamState !== undefined) {
+            return this._webcamState;
+        }
+        
         if (!this.meeting?.localParticipant) return false;
         
         try {
@@ -809,6 +869,10 @@ class VideoSDKManager {
     }
     
     getScreenShareState() {
+        if (this._screenShareState !== undefined) {
+            return this._screenShareState;
+        }
+        
         if (!this.meeting?.localParticipant) return false;
         
         try {
@@ -823,6 +887,10 @@ class VideoSDKManager {
     }
     
     getMicState() {
+        if (this._micState !== undefined) {
+            return this._micState;
+        }
+        
         if (!this.meeting?.localParticipant) return false;
         
         try {
@@ -837,17 +905,14 @@ class VideoSDKManager {
     }
     
     on(eventName, handler) {
-        // Basic validation
         if (!eventName || typeof eventName !== 'string') return;
         
-        // Register handler
         if (!this.eventHandlers[eventName]) {
             this.eventHandlers[eventName] = [];
         }
         this.eventHandlers[eventName].push(handler);
     }
     
-    // Helper methods for state checking
     isReady() {
         return this.initialized && this.meeting && this.isConnected && this.isMeetingJoined;
     }
@@ -869,7 +934,6 @@ class VideoSDKManager {
     }
 }
 
-// Create global instance only if not already exists
 if (!window.videoSDKManager) {
     const videoSDKManager = new VideoSDKManager();
     window.videoSDKManager = videoSDKManager;
@@ -878,7 +942,6 @@ if (!window.videoSDKManager) {
     console.log('ℹ️ VideoSDKManager already exists, skipping creation');
 }
 
-// Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = window.videoSDKManager;
 } else if (typeof exports !== 'undefined') {

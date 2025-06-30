@@ -59,7 +59,8 @@ class GlobalVoiceIndicator {
             this.handleDisconnect();
         });
 
-        window.addEventListener('voiceStateChanged', () => {
+        window.addEventListener('voiceStateChanged', (event) => {
+            console.log('[GlobalVoiceIndicator] Voice state changed:', event.detail);
             this.updateControls();
             this.updateVisibility();
         });
@@ -301,14 +302,11 @@ class GlobalVoiceIndicator {
         const micBtn = this.indicator.querySelector('.mic-btn');
         if (micBtn) {
             this.handleMicClick = () => {
-                if (window.videoSDKManager && window.videoSDKManager.isConnected) {
+                if (window.videoSDKManager && window.videoSDKManager.isReady()) {
                     window.videoSDKManager.toggleMic();
-                } else if (window.voiceCallManager && typeof window.voiceCallManager.toggleMic === 'function') {
-                    window.voiceCallManager.toggleMic();
-                } else if (window.localStorageManager) {
-                    window.localStorageManager.toggleVoiceMute();
+                } else {
+                    window.showToast?.('Voice not connected', 'error');
                 }
-                this.updateControls();
             };
             micBtn.addEventListener('click', this.handleMicClick);
         }
@@ -316,14 +314,11 @@ class GlobalVoiceIndicator {
         const deafenBtn = this.indicator.querySelector('.deafen-btn');
         if (deafenBtn) {
             this.handleDeafenClick = () => {
-                if (window.videoSDKManager && window.videoSDKManager.isConnected) {
+                if (window.videoSDKManager && window.videoSDKManager.isReady()) {
                     window.videoSDKManager.toggleDeafen();
-                } else if (window.voiceCallManager && typeof window.voiceCallManager.toggleDeafen === 'function') {
-                    window.voiceCallManager.toggleDeafen();
-                } else if (window.localStorageManager) {
-                    window.localStorageManager.toggleVoiceDeafen();
+                } else {
+                    window.showToast?.('Voice not connected', 'error');
                 }
-                this.updateControls();
             };
             deafenBtn.addEventListener('click', this.handleDeafenClick);
         }

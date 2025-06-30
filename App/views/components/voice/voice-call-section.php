@@ -633,6 +633,25 @@ class VoiceCallManager {
             }
         });
 
+        window.addEventListener('voiceStateChanged', (event) => {
+            const { type, state } = event.detail;
+            console.log(`🔄 [DEBUG] voiceStateChanged event received:`, { type, state });
+            
+            if (type === 'mic') {
+                this.isMuted = !state;
+                this.updateButtonStates();
+            } else if (type === 'video') {
+                this.isVideoOn = state;
+                this.updateButtonStates();
+            } else if (type === 'screenShare') {
+                this.isScreenSharing = state;
+                this.updateButtonStates();
+            } else if (type === 'deafen') {
+                this.isDeafened = state;
+                this.updateButtonStates();
+            }
+        });
+
         window.addEventListener('videosdkParticipantJoined', (event) => {
             const { participant, participantObj } = event.detail;
             console.log(`👤 [DEBUG] videosdkParticipantJoined event received:`, {
@@ -1191,9 +1210,7 @@ class VoiceCallManager {
 
         try {
             const newState = window.videoSDKManager.toggleMic();
-            this.isMuted = !newState;
-            this.updateMicButton();
-            this.showToast(this.isMuted ? 'Microphone muted' : 'Microphone enabled', 'info');
+            this.showToast(newState ? 'Microphone enabled' : 'Microphone muted', 'info');
         } catch (error) {
             console.error('Error toggling mic:', error);
             this.showToast('Failed to toggle microphone', 'error');
@@ -1208,9 +1225,7 @@ class VoiceCallManager {
 
         try {
             const newState = window.videoSDKManager.toggleDeafen();
-            this.isDeafened = newState;
-            this.updateDeafenButton();
-            this.showToast(this.isDeafened ? 'Audio deafened' : 'Audio undeafened', 'info');
+            this.showToast(newState ? 'Audio deafened' : 'Audio undeafened', 'info');
         } catch (error) {
             console.error('Error toggling deafen:', error);
             this.showToast('Failed to toggle deafen', 'error');
@@ -1229,7 +1244,6 @@ class VoiceCallManager {
             return;
         }
 
-        // Ensure we have the local participant ID
         if (!this.localParticipantId && window.videoSDKManager?.meeting?.localParticipant) {
             this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
             console.log(`📹 [DEBUG] Captured missing local participant ID:`, this.localParticipantId);
@@ -1240,46 +1254,6 @@ class VoiceCallManager {
             const newState = await window.videoSDKManager.toggleWebcam();
             console.log(`📹 [DEBUG] toggleWebcam() returned:`, newState);
             
-            // Manual test: Trigger the event ourselves to see if the UI responds
-            if (newState) {
-                console.log(`📹 [DEBUG] Camera should be ON - Testing manual event trigger...`);
-                
-                // Get the current meeting and local participant
-                if (window.videoSDKManager.meeting?.localParticipant) {
-                    const participant = window.videoSDKManager.meeting.localParticipant;
-                    console.log(`📹 [DEBUG] Local participant found:`, {
-                        id: participant.id,
-                        streams: participant.streams ? Array.from(participant.streams.keys()) : 'No streams map'
-                    });
-                    
-                    // Check if we can find a video stream
-                    if (participant.streams) {
-                        participant.streams.forEach((stream, streamId) => {
-                            console.log(`📹 [DEBUG] Found stream ${streamId}:`, {
-                                stream: stream,
-                                streamType: typeof stream,
-                                isMediaStream: stream instanceof MediaStream,
-                                hasStreamProperty: !!stream?.stream
-                            });
-                            
-                            if (streamId.includes('video') || streamId.includes('cam')) {
-                                console.log(`📹 [DEBUG] Found video stream, manually triggering event...`);
-                                window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', {
-                                    detail: {
-                                        kind: 'video',
-                                        stream: stream,
-                                        participant: participant.id
-                                    }
-                                }));
-                            }
-                        });
-                    }
-                }
-            } else {
-                console.log(`📹 [DEBUG] Camera should be OFF`);
-            }
-            
-            this.updateVideoButton();
             this.showToast(newState ? 'Camera enabled' : 'Camera disabled', 'info');
         } catch (error) {
             console.error('📹 [ERROR] Error toggling video:', error);
@@ -1295,7 +1269,6 @@ class VoiceCallManager {
 
         try {
             const newState = await window.videoSDKManager.toggleScreenShare();
-            this.updateScreenButton();
             this.showToast(newState ? 'Screen share started' : 'Screen share stopped', 'info');
         } catch (error) {
             console.error('Error toggling screen share:', error);
@@ -1303,77 +1276,7 @@ class VoiceCallManager {
         }
     }
 
-    updateMicButton() {
-        const btn = document.getElementById('micBtn');
-        const icon = btn.querySelector('i');
-        const tooltip = btn.parentElement.querySelector('.mic-tooltip');
-        
-        if (this.isMuted) {
-            icon.className = 'fas fa-microphone-slash text-xl';
-            tooltip.textContent = 'Unmute';
-            btn.classList.add('bg-red-500');
-            btn.classList.remove('bg-[#2f3136]');
-        } else {
-            icon.className = 'fas fa-microphone text-xl';
-            tooltip.textContent = 'Mute';
-            btn.classList.remove('bg-red-500');
-            btn.classList.add('bg-[#2f3136]');
-        }
-    }
 
-    updateDeafenButton() {
-        const btn = document.getElementById('deafenBtn');
-        const icon = btn.querySelector('i');
-        const tooltip = btn.parentElement.querySelector('.deafen-tooltip');
-        
-        if (this.isDeafened) {
-            icon.className = 'fas fa-volume-mute text-xl';
-            tooltip.textContent = 'Undeafen';
-            btn.classList.add('bg-red-500');
-            btn.classList.remove('bg-[#2f3136]');
-        } else {
-            icon.className = 'fas fa-headphones text-xl';
-            tooltip.textContent = 'Deafen';
-            btn.classList.remove('bg-red-500');
-            btn.classList.add('bg-[#2f3136]');
-        }
-    }
-
-    updateVideoButton() {
-        const btn = document.getElementById('videoBtn');
-        const icon = btn.querySelector('i');
-        const tooltip = btn.parentElement.querySelector('.video-tooltip');
-        
-        if (this.isVideoOn) {
-            icon.className = 'fas fa-video text-xl';
-            tooltip.textContent = 'Turn Off Camera';
-            btn.classList.add('bg-green-600');
-            btn.classList.remove('bg-[#2f3136]');
-        } else {
-            icon.className = 'fas fa-video-slash text-xl';
-            tooltip.textContent = 'Turn On Camera';
-            btn.classList.remove('bg-green-600');
-            btn.classList.add('bg-[#2f3136]');
-        }
-    }
-
-    updateScreenButton() {
-        const btn = document.getElementById('screenBtn');
-        const icon = btn.querySelector('i');
-        const tooltip = btn.parentElement.querySelector('.screen-tooltip');
-        
-        if (this.isScreenSharing) {
-            icon.className = 'fas fa-stop-circle text-xl';
-            tooltip.textContent = 'Stop Sharing';
-            btn.classList.add('bg-blue-600');
-            btn.classList.remove('bg-[#2f3136]');
-        } else {
-            icon.className = 'fas fa-desktop text-xl';
-            tooltip.textContent = 'Share Screen';
-            btn.classList.remove('bg-blue-600');
-            btn.classList.add('bg-[#2f3136]');
-        }
-    }
 
     disconnect() {
         if (window.voiceManager?.isConnected) {

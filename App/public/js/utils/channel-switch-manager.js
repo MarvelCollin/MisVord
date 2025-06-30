@@ -217,43 +217,7 @@ class ChannelSwitchManager {
             
             this.updateSections(channelType);
             
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            if (channelType === 'text') {
-                this.showChannelSkeleton();
-                
-                this.updateChatMetaTags(channelId, serverId);
-                
-                const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-                const channelName = channelElement ? channelElement.textContent.trim().replace('#', '') : 'channel';
-                
-                const messageInput = document.querySelector('#message-input');
-                if (messageInput) {
-                    messageInput.placeholder = `Message #${channelName}`;
-                    console.log('[ChannelSwitchManager] ✅ Updated message input placeholder to:', messageInput.placeholder);
-                } else {
-                    console.warn('[ChannelSwitchManager] ⚠️ Message input element not found');
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 100));
-                await this.initializeChatSectionWithSkeleton(channelId);
-                
-                await new Promise(resolve => setTimeout(resolve, 200));
-                if (window.chatSection && window.chatSection.isLoading) {
-                    await new Promise(resolve => {
-                        const checkLoading = () => {
-                            if (!window.chatSection.isLoading) {
-                                resolve();
-                            } else {
-                                setTimeout(checkLoading, 100);
-                            }
-                        };
-                        checkLoading();
-                    });
-                }
-            } else if (channelType === 'voice') {
-                this.initializeVoiceSection(channelId);
-            }
+            await this.initializeChannelSystems(channelId, channelType);
             
             if (updateHistory) {
                 this.updateURL(serverId, channelId, channelType);
@@ -279,6 +243,55 @@ class ChannelSwitchManager {
                 this.processQueue();
             }, 100);
         }
+    }
+
+    async initializeChannelSystems(channelId, channelType) {
+        console.log('[ChannelSwitchManager] Initializing channel systems for:', channelType, 'channel', channelId);
+        
+        if (channelType === 'voice') {
+            await this.initializeVoiceSystemsForChannel(channelId);
+        } else {
+            await this.initializeChatSystemsForChannel(channelId, channelType);
+        }
+    }
+
+    async initializeVoiceSystemsForChannel(channelId) {
+        console.log('[ChannelSwitchManager] Initializing voice systems for channel:', channelId);
+        
+        this.initializeVoiceSection(channelId);
+        
+        if (window.voiceManager) {
+            console.log('[ChannelSwitchManager] Setting up voice manager for channel:', channelId);
+            window.voiceManager.setupVoice(channelId);
+        }
+        
+        if (window.globalVoiceIndicator) {
+            window.globalVoiceIndicator.updateVisibility();
+        }
+    }
+
+    async initializeChatSystemsForChannel(channelId, channelType) {
+        console.log('[ChannelSwitchManager] Initializing chat systems for channel:', channelId, 'type:', channelType);
+        
+        if (window.chatSection) {
+            console.log('[ChannelSwitchManager] Switching chat section target to:', channelType, channelId);
+            if (typeof window.chatSection.switchTarget === 'function') {
+                window.chatSection.switchTarget(channelType, channelId);
+            } else if (typeof window.chatSection.switchTargetWithSkeleton === 'function') {
+                window.chatSection.switchTargetWithSkeleton(channelType, channelId, () => {
+                    console.log('[ChannelSwitchManager] Chat skeleton hidden after channel switch');
+                });
+            }
+        } else if (typeof window.initializeChatSection === 'function') {
+            console.log('[ChannelSwitchManager] Creating new chat section for channel');
+            window.initializeChatSection();
+        }
+        
+        setTimeout(() => {
+            if (window.chatSection && window.chatSection.mentionHandler) {
+                window.chatSection.mentionHandler.loadAvailableUsers();
+            }
+        }, 200);
     }
 
     leaveCurrentChannel() {

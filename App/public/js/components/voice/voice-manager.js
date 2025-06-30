@@ -109,8 +109,7 @@ class VoiceManager {
     }
     
     setupErrorHandling() {
-        // DISABLED: Stream handling moved to DiscordVoiceManager
-        console.log('[VoiceManager] Stream handling disabled - using DiscordVoiceManager instead');
+        console.log('[VoiceManager] Stream handling managed by VideoSDKManager');
     }
     
     setupVoice(channelId) {
