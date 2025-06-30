@@ -1,20 +1,37 @@
 class ChannelSwitchManager {
     constructor() {
+        if (window.channelSwitchManager) {
+            console.log('[ChannelSwitchManager] Cleaning up existing instance before creating new one');
+            window.channelSwitchManager.cleanup();
+        }
+        
         this.isLoading = false;
         this.currentChannelId = null;
+        this.currentChannelType = 'text';
         this.currentServerId = null;
-        this.currentChannelType = null;
         this.switchQueue = [];
+        this.boundClickHandler = null;
+        this.boundPopstateHandler = null;
+        
         this.init();
-        this.injectSwitchingCSS();
+        
+        window.channelSwitchManager = this;
+        console.log('[ChannelSwitchManager] Instance created and assigned to global scope');
     }
 
     init() {
         console.log('[ChannelSwitchManager] Initializing channel switch manager');
-        this.currentServerId = this.getServerIdFromURL();
+        this.injectSwitchingCSS();
         this.bindChannelClickEvents();
         this.setupPopstateListener();
-        this.initializeCurrentChannel();
+        
+        const serverId = this.getServerIdFromURL();
+        if (serverId) {
+            this.currentServerId = serverId;
+            this.initializeCurrentChannel();
+        }
+        
+        console.log('[ChannelSwitchManager] On server page, initializing channel switch manager');
     }
 
     injectSwitchingCSS() {
@@ -85,7 +102,11 @@ class ChannelSwitchManager {
     bindChannelClickEvents() {
         console.log('[ChannelSwitchManager] Binding channel click events');
         
-        document.addEventListener('click', (e) => {
+        if (this.boundClickHandler) {
+            document.removeEventListener('click', this.boundClickHandler);
+        }
+        
+        this.boundClickHandler = (e) => {
             const channelItem = e.target.closest('.channel-item');
             if (channelItem && !this.isLoading) {
                 e.preventDefault();
@@ -100,21 +121,37 @@ class ChannelSwitchManager {
                     this.switchToChannel(serverId, channelId, channelType, channelItem);
                 }
             }
-        });
+        };
+        
+        document.addEventListener('click', this.boundClickHandler);
+        console.log('[ChannelSwitchManager] Channel click handler bound');
     }
 
     setupPopstateListener() {
-        window.addEventListener('popstate', (event) => {
+        if (this.boundPopstateHandler) {
+            window.removeEventListener('popstate', this.boundPopstateHandler);
+        }
+        
+        this.boundPopstateHandler = (event) => {
             console.log('[ChannelSwitchManager] Popstate event:', event.state);
             
             if (event.state && event.state.channelId) {
                 const { serverId, channelId, channelType } = event.state;
                 this.switchToChannel(serverId, channelId, channelType || 'text', null, false);
             }
-        });
+        };
+        
+        window.addEventListener('popstate', this.boundPopstateHandler);
+        console.log('[ChannelSwitchManager] Popstate handler bound');
     }
 
     async switchToChannel(serverId, channelId, channelType = 'text', clickedElement = null, updateHistory = true) {
+        if (window.globalSwitchLock) {
+            console.log('[ChannelSwitchManager] Global switch lock active, queuing request');
+            this.switchQueue.push({ serverId, channelId, channelType, clickedElement, updateHistory });
+            return;
+        }
+        
         if (this.isLoading) {
             console.log('[ChannelSwitchManager] Already switching, queuing request');
             this.switchQueue.push({ serverId, channelId, channelType, clickedElement, updateHistory });
@@ -133,6 +170,7 @@ class ChannelSwitchManager {
             return;
         }
 
+        window.globalSwitchLock = true;
         this.isLoading = true;
         this.showChannelSwitchingState(clickedElement);
 
@@ -190,6 +228,7 @@ class ChannelSwitchManager {
             console.error('[ChannelSwitchManager] Error switching channel:', error);
             this.showNotification?.('Failed to switch channel. Please try again.', 'error');
         } finally {
+            window.globalSwitchLock = false;
             this.isLoading = false;
             this.hideChannelSwitchingState(clickedElement);
             
@@ -914,6 +953,31 @@ class ChannelSwitchManager {
                 }, 300);
             }, duration);
         }
+    }
+
+    cleanup() {
+        console.log('[ChannelSwitchManager] Cleaning up channel switch manager');
+        
+        this.isLoading = false;
+        
+        if (this.boundClickHandler) {
+            document.removeEventListener('click', this.boundClickHandler);
+            this.boundClickHandler = null;
+            console.log('[ChannelSwitchManager] Removed click event listener');
+        }
+        
+        if (this.boundPopstateHandler) {
+            window.removeEventListener('popstate', this.boundPopstateHandler);
+            this.boundPopstateHandler = null;
+            console.log('[ChannelSwitchManager] Removed popstate event listener');
+        }
+        
+        this.switchQueue = [];
+        this.currentChannelId = null;
+        this.currentChannelType = 'text';
+        this.currentServerId = null;
+        
+        console.log('[ChannelSwitchManager] Cleanup completed');
     }
 }
 

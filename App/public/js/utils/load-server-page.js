@@ -1,6 +1,14 @@
 export function loadServerPage(serverId, channelId = null) {
     console.log('[Server Loader] Starting loadServerPage with serverId:', serverId, 'channelId:', channelId);
     
+    if (window.globalSwitchLock) {
+        console.log('[Server Loader] Global switch lock active, server switch blocked');
+        return;
+    }
+    
+    window.globalSwitchLock = true;
+    console.log('[Server Loader] Global switch lock acquired for server loading');
+    
     const mainContent = document.querySelector('.flex-1') ||
         document.querySelector('[class*="server-content"]') ||
         document.querySelector('main');
@@ -71,9 +79,17 @@ export function loadServerPage(serverId, channelId = null) {
                         console.log('[Server AJAX] Server page initialized');
                     }
                     
-                    if (typeof window.ChannelSwitchManager !== 'undefined' && !window.channelSwitchManager) {
+                    if (typeof window.ChannelSwitchManager !== 'undefined') {
+                        if (window.channelSwitchManager) {
+                            console.log('[Server AJAX] Cleaning up existing channel switch manager');
+                            window.channelSwitchManager.cleanup();
+                        }
+                        
+                        console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
                         window.channelSwitchManager = new window.ChannelSwitchManager();
                         console.log('[Server AJAX] Channel switch manager initialized');
+                    } else {
+                        console.warn('[Server AJAX] ChannelSwitchManager class not available');
                     }
                     
                     if (typeof window.initializeParticipantSection === 'function') {
@@ -96,13 +112,20 @@ export function loadServerPage(serverId, channelId = null) {
                     document.dispatchEvent(event);
                     console.log('[Server AJAX] ServerChanged event dispatched');
                     
+                    setTimeout(() => {
+                        window.globalSwitchLock = false;
+                        console.log('[Server AJAX] Global switch lock released after server loading');
+                    }, 500);
+                    
                 } else if (response && response.data && response.data.redirect) {
                     console.log('[Server AJAX] Redirect response:', response.data.redirect);
+                    window.globalSwitchLock = false;
                     window.location.href = response.data.redirect;
                 } else {
                     console.error('[Server AJAX] INVALID RESPONSE FORMAT');
                     console.error('[Server AJAX] Expected string, got:', typeof response);
                     console.error('[Server AJAX] Response content:', response);
+                    window.globalSwitchLock = false;
                     window.location.href = `/server/${serverId}`;
                 }
             },
@@ -118,12 +141,16 @@ export function loadServerPage(serverId, channelId = null) {
                 if (typeof window.handleSkeletonLoading === 'function') {
                     window.handleSkeletonLoading(false);
                 }
+                
+                window.globalSwitchLock = false;
+                console.error('[Server AJAX] Global switch lock released due to error');
                 console.error('[Server AJAX] FALLBACK - Redirecting to /server/' + serverId);
                 window.location.href = `/server/${serverId}`;
             }
             });
     } else {
         console.error('[Server Loader] No main content container found');
+        window.globalSwitchLock = false;
         window.location.href = `/server/${serverId}`;
     }
 }

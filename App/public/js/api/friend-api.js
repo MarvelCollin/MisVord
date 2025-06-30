@@ -56,6 +56,7 @@ class FriendAPI {
         try {
             const response = await fetch(url, {
                 headers: this.headers,
+                credentials: 'include',
                 ...options
             });
             
@@ -111,10 +112,6 @@ class FriendAPI {
             method: 'POST'
         });
         
-        if (!data.data) {
-            throw new Error(data.message || 'Failed to accept friend request');
-        }
-        
         return data;
     }
 
@@ -122,10 +119,6 @@ class FriendAPI {
         const data = await this.makeRequest(`${this.baseURL}/decline?id=${friendshipId}`, {
             method: 'POST'
         });
-        
-        if (!data.data) {
-            throw new Error(data.message || 'Failed to decline friend request');
-        }
         
         return data;
     }
@@ -135,10 +128,6 @@ class FriendAPI {
             method: 'DELETE',
             body: JSON.stringify({ user_id: userId })
         });
-        
-        if (!data.data) {
-            throw new Error(data.message || 'Failed to remove friend');
-        }
         
         return data;
     }

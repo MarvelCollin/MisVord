@@ -41,21 +41,19 @@ async function loadServerContent() {
     console.log('[Server Page] Loading server content');
     
     try {
-        // Initialize channel switching - use the globally available ChannelSwitchManager
         if (!window.channelSwitchManager && window.ChannelSwitchManager) {
+            console.log('[Server Page] Creating new channel switch manager');
             window.channelSwitchManager = new window.ChannelSwitchManager();
             console.log('[Server Page] Channel switch manager created');
         } else if (window.channelSwitchManager) {
             console.log('[Server Page] Using existing channel switch manager');
-            // Reinitialize current channel if manager already exists
             window.channelSwitchManager.initializeCurrentChannel();
         } else {
             console.warn('[Server Page] ChannelSwitchManager not available yet, will retry');
-            // Retry after a short delay
             setTimeout(() => {
                 if (window.ChannelSwitchManager && !window.channelSwitchManager) {
+                    console.log('[Server Page] Creating channel switch manager (delayed)');
                     window.channelSwitchManager = new window.ChannelSwitchManager();
-                    console.log('[Server Page] Channel switch manager created (delayed)');
                 }
             }, 500);
         }
@@ -77,10 +75,6 @@ function initializeServerComponents() {
     
     if (typeof window.initializeServerDropdown === 'function') {
         window.initializeServerDropdown();
-    }
-    
-    if (typeof window.initializeChannelManager === 'function') {
-        window.initializeChannelManager();
     }
     
     if (typeof window.initializeChatSection === 'function') {
@@ -105,19 +99,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('[Server Page] Server page initialization complete');
 });
-
-function initializeChannelManager() {
-    if (!window.channelSwitchManager && window.ChannelSwitchManager) {
-        window.channelSwitchManager = new window.ChannelSwitchManager();
-        console.log('[Server Page] Channel switch manager initialized');
-    }
-}
-
-function getServerIdFromUrl() {
-    const path = window.location.pathname;
-    const matches = path.match(/\/server\/(\d+)/);
-    return matches && matches[1] ? matches[1] : null;
-}
 
 function initializeServerModals() {
   const createServerBtn = document.querySelector(
@@ -245,9 +226,8 @@ function handlePopState(event) {
   if (state && state.channelId) {
     console.log("Handling popstate event for channel:", state.channelId);
     
-    // Use ChannelSwitchManager instead of fetch functions
     if (window.channelSwitchManager) {
-      const serverId = getServerIdFromUrl();
+      const serverId = getServerIdFromURL();
       const channelType = state.channelType || 'text';
       window.channelSwitchManager.switchToChannel(serverId, state.channelId, channelType, null, false);
     } else {
@@ -430,7 +410,7 @@ function initVoicePage() {
 }
 
 // These functions are now handled by ChannelSwitchManager
-window.getServerIdFromUrl = getServerIdFromUrl;
+window.getServerIdFromURL = getServerIdFromURL;
 
 window.isServerPageReady = function() {
   return typeof window.ChannelSwitchManager === 'function';
