@@ -732,7 +732,6 @@ class UnifiedParticipantManager {
 class VoiceCallManager {
     constructor() {
         this.isConnected = false;
-        this.participants = new Map();
         this.localParticipantId = null;
         this.isMuted = false;
         this.isDeafened = false;
@@ -1388,6 +1387,20 @@ class VoiceCallManager {
         } catch (error) {
             this.showToast('Failed to load game. Please try again.', 'error');
         }
+    }
+
+    addBotParticipant(participant) {
+        this.participantManager.processEvent({
+            type: 'bot_joined',
+            data: { participant: participant }
+        });
+    }
+
+    removeBotParticipant(participantId) {
+        this.participantManager.processEvent({
+            type: 'bot_left',
+            data: { participant: { id: participantId } }
+        });
     }
 
     disconnect() {

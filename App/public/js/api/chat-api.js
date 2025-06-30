@@ -692,7 +692,7 @@ window.debugMessageDeletion = function() {
     }
     
     console.log('🔍 4. Checking for real messages to test with...');
-    const messages = document.querySelectorAll('.message-content[data-message-id]');
+    const messages = document.querySelectorAll('[data-message-id]');
     console.log(`Found ${messages.length} messages on page`);
     
     if (messages.length > 0) {

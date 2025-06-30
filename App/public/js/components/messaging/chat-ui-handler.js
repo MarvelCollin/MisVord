@@ -149,14 +149,14 @@ class ChatUIHandler {
     }
     
     editMessage(messageId) {
-        const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) return;
         
-        const messageTextElement = messageElement.querySelector('.message-main-text');
+        const messageTextElement = messageElement.querySelector('.bubble-message-text, .message-main-text');
         if (!messageTextElement) return;
         
         const messageText = messageTextElement.innerText.replace(/ \(edited\)$/, '');
-        const messageGroup = messageElement.closest('.message-group');
+        const messageGroup = messageElement.closest('.bubble-message-group');
         
         const editForm = document.createElement('form');
         editForm.className = 'edit-message-form w-full';
@@ -249,16 +249,16 @@ class ChatUIHandler {
             
             await window.ChatAPI.updateMessage(messageId, newContent);
             
-            const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
             if (messageElement) {
-                const contentDiv = messageElement.querySelector('.message-main-text');
+                const contentDiv = messageElement.querySelector('.bubble-message-text, .message-main-text');
                 if (contentDiv) {
                     contentDiv.innerHTML = this.chatSection.formatMessageContent(newContent);
 
-                    let editedBadge = contentDiv.querySelector('.edited-badge');
+                    let editedBadge = contentDiv.querySelector('.edited-badge, .bubble-edited-badge');
                     if (!editedBadge) {
                         editedBadge = document.createElement('span');
-                        editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                        editedBadge.className = 'bubble-edited-badge text-xs text-[#a3a6aa] ml-1';
                         contentDiv.appendChild(editedBadge);
                     }
                     editedBadge.textContent = '(edited)';
@@ -275,13 +275,13 @@ class ChatUIHandler {
     }
     
     async deleteMessage(messageId) {
-        const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) return;
         
-        const messageGroup = messageElement.closest('.message-group');
-        const usernameElement = messageGroup.querySelector('.message-username');
+        const messageGroup = messageElement.closest('.bubble-message-group');
+        const usernameElement = messageGroup.querySelector('.bubble-username, .message-username');
         const username = usernameElement ? usernameElement.textContent.trim() : 'Unknown User';
-        const messageTextElement = messageElement.querySelector('.message-main-text');
+        const messageTextElement = messageElement.querySelector('.bubble-message-text, .message-main-text');
         const messageText = messageTextElement ? messageTextElement.innerText : '';
         
         this.showDeleteConfirmModal(messageId, username, messageText);
@@ -359,11 +359,11 @@ class ChatUIHandler {
             
             await window.ChatAPI.deleteMessage(messageId);
             
-            const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
             if (messageElement) {
-                const messageGroup = messageElement.closest('.message-group');
+                const messageGroup = messageElement.closest('.bubble-message-group');
                 
-                if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
+                if (messageGroup && messageGroup.querySelectorAll('.bubble-message-text, .message-main-text').length === 1) {
                     messageGroup.remove();
                 } else {
                     messageElement.remove();
@@ -401,10 +401,10 @@ class ChatUIHandler {
     }
     
     copyMessageText(messageId) {
-        const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) return;
         
-        const textElement = messageElement.querySelector('.message-main-text');
+        const textElement = messageElement.querySelector('.bubble-message-text, .message-main-text');
         if (!textElement) return;
         
         const text = textElement.innerText;
@@ -563,8 +563,6 @@ class ChatUIHandler {
             console.error('❌ [CHAT-UI-HANDLER] ChatSection startReply method not available');
         }
     }
-    
-
     
     cancelReply() {
         console.log('❌ [CHAT-UI-HANDLER] Cancel reply requested, delegating to ChatSection');

@@ -1,7 +1,6 @@
 class VoiceManager {
     constructor() {
         this.isConnected = false;
-        this.participants = new Map();
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.videoSDKManager = null;
@@ -331,7 +330,6 @@ class VoiceManager {
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;
-        this.participants.clear();
         this.dispatchEvent(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect');
         this.showToast('Disconnected from voice', 'info');
 
@@ -340,13 +338,7 @@ class VoiceManager {
         }
     }
     
-    addParticipant(participant) {
-        this.participants.set(participant.id, participant);
-    }
-    
-    removeParticipant(participantId) {
-        this.participants.delete(participantId);
-    }
+
     
     dispatchEvent(eventName, detail = {}) {
         window.dispatchEvent(new CustomEvent(eventName, { detail }));
@@ -407,7 +399,6 @@ class VoiceManager {
 
     resetState() {
         this.isConnected = false;
-        this.participants.clear();
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;

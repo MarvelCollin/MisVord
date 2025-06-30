@@ -101,7 +101,7 @@ class SimpleChannelSwitcher {
             
             if (response.ok) {
                 const data = await response.json();
-                this.renderMessages(data.data?.messages || []);
+                await this.renderMessages(data.data?.messages || []);
                 this.joinSocketRoom(channelId);
             }
         } catch (error) {
@@ -128,7 +128,7 @@ class SimpleChannelSwitcher {
         }
     }
     
-    renderMessages(messages) {
+    async renderMessages(messages) {
         const messagesContainer = document.querySelector('#chat-messages .messages-container');
         if (!messagesContainer) return;
         
@@ -143,28 +143,81 @@ class SimpleChannelSwitcher {
             return;
         }
         
-        const messagesHTML = messages.map(message => this.createMessageHTML(message)).join('');
-        messagesContainer.innerHTML = messagesHTML;
+        const messagesHTML = [];
+        for (const message of messages) {
+            try {
+                const html = await this.renderSingleMessage(message);
+                if (html) {
+                    messagesHTML.push(html);
+                }
+            } catch (error) {
+                console.error('[SimpleChannelSwitcher] Error rendering message:', message.id, error);
+                messagesHTML.push(this.createFallbackMessageHTML(message));
+            }
+        }
         
+        messagesContainer.innerHTML = messagesHTML.join('');
         this.scrollToBottom();
     }
     
-    createMessageHTML(message) {
+    async renderSingleMessage(message) {
+        const formattedMessage = {
+            id: message.id,
+            user_id: message.user_id,
+            username: message.username,
+            avatar_url: message.avatar_url || '/public/assets/common/default-profile-picture.png',
+            content: message.content || '',
+            sent_at: message.created_at,
+            edited_at: message.edited_at,
+            message_type: 'text',
+            attachments: message.attachments || [],
+            reactions: message.reactions || [],
+            reply_message_id: message.reply_message_id,
+            reply_data: message.reply_data
+        };
+        
+        try {
+            const response = await fetch('/api/messages/render-bubble', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message_data: formattedMessage
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.html) {
+                    return result.html;
+                }
+            }
+        } catch (error) {
+            console.error('[SimpleChannelSwitcher] Bubble render API error:', error);
+        }
+        
+        return null;
+    }
+    
+    createFallbackMessageHTML(message) {
         const avatar = message.avatar_url || '/public/assets/common/default-profile-picture.png';
         const timestamp = new Date(message.created_at).toLocaleTimeString();
         
         return `
-            <div class="bubble-message-group flex items-start p-2 hover:bg-[#2e3035]" data-user-id="${message.user_id}" data-timestamp="${message.created_at}">
-                <div class="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
-                    <img src="${avatar}" alt="${message.username}" class="w-full h-full object-cover">
+            <div class="bubble-message-group" data-user-id="${message.user_id}" data-timestamp="${new Date(message.created_at).getTime()}">
+                <div class="bubble-avatar">
+                    <img src="${avatar}" alt="${message.username}" onerror="this.src='/public/assets/common/default-profile-picture.png';">
                 </div>
-                <div class="flex-1">
-                    <div class="flex items-center mb-1">
-                        <span class="font-semibold text-white mr-2">${message.username}</span>
-                        <span class="text-xs text-[#a3a6aa]">${timestamp}</span>
+                <div class="bubble-content-wrapper">
+                    <div class="bubble-header">
+                        <span class="bubble-username">${message.username}</span>
+                        <span class="bubble-timestamp">${timestamp}</span>
                     </div>
-                    <div class="message-content text-[#dcddde]" data-message-id="${message.id}">
-                        ${message.content}
+                    <div class="bubble-contents">
+                        <div class="bubble-message-content" data-message-id="${message.id}" data-user-id="${message.user_id}">
+                            <div class="bubble-message-text">${message.content}</div>
+                        </div>
                     </div>
                 </div>
             </div>

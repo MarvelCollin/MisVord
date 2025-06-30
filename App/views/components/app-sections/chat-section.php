@@ -328,10 +328,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     console.log('🔍 [DEBUG] Checking server-rendered message actions on page load');
-    const serverMessages = document.querySelectorAll('.message-content[data-message-id]');
-    const serverActions = document.querySelectorAll('.message-actions-js');
-    console.log(`📊 [DEBUG] Found ${serverMessages.length} server messages and ${serverActions.length} action containers`);
     
+    const serverMessages = document.querySelectorAll('[data-message-id]');
+    console.log(`🔍 [DEBUG] Found ${serverMessages.length} server-rendered messages`);
+    
+    serverMessages.forEach((messageElement, index) => {
+        const messageId = messageElement.dataset.messageId;
+        const userId = messageElement.dataset.userId;
+        console.log(`🔍 [DEBUG] Message ${index}: ID=${messageId}, UserID=${userId}`);
+    });
+      
     setTimeout(() => {
         if (typeof window.initializeChatSection === 'function') {
             console.log('[Chat Section] Calling chat section initializer');

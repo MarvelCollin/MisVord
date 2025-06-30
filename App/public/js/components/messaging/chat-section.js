@@ -840,13 +840,11 @@ class ChatSection {
             return;
         }
         
-        // Handle both bubble messages and regular messages
         const isBubbleMessage = messageElement.closest('.bubble-message-group');
         let username = 'Unknown User';
         let content = 'a message';
         
         if (isBubbleMessage) {
-            // Bubble message handling
             const messageGroup = messageElement.closest('.bubble-message-group');
             const usernameElement = messageGroup?.querySelector('.bubble-username');
             const contentElement = messageElement.querySelector('.bubble-message-text');
@@ -854,7 +852,6 @@ class ChatSection {
             username = usernameElement?.textContent?.trim() || 'Unknown User';
             content = contentElement?.textContent?.trim() || 'a message';
         } else {
-            // Regular message handling
             const messageGroup = messageElement.closest('.message-group');
             const usernameElement = messageGroup?.querySelector('.font-medium, .message-username');
             const contentElement = messageElement.querySelector('.message-main-text');
@@ -873,7 +870,6 @@ class ChatSection {
         
         this.showReplyUI();
         
-        // Focus the input
         if (this.messageInput) {
             this.messageInput.focus();
         }
@@ -1383,22 +1379,19 @@ class ChatSection {
             if (response.success) {
                 console.log(`✅ [CHAT-SECTION] Message ${messageId} deleted successfully`);
                 
-                // Update UI immediately
             const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
             if (messageElement) {
-                const messageGroup = messageElement.closest('.message-group');
+                const messageGroup = messageElement.closest('.bubble-message-group');
                 
-                if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
+                if (messageGroup && messageGroup.querySelectorAll('[data-message-id]').length === 1) {
                     messageGroup.remove();
                 } else {
                     messageElement.remove();
                 }
                 
-                    // Remove from processed messages
                     this.messageHandler.processedMessageIds.delete(messageId);
                 
-                    // Show empty state if no messages left
-                const remainingMessages = this.getMessagesContainer().querySelectorAll('.message-group');
+                const remainingMessages = this.getMessagesContainer().querySelectorAll('.bubble-message-group');
                 if (remainingMessages.length === 0) {
                     this.showEmptyState();
                 }
@@ -1573,7 +1566,7 @@ class ChatSection {
     initializeExistingMessages() {
         console.log('🔧 [CHAT-SECTION] Initializing event listeners for existing server-rendered messages');
         
-        const existingMessages = document.querySelectorAll('.message-content[data-message-id]');
+        const existingMessages = document.querySelectorAll('[data-message-id]');
         
         console.log(`📝 [CHAT-SECTION] Found ${existingMessages.length} existing messages to initialize`);
         
@@ -1621,18 +1614,15 @@ class ChatSection {
     }
 }
 
-// Make functions and classes globally available for dynamic initialization
 window.initializeChatSection = initializeChatSection;
 window.ChatSection = ChatSection;
 
-// Debug log to confirm availability
 console.log('✅ [CHAT-SECTION] Global functions exposed:', {
     initializeChatSection: typeof window.initializeChatSection,
     ChatSection: typeof window.ChatSection,
     timestamp: new Date().toISOString()
   });
 
-// Add global debug function for testing
 window.debugChatSection = function() {
     console.log('🧪 [DEBUG] Current URL:', window.location.href);
     console.log('🧪 [DEBUG] URL pathname:', window.location.pathname);
@@ -1656,4 +1646,4 @@ window.debugChatSection = function() {
     }
 };
   
-  export default ChatSection;
+export default ChatSection;

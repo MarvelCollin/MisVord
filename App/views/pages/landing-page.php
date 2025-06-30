@@ -104,9 +104,13 @@ ob_start();
     </div>
 
     <div class="text-center">
-        <h1 class="hero-title floating scramble-text text-6xl md:text-8xl font-bold mb-8" data-text="MisVord">
+        <h1 class="hero-title floating scramble-text text-7xl md:text-9xl font-bold mb-4" data-text="MisVord">
             MisVord
         </h1>
+        <p class="hero-tagline opacity-0 text-xl md:text-2xl text-white font-bold tracking-wide mb-8">
+            <span class="tagline-text animated-text"></span>
+            <span class="tagline-suffix text-sm align-top ml-1 opacity-75 font-bold">~24-2</span>
+        </p>
     </div>
 
     <div class="scroll-down-indicator">
@@ -449,6 +453,11 @@ $content = ob_get_clean();
             .user-dropdown {
                 min-width: 160px;
             }
+
+            .hero-tagline {
+                font-size: 1rem;
+                padding: 0 1rem;
+            }
         }
 
         @font-face {
@@ -678,6 +687,181 @@ $content = ob_get_clean();
             .floating-asset.green-egg { width: 35px; height: 35px; }
             .floating-asset.leaf { width: 25px; height: 25px; }
             .floating-asset.pan { width: 50px; height: 50px; }
+        }
+
+        .hero-tagline {
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            animation: fadeInUp 1.2s forwards;
+            animation-delay: 1.5s;
+            perspective: 1000px;
+        }
+
+        .animated-text {
+            display: inline-block;
+        }
+
+        .floating-char {
+            display: inline-block;
+            font-weight: 900;
+            text-shadow: 
+                0 0 5px rgba(88, 101, 242, 0.8),
+                0 0 10px rgba(88, 101, 242, 0.6),
+                0 0 15px rgba(88, 101, 242, 0.4),
+                0 0 20px rgba(88, 101, 242, 0.2);
+            background: linear-gradient(135deg, #ffffff 0%, #e6f0ff 30%, #5865F2 70%, #ffffff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% 200%;
+            animation: 
+                floatRandom 4s ease-in-out infinite,
+                glowPulse 2s ease-in-out infinite alternate,
+                gradientShift 3s ease-in-out infinite;
+            transform-origin: center;
+            position: relative;
+            will-change: transform;
+        }
+
+        .floating-char:nth-child(1) { animation-delay: 0s, 0.1s, 0.2s; }
+        .floating-char:nth-child(2) { animation-delay: 0.1s, 0.3s, 0.4s; }
+        .floating-char:nth-child(3) { animation-delay: 0.2s, 0.5s, 0.6s; }
+        .floating-char:nth-child(4) { animation-delay: 0.3s, 0.7s, 0.8s; }
+        .floating-char:nth-child(5) { animation-delay: 0.4s, 0.9s, 1.0s; }
+        .floating-char:nth-child(6) { animation-delay: 0.5s, 1.1s, 1.2s; }
+        .floating-char:nth-child(7) { animation-delay: 0.6s, 1.3s, 1.4s; }
+        .floating-char:nth-child(8) { animation-delay: 0.7s, 1.5s, 1.6s; }
+        .floating-char:nth-child(9) { animation-delay: 0.8s, 1.7s, 1.8s; }
+        .floating-char:nth-child(10) { animation-delay: 0.9s, 1.9s, 2.0s; }
+        .floating-char:nth-child(11) { animation-delay: 1.0s, 2.1s, 2.2s; }
+        .floating-char:nth-child(12) { animation-delay: 1.1s, 2.3s, 2.4s; }
+        .floating-char:nth-child(13) { animation-delay: 1.2s, 2.5s, 2.6s; }
+        .floating-char:nth-child(14) { animation-delay: 1.3s, 2.7s, 2.8s; }
+        .floating-char:nth-child(15) { animation-delay: 1.4s, 2.9s, 3.0s; }
+        .floating-char:nth-child(16) { animation-delay: 1.5s, 3.1s, 3.2s; }
+        .floating-char:nth-child(17) { animation-delay: 1.6s, 3.3s, 3.4s; }
+        .floating-char:nth-child(18) { animation-delay: 1.7s, 3.5s, 3.6s; }
+        .floating-char:nth-child(19) { animation-delay: 1.8s, 3.7s, 3.8s; }
+        .floating-char:nth-child(20) { animation-delay: 1.9s, 3.9s, 4.0s; }
+
+        .floating-char:nth-child(n+21) { 
+            animation-delay: 
+                calc(0.1s * (var(--char-index, 0) % 20)), 
+                calc(0.2s * (var(--char-index, 0) % 15)), 
+                calc(0.3s * (var(--char-index, 0) % 10)); 
+        }
+
+        @keyframes floatRandom {
+            0%, 100% { 
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+            20% { 
+                transform: translate(3px, -8px) rotate(1deg) scale(1.05);
+            }
+            40% { 
+                transform: translate(-5px, 4px) rotate(-1deg) scale(0.95);
+            }
+            60% { 
+                transform: translate(7px, -2px) rotate(2deg) scale(1.1);
+            }
+            80% { 
+                transform: translate(-3px, 6px) rotate(-1.5deg) scale(0.98);
+            }
+        }
+
+        @keyframes glowPulse {
+            0% {
+                text-shadow: 
+                    0 0 5px rgba(88, 101, 242, 0.8),
+                    0 0 10px rgba(88, 101, 242, 0.6),
+                    0 0 15px rgba(88, 101, 242, 0.4),
+                    0 0 20px rgba(88, 101, 242, 0.2);
+                filter: brightness(1);
+            }
+            100% {
+                text-shadow: 
+                    0 0 10px rgba(88, 101, 242, 1),
+                    0 0 20px rgba(88, 101, 242, 0.8),
+                    0 0 30px rgba(88, 101, 242, 0.6),
+                    0 0 40px rgba(88, 101, 242, 0.4),
+                    0 0 50px rgba(88, 101, 242, 0.2);
+                filter: brightness(1.3);
+            }
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .tagline-text {
+            display: inline-block;
+        }
+
+        .tagline-suffix {
+            font-family: monospace;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 
+                0 0 3px rgba(88, 101, 242, 0.6),
+                0 0 6px rgba(88, 101, 242, 0.4);
+            animation: suffixGlow 2.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes suffixGlow {
+            0% {
+                text-shadow: 
+                    0 0 3px rgba(88, 101, 242, 0.6),
+                    0 0 6px rgba(88, 101, 242, 0.4);
+                transform: scale(1);
+            }
+            100% {
+                text-shadow: 
+                    0 0 8px rgba(88, 101, 242, 0.9),
+                    0 0 15px rgba(88, 101, 242, 0.6),
+                    0 0 20px rgba(88, 101, 242, 0.3);
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes extraBounce {
+            0%, 100% {
+                transform: translateY(0) scale(1);
+            }
+            25% {
+                transform: translateY(-15px) scale(1.2) rotate(5deg);
+            }
+            50% {
+                transform: translateY(5px) scale(0.9) rotate(-3deg);
+            }
+            75% {
+                transform: translateY(-8px) scale(1.1) rotate(2deg);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 0.75;
+            }
         }
     </style>
 </head>

@@ -1533,7 +1533,7 @@ window.debugEmojis = function() {
     console.log('🧠 Loaded message IDs:', Array.from(emojiReactions.loadedMessageIds));
     console.log('⏳ Loading reactions for:', Array.from(emojiReactions.loadingReactions));
                 
-    const messages = document.querySelectorAll('.message-content[data-message-id]');
+    const messages = document.querySelectorAll('[data-message-id]');
     console.log(`📝 Found ${messages.length} messages on page`);
     
     messages.forEach(msg => {
@@ -1565,7 +1565,7 @@ window.debugEmojis = function() {
 // Force-load all reactions
 window.forceLoadAllReactions = function() {
     console.log('🔄 Force loading reactions for all visible messages...');
-    const messages = document.querySelectorAll('.message-content[data-message-id]');
+    const messages = document.querySelectorAll('[data-message-id]');
     
     messages.forEach(msg => {
         const messageId = msg.dataset.messageId;
@@ -1632,7 +1632,7 @@ window.reinitializeEmojiSystem = function() {
         initEmojiReactions();
         
         // Check for messages and load reactions
-        const messages = document.querySelectorAll('.message-content[data-message-id]');
+        const messages = document.querySelectorAll('[data-message-id]');
         messages.forEach(msg => {
             const messageId = msg.dataset.messageId;
             if (/^\d+$/.test(String(messageId))) {
