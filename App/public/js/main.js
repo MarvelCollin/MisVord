@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.globalSocketManager = globalSocketManager;
         window.loadCSS = loadCSS;
         window.unloadCSS = unloadCSS;
+        window.globalSwitchLock = false;
         
         if (!window.nitroCrownManager) {
             window.nitroCrownManager = new NitroCrownManager();

@@ -100,6 +100,10 @@ function ensureServerAPI() {
 }
 
 export function loadExplorePage() {
+    if (window.globalSwitchLock) {
+        window.globalSwitchLock = false;
+    }
+    
     if (window.navigationManager) {
         return window.navigationManager.navigateToExplore();
     }

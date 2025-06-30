@@ -1,4 +1,8 @@
 export function loadServerPage(serverId, channelId = null) {
+    if (window.globalSwitchLock) {
+        window.globalSwitchLock = false;
+    }
+    
     if (window.navigationManager) {
         return window.navigationManager.navigateToServer(serverId, channelId);
     }

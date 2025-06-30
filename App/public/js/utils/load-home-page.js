@@ -1,6 +1,10 @@
 import { NavigationManager } from './navigation-manager.js';
 
 export function loadHomePage(pageType = 'friends') {
+    if (window.globalSwitchLock) {
+        window.globalSwitchLock = false;
+    }
+    
     if (window.navigationManager) {
         return window.navigationManager.navigateToHome(pageType);
     }

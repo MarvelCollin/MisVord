@@ -16,6 +16,7 @@ class ChannelSwitchManager {
         this.boundPopstateHandler = null;
         this.isDestroyed = false;
         this.channelSkeletonStartTime = null;
+        this.lockStartTime = null;
         
         this.init();
         
@@ -173,9 +174,14 @@ class ChannelSwitchManager {
         }
         
         if (window.globalSwitchLock) {
-            console.log('[ChannelSwitchManager] Global switch lock active, queuing request');
-            this.switchQueue.push({ serverId, channelId, channelType, clickedElement, updateHistory });
-            return;
+            if (!this.lockStartTime || (Date.now() - this.lockStartTime) > 15000) {
+                window.globalSwitchLock = false;
+                this.isLoading = false;
+            } else {
+                console.log('[ChannelSwitchManager] Global switch lock active, queuing request');
+                this.switchQueue.push({ serverId, channelId, channelType, clickedElement, updateHistory });
+                return;
+            }
         }
         
         if (this.isLoading) {
@@ -189,6 +195,7 @@ class ChannelSwitchManager {
                 console.warn('[ChannelSwitchManager] Switch timeout - force releasing locks');
                 this.isLoading = false;
                 window.globalSwitchLock = false;
+                this.lockStartTime = null;
                 this.hideChannelSwitchingState(clickedElement);
                 this.hideChannelSkeleton();
             }
@@ -207,6 +214,7 @@ class ChannelSwitchManager {
         }
 
         window.globalSwitchLock = true;
+        this.lockStartTime = Date.now();
         this.isLoading = true;
         this.showChannelSwitchingState(clickedElement);
 
@@ -236,6 +244,7 @@ class ChannelSwitchManager {
         } finally {
             clearTimeout(switchTimeout);
             window.globalSwitchLock = false;
+            this.lockStartTime = null;
             this.isLoading = false;
             this.hideChannelSwitchingState(clickedElement);
             

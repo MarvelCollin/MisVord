@@ -40,6 +40,17 @@ try {
         return $user['has_nitro'];
     });
     
+    $orderingCorrect = true;
+    $foundNitroUser = false;
+    foreach ($orderingAnalysis as $user) {
+        if ($user['has_nitro']) {
+            $foundNitroUser = true;
+        } else if ($foundNitroUser) {
+            $orderingCorrect = false;
+            break;
+        }
+    }
+    
     echo json_encode([
         'success' => true,
         'test_name' => 'Admin Search Ordering Test',
@@ -47,17 +58,7 @@ try {
         'total_users' => count($orderingAnalysis),
         'users_without_nitro' => count($usersWithoutNitro),
         'users_with_nitro' => count($usersWithNitro),
-        'ordering_correct' => function() use ($orderingAnalysis) {
-            $foundNitroUser = false;
-            foreach ($orderingAnalysis as $user) {
-                if ($user['has_nitro']) {
-                    $foundNitroUser = true;
-                } else if ($foundNitroUser) {
-                    return false;
-                }
-            }
-            return true;
-        },
+        'ordering_correct' => $orderingCorrect,
         'detailed_ordering' => $orderingAnalysis,
         'controller_response' => $response,
         'timestamp' => date('Y-m-d H:i:s')
