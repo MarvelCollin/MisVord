@@ -136,7 +136,6 @@ Route::post('/login', function() {
     $controller->login();
 });
 
-// Google OAuth routes
 Route::get('/google', function() {
     $controller = new GoogleAuthController();
     $controller->callback();
@@ -287,6 +286,18 @@ Route::post('/api/channels/([0-9]+)/messages', function($channelId) {
 Route::get('/api/channels/([0-9]+)', function($channelId) {
     $controller = new ChannelController();
     $controller->show($channelId);
+});
+
+Route::put('/api/channels/([0-9]+)', function($channelId) {
+    $controller = new ChannelController();
+    $_POST['channel_id'] = $channelId;
+    $controller->update();
+});
+
+Route::delete('/api/channels/([0-9]+)', function($channelId) {
+    $controller = new ChannelController();
+    $_POST['channel_id'] = $channelId;
+    $controller->delete();
 });
 
 Route::get('/api/channels/content', function() {
@@ -487,7 +498,6 @@ Route::post('/api/chat/dm/([0-9]+)/messages', function($roomId) {
     $controller->sendMessageToTarget('dm', $roomId);
 });
 
-// Keep the original route for backward compatibility
 Route::post('/api/chat/(channel|dm)/([0-9]+)/messages', function($type, $id) {
     $controller = new ChatController();
     $controller->sendMessageToTarget($type, $id);
@@ -1022,7 +1032,6 @@ Route::get('/api/debug/bot-system-status', function() {
         require_once __DIR__ . '/../database/repositories/UserRepository.php';
         $userRepository = new UserRepository();
         
-        // Check if TitiBot exists
         $titiBot = $userRepository->findByUsername('titibot');
         
         $response = [
@@ -1064,7 +1073,6 @@ Route::post('/api/debug/create-titibot', function() {
         require_once __DIR__ . '/../database/repositories/UserRepository.php';
         $userRepository = new UserRepository();
         
-        // Check if TitiBot already exists
         $existingBot = $userRepository->findByUsername('titibot');
         if ($existingBot) {
             echo json_encode([
@@ -1076,11 +1084,10 @@ Route::post('/api/debug/create-titibot', function() {
             return;
         }
         
-        // Create TitiBot
         $botData = [
             'username' => 'titibot',
             'email' => 'titibot@system.local',
-            'password' => password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT), // Random password
+            'password' => password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT),
             'discriminator' => '0000',
             'display_name' => 'TitiBot',
             'bio' => 'Official music and fun bot',
@@ -1336,7 +1343,7 @@ Route::post('/api/debug/set-security', function() {
     exit;
 });
 
-// Add missing DM creation routes
+
 Route::post('/api/chat/create', function() {
     $controller = new ChatController();
     $controller->create();
@@ -1415,7 +1422,6 @@ Route::post('/server/([0-9]+)/channel-section', function($serverId) {
     $controller->getChannelSection($serverId);
 });
 
-// Add chat and voice channel section routes
 Route::get('/api/chat/channel/([0-9]+)', function($channelId) {
     $controller = new ChatController();
     $controller->renderChatSection('channel', $channelId);
@@ -1436,7 +1442,6 @@ Route::get('/api/chat/dm/([0-9]+)', function($dmId) {
     $controller->renderChatSection('direct', $dmId);
 });
 
-// Primary routes for channel messages with chat_type parameter
 Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
     require_once __DIR__ . '/../controllers/MessageController.php';
     $controller = new MessageController();
@@ -1451,7 +1456,6 @@ Route::post('/api/channels/([0-9]+)/messages', function($channelId) {
     $controller->sendMessage($channelId);
 });
 
-// Alternative routes for chat messages via /api/chat/channel - FIXED to use ChatController
 Route::get('/api/chat/channel/([0-9]+)/messages', function($channelId) {
     $controller = new ChatController();
     $controller->getMessages('channel', $channelId);
@@ -1459,13 +1463,11 @@ Route::get('/api/chat/channel/([0-9]+)/messages', function($channelId) {
 
 Route::post('/api/chat/channel/([0-9]+)/messages', function($channelId) {
     $controller = new ChatController();
-    // Set the target type and ID for ChatController::sendMessage()
     $_POST['target_type'] = 'channel';
     $_POST['target_id'] = $channelId;
     $controller->sendMessage();
 });
 
-// Direct message routes - FIXED to use ChatController for proper DM handling
 Route::get('/api/chat/dm/([0-9]+)/messages', function($roomId) {
     $controller = new ChatController();
     $controller->getMessages('dm', $roomId);
@@ -1473,19 +1475,16 @@ Route::get('/api/chat/dm/([0-9]+)/messages', function($roomId) {
 
 Route::post('/api/chat/dm/([0-9]+)/messages', function($roomId) {
     $controller = new ChatController();
-    // Set the target type and ID for ChatController::sendMessage()
     $_POST['target_type'] = 'dm';
     $_POST['target_id'] = $roomId;
     $controller->sendMessage();
 });
 
-// WebSocket message saving endpoint (called by socket server)
 Route::post('/api/chat/save-message', function() {
     $controller = new ChatController();
     $controller->saveMessageFromSocket();
 });
 
-// Debug routes for testing socket input
 Route::post('/api/debug/socket-input', function() {
     $controller = new DebugController();
     return $controller->testSocketInput();
@@ -1495,8 +1494,6 @@ Route::get('/api/debug/socket-input', function() {
     $controller = new DebugController();
     return $controller->testSocketInput();
 });
-
-// Chat message routes using ChatController
 
 Route::post('/api/debug/test-socket-save', function() {
     header('Content-Type: application/json');

@@ -76,10 +76,6 @@ $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name
 </div>
 
 <script>
-console.log('[voice-not-join.php] File loaded');
-
-
-
 function handleMouseMove(event) {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -106,8 +102,17 @@ function handleMouseMove(event) {
 async function ensureVoiceScriptsLoaded() {
     try {
         if (typeof VideoSDK === 'undefined') {
-            console.log('[voice-not-join.php] Loading VideoSDK...');
             await window.loadVoiceScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
+            await new Promise(resolve => {
+                const checkVideoSDK = () => {
+                    if (typeof VideoSDK !== 'undefined') {
+                        resolve();
+                    } else {
+                        setTimeout(checkVideoSDK, 100);
+                    }
+                };
+                checkVideoSDK();
+            });
         }
         
         if (!window.videoSDKManager) {
@@ -122,11 +127,9 @@ async function ensureVoiceScriptsLoaded() {
             await window.loadVoiceScript('/public/js/components/voice/voice-section.js?v=' + Date.now());
         }
         
-
-        
         await new Promise(resolve => {
             const checkReady = () => {
-                if (window.voiceManager && window.videoSDKManager && window.VoiceSection) {
+                if (window.voiceManager && window.videoSDKManager && window.VoiceSection && typeof VideoSDK !== 'undefined') {
                     resolve();
                 } else {
                     setTimeout(checkReady, 50);
@@ -136,20 +139,16 @@ async function ensureVoiceScriptsLoaded() {
         });
         
         if (window.videoSDKManager && !window.videoSDKManager.initialized) {
-            console.log('[voice-not-join.php] Initializing VideoSDK...');
             try {
                 await window.videoSDKManager.init();
-                console.log('[voice-not-join.php] VideoSDK initialized successfully');
             } catch (error) {
-                console.error('[voice-not-join.php] Failed to initialize VideoSDK:', error);
-                throw error;
+                return true;
             }
         }
         
         return true;
     } catch (error) {
-        console.error('[voice-not-join.php] Error loading voice scripts:', error);
-        throw error;
+        return true;
     }
 }
 
@@ -166,8 +165,6 @@ function resetJoinState() {
 }
 
 async function joinVoiceChannel() {
-    console.log('[voice-not-join.php] Join voice channel function called');
-    
     const joinBtn = document.getElementById('joinBtn');
     const joinView = document.getElementById('joinView');
     const connectingView = document.getElementById('connectingView');
@@ -177,23 +174,16 @@ async function joinVoiceChannel() {
     if (connectingView) connectingView.classList.remove('hidden');
     
     try {
-        console.log('[voice-not-join.php] Ensuring voice scripts are loaded...');
         await ensureVoiceScriptsLoaded();
         
-        console.log('[voice-not-join.php] Voice scripts loaded, attempting to join...');
-        
         if (window.voiceManager) {
-            console.log('[voice-not-join.php] Using voiceManager.joinVoice()');
             await window.voiceManager.joinVoice();
-            console.log('[voice-not-join.php] Waiting for VideoSDK to be fully ready...');
-            await window.waitForVideoSDKReady();
-            console.log('[voice-not-join.php] Voice joined and VideoSDK is fully ready');
-        } else {
-            throw new Error('Voice manager not available');
+            if (window.waitForVideoSDKReady) {
+                await window.waitForVideoSDKReady();
+            }
         }
         
     } catch (error) {
-        console.error('[voice-not-join.php] Error joining voice:', error);
         resetJoinState();
         
         if (window.showToast) {
@@ -203,7 +193,6 @@ async function joinVoiceChannel() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[voice-not-join.php] DOM content loaded');
     const joinView = document.getElementById('joinView');
     if (joinView) {
         joinView.addEventListener('mouseleave', function() {
@@ -220,22 +209,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     const joinBtn = document.getElementById('joinBtn');
-    console.log('[voice-not-join.php] Join button found:', !!joinBtn);
     
     if (joinBtn) {
         joinBtn.addEventListener('click', async function(e) {
-            console.log('[voice-not-join.php] Join button clicked');
             e.preventDefault();
             e.stopPropagation();
             try {
                 await joinVoiceChannel();
             } catch (error) {
-                console.error('[voice-not-join.php] Error in click handler:', error);
+                resetJoinState();
             }
         });
     }
     
-    console.log('[voice-not-join.php] Dispatching voiceUIReady event to start preloading');
     window.dispatchEvent(new CustomEvent('voiceUIReady'));
 });
 </script>

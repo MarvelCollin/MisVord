@@ -700,11 +700,15 @@ function initServerDropdownManual() {
                         case 'Create Channel':
                             if (typeof window.showCreateChannelModal === 'function') {
                                 window.showCreateChannelModal();
+                            } else if (typeof window.openCreateChannelModal === 'function') {
+                                window.openCreateChannelModal();
                             }
                             break;
                         case 'Create Category':
                             if (typeof window.showCreateCategoryModal === 'function') {
                                 window.showCreateCategoryModal();
+                            } else if (typeof window.openCreateCategoryModal === 'function') {
+                                window.openCreateCategoryModal();
                             }
                             break;
                         case 'Leave Server':

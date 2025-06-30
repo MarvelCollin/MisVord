@@ -1,7 +1,7 @@
 const channelAPI = {
     createChannel: function(formData) {
         return $.ajax({
-            url: '/api/channels/create',
+            url: '/api/channels',
             method: 'POST',
             data: formData,
             processData: false,

@@ -45,61 +45,14 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col relative overflow-hidden">
         
-        <!-- VOICE ONLY VIEW (Default Discord Style) -->
-        <div id="voiceOnlyView" class="flex-1 flex items-center justify-center p-8">
-            <div class="text-center max-w-2xl">
-                <!-- Main Voice Indicator -->
-                <div class="relative mb-8">
-                    <div class="w-24 h-24 bg-[#5865f2] rounded-full flex items-center justify-center text-white shadow-lg mx-auto">
-                        <i class="fas fa-volume-up text-2xl"></i>
-                    </div>
-                    <div class="absolute -top-1 -left-1 w-26 h-26 border-2 border-[#3ba55c] rounded-full animate-pulse opacity-75"></div>
-                </div>
-                
-                <h2 class="text-white text-2xl font-semibold mb-2">Voice Connected</h2>
-                <p class="text-[#b9bbbe] mb-8">Connected to <?php echo htmlspecialchars($channelName); ?></p>
-                
-                <!-- Participants Grid (Discord Style) -->
-                <div id="voiceParticipantsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
-                    <!-- Participants will be added here -->
-                </div>
+        <!-- UNIFIED GRID VIEW -->
+        <div id="unifiedGridView" class="flex-1 p-4">
+            <div id="participantGrid" class="w-full h-full grid gap-3 auto-rows-fr">
+                <!-- All participants (voice + video + screen share) will be added here -->
             </div>
         </div>
 
-        <!-- VIDEO GRID VIEW (When cameras active) -->
-        <div id="videoGridView" class="hidden flex-1 flex flex-col p-4">
-            <!-- Video Controls Bar -->
-            <div class="flex items-center justify-between mb-4 px-2">
-                <div class="flex items-center space-x-2 text-[#b9bbbe] text-sm">
-                    <i class="fas fa-video text-[#3ba55c]"></i>
-                    <span id="videoParticipantCount">1 participant with video</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button id="gridViewBtn" class="px-3 py-1 bg-[#4f545c] hover:bg-[#5865f2] text-white text-xs rounded transition-colors">
-                        <i class="fas fa-th mr-1"></i>Grid
-                    </button>
-                    <button id="speakerViewBtn" class="px-3 py-1 bg-[#36393f] hover:bg-[#5865f2] text-white text-xs rounded transition-colors">
-                        <i class="fas fa-user mr-1"></i>Speaker
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Video Grid Container -->
-            <div id="videoGrid" class="flex-1 grid gap-2 auto-rows-fr">
-                <!-- Video tiles will be added here -->
-            </div>
-            
-            <!-- Voice-only participants strip (when videos are active) -->
-            <div id="voiceOnlyStrip" class="hidden mt-4 p-3 bg-[#36393f] rounded-lg">
-                <div class="flex items-center space-x-2 mb-2">
-                    <i class="fas fa-microphone text-[#72767d] text-xs"></i>
-                    <span class="text-[#b9bbbe] text-xs font-medium">Voice Participants</span>
-                </div>
-                <div id="voiceOnlyParticipants" class="flex flex-wrap gap-2">
-                    <!-- Voice-only participants will be added here -->
-                </div>
-            </div>
-        </div>
+
 
         <!-- SCREEN SHARE VIEW (Full priority like Discord) -->
         <div id="screenShareView" class="hidden flex-1 flex flex-col">
@@ -240,77 +193,131 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 }
 
 /* Voice Participants Grid */
-#voiceParticipantsGrid {
+#participantGrid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
-    gap: 16px !important;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+    gap: 12px !important;
     width: 100% !important;
-    max-width: 800px !important;
-    margin: 0 auto !important;
+    height: 100% !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
 }
 
-.voice-participant-card {
+#participantGrid[data-count="1"] {
+    grid-template-columns: 1fr !important;
+}
+
+#participantGrid[data-count="2"] {
+    grid-template-columns: 1fr 1fr !important;
+}
+
+#participantGrid[data-count="3"] {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+}
+
+#participantGrid[data-count="3"] .participant-card:first-child {
+    grid-column: 1 / -1 !important;
+}
+
+#participantGrid[data-count="4"] {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+}
+
+#participantGrid[data-count="5"], #participantGrid[data-count="6"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+}
+
+#participantGrid[data-count="7"], #participantGrid[data-count="8"], #participantGrid[data-count="9"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr 1fr !important;
+}
+
+.participant-card {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 16px !important;
     background: #2f3136 !important;
-    border-radius: 8px !important;
+    border-radius: 12px !important;
     transition: all 0.2s ease !important;
     cursor: pointer !important;
     border: 2px solid transparent !important;
-    min-height: 120px !important;
+    min-height: 150px !important;
+    position: relative !important;
+    overflow: hidden !important;
     box-sizing: border-box !important;
 }
 
-.voice-participant-card:hover {
+.participant-card:hover {
     background: #32353b !important;
-    transform: translateY(-2px) !important;
+    transform: scale(1.02) !important;
 }
 
-.voice-participant-avatar {
-    width: 60px !important;
-    height: 60px !important;
+.participant-card.speaking {
+    border-color: #3ba55c !important;
+    box-shadow: 0 0 20px rgba(59, 165, 93, 0.3) !important;
+}
+
+.participant-avatar {
+    width: 80px !important;
+    height: 80px !important;
     border-radius: 50% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     color: white !important;
     font-weight: 700 !important;
-    font-size: 20px !important;
+    font-size: 24px !important;
     position: relative !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 12px !important;
     transition: all 0.3s ease !important;
     border: 3px solid transparent !important;
     box-sizing: border-box !important;
 }
 
-.voice-participant-avatar.speaking {
-    animation: pulse-speaking 2s infinite;
+.participant-video {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 12px !important;
+    background: #000 !important;
 }
 
-@keyframes pulse-speaking {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(59, 165, 93, 0.4);
-    }
-    50% {
-        box-shadow: 0 0 0 8px rgba(59, 165, 93, 0);
-    }
+.participant-overlay {
+    position: absolute !important;
+    bottom: 8px !important;
+    left: 8px !important;
+    right: 8px !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: white !important;
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    backdrop-filter: blur(4px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
 }
 
-.voice-participant-avatar.muted::after {
+.participant-avatar.muted::after {
     content: '';
     position: absolute;
     bottom: -2px;
     right: -2px;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     background: #ed4245;
     border-radius: 50%;
     border: 2px solid #1e1f22;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 16 16'%3e%3cpath d='M13 8c0 .564-.094 1.107-.266 1.613l-.814-.814A4.02 4.02 0 0 0 12 8V7a.5.5 0 0 1 1 0v1zm-5 4c.818 0 1.578-.188 2.262-.524l-.816-.816A2.99 2.99 0 0 1 8 11a3 3 0 0 1-3-3V6.341l-.912-.912A4.001 4.001 0 0 0 4 8v1a5 5 0 0 0 4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-1.025A5 5 0 0 1 3 9V8a5.001 5.001 0 0 1 .776-2.676L2.636 4.184a.5.5 0 1 1 .708-.708l11 11a.5.5 0 0 1-.708.708L8.5 9.5z'/%3e%3cpath d='M8 6a2 2 0 1 1 4 0v1a2 2 0 0 1-1.188 1.825l-.812-.812V6a1 1 0 0 0-2 0z'/%3e%3c/svg%3e");
-    background-size: 8px 8px;
+    background-size: 10px 10px;
     background-repeat: no-repeat;
     background-position: center;
 }
@@ -337,20 +344,32 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 }
 
 @media (max-width: 768px) {
-    #voiceParticipantsGrid {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
-        gap: 12px !important;
+    #participantGrid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+        gap: 8px !important;
+        padding: 4px !important;
     }
     
-    #videoGrid {
-        grid-template-columns: 1fr !important;
-        gap: 6px !important;
-        min-height: 250px !important;
+    #participantGrid[data-count="2"], 
+    #participantGrid[data-count="3"], 
+    #participantGrid[data-count="4"] {
+        grid-template-columns: 1fr 1fr !important;
+        grid-template-rows: repeat(auto, 1fr) !important;
     }
     
-    .video-participant-card {
-        min-height: 150px !important;
-        max-height: 250px !important;
+    #participantGrid[data-count="3"] .participant-card:first-child {
+        grid-column: 1 !important;
+    }
+    
+    .participant-card {
+        min-height: 120px !important;
+    }
+    
+    .participant-avatar {
+        width: 60px !important;
+        height: 60px !important;
+        font-size: 18px !important;
+        margin-bottom: 8px !important;
     }
     
     .voice-controls {
@@ -611,8 +630,8 @@ class VoiceCallManager {
         this.isDeafened = false;
         this.isVideoOn = false;
         this.isScreenSharing = false;
-        this.currentView = 'voice-only';
         this.localParticipantId = null;
+        this.screenShareParticipantId = null;
         this.init();
     }
 
@@ -687,7 +706,7 @@ class VoiceCallManager {
                 this.displayMeetingId(event.detail.meetingId);
             }
             
-            this.updateView();
+            this.updateGrid();
         });
 
         window.addEventListener('voiceDisconnect', (event) => {

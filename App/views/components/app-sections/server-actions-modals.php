@@ -28,7 +28,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     }
 </style>
 
-<div id="create-channel-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden opacity-0" style="display: none;">
+<div id="create-channel-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden opacity-0">
     <div class="bg-[#36393f] rounded-md w-full max-w-md shadow-xl transform scale-95 overflow-hidden">
         <div class="p-6">
             <div class="flex justify-between items-center">
@@ -125,7 +125,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 </div>
 
-<div id="create-category-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden opacity-0" style="display: none;">
+<div id="create-category-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden opacity-0">
     <div class="bg-[#36393f] rounded-md w-full max-w-md shadow-xl transform scale-95 overflow-hidden">
         <div class="p-6">
             <div class="flex justify-between items-center">
@@ -337,6 +337,109 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 </div>
 
 <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+<div id="edit-channel-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden opacity-0">
+    <div class="bg-[#36393f] rounded-md w-full max-w-md shadow-xl transform scale-95 overflow-hidden">
+        <div class="p-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-white text-xl font-bold">Edit Channel</h2>
+                <button id="close-edit-channel-modal" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <p class="text-gray-400 mt-2 mb-6">Make changes to your channel</p>
+
+            <form id="edit-channel-form" class="space-y-4">
+                <input type="hidden" id="edit-channel-id" name="channel_id" value="">
+                
+                <div class="mb-4">
+                    <label class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Type</label>
+                    <div class="relative">
+                        <select id="edit-channel-type" name="type" 
+                                class="bg-[#1e1f22] text-white w-full px-3 py-2 rounded appearance-none focus:outline-none focus:ring-2 focus:ring-discord-blue border border-[#1e1f22]">
+                            <option value="text">Text</option>
+                            <option value="voice">Voice</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="edit-channel-name" class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Name</label>
+                    <div class="relative flex items-center bg-[#1e1f22] rounded border border-[#1e1f22]">
+                        <span class="text-gray-400 pl-3">#</span>
+                        <input type="text" id="edit-channel-name" name="name" 
+                              class="bg-transparent border-none text-white w-full px-2 py-2 focus:outline-none" 
+                              placeholder="channel-name" required>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">Use lowercase letters, numbers, hyphens, and underscores</p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Category</label>
+                    <div class="relative">
+                        <select id="edit-channel-category" name="category_id"
+                                class="bg-[#1e1f22] text-white w-full px-3 py-2 rounded appearance-none focus:outline-none focus:ring-2 focus:ring-discord-blue border border-[#1e1f22]">
+                            <option value="">No Category</option>
+                            <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo $category->id; ?>"><?php echo htmlspecialchars($category->name); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="bg-[#2b2d31] py-4 px-6 flex justify-end gap-3">
+            <button type="button" id="cancel-edit-channel" 
+                    class="px-4 py-2 text-sm font-medium text-white hover:underline">
+                Cancel
+            </button>
+            <button type="button" id="save-edit-channel"
+                    class="bg-discord-blue text-white px-4 py-2 rounded text-sm font-medium hover:bg-opacity-80 transition-colors">
+                Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="delete-channel-confirm-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden opacity-0">
+    <div class="bg-[#36393f] rounded-md w-full max-w-md shadow-xl transform scale-95 overflow-hidden">
+        <div class="p-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-white text-xl font-bold">Delete Channel</h2>
+                <button id="close-delete-channel-modal" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mt-4">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                    <p class="text-white mb-2">Are you sure you want to delete this channel?</p>
+                    <p class="text-gray-400 text-sm mb-4" id="delete-channel-name-display">This action cannot be undone.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-[#2b2d31] py-4 px-6 flex justify-end gap-3">
+            <button type="button" id="cancel-delete-channel" 
+                    class="px-4 py-2 text-sm font-medium text-white hover:underline">
+                Cancel
+            </button>
+            <button type="button" id="confirm-delete-channel"
+                    class="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700 transition-colors">
+                Delete Channel
+            </button>
+        </div>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -640,6 +743,234 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     window.closeCreateCategoryModal = closeCreateCategoryModal;
+    
+    window.showCreateChannelModal = window.openCreateChannelModal;
+    window.showCreateCategoryModal = window.openCreateCategoryModal;
+    
+    window.openEditChannelModal = function(channelId, channelData) {
+        const modal = document.getElementById('edit-channel-modal');
+        if (!modal) return;
+
+        document.getElementById('edit-channel-id').value = channelId;
+        document.getElementById('edit-channel-name').value = channelData.name || '';
+        document.getElementById('edit-channel-type').value = channelData.type || 'text';
+        document.getElementById('edit-channel-category').value = channelData.category_id || '';
+
+        modal.classList.remove('hidden', 'opacity-0');
+        modal.style.display = 'flex';
+        modal.style.opacity = '1';
+        
+        requestAnimationFrame(() => {
+            const modalContent = modal.querySelector('.bg-\\[\\#36393f\\]');
+            if (modalContent) {
+                modalContent.classList.remove('scale-95');
+                modalContent.style.transform = 'scale(1)';
+            }
+        });
+
+        setTimeout(() => {
+            document.getElementById('edit-channel-name')?.focus();
+        }, 300);
+    };
+    
+    window.closeEditChannelModal = function() {
+        const modal = document.getElementById('edit-channel-modal');
+        if (!modal) return;
+        
+        modal.classList.add('opacity-0');
+        const modalContent = modal.querySelector('.bg-\\[\\#36393f\\]');
+        if (modalContent) {
+            modalContent.classList.add('scale-95');
+        }
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+            
+            const form = modal.querySelector('form');
+            if (form) form.reset();
+        }, 300);
+    };
+    
+    window.openDeleteChannelModal = function(channelId, channelName) {
+        const modal = document.getElementById('delete-channel-confirm-modal');
+        if (!modal) return;
+
+        modal.setAttribute('data-channel-id', channelId);
+        document.getElementById('delete-channel-name-display').textContent = 
+            `Channel "#${channelName}" and all its messages will be permanently deleted.`;
+
+        modal.classList.remove('hidden', 'opacity-0');
+        modal.style.display = 'flex';
+        modal.style.opacity = '1';
+        
+        requestAnimationFrame(() => {
+            const modalContent = modal.querySelector('.bg-\\[\\#36393f\\]');
+            if (modalContent) {
+                modalContent.classList.remove('scale-95');
+                modalContent.style.transform = 'scale(1)';
+            }
+        });
+    };
+    
+    window.closeDeleteChannelModal = function() {
+        const modal = document.getElementById('delete-channel-confirm-modal');
+        if (!modal) return;
+        
+        modal.classList.add('opacity-0');
+        const modalContent = modal.querySelector('.bg-\\[\\#36393f\\]');
+        if (modalContent) {
+            modalContent.classList.add('scale-95');
+        }
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+            modal.removeAttribute('data-channel-id');
+        }, 300);
+    };
+    
+    document.getElementById('close-edit-channel-modal')?.addEventListener('click', window.closeEditChannelModal);
+    document.getElementById('cancel-edit-channel')?.addEventListener('click', window.closeEditChannelModal);
+    
+    document.getElementById('close-delete-channel-modal')?.addEventListener('click', window.closeDeleteChannelModal);
+    document.getElementById('cancel-delete-channel')?.addEventListener('click', window.closeDeleteChannelModal);
+    
+    document.getElementById('save-edit-channel')?.addEventListener('click', async function() {
+        const channelId = document.getElementById('edit-channel-id').value;
+        const name = document.getElementById('edit-channel-name').value;
+        const type = document.getElementById('edit-channel-type').value;
+        const categoryId = document.getElementById('edit-channel-category').value;
+        
+        if (!name.trim()) {
+            if (typeof showToast === 'function') {
+                showToast('Channel name is required', 'error');
+            }
+            return;
+        }
+        
+        try {
+            const data = { name: name.trim(), type };
+            if (categoryId) data.category_id = categoryId;
+            
+            const response = await window.channelAPI.updateChannel(channelId, data);
+            
+            if (response && (response.success || response.data)) {
+                if (typeof showToast === 'function') {
+                    showToast('Channel updated successfully', 'success');
+                }
+                window.closeEditChannelModal();
+                setTimeout(() => window.location.reload(), 500);
+            } else {
+                throw new Error(response?.message || 'Failed to update channel');
+            }
+        } catch (error) {
+            console.error('Error updating channel:', error);
+            if (typeof showToast === 'function') {
+                showToast('Error updating channel: ' + error.message, 'error');
+            }
+        }
+    });
+    
+    document.getElementById('confirm-delete-channel')?.addEventListener('click', async function() {
+        const modal = document.getElementById('delete-channel-confirm-modal');
+        const channelId = modal.getAttribute('data-channel-id');
+        
+        if (!channelId) return;
+        
+        try {
+            const response = await window.channelAPI.deleteChannel(channelId);
+            
+            if (response && (response.success || response.data)) {
+                if (typeof showToast === 'function') {
+                    showToast('Channel deleted successfully', 'success');
+                }
+                window.closeDeleteChannelModal();
+                setTimeout(() => window.location.reload(), 500);
+            } else {
+                throw new Error(response?.message || 'Failed to delete channel');
+            }
+        } catch (error) {
+            console.error('Error deleting channel:', error);
+            if (typeof showToast === 'function') {
+                showToast('Error deleting channel: ' + error.message, 'error');
+            }
+        }
+    });
+    
+    window.debugModalFunctions = function() {
+        console.log('🔍 Modal Functions Debug:');
+        console.log('✅ openCreateChannelModal:', typeof window.openCreateChannelModal);
+        console.log('✅ openCreateCategoryModal:', typeof window.openCreateCategoryModal);
+        console.log('✅ showCreateChannelModal:', typeof window.showCreateChannelModal);
+        console.log('✅ showCreateCategoryModal:', typeof window.showCreateCategoryModal);
+        console.log('✅ openEditChannelModal:', typeof window.openEditChannelModal);
+        console.log('✅ openDeleteChannelModal:', typeof window.openDeleteChannelModal);
+        console.log('✅ create-channel-modal element:', !!document.getElementById('create-channel-modal'));
+        console.log('✅ create-category-modal element:', !!document.getElementById('create-category-modal'));
+        console.log('✅ edit-channel-modal element:', !!document.getElementById('edit-channel-modal'));
+        console.log('✅ delete-channel-confirm-modal element:', !!document.getElementById('delete-channel-confirm-modal'));
+        
+        console.log('🧪 Testing channel modal...');
+        try {
+            window.showCreateChannelModal();
+            console.log('✅ Channel modal opened successfully!');
+        } catch (error) {
+            console.error('❌ Channel modal error:', error);
+        }
+    };
+    
+    window.testModalDirectly = function() {
+        console.clear();
+        console.log('🧪 TESTING MODAL DIRECTLY...');
+        
+        const modal = document.getElementById('create-channel-modal');
+        if (!modal) {
+            console.error('❌ Modal not found!');
+            return;
+        }
+        
+        console.log('📦 Modal found:', modal);
+        console.log('📍 Modal parent:', modal.parentElement);
+        console.log('🎨 Modal initial styles:', {
+            display: getComputedStyle(modal).display,
+            visibility: getComputedStyle(modal).visibility,
+            opacity: getComputedStyle(modal).opacity,
+            zIndex: getComputedStyle(modal).zIndex,
+            position: getComputedStyle(modal).position
+        });
+        
+        modal.classList.remove('hidden', 'opacity-0');
+        modal.style.display = 'flex';
+        modal.style.visibility = 'visible';
+        modal.style.opacity = '1';
+        modal.style.zIndex = '99999';
+        modal.style.position = 'fixed';
+        modal.style.inset = '0';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        
+        console.log('🎨 Modal after forced styles:', {
+            display: getComputedStyle(modal).display,
+            visibility: getComputedStyle(modal).visibility,
+            opacity: getComputedStyle(modal).opacity,
+            zIndex: getComputedStyle(modal).zIndex,
+            position: getComputedStyle(modal).position
+        });
+        
+        const modalContent = modal.querySelector('.bg-\\[\\#36393f\\]');
+        if (modalContent) {
+            modalContent.classList.remove('scale-95');
+            modalContent.style.transform = 'scale(1)';
+            console.log('✅ Modal content found and styled');
+        } else {
+            console.warn('⚠️ Modal content not found');
+            console.log('Available children:', Array.from(modal.children).map(el => el.className));
+        }
+        
+        console.log('✅ Modal should now be visible!');
+    };
+    
+    console.log('✅ Modal functions initialized - run debugModalFunctions() or testModalDirectly() to test');
     
     const channelNameInput = document.getElementById('channel-name');
     if (channelNameInput) {

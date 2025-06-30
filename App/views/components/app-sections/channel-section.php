@@ -40,15 +40,33 @@ if (!function_exists('renderChannel')) {
     
     $serverId = $GLOBALS['currentServer']->id ?? ($GLOBALS['server']->id ?? '');
     
-    echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-discord-lighten ' . $activeClass . '" 
+    echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-discord-lighten ' . $activeClass . ' group" 
               data-channel-id="' . $channel['id'] . '" 
+              data-channel-name="' . htmlspecialchars($channel['name']) . '"
               data-channel-type="' . htmlspecialchars($type) . '"
               data-server-id="' . htmlspecialchars($serverId) . '">';
     echo '  <i class="fas fa-' . $icon . ' text-xs mr-3 text-gray-500"></i>';
-    echo '  <span class="text-sm">' . htmlspecialchars($channel['name']) . '</span>';
+    echo '  <span class="text-sm flex-1">' . htmlspecialchars($channel['name']) . '</span>';
+    
     if ($type === 'voice') {
         echo '  <span class="ml-auto text-xs text-gray-500 voice-user-count">0</span>';
     }
+    
+    echo '  <div class="channel-menu relative ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">';
+    echo '    <button class="channel-menu-btn text-gray-400 hover:text-white w-5 h-5 flex items-center justify-center rounded hover:bg-gray-600" data-channel-id="' . $channel['id'] . '">';
+    echo '      <i class="fas fa-ellipsis-v text-xs"></i>';
+    echo '    </button>';
+    echo '    <div class="channel-dropdown hidden absolute right-0 top-6 w-32 bg-[#18191c] rounded-md shadow-lg z-50 py-1 text-sm">';
+    echo '      <button class="edit-channel-btn flex items-center w-full px-3 py-2 text-gray-300 hover:bg-[#5865f2] hover:text-white" data-channel-id="' . $channel['id'] . '">';
+    echo '        <i class="fas fa-edit w-4 text-center mr-2"></i>';
+    echo '        <span>Edit</span>';
+    echo '      </button>';
+    echo '      <button class="delete-channel-btn flex items-center w-full px-3 py-2 text-red-400 hover:bg-red-600 hover:text-white" data-channel-id="' . $channel['id'] . '" data-channel-name="' . htmlspecialchars($channel['name']) . '">';
+    echo '        <i class="fas fa-trash w-4 text-center mr-2"></i>';
+    echo '        <span>Delete</span>';
+    echo '      </button>';
+    echo '    </div>';
+    echo '  </div>';
     echo '</div>';
     }
 }
@@ -369,6 +387,14 @@ if (!function_exists('renderCategorySkeleton')) {
     cursor: grabbing;
 }
 
+.channel-menu {
+    z-index: 1000;
+}
+
+.channel-dropdown {
+    z-index: 1001;
+}
+
 @media (max-width: 768px) {
     .drag-handle,
     .category-drag-handle {
@@ -376,3 +402,147 @@ if (!function_exists('renderCategorySkeleton')) {
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initChannelMenus();
+    checkUserRoleAndUpdateMenus();
+});
+
+async function checkUserRoleAndUpdateMenus() {
+    try {
+        const serverId = document.getElementById('current-server-id')?.value;
+        if (!serverId) return;
+        
+        if (typeof window.getUserRole === 'function') {
+            const role = await window.getUserRole(serverId);
+            updateChannelMenuVisibility(role);
+        } else {
+            console.warn('getUserRole function not available');
+        }
+    } catch (error) {
+        console.error('Error checking user role:', error);
+    }
+}
+
+function updateChannelMenuVisibility(role) {
+    const isAdminOrOwner = role === 'admin' || role === 'owner';
+    const channelMenus = document.querySelectorAll('.channel-menu');
+    
+    channelMenus.forEach(menu => {
+        if (isAdminOrOwner) {
+            menu.style.display = 'block';
+        } else {
+            menu.style.display = 'none';
+        }
+    });
+}
+
+function initChannelMenus() {
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.channel-menu')) {
+            closeAllChannelDropdowns();
+        }
+    });
+
+    document.querySelectorAll('.channel-menu-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const dropdown = this.parentElement.querySelector('.channel-dropdown');
+            const isOpen = !dropdown.classList.contains('hidden');
+            
+            closeAllChannelDropdowns();
+            
+            if (!isOpen) {
+                dropdown.classList.remove('hidden');
+            }
+        });
+    });
+
+    document.querySelectorAll('.edit-channel-btn').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const channelId = this.getAttribute('data-channel-id');
+            const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
+            
+            if (!channelItem) return;
+            
+            const channelData = {
+                name: channelItem.getAttribute('data-channel-name'),
+                type: channelItem.getAttribute('data-channel-type'),
+                category_id: null 
+            };
+            
+            closeAllChannelDropdowns();
+            
+            if (typeof window.openEditChannelModal === 'function') {
+                window.openEditChannelModal(channelId, channelData);
+            }
+        });
+    });
+
+    document.querySelectorAll('.delete-channel-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const channelId = this.getAttribute('data-channel-id');
+            const channelName = this.getAttribute('data-channel-name');
+            
+            closeAllChannelDropdowns();
+            
+            if (typeof window.openDeleteChannelModal === 'function') {
+                window.openDeleteChannelModal(channelId, channelName);
+            }
+        });
+    });
+}
+
+function closeAllChannelDropdowns() {
+    document.querySelectorAll('.channel-dropdown').forEach(dropdown => {
+        dropdown.classList.add('hidden');
+    });
+}
+
+function initChannelClicks() {
+    document.querySelectorAll('.channel-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            if (e.target.closest('.channel-menu')) {
+                return;
+            }
+            
+            const channelId = this.getAttribute('data-channel-id');
+            const serverId = this.getAttribute('data-server-id');
+            const channelType = this.getAttribute('data-channel-type');
+            
+            if (channelId && serverId) {
+                if (typeof window.channelAPI?.switchToChannel === 'function') {
+                    window.channelAPI.switchToChannel(serverId, channelId, channelType);
+                } else {
+                    window.location.href = `/server/${serverId}?channel=${channelId}`;
+                }
+            }
+        });
+    });
+}
+
+document.addEventListener('channelListUpdated', function() {
+    initChannelMenus();
+    initChannelClicks();
+    checkUserRoleAndUpdateMenus();
+});
+
+initChannelClicks();
+
+window.refreshChannelMenus = function() {
+    initChannelMenus();
+    initChannelClicks();
+    checkUserRoleAndUpdateMenus();
+};
+
+console.log('✅ Channel menu system initialized');
+</script>

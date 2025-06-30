@@ -71,7 +71,6 @@ $content = ob_get_clean();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800;900&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -395,8 +394,16 @@ $content = ob_get_clean();
             }
         }
 
+        @font-face {
+            font-family: 'ABCGintoPlus';
+            src: url('/assets/fonts/ABCGintoPlusVariable-Trial-BF651b7b7ae8e89.woff') format('woff');
+            font-weight: 100 900;
+            font-style: normal;
+            font-display: swap;
+        }
+
         .hero-title {
-            font-family: 'Orbitron', monospace !important;
+            font-family: 'ABCGintoPlus', 'Inter', sans-serif !important;
             font-weight: 900 !important;
             text-transform: uppercase;
             letter-spacing: 0.1em;

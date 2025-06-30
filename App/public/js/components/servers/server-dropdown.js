@@ -271,29 +271,75 @@ function showInvitePeopleModal() {
 }
 
 function showCreateChannelModal() {
+    console.log('🔍 showCreateChannelModal called');
+    
     const modal = document.getElementById('create-channel-modal');
+    console.log('📦 Modal element found:', !!modal);
+    
     if (!modal) {
-        console.error('Create channel modal not found');
+        console.error('❌ Create channel modal not found');
+        console.log('🔍 Available modal elements:', 
+            Array.from(document.querySelectorAll('[id*="modal"]')).map(el => el.id)
+        );
         return;
     }
 
-    modal.classList.remove('hidden');
+    console.log('📋 Modal state before changes:');
+    console.log('  - classList:', modal.classList.toString());
+    console.log('  - display:', modal.style.display);
+    console.log('  - computed display:', getComputedStyle(modal).display);
+
+    modal.classList.remove('hidden', 'opacity-0');
     modal.style.display = 'flex';
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+    
+    console.log('📋 Modal state after changes:');
+    console.log('  - classList:', modal.classList.toString());
+    console.log('  - display:', modal.style.display);
+    console.log('  - computed display:', getComputedStyle(modal).display);
+    
+    setTimeout(() => {
+        const modalContent = modal.querySelector('.bg-\\[\\#36393f\\]');
+        if (modalContent) {
+            modalContent.classList.remove('scale-95');
+            modalContent.style.transform = 'scale(1)';
+            console.log('✅ Modal content animations triggered');
+        } else {
+            console.warn('⚠️ Modal content element not found');
+        }
+    }, 50);
     
     setupCreateChannelModalListeners();
+    console.log('✅ showCreateChannelModal completed');
 }
 
 function showCreateCategoryModal() {
+    console.log('🔍 showCreateCategoryModal called');
+    
     const modal = document.getElementById('create-category-modal');
+    console.log('📦 Modal element found:', !!modal);
+    
     if (!modal) {
-        console.error('Create category modal not found');
+        console.error('❌ Create category modal not found');
         return;
     }
 
-    modal.classList.remove('hidden');
+    modal.classList.remove('hidden', 'opacity-0');
     modal.style.display = 'flex';
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+    
+    setTimeout(() => {
+        const modalContent = modal.querySelector('.bg-\\[\\#36393f\\]');
+        if (modalContent) {
+            modalContent.classList.remove('scale-95');
+            modalContent.style.transform = 'scale(1)';
+        }
+    }, 50);
     
     setupCreateCategoryModalListeners();
+    console.log('✅ showCreateCategoryModal completed');
 }
 
 function showLeaveServerConfirmation() {
@@ -732,6 +778,8 @@ window.showCreateChannelModal = showCreateChannelModal;
 window.showCreateCategoryModal = showCreateCategoryModal;
 window.showLeaveServerConfirmation = showLeaveServerConfirmation;
 window.getCurrentUserRole = () => currentUserRole;
+window.isAdminOrOwner = isAdminOrOwner;
+window.getUserRole = getUserRole;
 
 window.testMembershipAPI = async function() {
     console.clear();

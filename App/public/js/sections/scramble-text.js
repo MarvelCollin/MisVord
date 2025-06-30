@@ -210,6 +210,23 @@ class ScrambleText {
     elementData.isAnimating = false;
     elementData.completed = true;
 
+    this.addFinalGlowPulse(element);
+
+    spans.forEach((span, index) => {
+      if (
+        !span.classList.contains("space") &&
+        span.classList.contains("revealed")
+      ) {
+        setTimeout(() => {
+          span.classList.add("floating", "breathing", "shimmer");
+
+          this.addCharacterCelebration(span, index);
+
+          this.startContinuousEffects(span, index);
+        }, index * 100);
+      }
+    });
+
     setTimeout(() => {
       this.setupInteractiveEffects(elementData);
       this.startAmbientEffects(elementData);
@@ -225,7 +242,7 @@ class ScrambleText {
         element.classList.add('animate-float-title');
         element.classList.add('glow-active');
         this.addEnhancedTitleEffects(element);
-      }, 1000);
+      }, 200);
     }
   }
 
