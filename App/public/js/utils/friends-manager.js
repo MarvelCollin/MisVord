@@ -63,6 +63,7 @@ class FriendsManager {
 
         try {
             const response = await window.FriendAPI.getFriends();
+            console.log('🔍 DEBUG: FriendAPI.getFriends() raw response:', response);
             
             let friends = [];
             
@@ -99,26 +100,27 @@ class FriendsManager {
 
         try {
             const response = await window.FriendAPI.getPendingRequests();
-            console.log('FriendAPI.getPendingRequests() response:', response);
             
             let pending = { incoming: [], outgoing: [] };
             
             if (response && typeof response === 'object') {
-                if (response.incoming && response.outgoing) {
+                if (response.success && response.data) {
+                    pending = {
+                        incoming: Array.isArray(response.data.incoming) ? response.data.incoming : [],
+                        outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : []
+                    };
+                } else if (response.data) {
+                    pending = {
+                        incoming: Array.isArray(response.data.incoming) ? response.data.incoming : [],
+                        outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : []
+                    };
+                } else if (response.incoming !== undefined && response.outgoing !== undefined) {
                     pending = {
                         incoming: Array.isArray(response.incoming) ? response.incoming : [],
                         outgoing: Array.isArray(response.outgoing) ? response.outgoing : []
                     };
-                } else if (response.data && response.data.incoming && response.data.outgoing) {
-                    pending = {
-                        incoming: Array.isArray(response.data.incoming) ? response.data.incoming : [],
-                        outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : []
-                    };
-                } else if (response.success && response.data) {
-                    pending = {
-                        incoming: Array.isArray(response.data.incoming) ? response.data.incoming : [],
-                        outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : []
-                    };
+                } else if (response.success === false) {
+                    console.warn('Pending requests API returned error:', response.error || response.message);
                 }
             }
             

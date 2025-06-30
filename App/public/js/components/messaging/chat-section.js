@@ -8,15 +8,68 @@ import ChatBot from './chat-bot.js';
 import MentionHandler from './mention-handler.js';
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Chat section script loaded via DOM content loaded');
+    if (isExcludedPage()) {
+        console.log('📄 [CHAT-SECTION] Page excluded from chat initialization:', {
+            path: window.location.pathname,
+            search: window.location.search,
+            isChatPage: isChatPage()
+        });
+        return;
+    }
+    
+    console.log('✅ [CHAT-SECTION] Page allowed for chat initialization:', window.location.pathname);
     if (!window.chatSection && !isExcludedPage()) {
         initializeChatSection();
     }
 });
 
 function isExcludedPage() {
-    const pageType = document.body.getAttribute('data-page');
-    return pageType === 'admin' || pageType === 'nitro';
+    return !isChatPage();
+}
+
+function isChatPage() {
+    const currentPath = window.location.pathname;
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Check if it's a home page with direct messages
+    if (currentPath === '/home' || currentPath.startsWith('/home/')) {
+        // Only allow on DM pages or main home page
+        if (currentPath.includes('/channels/dm/') || currentPath === '/home') {
+            return true;
+        }
+        return false;
+    }
+    
+    // Check if it's a server page with a text channel
+    const serverMatch = currentPath.match(/^\/server\/(\d+)$/);
+    if (serverMatch) {
+        // Must have a channel parameter
+        const channelId = urlParams.get('channel');
+        if (!channelId) {
+            return false;
+        }
+        
+        // Check if it's NOT a voice channel
+        const channelType = urlParams.get('type');
+        if (channelType === 'voice') {
+            return false;
+        }
+        
+        // Check DOM for channel type if available
+        const activeChannelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        if (activeChannelElement) {
+            const channelDataType = activeChannelElement.getAttribute('data-channel-type');
+            if (channelDataType === 'voice') {
+                return false;
+            }
+        }
+        
+        // If no voice indicators found, assume it's a text channel
+        return true;
+    }
+    
+    // All other pages don't need chat
+    return false;
 }
 
 async function initializeChatSection() {
@@ -43,19 +96,27 @@ async function initializeChatSection() {
             }
         }
     } catch (error) {
-        console.error('❌ Failed to initialize ChatSection:', error);
+        if (!isExcludedPage()) {
+            console.error('❌ Failed to initialize ChatSection:', error);
+        }
         if (window.showToast) {
-            window.showToast('Failed to initialize chat. Please refresh the page.', 'error');
+            if (!isExcludedPage()) {
+                window.showToast('Failed to initialize chat. Please refresh the page.', 'error');
+            }
         }
     }
 }
 
-console.log('Chat section script immediate execution');
 if (document.readyState === 'complete' && !window.chatSection && !isExcludedPage()) {
+    console.log('💬 [CHAT-SECTION] Immediate execution - page ready for chat');
     setTimeout(() => {
-        console.log('Chat section delayed initialization');
-        initializeChatSection();
+        if (!isExcludedPage()) {
+            console.log('💬 [CHAT-SECTION] Delayed initialization starting');
+            initializeChatSection();
+        }
     }, 100);
+} else if (isExcludedPage()) {
+    console.log('📄 [CHAT-SECTION] Immediate execution - page excluded from chat');
 }
 
 class ChatSection {
@@ -118,7 +179,7 @@ class ChatSection {
     waitForRequiredElements() {
         return new Promise((resolve, reject) => {
             let attempts = 0;
-            const maxAttempts = 50;
+            const maxAttempts = isExcludedPage() ? 5 : 20;
             
             const checkElements = () => {
                 this.findDOMElements();
@@ -131,17 +192,21 @@ class ChatSection {
                 
                 attempts++;
                 if (attempts >= maxAttempts) {
-                    console.error('❌ [CHAT-SECTION] Required DOM elements not found after', maxAttempts, 'attempts');
-                    console.error('❌ [CHAT-SECTION] Missing elements:', {
-                        chatMessages: !this.chatMessages,
-                        messageForm: !this.messageForm,
-                        messageInput: !this.messageInput
-                    });
+                    if (!isExcludedPage()) {
+                        console.error('❌ [CHAT-SECTION] Required DOM elements not found after', maxAttempts, 'attempts');
+                        console.error('❌ [CHAT-SECTION] Missing elements:', {
+                            chatMessages: !this.chatMessages,
+                            messageForm: !this.messageForm,
+                            messageInput: !this.messageInput
+                        });
+                    }
                     reject(new Error('Required DOM elements not found'));
                     return;
                 }
                 
-                console.log(`⏳ [CHAT-SECTION] Waiting for DOM elements (attempt ${attempts}/${maxAttempts})`);
+                if (!isExcludedPage() && attempts % 5 === 0) {
+                    console.log(`⏳ [CHAT-SECTION] Waiting for DOM elements (attempt ${attempts}/${maxAttempts})`);
+                }
                 setTimeout(checkElements, 100);
             };
             
@@ -242,8 +307,10 @@ class ChatSection {
             console.log('✅ [CHAT-SECTION] Initialization completed successfully');
             
         } catch (error) {
-            console.error('❌ [CHAT-SECTION] Initialization failed:', error);
-            console.error('❌ [CHAT-SECTION] ChatSection will not be functional');
+            if (!isExcludedPage()) {
+                console.error('❌ [CHAT-SECTION] Initialization failed:', error);
+                console.error('❌ [CHAT-SECTION] ChatSection will not be functional');
+            }
             
             if (window.showToast) {
                 window.showToast('Chat initialization failed. Please refresh the page.', 'error');

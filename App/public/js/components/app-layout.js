@@ -370,10 +370,8 @@ async function loadAllFriends() {
         
         let friendsHtml = '';
         
-        console.log('Friends data for rendering:', friends, 'Type:', typeof friends, 'Is Array:', Array.isArray(friends));
-        
         if (!Array.isArray(friends)) {
-            console.error('Friends is not an array:', friends);
+            console.error('Friends data is not an array:', typeof friends, friends);
             friends = [];
         }
         

@@ -4,6 +4,8 @@ const serverAPI = {
             url: '/api/servers/create',
             method: 'POST',
             data: formData,
+            processData: false,
+            contentType: false,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             }

@@ -24,7 +24,7 @@ export * from './common/captcha.js';
 export * from './common/user-detail.js';
 export * from './common/image-cutter.js';
 export * from './common/validation.js';
-export * from './common/wifi-strength.js';
+
 export * from './easteregg/logo-click-sidebar-server.js';
 export * from './settings/mic-video-check.js';
 export * from './home/friends-tabs.js';

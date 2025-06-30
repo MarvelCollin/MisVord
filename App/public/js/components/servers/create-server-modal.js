@@ -406,7 +406,7 @@ function handleServerCreation(form, formData = null) {
         
         console.log('Calling server API to create server');
         
-        window.serverAPI.createServer(formData)
+        serverAPI.createServer(formData)
             .then(data => {
                 console.log('Server creation response:', data);
                 hideLoading(submitBtn);
@@ -423,7 +423,7 @@ function handleServerCreation(form, formData = null) {
                         }, 100);
                     } catch (error) {
                         console.error('Failed to add server to sidebar dynamically:', error);
-                        refreshSidebar();
+                        pageUtils.refreshSidebar();
                     }
                     
                     closeModal(modal);
@@ -796,9 +796,7 @@ function initCreateServerModal() {
         });
     }
     
-    if (createServerForm) {
-        createServerForm.addEventListener('submit', handleCreateServer);
-    }
+
     
     setupJoinServerForm();
     setupModalNavigation();
@@ -854,34 +852,7 @@ function setupJoinServerForm() {
     }
 }
 
-async function handleCreateServer(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    
-    try {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Creating...';
-        
-        const response = await window.serverAPI.createServer(formData);
-        
-        if (response.success && response.data) {
-            showToast('Server created successfully!', 'success');
-            closeAllModals();
-            e.target.reset();
-            window.location.href = `/server/${response.data.server.id}`;
-        } else {
-            showToast(response.message || 'Failed to create server', 'error');
-        }
-    } catch (error) {
-        console.error('Error creating server:', error);
-        showToast('An error occurred while creating the server', 'error');
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Server';
-    }
-}
+
 
 function setupModalNavigation() {
     const createServerModal = document.getElementById('create-server-modal');

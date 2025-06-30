@@ -1,5 +1,10 @@
 class WiFiStrength {
-  constructor() {
+  constructor(enabled = false) {
+    if (!enabled) {
+      console.log('WiFi strength monitoring disabled');
+      return;
+    }
+    
     this.strength = navigator.onLine ? 3 : 1;
     this.latency = 0;
     this.downlink = 0;
@@ -393,7 +398,6 @@ class WiFiStrength {
   }
 }
 
-const wifiStrength = new WiFiStrength();
-window.wifiStrength = wifiStrength;
+let wifiStrength = null;
 
 export default wifiStrength;
