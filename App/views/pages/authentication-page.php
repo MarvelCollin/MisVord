@@ -358,7 +358,7 @@ try {
                         >
                     </div>
 
-                    <div class="flex gap-3 mt-6">
+                    <div class="flex gap-3 mt-6 items-center">
                         <button type="button" id="prev-step-btn" class="flex-1 h-11 sm:h-12 py-2.5 sm:py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-all text-sm sm:text-base flex items-center justify-center">
                             <i class="fa-solid fa-arrow-left mr-2"></i>Back
                         </button>

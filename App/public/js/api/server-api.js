@@ -324,22 +324,7 @@ const serverAPI = {
         });
     },
 
-    getPerServerProfile: function(serverId) {
-        return fetch(`/api/servers/${serverId}/profile`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        });
-    },
+
 
 
 

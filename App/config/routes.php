@@ -629,10 +629,7 @@ Route::get('/api/debug/servers/list', function() {
     exit;
 });
 
-Route::get('/api/servers/([0-9]+)/profile', function($serverId) {
-    $controller = new ServerController();
-    $controller->getPerServerProfile($serverId);
-});
+
 
 
 

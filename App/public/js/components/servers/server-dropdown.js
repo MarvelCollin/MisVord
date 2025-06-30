@@ -112,9 +112,7 @@ function initServerActions() {
                 case 'Notification Settings':
                     showNotificationSettingsModal();
                     break;
-                case 'Edit Per-server Profile':
-                    showEditProfileModal();
-                    break;
+
                 case 'Leave Server':
                     showLeaveServerConfirmation();
                     break;
@@ -767,31 +765,7 @@ function showNotificationSettingsModal() {
     }
 }
 
-function showEditProfileModal() {
-    const serverId = getCurrentServerId();
-    const modal = document.getElementById('edit-profile-modal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        loadPerServerProfile(serverId);
 
-        const form = document.getElementById('edit-profile-form');
-        const closeBtn = document.getElementById('close-edit-profile-modal');
-        const cancelBtn = document.getElementById('cancel-edit-profile');
-          if (form && !form.hasAttribute('data-listener')) {
-            form.addEventListener('submit', (e) => updatePerServerProfile(e, serverId));
-            form.setAttribute('data-listener', 'true');
-        }
-
-        if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
-            closeBtn.addEventListener('click', () => closeModal('edit-profile-modal'));
-            closeBtn.setAttribute('data-listener', 'true');
-        }
-          if (cancelBtn && !cancelBtn.hasAttribute('data-listener')) {
-            cancelBtn.addEventListener('click', () => closeModal('edit-profile-modal'));
-            cancelBtn.setAttribute('data-listener', 'true');
-        }
-    }
-}
 
 function showLeaveServerConfirmation() {
     const serverId = getCurrentServerId();
@@ -1083,41 +1057,7 @@ function updateNotificationSettings(e, serverId) {
         });
 }
 
-function loadPerServerProfile(serverId) {
-    serverAPI.getPerServerProfile(serverId)
-        .then(data => {
-            if (data.data && data.data.profile) {
-                document.getElementById('profile-nickname').value = data.data.profile.nickname || '';
-            }
-        })
-        .catch(error => {
-            console.error('Error loading server profile:', error);
-        });
-}
 
-function updatePerServerProfile(e, serverId) {
-    e.preventDefault();
-
-    const formData = new FormData(e.target);
-    const data = {
-        server_id: serverId,
-        nickname: formData.get('nickname')
-    };
-
-    serverAPI.updatePerServerProfile(serverId, data)
-        .then(data => {
-            if (data.data) {
-                showToast('Server profile updated!', 'success');
-                closeModal('edit-profile-modal');
-            } else {
-                throw new Error(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error updating server profile:', error);
-            showToast('Failed to update server profile', 'error');
-        });
-}
 
 function leaveServer(serverId) {
     serverAPI.leaveServer(serverId)
