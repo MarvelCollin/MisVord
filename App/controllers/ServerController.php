@@ -1851,9 +1851,9 @@ class ServerController extends BaseController
                 return $this->notFound('Server not found');
             }
 
-            $membershipDetails = $this->userServerMembershipRepository->getUserServerMembershipDetails($this->getCurrentUserId(), $serverId);
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $serverId);
             
-            if (!$membershipDetails) {
+            if (!$membership) {
                 return $this->success([
                     'is_member' => false,
                     'membership' => null,
@@ -1861,22 +1861,23 @@ class ServerController extends BaseController
                 ]);
             }
 
-            $this->logActivity('user_server_membership_retrieved', [
-                'server_id' => $serverId,
-                'user_id' => $this->getCurrentUserId()
-            ]);
+            $isOwner = $server->getOwnerId() == $this->getCurrentUserId();
+            $role = $isOwner ? 'owner' : $membership->role;
 
             return $this->success([
                 'is_member' => true,
-                'membership' => $membershipDetails
+                'membership' => [
+                    'id' => $membership->id,
+                    'user_id' => $membership->user_id,
+                    'server_id' => $membership->server_id,
+                    'role' => $role,
+                    'is_owner' => $isOwner,
+                    'created_at' => $membership->created_at
+                ]
             ]);
         } catch (Exception $e) {
-            $this->logActivity('user_server_membership_error', [
-                'server_id' => $serverId,
-                'user_id' => $this->getCurrentUserId(),
-                'error' => $e->getMessage()
-            ]);
-            return $this->serverError('Failed to get user server membership: ' . $e->getMessage());
+            error_log("Error getting user server membership: " . $e->getMessage());
+            return $this->serverError('Failed to get user server membership');
         }
     }
     
@@ -2398,7 +2399,63 @@ class ServerController extends BaseController
         }
     }
 
-
-    
+    public function debugMembership($serverId = null) {
+        $this->requireAuth();
+        
+        if (!$serverId) {
+            $serverId = $_GET['server_id'] ?? null;
+        }
+        
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
+        }
+        
+        header('Content-Type: application/json');
+        
+        try {
+            $userId = $this->getCurrentUserId();
+            
+            $method1 = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
+            
+            $method2 = $this->userServerMembershipRepository->getUserServerMembershipDetails($userId, $serverId);
+            
+            $method3 = $this->userServerMembershipRepository->getUserServerMembership($userId, $serverId);
+            
+            $method4 = $this->userServerMembershipRepository->isMember($userId, $serverId);
+            
+            echo json_encode([
+                'success' => true,
+                'user_id' => $userId,
+                'server_id' => $serverId,
+                'tests' => [
+                    'findByUserAndServer' => [
+                        'result' => $method1 ? $method1->toArray() : null,
+                        'success' => !!$method1
+                    ],
+                    'getUserServerMembershipDetails' => [
+                        'result' => $method2,
+                        'success' => !!$method2
+                    ],
+                    'getUserServerMembership' => [
+                        'result' => $method3,
+                        'success' => !!$method3
+                    ],
+                    'isMember' => [
+                        'result' => $method4,
+                        'success' => $method4
+                    ]
+                ]
+            ], JSON_PRETTY_PRINT);
+            
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], JSON_PRETTY_PRINT);
+        }
+        
+        exit;
+    }
 
 }

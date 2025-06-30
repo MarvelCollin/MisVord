@@ -58,47 +58,17 @@ async function getUserRole(serverId) {
             return 'member';
         }
 
-        const data = await window.serverAPI.getUserServerMembership(serverId);
+        const response = await window.serverAPI.getUserServerMembership(serverId);
         
-        console.log('🔍 Full API Response:', JSON.stringify(data, null, 2));
-        console.log('🔍 data.success:', data?.success);
-        console.log('🔍 data.data:', data?.data);
-        console.log('🔍 data.data.is_member:', data?.data?.is_member);
-        console.log('🔍 data.data.membership:', data?.data?.membership);
-        
-        if (data && data.success) {
-            if (data.data && data.data.is_member === true && data.data.membership) {
-                console.log('🔍 Membership object:', data.data.membership);
-                console.log('🔍 Available keys:', Object.keys(data.data.membership));
-                
-                const role = data.data.membership.role || 'member';
-                currentUserRole = role;
-                console.log('✅ User role extracted successfully:', role);
-                return role;
-            } else if (data.data && data.data.is_member === false) {
-                console.log('❌ User is not a member of server');
-                currentUserRole = 'non-member';
-                return 'non-member';
-            } else {
-                console.warn('⚠️ Unexpected API response structure. Data:', data.data);
-                console.warn('⚠️ is_member value:', data.data?.is_member);
-                console.warn('⚠️ membership value:', data.data?.membership);
-                
-                if (data.data?.membership?.role) {
-                    const role = data.data.membership.role;
-                    currentUserRole = role;
-                    console.log('✅ Role found in fallback check:', role);
-                    return role;
-                }
-                
-                console.warn('⚠️ Falling back to member role');
-                currentUserRole = 'member';
-                return 'member';
-            }
+        if (response && response.success && response.data && response.data.is_member) {
+            const role = response.data.membership.role || 'member';
+            currentUserRole = role;
+            console.log('✅ User role:', role);
+            return role;
         } else {
-            console.error('❌ API call failed or returned invalid response:', data);
-            currentUserRole = 'member';
-            return 'member';
+            currentUserRole = 'non-member';
+            console.log('❌ User is not a member');
+            return 'non-member';
         }
     } catch (error) {
         console.error('❌ Error fetching user role:', error);
@@ -172,18 +142,15 @@ async function initServerDropdown() {
     const dropdown = document.getElementById('server-dropdown');
 
     if (!dropdownBtn || !dropdown) {
-        console.error('Dropdown elements not found!', { dropdownBtn: !!dropdownBtn, dropdown: !!dropdown });
+        console.error('Dropdown elements not found!');
         return;
     }
 
-    console.log('Dropdown elements found, setting up functionality');
-
     dropdownBtn.addEventListener('click', function(e) {
-        console.log('Dropdown button clicked');
         e.preventDefault();
         e.stopPropagation();
         dropdown.classList.toggle('hidden');
-        console.log('Dropdown visible:', !dropdown.classList.contains('hidden'));
+        console.log('Dropdown toggled');
     });
 
     document.addEventListener('click', function(e) {
@@ -194,16 +161,14 @@ async function initServerDropdown() {
 
     const serverId = getCurrentServerId();
     if (serverId) {
-        console.log('Fetching user role for server:', serverId);
         try {
             const role = await getUserRole(serverId);
             applyRoleBasedVisibility(role);
         } catch (error) {
-            console.error('Error in role fetching:', error);
+            console.error('Error fetching role:', error);
             applyRoleBasedVisibility('member');
         }
     } else {
-        console.warn('No server ID found, applying default visibility');
         applyRoleBasedVisibility('member');
     }
 
@@ -257,23 +222,23 @@ function initServerActions() {
 
 function executeDropdownAction(actionText) {
     console.log('Executing dropdown action:', actionText);
-    
-    switch(actionText) {
-        case 'Invite People':
-            showInvitePeopleModal();
-            break;
-        case 'Server Settings':
-            redirectToServerSettings();
-            break;
-        case 'Create Channel':
-            showCreateChannelModal();
-            break;
-        case 'Create Category':
-            showCreateCategoryModal();
-            break;
-        case 'Leave Server':
-            showLeaveServerConfirmation();
-            break;
+
+            switch(actionText) {
+                case 'Invite People':
+                    showInvitePeopleModal();
+                    break;
+                case 'Server Settings':
+                    redirectToServerSettings();
+                    break;
+                case 'Create Channel':
+                    showCreateChannelModal();
+                    break;
+                case 'Create Category':
+                    showCreateCategoryModal();
+                    break;
+                case 'Leave Server':
+                    showLeaveServerConfirmation();
+                    break;
         default:
             console.warn('Unknown dropdown action:', actionText);
     }
@@ -294,7 +259,7 @@ function showInvitePeopleModal() {
         return;
     }
 
-    modal.classList.remove('hidden');
+        modal.classList.remove('hidden');
     modal.style.display = 'flex';
     
     const serverId = getCurrentServerId();
@@ -355,33 +320,33 @@ function redirectToServerSettings() {
 }
 
 function setupInviteModalListeners() {
-    const copyBtn = document.getElementById('copy-invite-link');
-    const generateBtn = document.getElementById('generate-new-invite');
-    
-    if (copyBtn && !copyBtn.hasAttribute('data-listener')) {
-        copyBtn.addEventListener('click', copyInviteLink);
-        copyBtn.setAttribute('data-listener', 'true');
-    }
+        const copyBtn = document.getElementById('copy-invite-link');
+        const generateBtn = document.getElementById('generate-new-invite');
+        
+        if (copyBtn && !copyBtn.hasAttribute('data-listener')) {
+            copyBtn.addEventListener('click', copyInviteLink);
+            copyBtn.setAttribute('data-listener', 'true');
+        }
 
-    if (generateBtn && !generateBtn.hasAttribute('data-listener')) {
-        generateBtn.addEventListener('click', () => {
+        if (generateBtn && !generateBtn.hasAttribute('data-listener')) {
+            generateBtn.addEventListener('click', () => {
             const serverId = getCurrentServerId();
             const expirationSelect = document.getElementById('invite-expiration');
-            const expirationValue = expirationSelect ? expirationSelect.value : null;
-            generateNewInvite(serverId, expirationValue);
-        });
-        generateBtn.setAttribute('data-listener', 'true');
-    }
+                const expirationValue = expirationSelect ? expirationSelect.value : null;
+                generateNewInvite(serverId, expirationValue);
+            });
+            generateBtn.setAttribute('data-listener', 'true');
+        }
 }
 
 function setupCreateChannelModalListeners() {
     const form = document.getElementById('create-channel-form');
     if (form && !form.hasAttribute('data-listener')) {
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
+                    form.addEventListener('submit', (e) => {
+                        e.preventDefault();
             const serverId = getCurrentServerId();
-            createChannel(e, serverId);
-        });
+                        createChannel(e, serverId);
+                    });
         form.setAttribute('data-listener', 'true');
     }
 }
@@ -389,52 +354,52 @@ function setupCreateChannelModalListeners() {
 function setupCreateCategoryModalListeners() {
     const form = document.getElementById('create-category-form');
     if (form && !form.hasAttribute('data-listener')) {
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
+                    form.addEventListener('submit', (e) => {
+                        e.preventDefault();
             const serverId = getCurrentServerId();
-            createCategory(e, serverId);
-        });
+                        createCategory(e, serverId);
+                    });
         form.setAttribute('data-listener', 'true');
     }
 }
 
 function setupLeaveServerModalListeners() {
-    const confirmBtn = document.getElementById('confirm-leave-server');
-    if (confirmBtn && !confirmBtn.hasAttribute('data-listener')) {
+        const confirmBtn = document.getElementById('confirm-leave-server');
+        if (confirmBtn && !confirmBtn.hasAttribute('data-listener')) {
         confirmBtn.addEventListener('click', () => {
             const serverId = getCurrentServerId();
             leaveServer(serverId);
         });
-        confirmBtn.setAttribute('data-listener', 'true');
-    }
+            confirmBtn.setAttribute('data-listener', 'true');
+        }
 }
 
 async function loadInviteLink(serverId) {
     const inviteLinkInput = document.getElementById('invite-link');
     if (!inviteLinkInput) return;
     
-    inviteLinkInput.value = "Loading...";
-    inviteLinkInput.disabled = true;
+        inviteLinkInput.value = "Loading...";
+        inviteLinkInput.disabled = true;
 
     try {
         await waitForServerAPI();
-        
-        if (!window.serverAPI) {
+
+    if (!window.serverAPI) {
             throw new Error('serverAPI not available');
         }
 
         const data = await window.serverAPI.getExistingInvite(serverId);
-        
-        if (data.success && data.data && data.data.invite_code) {
-            const inviteUrl = data.data.invite_url || `${window.location.origin}/join/${data.data.invite_code}`;
-            inviteLinkInput.value = inviteUrl;
-            inviteLinkInput.disabled = false;
-        } else {
-            generateNewInvite(serverId);
-        }
+            
+            if (data.success && data.data && data.data.invite_code) {
+                const inviteUrl = data.data.invite_url || `${window.location.origin}/join/${data.data.invite_code}`;
+                    inviteLinkInput.value = inviteUrl;
+                    inviteLinkInput.disabled = false;
+                    } else {
+                generateNewInvite(serverId);
+            }
     } catch (error) {
-        console.error('Error loading invite link:', error);
-        generateNewInvite(serverId);
+            console.error('Error loading invite link:', error);
+            generateNewInvite(serverId);
     }
 }
 
@@ -475,26 +440,26 @@ async function generateNewInvite(serverId, expirationValue = null) {
             const inviteCode = data.invite_code || (data.data && data.data.invite_code);
             const inviteUrl = data.invite_url || (data.data && data.data.invite_url) || `${window.location.origin}/join/${inviteCode}`;
             
-            if (inviteLinkInput) {
-                inviteLinkInput.value = inviteUrl;
-                inviteLinkInput.disabled = false;
-            }
-            
-            showToast('New invite link generated!', 'success');
-        } else {
+                    if (inviteLinkInput) {
+                        inviteLinkInput.value = inviteUrl;
+                        inviteLinkInput.disabled = false;
+                    }
+
+                    showToast('New invite link generated!', 'success');
+                } else {
             throw new Error('Invalid response from server');
         }
     } catch (error) {
-        console.error('Error generating invite:', error);
+            console.error('Error generating invite:', error);
         showToast('Failed to generate invite link', 'error');
-        
-        if (inviteLinkInput) {
-            inviteLinkInput.value = 'Error generating invite link';
-            inviteLinkInput.disabled = false;
-        }
+            
+            if (inviteLinkInput) {
+                inviteLinkInput.value = 'Error generating invite link';
+                inviteLinkInput.disabled = false;
+            }
     } finally {
-        if (generateBtn) {
-            generateBtn.disabled = false;
+            if (generateBtn) {
+                generateBtn.disabled = false;
             generateBtn.textContent = 'Generate a new link';
         }
     }
@@ -510,8 +475,8 @@ async function createChannel(e, serverId) {
             throw new Error('channelAPI not available');
         }
 
-        const formData = new FormData(e.target);
-        formData.append('server_id', serverId);
+    const formData = new FormData(e.target);
+    formData.append('server_id', serverId);
 
         const data = await window.channelAPI.createChannel(formData);
         
@@ -519,7 +484,7 @@ async function createChannel(e, serverId) {
             showToast('Channel created successfully!', 'success');
             closeModal('create-channel-modal');
             setTimeout(() => window.location.reload(), 1000);
-        } else {
+            } else {
             throw new Error(data.message || 'Failed to create channel');
         }
     } catch (error) {
@@ -538,20 +503,20 @@ async function createCategory(e, serverId) {
             throw new Error('channelAPI not available');
         }
 
-        const formData = new FormData(e.target);
-        formData.append('server_id', serverId);
-        
+    const formData = new FormData(e.target);
+    formData.append('server_id', serverId);
+    
         const data = await window.channelAPI.createCategory(formData);
         
         if (data.success || data.data) {
             showToast('Category created successfully!', 'success');
             closeModal('create-category-modal');
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
             throw new Error(data.message || 'Failed to create category');
-        }
+            }
     } catch (error) {
-        console.error('Error creating category:', error);
+            console.error('Error creating category:', error);
         showToast('Error creating category: ' + error.message, 'error');
     }
 }
@@ -560,30 +525,30 @@ async function leaveServer(serverId) {
     try {
         await waitForServerAPI();
         
-        if (!window.serverAPI) {
+    if (!window.serverAPI) {
             throw new Error('serverAPI not available');
-        }
-        
+    }
+    
         const data = await window.serverAPI.leaveServer(serverId);
         
-        if (data.success) {
+            if (data.success) {
             showToast(data.message || 'Successfully left server', 'success');
-            closeModal('leave-server-modal');
-            setTimeout(() => {
+                closeModal('leave-server-modal');
+                setTimeout(() => {
                 window.location.href = data.redirect || '/home';
-            }, 1000);
-        } else {
-            throw new Error(data.message || 'Failed to leave server');
-        }
+                }, 1000);
+            } else {
+                throw new Error(data.message || 'Failed to leave server');
+            }
     } catch (error) {
-        console.error('Error leaving server:', error);
-        
-        if (error.message && error.message.includes('ownership')) {
-            showTransferOwnershipModal(serverId);
-            closeModal('leave-server-modal');
-        } else {
-            showToast('Failed to leave server: ' + error.message, 'error');
-        }
+            console.error('Error leaving server:', error);
+            
+            if (error.message && error.message.includes('ownership')) {
+                showTransferOwnershipModal(serverId);
+                closeModal('leave-server-modal');
+            } else {
+                showToast('Failed to leave server: ' + error.message, 'error');
+            }
     }
 }
 
@@ -610,16 +575,16 @@ async function loadEligibleOwners(serverId) {
         
         const data = await window.serverAPI.getEligibleNewOwners(serverId);
         
-        if (data.success) {
-            if (data.should_delete_server) {
+                if (data.success) {
+                    if (data.should_delete_server) {
                 showDeleteServerMode();
-            } else if (data.members && data.members.length > 0) {
-                showTransferOwnershipMode();
-                populateMembersList(data.members);
-            } else {
+                    } else if (data.members && data.members.length > 0) {
+                        showTransferOwnershipMode();
+                        populateMembersList(data.members);
+                    } else {
                 showDeleteServerMode();
-            }
-        } else {
+                    }
+                } else {
             throw new Error(data.message || 'Failed to load eligible members');
         }
     } catch (error) {
@@ -673,234 +638,33 @@ function closeModal(modalId) {
 
 window.debugServerDropdown = async function() {
     console.clear();
-    console.log('🔍 SERVER DROPDOWN DEBUG REPORT');
-    console.log('=====================================');
+    console.log('🔍 SERVER DROPDOWN DEBUG');
+    console.log('=======================');
     
-    const report = {
-        timestamp: new Date().toISOString(),
-        url: window.location.href,
-        elements: {},
-        apis: {},
-        variables: {},
-        functionality: {},
-        errors: []
-    };
+    const serverId = getCurrentServerId();
+    console.log('Server ID:', serverId);
+    console.log('Current Role:', currentUserRole);
+    console.log('Initialized:', isInitialized);
     
-    try {
-        console.log('📍 1. CHECKING DOM ELEMENTS...');
-        
-        const dropdownBtn = document.getElementById('server-dropdown-btn');
-        const dropdown = document.getElementById('server-dropdown');
-        const dropdownItems = document.querySelectorAll('.server-dropdown-item');
-        
-        report.elements = {
-            dropdownBtn: {
-                exists: !!dropdownBtn,
-                visible: dropdownBtn ? (dropdownBtn.offsetParent !== null) : false,
-                classes: dropdownBtn ? Array.from(dropdownBtn.classList) : [],
-                innerHTML: dropdownBtn ? dropdownBtn.innerHTML : null
-            },
-            dropdown: {
-                exists: !!dropdown,
-                visible: dropdown ? (dropdown.offsetParent !== null) : false,
-                hidden: dropdown ? dropdown.classList.contains('hidden') : null,
-                classes: dropdown ? Array.from(dropdown.classList) : [],
-                innerHTML: dropdown ? dropdown.innerHTML.substring(0, 200) + '...' : null
-            },
-            dropdownItems: {
-                count: dropdownItems.length,
-                items: Array.from(dropdownItems).map(item => ({
-                    text: item.querySelector('span')?.textContent?.trim() || 'No text',
-                    visible: item.offsetParent !== null,
-                    display: getComputedStyle(item).display,
-                    roleRestricted: item.getAttribute('data-role-restricted')
-                }))
-            }
-        };
-        
-        console.log('Elements check:', report.elements);
-        
-        console.log('📍 2. CHECKING API AVAILABILITY...');
-        
-        report.apis = {
-            serverAPI: {
-                exists: !!window.serverAPI,
-                methods: window.serverAPI ? Object.keys(window.serverAPI) : [],
-                getUserServerMembership: typeof window.serverAPI?.getUserServerMembership === 'function'
-            },
-            channelAPI: {
-                exists: !!window.channelAPI,
-                methods: window.channelAPI ? Object.keys(window.channelAPI) : [],
-                createChannel: typeof window.channelAPI?.createChannel === 'function',
-                createCategory: typeof window.channelAPI?.createCategory === 'function'
-            },
-            showToast: {
-                exists: typeof window.showToast === 'function' || typeof showToast === 'function'
-            }
-        };
-        
-        console.log('APIs check:', report.apis);
-        
-        console.log('📍 3. CHECKING VARIABLES...');
-        
-        report.variables = {
-            currentUserRole: currentUserRole,
-            isInitialized: isInitialized,
-            SERVER_DROPDOWN_VERSION: window.SERVER_DROPDOWN_VERSION,
-            serverId: getCurrentServerId()
-        };
-        
-        console.log('Variables check:', report.variables);
-        
-        console.log('📍 4. TESTING FUNCTIONALITY...');
-        
-        if (dropdownBtn && dropdown) {
-            console.log('Testing dropdown toggle...');
-            const wasHidden = dropdown.classList.contains('hidden');
-            dropdownBtn.click();
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const isNowHidden = dropdown.classList.contains('hidden');
-            
-            report.functionality.toggle = {
-                wasHidden: wasHidden,
-                isNowHidden: isNowHidden,
-                toggleWorked: wasHidden !== isNowHidden
-            };
-            
-            if (wasHidden === isNowHidden) {
-                console.log('❌ Dropdown toggle not working');
-            } else {
-                console.log('✅ Dropdown toggle working');
-                dropdown.classList.add('hidden');
-            }
-        }
-        
-        console.log('📍 5. TESTING USER ROLE API...');
-        
-        const serverId = getCurrentServerId();
-        if (serverId && window.serverAPI) {
-            try {
-                console.log('Calling getUserServerMembership for server:', serverId);
-                const membershipData = await window.serverAPI.getUserServerMembership(serverId);
-                report.functionality.roleAPI = {
-                    called: true,
-                    response: membershipData,
-                    success: membershipData?.success,
-                    role: membershipData?.data?.membership?.role
-                };
-                console.log('Role API response:', membershipData);
-            } catch (error) {
-                report.functionality.roleAPI = {
-                    called: true,
-                    error: error.message,
-                    success: false
-                };
-                console.error('Role API error:', error);
-            }
-        } else {
-            report.functionality.roleAPI = {
-                called: false,
-                reason: !serverId ? 'No server ID' : 'No serverAPI'
-            };
-        }
-        
-        console.log('📍 6. CHECKING MODAL ELEMENTS...');
-        
-        const modals = [
-            'invite-people-modal',
-            'create-channel-modal', 
-            'create-category-modal',
-            'leave-server-modal',
-            'transfer-ownership-modal'
-        ];
-        
-        report.modals = {};
-        modals.forEach(modalId => {
-            const modal = document.getElementById(modalId);
-            report.modals[modalId] = {
-                exists: !!modal,
-                hidden: modal ? modal.classList.contains('hidden') : null,
-                display: modal ? getComputedStyle(modal).display : null
-            };
-        });
-        
-        console.log('Modals check:', report.modals);
-        
-        console.log('📍 7. CHECKING CSS...');
-        
-        const dropdownStyles = dropdown ? getComputedStyle(dropdown) : null;
-        report.css = {
-            dropdown: dropdownStyles ? {
-                position: dropdownStyles.position,
-                zIndex: dropdownStyles.zIndex,
-                display: dropdownStyles.display,
-                opacity: dropdownStyles.opacity,
-                backgroundColor: dropdownStyles.backgroundColor
-            } : null
-        };
-        
-        console.log('CSS check:', report.css);
-        
-        console.log('📍 8. TESTING ROLE VISIBILITY LOGIC...');
-        
-        if (dropdownItems.length > 0) {
-            console.log('Testing role visibility with different roles...');
-            
-            ['owner', 'admin', 'member', 'non-member'].forEach(testRole => {
-                console.log(`Testing visibility for role: ${testRole}`);
-                applyRoleBasedVisibility(testRole);
-                
-                const visibilityReport = Array.from(dropdownItems).map(item => ({
-                    text: item.querySelector('span')?.textContent?.trim(),
-                    visible: item.style.display !== 'none',
-                    display: item.style.display,
-                    roleRestricted: item.getAttribute('data-role-restricted')
-                }));
-                
-                report.functionality[`visibility_${testRole}`] = visibilityReport;
-            });
-            
-            console.log('Restoring original role visibility...');
-            applyRoleBasedVisibility(currentUserRole || 'member');
-        }
-        
-        console.log('📍 9. FINAL REPORT...');
-        
-        console.log('🎯 SUMMARY:');
-        console.log('- Dropdown button exists:', !!dropdownBtn);
-        console.log('- Dropdown exists:', !!dropdown);
-        console.log('- Dropdown items count:', dropdownItems.length);
-        console.log('- ServerAPI available:', !!window.serverAPI);
-        console.log('- Current user role:', currentUserRole);
-        console.log('- Is initialized:', isInitialized);
-        console.log('- Server ID:', serverId);
-        
-        const issues = [];
-        
-        if (!dropdownBtn) issues.push('❌ Dropdown button not found');
-        if (!dropdown) issues.push('❌ Dropdown menu not found');
-        if (dropdownItems.length === 0) issues.push('❌ No dropdown items found');
-        if (!window.serverAPI) issues.push('❌ ServerAPI not loaded');
-        if (!window.channelAPI) issues.push('❌ ChannelAPI not loaded');
-        if (!getCurrentServerId()) issues.push('❌ No server ID detected');
-        
-        if (issues.length > 0) {
-            console.log('🚨 ISSUES FOUND:');
-            issues.forEach(issue => console.log(issue));
-        } else {
-            console.log('✅ All basic components appear to be working');
-        }
-        
-        console.log('📋 FULL REPORT OBJECT:');
-        console.log(report);
-        
-        return report;
-        
-    } catch (error) {
-        console.error('🚨 DEBUG FUNCTION ERROR:', error);
-        report.errors.push(error.message);
-        return report;
+    const dropdownBtn = document.getElementById('server-dropdown-btn');
+    const dropdown = document.getElementById('server-dropdown');
+    console.log('Dropdown Button:', !!dropdownBtn);
+    console.log('Dropdown Menu:', !!dropdown);
+    
+    if (serverId && window.serverAPI) {
+        console.log('Testing API...');
+        const response = await window.serverAPI.getUserServerMembership(serverId);
+        console.log('API Response:', response);
+        console.log('Is Member:', response?.data?.is_member);
+        console.log('Role:', response?.data?.membership?.role);
     }
+    
+    console.log('Dropdown Items:');
+    document.querySelectorAll('.server-dropdown-item').forEach((item, index) => {
+        const text = item.querySelector('span')?.textContent;
+        const visible = !item.style.display || item.style.display !== 'none';
+        console.log(`${index + 1}. ${text}: ${visible ? 'VISIBLE' : 'HIDDEN'}`);
+    });
 };
 
 window.testDropdownClick = function() {
@@ -918,8 +682,8 @@ window.testDropdownClick = function() {
     console.log('Before click - dropdown display:', getComputedStyle(dropdown).display);
     
     dropdownBtn.click();
-    
-    setTimeout(() => {
+        
+        setTimeout(() => {
         console.log('After click - dropdown hidden:', dropdown.classList.contains('hidden'));
         console.log('After click - dropdown display:', getComputedStyle(dropdown).display);
         
@@ -940,7 +704,7 @@ window.forceShowDropdown = function() {
         console.error('❌ Dropdown not found');
         return;
     }
-    
+
     dropdown.classList.remove('hidden');
     dropdown.style.display = 'block';
     dropdown.style.opacity = '1';
@@ -968,3 +732,46 @@ window.showCreateChannelModal = showCreateChannelModal;
 window.showCreateCategoryModal = showCreateCategoryModal;
 window.showLeaveServerConfirmation = showLeaveServerConfirmation;
 window.getCurrentUserRole = () => currentUserRole;
+
+window.testMembershipAPI = async function() {
+    console.clear();
+    console.log('🧪 TESTING MEMBERSHIP API DIRECTLY...');
+    
+    const serverId = getCurrentServerId();
+    if (!serverId) {
+        console.error('❌ No server ID found');
+        return;
+    }
+    
+    console.log('🎯 Server ID:', serverId);
+    
+    try {
+        console.log('📡 Calling API...');
+        const response = await window.serverAPI.getUserServerMembership(serverId);
+        
+        console.log('📦 RAW RESPONSE:');
+        console.log(JSON.stringify(response, null, 2));
+        
+        console.log('🔍 RESPONSE ANALYSIS:');
+        console.log('- success:', response?.success);
+        console.log('- is_member:', response?.data?.is_member);
+        console.log('- role:', response?.data?.membership?.role);
+        console.log('- is_owner:', response?.data?.membership?.is_owner);
+        
+        if (response?.success && response?.data?.is_member) {
+            console.log('✅ USER IS MEMBER');
+            console.log('👤 Role:', response.data.membership.role);
+            console.log('👑 Is Owner:', response.data.membership.is_owner);
+        } else {
+            console.log('❌ USER IS NOT MEMBER');
+        }
+        
+        return response;
+        
+    } catch (error) {
+        console.error('❌ API ERROR:', error);
+        return null;
+    }
+};
+
+console.log('🔧 Added testMembershipAPI() function');

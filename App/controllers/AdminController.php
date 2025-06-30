@@ -71,17 +71,15 @@ class AdminController extends BaseController
         
         try {
             if (!empty($query)) {
-                $users = $this->userRepository->searchWithNitroStatus($query, $page, $limit, $status);
+                $users = $this->userRepository->searchWithNitroStatusRaw($query, $page, $limit, $status);
                 $total = $this->userRepository->countSearch($query, $status);
             } else {
-                $users = $this->userRepository->paginateWithNitroStatus($page, $limit, $status);
+                $users = $this->userRepository->paginateWithNitroStatusRaw($page, $limit, $status);
                 $total = $this->userRepository->countRegularUsers($status);
             }
             
             $normalizedUsers = [];
-            foreach ($users as $user) {
-                $userData = is_object($user) && method_exists($user, 'toArray') ? $user->toArray() : (array)$user;
-                
+            foreach ($users as $userData) {
                 $normalizedUsers[] = [
                     'id' => $userData['id'] ?? null,
                     'username' => $userData['username'] ?? 'Unknown User',
@@ -116,9 +114,10 @@ class AdminController extends BaseController
             }
             
             return $normalizedUsers;
+            
         } catch (Exception $e) {
-            error_log("Error loading users in admin controller: " . $e->getMessage());
-            return $this->serverError("Failed to load users: " . $e->getMessage());
+            error_log("AdminController getUsers error: " . $e->getMessage());
+            return $this->serverError('Failed to get users: ' . $e->getMessage());
         }
     }
     
@@ -185,12 +184,10 @@ class AdminController extends BaseController
         }
         
         try {
-            $users = $this->userRepository->searchWithNitroStatus($query, $page, $limit);
+            $users = $this->userRepository->searchWithNitroStatusRaw($query, $page, $limit);
             
             $normalizedUsers = [];
-            foreach ($users as $user) {
-                $userData = is_object($user) && method_exists($user, 'toArray') ? $user->toArray() : (array)$user;
-                
+            foreach ($users as $userData) {
                 $normalizedUsers[] = [
                     'id' => $userData['id'] ?? null,
                     'username' => $userData['username'] ?? 'Unknown',
@@ -205,18 +202,21 @@ class AdminController extends BaseController
                 ];
             }
             
+            $total = $this->userRepository->countSearch($query);
+            
             return $this->success([
                 'users' => $normalizedUsers,
                 'pagination' => [
-                    'total' => count($normalizedUsers),
+                    'total' => $total,
                     'page' => $page,
                     'limit' => $limit,
-                    'pages' => 1
+                    'pages' => ceil($total / $limit)
                 ]
-            ]);
+            ], 'Users found successfully');
+            
         } catch (Exception $e) {
-            error_log("Error searching users in admin controller: " . $e->getMessage());
-            return $this->serverError("Failed to search users: " . $e->getMessage());
+            error_log("AdminController searchUsers error: " . $e->getMessage());
+            return $this->serverError('Failed to search users: ' . $e->getMessage());
         }
     }
     

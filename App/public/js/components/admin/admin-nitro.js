@@ -324,8 +324,6 @@ export class NitroManager {
   }
   
   renderSearchResults(users, userSearchResults, query = '') {
-    console.log('🔍 renderSearchResults called with users:', users);
-    
     if (users.length === 0) {
       userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-fade-in">No users found</div>';
       return;
@@ -334,19 +332,7 @@ export class NitroManager {
     const fragment = document.createDocumentFragment();
     
     users.forEach((user, index) => {
-      console.log(`👤 Processing user ${index}:`, {
-        username: user.username,
-        discriminator: user.discriminator,
-        has_nitro: user.has_nitro,
-        nitro_status: user.nitro_status,
-        nitro_active: user.nitro_active,
-        nitro_code: user.nitro_code,
-        raw_user_data: user
-      });
-      
       const hasNitro = user.has_nitro || user.nitro_status === 'active' || user.nitro_active;
-      
-      console.log(`🎯 Final hasNitro decision for ${user.username}: ${hasNitro}`);
       
       let itemClasses = 'p-2 flex items-center transition-all duration-200 opacity-0 border-l-2 border-transparent';
       

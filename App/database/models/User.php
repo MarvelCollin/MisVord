@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class User extends Model {
     protected static $table = 'users';
-    protected $fillable = ['id', 'username', 'discriminator', 'email', 'password', 'google_id', 'avatar_url', 'banner_url', 'status', 'display_name', 'bio', 'security_question', 'security_answer', 'created_at', 'updated_at'];
+    protected $fillable = ['id', 'username', 'discriminator', 'email', 'password', 'google_id', 'avatar_url', 'banner_url', 'status', 'display_name', 'bio', 'security_question', 'security_answer', 'created_at', 'updated_at', 'has_nitro', 'nitro_code', 'nitro_active', 'nitro_status'];
     
     public static function findByEmail($email) {
         $query = new Query();

@@ -14,7 +14,7 @@ $_SESSION['username'] = 'Admin';
 $_SESSION['discriminator'] = '0000';
 
 try {
-    $action = $_GET['action'] ?? 'check';
+    $action = $_GET['action'] ?? 'assign';
     $query = new Query();
     
     $kolinaUser = $query->table('users')
@@ -35,69 +35,47 @@ try {
         $existingNitro = $query->table('nitro')
             ->where('user_id', $kolinaId)
             ->first();
-        
+            
         if ($existingNitro) {
             echo json_encode([
                 'success' => true,
                 'message' => 'Kolina already has nitro',
-                'existing_code' => $existingNitro['code']
+                'nitro_code' => $existingNitro['code']
             ]);
-            exit;
-        }
-        
-        $testCode = 'TEST-KOLINA-' . date('Ymd-His');
-        
-        $result = $query->table('nitro')->insert([
-            'user_id' => $kolinaId,
-            'code' => $testCode,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        ]);
-        
-        if ($result) {
+        } else {
+            $testCode = 'TEST-KOLINA-' . date('Ymd');
+            $query->table('nitro')->insert([
+                'user_id' => $kolinaId,
+                'code' => $testCode,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+            
             echo json_encode([
                 'success' => true,
                 'message' => 'Nitro assigned to kolina',
-                'user_id' => $kolinaId,
-                'code' => $testCode
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false,
-                'error' => 'Failed to assign nitro'
+                'nitro_code' => $testCode
             ]);
         }
     } else if ($action === 'remove') {
-        $deleted = $query->table('nitro')
+        $query->table('nitro')
             ->where('user_id', $kolinaId)
             ->delete();
-        
+            
         echo json_encode([
             'success' => true,
-            'message' => 'Nitro removed from kolina',
-            'deleted_count' => $deleted
+            'message' => 'Nitro removed from kolina'
         ]);
     } else {
         $nitroStatus = $query->table('nitro')
             ->where('user_id', $kolinaId)
             ->first();
-        
-        $hasNitro = $nitroStatus ? true : false;
-        
+            
         echo json_encode([
             'success' => true,
-            'user' => [
-                'id' => $kolinaId,
-                'username' => $kolinaUser['username'],
-                'discriminator' => $kolinaUser['discriminator']
-            ],
-            'has_nitro' => $hasNitro,
-            'nitro_details' => $nitroStatus,
-            'available_actions' => [
-                'check' => '?action=check',
-                'assign' => '?action=assign', 
-                'remove' => '?action=remove'
-            ]
+            'message' => 'Nitro status checked',
+            'has_nitro' => $nitroStatus ? true : false,
+            'nitro_code' => $nitroStatus ? $nitroStatus['code'] : null
         ]);
     }
     
