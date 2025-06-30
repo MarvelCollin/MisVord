@@ -326,10 +326,17 @@ function updateTabUI(tabName, tabs, tabContents) {
         if (content.id === tabName + '-tab') {
             content.classList.remove('hidden');
             
-            if (tabName === 'all') {
-                loadAllFriends();
+            if (window.FriendsManager) {
+                const friendsManager = window.FriendsManager.getInstance();
+                friendsManager.invalidateCache(['friends', 'pending', 'online']);
+            }
+            
+            if (tabName === 'online') {
+                loadOnlineFriends(true);
+            } else if (tabName === 'all') {
+                loadAllFriends(true);
             } else if (tabName === 'pending') {
-                loadPendingRequests();
+                loadPendingRequests(true);
             }
         } else {
             content.classList.add('hidden');
@@ -337,7 +344,83 @@ function updateTabUI(tabName, tabs, tabContents) {
     });
 }
 
-async function loadAllFriends() {
+async function loadOnlineFriends(forceRefresh = false) {
+    const container = document.getElementById('online-friends-container');
+    if (!container) return;
+    
+    if (!window.FriendsManager) {
+        console.error('FriendsManager not loaded');
+        container.innerHTML = '<div class="text-gray-400 p-4">Loading friends system...</div>';
+        return;
+    }
+    
+    const friendsManager = window.FriendsManager.getInstance();
+    
+    if (forceRefresh) {
+        container.innerHTML = generateSkeletonFriends(3);
+    }
+    
+    try {
+        const friends = await friendsManager.getFriends(forceRefresh);
+        const onlineFriends = friends ? friends.filter(friend => friend.status === 'online') : [];
+
+        if (!onlineFriends || onlineFriends.length === 0) {
+            container.innerHTML = `
+                <div class="p-4 bg-discord-dark rounded text-center">
+                    <div class="mb-2 text-gray-400">
+                        <i class="fa-solid fa-user-group text-3xl"></i>
+                    </div>
+                    <p class="text-gray-300 mb-1">No friends online</p>
+                    <p class="text-gray-500 text-sm">Friends will appear here when they come online</p>
+                </div>
+            `;
+            updateOnlineCount(0);
+            return;
+        }
+        
+        let friendsHtml = '';
+        
+        onlineFriends.forEach(friend => {
+            const statusColor = friendsManager.getStatusColor('online');
+            const statusText = friendsManager.getStatusText('online');
+            
+            friendsHtml += `
+                <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item" data-user-id="${friend.id}">
+                    <div class="flex items-center">
+                        <div class="relative mr-3">
+                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                                     alt="Avatar" class="w-full h-full object-cover">
+                            </div>
+                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${statusColor}"></span>
+                        </div>
+                        <div>
+                            <div class="font-medium text-white">${friendsManager.escapeHtml(friend.username)}</div>
+                            <div class="text-xs text-gray-400">${statusText}</div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="createDirectMessage('${friend.id}')">
+                            <i class="fa-solid fa-message"></i>
+                        </button>
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = friendsHtml;
+        updateOnlineCount(onlineFriends.length);
+    } catch (error) {
+        console.error('Error loading online friends:', error);
+        container.innerHTML = '<div class="text-gray-400 p-4">Failed to load online friends</div>';
+        updateOnlineCount(0);
+    }
+}
+
+async function loadAllFriends(forceRefresh = false) {
     const container = document.getElementById('all-friends-container');
     if (!container) return;
     
@@ -349,10 +432,12 @@ async function loadAllFriends() {
     
     const friendsManager = window.FriendsManager.getInstance();
     
-    container.innerHTML = generateSkeletonFriends(3);
+    if (forceRefresh) {
+        container.innerHTML = generateSkeletonFriends(3);
+    }
     
     try {
-        const friends = await friendsManager.getFriends();
+        const friends = await friendsManager.getFriends(forceRefresh);
 
         if (!friends || friends.length === 0) {
             container.innerHTML = `
@@ -413,27 +498,7 @@ async function loadAllFriends() {
     }
 }
 
-function generateSkeletonFriends(count = 3) {
-    const skeletonItems = Array(count).fill().map(() => `
-        <div class="skeleton-item flex justify-between items-center p-2">
-            <div class="flex items-center">
-                <div class="skeleton skeleton-avatar mr-3"></div>
-                <div>
-                    <div class="skeleton skeleton-text mb-1"></div>
-                    <div class="skeleton skeleton-text-sm"></div>
-                </div>
-            </div>
-            <div class="flex space-x-2">
-                <div class="skeleton w-8 h-8 rounded-full"></div>
-                <div class="skeleton w-8 h-8 rounded-full"></div>
-            </div>
-        </div>
-    `).join('');
-
-    return skeletonItems;
-}
-
-async function loadPendingRequests() {
+async function loadPendingRequests(forceRefresh = false) {
     const pendingContainer = document.getElementById('pending-requests');
     if (!pendingContainer) return;
 
@@ -445,10 +510,12 @@ async function loadPendingRequests() {
 
     const friendsManager = window.FriendsManager.getInstance();
     
-    pendingContainer.innerHTML = generateSkeletonPending();
+    if (forceRefresh) {
+        pendingContainer.innerHTML = generateSkeletonPending();
+    }
 
     try {
-        const pendingData = await friendsManager.getPendingRequests();
+        const pendingData = await friendsManager.getPendingRequests(forceRefresh);
         pendingContainer.innerHTML = '';
 
         if (pendingData) {
@@ -540,6 +607,26 @@ async function loadPendingRequests() {
         console.error('Error loading pending requests:', error);
         pendingContainer.innerHTML = '<div class="text-gray-400 p-4">Failed to load pending requests</div>';
     }
+}
+
+function generateSkeletonFriends(count = 3) {
+    const skeletonItems = Array(count).fill().map(() => `
+        <div class="skeleton-item flex justify-between items-center p-2">
+            <div class="flex items-center">
+                <div class="skeleton skeleton-avatar mr-3"></div>
+                <div>
+                    <div class="skeleton skeleton-text mb-1"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <div class="skeleton w-8 h-8 rounded-full"></div>
+                <div class="skeleton w-8 h-8 rounded-full"></div>
+            </div>
+        </div>
+    `).join('');
+
+    return skeletonItems;
 }
 
 function generateSkeletonPending() {
@@ -1013,10 +1100,12 @@ function initializeOnPageLoad() {
         const urlParams = new URLSearchParams(window.location.search);
         const tab = urlParams.get('tab') || 'online';
         
-        if (tab === 'all') {
-            loadAllFriends();
+        if (tab === 'online') {
+            loadOnlineFriends(false);
+        } else if (tab === 'all') {
+            loadAllFriends(false);
         } else if (tab === 'pending') {
-            loadPendingRequests();
+            loadPendingRequests(false);
         }
     }
 }
@@ -1032,4 +1121,11 @@ function setupCreateServerButton() {
             }
         });
     });
+}
+
+function updateOnlineCount(count) {
+    const onlineCountElement = document.getElementById('online-count');
+    if (onlineCountElement) {
+        onlineCountElement.textContent = count;
+    }
 }

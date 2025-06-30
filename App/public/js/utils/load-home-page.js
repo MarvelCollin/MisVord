@@ -331,28 +331,31 @@ function setupHomeServerNavigation() {
                     const serverId = serverMatch[1];
                     console.log('[Home Navigation] Server link clicked, navigating to server:', serverId);
                     
-                    try {
-                        if (loadServerPage) {
-                            console.log('[Home Navigation] Using loadServerPage function');
-                            await loadServerPage(serverId);
-                            
-                            if (typeof window.updateActiveServer === 'function') {
-                                window.updateActiveServer('server', serverId);
-                            }
-                            
-                            console.log('[Home Navigation] Server navigation completed successfully');
-                        } else {
-                            console.log('[Home Navigation] loadServerPage not available, using fallback');
-                            window.location.href = href;
+                                    try {
+                    if (loadServerPage) {
+                        console.log('[Home Navigation] Using loadServerPage function');
+                        await loadServerPage(serverId);
+                        
+                        if (typeof window.updateActiveServer === 'function') {
+                            window.updateActiveServer('server', serverId);
                         }
-                    } catch (error) {
-                        console.error('[Home Navigation] Error navigating to server:', error);
+                        
+                        console.log('[Home Navigation] Server navigation completed successfully');
+                        
+                        // Clear navigation state immediately after successful navigation
+                        window.homeNavigationInProgress = false;
+                        console.log('[Home Navigation] Navigation state cleared');
+                        
+                    } else {
+                        console.log('[Home Navigation] loadServerPage not available, using fallback');
+                        window.homeNavigationInProgress = false;
                         window.location.href = href;
-                    } finally {
-                        setTimeout(() => {
-                            window.homeNavigationInProgress = false;
-                        }, 1000);
                     }
+                } catch (error) {
+                    console.error('[Home Navigation] Error navigating to server:', error);
+                    window.homeNavigationInProgress = false;
+                    window.location.href = href;
+                }
                 } else {
                     console.warn('[Home Navigation] Invalid server link:', href);
                     window.homeNavigationInProgress = false;
@@ -397,17 +400,20 @@ function setupHomeServerNavigation() {
                         }
                         
                         console.log('[Home Navigation] Server navigation completed successfully');
+                        
+                        // Clear navigation state immediately after successful navigation
+                        window.homeNavigationInProgress = false;
+                        console.log('[Home Navigation] Navigation state cleared');
+                        
                     } else {
                         console.log('[Home Navigation] loadServerPage not available, using fallback');
+                        window.homeNavigationInProgress = false;
                         window.location.href = `/server/${serverId}`;
                     }
                 } catch (error) {
                     console.error('[Home Navigation] Error navigating to server:', error);
+                    window.homeNavigationInProgress = false;
                     window.location.href = `/server/${serverId}`;
-                } finally {
-                    setTimeout(() => {
-                        window.homeNavigationInProgress = false;
-                    }, 1000);
                 }
                 
                 return false;
@@ -423,7 +429,15 @@ function setupHomeServerNavigation() {
 function preventCompetingHandlers() {
     console.log('[Home Navigation] Setting up navigation protection');
     
-    // Monitor for unexpected home redirects
+    // Only protect during navigation, then clean up
+    if (window.homeNavigationProtectionActive) {
+        console.log('[Home Navigation] Protection already active, skipping');
+        return;
+    }
+    
+    window.homeNavigationProtectionActive = true;
+    
+    // Monitor for unexpected home redirects - but only for a short time
     const originalPushState = window.history.pushState;
     const originalReplaceState = window.history.replaceState;
     
@@ -443,20 +457,14 @@ function preventCompetingHandlers() {
         return originalReplaceState.apply(this, args);
     };
     
-    // Monitor for location changes
-    let lastUrl = window.location.href;
-    const checkUrlChange = () => {
-        if (window.location.href !== lastUrl) {
-            if (window.homeNavigationInProgress && (window.location.pathname === '/home' || window.location.pathname === '/')) {
-                console.warn('[Home Navigation] Detected unexpected redirect back to home, preventing...');
-                window.history.back();
-                return;
-            }
-            lastUrl = window.location.href;
-        }
-    };
-    
-    setInterval(checkUrlChange, 100);
+    // Clean up protection after navigation is definitely complete
+    setTimeout(() => {
+        console.log('[Home Navigation] Cleaning up navigation protection');
+        window.history.pushState = originalPushState;
+        window.history.replaceState = originalReplaceState;
+        window.homeNavigationInProgress = false;
+        window.homeNavigationProtectionActive = false;
+    }, 3000); // 3 seconds should be enough for navigation to complete
 }
 
 function debugHomeServerNavigation() {
@@ -506,7 +514,97 @@ function debugNavigationEvents() {
     console.log('=== END DEBUG ===');
 }
 
+function forceResetNavigationState() {
+    console.log('=== FORCE RESET NAVIGATION STATE ===');
+    
+    // Clear all navigation flags
+    window.homeNavigationInProgress = false;
+    window.homeNavigationProtectionActive = false;
+    window.globalSwitchLock = false;
+    
+    // Clear any stuck skeleton loading
+    if (typeof window.handleSkeletonLoading === 'function') {
+        window.handleSkeletonLoading(false);
+    }
+    
+    // Clean up any existing intervals
+    if (window.navigationCheckInterval) {
+        clearInterval(window.navigationCheckInterval);
+        window.navigationCheckInterval = null;
+    }
+    
+    // Reset channel switch manager if it exists
+    if (window.channelSwitchManager && window.channelSwitchManager.isLoading) {
+        window.channelSwitchManager.isLoading = false;
+        console.log('Reset channel switch manager loading state');
+    }
+    
+    console.log('Navigation state reset completed');
+    console.log('Current state:', {
+        homeNavigationInProgress: window.homeNavigationInProgress,
+        globalSwitchLock: window.globalSwitchLock,
+        channelSwitchManagerLoading: window.channelSwitchManager?.isLoading,
+        currentURL: window.location.href
+    });
+    console.log('=== END RESET ===');
+}
+
+function testHomeServerNavigation() {
+    console.log('=== TESTING HOME SERVER NAVIGATION ===');
+    
+    // Check current state
+    console.log('Current state check:', {
+        page: window.location.pathname,
+        homeNavigationInProgress: window.homeNavigationInProgress,
+        globalSwitchLock: window.globalSwitchLock,
+        loadServerPageAvailable: typeof loadServerPage === 'function',
+        channelSwitchManager: !!window.channelSwitchManager,
+        isLoading: window.channelSwitchManager?.isLoading
+    });
+    
+    // Check if we're on home page
+    if (!window.location.pathname.includes('/home')) {
+        console.warn('Not on home page, navigation test may not work properly');
+    }
+    
+    // Check for server links
+    const serverLinks = document.querySelectorAll('a[href^="/server/"]');
+    const serverButtons = document.querySelectorAll('button[data-server-id]');
+    
+    console.log('Navigation elements found:', {
+        serverLinks: serverLinks.length,
+        serverButtons: serverButtons.length
+    });
+    
+    if (serverLinks.length === 0 && serverButtons.length === 0) {
+        console.error('No server navigation elements found!');
+        return false;
+    }
+    
+    // Test if navigation handlers are properly set up
+    const testLink = serverLinks[0];
+    if (testLink) {
+        console.log('Test link found:', {
+            href: testLink.href,
+            hasClickHandler: !!testLink.onclick
+        });
+    }
+    
+    console.log('✅ Test completed - check logs above for issues');
+    console.log('To reset if stuck: forceResetNavigationState()');
+    console.log('=== END TEST ===');
+    
+    return {
+        serverLinks: serverLinks.length,
+        serverButtons: serverButtons.length,
+        canNavigate: (serverLinks.length > 0 || serverButtons.length > 0),
+        state: 'ready'
+    };
+}
+
 window.loadHomePage = loadHomePage;
 window.loadServerPage = loadServerPage;
 window.debugHomeServerNavigation = debugHomeServerNavigation;
-window.debugNavigationEvents = debugNavigationEvents; 
+window.debugNavigationEvents = debugNavigationEvents;
+window.forceResetNavigationState = forceResetNavigationState;
+window.testHomeServerNavigation = testHomeServerNavigation; 

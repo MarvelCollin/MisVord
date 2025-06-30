@@ -89,12 +89,24 @@ export function loadServerPage(serverId, channelId = null) {
                     if (typeof window.ChannelSwitchManager !== 'undefined') {
                         if (window.channelSwitchManager) {
                             console.log('[Server AJAX] Cleaning up existing channel switch manager');
-                            window.channelSwitchManager.cleanup();
+                            try {
+                                window.channelSwitchManager.cleanup();
+                            } catch (cleanupError) {
+                                console.warn('[Server AJAX] Error during cleanup:', cleanupError);
+                            }
+                            window.channelSwitchManager = null;
                         }
                         
-                        console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
-                        window.channelSwitchManager = new window.ChannelSwitchManager();
-                        console.log('[Server AJAX] Channel switch manager initialized');
+                        // Add a small delay to ensure cleanup is complete
+                        setTimeout(() => {
+                            if (!window.channelSwitchManager) {
+                                console.log('[Server AJAX] Creating new channel switch manager for server:', serverId);
+                                window.channelSwitchManager = new window.ChannelSwitchManager();
+                                console.log('[Server AJAX] Channel switch manager initialized');
+                            } else {
+                                console.log('[Server AJAX] Channel switch manager already exists, skipping creation');
+                            }
+                        }, 100);
                     } else {
                         console.warn('[Server AJAX] ChannelSwitchManager class not available');
                     }
@@ -127,10 +139,9 @@ export function loadServerPage(serverId, channelId = null) {
                     document.dispatchEvent(event);
                     console.log('[Server AJAX] ServerChanged event dispatched');
                     
-                    setTimeout(() => {
-                        window.globalSwitchLock = false;
-                        console.log('[Server AJAX] Global switch lock released after server loading');
-                    }, 500);
+                    // Release global switch lock immediately after successful completion
+                    window.globalSwitchLock = false;
+                    console.log('[Server AJAX] Global switch lock released after server loading');
                     
                 } else if (response && response.data && response.data.redirect) {
                     console.log('[Server AJAX] Redirect response:', response.data.redirect);

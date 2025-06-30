@@ -95,6 +95,14 @@ class MentionHandler {
         let targetId = this.chatSection.targetId;
         const chatType = this.chatSection.chatType;
         
+        console.log('🔍 [MENTION-HANDLER] loadAvailableUsers called:', {
+            targetId,
+            chatType,
+            forceReload,
+            isLoading: this.isLoading,
+            usersLoaded: this.usersLoaded
+        });
+        
         if (!targetId) {
             if (chatType === 'channel') {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -103,10 +111,13 @@ class MentionHandler {
                 if (channelFromUrl) {
                     targetId = channelFromUrl;
                     this.chatSection.targetId = targetId;
+                    console.log('✅ [MENTION-HANDLER] Using channel ID from URL:', targetId);
                 } else {
+                    console.warn('⚠️ [MENTION-HANDLER] No target ID available');
                     return;
                 }
             } else {
+                console.warn('⚠️ [MENTION-HANDLER] No target ID for non-channel chat');
                 return;
             }
         }
@@ -114,17 +125,21 @@ class MentionHandler {
         const cacheKey = `${chatType}-${targetId}`;
         
         if (!forceReload && this.userCache.has(cacheKey) && this.lastTargetId === targetId) {
+            console.log('✅ [MENTION-HANDLER] Using cached users:', this.userCache.get(cacheKey).size, 'users');
             this.availableUsers = this.userCache.get(cacheKey);
             this.usersLoaded = true;
             return;
         }
         
         if (this.isLoading) {
+            console.log('⏳ [MENTION-HANDLER] Already loading, skipping...');
             return;
         }
         
         this.isLoading = true;
         this.usersLoaded = false;
+        
+        console.log('🔄 [MENTION-HANDLER] Starting to load users...');
         
         try {
             if (chatType === 'channel') {
@@ -137,8 +152,11 @@ class MentionHandler {
             this.lastTargetId = targetId;
             this.usersLoaded = true;
             
+            console.log('✅ [MENTION-HANDLER] Successfully loaded users:', this.availableUsers.size);
+            
         } catch (error) {
-            console.error('Error loading available users for mentions:', error);
+            console.error('❌ [MENTION-HANDLER] Error loading available users for mentions:', error);
+            this.usersLoaded = false;
         } finally {
             this.isLoading = false;
         }
@@ -172,9 +190,12 @@ class MentionHandler {
                 if (result.success && result.data) {
                     if (Array.isArray(result.data)) {
                         members = result.data;
-                        console.log(`✅ [MENTION-HANDLER] Found ${members.length} members in response.data`);
+                        console.log(`✅ [MENTION-HANDLER] Found ${members.length} members in response.data (direct array)`);
+                    } else if (result.data.data && Array.isArray(result.data.data)) {
+                        members = result.data.data;
+                        console.log(`✅ [MENTION-HANDLER] Found ${members.length} members in response.data.data (nested array)`);
                     } else {
-                        console.warn('⚠️ [MENTION-HANDLER] result.data is not an array:', typeof result.data, result.data);
+                        console.warn('⚠️ [MENTION-HANDLER] result.data is not an array and has no nested data array:', typeof result.data, result.data);
                     }
                 } else {
                     console.warn('⚠️ [MENTION-HANDLER] Invalid response format:', {

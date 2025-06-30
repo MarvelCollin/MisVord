@@ -165,6 +165,16 @@ class ChannelSwitchManager {
             this.switchQueue.push({ serverId, channelId, channelType, clickedElement, updateHistory });
             return;
         }
+        
+        // Add timeout protection to prevent infinite loading
+        const switchTimeout = setTimeout(() => {
+            if (this.isLoading) {
+                console.warn('[ChannelSwitchManager] Switch timeout - force releasing locks');
+                this.isLoading = false;
+                window.globalSwitchLock = false;
+                this.hideChannelSwitchingState(clickedElement);
+            }
+        }, 10000); // 10 second timeout
 
         console.log('[ChannelSwitchManager] Switching to channel:', {
             serverId,
@@ -239,6 +249,7 @@ class ChannelSwitchManager {
             console.error('[ChannelSwitchManager] Error switching channel:', error);
             this.showNotification?.('Failed to switch channel. Please try again.', 'error');
         } finally {
+            clearTimeout(switchTimeout);
             window.globalSwitchLock = false;
             this.isLoading = false;
             this.hideChannelSwitchingState(clickedElement);
