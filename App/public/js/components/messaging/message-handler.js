@@ -109,9 +109,12 @@ class MessageHandler {
                 })
             });
             
+            console.log('📡 [MESSAGE-HANDLER] Bubble render HTTP status:', response.status, response.statusText);
+            
             if (!response.ok) {
-                console.error('❌ [MESSAGE-HANDLER] HTTP error in bubble render:', response.status, response.statusText);
-                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                const errorText = await response.text();
+                console.error('❌ [MESSAGE-HANDLER] HTTP error in bubble render:', response.status, response.statusText, errorText);
+                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}: ${errorText}`);
             }
             
             const result = await response.json();
@@ -123,13 +126,14 @@ class MessageHandler {
                 hasHtml: !!html,
                 htmlLength: html ? html.length : 0,
                 error: result.error,
+                message: result.message,
                 dataKeys: result.data ? Object.keys(result.data) : [],
                 resultKeys: Object.keys(result)
             });
             
             if (!result.success) {
-                console.error('❌ [MESSAGE-HANDLER] Bubble render failed:', result.error);
-                throw new Error(result.error || 'Failed to render bubble message');
+                console.error('❌ [MESSAGE-HANDLER] Bubble render failed:', result.error || result.message);
+                throw new Error(result.error || result.message || 'Failed to render bubble message');
             }
             
             if (!html || typeof html !== 'string') {
@@ -137,6 +141,7 @@ class MessageHandler {
                 throw new Error('No valid HTML returned from bubble render API');
             }
             
+            console.log('✅ [MESSAGE-HANDLER] Successfully received bubble HTML:', html.substring(0, 100) + '...');
             return html;
             
         } catch (error) {

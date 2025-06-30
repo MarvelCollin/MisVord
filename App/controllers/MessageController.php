@@ -637,10 +637,13 @@ class MessageController extends BaseController
             
             if (!is_array($messageData)) {
                 $messageData = json_decode($messageData, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    throw new ValidationException('Invalid JSON in message data');
+                }
             }
             
             if (!$messageData || !isset($messageData['id'])) {
-                throw new ValidationException('Invalid message data');
+                throw new ValidationException('Invalid message data structure');
             }
             
             $currentUserId = $_SESSION['user_id'] ?? 0;
@@ -648,21 +651,21 @@ class MessageController extends BaseController
             ob_start();
             $GLOBALS['messageData'] = $messageData;
             $GLOBALS['currentUserId'] = $currentUserId;
-            include __DIR__ . '/../views/components/messaging/bubble-chat.php';
+            require_once __DIR__ . '/../views/components/messaging/bubble-chat.php';
             $html = ob_get_clean();
             
-            $this->jsonResponse([
-                'success' => true,
+            if (empty($html)) {
+                throw new Exception('Failed to generate HTML content');
+            }
+            
+            return $this->success([
                 'html' => $html,
                 'message_id' => $messageData['id']
-            ]);
+            ], 'Bubble message rendered successfully');
             
         } catch (Exception $e) {
             error_log("Error rendering bubble message: " . $e->getMessage());
-            $this->jsonResponse([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->serverError('Failed to render bubble message: ' . $e->getMessage());
         }
     }
 

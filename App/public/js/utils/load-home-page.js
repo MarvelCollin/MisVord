@@ -9,11 +9,11 @@ export function loadHomePage(pageType = 'friends') {
 
     console.log('[Home Loader] Found main content:', !!mainContent);
     if (mainContent) {
-        if (typeof window.handleSkeletonLoading === 'function') {
-            window.handleSkeletonLoading(true);
-        } else {
-            showPageLoading(mainContent);
-        }
+            console.log('[Home Loader] Starting skeleton loading for home content');
+    handleHomeSkeletonLoading(true);
+    
+    // Track when skeleton started for minimum display time
+    window.homeSkeletonStartTime = Date.now();
 
         const currentChannelId = getCurrentChannelId();
         if (currentChannelId && window.globalSocketManager) {
@@ -59,10 +59,8 @@ export function loadHomePage(pageType = 'friends') {
                     console.log('[Home AJAX] Validating layout update');
                     validateHomeLayoutRendering();
                     
-                    if (typeof window.handleSkeletonLoading === 'function') {
-                        window.handleSkeletonLoading(false);
-                        console.log('[Home AJAX] Skeleton loading disabled');
-                    }
+                    console.log('[Home AJAX] Disabling skeleton loading');
+                    handleHomeSkeletonLoading(false);
                     
                     if (typeof window.initHomePage === 'function') {
                         window.initHomePage();
@@ -120,9 +118,8 @@ export function loadHomePage(pageType = 'friends') {
                 console.error('[Home AJAX] Error message:', error);
                 console.error('[Home AJAX] XHR responseText:', xhr ? xhr.responseText : 'none');
                 
-                if (typeof window.handleSkeletonLoading === 'function') {
-                    window.handleSkeletonLoading(false);
-                }
+                console.log('[Home AJAX] Disabling skeleton loading due to error');
+                handleHomeSkeletonLoading(false);
                 console.error('[Home AJAX] FALLBACK - Redirecting to /home');
                 window.location.href = '/home';
             }
@@ -135,6 +132,156 @@ export function loadHomePage(pageType = 'friends') {
 function getCurrentChannelId() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('channel');
+}
+
+function handleHomeSkeletonLoading(show) {
+    console.log('[Home Skeleton] Handle skeleton loading:', show);
+    
+    if (show) {
+        showHomeSkeletonLoading();
+    } else {
+        hideHomeSkeletonLoading();
+    }
+}
+
+function showHomeSkeletonLoading() {
+    console.log('[Home Skeleton] Showing home skeleton loading');
+    
+    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    if (!mainLayoutContainer) {
+        console.warn('[Home Skeleton] Main layout container not found');
+        return;
+    }
+    
+    // Create skeleton for home layout
+    const skeletonHTML = `
+        <div class="home-skeleton-loading flex flex-1 overflow-hidden">
+            <!-- DM Sidebar Skeleton -->
+            <div class="w-60 bg-discord-darker flex flex-col">
+                <div class="p-4 border-b border-gray-700">
+                    <div class="h-6 bg-gray-700 rounded w-32 animate-pulse"></div>
+                </div>
+                
+                <div class="p-3">
+                    <div class="h-8 bg-gray-700 rounded w-full mb-3 animate-pulse"></div>
+                </div>
+                
+                <div class="flex-1 p-2">
+                    ${Array(6).fill().map(() => `
+                        <div class="flex items-center py-2 px-3 rounded mb-1">
+                            <div class="w-8 h-8 bg-gray-700 rounded-full mr-3 animate-pulse"></div>
+                            <div class="flex-1">
+                                <div class="h-4 bg-gray-700 rounded w-24 mb-1 animate-pulse"></div>
+                                <div class="h-3 bg-gray-700 rounded w-16 animate-pulse"></div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="p-4 border-t border-gray-700">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-gray-700 rounded-full mr-3 animate-pulse"></div>
+                        <div class="flex-1">
+                            <div class="h-4 bg-gray-700 rounded w-20 mb-1 animate-pulse"></div>
+                            <div class="h-3 bg-gray-700 rounded w-16 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content Skeleton -->
+            <div class="flex-1 bg-discord-background flex flex-col">
+                <!-- Header -->
+                <div class="h-12 border-b border-gray-700 px-6 flex items-center">
+                    <div class="h-6 bg-gray-700 rounded w-40 animate-pulse"></div>
+                    <div class="ml-auto flex space-x-3">
+                        ${Array(4).fill().map(() => `<div class="w-8 h-8 bg-gray-700 rounded animate-pulse"></div>`).join('')}
+                    </div>
+                </div>
+                
+                <!-- Content Area -->
+                <div class="flex-1 p-6">
+                    <!-- Friends List Header -->
+                    <div class="mb-6">
+                        <div class="h-8 bg-gray-700 rounded w-48 mb-4 animate-pulse"></div>
+                        <div class="flex space-x-4 mb-4">
+                            ${Array(4).fill().map(() => `<div class="h-8 bg-gray-700 rounded w-20 animate-pulse"></div>`).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Friends List -->
+                    <div class="space-y-3">
+                        ${Array(8).fill().map(() => `
+                            <div class="flex items-center justify-between p-3 bg-discord-dark rounded">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-gray-700 rounded-full mr-3 animate-pulse"></div>
+                                    <div>
+                                        <div class="h-4 bg-gray-700 rounded w-24 mb-1 animate-pulse"></div>
+                                        <div class="h-3 bg-gray-700 rounded w-16 animate-pulse"></div>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <div class="w-8 h-8 bg-gray-700 rounded-full animate-pulse"></div>
+                                    <div class="w-8 h-8 bg-gray-700 rounded-full animate-pulse"></div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Active Now Sidebar Skeleton -->
+            <div class="w-60 bg-discord-background border-l border-gray-700 flex flex-col">
+                <div class="p-4 border-b border-gray-700">
+                    <div class="h-5 bg-gray-700 rounded w-24 animate-pulse"></div>
+                </div>
+                
+                <div class="flex-1 p-4">
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-gray-700 rounded-full mx-auto mb-4 animate-pulse"></div>
+                        <div class="h-4 bg-gray-700 rounded w-32 mx-auto mb-2 animate-pulse"></div>
+                        <div class="h-3 bg-gray-700 rounded w-24 mx-auto animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    mainLayoutContainer.innerHTML = skeletonHTML;
+    mainLayoutContainer.setAttribute('data-skeleton', 'home');
+    console.log('[Home Skeleton] Home skeleton displayed');
+}
+
+function hideHomeSkeletonLoading() {
+    console.log('[Home Skeleton] Hiding home skeleton loading');
+    
+    const minDisplayTime = 800; // Minimum 800ms display time
+    const startTime = window.homeSkeletonStartTime || 0;
+    const elapsedTime = Date.now() - startTime;
+    const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
+    
+    console.log('[Home Skeleton] Elapsed time:', elapsedTime + 'ms', 'Remaining time:', remainingTime + 'ms');
+    
+    if (remainingTime > 0) {
+        console.log('[Home Skeleton] Delaying hide to ensure minimum display time');
+        setTimeout(() => {
+            actuallyHideHomeSkeleton();
+        }, remainingTime);
+    } else {
+        actuallyHideHomeSkeleton();
+    }
+}
+
+function actuallyHideHomeSkeleton() {
+    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
+    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
+        // Remove skeleton attribute
+        mainLayoutContainer.removeAttribute('data-skeleton');
+        console.log('[Home Skeleton] Home skeleton actually hidden');
+    }
+    
+    // Clear start time
+    window.homeSkeletonStartTime = null;
 }
 
 function showPageLoading(container) {
@@ -523,9 +670,8 @@ function forceResetNavigationState() {
     window.globalSwitchLock = false;
     
     // Clear any stuck skeleton loading
-    if (typeof window.handleSkeletonLoading === 'function') {
-        window.handleSkeletonLoading(false);
-    }
+    window.homeSkeletonStartTime = null;
+    handleHomeSkeletonLoading(false);
     
     // Clean up any existing intervals
     if (window.navigationCheckInterval) {
