@@ -15,6 +15,7 @@ class ChannelSwitchManager {
         this.boundClickHandler = null;
         this.boundPopstateHandler = null;
         this.isDestroyed = false;
+        this.channelSkeletonStartTime = null;
         
         this.init();
         
@@ -183,15 +184,15 @@ class ChannelSwitchManager {
             return;
         }
         
-        // Add timeout protection to prevent infinite loading
         const switchTimeout = setTimeout(() => {
             if (this.isLoading) {
                 console.warn('[ChannelSwitchManager] Switch timeout - force releasing locks');
                 this.isLoading = false;
                 window.globalSwitchLock = false;
                 this.hideChannelSwitchingState(clickedElement);
+                this.hideChannelSkeleton();
             }
-        }, 10000); // 10 second timeout
+        }, 10000);
 
         console.log('[ChannelSwitchManager] Switching to channel:', {
             serverId,
@@ -219,6 +220,8 @@ class ChannelSwitchManager {
             await new Promise(resolve => setTimeout(resolve, 100));
             
             if (channelType === 'text') {
+                this.showChannelSkeleton();
+                
                 this.updateChatMetaTags(channelId, serverId);
                 
                 const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
@@ -233,7 +236,7 @@ class ChannelSwitchManager {
                 }
                 
                 await new Promise(resolve => setTimeout(resolve, 100));
-                await this.initializeChatSection(channelId);
+                await this.initializeChatSectionWithSkeleton(channelId);
                 
                 await new Promise(resolve => setTimeout(resolve, 200));
                 if (window.chatSection && window.chatSection.isLoading) {
@@ -265,6 +268,7 @@ class ChannelSwitchManager {
         } catch (error) {
             console.error('[ChannelSwitchManager] Error switching channel:', error);
             this.showNotification?.('Failed to switch channel. Please try again.', 'error');
+            this.hideChannelSkeleton();
         } finally {
             clearTimeout(switchTimeout);
             window.globalSwitchLock = false;

@@ -2,7 +2,7 @@
     <div class="modal w-full max-w-md mx-4 bg-[#2b2d31] rounded-lg shadow-2xl border border-[#1e1f22]" onclick="event.stopPropagation();">
         <div class="p-4 border-b border-[#1e1f22] bg-[#2b2d31]">
             <div class="flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-white">New Message</h3>
+                <h3 class="text-lg font-semibold text-white" id="modal-title">New Message</h3>
                 <button id="close-new-direct-modal" class="text-gray-400 hover:text-white focus:outline-none focus:ring-0">
                     <i class="fas fa-times text-xl"></i>
                 </button>
@@ -10,20 +10,32 @@
         </div>
         <div class="p-4 bg-[#2b2d31]">
             <div class="mb-4">
-                <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Select a Friend</label>
+                <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Select Users</label>
                 <div class="relative">
                     <input type="text" placeholder="Search by username" class="w-full bg-[#1e1f22] text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-[#404249]" id="dm-search-input">
                     <i class="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
                 </div>
             </div>
             
-            <div id="dm-selected-friends" class="flex flex-wrap gap-2 mb-4">
-                </div>
+            <div id="dm-selected-users" class="flex flex-wrap gap-2 mb-4 hidden">
+                <div class="text-xs text-gray-400 uppercase font-semibold mb-2 w-full">Selected Users:</div>
+            </div>
 
-            <div id="dm-friends-list" class="max-h-60 overflow-y-auto py-2 space-y-2 custom-scrollbar">
-                <div class="text-gray-400 text-center py-4 hidden" id="no-dm-friends">
-                    <i class="fas fa-user-friends text-2xl mb-2"></i>
-                    <p>No friends found</p>
+            <div id="group-options" class="mb-4 hidden">
+                <div class="mb-3">
+                    <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Group Name</label>
+                    <input type="text" placeholder="Enter group name" class="w-full bg-[#1e1f22] text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-[#404249]" id="group-name-input">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Group Image (Optional)</label>
+                    <input type="url" placeholder="Enter image URL" class="w-full bg-[#1e1f22] text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-[#404249]" id="group-image-input">
+                </div>
+            </div>
+
+            <div id="dm-users-list" class="max-h-60 overflow-y-auto py-2 space-y-2 custom-scrollbar">
+                <div class="text-gray-400 text-center py-4 hidden" id="no-dm-users">
+                    <i class="fas fa-users text-2xl mb-2"></i>
+                    <p>No users found</p>
                 </div>
             </div>
         </div>
@@ -42,67 +54,88 @@
 document.addEventListener('DOMContentLoaded', function() {
     const createButton = document.getElementById('create-new-direct');
     const modal = document.getElementById('new-direct-modal');
-    let selectedUserId = null;
+    const modalTitle = document.getElementById('modal-title');
+    const selectedUsersContainer = document.getElementById('dm-selected-users');
+    const groupOptions = document.getElementById('group-options');
+    const groupNameInput = document.getElementById('group-name-input');
+    const groupImageInput = document.getElementById('group-image-input');
+    let selectedUserIds = new Set();
+    let allUsers = [];
 
-    function loadFriendsForDM() {
-        const friendsList = document.getElementById('dm-friends-list');
-        const noFriendsMsg = document.getElementById('no-dm-friends');
+    function loadAllUsers() {
+        const usersList = document.getElementById('dm-users-list');
+        const noUsersMsg = document.getElementById('no-dm-users');
         
-        if (!friendsList) return;
+        if (!usersList) return;
         
-        friendsList.innerHTML = generateSkeletonItems(5);
-        if (window.FriendAPI) {
-            window.FriendAPI.getFriends()
-                .then(friends => {
-                    friendsList.innerHTML = '';
+        usersList.innerHTML = generateSkeletonItems(5);
+        
+        if (window.userAPI) {
+            window.userAPI.getAllUsers()
+                .then(response => {
+                    usersList.innerHTML = '';
                     
-                    if (friends && friends.length > 0) {
-                        friends.forEach(friend => {
-                            const statusColor = getStatusColor(friend.status || 'offline');
-                            const statusText = getStatusText(friend.status || 'offline');
-                            
-                            const friendItem = document.createElement('div');
-                            friendItem.className = 'modal-friend-item flex items-center p-2 rounded hover:bg-[#35373c] cursor-pointer transition-colors duration-150';
-                            friendItem.setAttribute('data-username', friend.username);
-                            friendItem.setAttribute('data-user-id', friend.id);
-                            
-                            friendItem.innerHTML = `
-                                <div class="relative mr-3">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                        <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                             alt="Avatar" class="w-full h-full object-cover">
-                                    </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#2b2d31] ${statusColor}"></span>
-                                </div>
-                                <div>
-                                    <p class="font-medium text-white">${escapeHtml(friend.username)}</p>
-                                    <p class="text-gray-400 text-sm">${statusText}</p>
-                                </div>
-                            `;
-                            
-                            friendItem.addEventListener('click', function() {
-                                selectFriendForDM(this);
-                            });
-                            
-                            friendsList.appendChild(friendItem);
-                        });
+                    if (response && response.success && response.users && response.users.length > 0) {
+                        allUsers = response.users;
+                        renderUsers(allUsers);
                         
-                        if (noFriendsMsg) {
-                            noFriendsMsg.classList.add('hidden');
+                        if (noUsersMsg) {
+                            noUsersMsg.classList.add('hidden');
                         }
                     } else {
-                        if (noFriendsMsg) {
-                            noFriendsMsg.classList.remove('hidden');
+                        if (noUsersMsg) {
+                            noUsersMsg.classList.remove('hidden');
                         }
                     }
                 })
                 .catch(error => {
-                    console.error('Error loading friends:', error);
-                    friendsList.innerHTML = '<div class="text-gray-400 text-center py-2">Failed to load friends</div>';
+                    console.error('Error loading users:', error);
+                    usersList.innerHTML = '<div class="text-gray-400 text-center py-2">Failed to load users</div>';
                 });
         } else {
-            friendsList.innerHTML = '<div class="text-gray-400 text-center py-2">Friend API not available</div>';
+            usersList.innerHTML = '<div class="text-gray-400 text-center py-2">User API not available</div>';
         }
+    }
+
+    function renderUsers(users) {
+        const usersList = document.getElementById('dm-users-list');
+        usersList.innerHTML = '';
+
+        users.forEach(user => {
+            const statusColor = getStatusColor(user.status || 'offline');
+            const statusText = getStatusText(user.status || 'offline');
+            
+            const userItem = document.createElement('div');
+            userItem.className = 'modal-user-item flex items-center p-2 rounded hover:bg-[#35373c] cursor-pointer transition-colors duration-150';
+            userItem.setAttribute('data-username', user.username);
+            userItem.setAttribute('data-user-id', user.id);
+            
+            const isSelected = selectedUserIds.has(user.id);
+            
+            userItem.innerHTML = `
+                <div class="flex items-center mr-3">
+                    <input type="checkbox" class="user-checkbox mr-3 w-4 h-4 text-[#5865f2] bg-[#1e1f22] border-[#404249] rounded focus:ring-[#5865f2] focus:ring-2" ${isSelected ? 'checked' : ''}>
+                </div>
+                <div class="relative mr-3">
+                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                        <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                             alt="Avatar" class="w-full h-full object-cover">
+                    </div>
+                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#2b2d31] ${statusColor}"></span>
+                </div>
+                <div>
+                    <p class="font-medium text-white">${escapeHtml(user.username)}</p>
+                    <p class="text-gray-400 text-sm">${statusText}</p>
+                </div>
+            `;
+            
+            const checkbox = userItem.querySelector('.user-checkbox');
+            checkbox.addEventListener('change', function() {
+                toggleUserSelection(user.id, user.username, this.checked);
+            });
+            
+            usersList.appendChild(userItem);
+        });
     }
 
     function generateSkeletonItems(count) {
@@ -111,6 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0; i < count; i++) {
             skeletonHtml += `
                 <div class="skeleton-item flex items-center p-2">
+                    <div class="skeleton skeleton-checkbox mr-3"></div>
                     <div class="skeleton skeleton-avatar mr-3"></div>
                     <div class="flex-1">
                         <div class="skeleton skeleton-text"></div>
@@ -123,27 +157,112 @@ document.addEventListener('DOMContentLoaded', function() {
         return skeletonHtml;
     }
 
-    function selectFriendForDM(element) {
-        const allFriends = modal.querySelectorAll('.modal-friend-item');
+    function toggleUserSelection(userId, username, isSelected) {
+        if (isSelected) {
+            selectedUserIds.add(userId);
+        } else {
+            selectedUserIds.delete(userId);
+        }
         
-        allFriends.forEach(friend => {
-            friend.classList.remove('bg-[#404249]');
-            friend.classList.add('hover:bg-[#35373c]');
-        });
+        updateSelectedUsersDisplay();
+        updateCreateButton();
+        updateModalTitle();
+        updateGroupOptions();
+    }
+
+    function updateSelectedUsersDisplay() {
+        const container = selectedUsersContainer;
         
-        element.classList.add('bg-[#404249]');
-        element.classList.remove('hover:bg-[#35373c]');
+        if (selectedUserIds.size === 0) {
+            container.classList.add('hidden');
+            return;
+        }
         
-        selectedUserId = element.getAttribute('data-user-id');
+        container.classList.remove('hidden');
         
+        const selectedUsers = allUsers.filter(user => selectedUserIds.has(user.id));
+        const usersHtml = selectedUsers.map(user => `
+            <div class="inline-flex items-center bg-[#404249] text-white px-2 py-1 rounded-md text-sm">
+                ${escapeHtml(user.username)}
+                <button class="ml-2 text-gray-400 hover:text-white" onclick="removeSelectedUser(${user.id})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+        
+        container.innerHTML = `
+            <div class="text-xs text-gray-400 uppercase font-semibold mb-2 w-full">Selected Users (${selectedUserIds.size}):</div>
+            ${usersHtml}
+        `;
+    }
+
+    function updateCreateButton() {
         if (createButton) {
-            createButton.disabled = false;
-            createButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            const canCreate = selectedUserIds.size > 0;
+            createButton.disabled = !canCreate;
+            createButton.classList.toggle('opacity-50', !canCreate);
+            createButton.classList.toggle('cursor-not-allowed', !canCreate);
         }
     }
 
-    function createDirectMessage() {
-        if (!selectedUserId) return;
+    function updateModalTitle() {
+        if (modalTitle) {
+            if (selectedUserIds.size === 0) {
+                modalTitle.textContent = 'New Message';
+            } else if (selectedUserIds.size === 1) {
+                modalTitle.textContent = 'New Direct Message';
+            } else {
+                modalTitle.textContent = 'New Group Chat';
+            }
+        }
+    }
+
+    function updateGroupOptions() {
+        if (selectedUserIds.size > 1) {
+            groupOptions.classList.remove('hidden');
+        } else {
+            groupOptions.classList.add('hidden');
+            groupNameInput.value = '';
+            groupImageInput.value = '';
+        }
+    }
+
+    window.removeSelectedUser = function(userId) {
+        selectedUserIds.delete(userId);
+        const checkbox = document.querySelector(`[data-user-id="${userId}"] .user-checkbox`);
+        if (checkbox) {
+            checkbox.checked = false;
+        }
+        updateSelectedUsersDisplay();
+        updateCreateButton();
+        updateModalTitle();
+        updateGroupOptions();
+    };
+
+    function createChat() {
+        if (selectedUserIds.size === 0) return;
+        
+        const userIdsArray = Array.from(selectedUserIds);
+        
+        let requestData;
+        
+        if (userIdsArray.length === 1) {
+            requestData = { user_id: userIdsArray[0] };
+        } else {
+            const groupName = groupNameInput.value.trim();
+            if (!groupName) {
+                if (window.showToast) {
+                    window.showToast('Group name is required for group chats', 'error');
+                }
+                return;
+            }
+            
+            requestData = {
+                user_ids: userIdsArray,
+                group_name: groupName,
+                group_image: groupImageInput.value.trim() || null
+            };
+        }
         
         fetch('/api/chat/create', {
             method: 'POST',
@@ -151,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ user_id: selectedUserId })
+            body: JSON.stringify(requestData)
         })
         .then(response => response.json())
         .then(data => {
@@ -159,16 +278,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.classList.add('hidden');
             }
             
-            if (data.success && data.data && data.data.channel_id) {
-                window.location.href = `/home/channels/dm/${data.data.channel_id}`;
+            if (data.success && data.data && data.data.room_id) {
+                window.location.href = `/home/channels/dm/${data.data.room_id}`;
+            } else if (data.error && data.error.includes('already exists')) {
+                if (window.showToast) {
+                    window.showToast('Conversation already exists', 'info');
+                }
             } else {
                 if (window.showToast) {
-                    window.showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
+                    window.showToast('Failed to create conversation: ' + (data.message || data.error || 'Unknown error'), 'error');
                 }
             }
         })
         .catch(error => {
-            console.error('Error creating direct message:', error);
+            console.error('Error creating chat:', error);
             if (window.showToast) {
                 window.showToast('Failed to create conversation. Please try again.', 'error');
             }
@@ -207,7 +330,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (newDirectMessageBtn && modal) {
         newDirectMessageBtn.addEventListener('click', function() {
             modal.classList.remove('hidden');
-            loadFriendsForDM();
+            selectedUserIds.clear();
+            updateSelectedUsersDisplay();
+            updateCreateButton();
+            updateModalTitle();
+            updateGroupOptions();
+            loadAllUsers();
         });
     }
 
@@ -234,29 +362,29 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput) {
         searchInput.addEventListener('input', function() {
             const query = this.value.toLowerCase();
-            const friends = modal.querySelectorAll('.modal-friend-item');
+            const users = modal.querySelectorAll('.modal-user-item');
             
-            let hasVisibleFriends = false;
+            let hasVisibleUsers = false;
             
-            friends.forEach(friend => {
-                const username = friend.getAttribute('data-username').toLowerCase();
+            users.forEach(user => {
+                const username = user.getAttribute('data-username').toLowerCase();
                 if (username.includes(query)) {
-                    friend.classList.remove('hidden');
-                    hasVisibleFriends = true;
+                    user.classList.remove('hidden');
+                    hasVisibleUsers = true;
                 } else {
-                    friend.classList.add('hidden');
+                    user.classList.add('hidden');
                 }
             });
             
-            const noFriendsMsg = document.getElementById('no-dm-friends');
-            if (noFriendsMsg) {
-                noFriendsMsg.classList.toggle('hidden', hasVisibleFriends);
+            const noUsersMsg = document.getElementById('no-dm-users');
+            if (noUsersMsg) {
+                noUsersMsg.classList.toggle('hidden', hasVisibleUsers);
             }
         });
     }
 
     if (createButton) {
-        createButton.addEventListener('click', createDirectMessage);
+        createButton.addEventListener('click', createChat);
     }
 });
 </script>

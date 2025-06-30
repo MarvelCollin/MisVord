@@ -1076,3 +1076,50 @@ button[type="submit"]:hover,
     transform: translateY(0);
   }
 }
+
+.skeleton-checkbox {
+    width: 16px;
+    height: 16px;
+    background: #333;
+    border-radius: 3px;
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.user-checkbox:checked {
+    background-color: #5865f2;
+    border-color: #5865f2;
+}
+
+.modal-user-item:hover .user-checkbox {
+    border-color: #5865f2;
+}
+
+#dm-selected-users .inline-flex {
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+#group-options {
+    transition: all 0.3s ease-in-out;
+}
+
+#group-options.hidden {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+}
+
+#group-options:not(.hidden) {
+    opacity: 1;
+    max-height: 200px;
+}
