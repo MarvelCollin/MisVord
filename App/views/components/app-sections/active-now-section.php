@@ -166,6 +166,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function setupFriendsManagerIntegration() {
+        if (window.globalPresenceManager) {
+            console.log('🌐 [ACTIVE-NOW] Using global presence manager');
+            return;
+        }
+        
         if (window.FriendsManager) {
             const friendsManager = window.FriendsManager.getInstance();
             

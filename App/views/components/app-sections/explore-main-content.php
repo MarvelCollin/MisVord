@@ -26,7 +26,7 @@ require_once dirname(__DIR__) . '/explore/server-card.php';
             </div>
             
             <div class="filter-controls">
-                <select id="category-filter" class="filter-dropdown">
+                <select id="category-filter" class="filter-dropdown" style="display: none;">
                     <option value="">All Categories</option>
                     <?php foreach ($categories as $key => $name): ?>
                         <option value="<?php echo $key; ?>"><?php echo $name; ?></option>

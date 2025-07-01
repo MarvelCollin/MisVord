@@ -388,7 +388,7 @@ function handleJoinServer(serverId, button) {
 }
 
 function initSidebarServerIcons() {
-    const serverIcons = document.querySelectorAll('.sidebar-server-icon');
+    const serverIcons = document.querySelectorAll('.server-sidebar-icon');
     
     serverIcons.forEach(icon => {
         icon.addEventListener('mouseenter', function() {

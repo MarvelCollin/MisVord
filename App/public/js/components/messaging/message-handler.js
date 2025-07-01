@@ -5,6 +5,8 @@ class MessageHandler {
         this.lastMessageGroup = null;
         this.messageGroupTimeThreshold = 5 * 60 * 1000; // 5 minutes in milliseconds
         this.temporaryMessages = new Map(); // Track temporary messages
+        this.lastDisplayedMessageId = null;
+        this.lastMessageTimestamp = null;
     }
     
     async addMessage(messageData) {
@@ -797,7 +799,9 @@ class MessageHandler {
         this.processedMessageIds.clear();
         this.temporaryMessages.clear();
         this.lastMessageGroup = null;
-        console.log('🧹 [MESSAGE-HANDLER] Processed messages cleared');
+        this.lastDisplayedMessageId = null;
+        this.lastMessageTimestamp = null;
+        console.log('🧹 [MESSAGE-HANDLER] All processed messages and state cleared');
     }
     
     removeMessage(messageId) {

@@ -62,26 +62,39 @@ class SimpleChannelSwitcher {
     }
     
     async switchToChannel(channelId, channelType = 'text', forceFresh = false) {
-        if (this.isLoading) return;
-        
-        this.isLoading = true;
-        
+        console.log(`🔄 [CHANNEL-SWITCH] Starting channel switch:`, {
+            fromChannel: this.currentChannelId,
+            toChannel: channelId,
+            channelType: channelType,
+            forceFresh: forceFresh
+        });
+
+        if (this.currentChannelId === channelId && !forceFresh) {
+            console.log('⚠️ [CHANNEL-SWITCH] Already on this channel, but forcing fresh data anyway');
+        }
+
         this.currentChannelId = channelId;
         this.currentChannelType = channelType;
-        
-        this.updateActiveChannel(channelId);
-        this.showSection(channelType, channelId);
-        this.updateURL(channelId, channelType);
-        this.updateMetaTags(channelId, channelType);
-        this.updateChannelHeader(channelId, channelType);
-        
-        if (channelType === 'text') {
-            await this.initializeTextChannel(channelId, true);
-        } else if (channelType === 'voice') {
-            await this.initializeVoiceChannel(channelId, true);
+
+        try {
+            if (window.chatSection) {
+                console.log('🎯 [CHANNEL-SWITCH] Switching chat section to channel:', channelId);
+                await window.chatSection.switchToChannel(channelId, channelType, true);
+            }
+
+            if (window.globalChatSection && window.globalChatSection !== window.chatSection) {
+                console.log('🌐 [CHANNEL-SWITCH] Switching global chat section to channel:', channelId);
+                await window.globalChatSection.switchToChannel(channelId, channelType, true);
+            }
+
+            this.updateActiveChannel(channelId);
+            this.updateURL(channelId);
+
+            console.log('✅ [CHANNEL-SWITCH] Channel switch completed successfully');
+
+        } catch (error) {
+            console.error('❌ [CHANNEL-SWITCH] Error during channel switch:', error);
         }
-        
-        this.isLoading = false;
     }
     
     updateActiveChannel(channelId) {

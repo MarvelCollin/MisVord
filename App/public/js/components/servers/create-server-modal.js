@@ -476,7 +476,7 @@ function createServerItem(server) {
     serverItem.className = 'tooltip-wrapper mb-2';
 
     const serverContent = `
-        <div class="relative server-icon sidebar-server-icon" data-server-id="${server.id}">
+                            <div class="relative server-sidebar-icon" data-server-id="${server.id}">
             <a href="/server/${server.id}" class="block group">
                 <div class="w-12 h-12 overflow-hidden rounded-2xl bg-discord-primary transition-all duration-200 flex items-center justify-center">
                     ${server.image_url ?
@@ -508,7 +508,7 @@ function createServerItem(server) {
 }
 
 function setActiveServer(serverItem) {
-    document.querySelectorAll('.server-icon').forEach(item => {
+    document.querySelectorAll('.server-sidebar-icon').forEach(item => {
         item.classList.remove('active');
         const serverDiv = item.querySelector('.w-12.h-12');
         const indicator = item.querySelector('.w-1');
@@ -523,7 +523,7 @@ function setActiveServer(serverItem) {
         }
         });
     
-    const newServerIcon = serverItem.querySelector('.server-icon');
+    const newServerIcon = serverItem.querySelector('.server-sidebar-icon');
     if (newServerIcon) {
         newServerIcon.classList.add('active');
         

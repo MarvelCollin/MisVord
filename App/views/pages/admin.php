@@ -45,6 +45,7 @@ $page_js = 'components/admin/admin';
 $head_scripts = ['logger-init'];
 $data_page = 'admin';
 $body_attributes = 'data-page="admin"';
+$contentType = 'admin';
 
 echo '<link rel="stylesheet" href="' . asset('/css/admin.css') . '?v=' . time() . '">';
 echo '<link rel="stylesheet" href="' . asset('/css/chart.css') . '?v=' . time() . '">';

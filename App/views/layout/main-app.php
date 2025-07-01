@@ -69,9 +69,57 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     
     <?php if (!isset($data_page) || ($data_page !== 'auth' && $data_page !== 'settings-user')): ?>
         <script type="module" src="<?php echo js('components/servers/server-manager'); ?>"></script>
-
         <script type="module" src="<?php echo js('components/common/wifi-strength'); ?>"></script>
         <script type="module" src="<?php echo js('utils/voice-state-manager'); ?>"></script>
+        <script type="module" src="<?php echo js('utils/friends-manager'); ?>"></script>
+        <script type="module" src="<?php echo js('core/socket/global-socket-manager'); ?>"></script>
+        
+        <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const isLandingPage = window.location.pathname === '/';
+            const isAuthPage = window.location.pathname.includes('/login') || 
+                              window.location.pathname.includes('/register') ||
+                              window.location.pathname.includes('/authentication');
+            
+            if (!isLandingPage && !isAuthPage) {
+                console.log('🌐 [GLOBAL-PRESENCE] Initializing global presence system...');
+                
+                const waitForDependencies = async () => {
+                    let attempts = 0;
+                    const maxAttempts = 50;
+                    
+                    while (attempts < maxAttempts) {
+                        if (window.FriendsManager && window.globalSocketManager) {
+                            return true;
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attempts++;
+                    }
+                    return false;
+                };
+                
+                const dependenciesLoaded = await waitForDependencies();
+                
+                if (dependenciesLoaded) {
+                    console.log('✅ [GLOBAL-PRESENCE] Dependencies loaded, starting presence system');
+                    
+                    const friendsManager = window.FriendsManager.getInstance();
+                    
+                    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                        await friendsManager.getOnlineUsers(true);
+                    } else {
+                        window.addEventListener('globalSocketReady', async () => {
+                            await friendsManager.getOnlineUsers(true);
+                        });
+                    }
+                    
+                    console.log('✅ [GLOBAL-PRESENCE] Global presence system initialized');
+                } else {
+                    console.warn('⚠️ [GLOBAL-PRESENCE] Failed to load dependencies');
+                }
+            }
+        });
+        </script>
     <?php endif; ?>
     
     <script type="module" src="<?= asset('/js/utils/fallback-image.js') ?>"></script>

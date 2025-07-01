@@ -521,6 +521,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
     function setupFriendsManagerIntegration() {
+        if (window.globalPresenceManager) {
+            console.log('🌐 [HOME-FRIENDS] Using global presence manager');
+            if (window.FriendsManager) {
+                const friendsManager = window.FriendsManager.getInstance();
+                onlineUsers = friendsManager.cache.onlineUsers || {};
+                updateAllFriendsStatus();
+                renderOnlineTab();
+            }
+            return;
+        }
+        
         if (window.FriendsManager) {
             const friendsManager = window.FriendsManager.getInstance();
             friendsManager.subscribe((type, data) => {

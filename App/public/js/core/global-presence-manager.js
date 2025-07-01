@@ -1,0 +1,311 @@
+class GlobalPresenceManager {
+    constructor() {
+        this.friendsManager = null;
+        this.isInitialized = false;
+        this.activePagesWithActiveNow = ['home', 'server', 'explore', 'admin', 'nitro', 'accept-invite'];
+        this.currentPage = this.detectCurrentPage();
+        
+        console.log('🌐 [GLOBAL-PRESENCE] Initializing for page:', this.currentPage);
+    }
+
+    detectCurrentPage() {
+        const path = window.location.pathname;
+        
+        if (path === '/home' || path.startsWith('/home/')) return 'home';
+        if (path.startsWith('/server/')) return 'server';
+        if (path === '/explore-servers') return 'explore';
+        if (path === '/admin') return 'admin';
+        if (path === '/nitro') return 'nitro';
+        if (path.startsWith('/join/')) return 'accept-invite';
+        if (path.startsWith('/settings/')) return 'settings';
+        
+        return 'other';
+    }
+
+    shouldShowActiveNow() {
+        return this.activePagesWithActiveNow.includes(this.currentPage);
+    }
+
+    async initialize() {
+        if (this.isInitialized) return;
+        
+        console.log('🚀 [GLOBAL-PRESENCE] Starting global presence initialization...');
+        
+        await this.waitForDependencies();
+        await this.initializeFriendsManager();
+        await this.setupActiveNowSection();
+        
+        this.isInitialized = true;
+        console.log('✅ [GLOBAL-PRESENCE] Global presence system initialized');
+    }
+
+    async waitForDependencies() {
+        console.log('⏳ [GLOBAL-PRESENCE] Waiting for dependencies...');
+        
+        const maxWait = 10000;
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < maxWait) {
+            if (window.FriendsManager && window.globalSocketManager) {
+                console.log('✅ [GLOBAL-PRESENCE] All dependencies loaded');
+                return;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        console.warn('⚠️ [GLOBAL-PRESENCE] Timeout waiting for dependencies');
+    }
+
+    async initializeFriendsManager() {
+        if (!window.FriendsManager) {
+            console.error('❌ [GLOBAL-PRESENCE] FriendsManager not available');
+            return;
+        }
+        
+        console.log('🤝 [GLOBAL-PRESENCE] Initializing FriendsManager...');
+        
+        this.friendsManager = window.FriendsManager.getInstance();
+        
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            console.log('🔌 [GLOBAL-PRESENCE] Socket ready, loading initial data...');
+            await this.friendsManager.getOnlineUsers(true);
+        } else {
+            console.log('⏳ [GLOBAL-PRESENCE] Socket not ready, will load data when connected');
+            
+            window.addEventListener('globalSocketReady', async () => {
+                console.log('🔌 [GLOBAL-PRESENCE] Socket connected, loading data...');
+                await this.friendsManager.getOnlineUsers(true);
+            });
+        }
+    }
+
+    async setupActiveNowSection() {
+        if (!this.shouldShowActiveNow()) {
+            console.log('ℹ️ [GLOBAL-PRESENCE] Active Now section not needed for this page');
+            return;
+        }
+        
+        console.log('📋 [GLOBAL-PRESENCE] Setting up Active Now section...');
+        
+        await this.createActiveNowSection();
+        this.setupActiveNowLogic();
+    }
+
+    async createActiveNowSection() {
+        let targetContainer = this.findActiveNowContainer();
+        
+        if (!targetContainer) {
+            targetContainer = this.createActiveNowContainer();
+        }
+        
+        if (!targetContainer) {
+            console.warn('⚠️ [GLOBAL-PRESENCE] Could not create Active Now container');
+            return;
+        }
+        
+        const activeNowHTML = await this.generateActiveNowHTML();
+        targetContainer.innerHTML = activeNowHTML;
+        
+        console.log('✅ [GLOBAL-PRESENCE] Active Now section created');
+    }
+
+    findActiveNowContainer() {
+        return document.querySelector('.active-now-section') || 
+               document.querySelector('#active-now-section') ||
+               document.querySelector('[data-component="active-now"]');
+    }
+
+    createActiveNowContainer() {
+        const mainLayout = document.querySelector('.flex.h-screen') || 
+                          document.querySelector('.app-layout') ||
+                          document.querySelector('body > div:first-child');
+        
+        if (!mainLayout) return null;
+        
+        const container = document.createElement('div');
+        container.className = 'w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-full max-h-screen active-now-section';
+        container.id = 'global-active-now-section';
+        
+        mainLayout.appendChild(container);
+        return container;
+    }
+
+    async generateActiveNowHTML() {
+        try {
+            const friends = await this.friendsManager.getFriends();
+            
+            return `
+                <div class="h-12 border-b border-gray-800 flex items-center px-4">
+                    <h2 class="font-semibold text-white">Active Now</h2>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4" id="global-active-now-container">
+                    <div class="rounded-lg bg-discord-background p-6 text-center" id="global-no-active-friends">
+                        <h3 class="font-semibold text-white mb-2 text-lg">It's quiet for now...</h3>
+                        <p class="text-gray-400 text-sm">When friends start an activity, like playing a game or hanging out on voice, we'll show it here!</p>
+                    </div>
+                    <div id="global-active-friends-list" class="hidden"></div>
+                </div>
+            `;
+        } catch (error) {
+            console.error('❌ [GLOBAL-PRESENCE] Error generating Active Now HTML:', error);
+            return '<div class="p-4 text-gray-400">Error loading Active Now</div>';
+        }
+    }
+
+    setupActiveNowLogic() {
+        if (!this.friendsManager) return;
+        
+        console.log('⚙️ [GLOBAL-PRESENCE] Setting up Active Now logic...');
+        
+        this.friendsManager.subscribe((type, data) => {
+            console.log(`🔄 [GLOBAL-PRESENCE] Event: ${type}`, data);
+            
+            switch (type) {
+                case 'user-online':
+                case 'user-offline':
+                case 'user-presence-update':
+                case 'online-users-updated':
+                    this.updateActiveNow();
+                    break;
+            }
+        });
+        
+        this.updateActiveNow();
+    }
+
+    async updateActiveNow() {
+        const container = document.getElementById('global-active-friends-list');
+        const emptyState = document.getElementById('global-no-active-friends');
+        
+        if (!container || !emptyState) return;
+        
+        try {
+            const friends = await this.friendsManager.getFriends();
+            const onlineUsers = this.friendsManager.cache.onlineUsers || {};
+            
+            const activeFriends = friends.filter(friend => {
+                const userData = onlineUsers[friend.id];
+                return userData && userData.status !== 'offline';
+            });
+            
+            if (activeFriends.length > 0) {
+                this.renderActiveFriends(container, activeFriends, onlineUsers);
+                container.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+            } else {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('❌ [GLOBAL-PRESENCE] Error updating Active Now:', error);
+        }
+    }
+
+    renderActiveFriends(container, activeFriends, onlineUsers) {
+        activeFriends.sort((a, b) => {
+            const statusA = onlineUsers[a.id]?.status || 'offline';
+            const statusB = onlineUsers[b.id]?.status || 'offline';
+            
+            if (statusA === 'online' && statusB !== 'online') return -1;
+            if (statusB === 'online' && statusA !== 'online') return 1;
+            
+            return a.username.localeCompare(b.username);
+        });
+        
+        container.innerHTML = '';
+        
+        activeFriends.forEach(friend => {
+            const userData = onlineUsers[friend.id];
+            const status = userData?.status || 'online';
+            const statusClass = this.getStatusClass(status);
+            const activityText = this.getActivityText(userData?.activity_details);
+            const activityIcon = this.getActivityIcon(userData?.activity_details);
+            
+            const friendEl = document.createElement('div');
+            friendEl.className = 'flex items-center mb-4 p-3 bg-discord-background rounded-md hover:bg-discord-darker cursor-pointer transition-all duration-200';
+            friendEl.innerHTML = `
+                <div class="relative mr-3">
+                    <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                         alt="${friend.username}" 
+                         class="w-10 h-10 rounded-full user-avatar">
+                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300"></div>
+                </div>
+                <div class="flex-1">
+                    <div class="font-semibold text-white">${friend.username}</div>
+                    <div class="text-xs text-gray-400 transition-all duration-200 flex items-center">
+                        <i class="${activityIcon} mr-1"></i>
+                        ${activityText}
+                    </div>
+                </div>
+            `;
+            
+            friendEl.addEventListener('click', () => {
+                if (window.userDetailModal) {
+                    window.userDetailModal.show({ userId: friend.id });
+                }
+            });
+            
+            container.appendChild(friendEl);
+        });
+    }
+
+    getStatusClass(status) {
+        switch (status) {
+            case 'online': return 'bg-discord-green';
+            case 'idle': return 'bg-yellow-500';
+            case 'dnd': return 'bg-red-500';
+            case 'offline':
+            default: return 'bg-gray-500';
+        }
+    }
+
+    getActivityText(activityDetails) {
+        if (!activityDetails || !activityDetails.type) {
+            return 'Online';
+        }
+        
+        switch (activityDetails.type) {
+            case 'playing Tic Tac Toe': return 'Playing Tic Tac Toe';
+            case 'In Voice Call': return 'In Voice Call';
+            case 'idle':
+            default: return 'Idle';
+        }
+    }
+
+    getActivityIcon(activityDetails) {
+        if (!activityDetails || !activityDetails.type) {
+            return 'fa-solid fa-circle';
+        }
+        
+        switch (activityDetails.type) {
+            case 'playing Tic Tac Toe': return 'fa-solid fa-gamepad';
+            case 'In Voice Call': return 'fa-solid fa-microphone';
+            case 'idle':
+            default: return 'fa-solid fa-moon';
+        }
+    }
+
+    static getInstance() {
+        if (!window.globalPresenceManager) {
+            window.globalPresenceManager = new GlobalPresenceManager();
+        }
+        return window.globalPresenceManager;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const isAuthPage = window.location.pathname.includes('/login') || 
+                      window.location.pathname.includes('/register') ||
+                      window.location.pathname === '/';
+    
+    if (!isAuthPage) {
+        console.log('🌐 [GLOBAL-PRESENCE] Starting global presence system...');
+        const presenceManager = GlobalPresenceManager.getInstance();
+        await presenceManager.initialize();
+    } else {
+        console.log('🚫 [GLOBAL-PRESENCE] Skipping presence system on auth page');
+    }
+});
+
+window.GlobalPresenceManager = GlobalPresenceManager; 

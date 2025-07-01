@@ -135,6 +135,118 @@ if (!function_exists('renderMessage')) {
     padding: 16px 0;
 }
 
+.load-more-messages {
+    background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+    box-shadow: 0 2px 8px rgba(88, 101, 242, 0.3);
+    transition: all 0.2s ease;
+}
+
+.load-more-messages:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+}
+
+.load-more-messages:active {
+    transform: translateY(0);
+}
+
+.message-slide-in {
+    animation: messageSlideIn 0.3s ease-out;
+}
+
+.message-appear {
+    animation: messageAppear 0.4s ease-out;
+}
+
+@keyframes messageSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes messageAppear {
+    0% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes skeletonShimmer {
+    0% {
+        background-position: -200px 0;
+    }
+    100% {
+        background-position: calc(200px + 100%) 0;
+    }
+}
+
+.skeleton-animate {
+    background: linear-gradient(90deg, #3c3f45 25%, #424549 50%, #3c3f45 75%);
+    background-size: 200px 100%;
+    animation: skeletonShimmer 1.5s infinite linear;
+}
+
+.chat-skeleton-container {
+    position: relative;
+    z-index: 10;
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(49, 51, 56, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    backdrop-filter: blur(2px);
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(88, 101, 242, 0.3);
+    border-top: 3px solid #5865f2;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#chat-messages::-webkit-scrollbar {
+    width: 14px;
+}
+
+#chat-messages::-webkit-scrollbar-track {
+    background: #2b2d31;
+    border-radius: 8px;
+}
+
+#chat-messages::-webkit-scrollbar-thumb {
+    background: #1e1f22;
+    border-radius: 8px;
+    border: 2px solid #2b2d31;
+}
+
+#chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #3c3f45;
+}
+
 /* Bubble Chat Styles - Always Available */
 .bubble-message-group {
     position: relative;

@@ -25,32 +25,14 @@ if (file_exists($tooltipPath)) {
 
 <link rel="stylesheet" href="/public/css/server-sidebar.css">
 
-<?php if ($isExplorePage): ?>
-    <style>
-        .sidebar-server-icon {
-    display: block !important;
-    position: relative !important;
-    margin-bottom: 8px !important;
-}
 
-.sidebar-server-icon a div {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-.sidebar-server-icon .absolute.left-0 {
-    position: absolute !important;
-}
-</style>
-<?php endif; ?>
 
 <div class="flex h-full">
     <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 overflow-visible transition-all duration-200">
-        <div id="server-list" class="server-list flex-1 overflow-y-auto">
-            <div class="server-icon mb-2 <?php echo $isHomePage ? 'active' : ''; ?>">
-                <a href="/home" class="server-button flex items-center justify-center">
-                    <div class="server-button <?php echo $isHomePage ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark hover:bg-discord-primary hover:rounded-2xl'; ?> flex items-center justify-center transition-all duration-200">
+        <div id="server-list" class="server-sidebar-list flex-1 overflow-y-auto">
+            <div class="server-sidebar-icon mb-2 <?php echo $isHomePage ? 'active' : ''; ?>">
+                <a href="/home" class="server-sidebar-button flex items-center justify-center">
+                    <div class="server-sidebar-button <?php echo $isHomePage ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark hover:bg-discord-primary hover:rounded-2xl'; ?> flex items-center justify-center transition-all duration-200">
                         <img src="<?php echo asset('/common/main-logo.png'); ?>" alt="Home" class="discord-home-logo">
                     </div>
                 </a>
@@ -60,7 +42,7 @@ if (file_exists($tooltipPath)) {
             </div>
             
             <?php if (!empty($servers)): ?>
-            <div class="server-divider"></div>
+            <div class="server-sidebar-divider"></div>
             <?php endif; ?>
             
             <?php if (!empty($servers)): ?>
@@ -73,9 +55,9 @@ if (file_exists($tooltipPath)) {
                     $serverId = $server['id'] ?? $server->id;
                     ?>
                     
-                    <div class="server-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>">
+                    <div class="server-sidebar-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>">
                         <a href="/server/<?php echo $serverId; ?>" class="block" data-server-id="<?php echo $serverId; ?>">
-                            <div class="server-button <?php echo $isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark'; ?> flex items-center justify-center transition-all duration-200">
+                            <div class="server-sidebar-button <?php echo $isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark'; ?> flex items-center justify-center transition-all duration-200">
                                 <?php if (!empty($serverImage)): ?>
                                     <img src="<?php echo htmlspecialchars($serverImage); ?>" alt="<?php echo htmlspecialchars($serverName); ?>" class="w-full h-full object-cover">
                                 <?php else: ?>
@@ -90,7 +72,7 @@ if (file_exists($tooltipPath)) {
                 <?php endforeach; ?>
             <?php endif; ?>
             
-            <div class="server-icon mt-2">
+            <div class="server-sidebar-icon mt-2">
                 <button data-action="create-server" class="discord-add-server-button">
                     <i class="fas fa-plus discord-add-server-icon"></i>
                 </button>
@@ -99,7 +81,7 @@ if (file_exists($tooltipPath)) {
                 </div>
             </div>
             
-            <div class="server-icon mt-2 <?php echo $isExplorePage ? 'active' : ''; ?>">
+            <div class="server-sidebar-icon mt-2 <?php echo $isExplorePage ? 'active' : ''; ?>">
                 <a href="/explore-servers" class="block">
                     <div class="discord-explore-server-button <?php echo $isExplorePage ? 'active' : ''; ?>">
                         <i class="fas fa-compass discord-explore-server-icon"></i>
@@ -127,7 +109,7 @@ if (file_exists($tooltipPath)) {
 document.addEventListener('DOMContentLoaded', function() {
     
     
-    document.querySelectorAll('.server-icon').forEach(icon => {
+    document.querySelectorAll('.server-sidebar-icon').forEach(icon => {
         const tooltip = icon.querySelector('.tooltip');
         if (tooltip) {
             icon.addEventListener('mouseenter', () => {

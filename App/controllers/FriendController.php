@@ -351,6 +351,9 @@ class FriendController extends BaseController
             $userId = $this->getCurrentUserId();
             $input = $this->getInput();
             
+            error_log("Debug: Current user ID: " . $userId);
+            error_log("Debug: Friend request input: " . json_encode($input));
+            
             if (!isset($input['user_id']) && !isset($input['username'])) {
                 return $this->error('Either user_id or username is required', 400);
             }
@@ -374,17 +377,25 @@ class FriendController extends BaseController
                 $username = $input['username'];
                 
                 error_log("Debug: Searching for user: " . $username);
+                error_log("Debug: Input username length: " . strlen($username));
+                error_log("Debug: Input contains #: " . (strpos($username, '#') !== false ? 'yes' : 'no'));
                 
                 if (strpos($username, '#') !== false) {
                     $parts = explode('#', $username, 2);
                     if (count($parts) === 2) {
-                        $targetUser = $this->userRepository->findByUsernameAndDiscriminator(trim($parts[0]), trim($parts[1]));
+                        $searchUsername = trim($parts[0]);
+                        $searchDiscriminator = trim($parts[1]);
+                        error_log("Debug: Searching by username and discriminator - '{$searchUsername}' + '{$searchDiscriminator}'");
+                        $targetUser = $this->userRepository->findByUsernameAndDiscriminator($searchUsername, $searchDiscriminator);
                     } else {
                         return $this->error('Invalid username format', 400);
                     }
                 } else {
+                    error_log("Debug: Searching by username only - '{$username}'");
                     $targetUser = $this->userRepository->findByUsername($username);
                 }
+                
+                error_log("Debug: User search result: " . ($targetUser ? 'FOUND (ID: ' . $targetUser->id . ')' : 'NOT FOUND'));
                 
                 if (!$targetUser) {
                     return $this->error('User not found', 404);
