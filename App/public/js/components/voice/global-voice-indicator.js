@@ -423,9 +423,16 @@ class GlobalVoiceIndicator {
         if (micBtn) {
             this.handleMicClick = () => {
                 if (window.localStorageManager) {
-                    window.localStorageManager.toggleVoiceMute();
+                    const wasToggled = window.localStorageManager.toggleVoiceMute();
+                    
+                    if (window.MusicLoaderStatic) {
+                        if (wasToggled) {
+                            window.MusicLoaderStatic.playDiscordMuteSound();
+                        } else {
+                            window.MusicLoaderStatic.playDiscordUnmuteSound();
+                        }
+                    }
                 } else if (window.videoSDKManager && window.videoSDKManager.isReady()) {
-                    const currentState = window.videoSDKManager.getMicState();
                     const newState = window.videoSDKManager.toggleMic();
                     
                     if (window.MusicLoaderStatic) {

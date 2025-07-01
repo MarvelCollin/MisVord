@@ -158,6 +158,16 @@ function performServerLayoutUpdate(response, serverId, channelId, currentChannel
     
     cleanupForServerSwitch();
     initializeServerSystems();
+    
+    setTimeout(() => {
+        console.log('[Server Layout] 📄 Dispatching layout change events');
+        window.dispatchEvent(new CustomEvent('layoutChanged', { 
+            detail: { type: 'server', serverId, channelId } 
+        }));
+        window.dispatchEvent(new CustomEvent('pageLoaded', { 
+            detail: { type: 'server', serverId, channelId } 
+        }));
+    }, 300);
 }
 
 function initializeVoiceSystems() {
@@ -167,10 +177,6 @@ function initializeVoiceSystems() {
             if (window.voiceManager.preloadResources) {
                 window.voiceManager.preloadResources();
             }
-        }
-    } else {
-        if (typeof window.voiceManager.resetState === 'function') {
-            window.voiceManager.resetState();
         }
     }
     
@@ -182,6 +188,10 @@ function initializeVoiceSystems() {
         if (window.globalVoiceIndicator.ensureIndicatorVisible) {
             window.globalVoiceIndicator.ensureIndicatorVisible();
         }
+    }
+    
+    if (window.userProfileVoiceControls && !window.userProfileVoiceControls.initialized) {
+        window.userProfileVoiceControls.init();
     }
     
     setTimeout(() => {

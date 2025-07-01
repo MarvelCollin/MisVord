@@ -597,6 +597,16 @@ function performHomeLayoutUpdate(response, pageType, currentChannelId) {
     });
     document.dispatchEvent(event);
     console.log('[Home AJAX] HomePageChanged event dispatched');
+    
+    setTimeout(() => {
+        console.log('[Home Layout] 📄 Dispatching layout change events');
+        window.dispatchEvent(new CustomEvent('layoutChanged', { 
+            detail: { type: 'home', pageType } 
+        }));
+        window.dispatchEvent(new CustomEvent('pageLoaded', { 
+            detail: { type: 'home', pageType } 
+        }));
+    }, 300);
 }
 
 window.loadHomePage = loadHomePage;

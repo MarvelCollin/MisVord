@@ -136,12 +136,14 @@ function setupVoiceEventListeners() {
         document.getElementById('voice-call-container')?.classList.add('hidden');
     };
     
-    window.removeEventListener('voiceConnect', voiceConnectHandler);
-    window.removeEventListener('voiceDisconnect', voiceDisconnectHandler);
-    window.addEventListener('voiceConnect', voiceConnectHandler);
-    window.addEventListener('voiceDisconnect', voiceDisconnectHandler);
-    
-    console.log('[Server Init] ✅ Voice event listeners attached');
+    if (!window.serverVoiceEventListeners) {
+        window.addEventListener('voiceConnect', voiceConnectHandler);
+        window.addEventListener('voiceDisconnect', voiceDisconnectHandler);
+        window.serverVoiceEventListeners = true;
+        console.log('[Server Init] ✅ Voice event listeners attached');
+    } else {
+        console.log('[Server Init] ✅ Voice event listeners already attached');
+    }
 }
 
 function setupVoiceManager() {
@@ -177,8 +179,25 @@ async function initializeInlineFeatures() {
     console.log('[Server Init] Initializing additional inline features');
     
     dispatchCustomEvents();
+    initializeUserProfileComponents();
     
     console.log('[Server Init] ✅ Inline features initialized');
+}
+
+function initializeUserProfileComponents() {
+    console.log('[Server Init] 🎯 Initializing user profile components...');
+    
+    if (typeof window.initializeUserProfileVoiceControls === 'function') {
+        try {
+            window.initializeUserProfileVoiceControls();
+            console.log('[Server Init] ✅ User profile voice controls initialized');
+        } catch (error) {
+            console.error('[Server Init] ❌ Failed to initialize user profile voice controls:', error);
+        }
+    } else {
+        console.error('[Server Init] ❌ CRITICAL: initializeUserProfileVoiceControls function not available');
+        console.error('[Server Init] Available window functions:', Object.keys(window).filter(key => key.includes('Profile') || key.includes('Voice')));
+    }
 }
 
 function dispatchCustomEvents() {

@@ -120,6 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Voice components (consolidated and deduplication-free) -->
 <script src="<?php echo asset('/js/components/voice/voice-events.js'); ?>"></script>
 <script src="<?php echo asset('/js/utils/voice-utils.js'); ?>"></script>
+<script type="module" src="<?php echo asset('/js/utils/music-loader-static.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-dependency-loader.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/utils/voice-state-manager.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/videosdk/videosdk.js'); ?>"></script>

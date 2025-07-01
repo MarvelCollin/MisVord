@@ -1,5 +1,4 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
-import { playDiscordoSound, playCallSound } from '../../utils/music-loader-static.js';
 import { loadServerPage } from '../../utils/load-server-page.js';
 
 let isRendering = false;
@@ -201,7 +200,9 @@ function handleEasterEggLogic() {
     
     if (homeIconClickCount >= CLICKS_NEEDED) {
         homeIconClickCount = 0;
-        playDiscordoSound();
+        if (window.MusicLoaderStatic?.playDiscordoSound) {
+            window.MusicLoaderStatic.playDiscordoSound();
+        }
     }
 }
 

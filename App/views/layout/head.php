@@ -21,11 +21,13 @@ $include_socket_io = true;
 <?php if (isset($_SESSION['user_id'])): ?>
 <meta name="user-id" content="<?php echo htmlspecialchars($_SESSION['user_id']); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>">
+<meta name="user-avatar" content="<?php echo htmlspecialchars($_SESSION['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'); ?>">
 <meta name="user-authenticated" content="true">
 <script>
 // Global username initialization - available on all pages
 window.currentUserId = <?php echo json_encode($_SESSION['user_id']); ?>;
 window.currentUsername = <?php echo json_encode($_SESSION['username'] ?? ''); ?>;
+window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'); ?>;
 </script>
 <?php else: ?>
 <meta name="user-authenticated" content="false">

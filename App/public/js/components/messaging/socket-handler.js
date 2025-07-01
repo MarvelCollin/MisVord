@@ -329,7 +329,6 @@ class SocketHandler {
                 // Remove temporary styling
                 tempElement.classList.remove('temporary-message');
                 tempElement.classList.remove('bubble-message-temporary');
-                tempElement.style.opacity = '1';
                 
                 // Remove any error indicators
                 tempElement.classList.remove('message-error');
@@ -400,6 +399,10 @@ class SocketHandler {
             } else {
                 console.log(`⚠️ Temporary message element not found for ID: ${data.temp_message_id}`);
             }
+
+            // Update any bot reply messages that reference this temp ID
+            this.updateBotReplyReferences(data.temp_message_id, data.real_message_id);
+            
         } catch (error) {
             console.error('❌ Error handling message ID update:', error);
         }
@@ -808,6 +811,46 @@ class SocketHandler {
         } catch (error) {
             console.error('❌ [SOCKET-HANDLER] Error checking current chat:', error);
             return false;
+        }
+    }
+
+    updateBotReplyReferences(tempId, permanentId) {
+        try {
+            // Find all bot messages that have reply containers referencing the temp ID
+            const botReplyElements = document.querySelectorAll(`[data-reply-message-id="${tempId}"]`);
+            
+            botReplyElements.forEach(replyContainer => {
+                console.log(`🤖 [SOCKET-HANDLER] Updating bot reply reference from ${tempId} to ${permanentId}`);
+                
+                // Update the data attribute
+                replyContainer.dataset.replyMessageId = permanentId;
+                
+                // Update the onclick handler if it exists
+                const onclickValue = replyContainer.getAttribute('onclick');
+                if (onclickValue && onclickValue.includes(tempId)) {
+                    const updatedOnclick = onclickValue.replace(tempId, permanentId);
+                    replyContainer.setAttribute('onclick', updatedOnclick);
+                }
+                
+                console.log(`✅ [SOCKET-HANDLER] Updated bot reply reference to permanent ID: ${permanentId}`);
+            });
+            
+            // Also update any reply containers that might have the temp ID in their data
+            const allReplyContainers = document.querySelectorAll('.bubble-reply-container');
+            allReplyContainers.forEach(container => {
+                if (container.dataset.replyMessageId === tempId) {
+                    container.dataset.replyMessageId = permanentId;
+                    
+                    const onclickValue = container.getAttribute('onclick');
+                    if (onclickValue && onclickValue.includes(tempId)) {
+                        const updatedOnclick = onclickValue.replace(tempId, permanentId);
+                        container.setAttribute('onclick', updatedOnclick);
+                    }
+                }
+            });
+            
+        } catch (error) {
+            console.error('❌ [SOCKET-HANDLER] Error updating bot reply references:', error);
         }
     }
 }

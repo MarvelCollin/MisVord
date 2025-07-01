@@ -1597,23 +1597,7 @@ class ChatSection {
     
     markMessageAsTempEdit(messageElement, tempEditId) {
         messageElement.classList.add('message-temp-edit');
-        messageElement.style.opacity = '0.8';
         messageElement.dataset.tempEditId = tempEditId;
-        
-        // Add temp edit indicator
-        if (!messageElement.querySelector('.temp-edit-indicator')) {
-            const tempIndicator = document.createElement('span');
-            tempIndicator.className = 'temp-edit-indicator text-xs text-orange-400 ml-2';
-            tempIndicator.innerHTML = '<i class="fas fa-clock"></i>';
-            tempIndicator.title = 'Edit is being saved...';
-            
-            const messageHeader = messageElement.querySelector('.message-header, .bubble-header');
-            if (messageHeader) {
-                messageHeader.appendChild(tempIndicator);
-            }
-        }
-        
-        console.log('⏳ [CHAT-SECTION] Message marked as temp edit:', tempEditId);
     }
     
     markEditAsConfirmed(messageElement) {

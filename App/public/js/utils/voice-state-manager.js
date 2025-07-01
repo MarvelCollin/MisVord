@@ -356,10 +356,14 @@ class UnifiedVoiceStateManager {
     }
 }
 
-const unifiedVoiceStateManager = new UnifiedVoiceStateManager();
-
-window.voiceStateManager = unifiedVoiceStateManager;
-window.unifiedVoiceStateManager = unifiedVoiceStateManager;
+if (!window.unifiedVoiceStateManager) {
+    const unifiedVoiceStateManager = new UnifiedVoiceStateManager();
+    window.voiceStateManager = unifiedVoiceStateManager;
+    window.unifiedVoiceStateManager = unifiedVoiceStateManager;
+    console.log('✅ [VOICE-STATE] Unified voice state manager initialized');
+} else {
+    console.log('✅ [VOICE-STATE] Unified voice state manager already exists');
+}
 
 export { UnifiedVoiceStateManager };
 export default unifiedVoiceStateManager;

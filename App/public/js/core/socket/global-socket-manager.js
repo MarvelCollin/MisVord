@@ -1,10 +1,18 @@
 class GlobalSocketManager {
     constructor() {
         this.io = null;
-        this.connected = false;
-        this.authenticated = false;
+        this.isConnected = false;
+        this.isAuthenticated = false;
+        this.isConnecting = false;
+        this.connectionAttempts = 0;
+        this.maxConnectionAttempts = 5;
+        this.connectionTimeout = null;
         this.userId = null;
         this.username = null;
+        this.avatarUrl = null;
+        this.eventListeners = new Map();
+        this.joinedRooms = new Set();
+        this.pendingRoomJoins = new Set();
         this.socketHost = null;
         this.socketPort = null;
         this.socketSecure = false;
@@ -14,12 +22,60 @@ class GlobalSocketManager {
         this.reconnectDelay = 3000;
         this.joinedChannels = new Set();
         this.joinedDMRooms = new Set();
-        this.joinedRooms = new Set();
         this.socketListenersSetup = false;
     }
     
+    async initialize() {
+        try {
+            this.userId = this.getUserId();
+            this.username = this.getUsername();
+            this.avatarUrl = this.getAvatarUrl();
+            
+            if (!this.userId || !this.username) {
+                throw new Error('User not authenticated - missing user data');
+            }
+            
+            this.log('Initializing socket connection for user:', {
+                userId: this.userId,
+                username: this.username,
+                avatarUrl: this.avatarUrl
+            });
+            
+            await this.connect();
+            
+            if (this.io) {
+                this.setupEventListeners();
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            this.error('Failed to initialize socket connection:', error);
+            return false;
+        }
+    }
+    
+    getAvatarUrl() {
+        return document.querySelector('meta[name="user-avatar"]')?.content || 
+               sessionStorage.getItem('user_avatar_url') ||
+               window.currentUserAvatar ||
+               '/public/assets/common/default-profile-picture.png';
+    }
+    
+    getUserId() {
+        return document.querySelector('meta[name="user-id"]')?.content ||
+               document.body?.getAttribute('data-user-id') ||
+               window.currentUserId;
+    }
+    
+    getUsername() {
+        return document.querySelector('meta[name="username"]')?.content ||
+               document.body?.getAttribute('data-username') ||
+               window.currentUsername;
+    }
+    
     init(userData = null) {
-        if (window.__SOCKET_INITIALISED__ && this.connected) {
+        if (window.__SOCKET_INITIALISED__ && this.isConnected) {
             this.log('Socket already initialized and connected');
             return false;
         }
@@ -55,7 +111,7 @@ class GlobalSocketManager {
                 this.log('Socket initialization completed successfully');
                 
                 setTimeout(() => {
-                    if (!this.connected) {
+                    if (!this.isConnected) {
                         this.log('Connection taking longer than expected, but initialization marked complete');
                     }
                 }, 2000);
@@ -143,7 +199,7 @@ class GlobalSocketManager {
     }
     
     connect() {
-        if (this.io && this.connected) {
+        if (this.io && this.isConnected) {
             this.log('Socket already connected');
             return true;
         }
@@ -178,7 +234,7 @@ class GlobalSocketManager {
         if (!this.io) return;
         
         this.io.on('connect', () => {
-            this.connected = true;
+            this.isConnected = true;
             this.reconnectAttempts = 0;
             this.debug(`Socket connected with ID: ${this.io.id}`, { 
                 userId: this.userId,
@@ -204,7 +260,7 @@ class GlobalSocketManager {
         });
         
         this.io.on('auth-success', (data) => {
-            this.authenticated = true;
+            this.isAuthenticated = true;
             console.log('🔐 [SOCKET] Authentication successful!', {
                 userId: this.userId,
                 username: this.username,
@@ -247,7 +303,7 @@ class GlobalSocketManager {
         });
         
         this.io.on('auth-error', (data) => {
-            this.authenticated = false;
+            this.isAuthenticated = false;
             this.error('Socket authentication failed:', data);
             this.debug('Authentication error details', {
                 userId: this.userId,
@@ -281,11 +337,11 @@ class GlobalSocketManager {
         });
         
         this.io.on('disconnect', () => {
-            this.connected = false;
-            this.authenticated = false;
+            this.isConnected = false;
+            this.isAuthenticated = false;
             this.debug('Socket disconnected', {
                 previousSocketId: this.io.id,
-                wasAuthenticated: this.authenticated,
+                wasAuthenticated: this.isAuthenticated,
                 joinedRooms: Array.from(this.joinedRooms)
             });
             
@@ -374,24 +430,20 @@ class GlobalSocketManager {
             return false;
         }
         
-        // Get session ID from PHP session cookie
         const sessionId = this.getSessionId();
         
-        // Get avatar URL from meta tag or session storage
-        const avatarUrl = document.querySelector('meta[name="user-avatar"]')?.content || 
-                         sessionStorage.getItem('user_avatar_url') ||
-                         '/public/assets/common/default-profile-picture.png';
+        this.avatarUrl = this.getAvatarUrl();
         
         const authData = {
             user_id: this.userId,
             username: this.username,
             session_id: sessionId,
-            avatar_url: avatarUrl
+            avatar_url: this.avatarUrl
         };
         
         this.log('Sending authentication to socket server:', {
             ...authData,
-            session_id: sessionId ? '[PRESENT]' : '[MISSING]' // Don't log actual session ID for security
+            session_id: sessionId ? '[PRESENT]' : '[MISSING]'
         });
         
         this.io.emit('authenticate', authData);
@@ -419,7 +471,7 @@ class GlobalSocketManager {
     }
     
     joinChannel(channelId) {
-        if (!this.io || !this.connected || !this.authenticated) {
+        if (!this.io || !this.isConnected || !this.isAuthenticated) {
             this.error('Cannot join channel - socket not ready');
             return;
         }
@@ -442,7 +494,7 @@ class GlobalSocketManager {
     }
     
     leaveChannel(channelId) {
-        if (!this.connected || !this.io || !this.authenticated) return false;
+        if (!this.isConnected || !this.io || !this.isAuthenticated) return false;
         
         this.log(`Leaving channel: ${channelId}`);
         this.io.emit('leave-channel', { channel_id: channelId });
@@ -451,7 +503,7 @@ class GlobalSocketManager {
     }
     
     joinDMRoom(roomId) {
-        if (!this.io || !this.connected || !this.authenticated) {
+        if (!this.io || !this.isConnected || !this.isAuthenticated) {
             this.error('Cannot join DM room - socket not ready');
             return;
         }
@@ -646,7 +698,7 @@ class GlobalSocketManager {
     }
     
     updatePresence(status, activityDetails = null) {
-        if (!this.connected || !this.io) return false;
+        if (!this.isConnected || !this.io) return false;
         
         this.io.emit('update-presence', { 
             status, 
@@ -662,8 +714,8 @@ class GlobalSocketManager {
             this.io = null;
         }
         
-        this.connected = false;
-        this.authenticated = false;
+        this.isConnected = false;
+        this.isAuthenticated = false;
         this.joinedChannels.clear();
         this.joinedDMRooms.clear();
         this.joinedRooms.clear();
@@ -671,11 +723,11 @@ class GlobalSocketManager {
     }
     
     isReady() {
-        return this.connected && this.authenticated && this.io !== null;
+        return this.isConnected && this.isAuthenticated && this.io !== null;
     }
     
     setupChannelListeners(channelId) {
-        if (!this.connected || !this.io) {
+        if (!this.isConnected || !this.io) {
             console.warn('Socket not connected, cannot setup channel listeners');
             return false;
         }
@@ -735,8 +787,8 @@ class GlobalSocketManager {
     
     getStatus() {
         return {
-            connected: this.connected,
-            authenticated: this.authenticated,
+            connected: this.isConnected,
+            authenticated: this.isAuthenticated,
             socketId: this.io ? this.io.id : null,
             userId: this.userId,
             username: this.username,
@@ -950,7 +1002,7 @@ const globalSocketManager = new GlobalSocketManager();
 
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
-        if (globalSocketManager.connected || window.__SOCKET_INITIALISED__) {
+        if (globalSocketManager.isConnected || window.__SOCKET_INITIALISED__) {
             console.log('🔌 Socket already initialized, skipping DOMContentLoaded init');
             return;
         }

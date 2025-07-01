@@ -40,7 +40,7 @@ export function playDiscordUnmuteSound() {
         .catch(err => console.error('Error playing Discord Unmute sound:', err));
 }
 
-window.MusicLoaderStatic = {
+const MusicLoaderStatic = {
     playDiscordoSound,
     playCallSound,
     playJoinVoiceSound,
@@ -48,3 +48,7 @@ window.MusicLoaderStatic = {
     playDiscordMuteSound,
     playDiscordUnmuteSound
 };
+
+window.MusicLoaderStatic = MusicLoaderStatic;
+
+export default MusicLoaderStatic;

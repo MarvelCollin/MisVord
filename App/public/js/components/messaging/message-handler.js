@@ -638,7 +638,6 @@ class MessageHandler {
         if (!messageElement.querySelector('.temp-indicator')) {
             const tempIndicator = document.createElement('span');
             tempIndicator.className = 'temp-indicator text-xs text-gray-400 ml-2';
-            tempIndicator.innerHTML = '<i class="fas fa-clock"></i>';
             tempIndicator.title = 'Message is being sent...';
             
             const messageHeader = messageElement.querySelector('.bubble-header') || 

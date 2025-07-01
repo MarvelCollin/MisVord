@@ -921,29 +921,6 @@ button[type="submit"]:hover,
   position: relative;
 }
 
-.message-temp-edit::before {
-  content: '';
-  position: absolute;
-  left: -4px;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: linear-gradient(45deg, #f0b132, #f39c12);
-  border-radius: 2px;
-  animation: temp-edit-pulse 1.5s ease-in-out infinite;
-}
-
-.temp-edit-indicator {
-  animation: temp-edit-spin 1s linear infinite;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.temp-edit-indicator i {
-  font-size: 10px;
-}
-
 .edit-error-indicator {
   color: #ed4245;
   cursor: help;
@@ -972,26 +949,6 @@ button[type="submit"]:hover,
   animation: error-blink 1s ease-in-out infinite;
 }
 
-@keyframes temp-edit-pulse {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 rgba(240, 177, 50, 0.4);
-  }
-  50% {
-    opacity: 0.8;
-    box-shadow: 0 0 0 4px rgba(240, 177, 50, 0.1);
-  }
-}
-
-@keyframes temp-edit-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @keyframes error-shake {
   0%, 100% {
     transform: translateX(0);
@@ -1013,7 +970,6 @@ button[type="submit"]:hover,
   }
 }
 
-/* Edit confirmation styling */
 .message-edit-confirmed {
   animation: edit-success-flash 0.5s ease-in-out;
 }

@@ -155,19 +155,7 @@
 
 /* Bubble temporary message styling */
 .bubble-message-temporary {
-    opacity: 0.7 !important;
     position: relative;
-}
-
-.bubble-message-temporary::after {
-    content: '⏳';
-    position: absolute;
-    right: 0.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.75rem;
-    opacity: 0.5;
-    animation: spin 1s linear infinite;
 }
 
 /* Bubble highlight effect */
@@ -441,19 +429,7 @@
 
 /* Temporary message styling */
 .temp-message {
-    opacity: 0.7 !important;
     position: relative;
-}
-
-.temp-message::after {
-    content: '⏳';
-    position: absolute;
-    right: 0.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.75rem;
-    opacity: 0.5;
-    animation: spin 1s linear infinite;
 }
 
 /* Enhanced message bubble hover effects */

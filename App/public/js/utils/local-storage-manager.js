@@ -277,14 +277,6 @@ class LocalStorageManager {
                 isMuted: !newState
             });
             
-            if (window.MusicLoaderStatic) {
-                if (newState) {
-                    window.MusicLoaderStatic.playDiscordUnmuteSound();
-                } else {
-                    window.MusicLoaderStatic.playDiscordMuteSound();
-                }
-            }
-            
             return !newState;
         } else {
             const currentState = this.getUnifiedVoiceState();
@@ -294,14 +286,6 @@ class LocalStorageManager {
                 ...currentState,
                 isMuted: newMutedState
             });
-            
-            if (window.MusicLoaderStatic) {
-                if (newMutedState) {
-                    window.MusicLoaderStatic.playDiscordMuteSound();
-                } else {
-                    window.MusicLoaderStatic.playDiscordUnmuteSound();
-                }
-            }
             
             return newMutedState;
         }
