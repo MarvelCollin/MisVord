@@ -1513,22 +1513,39 @@ class ChatController extends BaseController
             error_log("Socket message save result: " . json_encode($result));
 
             if ($result['success']) {
-                $message = $result['data']['message'];
+                // Handle nested data structure from internalSuccess response
+                $messageData = null;
+                if (isset($result['data']['data']['message'])) {
+                    $messageData = $result['data']['data']['message'];
+                } else if (isset($result['data']['message'])) {
+                    $messageData = $result['data']['message'];
+                }
+                
+                if (!$messageData) {
+                    error_log("No message data found in result: " . json_encode($result));
+                    return $this->serverError('Message data not found in response');
+                }
+                
                 return $this->success([
-                    'message_id' => $message['id'],
-                    'user_id' => $message['user_id'],
-                    'username' => $message['username'],
-                    'avatar_url' => $socketAvatarUrl ?? $message['avatar_url'] ?? '/public/assets/common/default-profile-picture.png',
-                    'target_type' => $input['target_type'],
-                    'target_id' => $input['target_id'],
-                    'content' => $message['content'],
-                    'message_type' => $message['message_type'],
-                    'attachments' => $message['attachments'],
-                    'mentions' => $message['mentions'],
-                    'reply_message_id' => $message['reply_message_id'],
-                    'reply_data' => $message['reply_data'],
-                    'sent_at' => $message['sent_at'],
-                    'timestamp' => $message['timestamp']
+                    'message_id' => $messageData['id'],
+                    'data' => [
+                        'message' => [
+                            'id' => $messageData['id'],
+                            'user_id' => $messageData['user_id'],
+                            'username' => $messageData['username'],
+                            'avatar_url' => $socketAvatarUrl ?? $messageData['avatar_url'] ?? '/public/assets/common/default-profile-picture.png',
+                            'target_type' => $input['target_type'],
+                            'target_id' => $input['target_id'],
+                            'content' => $messageData['content'],
+                            'message_type' => $messageData['message_type'],
+                            'attachments' => $messageData['attachments'] ?? [],
+                            'mentions' => $messageData['mentions'] ?? [],
+                            'reply_message_id' => $messageData['reply_message_id'] ?? null,
+                            'reply_data' => $messageData['reply_data'] ?? null,
+                            'sent_at' => $messageData['sent_at'],
+                            'timestamp' => $messageData['timestamp'] ?? time()
+                        ]
+                    ]
                 ], 'Message saved successfully');
             } else {
                 error_log("Failed to save socket message: " . json_encode($result));

@@ -630,24 +630,37 @@ class MessageHandler {
                 }
                 
                 const saveResult = await response.json();
-                console.log(`✅ [SAVE-AND-SEND] Message saved to database:`, JSON.stringify(saveResult, null, 2));
+                console.log(`✅ [SAVE-AND-SEND] Raw response received:`, JSON.stringify(saveResult, null, 2));
+                console.log(`✅ [SAVE-AND-SEND] Response structure analysis:`, {
+                    hasSuccess: !!saveResult.success,
+                    successValue: saveResult.success,
+                    hasMessageId: !!saveResult.message_id,
+                    messageIdValue: saveResult.message_id,
+                    hasData: !!saveResult.data,
+                    hasNestedMessage: !!(saveResult.data?.message),
+                    nestedMessageId: saveResult.data?.message?.id,
+                    fullDataKeys: saveResult.data ? Object.keys(saveResult.data) : 'NO_DATA'
+                });
                 
                 if (saveResult.success) {
-                    // Extract message_id from the correct nested location in response
                     let realMessageId = null;
                     
-                    if (saveResult.data && saveResult.data.data && saveResult.data.data.message && saveResult.data.data.message.id) {
-                        realMessageId = saveResult.data.data.message.id;
-                    } else if (saveResult.data && saveResult.data.message_id) {
+                    // Check multiple possible locations for message_id
+                    if (saveResult.data && saveResult.data.message_id) {
                         realMessageId = saveResult.data.message_id;
                     } else if (saveResult.message_id) {
                         realMessageId = saveResult.message_id;
+                    } else if (saveResult.data && saveResult.data.data && saveResult.data.data.message && saveResult.data.data.message.id) {
+                        realMessageId = saveResult.data.data.message.id;
+                    } else if (saveResult.data && saveResult.data.message && saveResult.data.message.id) {
+                        realMessageId = saveResult.data.message.id;
                     }
                     
-                    console.log(`🔍 [SAVE-AND-SEND] Debug message ID extraction:`, {
-                        deepNested: saveResult.data?.data?.message?.id || 'NO_DEEP_NESTED',
-                        dataLevel: saveResult.data?.message_id || 'NO_DATA_LEVEL',
-                        topLevel: saveResult.message_id || 'NO_TOP_LEVEL',
+                    console.log(`🔍 [SAVE-AND-SEND] Message ID extraction:`, {
+                        dataMessageId: saveResult.data?.message_id || 'NOT_FOUND',
+                        topLevelId: saveResult.message_id || 'NOT_FOUND',
+                        deepNestedId: saveResult.data?.data?.message?.id || 'NOT_FOUND',
+                        nestedId: saveResult.data?.message?.id || 'NOT_FOUND',
                         finalMessageId: realMessageId
                     });
                     
@@ -656,23 +669,21 @@ class MessageHandler {
                         throw new Error('No message_id found in server response');
                     }
                     
-                    // Extract complete message data with reply_data from database response
+                    // Extract complete message data 
                     let completeMessageData = null;
                     if (saveResult.data && saveResult.data.data && saveResult.data.data.message) {
                         completeMessageData = saveResult.data.data.message;
                     } else if (saveResult.data && saveResult.data.message) {
                         completeMessageData = saveResult.data.message;
-                    } else if (saveResult.message) {
-                        completeMessageData = saveResult.message;
                     }
                     
-                    console.log(`🔍 [SAVE-AND-SEND] Extracted complete message data:`, {
+                    console.log(`🔍 [SAVE-AND-SEND] Extracted message data:`, {
                         hasCompleteData: !!completeMessageData,
                         hasReplyData: !!(completeMessageData?.reply_data),
                         replyMessageId: completeMessageData?.reply_message_id
                     });
                     
-                    // Broadcast the permanent ID update with complete message data from database
+                    // Broadcast the permanent ID update
                     const updateData = {
                         temp_message_id: data.temp_message_id || temp_message_id,
                         real_message_id: realMessageId,
@@ -681,17 +692,14 @@ class MessageHandler {
                     };
                     
                     if (targetRoom) {
-                        // Broadcast to ALL users in the room (including sender) so everyone can react
                         io.to(targetRoom).emit('message_id_updated', updateData);
-                        // Also send directly to sender to ensure they get it
                         client.emit('message_id_updated', updateData);
                     } else {
                         io.emit('message_id_updated', updateData);
                     }
                     
-                    console.log(`✅ [SAVE-AND-SEND] Message ID update broadcasted to ALL users: ${temp_message_id} → ${realMessageId}`);
+                    console.log(`✅ [SAVE-AND-SEND] Message ID update broadcasted: ${temp_message_id} → ${realMessageId}`);
                     
-                    // Send success response to sender
                     client.emit('message_sent', {
                         success: true,
                         message_id: realMessageId,

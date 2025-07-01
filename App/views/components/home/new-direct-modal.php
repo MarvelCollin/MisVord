@@ -1,4 +1,4 @@
-<div class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center" id="new-direct-modal" style="z-index: 100000;">
+<div class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center" id="new-direct-modal" style="z-index: 999;">
     <div class="modal w-full max-w-md mx-4 bg-[#2b2d31] rounded-lg shadow-2xl border border-[#1e1f22] max-h-[90vh] flex flex-col" onclick="event.stopPropagation();">
         <div class="p-4 border-b border-[#1e1f22] bg-[#2b2d31] flex-shrink-0">
             <div class="flex justify-between items-center">
@@ -30,18 +30,21 @@
                 </div>
                 <div class="mb-3">
                     <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Group Image</label>
-                    <div class="flex items-center space-x-3">
-                        <div id="group-image-preview" class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden cursor-pointer border-2 border-[#404249] hover:border-[#5865f2] transition-colors flex-shrink-0">
+                    <p class="text-xs text-gray-400 mb-3">We recommend an image of at least 512×512.</p>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div id="group-image-preview" class="relative w-16 h-16 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden cursor-pointer border-2 border-[#404249] hover:border-[#5865f2] transition-colors flex-shrink-0">
                             <i class="fas fa-camera text-gray-400"></i>
                         </div>
-                        <div class="flex-1 min-w-0">
+                        
+                        <div class="flex-1">
                             <input type="file" accept="image/*" class="hidden" id="group-image-input">
-                            <button type="button" class="w-full bg-[#4e5058] hover:bg-[#5c5e66] text-white px-3 py-2 rounded transition-colors text-sm" id="group-image-select-btn">
-                                Select Image
+                            <button type="button" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition-colors text-sm font-medium hidden" id="remove-group-image-btn">
+                                Remove Image
                             </button>
                         </div>
                     </div>
-                    <div class="text-xs text-gray-400 mt-1">Click to select and crop group image</div>
+                    <div class="text-xs text-gray-400 mt-2">Click the preview to select and crop group image</div>
                 </div>
             </div>
 
@@ -150,41 +153,54 @@ document.addEventListener('DOMContentLoaded', function() {
     const groupNameInput = document.getElementById('group-name-input');
     const groupImageInput = document.getElementById('group-image-input');
     const groupImagePreview = document.getElementById('group-image-preview');
-    const groupImageSelectBtn = document.getElementById('group-image-select-btn');
+    const removeGroupImageBtn = document.getElementById('remove-group-image-btn');
     let selectedUserIds = new Set();
     let allUsers = [];
     let filteredUsers = [];
     let searchTimeout = null;
     let groupImageFile = null;
-    let imageCutter = null;
+    let groupImageCutter = null;
     let jaroWinkler = null;
 
     if (window.JaroWinkler) {
         jaroWinkler = new window.JaroWinkler();
     }
 
-    function initializeImageCutter() {
-        if (window.ImageCutter && groupImagePreview) {
-            imageCutter = new window.ImageCutter({
-                container: groupImagePreview,
-                type: 'profile',
-                modalTitle: 'Crop Group Image',
-                onCrop: function(result) {
-                    if (result.error) {
-                        if (window.showToast) {
-                            window.showToast('Error processing image: ' + (result.message || 'Unknown error'), 'error');
+    async function initializeImageCutter() {
+        try {
+            if (!window.ImageCutter) {
+                const { default: ImageCutter } = await import('/public/js/components/common/image-cutter.js');
+                window.ImageCutter = ImageCutter;
+            }
+            
+            if (window.ImageCutter && groupImagePreview) {
+                groupImageCutter = new window.ImageCutter({
+                    container: groupImagePreview,
+                    type: 'profile',
+                    modalTitle: 'Crop Group Image',
+                    onCrop: function(result) {
+                        if (result.error) {
+                            if (window.showToast) {
+                                window.showToast('Error processing image: ' + (result.message || 'Unknown error'), 'error');
+                            }
+                            return;
                         }
-                        return;
+                        
+                        groupImageFile = result.dataUrl;
+                        updateGroupImagePreview(result.dataUrl);
+                        
+                        if (removeGroupImageBtn) {
+                            removeGroupImageBtn.classList.remove('hidden');
+                        }
+                        
+                        if (window.showToast) {
+                            window.showToast('Group image updated successfully', 'success');
+                        }
                     }
-                    
-                    groupImageFile = result.dataUrl;
-                    updateGroupImagePreview(result.dataUrl);
-                    
-                    if (window.showToast) {
-                        window.showToast('Group image updated successfully', 'success');
-                    }
-                }
-            });
+                });
+            }
+        } catch (error) {
+            console.error('Error initializing ImageCutter:', error);
         }
     }
 
@@ -195,15 +211,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetGroupImage() {
         groupImageFile = null;
         groupImagePreview.innerHTML = '<i class="fas fa-camera text-gray-400"></i>';
+        if (removeGroupImageBtn) {
+            removeGroupImageBtn.classList.add('hidden');
+        }
+        if (groupImageInput) {
+            groupImageInput.value = '';
+        }
     }
 
     function setupImageInputHandlers() {
-        if (groupImageSelectBtn) {
-            groupImageSelectBtn.addEventListener('click', function() {
-                groupImageInput.click();
-            });
-        }
-
         if (groupImageInput) {
             groupImageInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
@@ -224,11 +240,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     const reader = new FileReader();
                     reader.onload = function(e) {
-                        if (imageCutter) {
-                            imageCutter.loadImage(e.target.result);
+                        if (groupImageCutter) {
+                            groupImageCutter.loadImage(e.target.result);
                         } else {
                             groupImageFile = e.target.result;
                             updateGroupImagePreview(e.target.result);
+                            if (removeGroupImageBtn) {
+                                removeGroupImageBtn.classList.remove('hidden');
+                            }
                         }
                     };
                     reader.readAsDataURL(file);
@@ -239,6 +258,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (groupImagePreview) {
             groupImagePreview.addEventListener('click', function() {
                 groupImageInput.click();
+            });
+        }
+
+        if (removeGroupImageBtn) {
+            removeGroupImageBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                resetGroupImage();
+                removeGroupImageBtn.classList.add('hidden');
+                
+                if (window.showToast) {
+                    window.showToast('Group image removed', 'success');
+                }
             });
         }
     }

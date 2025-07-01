@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Save Message</title>
+</head>
+<body>
+    <h1>Debug Save Message Endpoint</h1>
+    <button onclick="testSaveMessage()">Test Save Message</button>
+    <pre id="result"></pre>
+
+    <script>
+    async function testSaveMessage() {
+        const data = {
+            content: 'Test message from web debug',
+            target_type: 'channel',
+            target_id: '1',
+            message_type: 'text',
+            temp_message_id: 'temp-web-debug-' + Date.now()
+        };
+
+        try {
+            const response = await fetch('/api/chat/save-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Socket-User-ID': '1',
+                    'X-Socket-Username': 'debuguser'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            
+            document.getElementById('result').textContent = JSON.stringify({
+                status: response.status,
+                statusText: response.statusText,
+                headers: Object.fromEntries(response.headers.entries()),
+                body: result,
+                sentData: data
+            }, null, 2);
+        } catch (error) {
+            document.getElementById('result').textContent = 'Error: ' + error.message;
+        }
+    }
+    </script>
+</body>
+</html>
