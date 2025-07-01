@@ -542,8 +542,8 @@ class ChatSection {
         if (this.chatMessages) {
             this.chatMessages.addEventListener('scroll', () => {
                 this.handleChatScroll();
-            });
-            console.log('✅ [CHAT-SECTION] Chat scroll listener added');
+            }, { passive: true });
+            console.log('✅ [CHAT-SECTION] Chat scroll listener added with passive mode');
         } else {
             console.warn('⚠️ [CHAT-SECTION] Chat messages container not found for scroll listener');
         }
@@ -796,7 +796,7 @@ class ChatSection {
                     console.log('📝 [CHAT-SECTION] Displaying fresh messages');
                     await this.messageHandler.displayMessages(messages);
                     this.currentOffset = messages.length;
-                    this.scrollToBottom();
+                    this.scrollToBottomIfAppropriate(isChannelSwitch);
                 }
                 
                 this.hideEmptyState();
@@ -1580,28 +1580,49 @@ class ChatSection {
         }
         
         try {
+            this.isAutoScrolling = true;
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            this.userHasScrolled = false;
+            setTimeout(() => {
+                this.isAutoScrolling = false;
+            }, 100);
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Failed to scroll to bottom:', error);
+            this.isAutoScrolling = false;
+        }
+    }
+    
+    scrollToBottomIfAppropriate(isChannelSwitch = false) {
+        if (!this.chatMessages) return;
+        
+        if (isChannelSwitch) {
+            this.scrollToBottom();
+            return;
+        }
+        
+        if (!this.userHasScrolled) {
+            this.scrollToBottom();
+            return;
+        }
+        
+        const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
+        const isNearBottom = scrollTop + clientHeight >= scrollHeight - 50;
+        
+        if (isNearBottom) {
+            this.scrollToBottom();
         }
     }
     
     scrollToBottomIfNeeded() {
-        if (!this.chatMessages) {
-            console.warn('⚠️ [CHAT-SECTION] Chat messages container not found for conditional scrolling, attempting to find DOM elements');
-            this.findDOMElements();
-            
-            if (!this.chatMessages) {
-                console.error('❌ [CHAT-SECTION] Cannot check scroll position: chat messages container still not found');
-                return;
-            }
+        if (!this.chatMessages || this.isAutoScrolling) {
+            return;
         }
         
         try {
             const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
-            const isNearBottom = scrollTop + clientHeight >= scrollHeight - 200;
+            const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
             
-            if (isNearBottom) {
+            if (isAtBottom && !this.userHasScrolled) {
                 this.scrollToBottom();
             }
         } catch (error) {
@@ -1760,13 +1781,14 @@ class ChatSection {
                 const messagesContainer = container.querySelector('.messages-container');
                 if (messagesContainer) {
                     messagesContainer.innerHTML = '';
-                    messagesContainer.scrollTop = 0;
                 } else {
                     container.innerHTML = '';
-                    container.scrollTop = 0;
                 }
             }
         });
+        
+        this.userHasScrolled = false;
+        this.lastScrollPosition = 0;
         
         if (this.emptyStateContainer) {
             this.emptyStateContainer.remove();
@@ -2009,6 +2031,11 @@ class ChatSection {
     forceStopAllOperations() {
         this.isLoading = false;
         
+        if (this.scrollEventDebounceTimer) {
+            clearTimeout(this.scrollEventDebounceTimer);
+            this.scrollEventDebounceTimer = null;
+        }
+        
         this.leaveCurrentSocketRoom();
         
         if (this.loadMoreContainer) {
@@ -2046,6 +2073,10 @@ class ChatSection {
         this.replyingTo = null;
         this.currentEditingMessage = null;
         this.isInitialized = false;
+        this.userHasScrolled = false;
+        this.lastScrollPosition = 0;
+        this.isAutoScrolling = false;
+        this.scrollEventDebounceTimer = null;
         
         const messagesContainer = this.getMessagesContainer();
         if (messagesContainer) {
@@ -2055,7 +2086,8 @@ class ChatSection {
                 console.log('🧹 [CHAT-SECTION] Skeleton loader cleared during full state reset');
             }
             messagesContainer.innerHTML = '';
-            messagesContainer.scrollTop = 0;
+            this.userHasScrolled = false;
+            this.lastScrollPosition = 0;
         }
         
         if (this.loadMoreContainer) {
@@ -2193,21 +2225,30 @@ class ChatSection {
     }
     
     handleChatScroll() {
-        if (!this.chatMessages) return;
+        if (!this.chatMessages || this.isAutoScrolling) return;
         
-        const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
-        const isAtTop = scrollTop <= 10;
-        const isNearBottom = scrollTop + clientHeight >= scrollHeight - 200;
-        
-        if (isAtTop && this.hasMoreMessages && !this.isLoading) {
-            this.showTopReloadButton();
-        } else {
-            this.hideTopReloadButton();
-        }
-        
-        if (isNearBottom) {
-            this.scrollToBottomIfNeeded();
-        }
+        clearTimeout(this.scrollEventDebounceTimer);
+        this.scrollEventDebounceTimer = setTimeout(() => {
+            const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
+            const isAtTop = scrollTop <= 10;
+            const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+            
+            if (Math.abs(scrollTop - this.lastScrollPosition) > 5) {
+                this.userHasScrolled = true;
+            }
+            
+            if (isAtBottom) {
+                this.userHasScrolled = false;
+            }
+            
+            this.lastScrollPosition = scrollTop;
+            
+            if (isAtTop && this.hasMoreMessages && !this.isLoading) {
+                this.showTopReloadButton();
+            } else {
+                this.hideTopReloadButton();
+            }
+        }, 50);
     }
     
     showTopReloadButton() {
@@ -2285,6 +2326,27 @@ class ChatSection {
         
         document.head.appendChild(style);
         console.log('✅ [CHAT-SECTION] Top reload button styles added');
+    }
+
+    handleNewMessageScroll(isOwnMessage = false) {
+        if (!this.chatMessages) return;
+        
+        if (isOwnMessage) {
+            this.scrollToBottom();
+            return;
+        }
+        
+        if (!this.userHasScrolled) {
+            this.scrollToBottom();
+            return;
+        }
+        
+        const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 20;
+        
+        if (isAtBottom) {
+            this.scrollToBottom();
+        }
     }
 }
 

@@ -39,6 +39,16 @@
   min-height: 100%;
 }
 
+#chat-messages .messages-container:not(.min-h-full) {
+  min-height: 0;
+}
+
+#chat-messages .messages-container.items-center.justify-center {
+  justify-content: center;
+  align-items: center;
+  min-height: 100%;
+}
+
 /* Bubble message hover effects */
 #chat-messages .bubble-message-group:hover {
   background-color: rgba(6, 6, 7, 0.02);

@@ -78,7 +78,9 @@ require_once dirname(__DIR__) . '/explore/server-card.php';
             </div>
             <div class="grid-container server-grid" id="all-servers">
                 <?php foreach ($servers as $server): ?>
-                    <?php renderServerCard($server, $userServerId, false); ?>
+                    <div class="misvord-initial-server-card" style="display: none;">
+                        <?php renderServerCard($server, $userServerId, false); ?>
+                    </div>
                 <?php endforeach; ?>
             </div>
         </div>

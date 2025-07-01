@@ -528,6 +528,21 @@
   100% { background-position: -200% 0; }
 }
 
+.misvord-category-count-skeleton {
+  background: linear-gradient(90deg, #2f3136 25%, #36393f 50%, #2f3136 75%);
+  background-size: 200% 100%;
+  animation: misvord-skeleton-loading 1.5s infinite;
+  border-radius: 4px;
+  color: transparent !important;
+  min-width: 20px;
+  height: 16px;
+}
+
+.misvord-category-count-skeleton::before {
+  content: '00';
+  opacity: 0;
+}
+
 
 
 

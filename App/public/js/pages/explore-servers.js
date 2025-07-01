@@ -6,6 +6,32 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function initExplorePage() {
+    const container = document.getElementById('all-servers');
+    if (container) {
+        showLoadingSkeletons();
+        
+        setTimeout(() => {
+            hideLoadingSkeletons();
+            hideCategoryCountSkeletons();
+            
+            const serverWrappers = container.querySelectorAll('.misvord-initial-server-card');
+            serverWrappers.forEach((wrapper, index) => {
+                setTimeout(() => {
+                    wrapper.style.display = 'block';
+                    const card = wrapper.querySelector('.explore-server-card');
+                    if (card) {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0) scale(1)';
+                    }
+                }, index * 50);
+            });
+        }, 800);
+    } else {
+        setTimeout(() => {
+            hideCategoryCountSkeletons();
+        }, 800);
+    }
+    
     initServerCards();
     initCategoryFilter();
     initSearchFilter();
@@ -39,7 +65,7 @@ function initScrollAnimations() {
 }
 
 function initServerCards() {
-    const serverCards = document.querySelectorAll('.explore-server-card');
+    const serverCards = document.querySelectorAll('.misvord-initial-server-card .explore-server-card');
     
     serverCards.forEach((card, index) => {
         card.style.animationDelay = `${index * 0.1}s`;
@@ -206,24 +232,30 @@ function selectSortOption(sortType, optionElement) {
 }
 
 function applyFilters() {
-    const serverCards = Array.from(document.querySelectorAll('.explore-server-card:not(.misvord-skeleton-loading-card):not(#featured-servers .explore-server-card)'));
+    const serverWrappers = Array.from(document.querySelectorAll('.misvord-initial-server-card'));
     const container = document.getElementById('all-servers');
     
     if (!container) return;
     
-    hideLoadingSkeletons();
-    showLoadingSkeletons();
-    
-    let filteredCards = serverCards.filter(card => {
+    let filteredWrappers = serverWrappers.filter(wrapper => {
+        const card = wrapper.querySelector('.explore-server-card');
+        if (!card) return false;
+        
         const matchesCategory = !currentCategory || card.getAttribute('data-category') === currentCategory;
         const matchesSearch = !currentSearch || matchesSearchQuery(card, currentSearch);
         return matchesCategory && matchesSearch;
     });
 
+    const filteredCards = filteredWrappers.map(wrapper => wrapper.querySelector('.explore-server-card')).filter(card => card);
     const sortedCards = sortServerCards(filteredCards, currentSort);
     
-    serverCards.forEach(card => {
-        card.style.display = 'none';
+    updateCategoryCounts(filteredCards);
+    
+    hideLoadingSkeletons();
+    showLoadingSkeletons();
+    
+    serverWrappers.forEach(wrapper => {
+        wrapper.style.display = 'none';
     });
     
     setTimeout(() => {
@@ -231,11 +263,21 @@ function applyFilters() {
         hideNoResults();
         
         const sortedFragment = document.createDocumentFragment();
-        sortedCards.forEach(card => sortedFragment.appendChild(card));
+        sortedCards.forEach(card => {
+            const wrapper = card.closest('.misvord-initial-server-card');
+            if (wrapper) {
+                sortedFragment.appendChild(wrapper);
+            } else {
+                sortedFragment.appendChild(card);
+            }
+        });
         container.appendChild(sortedFragment);
         
         sortedCards.forEach((card, index) => {
-            card.style.display = 'block';
+            const wrapper = card.closest('.misvord-initial-server-card');
+            if (wrapper) {
+                wrapper.style.display = 'block';
+            }
             card.style.opacity = '1';
             card.style.transform = 'translateY(0) scale(1)';
         });
@@ -253,7 +295,7 @@ function showLoadingSkeletons() {
     hideNoResults();
     hideLoadingSkeletons();
     
-    const serverCards = document.querySelectorAll('.explore-server-card');
+    const serverCards = document.querySelectorAll('.misvord-initial-server-card .explore-server-card');
     const skeletonCount = Math.min(Math.max(serverCards.length, 2), 6);
     
     for (let i = 0; i < skeletonCount; i++) {
@@ -271,6 +313,55 @@ function hideLoadingSkeletons() {
                 card.parentNode.removeChild(card);
             }
         }, 100);
+    });
+}
+
+function showCategoryCountSkeletons() {
+    const countElements = document.querySelectorAll('.misvord-category-count');
+    countElements.forEach(countEl => {
+        countEl.classList.add('misvord-category-count-skeleton');
+        countEl.textContent = '';
+    });
+}
+
+function hideCategoryCountSkeletons() {
+    const countElements = document.querySelectorAll('.misvord-category-count');
+    countElements.forEach(countEl => {
+        countEl.classList.remove('misvord-category-count-skeleton');
+        const originalCount = countEl.getAttribute('data-count');
+        countEl.textContent = originalCount || '0';
+    });
+}
+
+function updateCategoryCounts(filteredCards) {
+    const categoryCounts = {};
+    const categoryItems = document.querySelectorAll('.category-item[data-category]');
+    
+    categoryItems.forEach(item => {
+        const category = item.getAttribute('data-category');
+        if (category) {
+            categoryCounts[category] = 0;
+        }
+    });
+    
+    filteredCards.forEach(card => {
+        const category = card.getAttribute('data-category');
+        if (category && categoryCounts.hasOwnProperty(category)) {
+            categoryCounts[category]++;
+        }
+    });
+    
+    const allServersCount = document.querySelector('.category-item[data-category=""] .misvord-category-count');
+    if (allServersCount) {
+        allServersCount.textContent = filteredCards.length;
+    }
+    
+    categoryItems.forEach(item => {
+        const category = item.getAttribute('data-category');
+        const countEl = item.querySelector('.misvord-category-count');
+        if (category && countEl && categoryCounts.hasOwnProperty(category)) {
+            countEl.textContent = categoryCounts[category];
+        }
     });
 }
 
@@ -482,7 +573,7 @@ function highlightExploreButton() {
 }
 
 function initServerDetailTriggers() {
-    const serverCards = document.querySelectorAll('.explore-server-card');
+    const serverCards = document.querySelectorAll('.misvord-initial-server-card .explore-server-card');
     
     serverCards.forEach(card => {
         const serverId = card.getAttribute('data-server-id');

@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const allFriendsContainer = document.getElementById('all-friends-container');
     
     let onlineUsers = {};
-    let lastOnlineTabState = null;
+    let lastRenderedOnlineFriends = [];
     
     function updateAllTabStatus(userId, status) {
         console.log(`🎯 [HOME-FRIENDS] Updating status for user ${userId} to ${status}`);
@@ -425,171 +425,109 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function createOnlineStateSignature(onlineFriends) {
-        return onlineFriends.map(friend => {
-            const userData = onlineUsers[friend.id];
-            return {
-                id: friend.id,
-                username: friend.username,
-                avatar_url: friend.avatar_url,
-                status: userData?.status || 'offline'
-            };
-        }).sort((a, b) => a.username.localeCompare(b.username));
-    }
-    
-    function onlineStatesAreEqual(state1, state2) {
-        if (!state1 || !state2) return false;
-        if (state1.length !== state2.length) return false;
+    function detectOnlineFriendsFromDOM() {
+        console.log('🔍 [HOME-FRIENDS] Detecting online friends from DOM status indicators');
+        const onlineFromDOM = [];
         
-        return state1.every((friend1, index) => {
-            const friend2 = state2[index];
-            return friend1.id === friend2.id &&
-                   friend1.username === friend2.username &&
-                   friend1.status === friend2.status;
-        });
-    }
-    
-    function createOnlineFriendElement(friend) {
-        const userData = onlineUsers[friend.id];
-        const status = userData?.status || 'offline';
-        const statusClass = getStatusClass(status);
-        const statusText = getStatusText(status);
-        
-        const friendEl = document.createElement('div');
-        friendEl.className = 'flex justify-between items-center p-3 rounded hover:bg-discord-light group friend-item transition-all duration-200 animate-fadeIn';
-        friendEl.setAttribute('data-user-id', friend.id);
-        friendEl.setAttribute('data-username', friend.username);
-        
-        friendEl.innerHTML = `
-            <div class="flex items-center">
-                <div class="relative mr-3">
-                    <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                        <img src="${friend.avatar_url || ''}" 
-                             alt="${friend.username}" 
-                             class="w-full h-full object-cover user-avatar">
-                    </div>
-                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${statusClass} transition-colors duration-300"></div>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="font-medium text-white truncate">${friend.username}</div>
-                    <div class="text-xs text-gray-400 transition-all duration-200">${statusText}</div>
-                </div>
-            </div>
-            <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="createDirectMessage('${friend.id}')">
-                    <i class="fa-solid fa-message"></i>
-                </button>
-                <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
-                    <i class="fa-solid fa-ellipsis-vertical"></i>
-                </button>
-            </div>
-        `;
-        
-        if (window.fallbackImageHandler) {
-            const img = friendEl.querySelector('img.user-avatar');
-            if (img) {
-                window.fallbackImageHandler.processImage(img);
-            }
-        }
-        
-        return friendEl;
-    }
-    
-    function smartUpdateOnlineTab(onlineFriends) {
-        const existingFriends = new Map();
-        Array.from(onlineFriendsContainer.children).forEach(child => {
-            const userId = child.getAttribute('data-user-id');
-            if (userId) {
-                existingFriends.set(userId, child);
-            }
-        });
-        
-        const newFriendsMap = new Map();
-        onlineFriends.forEach(friend => {
-            newFriendsMap.set(friend.id, friend);
-        });
-        
-        existingFriends.forEach((element, userId) => {
-            if (!newFriendsMap.has(userId)) {
-                element.remove();
-            }
-        });
-        
-        const sortedOnlineFriends = onlineFriends.sort((a, b) => a.username.localeCompare(b.username));
-        
-        sortedOnlineFriends.forEach((friend, index) => {
-            const existingEl = existingFriends.get(friend.id);
-            
-            if (existingEl) {
-                const currentIndex = Array.from(onlineFriendsContainer.children).indexOf(existingEl);
-                if (currentIndex !== index) {
-                    if (index === 0) {
-                        onlineFriendsContainer.prepend(existingEl);
-                    } else {
-                        const referenceEl = onlineFriendsContainer.children[index];
-                        onlineFriendsContainer.insertBefore(existingEl, referenceEl);
-                    }
-                }
-            } else {
-                const newEl = createOnlineFriendElement(friend);
+        friends.forEach(friend => {
+            const statusIndicator = document.querySelector(`.friend-status-indicator[data-user-id="${friend.id}"]`);
+            if (statusIndicator && statusIndicator.classList.contains('bg-discord-green')) {
+                console.log(`✅ [HOME-FRIENDS] Found ${friend.username} online via DOM`);
+                onlineFromDOM.push(friend);
                 
-                if (index === 0) {
-                    onlineFriendsContainer.prepend(newEl);
-                } else if (index >= onlineFriendsContainer.children.length) {
-                    onlineFriendsContainer.appendChild(newEl);
-                } else {
-                    const referenceEl = onlineFriendsContainer.children[index];
-                    onlineFriendsContainer.insertBefore(newEl, referenceEl);
+                if (!onlineUsers[friend.id]) {
+                    onlineUsers[friend.id] = {
+                        user_id: friend.id,
+                        username: friend.username,
+                        status: 'online',
+                        activity_details: null
+                    };
                 }
             }
         });
+        
+        console.log('🔍 [HOME-FRIENDS] Online friends detected from DOM:', onlineFromDOM.length);
+        return onlineFromDOM;
     }
     
     function renderOnlineTab() {
         console.log('🎨 [HOME-FRIENDS] Rendering online tab');
-        console.log('🔍 [HOME-FRIENDS] Current onlineUsers:', onlineUsers);
-        console.log('🔍 [HOME-FRIENDS] Total friends:', friends.length);
         
-        const onlineFriends = friends.filter(friend => {
+        const onlineFriendsFromCache = friends.filter(friend => {
             const userData = onlineUsers[friend.id];
-            const isOnline = userData && userData.status === 'online';
-            console.log(`🔍 [HOME-FRIENDS] Friend ${friend.username} (ID: ${friend.id}):`, {
-                userData: userData,
-                isOnline: isOnline,
-                status: userData?.status
-            });
-            return isOnline;
+            return userData && userData.status === 'online';
         });
         
-        console.log('🎨 [HOME-FRIENDS] Online friends found:', onlineFriends.length, onlineFriends.map(f => f.username));
-        
-        const newState = createOnlineStateSignature(onlineFriends);
-        
-        const isFirstRender = lastOnlineTabState === null;
-        const stateChanged = !onlineStatesAreEqual(lastOnlineTabState, newState);
-        
-        console.log('🔍 [HOME-FRIENDS] Render decision:', {
-            isFirstRender: isFirstRender,
-            stateChanged: stateChanged,
-            shouldRender: isFirstRender || stateChanged
+        const onlineFriendsFromDOM = friends.filter(friend => {
+            const statusIndicator = document.querySelector(`.friend-status-indicator[data-user-id="${friend.id}"]`);
+            return statusIndicator && statusIndicator.classList.contains('bg-discord-green');
         });
         
-        if (!isFirstRender && !stateChanged) {
-            console.log('⏭️ [HOME-FRIENDS] Skipping render - no changes detected');
+        let onlineFriends = onlineFriendsFromCache.length > 0 ? onlineFriendsFromCache : onlineFriendsFromDOM;
+        
+        onlineFriends.sort((a, b) => a.username.localeCompare(b.username));
+        
+        const currentFriendIds = onlineFriends.map(f => f.id).sort().join(',');
+        const lastFriendIds = lastRenderedOnlineFriends.map(f => f.id).sort().join(',');
+        
+        if (currentFriendIds === lastFriendIds) {
+            console.log('⏭️ [HOME-FRIENDS] Same online friends, skipping render to prevent blinking');
             return;
         }
+        
+        console.log('✅ [HOME-FRIENDS] Online friends changed - Cache:', onlineFriendsFromCache.length, 'DOM:', onlineFriendsFromDOM.length, 'Using:', onlineFriends.length);
         
         if (onlineCount) {
             onlineCount.textContent = onlineFriends.length;
         }
         
-        console.log('🎨 [HOME-FRIENDS] Proceeding with render for', onlineFriends.length, 'online friends');
-        
         if (onlineFriends.length > 0) {
-            console.log('✅ [HOME-FRIENDS] Rendering online friends list');
-            smartUpdateOnlineTab(onlineFriends);
+            console.log('✅ [HOME-FRIENDS] Showing online friends:', onlineFriends.map(f => f.username));
+            
+            onlineFriendsContainer.innerHTML = '';
+            
+            onlineFriends.forEach(friend => {
+                const friendEl = document.createElement('div');
+                friendEl.className = 'flex justify-between items-center p-3 rounded hover:bg-discord-light group friend-item transition-all duration-200';
+                friendEl.setAttribute('data-user-id', friend.id);
+                friendEl.setAttribute('data-username', friend.username);
+                
+                friendEl.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="relative mr-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="${friend.avatar_url || ''}" 
+                                     alt="${friend.username}" 
+                                     class="w-full h-full object-cover user-avatar">
+                            </div>
+                            <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-discord-green"></div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium text-white truncate">${friend.username}</div>
+                            <div class="text-xs text-gray-400">Online</div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="createDirectMessage('${friend.id}')">
+                            <i class="fa-solid fa-message"></i>
+                        </button>
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                    </div>
+                `;
+                
+                onlineFriendsContainer.appendChild(friendEl);
+                
+                if (window.fallbackImageHandler) {
+                    const img = friendEl.querySelector('img.user-avatar');
+                    if (img) {
+                        window.fallbackImageHandler.processImage(img);
+                    }
+                }
+            });
         } else {
-            console.log('❌ [HOME-FRIENDS] No online friends - showing empty state');
+            console.log('❌ [HOME-FRIENDS] No online friends found');
             onlineFriendsContainer.innerHTML = `
                 <div class="p-4 bg-discord-dark rounded text-center">
                     <div class="mb-2 text-gray-400">
@@ -601,8 +539,27 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
         
-        lastOnlineTabState = newState;
-        console.log('💾 [HOME-FRIENDS] Updated lastOnlineTabState');
+        lastRenderedOnlineFriends = [...onlineFriends];
+    }
+    
+    function checkAndUpdateOnlineTab() {
+        console.log('🔄 [HOME-FRIENDS] Quick check and update online tab');
+        renderOnlineTab();
+    }
+    
+    function initializeHomeFriends() {
+        console.log('🚀 [HOME-FRIENDS] Initializing home friends');
+        
+        setupFriendsManagerIntegration();
+        updateAllFriendsStatus();
+        
+        renderOnlineTab();
+        
+        setTimeout(checkAndUpdateOnlineTab, 1000);
+        setTimeout(checkAndUpdateOnlineTab, 3000);
+        setTimeout(checkAndUpdateOnlineTab, 5000);
+        
+        setInterval(checkAndUpdateOnlineTab, 10000);
     }
     
     function updateAllFriendsStatus() {
@@ -615,11 +572,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function setupFriendsManagerIntegration() {
+        console.log('🚀 [HOME-FRIENDS] Setting up FriendsManager integration');
+        
         if (window.globalPresenceManager) {
             console.log('🌐 [HOME-FRIENDS] Using global presence manager');
             if (window.FriendsManager) {
                 const friendsManager = window.FriendsManager.getInstance();
                 onlineUsers = friendsManager.cache.onlineUsers || {};
+                console.log('📊 [HOME-FRIENDS] Initial online users from FriendsManager:', Object.keys(onlineUsers).length, onlineUsers);
                 updateAllFriendsStatus();
                 renderOnlineTab();
             }
@@ -627,7 +587,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (window.FriendsManager) {
+            console.log('✅ [HOME-FRIENDS] FriendsManager available');
             const friendsManager = window.FriendsManager.getInstance();
+            
             friendsManager.subscribe((type, data) => {
                 console.log(`🔄 [HOME-FRIENDS] FriendsManager event: ${type}`, data);
                 switch(type) {
@@ -636,6 +598,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     case 'user-presence-update':
                     case 'online-users-updated':
                         onlineUsers = friendsManager.cache.onlineUsers || {};
+                        console.log('📊 [HOME-FRIENDS] Updated online users:', Object.keys(onlineUsers).length, onlineUsers);
                         updateAllFriendsStatus();
                         renderOnlineTab();
                         break;
@@ -643,18 +606,33 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             onlineUsers = friendsManager.cache.onlineUsers || {};
+            console.log('📊 [HOME-FRIENDS] Initial online users from FriendsManager:', Object.keys(onlineUsers).length, onlineUsers);
+            
+            if (Object.keys(onlineUsers).length === 0) {
+                console.log('⚠️ [HOME-FRIENDS] No online users found, requesting fresh data');
+                friendsManager.getOnlineUsers(true);
+                
+                setTimeout(() => {
+                    onlineUsers = friendsManager.cache.onlineUsers || {};
+                    console.log('📊 [HOME-FRIENDS] Delayed online users check:', Object.keys(onlineUsers).length, onlineUsers);
+                    updateAllFriendsStatus();
+                    renderOnlineTab();
+                }, 2000);
+            }
         } else {
             console.warn('⚠️ [HOME-FRIENDS] FriendsManager not available, retrying in 500ms');
             setTimeout(setupFriendsManagerIntegration, 500);
         }
     }
     
-    function initializeHomeFriends() {
-        console.log('🚀 [HOME-FRIENDS] Initializing home friends with FriendsManager');
-        setupFriendsManagerIntegration();
-        updateAllFriendsStatus();
-        renderOnlineTab();
-    }
+    window.debugFriends = {
+        friends: friends,
+        onlineUsers: () => onlineUsers,
+        renderOnlineTab: renderOnlineTab,
+        detectFromDOM: detectOnlineFriendsFromDOM,
+        lastRendered: () => lastRenderedOnlineFriends,
+        checkUpdate: checkAndUpdateOnlineTab
+    };
     
     initializeHomeFriends();
     

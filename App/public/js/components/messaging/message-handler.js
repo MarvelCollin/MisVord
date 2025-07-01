@@ -79,7 +79,8 @@ class MessageHandler {
             }, 100);
         }
         
-        this.chatSection.scrollToBottomIfNeeded();
+        const isOwnMessage = (messageData.user_id || messageData.userId) == this.chatSection.userId;
+        this.chatSection.handleNewMessageScroll(isOwnMessage);
         
         console.log(`✅ [MESSAGE-HANDLER] Successfully added ${isTemporary ? 'temporary' : 'permanent'} message ${messageData.id}`);
     }
@@ -185,7 +186,8 @@ class MessageHandler {
         }
         
         this.processedMessageIds.add(formattedMessage.id);
-        this.chatSection.scrollToBottomIfNeeded();
+        const isOwnMessage = (formattedMessage.user_id || formattedMessage.userId) == this.chatSection.userId;
+        this.chatSection.handleNewMessageScroll(isOwnMessage);
         
         console.log(`✅ [MESSAGE-HANDLER] Message ${formattedMessage.id} successfully added to UI using fallback`);
     }
