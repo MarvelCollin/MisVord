@@ -100,27 +100,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateActiveFriends() {
         const activeFriends = friends.filter(friend => {
             const userData = onlineUsers[friend.id];
-            return userData && userData.status !== 'offline';
+            return userData && userData.status === 'online';
         });
-        
 
-        
         if (activeFriends.length > 0) {
             activeFriendsList.innerHTML = '';
             
-            activeFriends.sort((a, b) => {
-                const statusA = onlineUsers[a.id]?.status || 'idle';
-                const statusB = onlineUsers[b.id]?.status || 'idle';
-                
-                            if (statusA === 'online' && statusB !== 'online') return -1;
-            if (statusB === 'online' && statusA !== 'online') return 1;
-                
-                return a.username.localeCompare(b.username);
-            });
+            activeFriends.sort((a, b) => a.username.localeCompare(b.username));
             
             activeFriends.forEach(friend => {
                 const userData = onlineUsers[friend.id];
-                const status = userData?.status || 'idle';
+                const status = userData?.status === 'online' ? 'online' : 'offline';
                 const statusClass = getStatusClass(status);
                 const activityDetails = userData?.activity_details;
                 const activityText = getActivityText(activityDetails);
@@ -130,9 +120,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 friendEl.className = 'flex items-center mb-4 p-3 bg-discord-background rounded-md hover:bg-discord-darker cursor-pointer transition-all duration-200 animate-fadeIn';
                 friendEl.innerHTML = `
                     <div class="relative mr-3">
-                        <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                             alt="${friend.username}" 
-                             class="w-10 h-10 rounded-full">
+                        <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                            <img src="${friend.avatar_url || ''}" 
+                                 alt="${friend.username}" 
+                                 class="w-full h-full object-cover user-avatar">
+                        </div>
                         <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300"></div>
                     </div>
                     <div class="flex-1">
@@ -155,6 +147,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 activeFriendsList.appendChild(friendEl);
+                
+                // Apply fallback image handler to the new image
+                if (window.fallbackImageHandler) {
+                    const img = friendEl.querySelector('img.user-avatar');
+                    if (img) {
+                        window.fallbackImageHandler.processImage(img);
+                    }
+                }
             });
             
             activeFriendsList.classList.remove('hidden');
@@ -199,6 +199,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function initializeActiveNowSection() {
         console.log('🚀 [ACTIVE-NOW] Initializing Active Now section');
+        
+        // Initialize fallback image handler
+        if (window.FallbackImageHandler) {
+            window.fallbackImageHandler = window.FallbackImageHandler.getInstance();
+        }
+        
         setupFriendsManagerIntegration();
         updateActiveFriends();
     }
@@ -223,5 +229,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 #active-friends-list .hover\:bg-discord-darker:hover {
     transform: translateX(2px);
+}
+
+.user-avatar {
+    transition: transform 0.2s ease;
+}
+
+.user-avatar:hover {
+    transform: scale(1.05);
 }
 </style>

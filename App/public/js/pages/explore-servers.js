@@ -222,32 +222,27 @@ function applyFilters() {
     const sortedCards = sortServerCards(filteredCards, currentSort);
     
     serverCards.forEach(card => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(-10px) scale(0.95)';
         card.style.display = 'none';
     });
     
     setTimeout(() => {
         hideLoadingSkeletons();
-        
-        sortedCards.forEach((card, index) => {
-            card.style.display = 'block';
-            setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0) scale(1)';
-            }, index * 50);
-        });
+        hideNoResults();
         
         const sortedFragment = document.createDocumentFragment();
         sortedCards.forEach(card => sortedFragment.appendChild(card));
         container.appendChild(sortedFragment);
         
+        sortedCards.forEach((card, index) => {
+            card.style.display = 'block';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0) scale(1)';
+        });
+        
         if (filteredCards.length === 0) {
             showNoResults();
-        } else {
-            hideNoResults();
         }
-    }, 800);
+    }, 200);
 }
 
 function showLoadingSkeletons() {
@@ -295,14 +290,12 @@ function createSkeletonCard() {
                 <div class="skeleton w-full h-full rounded-xl"></div>
             </div>
             <div class="mt-8 pl-2">
-                <div class="skeleton skeleton-text mb-2" style="width: 70%; height: 18px;"></div>
-                <div class="skeleton skeleton-text mb-1" style="width: 90%; height: 14px;"></div>
-                <div class="skeleton skeleton-text mb-4" style="width: 75%; height: 14px;"></div>
-                <div class="flex items-center mb-4 gap-4">
-                    <div class="skeleton" style="width: 80px; height: 12px;"></div>
-                    <div class="skeleton" style="width: 60px; height: 12px;"></div>
+                <div class="skeleton skeleton-text mb-2" style="width: 70%; height: 22px;"></div>
+                <div class="skeleton skeleton-text mb-4" style="width: 100%; height: 32px;"></div>
+                <div class="skeleton skeleton-text mb-4" style="width: 85%; height: 16px;"></div>
+                <div class="mt-4">
+                    <div class="skeleton" style="width: 100%; height: 34px; border-radius: 8px;"></div>
                 </div>
-                <div class="skeleton" style="width: 100%; height: 36px; border-radius: 8px;"></div>
             </div>
         </div>
     `;

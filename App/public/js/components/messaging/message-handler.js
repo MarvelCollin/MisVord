@@ -856,18 +856,55 @@ class MessageHandler {
         }
         
         this.chatSection.hideEmptyState();
-        
         this.ensureFallbackStyles();
+        
+        console.log('🎨 [MESSAGE-HANDLER] Building all messages in background while skeleton is visible');
+        
+        const tempContainer = document.createElement('div');
+        tempContainer.style.visibility = 'hidden';
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.top = '-9999px';
+        tempContainer.className = 'messages-container';
+        document.body.appendChild(tempContainer);
+        
+        const messageElements = [];
         
         for (const message of messages) {
             try {
-                await this.addMessage(message);
+                const formattedMessage = this.formatMessageForBubble(message);
+                
+                if (!this.isValidFormattedMessage(formattedMessage)) {
+                    console.error('❌ [MESSAGE-HANDLER] Formatted message failed validation:', formattedMessage);
+                    continue;
+                }
+                
+                const messageElement = await this.createMessageElement(formattedMessage, false);
+                if (messageElement) {
+                    tempContainer.appendChild(messageElement);
+                    messageElements.push(messageElement);
+                    this.processedMessageIds.add(message.id);
+                }
             } catch (error) {
-                console.error(`❌ [MESSAGE-HANDLER] Error displaying message ${message.id}:`, error);
+                console.error(`❌ [MESSAGE-HANDLER] Error creating message ${message.id}:`, error);
             }
         }
         
-        console.log(`✅ [MESSAGE-HANDLER] Successfully displayed ${messages.length} messages`);
+        console.log(`🎯 [MESSAGE-HANDLER] All ${messageElements.length} messages built, replacing skeleton`);
+        
+        if (window.ChatSkeletonLoader) {
+            const skeletonLoader = new window.ChatSkeletonLoader(messagesContainer);
+            skeletonLoader.clearAfterLoad();
+        }
+        
+        messagesContainer.innerHTML = '';
+        
+        messageElements.forEach(element => {
+            messagesContainer.appendChild(element);
+        });
+        
+        document.body.removeChild(tempContainer);
+        
+        console.log(`✅ [MESSAGE-HANDLER] Successfully displayed ${messages.length} messages in batch`);
     }
     
     async prependMessages(messages) {

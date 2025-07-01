@@ -403,6 +403,12 @@ if (!function_exists('renderMessage')) {
     <?php endif; ?>
 
     <div id="chat-messages" class="flex-1 overflow-y-auto overflow-x-hidden">
+        <div id="load-more-container" class="hidden p-4 text-center">
+            <button id="load-more-messages" class="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-chevron-up mr-2"></i>Load More Messages
+            </button>
+        </div>
+        
         <div class="messages-container flex flex-col h-full <?php echo empty($messages) ? 'items-center justify-center' : ''; ?>">
             <?php if (!empty($messages)): ?>
                 <?php

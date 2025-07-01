@@ -136,6 +136,13 @@ class SimpleChannelSwitcher {
     async initializeTextChannel(channelId, forceFresh = false) {
         console.log('🔄 [SWITCH-MANAGER] Initializing text channel:', channelId);
         
+        const messagesContainer = document.querySelector('#chat-messages .messages-container');
+        if (messagesContainer && window.ChatSkeletonLoader) {
+            const skeletonLoader = new window.ChatSkeletonLoader(messagesContainer);
+            skeletonLoader.showForChannelSwitch();
+            console.log('🎨 [SWITCH-MANAGER] Skeleton loader activated for channel switch');
+        }
+        
         console.log('🔄 [SWITCH-MANAGER] Switching from voice to text - full reset needed');
         
         if (window.chatSection) {

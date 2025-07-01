@@ -5,8 +5,29 @@ import '../core/ui/toast.js';
 
 const friendAPI = window.FriendAPI;
 
+function getStatusClass(status) {
+    switch (status) {
+        case 'online': return 'bg-discord-green';
+        case 'offline':
+        default: return 'bg-gray-500';
+    }
+}
+
+function getStatusText(status) {
+    switch (status) {
+        case 'online': return 'Online';
+        case 'offline':
+        default: return 'Offline';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     initFriendRequestForm();
+    
+    // Initialize fallback image handler
+    if (window.FallbackImageHandler) {
+        window.fallbackImageHandler = window.FallbackImageHandler.getInstance();
+    }
     
     if (window.location.pathname === '/home/friends' || window.location.pathname === '/home') {
         const urlParams = new URLSearchParams(window.location.search);
@@ -26,17 +47,12 @@ document.addEventListener('DOMContentLoaded', function () {
         initServerModal();
         initResponsiveHandling();
         initMobileMenu();
-        
-
-        
         initializeOnPageLoad();
     });
 });
 
 function initServerModal() {
 }
-
-
 
 function createDirectMessage(userId) {
     const modal = document.getElementById('new-direct-modal');
@@ -66,65 +82,43 @@ function createDirectMessage(userId) {
         });
 }
 
-
-
 async function loadOnlineFriends(forceRefresh = false) {
     const container = document.getElementById('online-friends-container');
-    if (!container) {
-        return;
-    }
-    
-    console.log('🔄 [APP-LAYOUT] loadOnlineFriends called, forceRefresh:', forceRefresh);
-    
-    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
-    const skeletonAttribute = mainLayoutContainer?.getAttribute('data-skeleton');
-    console.log('🔍 [APP-LAYOUT] Skeleton check:', {
-        containerFound: !!mainLayoutContainer,
-        skeletonAttribute: skeletonAttribute,
-        willSkip: skeletonAttribute === 'home'
-    });
-    
-    if (mainLayoutContainer && skeletonAttribute === 'home') {
-        console.log('⏸️ [APP-LAYOUT] Skeleton loading active, skipping online friends load');
-        return;
-    }
+    if (!container) return;
     
     if (!window.FriendsManager) {
-        console.error('❌ [APP-LAYOUT] FriendsManager not loaded');
+        console.error('FriendsManager not loaded');
         container.innerHTML = '<div class="text-gray-400 p-4">Loading friends system...</div>';
         return;
     }
-    
+
     const friendsManager = window.FriendsManager.getInstance();
-    console.log('📊 [APP-LAYOUT] FriendsManager instance obtained');
     
     try {
         const friends = await friendsManager.getFriends(forceRefresh);
         let onlineUsers = {};
         
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            onlineUsers = await friendsManager.getOnlineUsers(forceRefresh);
+            onlineUsers = await friendsManager.getOnlineUsers();
         }
-        
-        console.log('📊 [APP-LAYOUT] Data loaded:', {
-            friendsCount: friends?.length || 0,
-            onlineUsersCount: Object.keys(onlineUsers).length,
-            onlineUsers: Object.keys(onlineUsers),
-            friendIds: friends?.map(f => f.id) || []
-        });
-        
-        const onlineFriends = friends ? friends.filter(friend => {
+
+        if (!friends || friends.length === 0) {
+            container.innerHTML = `
+                <div class="p-4 bg-discord-dark rounded text-center">
+                    <div class="mb-2 text-gray-400">
+                        <i class="fa-solid fa-user-group text-3xl"></i>
+                    </div>
+                    <p class="text-gray-300 mb-1">You have no friends yet</p>
+                    <p class="text-gray-500 text-sm">Add friends to see them here when they're online</p>
+                </div>
+            `;
+            return;
+        }
+
+        const onlineFriends = friends.filter(friend => {
             const userData = onlineUsers[friend.id];
-            const isOnline = userData && userData.status !== 'offline';
-            console.log(`🔍 [APP-LAYOUT] Friend ${friend.username} (${friend.id}):`, {
-                userData,
-                isOnline,
-                status: userData?.status
-            });
-            return isOnline;
-        }) : [];
-        
-        console.log('✨ [APP-LAYOUT] Online friends found:', onlineFriends.length, onlineFriends.map(f => f.username));
+            return userData && userData.status === 'online';
+        });
 
         if (!onlineFriends || onlineFriends.length === 0) {
             container.innerHTML = `
@@ -136,60 +130,60 @@ async function loadOnlineFriends(forceRefresh = false) {
                     <p class="text-gray-500 text-sm">Friends will appear here when they come online</p>
                 </div>
             `;
-            updateOnlineCount(0);
-            console.log('📭 [APP-LAYOUT] No online friends, showing empty state');
             return;
         }
 
-        onlineFriends.sort((a, b) => {
-            const statusA = onlineUsers[a.id]?.status || 'offline';
-            const statusB = onlineUsers[b.id]?.status || 'offline';
-            
-            if (statusA === 'online' && statusB !== 'online') return -1;
-            if (statusB === 'online' && statusA !== 'online') return 1;
-            
-            return a.username.localeCompare(b.username);
-        });
+        onlineFriends.sort((a, b) => a.username.localeCompare(b.username));
         
         let friendsHtml = '';
         onlineFriends.forEach(friend => {
             const userData = onlineUsers[friend.id];
-            const status = userData?.status || 'offline';
+            const status = userData?.status === 'online' ? 'online' : 'offline';
             const statusClass = getStatusClass(status);
             const statusText = getStatusText(status);
             
             friendsHtml += `
-                <div class="flex items-center p-3 hover:bg-discord-light rounded group cursor-pointer transition-colors animate-fadeIn" onclick="createDirectMessage('${friend.id}')">
-                    <div class="relative mr-3">
-                        <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                            <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                 alt="Avatar" class="w-full h-full object-cover">
+                <div class="flex justify-between items-center p-3 rounded hover:bg-discord-light group friend-item transition-all duration-200 animate-fadeIn" onclick="createDirectMessage('${friend.id}')">
+                    <div class="flex items-center">
+                        <div class="relative mr-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="${friend.avatar_url || ''}" 
+                                     alt="${friend.username}" 
+                                     class="w-full h-full object-cover user-avatar">
+                            </div>
+                            <div class="absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300"></div>
                         </div>
-                        <div class="absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background"></div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="font-medium text-white truncate">${friendsManager.escapeHtml(friend.username)}</div>
-                        <div class="text-xs text-gray-400">${statusText}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium text-white truncate">${friendsManager.escapeHtml(friend.username)}</div>
+                            <div class="text-xs text-gray-400">${statusText}</div>
+                        </div>
                     </div>
                     <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="createDirectMessage('${friend.id}')">
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="event.stopPropagation(); createDirectMessage('${friend.id}')">
                             <i class="fa-solid fa-message"></i>
                         </button>
-                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More" onclick="event.stopPropagation()">
                             <i class="fa-solid fa-ellipsis-vertical"></i>
                         </button>
                     </div>
                 </div>
             `;
         });
-        
+
         container.innerHTML = friendsHtml;
-        updateOnlineCount(onlineFriends.length);
         
-        console.log(`✅ [APP-LAYOUT] Successfully updated UI with ${onlineFriends.length} online friends`);
+        // Apply fallback image handler to new images
+        if (window.fallbackImageHandler) {
+            setTimeout(() => {
+                container.querySelectorAll('img.user-avatar').forEach(img => {
+                    window.fallbackImageHandler.processImage(img);
+                });
+            }, 100);
+        }
+        
     } catch (error) {
-        console.error('❌ [APP-LAYOUT] Error loading online friends:', error);
-        container.innerHTML = '<div class="text-red-400 p-4">Error loading friends</div>';
+        console.error('Error loading online friends:', error);
+        container.innerHTML = '<div class="text-gray-400 p-4">Error loading online friends</div>';
     }
 }
 
@@ -227,13 +221,11 @@ async function loadAllFriends(forceRefresh = false) {
         }
 
         friends.sort((a, b) => {
-            const statusA = onlineUsers[a.id]?.status || 'offline';
-            const statusB = onlineUsers[b.id]?.status || 'offline';
+            const statusA = onlineUsers[a.id]?.status === 'online' ? 'online' : 'offline';
+            const statusB = onlineUsers[b.id]?.status === 'online' ? 'online' : 'offline';
             
-            if (statusA !== 'offline' && statusB === 'offline') return -1;
-            if (statusB !== 'offline' && statusA === 'offline') return 1;
-            if (statusA === 'online' && statusB !== 'online') return -1;
-            if (statusB === 'online' && statusA !== 'online') return 1;
+            if (statusA === 'online' && statusB === 'offline') return -1;
+            if (statusB === 'online' && statusA === 'offline') return 1;
             
             return a.username.localeCompare(b.username);
         });
@@ -241,40 +233,52 @@ async function loadAllFriends(forceRefresh = false) {
         let friendsHtml = '';
         friends.forEach(friend => {
             const userData = onlineUsers[friend.id];
-            const status = userData?.status || 'offline';
+            const status = userData?.status === 'online' ? 'online' : 'offline';
             const statusClass = getStatusClass(status);
             const statusText = getStatusText(status);
             
             friendsHtml += `
-                <div class="flex items-center p-3 hover:bg-discord-light rounded group cursor-pointer transition-colors" onclick="createDirectMessage('${friend.id}')">
-                    <div class="relative mr-3">
-                        <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                            <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                 alt="Avatar" class="w-full h-full object-cover">
+                <div class="flex justify-between items-center p-3 rounded hover:bg-discord-light group friend-item transition-all duration-200" onclick="createDirectMessage('${friend.id}')">
+                    <div class="flex items-center">
+                        <div class="relative mr-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="${friend.avatar_url || ''}" 
+                                     alt="${friend.username}" 
+                                     class="w-full h-full object-cover user-avatar">
+                            </div>
+                            <div class="friend-status-indicator absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300" data-user-id="${friend.id}"></div>
                         </div>
-                        <div class="friend-status-indicator absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background" data-user-id="${friend.id}"></div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="font-medium text-white truncate">${friendsManager.escapeHtml(friend.username)}</div>
-                        <div class="friend-status-text text-xs text-gray-400" data-user-id="${friend.id}">${statusText}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium text-white truncate">${friendsManager.escapeHtml(friend.username)}</div>
+                            <div class="friend-status-text text-xs text-gray-400" data-user-id="${friend.id}">${statusText}</div>
+                        </div>
                     </div>
                     <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="createDirectMessage('${friend.id}')">
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="event.stopPropagation(); createDirectMessage('${friend.id}')">
                             <i class="fa-solid fa-message"></i>
                         </button>
-                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More" onclick="event.stopPropagation()">
                             <i class="fa-solid fa-ellipsis-vertical"></i>
                         </button>
                     </div>
                 </div>
             `;
         });
-        
+
         container.innerHTML = friendsHtml;
-        console.log(`[App Layout] Loaded ${friends.length} friends with real-time presence`);
+        
+        // Apply fallback image handler to new images
+        if (window.fallbackImageHandler) {
+            setTimeout(() => {
+                container.querySelectorAll('img.user-avatar').forEach(img => {
+                    window.fallbackImageHandler.processImage(img);
+                });
+            }, 100);
+        }
+        
     } catch (error) {
-        console.error('[App Layout] Error loading all friends:', error);
-        container.innerHTML = '<div class="text-red-400 p-4">Error loading friends</div>';
+        console.error('Error loading all friends:', error);
+        container.innerHTML = '<div class="text-gray-400 p-4">Error loading friends</div>';
     }
 }
 
@@ -315,21 +319,24 @@ async function loadPendingRequests(forceRefresh = false) {
                 <h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Incoming Friend Requests — ${incoming.length}</h3>
                 <div class="space-y-2 mb-4">
                     ${incoming.map(user => `
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
+                        <div class="flex items-center justify-between p-3 bg-discord-dark rounded transition-all duration-200">
                             <div class="flex items-center">
-                                <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                    <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                         alt="Avatar" class="w-full h-full object-cover">
+                                <div class="relative mr-3">
+                                    <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                        <img src="${user.avatar_url || ''}" 
+                                             alt="${user.username}" 
+                                             class="w-full h-full object-cover user-avatar">
+                                    </div>
                                 </div>
-                                <div>
-                                    <div class="font-medium text-white text-sm sm:text-base">${friendsManager.escapeHtml(user.username)}</div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium text-white truncate">${friendsManager.escapeHtml(user.username)}</div>
                                     <div class="text-xs text-gray-400">Incoming Friend Request</div>
                                 </div>
                             </div>
-                            <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
-                                <button class="bg-discord-green hover:bg-discord-green/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm order-1 sm:order-none transition-colors"
+                            <div class="flex space-x-2">
+                                <button class="bg-discord-green hover:bg-discord-green/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm transition-colors"
                                         onclick="acceptFriendRequest('${user.friendship_id}')">Accept</button>
-                                <button class="bg-discord-dark hover:bg-discord-light disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm border border-gray-600 order-2 sm:order-none transition-colors"
+                                <button class="bg-discord-dark hover:bg-discord-light disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm border border-gray-600 transition-colors"
                                         onclick="ignoreFriendRequest('${user.friendship_id}')">Ignore</button>
                             </div>
                         </div>
@@ -337,25 +344,28 @@ async function loadPendingRequests(forceRefresh = false) {
                 </div>
             `;
         }
-
+        
         if (outgoing.length > 0) {
             html += `
-                <h3 class="text-xs uppercase font-semibold text-gray-400 mt-4 mb-2">Outgoing Friend Requests — ${outgoing.length}</h3>
+                <h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Outgoing Friend Requests — ${outgoing.length}</h3>
                 <div class="space-y-2">
                     ${outgoing.map(user => `
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
+                        <div class="flex items-center justify-between p-3 bg-discord-dark rounded transition-all duration-200">
                             <div class="flex items-center">
-                                <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                    <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                         alt="Avatar" class="w-full h-full object-cover">
+                                <div class="relative mr-3">
+                                    <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                        <img src="${user.avatar_url || ''}" 
+                                             alt="${user.username}" 
+                                             class="w-full h-full object-cover user-avatar">
+                                    </div>
                                 </div>
-                                <div>
-                                    <div class="font-medium text-white text-sm sm:text-base">${friendsManager.escapeHtml(user.username)}</div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium text-white truncate">${friendsManager.escapeHtml(user.username)}</div>
                                     <div class="text-xs text-gray-400">Outgoing Friend Request</div>
                                 </div>
                             </div>
-                            <div class="self-start sm:self-auto">
-                                <button class="bg-discord-red hover:bg-discord-red/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm w-full sm:w-auto transition-colors"
+                            <div>
+                                <button class="bg-discord-red hover:bg-discord-red/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm transition-colors"
                                         onclick="cancelFriendRequest('${user.id}')">Cancel</button>
                             </div>
                         </div>
@@ -366,10 +376,19 @@ async function loadPendingRequests(forceRefresh = false) {
 
         container.innerHTML = html;
         updatePendingCount(incoming.length);
-        console.log(`[App Layout] Loaded ${incoming.length} incoming and ${outgoing.length} outgoing friend requests`);
+        
+        // Apply fallback image handler to new images
+        if (window.fallbackImageHandler) {
+            setTimeout(() => {
+                container.querySelectorAll('img.user-avatar').forEach(img => {
+                    window.fallbackImageHandler.processImage(img);
+                });
+            }, 100);
+        }
+        
     } catch (error) {
-        console.error('[App Layout] Error loading pending requests:', error);
-        container.innerHTML = '<div class="text-red-400 p-4">Error loading pending requests</div>';
+        console.error('Error loading pending requests:', error);
+        container.innerHTML = '<div class="text-gray-400 p-4">Error loading pending requests</div>';
     }
 }
 
@@ -426,7 +445,7 @@ function generateSkeletonPendingItems(count = 1) {
 async function acceptFriendRequest(friendshipId) {
     const button = event.target;
     const originalText = button.textContent;
-    const requestElement = button.closest('div[class*="flex"][class*="flex-col"]');
+    const requestElement = button.closest('div[class*="flex"][class*="justify-between"]');
     
     try {
         button.disabled = true;
@@ -471,19 +490,19 @@ async function acceptFriendRequest(friendshipId) {
 async function ignoreFriendRequest(friendshipId) {
     const button = event.target;
     const originalText = button.textContent;
-    const requestElement = button.closest('div[class*="flex"][class*="flex-col"]');
+    const requestElement = button.closest('div[class*="flex"][class*="justify-between"]');
     
     try {
         button.disabled = true;
         button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Ignoring...';
         
-        const result = await window.userAPI.declineFriendRequest(friendshipId);
+        const result = await window.userAPI.ignoreFriendRequest(friendshipId);
         
         if (!result.success) {
             throw new Error(result.error || 'Failed to ignore friend request');
         }
         
-        window.showToast('Friend request ignored', 'info');
+        window.showToast('Friend request ignored', 'success');
         
         if (requestElement) {
             requestElement.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
@@ -511,22 +530,22 @@ async function ignoreFriendRequest(friendshipId) {
     }
 }
 
-async function cancelFriendRequest(userId) {
+async function cancelFriendRequest(requestId) {
     const button = event.target;
     const originalText = button.textContent;
-    const requestElement = button.closest('div[class*="flex"][class*="flex-col"]');
+    const requestElement = button.closest('div[class*="flex"][class*="justify-between"]');
     
     try {
         button.disabled = true;
         button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Canceling...';
         
-        const result = await window.userAPI.cancelFriendRequest(userId);
+        const result = await window.userAPI.cancelFriendRequest(requestId);
         
         if (!result.success) {
             throw new Error(result.error || 'Failed to cancel friend request');
         }
         
-        window.showToast('Friend request cancelled', 'info');
+        window.showToast('Friend request canceled', 'success');
         
         if (requestElement) {
             requestElement.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
@@ -546,7 +565,7 @@ async function cancelFriendRequest(userId) {
         }
         
     } catch (error) {
-        console.error('Error cancelling friend request:', error);
+        console.error('Error canceling friend request:', error);
         window.showToast(error.message || 'Failed to cancel friend request', 'error');
         
         button.disabled = false;
@@ -589,16 +608,21 @@ function checkIfNoPendingRequests() {
     const pendingContainer = document.getElementById('pending-friends-container');
     if (!pendingContainer) return;
     
-    const requestElements = pendingContainer.querySelectorAll('div[class*="flex"][class*="flex-col"]');
+    const requestElements = Array.from(pendingContainer.children).filter(el => 
+        el.classList && el.classList.contains('flex') && (
+            el.textContent.includes('Incoming Friend Request') || 
+            el.textContent.includes('Outgoing Friend Request')
+        )
+    );
     
     if (requestElements.length === 0) {
         pendingContainer.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-8">
-                <div class="mb-4 text-gray-400">
-                    <i class="fas fa-user-plus text-4xl"></i>
+            <div class="p-4 bg-discord-dark rounded text-center">
+                <div class="mb-2 text-gray-400">
+                    <i class="fa-solid fa-user-clock text-3xl"></i>
                 </div>
-                <div class="text-white font-medium mb-1">Wumpus is waiting on friends</div>
-                <div class="text-gray-400 text-sm text-center">You don't have any pending friend requests. Here's Wumpus for now.</div>
+                <p class="text-gray-300 mb-1">No pending friend requests</p>
+                <p class="text-gray-500 text-sm">Send friend requests to connect with others</p>
             </div>
         `;
         updatePendingCountDisplay(0);
@@ -647,14 +671,20 @@ function initFriendRequestForm() {
 }
 
 function updatePendingCountDisplay(count) {
-    const pendingTab = document.querySelector('button[data-tab="pending"]');
-    if (pendingTab) {
-        if (count > 0) {
-            pendingTab.innerHTML = `Pending <span class="bg-discord-red px-1.5 py-0.5 rounded text-white ml-1">${count}</span>`;
-        } else {
-            pendingTab.textContent = 'Pending';
+    const pendingButtons = document.querySelectorAll('[data-tab="pending"]');
+    pendingButtons.forEach(button => {
+        const existingBadge = button.querySelector('span.bg-discord-red');
+        if (existingBadge) {
+            existingBadge.remove();
         }
-    }
+        
+        if (count > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'bg-discord-red text-white text-xs rounded-full px-1.5 py-0.5 ml-1';
+            badge.textContent = count;
+            button.appendChild(badge);
+        }
+    });
 }
 
 function showToast(message, type = 'info') {
@@ -878,22 +908,6 @@ function updateOnlineCount(count) {
     }
 }
 
-function getStatusClass(status) {
-    switch (status) {
-        case 'online':
-            return 'bg-discord-green';
-        case 'offline':
-        default:
-            return 'bg-gray-500';
-    }
-}
-
-function getStatusText(status) {
-    switch (status) {
-        case 'online':
-            return 'Online';
-        case 'offline':
-        default:
-            return 'Offline';
-    }
+function updatePendingCount(count) {
+    updatePendingCountDisplay(count);
 }

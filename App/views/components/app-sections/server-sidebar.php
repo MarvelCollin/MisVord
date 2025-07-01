@@ -31,18 +31,21 @@ if (file_exists($tooltipPath)) {
     <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 overflow-visible transition-all duration-200">
         <div id="server-list" class="server-sidebar-list flex-1 overflow-y-auto">
             <div class="server-sidebar-icon mb-2 <?php echo $isHomePage ? 'active' : ''; ?>">
-                <a href="/home" class="server-sidebar-button flex items-center justify-center">
-                    <div class="server-sidebar-button <?php echo $isHomePage ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark hover:bg-discord-primary hover:rounded-2xl'; ?> flex items-center justify-center transition-all duration-200">
+                <a href="/home" class="block">
+                    <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">
                         <img src="<?php echo asset('/common/main-logo.png'); ?>" alt="Home" class="discord-home-logo">
                     </div>
                 </a>
                 <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">
                     Home
                 </div>
+                <?php if ($isHomePage): ?>
+                <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-10 bg-white rounded-r-full"></div>
+                <?php endif; ?>
             </div>
             
             <?php if (!empty($servers)): ?>
-            <div class="server-sidebar-divider"></div>
+            <div class="server-sidebar-divider my-2 w-8 h-0.5 bg-gray-600 rounded-full mx-auto"></div>
             <?php endif; ?>
             
             <?php if (!empty($servers)): ?>
@@ -57,17 +60,20 @@ if (file_exists($tooltipPath)) {
                     
                     <div class="server-sidebar-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>">
                         <a href="/server/<?php echo $serverId; ?>" class="block" data-server-id="<?php echo $serverId; ?>">
-                            <div class="server-sidebar-button <?php echo $isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark'; ?> flex items-center justify-center transition-all duration-200">
+                            <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">
                                 <?php if (!empty($serverImage)): ?>
-                                    <img src="<?php echo htmlspecialchars($serverImage); ?>" alt="<?php echo htmlspecialchars($serverName); ?>" class="w-full h-full object-cover">
+                                    <img src="<?php echo htmlspecialchars($serverImage); ?>" alt="<?php echo htmlspecialchars($serverName); ?>" class="w-full h-full object-cover rounded-full">
                                 <?php else: ?>
-                                    <span class="text-white font-bold text-xl sm:text-lg md:text-xl"><?php echo htmlspecialchars($serverInitials); ?></span>
+                                    <span class="text-white font-bold text-xl"><?php echo htmlspecialchars($serverInitials); ?></span>
                                 <?php endif; ?>
                             </div>
                         </a>
                         <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">
                             <?php echo htmlspecialchars($serverName); ?>
                         </div>
+                        <?php if ($isActive): ?>
+                        <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-10 bg-white rounded-r-full"></div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -90,6 +96,9 @@ if (file_exists($tooltipPath)) {
                 <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">
                     Explore Public Servers
                 </div>
+                <?php if ($isExplorePage): ?>
+                <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-10 bg-white rounded-r-full"></div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

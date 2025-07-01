@@ -80,7 +80,7 @@ class UserService {
         const presence = this.userPresence.get(userId);
         if (presence) {
             console.log(`❌ [USER-SERVICE] Removing presence for user ${userId}`);
-            this.userPresence.delete(userId);
+        this.userPresence.delete(userId);
             this.usernames.delete(userId);
         }
     }
@@ -108,7 +108,7 @@ class UserService {
         
         toRemove.forEach(userId => {
             console.log(`🧹 [USER-SERVICE] Cleaning old presence for user ${userId}`);
-            this.userPresence.delete(userId);
+                this.userPresence.delete(userId);
             this.usernames.delete(userId);
         });
         
@@ -155,7 +155,7 @@ class UserService {
                 if (!data.activity_details || data.activity_details.type === 'idle') {
                     data.activity_details = { type: 'idle' };
                 }
-                this.userPresence.set(userId, data);
+                    this.userPresence.set(userId, data);
                 statusChanges++;
                 console.log(`⏰ [USER-SERVICE] User ${userId} changed from ${oldStatus} to idle after ${Math.round(timeSinceUpdate / 1000)}s`);
                 

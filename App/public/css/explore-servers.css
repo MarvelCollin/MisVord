@@ -3,6 +3,7 @@
   border: 1px solid transparent;
   position: relative;
   overflow: hidden;
+  min-height: 280px;
 }
 
 .explore-server-card::before {
@@ -306,31 +307,7 @@
   transform: scale(1.05);
 }
 
-.explore-server-icon {
-  position: absolute;
-  width: 96px !important;
-  height: 96px !important;
-  border-radius: 28px;
-  background-color: #2f3136;
-  border: 4px solid #36393f;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
-  z-index: 10;
-}
 
-.explore-server-icon.featured {
-  top: -40px;
-  left: 24px;
-  border: 6px solid #36393f;
-  width: 96px !important;
-  height: 96px !important;
-}
-
-.explore-server-card:hover .explore-server-icon.featured {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 6px 16px rgba(0, 0, 0, 0.5);
-}
 
 .explore-server-card:hover .explore-server-icon-small {
   transform: translateY(-2px) scale(1.05);
@@ -351,8 +328,6 @@
   z-index: 10;
 }
 
-.explore-server-icon img,
-.explore-server-icon div,
 .explore-server-icon-small img,
 .explore-server-icon-small div {
   width: 100%;
@@ -365,10 +340,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.explore-server-card:hover .explore-server-icon {
-  transform: scale(1.1) rotate(2deg);
-  border-radius: 16px;
-}
+
 
 .featured-badge {
   position: absolute;
@@ -527,6 +499,7 @@
   animation: slideIn 0.5s ease-out;
   border: 1px solid rgba(79, 84, 92, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 280px;
 }
 
 .skeleton-card:hover {
@@ -535,6 +508,8 @@
 }
 
 .skeleton-icon-small {
+  width: 64px !important;
+  height: 64px !important;
   background-color: #2f3136;
   border: 3px solid #36393f;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 3px 8px rgba(0, 0, 0, 0.3);
@@ -596,12 +571,6 @@
     height: 120px;
   }
   
-  .explore-server-icon {
-    width: 80px !important;
-    height: 80px !important;
-    top: -32px;
-  }
-
   .explore-server-icon-small {
     width: 56px !important;
     height: 56px !important;

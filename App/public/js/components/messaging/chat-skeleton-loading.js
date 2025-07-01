@@ -46,6 +46,33 @@ class ChatSkeletonLoader {
         if (emptyState) {
             emptyState.style.display = 'none';
         }
+        
+        const legacyEmptyState = this.container.querySelector('.flex.flex-col.items-center.justify-center');
+        if (legacyEmptyState && legacyEmptyState.textContent.includes('No messages yet')) {
+            legacyEmptyState.style.display = 'none';
+        }
+    }
+
+    isSkeletonVisible() {
+        if (!this.container) return false;
+        const skeletons = this.container.querySelectorAll('.bubble-message-group.animate-pulse');
+        return skeletons.length > 0;
+    }
+
+    showForChannelSwitch() {
+        if (!this.container) return;
+        
+        this.container.setAttribute('data-channel-skeleton', 'active');
+        this.show();
+        console.log('🎨 [ChatSkeletonLoader] Skeleton shown for channel switch');
+    }
+
+    clearAfterLoad() {
+        if (!this.container) return;
+        
+        this.clear();
+        this.container.removeAttribute('data-channel-skeleton');
+        console.log('🧹 [ChatSkeletonLoader] Skeleton cleared after message load');
     }
 
     createSkeleton(isAlternate = false) {

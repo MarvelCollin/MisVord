@@ -47,7 +47,7 @@ class ChatAPI {
 
         const apiChatType = this.normalizeApiChatType(chatType);
         
-        const limit = options.limit || 50;
+        const limit = options.limit || 20;
         const before = options.before || null;
         const offset = options.offset || 0;
         

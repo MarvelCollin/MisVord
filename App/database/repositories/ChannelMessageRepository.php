@@ -21,7 +21,7 @@ class ChannelMessageRepository extends Repository {
         return $channelMessage->save();
     }
     
-    public function getMessagesByChannelId($channelId, $limit = 50, $offset = 0) {
+    public function getMessagesByChannelId($channelId, $limit = 20, $offset = 0) {
         $query = new Query();
         $sql = "
             SELECT m.id as id, m.user_id, m.content, m.sent_at, m.edited_at, 

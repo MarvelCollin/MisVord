@@ -81,6 +81,8 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
             <?php include dirname(__DIR__) . '/app-sections/direct-messages-sidebar.php'; ?>
         <?php elseif ($contentType === 'server'): ?>
             <?php include dirname(__DIR__) . '/app-sections/channel-section.php'; ?>
+        <?php elseif ($contentType === 'explore'): ?>
+            <?php include dirname(__DIR__) . '/app-sections/explore-sidebar.php'; ?>
         <?php endif; ?>
 
         <div class="flex flex-col flex-1" id="main-content">

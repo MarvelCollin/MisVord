@@ -83,7 +83,7 @@ class ChatRoomRepository extends Repository {
             ->where('cr.type', 'direct')
             ->where('cp.user_id', $userId)
             ->where('cp2.user_id', '!=', $userId)
-            ->select('cr.*, u.username as other_username, u.avatar_url as other_avatar, u.id as other_user_id')
+            ->select('cr.*, u.username as other_username, u.display_name as other_display_name, u.avatar_url as other_avatar, u.id as other_user_id')
             ->orderBy('cr.updated_at', 'DESC')
             ->get();
             
@@ -102,7 +102,7 @@ class ChatRoomRepository extends Repository {
             ->where('cr.type', 'direct')
             ->where('cp.user_id', $userId)
             ->where('cp2.user_id', '!=', $userId)
-            ->select('cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at, u.username as other_username, u.avatar_url as other_avatar, u.id as other_user_id')
+            ->select('cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at, u.username as other_username, u.display_name as other_display_name, u.avatar_url as other_avatar, u.id as other_user_id')
             ->get();
 
         $query2 = new Query();
@@ -184,7 +184,7 @@ class ChatRoomRepository extends Repository {
         return $query->table('chat_participants cp')
             ->join('users u', 'cp.user_id', '=', 'u.id')
             ->where('cp.chat_room_id', $roomId)
-            ->select('cp.*, u.username, u.avatar_url')
+            ->select('cp.*, u.username, u.display_name, u.avatar_url')
             ->get();
     }
 
