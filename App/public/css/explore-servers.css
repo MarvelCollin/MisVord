@@ -527,8 +527,15 @@
   background-color: #2f3136;
   border-radius: 12px;
   overflow: hidden;
-  height: 280px;
+  height: 320px;
   animation: slideIn 0.5s ease-out;
+  border: 1px solid rgba(79, 84, 92, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.skeleton-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes slideIn {
@@ -571,6 +578,14 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 24px;
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.3s ease;
+}
+
+.loading-grid.hiding {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 @media (max-width: 1200px) {

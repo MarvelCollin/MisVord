@@ -69,22 +69,23 @@ class SimpleChannelSwitcher {
             forceFresh: forceFresh
         });
 
-        if (this.currentChannelId === channelId && !forceFresh) {
-            console.log('⚠️ [CHANNEL-SWITCH] Already on this channel, but forcing fresh data anyway');
-        }
-
         this.currentChannelId = channelId;
         this.currentChannelType = channelType;
 
         try {
-            if (window.chatSection) {
+            if (this.chatSection) {
                 console.log('🎯 [CHANNEL-SWITCH] Switching chat section to channel:', channelId);
-                await window.chatSection.switchToChannel(channelId, channelType, true);
+                await this.chatSection.switchToChannel(channelId, channelType, true);
             }
 
-            if (window.globalChatSection && window.globalChatSection !== window.chatSection) {
+            if (window.globalChatSection && window.globalChatSection !== this.chatSection) {
                 console.log('🌐 [CHANNEL-SWITCH] Switching global chat section to channel:', channelId);
                 await window.globalChatSection.switchToChannel(channelId, channelType, true);
+            }
+
+            if (window.chatSection && window.chatSection !== this.chatSection && window.chatSection !== window.globalChatSection) {
+                console.log('🔄 [CHANNEL-SWITCH] Switching window.chatSection to channel:', channelId);
+                await window.chatSection.switchToChannel(channelId, channelType, true);
             }
 
             this.updateActiveChannel(channelId);

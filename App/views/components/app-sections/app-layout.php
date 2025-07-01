@@ -127,7 +127,7 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
         </div>
 
         <?php 
-        $showActiveNow = in_array($contentType, ['home', 'server', 'explore', 'dm']);
+        $showActiveNow = in_array($contentType, ['home', 'dm']);
         $currentPath = $_SERVER['REQUEST_URI'] ?? '';
         $isSettingsPage = strpos($currentPath, '/settings/') === 0;
         

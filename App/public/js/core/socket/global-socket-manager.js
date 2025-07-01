@@ -23,6 +23,9 @@ class GlobalSocketManager {
         this.joinedChannels = new Set();
         this.joinedDMRooms = new Set();
         this.socketListenersSetup = false;
+        this.presenceInterval = null;
+        this.currentPresenceStatus = 'online';
+        this.currentActivityDetails = null;
     }
     
     async initialize() {
@@ -277,6 +280,7 @@ class GlobalSocketManager {
             
             this.log('Sending initial online presence update after authentication');
             this.updatePresence('online');
+            this.startPresenceHeartbeat();
             
             console.log('🔔 [SOCKET] Dispatching globalSocketReady event');
             const event = new CustomEvent('globalSocketReady', {
@@ -339,6 +343,7 @@ class GlobalSocketManager {
         this.io.on('disconnect', () => {
             this.isConnected = false;
             this.isAuthenticated = false;
+            this.stopPresenceHeartbeat();
             this.debug('Socket disconnected', {
                 previousSocketId: this.io.id,
                 wasAuthenticated: this.isAuthenticated,
@@ -703,6 +708,9 @@ class GlobalSocketManager {
     updatePresence(status, activityDetails = null) {
         if (!this.isConnected || !this.io) return false;
         
+        this.currentPresenceStatus = status;
+        this.currentActivityDetails = activityDetails;
+        
         this.io.emit('update-presence', { 
             status, 
             activity_details: activityDetails 
@@ -711,7 +719,32 @@ class GlobalSocketManager {
         return true;
     }
     
+    startPresenceHeartbeat() {
+        this.stopPresenceHeartbeat();
+        
+        this.presenceInterval = setInterval(() => {
+            if (this.isConnected && this.isAuthenticated && this.io) {
+                this.io.emit('update-presence', {
+                    status: this.currentPresenceStatus,
+                    activity_details: this.currentActivityDetails
+                });
+                console.log('💓 [SOCKET] Presence heartbeat sent');
+            }
+        }, 10000);
+        
+        console.log('⏰ [SOCKET] Presence heartbeat started (10 second intervals)');
+    }
+    
+    stopPresenceHeartbeat() {
+        if (this.presenceInterval) {
+            clearInterval(this.presenceInterval);
+            this.presenceInterval = null;
+            console.log('⏰ [SOCKET] Presence heartbeat stopped');
+        }
+    }
+    
     disconnect() {
+        this.stopPresenceHeartbeat();
         if (this.io) {
             this.io.disconnect();
             this.io = null;

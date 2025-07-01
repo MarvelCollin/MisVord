@@ -5,8 +5,6 @@ class MessageHandler {
         this.lastMessageGroup = null;
         this.messageGroupTimeThreshold = 5 * 60 * 1000; // 5 minutes in milliseconds
         this.temporaryMessages = new Map(); // Track temporary messages
-        this.lastDisplayedMessageId = null;
-        this.lastMessageTimestamp = null;
     }
     
     async addMessage(messageData) {
@@ -796,12 +794,17 @@ class MessageHandler {
     }
 
     clearProcessedMessages() {
+        console.log('🧹 [MESSAGE-HANDLER] Clearing all processed messages and state');
         this.processedMessageIds.clear();
         this.temporaryMessages.clear();
         this.lastMessageGroup = null;
-        this.lastDisplayedMessageId = null;
-        this.lastMessageTimestamp = null;
-        console.log('🧹 [MESSAGE-HANDLER] All processed messages and state cleared');
+        
+        const messagesContainer = this.chatSection ? this.chatSection.getMessagesContainer() : null;
+        if (messagesContainer) {
+            messagesContainer.innerHTML = '';
+        }
+        
+        console.log('✅ [MESSAGE-HANDLER] All processed messages and state cleared');
     }
     
     removeMessage(messageId) {

@@ -65,6 +65,7 @@ function initCategoryFilter() {
     if (categoryFilter) {
         categoryFilter.addEventListener('change', function () {
             currentCategory = this.value || '';
+            showLoadingSkeletons();
             applyFilters();
             
             this.style.transform = 'scale(0.95)';
@@ -73,6 +74,20 @@ function initCategoryFilter() {
             }, 150);
         });
     }
+    
+    const categoryItems = document.querySelectorAll('.category-item');
+    categoryItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const categoryValue = this.getAttribute('data-category') || '';
+            
+            categoryItems.forEach(cat => cat.classList.remove('active'));
+            this.classList.add('active');
+            
+            currentCategory = categoryValue;
+            showLoadingSkeletons();
+            applyFilters();
+        });
+    });
 }
 
 function initSearchFilter() {
@@ -86,6 +101,7 @@ function initSearchFilter() {
 
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
+                showLoadingSkeletons();
                 applyFilters();
             }, 300);
         });
@@ -189,11 +205,15 @@ function selectSortOption(sortType, optionElement) {
         sortIcon.className = newIcon;
     }
     
+    showLoadingSkeletons();
     applyFilters();
 }
 
 function applyFilters() {
     const serverCards = Array.from(document.querySelectorAll('.explore-server-card:not(#featured-servers .explore-server-card)'));
+    const container = document.getElementById('all-servers');
+    
+    if (!container) return;
     
     let filteredCards = serverCards.filter(card => {
         const matchesCategory = !currentCategory || card.getAttribute('data-category') === currentCategory;
@@ -210,6 +230,8 @@ function applyFilters() {
     });
     
     setTimeout(() => {
+        hideLoadingSkeletons();
+        
         sortedCards.forEach((card, index) => {
             card.style.display = 'block';
             setTimeout(() => {
@@ -218,19 +240,76 @@ function applyFilters() {
             }, index * 50);
         });
         
-        const container = document.getElementById('all-servers');
-        if (container) {
-            const sortedFragment = document.createDocumentFragment();
-            sortedCards.forEach(card => sortedFragment.appendChild(card));
-            container.appendChild(sortedFragment);
-        }
+        const sortedFragment = document.createDocumentFragment();
+        sortedCards.forEach(card => sortedFragment.appendChild(card));
+        container.appendChild(sortedFragment);
         
         if (filteredCards.length === 0) {
             showNoResults();
         } else {
             hideNoResults();
         }
-    }, 300);
+    }, 800);
+}
+
+function showLoadingSkeletons() {
+    const container = document.getElementById('all-servers');
+    if (!container) return;
+    
+    hideNoResults();
+    hideLoadingSkeletons();
+    
+    const skeletonContainer = document.createElement('div');
+    skeletonContainer.id = 'loading-skeletons';
+    skeletonContainer.className = 'loading-grid';
+    
+    const skeletonCount = 6;
+    for (let i = 0; i < skeletonCount; i++) {
+        const skeletonCard = createSkeletonCard();
+        skeletonCard.style.animationDelay = `${i * 0.1}s`;
+        skeletonContainer.appendChild(skeletonCard);
+    }
+    
+    container.appendChild(skeletonContainer);
+}
+
+function hideLoadingSkeletons() {
+    const skeletonContainer = document.getElementById('loading-skeletons');
+    if (skeletonContainer) {
+        skeletonContainer.classList.add('hiding');
+        setTimeout(() => {
+            if (skeletonContainer && skeletonContainer.parentNode) {
+                skeletonContainer.parentNode.removeChild(skeletonContainer);
+            }
+        }, 300);
+    }
+}
+
+function createSkeletonCard() {
+    const card = document.createElement('div');
+    card.className = 'skeleton-card';
+    
+    card.innerHTML = `
+        <div class="relative">
+            <div class="skeleton skeleton-banner"></div>
+            <div class="skeleton skeleton-icon"></div>
+        </div>
+        <div class="p-6 pt-12">
+            <div class="mb-4">
+                <div class="skeleton skeleton-text" style="width: 80%; height: 20px; margin-bottom: 12px;"></div>
+                <div class="skeleton skeleton-text" style="width: 60%; height: 16px; margin-bottom: 8px;"></div>
+                <div class="skeleton skeleton-text" style="width: 90%; height: 16px; margin-bottom: 8px;"></div>
+                <div class="skeleton skeleton-text small" style="width: 70%; height: 16px;"></div>
+            </div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="skeleton" style="width: 80px; height: 16px;"></div>
+                <div class="skeleton" style="width: 60px; height: 16px;"></div>
+            </div>
+            <div class="skeleton" style="width: 100%; height: 36px; border-radius: 4px;"></div>
+        </div>
+    `;
+    
+    return card;
 }
 
 function matchesSearchQuery(card, query) {

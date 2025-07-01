@@ -76,11 +76,11 @@ class ChatController extends BaseController
             $offset = isset($_GET['offset']) && is_numeric($_GET['offset']) ? (int)$_GET['offset'] : 0;
             $timestamp = $_GET['timestamp'] ?? null;
             $cacheBust = $_GET['_cache_bust'] ?? null;
-            $bypassCache = isset($_GET['bypass_cache']) && $_GET['bypass_cache'] === 'true';
             $isChannelSwitch = isset($_GET['channel_switch']) && $_GET['channel_switch'] === 'true';
+            $forceFresh = isset($_GET['force_fresh']) && $_GET['force_fresh'] === 'true';
             $beforeMessageId = $_GET['before'] ?? null;
             
-            if ($timestamp || $cacheBust || $isChannelSwitch || $bypassCache) {
+            if ($timestamp || $cacheBust || $isChannelSwitch || $forceFresh) {
                 $offset = 0;
             }
 
@@ -99,7 +99,15 @@ class ChatController extends BaseController
                 $hasMore = $totalMessagesInChannel > (count($formattedMessages) + $offset);
             }
 
-            return $this->respondMessages('channel', $channelId, $formattedMessages, $hasMore);
+            $response = $this->respondMessages('channel', $channelId, $formattedMessages, $hasMore);
+            
+            if ($isChannelSwitch || $forceFresh) {
+                header('Cache-Control: no-cache, no-store, must-revalidate');
+                header('Pragma: no-cache');
+                header('Expires: 0');
+            }
+            
+            return $response;
         } catch (Exception $e) {
             error_log("Error getting channel messages: " . $e->getMessage());
             return $this->serverError('Failed to load channel messages: ' . $e->getMessage());

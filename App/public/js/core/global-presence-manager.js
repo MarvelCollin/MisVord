@@ -2,7 +2,7 @@ class GlobalPresenceManager {
     constructor() {
         this.friendsManager = null;
         this.isInitialized = false;
-        this.activePagesWithActiveNow = ['home', 'server', 'explore', 'admin', 'nitro', 'accept-invite'];
+        this.activePagesWithActiveNow = ['home', 'server', 'admin', 'nitro', 'accept-invite'];
         this.currentPage = this.detectCurrentPage();
         
         console.log('🌐 [GLOBAL-PRESENCE] Initializing for page:', this.currentPage);

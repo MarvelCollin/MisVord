@@ -53,18 +53,25 @@ class ChatAPI {
         const offset = options.offset || 0;
         const isChannelSwitch = options.isChannelSwitch || false;
         
-        let url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}&t=${Date.now()}`;
+        let url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
+        
         if (before) {
             url += `&before=${before}`;
         }
+        
+        url += `&_t=${Date.now()}`;
+        url += `&_cache_bust=${Math.random().toString(36).substring(7)}`;
+        
         if (isChannelSwitch) {
             url += `&channel_switch=true`;
+            url += `&force_fresh=true`;
         }
-        if (options.timestamp) {
-            url += `&timestamp=${options.timestamp}`;
+        if (options.timestamp || options.forceFresh || isChannelSwitch) {
+            url += `&timestamp=${Date.now()}`;
+            url += `&fresh=${Date.now()}`;
         }
-        if (options.bypass_cache) {
-            url += `&_cache_bust=${Date.now()}`;
+        if (options.bypass_cache || isChannelSwitch) {
+            url += `&no_cache=${Date.now()}`;
         }
         
         const response = await this.makeRequest(url);
