@@ -403,6 +403,7 @@ function setup(io) {
             try {
                 const { channel_id, meeting_id } = data;
                 const userKey = client.data?.user_id || client.id;
+                const username = client.data?.username;
                 
                 console.log(`📝 [VOICE-REGISTER] User ${userKey} registering for meeting ${meeting_id} in channel ${channel_id}`);
                 
@@ -415,6 +416,17 @@ function setup(io) {
                         user_id: userKey
                     });
                     return;
+                }
+                
+                const currentPresence = userService.getPresence(userKey);
+                if (!currentPresence || currentPresence.activity_details?.type !== 'playing Tic Tac Toe') {
+                    userService.updatePresence(userKey, 'online', { type: 'In Voice Call' });
+                    io.emit('user-presence-update', {
+                        user_id: userKey,
+                        username: username,
+                        status: 'online',
+                        activity_details: { type: 'In Voice Call' }
+                    });
                 }
                 
                 VoiceConnectionTracker.addUserToVoice(userKey, channel_id, meeting_id);
@@ -564,15 +576,13 @@ function handlePresence(io, client, data) {
     
     if (!user_id || !username) return;
     
-    const activityData = activity_details || { type: 'idle', name: 'Idle' };
-    
-    userService.updatePresence(user_id, status, activityData);
+    userService.updatePresence(user_id, status, activity_details);
     
     io.emit('user-presence-update', {
         user_id,
         username,
         status,
-        activity_details: activityData
+        activity_details
     });
 }
 
@@ -588,7 +598,7 @@ function handleGetOnlineUsers(io, client) {
                 user_id,
                 username: socket.data.username || 'Unknown',
                 status: presence?.status || 'online',
-                activity_details: presence?.activity_details || { type: 'idle', name: 'Idle' },
+                activity_details: presence?.activity_details || { type: 'idle' },
                 last_seen: Date.now()
             };
         }
@@ -641,6 +651,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
     
     const { channel_id } = data;
     const user_id = client.data?.user_id;
+    const username = client.data?.username;
     
     if (!channel_id) {
         console.warn(`⚠️ [VOICE-UNREGISTER-HANDLER] Channel ID is required`);
@@ -659,6 +670,17 @@ function handleUnregisterVoiceMeeting(io, client, data) {
         console.log(`👤 [VOICE-UNREGISTER-HANDLER] Removed participant ${client.id} from voice meeting in channel ${channel_id}`);
         
         if (user_id) {
+            const currentPresence = userService.getPresence(user_id);
+            if (currentPresence && currentPresence.activity_details?.type === 'In Voice Call') {
+                userService.updatePresence(user_id, 'online', { type: 'idle' });
+                io.emit('user-presence-update', {
+                    user_id: user_id,
+                    username: username,
+                    status: 'online',
+                    activity_details: { type: 'idle' }
+                });
+            }
+            
             VoiceConnectionTracker.removeUserFromVoice(user_id);
             console.log(`🔇 [VOICE-UNREGISTER-HANDLER] Removed user ${user_id} from voice connection tracker`);
             
@@ -731,6 +753,7 @@ function handleDisconnect(io, client) {
                     user_id: user_id,
                     username: username,
                     status: 'offline',
+                    activity_details: null,
                     timestamp: Date.now()
                 });
             }

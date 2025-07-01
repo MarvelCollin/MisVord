@@ -71,9 +71,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function updateUserStatus(userId, status, username) {
-
+    function getActivityText(activityDetails) {
+        if (!activityDetails || !activityDetails.type) {
+            return 'Online';
+        }
         
+        switch (activityDetails.type) {
+            case 'playing Tic Tac Toe':
+                return 'Playing Tic Tac Toe';
+            case 'In Voice Call':
+                return 'In Voice Call';
+            case 'idle':
+            default:
+                return 'Online';
+        }
+    }
+    
+    function getActivityIcon(activityDetails) {
+        if (!activityDetails || !activityDetails.type) {
+            return 'fa-solid fa-circle';
+        }
+        
+        switch (activityDetails.type) {
+            case 'playing Tic Tac Toe':
+                return 'fa-solid fa-gamepad';
+            case 'In Voice Call':
+                return 'fa-solid fa-microphone';
+            case 'idle':
+            default:
+                return 'fa-solid fa-circle';
+        }
+    }
+    
+    function updateUserStatus(userId, status, username, activityDetails = null) {
         if (status === 'offline' || status === 'invisible') {
             if (onlineUsers[userId]) {
                 delete onlineUsers[userId];
@@ -84,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 username: username,
                 status: status,
                 last_seen: Date.now(),
-                activity_details: null
+                activity_details: activityDetails
             };
         }
         
@@ -128,7 +158,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const userData = onlineUsers[friend.id];
                 const status = userData?.status || 'idle';
                 const statusClass = getStatusClass(status);
-                const statusText = getStatusText(status);
+                const activityDetails = userData?.activity_details;
+                const activityText = getActivityText(activityDetails);
+                const activityIcon = getActivityIcon(activityDetails);
                 
                 const friendEl = document.createElement('div');
                 friendEl.className = 'flex items-center mb-4 p-3 bg-discord-background rounded-md hover:bg-discord-darker cursor-pointer transition-all duration-200 animate-fadeIn';
@@ -141,7 +173,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="flex-1">
                         <div class="font-semibold text-white">${friend.username}</div>
-                        <div class="text-xs text-gray-400 transition-all duration-200">${statusText}</div>
+                        <div class="text-xs text-gray-400 transition-all duration-200 flex items-center">
+                            <i class="${activityIcon} mr-1"></i>
+                            ${activityText}
+                        </div>
                     </div>
                 `;
                 
@@ -233,6 +268,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateActiveFriends();
             });
             
+            window.globalSocketManager.io.on('online-users-response', (data) => {
+                console.log('👥 [ACTIVE-NOW] Received online users response:', data);
+                onlineUsers = data.users || {};
+                updateActiveFriends();
+            });
+            
             isSocketReady = true;
             console.log('✅ [ACTIVE-NOW] Socket listeners setup complete');
             
@@ -245,21 +286,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleUserOnline(data) {
         console.log('👥 [ACTIVE-NOW] User came online:', data);
         if (data.user_id && data.username) {
-            updateUserStatus(data.user_id, data.status || 'online', data.username);
+            updateUserStatus(data.user_id, data.status || 'online', data.username, data.activity_details);
         }
     }
     
     function handleUserOffline(data) {
         console.log('👥 [ACTIVE-NOW] User went offline:', data);
         if (data.user_id && data.username) {
-            updateUserStatus(data.user_id, 'offline', data.username);
+            updateUserStatus(data.user_id, 'offline', data.username, null);
         }
     }
     
     function handlePresenceUpdate(data) {
         console.log('👥 [ACTIVE-NOW] User presence updated:', data);
         if (data.user_id && data.username) {
-            updateUserStatus(data.user_id, data.status, data.username);
+            updateUserStatus(data.user_id, data.status, data.username, data.activity_details);
         }
     }
     

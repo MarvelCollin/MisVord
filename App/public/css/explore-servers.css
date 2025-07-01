@@ -17,9 +17,14 @@
 }
 
 .explore-server-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  border-color: rgba(88, 101, 242, 0.3);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5), 0 8px 16px rgba(88, 101, 242, 0.2);
+  border-color: rgba(88, 101, 242, 0.4);
+}
+
+.explore-server-card:hover .featured-badge {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(255, 215, 0, 0.4);
 }
 
 .explore-server-card:hover::before {
@@ -267,10 +272,21 @@
 .server-banner {
   position: relative;
   background: linear-gradient(135deg, #5865f2 0%, #7289da 50%, #eb459e 100%);
-  height: 140px;
+  height: 144px;
   border-radius: 12px 12px 0 0;
-  overflow: visible;
+  overflow: hidden;
   transition: all 0.3s ease;
+}
+
+.server-banner::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, rgba(54, 57, 63, 0.8));
+  pointer-events: none;
 }
 
 .server-banner img {
@@ -286,40 +302,32 @@
 
 .explore-server-icon {
   position: absolute;
-  width: 72px;
-  height: 72px;
-  border-radius: 20px;
+  width: 96px;
+  height: 96px;
+  border-radius: 28px;
   background-color: #2f3136;
   border: 4px solid #36393f;
   overflow: hidden;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
   z-index: 10;
 }
 
 .explore-server-icon.featured {
   top: -40px;
   left: 24px;
-}
-
-.explore-server-icon.featured .w-18 {
-  width: 72px;
-  height: 72px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 6px solid #36393f;
 }
 
 .explore-server-card:hover .explore-server-icon.featured {
-  transform: translateY(-2px);
-}
-
-.explore-server-card:hover .explore-server-icon.featured .w-18 {
-  transform: scale(1.05) rotate(3deg);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 6px 16px rgba(0, 0, 0, 0.5);
 }
 
 .explore-server-icon-small {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
   overflow: hidden;
   flex-shrink: 0;
   position: relative;
@@ -349,15 +357,18 @@
   position: absolute;
   top: 12px;
   right: 12px;
-  background: rgba(0, 0, 0, 0.5);
-  color: #ffd700;
-  padding: 6px 12px;
-  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 193, 7, 0.9));
+  color: #1a1a1a;
+  padding: 8px 14px;
+  border-radius: 24px;
   font-size: 12px;
-  font-weight: 600;
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
   z-index: 5;
+  text-shadow: none;
+  letter-spacing: 0.5px;
 }
 
 .category-badge {
@@ -380,6 +391,19 @@
   color: #b9bbbe;
   font-size: 13px;
   font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.server-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.server-description {
+  line-height: 1.5;
+  color: #a3a6aa;
 }
 
 .online-dot {
@@ -389,6 +413,17 @@
   border-radius: 50%;
   margin-right: 6px;
   flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(59, 165, 93, 0.2);
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(59, 165, 93, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(59, 165, 93, 0.1);
+  }
 }
 
 .join-server-btn {
@@ -418,7 +453,11 @@
 
 .join-server-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(88, 101, 242, 0.4);
+  box-shadow: 0 12px 24px rgba(88, 101, 242, 0.4), 0 4px 8px rgba(88, 101, 242, 0.2);
+}
+
+.join-server-btn:not(.bg-discord-green\/20):hover {
+  background: linear-gradient(135deg, #5865f2 0%, #7289da 100%);
 }
 
 .join-server-btn:active {
@@ -522,14 +561,14 @@
   }
   
   .explore-server-icon {
-    width: 64px;
-    height: 64px;
-    bottom: -28px;
+    width: 80px;
+    height: 80px;
+    top: -32px;
   }
 
   .explore-server-icon-small {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
   }
 
   .filter-section {
@@ -563,8 +602,8 @@
   }
 
   .explore-server-icon-small {
-    width: 44px;
-    height: 44px;
+    width: 52px;
+    height: 52px;
   }
 
   .filter-controls {

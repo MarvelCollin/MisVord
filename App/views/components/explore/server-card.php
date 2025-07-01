@@ -17,21 +17,22 @@ function renderServerCard($server, $userServerId, $isFeatured = false) {
                 </div>
             </div>
 
-            <div class="relative px-6 pt-4 pb-6">
+            <div class="relative px-6 pt-6 pb-6">
                 <div class="explore-server-icon server-icon featured absolute -top-10 left-6">
-                    <div class="w-18 h-18 rounded-2xl bg-discord-dark p-1 shadow-xl">
+                    <div class="w-full h-full rounded-2xl bg-discord-dark p-1 shadow-xl relative overflow-hidden">
                         <?php if (!empty($server['image_url'])): ?>
                             <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-xl"
                                  onerror="this.onerror=null; this.src='/public/assets/common/default-profile-picture.png';">
                         <?php else: ?>
-                            <img src="/public/assets/common/default-profile-picture.png" 
-                                 alt="<?php echo htmlspecialchars($server['name']); ?>" 
-                                 class="w-full h-full object-cover rounded-xl">
+                            <div class="w-full h-full rounded-xl bg-gradient-to-br from-discord-primary to-purple-600 flex items-center justify-center text-white font-bold text-3xl">
+                                <?php echo strtoupper(substr($server['name'], 0, 1)); ?>
+                            </div>
                         <?php endif; ?>
+                        <div class="absolute inset-0 rounded-xl ring-2 ring-white/20"></div>
                     </div>
                 </div>
 
-                <div class="mt-8">
+                <div class="mt-10 pl-2">
                     <h3 class="server-name font-bold text-xl mb-2 text-white transition-colors"><?php echo htmlspecialchars($server['name']); ?></h3>
                     <?php if (!empty($server['description'])): ?>
                         <p class="server-description text-discord-lighter text-sm mb-4 line-clamp-2 leading-relaxed"><?php echo htmlspecialchars($server['description']); ?></p>
@@ -72,15 +73,16 @@ function renderServerCard($server, $userServerId, $isFeatured = false) {
         <div class="<?php echo $cardClass; ?>" data-server-id="<?php echo $serverId; ?>" data-category="<?php echo htmlspecialchars($server['category'] ?? ''); ?>">
             <div class="p-5">
                 <div class="flex items-start mb-4">
-                    <div class="explore-server-icon-small server-icon-small rounded-xl bg-discord-primary overflow-hidden mr-4 flex-shrink-0 shadow-lg">
+                    <div class="explore-server-icon-small server-icon-small rounded-xl bg-discord-primary overflow-hidden mr-4 flex-shrink-0 shadow-lg relative">
                         <?php if (!empty($server['image_url'])): ?>
                             <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover"
                                  onerror="this.onerror=null; this.src='/public/assets/common/default-profile-picture.png';">
                         <?php else: ?>
-                            <img src="/public/assets/common/default-profile-picture.png" 
-                                 alt="<?php echo htmlspecialchars($server['name']); ?>" 
-                                 class="w-full h-full object-cover">
+                            <div class="w-full h-full bg-gradient-to-br from-discord-primary to-purple-600 flex items-center justify-center text-white font-bold text-xl">
+                                <?php echo strtoupper(substr($server['name'], 0, 1)); ?>
+                            </div>
                         <?php endif; ?>
+                        <div class="absolute inset-0 ring-1 ring-white/20 rounded-xl"></div>
                     </div>
 
                     <div class="flex-1 min-w-0">

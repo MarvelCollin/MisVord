@@ -1,4 +1,5 @@
 const roomManager = require('../services/roomManager');
+const userService = require('../services/userService');
 
 class ActivityHandler {
     static handleTicTacToeJoin(io, client, data) {
@@ -11,6 +12,14 @@ class ActivityHandler {
             client.emit('tic-tac-toe-error', { message: 'Missing server_id or user authentication' });
             return;
         }
+        
+        userService.updatePresence(user_id, 'online', { type: 'playing Tic Tac Toe' });
+        io.emit('user-presence-update', {
+            user_id: user_id,
+            username: username,
+            status: 'online',
+            activity_details: { type: 'playing Tic Tac Toe' }
+        });
         
         const roomName = `tic-tac-toe-server-${server_id}`;
         
@@ -199,6 +208,17 @@ class ActivityHandler {
         const server_id = client.data.ticTacToeServerId;
         
         if (!server_id) return;
+        
+        const user_id = client.data.user_id;
+        const username = client.data.username;
+        
+        userService.updatePresence(user_id, 'online', { type: 'idle' });
+        io.emit('user-presence-update', {
+            user_id: user_id,
+            username: username,
+            status: 'online',
+            activity_details: { type: 'idle' }
+        });
         
         const roomName = `tic-tac-toe-server-${server_id}`;
         

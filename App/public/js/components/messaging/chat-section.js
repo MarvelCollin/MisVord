@@ -1884,14 +1884,9 @@ class ChatSection {
         return cleanName;
     }
 
-    async switchToChannel(channelId, channelType = 'text') {
-        console.log('🔄 [CHAT-SECTION] Switching to channel:', channelId, channelType);
+    async switchToChannel(channelId, channelType = 'text', forceFresh = false) {
+        console.log('🔄 [CHAT-SECTION] Switching to channel:', channelId, channelType, 'forceFresh:', forceFresh);
         
-        if (this.targetId === channelId && this.isInitialized) {
-            console.log('✅ [CHAT-SECTION] Already on target channel and initialized');
-            return;
-        }
-
         this.leaveCurrentSocketRoom();
 
         this.targetId = channelId;
@@ -1905,7 +1900,7 @@ class ChatSection {
         
         this.joinSocketRoom();
         
-        await this.loadMessages();
+        await this.loadMessages({ forceFresh: true });
         
         this.updateChannelHeader();
         

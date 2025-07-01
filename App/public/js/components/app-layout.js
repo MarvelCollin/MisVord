@@ -8,12 +8,7 @@ const friendAPI = window.FriendAPI;
 document.addEventListener('DOMContentLoaded', function () {
     initFriendRequestForm();
     
-    if (window.location.pathname === '/home/friends' || window.location.pathname === '/home') {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tab = urlParams.get('tab') || 'online';
-        
-        activateTab(tab);
-    }
+
 
     requestAnimationFrame(() => {
         initServerModal();

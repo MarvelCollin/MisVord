@@ -6,6 +6,7 @@ class SimpleChannelSwitcher {
         
         this.currentChannelId = null;
         this.currentChannelType = 'text';
+        this.isLoading = false;
         
         window.simpleChannelSwitcher = this;
         this.init();
@@ -24,6 +25,8 @@ class SimpleChannelSwitcher {
             e.preventDefault();
             e.stopPropagation();
             
+            if (this.isLoading) return;
+            
             const channelId = channelItem.getAttribute('data-channel-id');
             let channelType = channelItem.getAttribute('data-channel-type') || 'text';
             
@@ -32,51 +35,105 @@ class SimpleChannelSwitcher {
             }
             
             if (channelId) {
-                this.switchToChannel(channelId, channelType);
+                this.switchToChannel(channelId, channelType, true);
             }
         });
     }
     
-    switchToChannel(channelId, channelType = 'text') {
-        if (this.currentChannelId === channelId) return;
+    async switchToChannel(channelId, channelType = 'text', forceFresh = false) {
+        if (this.isLoading) return;
         
-        this.currentChannelId = channelId;
-        this.currentChannelType = channelType;
+        this.isLoading = true;
+        this.showChannelSwitchLoading(channelId);
         
-        this.updateActiveChannel(channelId);
-        this.showSection(channelType, channelId);
-        this.updateURL(channelId, channelType);
-        this.updateMetaTags(channelId, channelType);
-        this.updateChannelHeader(channelId, channelType);
-        
-        if (channelType === 'text') {
-            this.initializeTextChannel(channelId);
-        } else if (channelType === 'voice') {
-            this.initializeVoiceChannel(channelId);
+        try {
+            this.currentChannelId = channelId;
+            this.currentChannelType = channelType;
+            
+            this.updateActiveChannel(channelId);
+            this.showSection(channelType, channelId);
+            this.updateURL(channelId, channelType);
+            this.updateMetaTags(channelId, channelType);
+            this.updateChannelHeader(channelId, channelType);
+            
+            if (channelType === 'text') {
+                await this.initializeTextChannel(channelId, forceFresh);
+            } else if (channelType === 'voice') {
+                await this.initializeVoiceChannel(channelId, forceFresh);
+            }
+        } finally {
+            this.hideChannelSwitchLoading(channelId);
+            this.isLoading = false;
         }
     }
     
-    initializeTextChannel(channelId) {
+    showChannelSwitchLoading(channelId) {
+        const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
+        if (channelItem) {
+            channelItem.classList.add('switching');
+            
+            let loadingIndicator = channelItem.querySelector('.channel-switch-indicator');
+            if (!loadingIndicator) {
+                loadingIndicator = document.createElement('span');
+                loadingIndicator.className = 'channel-switch-indicator';
+                channelItem.appendChild(loadingIndicator);
+            }
+        }
+    }
+    
+    hideChannelSwitchLoading(channelId) {
+        const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
+        if (channelItem) {
+            channelItem.classList.remove('switching');
+            const loadingIndicator = channelItem.querySelector('.channel-switch-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
+        }
+    }
+    
+    async initializeTextChannel(channelId, forceFresh = false) {
         if (window.chatSection) {
-            window.chatSection.resetForNewChannel();
-            window.chatSection.switchToChannel(channelId, 'text');
+            await window.chatSection.resetForNewChannel();
+            await window.chatSection.switchToChannel(channelId, 'text', forceFresh);
         } else {
-            setTimeout(() => {
+            setTimeout(async () => {
                 if (window.chatSection) {
-                    window.chatSection.resetForNewChannel();
-                    window.chatSection.switchToChannel(channelId, 'text');
+                    await window.chatSection.resetForNewChannel();
+                    await window.chatSection.switchToChannel(channelId, 'text', forceFresh);
                 }
             }, 100);
         }
     }
     
-    initializeVoiceChannel(channelId) {
+    async initializeVoiceChannel(channelId, forceFresh = false) {
         if (window.voiceSection) {
-            window.voiceSection.updateChannelId(channelId);
+            await window.voiceSection.updateChannelId(channelId, forceFresh);
         }
         
         if (window.chatSection) {
             window.chatSection.leaveCurrentSocketRoom();
+        }
+        
+        await this.fetchVoiceChannelData(channelId);
+    }
+    
+    async fetchVoiceChannelData(channelId) {
+        try {
+            const response = await fetch(`/api/channels/${channelId}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data) {
+                    window.currentChannelData = data.data.channel;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch voice channel data:', error);
         }
     }
     
@@ -180,7 +237,7 @@ class SimpleChannelSwitcher {
         
         if (channelId) {
             setTimeout(() => {
-                this.switchToChannel(channelId, channelType);
+                this.switchToChannel(channelId, channelType, true);
             }, 100);
         }
     }

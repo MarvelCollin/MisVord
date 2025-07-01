@@ -7,11 +7,10 @@ class UserService {
     }
 
     updatePresence(userId, status, activityDetails = null) {
-        const defaultActivity = activityDetails || { type: 'idle', name: 'Idle' };
         this.userPresence.set(userId, {
             user_id: userId,
             status,
-            activity_details: defaultActivity,
+            activity_details: activityDetails,
             last_seen: Date.now()
         });
     }
@@ -21,8 +20,8 @@ class UserService {
         if (!presence) return null;
         
         const timeSinceUpdate = Date.now() - presence.last_seen;
-        if (timeSinceUpdate > this.idleTimeout && presence.activity_details?.type !== 'idle') {
-            presence.activity_details = { type: 'idle', name: 'Idle' };
+        if (timeSinceUpdate > this.idleTimeout && presence.status === 'online') {
+            presence.status = 'idle';
             this.userPresence.set(userId, presence);
         }
         
@@ -55,6 +54,7 @@ class UserService {
 
     startCleanupTimer() {
         setInterval(() => {
+            this.cleanOldPresence();
             this.updateIdleUsers();
         }, this.cleanupInterval);
     }
@@ -63,10 +63,12 @@ class UserService {
         const now = Date.now();
         for (const [userId, data] of this.userPresence.entries()) {
             const timeSinceUpdate = now - data.last_seen;
-            if (timeSinceUpdate > this.idleTimeout && data.activity_details?.type !== 'idle') {
-                data.activity_details = { type: 'idle', name: 'Idle' };
-                this.userPresence.set(userId, data);
-                console.log(`⏰ [USER-SERVICE] User ${userId} activity set to idle after ${Math.round(timeSinceUpdate / 1000)}s inactivity`);
+            if (timeSinceUpdate > this.idleTimeout && data.status === 'online') {
+                if (!data.activity_details || data.activity_details.type === 'idle') {
+                    data.status = 'idle';
+                    this.userPresence.set(userId, data);
+                    console.log(`⏰ [USER-SERVICE] User ${userId} automatically set to idle after ${Math.round(timeSinceUpdate / 1000)}s inactivity`);
+                }
             }
         }
     }
@@ -86,21 +88,9 @@ class UserService {
     getIdleCount() {
         let count = 0;
         this.userPresence.forEach(data => {
-            if (data.activity_details?.type === 'idle') count++;
+            if (data.status === 'idle') count++;
         });
         return count;
-    }
-
-    getActivityTypes() {
-        const activityTypes = {
-            'idle': 'Idle',
-            'playing': 'Playing a game',
-            'listening': 'Listening to music',
-            'watching': 'Watching',
-            'streaming': 'Streaming',
-            'custom': 'Custom Status'
-        };
-        return activityTypes;
     }
 }
 
