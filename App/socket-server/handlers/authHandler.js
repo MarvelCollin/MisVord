@@ -65,14 +65,15 @@ class AuthHandler {
         
         console.log(`👤 [AUTH-HANDLER] Setting user online status after authentication`);
         const userService = require('../services/userService');
-        userService.updatePresence(user_id, 'idle', null);
+        userService.updatePresence(user_id, 'online', { type: 'idle', name: 'Idle' });
         
         if (io && typeof io.emit === 'function') {
             console.log(`📡 [AUTH-HANDLER] Broadcasting user online status to all clients`);
             io.emit('user-online', {
                 user_id: user_id,
                 username: client.data.username,
-                status: 'idle',
+                status: 'online',
+                activity_details: { type: 'idle', name: 'Idle' },
                 timestamp: Date.now()
             });
             console.log(`✅ [AUTH-HANDLER] User online broadcast sent successfully`);

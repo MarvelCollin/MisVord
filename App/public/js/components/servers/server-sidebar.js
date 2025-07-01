@@ -5,109 +5,10 @@ let serverDataCache = null;
 let cacheExpiry = 0;
 let isHandlingClick = false;
 
-let lastServerSwitchTime = 0;
-const SERVER_SWITCH_DELAY = 600;
-
 let homeIconClickCount = 0;
 let lastClickTime = 0;
 const CLICK_TIMEOUT = 3000;
 const CLICKS_NEEDED = 16; 
-
-function showServerLoadingIndicator(serverId) {
-    const serverIcon = document.querySelector(`a[data-server-id="${serverId}"]`)?.closest('.server-icon');
-    if (!serverIcon) return;
-    
-    const serverButton = serverIcon.querySelector('.server-button');
-    if (!serverButton) return;
-    
-    let loadingOverlay = serverButton.querySelector('.server-loading-overlay');
-    if (!loadingOverlay) {
-        loadingOverlay = document.createElement('div');
-        loadingOverlay.className = 'server-loading-overlay';
-        loadingOverlay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        serverButton.appendChild(loadingOverlay);
-    }
-    
-    loadingOverlay.style.display = 'flex';
-    serverButton.style.opacity = '0.7';
-}
-
-function hideServerLoadingIndicator(serverId) {
-    const serverIcon = document.querySelector(`a[data-server-id="${serverId}"]`)?.closest('.server-icon');
-    if (!serverIcon) return;
-    
-    const serverButton = serverIcon.querySelector('.server-button');
-    if (!serverButton) return;
-    
-    const loadingOverlay = serverButton.querySelector('.server-loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
-    }
-    
-    serverButton.style.opacity = '1';
-}
-
-function showHomeLoadingIndicator() {
-    const homeIcon = document.querySelector('.server-icon:first-child');
-    if (!homeIcon) return;
-    
-    const serverButton = homeIcon.querySelector('.server-button');
-    if (!serverButton) return;
-    
-    let loadingOverlay = serverButton.querySelector('.server-loading-overlay');
-    if (!loadingOverlay) {
-        loadingOverlay = document.createElement('div');
-        loadingOverlay.className = 'server-loading-overlay';
-        loadingOverlay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        serverButton.appendChild(loadingOverlay);
-    }
-    
-    loadingOverlay.style.display = 'flex';
-    serverButton.style.opacity = '0.7';
-}
-
-function hideHomeLoadingIndicator() {
-    const homeIcon = document.querySelector('.server-icon:first-child');
-    if (!homeIcon) return;
-    
-    const serverButton = homeIcon.querySelector('.server-button');
-    if (!serverButton) return;
-    
-    const loadingOverlay = serverButton.querySelector('.server-loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
-    }
-    
-    serverButton.style.opacity = '1';
-}
-
-function showExploreLoadingIndicator() {
-    const exploreButton = document.querySelector('.discord-explore-server-button');
-    if (!exploreButton) return;
-    
-    let loadingOverlay = exploreButton.querySelector('.server-loading-overlay');
-    if (!loadingOverlay) {
-        loadingOverlay = document.createElement('div');
-        loadingOverlay.className = 'server-loading-overlay';
-        loadingOverlay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        exploreButton.appendChild(loadingOverlay);
-    }
-    
-    loadingOverlay.style.display = 'flex';
-    exploreButton.style.opacity = '0.7';
-}
-
-function hideExploreLoadingIndicator() {
-    const exploreButton = document.querySelector('.discord-explore-server-button');
-    if (!exploreButton) return;
-    
-    const loadingOverlay = exploreButton.querySelector('.server-loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
-    }
-    
-    exploreButton.style.opacity = '1';
-}
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[Server Sidebar] DOMContentLoaded: Initializing server sidebar');
@@ -894,24 +795,12 @@ export async function handleHomeClick(event) {
         return;
     }
 
-    const currentTime = Date.now();
-    const timeSinceLastSwitch = currentTime - lastServerSwitchTime;
-    
-    if (timeSinceLastSwitch < SERVER_SWITCH_DELAY) {
-        console.log('[Home Navigation] Home navigation blocked - too soon after last switch');
-        return;
-    }
-    
-    lastServerSwitchTime = currentTime;
-    showHomeLoadingIndicator();
-
     try {
         console.log('[Home Navigation] Redirecting to home page');
         window.location.href = '/home';
 
     } catch (error) {
         console.error('[Home Navigation] ERROR in handleHomeClick:', error);
-        hideHomeLoadingIndicator();
     }
 }
 
@@ -941,17 +830,6 @@ export async function handleServerClick(serverId, event) {
         return;
     }
 
-    const currentTime = Date.now();
-    const timeSinceLastSwitch = currentTime - lastServerSwitchTime;
-    
-    if (timeSinceLastSwitch < SERVER_SWITCH_DELAY) {
-        console.log('[Server Navigation] Server switch blocked - too soon after last switch');
-        return;
-    }
-    
-    lastServerSwitchTime = currentTime;
-    showServerLoadingIndicator(serverId);
-
     try {
         let defaultChannelId = null;
         
@@ -969,7 +847,6 @@ export async function handleServerClick(serverId, event) {
         
     } catch (error) {
         console.error('[Server Navigation] ERROR in handleServerClick:', error);
-        hideServerLoadingIndicator(serverId);
     }
 }
 
@@ -986,24 +863,12 @@ export async function handleExploreClick(event) {
         return;
     }
 
-    const currentTime = Date.now();
-    const timeSinceLastSwitch = currentTime - lastServerSwitchTime;
-    
-    if (timeSinceLastSwitch < SERVER_SWITCH_DELAY) {
-        console.log('[Explore Navigation] Explore navigation blocked - too soon after last switch');
-        return;
-    }
-    
-    lastServerSwitchTime = currentTime;
-    showExploreLoadingIndicator();
-    
     try {
         console.log('[Explore Navigation] Redirecting to explore page');
         window.location.href = '/explore-servers';
 
     } catch (error) {
         console.error('[Explore Navigation] ERROR in handleExploreClick:', error);
-        hideExploreLoadingIndicator();
     }
 }
 

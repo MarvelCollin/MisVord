@@ -5,15 +5,7 @@ import FormValidator from '../common/validation.js';
 import serverAPI from '../../api/server-api.js';
 import { ServerSidebar } from './server-sidebar.js';
 
-console.log("create-server-modal.js loaded at", new Date().toISOString());
 
-if (window.createServerModalLoaded) {
-    console.error("DUPLICATE LOAD DETECTED! create-server-modal.js is being loaded multiple times");
-    throw new Error("create-server-modal.js loaded multiple times");
-} else {
-    window.createServerModalLoaded = true;
-    console.log("create-server-modal.js first load confirmed");
-}
 
 let isFormSubmitting = false;
 let modalInitialized = false;

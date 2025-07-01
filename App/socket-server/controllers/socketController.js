@@ -564,13 +564,15 @@ function handlePresence(io, client, data) {
     
     if (!user_id || !username) return;
     
-    userService.updatePresence(user_id, status, activity_details);
+    const activityData = activity_details || { type: 'idle', name: 'Idle' };
+    
+    userService.updatePresence(user_id, status, activityData);
     
     io.emit('user-presence-update', {
         user_id,
         username,
         status,
-        activity_details
+        activity_details: activityData
     });
 }
 
@@ -586,6 +588,7 @@ function handleGetOnlineUsers(io, client) {
                 user_id,
                 username: socket.data.username || 'Unknown',
                 status: presence?.status || 'online',
+                activity_details: presence?.activity_details || { type: 'idle', name: 'Idle' },
                 last_seen: Date.now()
             };
         }

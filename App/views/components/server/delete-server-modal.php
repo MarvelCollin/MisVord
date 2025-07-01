@@ -39,51 +39,6 @@
 </div>
 <?php endif; ?>
 
-<div id="leave-server-modal" class="fixed inset-0 flex items-center justify-center hidden z-50">
-    <div class="absolute inset-0 bg-black bg-opacity-70"></div>
-    
-    <div class="bg-discord-dark max-w-md w-full rounded-lg z-10">
-        <div class="p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-white">Leave Server</h2>
-                <button id="close-leave-server-modal" class="text-gray-400 hover:text-white">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div class="space-y-4">
-                <div class="text-center">
-                    <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
-                    <p class="text-white mb-2">Are you sure you want to leave this server?</p>
-                    <p class="text-gray-400 text-sm">You won't be able to rejoin this server unless you are re-invited.</p>
-                </div>
-                
-                <div class="pt-4 flex space-x-3">
-                    <button type="button" id="cancel-leave-server" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
-                        Cancel
-                    </button>
-                    <button type="button" id="confirm-leave-server" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded">
-                        Leave Server
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const leaveServerModal = document.getElementById('leave-server-modal');
-    
-    if (leaveServerModal && window.location.pathname.includes('/settings/user')) {
-        leaveServerModal.remove();
-    }
-    
-    if (document.body.classList.contains('settings-user')) {
-        const modals = document.querySelectorAll('#leave-server-modal, #delete-server-modal');
-        modals.forEach(modal => {
-            if (modal) modal.remove();
-        });
-    }
-});
-</script>
+
+
