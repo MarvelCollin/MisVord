@@ -29,7 +29,7 @@ class FriendList extends Model {
             ->where('fl.user_id', $userId)
             ->where('fl.status', 'accepted')
             ->where('u.status', '!=', 'bot')
-            ->select('u.*, fl.id as friendship_id')
+            ->select('u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name')
             ->get();
             
         $query2 = new Query();
@@ -38,7 +38,7 @@ class FriendList extends Model {
             ->where('fl.user_id2', $userId)
             ->where('fl.status', 'accepted')
             ->where('u.status', '!=', 'bot')
-            ->select('u.*, fl.id as friendship_id')
+            ->select('u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name')
             ->get();
             
         return array_merge($results, $results2);
@@ -51,7 +51,7 @@ class FriendList extends Model {
             ->where('fl.user_id2', $userId)
             ->where('fl.status', 'pending')
             ->where('u.status', '!=', 'bot')
-            ->select('u.*, fl.id as friendship_id, fl.created_at as requested_at')
+            ->select('u.*, fl.id as friendship_id, fl.created_at as requested_at, COALESCE(u.display_name, u.username) as display_name')
             ->get();
             
         return $results;
@@ -64,7 +64,7 @@ class FriendList extends Model {
             ->where('fl.user_id', $userId)
             ->where('fl.status', 'pending')
             ->where('u.status', '!=', 'bot')
-            ->select('u.*, fl.id as friendship_id, fl.created_at as requested_at')
+            ->select('u.*, fl.id as friendship_id, fl.created_at as requested_at, COALESCE(u.display_name, u.username) as display_name')
             ->get();
             
         return $results;

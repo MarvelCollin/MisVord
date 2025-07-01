@@ -814,6 +814,52 @@ class SocketHandler {
         }
     }
 
+    refreshForChannelSwitch(newChannelId, newChatType) {
+        console.log('🔄 [SOCKET-HANDLER] Refreshing socket handler for channel switch:', {
+            newChannelId,
+            newChatType,
+            socketReady: window.globalSocketManager?.isReady(),
+            listenersSetup: this.socketListenersSetup
+        });
+        
+        if (this.chatSection) {
+            this.chatSection.targetId = newChannelId;
+            this.chatSection.chatType = newChatType;
+        }
+        
+        if (!this.socketListenersSetup && window.globalSocketManager?.isReady()) {
+            console.log('🔄 [SOCKET-HANDLER] Re-setting up socket listeners after channel switch');
+            this.setupSocketHandlers(window.globalSocketManager.io);
+        }
+        
+        if (this.socketListenersSetup && window.globalSocketManager?.isReady()) {
+            console.log('🔄 [SOCKET-HANDLER] Socket listeners already set up, ensuring reactions handlers are active');
+            const io = window.globalSocketManager.io;
+            
+            io.off('reaction-added');
+            io.off('reaction-removed');
+            io.off('reaction-confirmed');
+            io.off('reaction-failed');
+            
+            io.on('reaction-added', this.handleReactionAdded.bind(this));
+            io.on('reaction-removed', this.handleReactionRemoved.bind(this));
+            io.on('reaction-confirmed', (data) => {
+                if (window.emojiReactions && typeof window.emojiReactions.handleReactionConfirmed === 'function') {
+                    window.emojiReactions.handleReactionConfirmed(data);
+                }
+            });
+            io.on('reaction-failed', (data) => {
+                if (window.emojiReactions && typeof window.emojiReactions.handleReactionFailed === 'function') {
+                    window.emojiReactions.handleReactionFailed(data);
+                }
+            });
+            
+            console.log('✅ [SOCKET-HANDLER] Reaction handlers refreshed for new channel');
+        }
+        
+        console.log('✅ [SOCKET-HANDLER] Socket handler refreshed for new channel');
+    }
+
     updateBotReplyReferences(tempId, permanentId) {
         try {
             // Find all bot messages that have reply containers referencing the temp ID
@@ -855,4 +901,4 @@ class SocketHandler {
     }
 }
 
-export default SocketHandler; 
+export default SocketHandler;

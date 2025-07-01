@@ -374,8 +374,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#2b2d31] ${statusColor}"></span>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="font-medium text-white truncate">${escapeHtml(user.username)}</p>
-                    <p class="text-gray-400 text-sm truncate">${statusText}</p>
+                    <p class="font-medium text-white truncate">${escapeHtml(user.display_name || user.username)}</p>
+                    <p class="text-gray-400 text-sm truncate">${escapeHtml(user.username)}${user.discriminator ? '#' + user.discriminator : ''}</p>
+                    <p class="text-gray-400 text-xs truncate">${statusText}</p>
                 </div>
             `;
             
@@ -469,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedUsers = allUsers.filter(user => selectedUserIds.has(user.id));
         const usersHtml = selectedUsers.map(user => `
             <div class="inline-flex items-center bg-[#404249] text-white px-2 py-1 rounded-md text-sm whitespace-nowrap">
-                ${escapeHtml(user.username)}
+                ${escapeHtml(user.display_name || user.username)}
                 <button class="ml-2 text-gray-400 hover:text-white" onclick="removeSelectedUser(${user.id})">
                     <i class="fas fa-times"></i>
                 </button>

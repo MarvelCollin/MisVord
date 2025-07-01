@@ -111,18 +111,20 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                     <?php foreach ($friends as $friend): ?>
                         <div class="flex justify-between items-center p-3 rounded hover:bg-discord-light group friend-item transition-all duration-200" 
                              data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"
-                             data-username="<?php echo htmlspecialchars($friend['username']); ?>">
+                             data-username="<?php echo htmlspecialchars($friend['username']); ?>"
+                             data-display-name="<?php echo htmlspecialchars($friend['display_name'] ?? $friend['username']); ?>">
                             <div class="flex items-center">
                                 <div class="relative mr-3">
                                     <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                         <img src="<?php echo htmlspecialchars($friend['avatar_url'] ?? ''); ?>" 
-                                             alt="<?php echo htmlspecialchars($friend['username'] ?? 'User'); ?>" 
+                                             alt="<?php echo htmlspecialchars($friend['display_name'] ?? $friend['username'] ?? 'User'); ?>" 
                                              class="w-full h-full object-cover user-avatar">
                                     </div>
                                     <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-gray-500 friend-status-indicator transition-colors duration-300" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"></div>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="font-medium text-white friend-name truncate"><?php echo htmlspecialchars($friend['username']); ?></div>
+                                    <div class="font-medium text-white friend-name truncate"><?php echo htmlspecialchars($friend['display_name'] ?? $friend['username']); ?></div>
+                                    <div class="text-xs text-gray-400 friend-username"><?php echo htmlspecialchars($friend['username']); ?><?php if (isset($friend['discriminator'])): ?>#<?php echo htmlspecialchars($friend['discriminator']); ?><?php endif; ?></div>
                                     <div class="text-xs text-gray-400 friend-status-text" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>">Offline</div>
                                 </div>
                             </div>
@@ -157,17 +159,19 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                     <div class="space-y-2">
                         <?php foreach ($pendingRequests as $request): ?>
                             <div class="flex items-center justify-between p-3 bg-discord-dark rounded transition-all duration-200 friend-item" 
-                                 data-username="<?php echo htmlspecialchars($request['username']); ?>">
+                                 data-username="<?php echo htmlspecialchars($request['username']); ?>"
+                                 data-display-name="<?php echo htmlspecialchars($request['display_name'] ?? $request['username']); ?>">
                                 <div class="flex items-center">
                                     <div class="relative mr-3">
                                         <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                             <img src="<?php echo htmlspecialchars($request['avatar_url'] ?? ''); ?>" 
-                                                 alt="<?php echo htmlspecialchars($request['username'] ?? 'User'); ?>" 
+                                                 alt="<?php echo htmlspecialchars($request['display_name'] ?? $request['username'] ?? 'User'); ?>" 
                                                  class="w-full h-full object-cover user-avatar">
                                         </div>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="font-medium text-white truncate friend-name"><?php echo htmlspecialchars($request['username']); ?></div>
+                                        <div class="font-medium text-white truncate friend-name"><?php echo htmlspecialchars($request['display_name'] ?? $request['username']); ?></div>
+                                        <div class="text-xs text-gray-400"><?php echo htmlspecialchars($request['username']); ?><?php if (isset($request['discriminator'])): ?>#<?php echo htmlspecialchars($request['discriminator']); ?><?php endif; ?></div>
                                         <div class="text-xs text-gray-400">Incoming Friend Request</div>
                                     </div>
                                 </div>
@@ -187,17 +191,19 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                     <div class="space-y-2">
                         <?php foreach ($sentRequests as $request): ?>
                             <div class="flex items-center justify-between p-3 bg-discord-dark rounded transition-all duration-200 friend-item" 
-                                 data-username="<?php echo htmlspecialchars($request['username']); ?>">
+                                 data-username="<?php echo htmlspecialchars($request['username']); ?>"
+                                 data-display-name="<?php echo htmlspecialchars($request['display_name'] ?? $request['username']); ?>">
                                 <div class="flex items-center">
                                     <div class="relative mr-3">
                                         <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                             <img src="<?php echo htmlspecialchars($request['avatar_url'] ?? ''); ?>" 
-                                                 alt="<?php echo htmlspecialchars($request['username'] ?? 'User'); ?>" 
+                                                 alt="<?php echo htmlspecialchars($request['display_name'] ?? $request['username'] ?? 'User'); ?>" 
                                                  class="w-full h-full object-cover user-avatar">
                                         </div>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="font-medium text-white truncate friend-name"><?php echo htmlspecialchars($request['username']); ?></div>
+                                        <div class="font-medium text-white truncate friend-name"><?php echo htmlspecialchars($request['display_name'] ?? $request['username']); ?></div>
+                                        <div class="text-xs text-gray-400"><?php echo htmlspecialchars($request['username']); ?><?php if (isset($request['discriminator'])): ?>#<?php echo htmlspecialchars($request['discriminator']); ?><?php endif; ?></div>
                                         <div class="text-xs text-gray-400">Outgoing Friend Request</div>
                                     </div>
                                 </div>
@@ -475,10 +481,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         friendItems.forEach(item => {
             const username = item.getAttribute('data-username') || '';
+            const displayName = item.getAttribute('data-display-name') || '';
             const friendNameEl = item.querySelector('.friend-name');
             const friendName = friendNameEl ? friendNameEl.textContent : '';
             
             const matches = username.toLowerCase().includes(query) || 
+                          displayName.toLowerCase().includes(query) ||
                           friendName.toLowerCase().includes(query);
             
             if (matches || query === '') {
@@ -510,10 +518,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         friendItems.forEach(item => {
             const username = item.getAttribute('data-username') || '';
+            const displayName = item.getAttribute('data-display-name') || '';
             const friendNameEl = item.querySelector('.friend-name');
             const friendName = friendNameEl ? friendNameEl.textContent : '';
             
             const matches = username.toLowerCase().includes(query) || 
+                          displayName.toLowerCase().includes(query) ||
                           friendName.toLowerCase().includes(query);
             
             if (matches || query === '') {
@@ -541,10 +551,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         friendItems.forEach(item => {
             const username = item.getAttribute('data-username') || '';
+            const displayName = item.getAttribute('data-display-name') || '';
             const friendNameEl = item.querySelector('.friend-name');
             const friendName = friendNameEl ? friendNameEl.textContent : '';
             
             const matches = username.toLowerCase().includes(query) || 
+                          displayName.toLowerCase().includes(query) ||
                           friendName.toLowerCase().includes(query);
             
             if (matches || query === '') {
@@ -651,7 +663,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         let onlineFriends = onlineFriendsFromCache.length > 0 ? onlineFriendsFromCache : onlineFriendsFromDOM;
         
-        onlineFriends.sort((a, b) => a.username.localeCompare(b.username));
+        onlineFriends.sort((a, b) => {
+            const nameA = a.display_name || a.username;
+            const nameB = b.display_name || b.username;
+            return nameA.localeCompare(nameB);
+        });
         
         const currentFriendIds = onlineFriends.map(f => f.id).sort().join(',');
         const lastFriendIds = lastRenderedOnlineFriends.map(f => f.id).sort().join(',');
@@ -677,19 +693,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 friendEl.className = 'flex justify-between items-center p-3 rounded hover:bg-discord-light group friend-item transition-all duration-200';
                 friendEl.setAttribute('data-user-id', friend.id);
                 friendEl.setAttribute('data-username', friend.username);
+                friendEl.setAttribute('data-display-name', friend.display_name || friend.username);
+                
+                const displayName = friend.display_name || friend.username;
+                const userTag = friend.discriminator ? `${friend.username}#${friend.discriminator}` : friend.username;
                 
                 friendEl.innerHTML = `
                     <div class="flex items-center">
                         <div class="relative mr-3">
                             <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                 <img src="${friend.avatar_url || ''}" 
-                                     alt="${friend.username}" 
+                                     alt="${displayName}" 
                                      class="w-full h-full object-cover user-avatar">
                             </div>
                             <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-discord-green"></div>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="font-medium text-white truncate">${friend.username}</div>
+                            <div class="font-medium text-white truncate">${displayName}</div>
+                            <div class="text-xs text-gray-400">${userTag}</div>
                             <div class="text-xs text-gray-400">Online</div>
                         </div>
                     </div>

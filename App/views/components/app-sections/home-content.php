@@ -51,17 +51,19 @@ $onlineFriends = $GLOBALS['onlineFriends'] ?? [];
                     ?>
                     <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item" 
                          data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"
-                         data-username="<?php echo htmlspecialchars($friend['username']); ?>">
+                         data-username="<?php echo htmlspecialchars($friend['username']); ?>"
+                         data-display-name="<?php echo htmlspecialchars($friend['display_name'] ?? $friend['username']); ?>">
                         <div class="flex items-center">
                             <div class="relative mr-3">
                                 <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                                                                 <img src="<?php echo $friend['avatar_url'] ?? ''; ?>" 
-                                   alt="<?php echo htmlspecialchars($friend['username'] ?? 'User'); ?>" class="w-full h-full object-cover user-avatar">
+                                   alt="<?php echo htmlspecialchars($friend['display_name'] ?? $friend['username'] ?? 'User'); ?>" class="w-full h-full object-cover user-avatar">
                                 </div>
                                 <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background <?php echo $statusColor; ?> friend-status-indicator" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"></span>
                             </div>
                             <div>
-                                <div class="font-medium text-white"><?php echo htmlspecialchars($friend['username']); ?><?php if (isset($friend['discriminator'])): ?><span class="text-gray-400 text-xs ml-1">#<?php echo htmlspecialchars($friend['discriminator']); ?></span><?php endif; ?></div>
+                                <div class="font-medium text-white"><?php echo htmlspecialchars($friend['display_name'] ?? $friend['username']); ?></div>
+                                <div class="text-xs text-gray-400"><?php echo htmlspecialchars($friend['username']); ?><?php if (isset($friend['discriminator'])): ?>#<?php echo htmlspecialchars($friend['discriminator']); ?><?php endif; ?></div>
                                 <div class="text-xs text-gray-400 friend-status-text" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"><?php echo htmlspecialchars($statusText); ?></div>
                             </div>
                         </div>

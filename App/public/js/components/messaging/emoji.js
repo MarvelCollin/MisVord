@@ -767,21 +767,7 @@ class EmojiReactions {
                 return;
             }
             
-            const isBubbleMessage = messageElement.closest('.bubble-message-group');
-            let targetType = 'channel';
-            let targetId = null;
-            
-            if (isBubbleMessage) {
-                const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
-                const chatIdMeta = document.querySelector('meta[name="chat-id"]');
-                targetType = chatTypeMeta?.content || 'channel';
-                targetId = chatIdMeta?.content;
-            } else {
-                targetType = window.chatSection?.chatType || 'channel';
-                targetId = window.chatSection?.targetId;
-            }
-            
-            if (targetType === 'direct') targetType = 'dm';
+            const { targetType, targetId } = this.getCurrentChannelContext();
             
             console.log('🎯 [EMOJI-REACTIONS] Target info:', { targetType, targetId });
             
@@ -818,7 +804,16 @@ class EmojiReactions {
             };
             
             console.log('📡 [EMOJI-REACTIONS] Broadcasting temporary reaction (server will handle DB):', tempSocketData);
-            window.globalSocketManager.io.emit('reaction-added', tempSocketData);
+            
+            if (window.globalSocketManager.emitToRoom) {
+                const success = window.globalSocketManager.emitToRoom('reaction-added', tempSocketData, targetType, targetId);
+                if (!success) {
+                    console.warn('⚠️ [EMOJI-REACTIONS] Room-based emit failed, falling back to direct emit');
+                    window.globalSocketManager.io.emit('reaction-added', tempSocketData);
+                }
+            } else {
+                window.globalSocketManager.io.emit('reaction-added', tempSocketData);
+            }
             
         } catch (error) {
             console.error('❌ [EMOJI-REACTIONS] Error in 2-path reaction system:', error);
@@ -848,26 +843,14 @@ class EmojiReactions {
                 return;
             }
             
-            const isBubbleMessage = messageElement.closest('.bubble-message-group');
-            let targetType = 'channel';
-            let targetId = null;
-            
-            if (isBubbleMessage) {
-                const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
-                const chatIdMeta = document.querySelector('meta[name="chat-id"]');
-                targetType = chatTypeMeta?.content || 'channel';
-                targetId = chatIdMeta?.content;
-            } else {
-                targetType = window.chatSection?.chatType || 'channel';
-                targetId = window.chatSection?.targetId;
-            }
-            
-            if (targetType === 'direct') targetType = 'dm';
+            const { targetType, targetId } = this.getCurrentChannelContext();
             
             console.log('🎯 [EMOJI-REACTIONS] Target info:', { targetType, targetId });
             
             if (!targetId) {
                 console.error('❌ [EMOJI-REACTIONS] No target ID found');
+                return;
+            }
                 return;
             }
             
@@ -897,7 +880,16 @@ class EmojiReactions {
             };
             
             console.log('📡 [EMOJI-REACTIONS] Broadcasting temporary reaction removal (server will handle DB):', tempSocketData);
-            window.globalSocketManager.io.emit('reaction-removed', tempSocketData);
+            
+            if (window.globalSocketManager.emitToRoom) {
+                const success = window.globalSocketManager.emitToRoom('reaction-removed', tempSocketData, targetType, targetId);
+                if (!success) {
+                    console.warn('⚠️ [EMOJI-REACTIONS] Room-based emit failed, falling back to direct emit');
+                    window.globalSocketManager.io.emit('reaction-removed', tempSocketData);
+                }
+            } else {
+                window.globalSocketManager.io.emit('reaction-removed', tempSocketData);
+            }
             
         } catch (error) {
             console.error('❌ [EMOJI-REACTIONS] Error in 2-path reaction removal system:', error);
@@ -1491,6 +1483,74 @@ class EmojiReactions {
             console.log('📭 [EMOJI-REACTIONS] No reactions in message data for:', messageId);
         }
     }
+    
+    updateChannelContext(channelId, chatType = 'channel') {
+        console.log('🔄 [EMOJI-REACTIONS] Updating channel context:', {
+            channelId,
+            chatType,
+            currentReactions: Object.keys(this.currentReactions).length
+        });
+        
+        this.currentChannelId = channelId;
+        this.currentChatType = chatType;
+        
+        this.clearReactionCache();
+        
+        console.log('✅ [EMOJI-REACTIONS] Channel context updated successfully');
+    }
+    
+    clearReactionCache() {
+        this.loadedMessageIds.clear();
+        console.log('🧹 [EMOJI-REACTIONS] Reaction cache cleared for new channel');
+    }
+    
+    getCurrentChannelContext() {
+        let targetType = 'channel';
+        let targetId = null;
+        
+        if (this.currentChannelId && this.currentChatType) {
+            targetType = this.currentChatType;
+            targetId = this.currentChannelId;
+        } else if (window.chatSection?.targetId && window.chatSection?.chatType) {
+            targetType = window.chatSection.chatType;
+            targetId = window.chatSection.targetId;
+        } else {
+            const chatTypeMeta = document.querySelector('meta[name="chat-type"]');
+            const chatIdMeta = document.querySelector('meta[name="chat-id"]');
+            targetType = chatTypeMeta?.content || 'channel';
+            targetId = chatIdMeta?.content;
+        }
+        
+        if (targetType === 'direct') targetType = 'dm';
+        
+        return { targetType, targetId };
+    }
+
+    debugChannelContext() {
+        const context = this.getCurrentChannelContext();
+        console.log('🧪 [EMOJI-REACTIONS] Debug channel context:', {
+            currentChannelId: this.currentChannelId,
+            currentChatType: this.currentChatType,
+            resolvedContext: context,
+            chatSectionContext: {
+                targetId: window.chatSection?.targetId,
+                chatType: window.chatSection?.chatType
+            },
+            metaTags: {
+                chatId: document.querySelector('meta[name="chat-id"]')?.content,
+                chatType: document.querySelector('meta[name="chat-type"]')?.content,
+                channelId: document.querySelector('meta[name="channel-id"]')?.content,
+                channelType: document.querySelector('meta[name="channel-type"]')?.content
+            },
+            socketStatus: {
+                ready: window.globalSocketManager?.isReady(),
+                connected: window.globalSocketManager?.connected,
+                authenticated: window.globalSocketManager?.authenticated,
+                hasEmitToRoom: typeof window.globalSocketManager?.emitToRoom === 'function'
+            }
+        });
+        return context;
+    }
 }
 
 const emojiReactions = new EmojiReactions();
@@ -1656,3 +1716,36 @@ window.reinitializeEmojiSystem = function() {
         return `Error: ${err.message}`;
     }
 };
+
+// Add global debug function for testing
+window.debugReactionsSystem = function() {
+    console.log('🧪 [DEBUG] === REACTIONS SYSTEM DEBUG ===');
+    
+    if (window.emojiReactions) {
+        console.log('✅ [DEBUG] Emoji reactions system available');
+        window.emojiReactions.debugChannelContext();
+    } else {
+        console.log('❌ [DEBUG] Emoji reactions system not available');
+    }
+    
+    console.log('🧪 [DEBUG] Chat section info:', {
+        available: !!window.chatSection,
+        targetId: window.chatSection?.targetId,
+        chatType: window.chatSection?.chatType,
+        socketRoomJoined: window.chatSection?.socketRoomJoined,
+        lastJoinedRoom: window.chatSection?.lastJoinedRoom
+    });
+    
+    console.log('🧪 [DEBUG] Socket manager info:', {
+        available: !!window.globalSocketManager,
+        ready: window.globalSocketManager?.isReady(),
+        connected: window.globalSocketManager?.connected,
+        authenticated: window.globalSocketManager?.authenticated,
+        joinedChannels: Array.from(window.globalSocketManager?.joinedChannels || []),
+        joinedRooms: Array.from(window.globalSocketManager?.joinedRooms || [])
+    });
+    
+    console.log('🧪 [DEBUG] === END DEBUG ===');
+};
+
+export default EmojiReactions;

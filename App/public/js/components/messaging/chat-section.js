@@ -104,7 +104,15 @@ async function initializeChatSection() {
         if (typeof window.emojiReactions === 'undefined' || !window.emojiReactions.initialized) {
             if (typeof window.initializeEmojiReactions === 'function') {
                 window.initializeEmojiReactions();
+                
+                if (window.emojiReactions && this.targetId) {
+                    console.log('🔄 [CHAT-SECTION] Updating emoji reactions context after initialization');
+                    window.emojiReactions.updateChannelContext(this.targetId, this.chatType);
+                }
             }
+        } else if (window.emojiReactions && this.targetId) {
+            console.log('🔄 [CHAT-SECTION] Emoji reactions already initialized, updating context');
+            window.emojiReactions.updateChannelContext(this.targetId, this.chatType);
         }
         
         return chatSection;
@@ -2085,6 +2093,11 @@ class ChatSection {
         
         this.fullStateReset();
         
+        if (this.socketHandler && typeof this.socketHandler.refreshForChannelSwitch === 'function') {
+            console.log('🔄 [CHAT-SECTION] Refreshing socket handler for channel switch');
+            this.socketHandler.refreshForChannelSwitch(channelId, 'channel');
+        }
+        
         this.joinSocketRoom();
         
         await this.loadMessages({ 
@@ -2094,6 +2107,11 @@ class ChatSection {
         });
         
         this.updateChannelHeader();
+        
+        if (window.emojiReactions && typeof window.emojiReactions.updateChannelContext === 'function') {
+            console.log('🔄 [CHAT-SECTION] Updating emoji reactions context for new channel');
+            window.emojiReactions.updateChannelContext(channelId, 'channel');
+        }
         
         console.log('✅ [CHAT-SECTION] Channel switch completed');
     }

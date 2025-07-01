@@ -160,6 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const activityDetails = userData?.activity_details;
         const activityText = getActivityText(activityDetails);
         const activityIcon = getActivityIcon(activityDetails);
+        const displayName = friend.display_name || friend.username;
         
         const friendEl = document.createElement('div');
         friendEl.className = 'flex items-center mb-4 p-3 bg-discord-background rounded-md hover:bg-discord-darker cursor-pointer transition-all duration-200 animate-fadeIn';
@@ -167,13 +168,13 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="relative mr-3">
                 <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                     <img src="${friend.avatar_url || ''}" 
-                         alt="${friend.username}" 
+                         alt="${displayName}" 
                          class="w-full h-full object-cover user-avatar">
                 </div>
                 <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300"></div>
             </div>
             <div class="flex-1">
-                <div class="font-semibold text-white active-now-username" data-user-id="${friend.id}">${friend.username}</div>
+                <div class="font-semibold text-white active-now-username" data-user-id="${friend.id}">${displayName}</div>
                 <div class="text-xs text-gray-400 transition-all duration-200 flex items-center">
                     <i class="${activityIcon} mr-1"></i>
                     ${activityText}
@@ -250,7 +251,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            const sortedActiveFriends = activeFriends.sort((a, b) => a.username.localeCompare(b.username));
+            const sortedActiveFriends = activeFriends.sort((a, b) => {
+                const nameA = a.display_name || a.username;
+                const nameB = b.display_name || b.username;
+                return nameA.localeCompare(nameB);
+            });
             
             sortedActiveFriends.forEach((friend, index) => {
                 const existingEl = existingFriends.get(friend.id);

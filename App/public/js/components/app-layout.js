@@ -139,7 +139,11 @@ async function loadOnlineFriends(forceRefresh = false) {
             return;
         }
 
-        onlineFriends.sort((a, b) => a.username.localeCompare(b.username));
+        onlineFriends.sort((a, b) => {
+            const nameA = a.display_name || a.username;
+            const nameB = b.display_name || b.username;
+            return nameA.localeCompare(nameB);
+        });
         
         let friendsHtml = '';
         onlineFriends.forEach(friend => {
@@ -147,6 +151,8 @@ async function loadOnlineFriends(forceRefresh = false) {
             const status = userData?.status || 'offline';
             const statusClass = getStatusClass(status);
             const statusText = getStatusText(status);
+            const displayName = friend.display_name || friend.username;
+            const userTag = friend.discriminator ? `${friend.username}#${friend.discriminator}` : friend.username;
             
             friendsHtml += `
                 <div class="flex justify-between items-center p-3 rounded hover:bg-discord-light group friend-item transition-all duration-200 animate-fadeIn" onclick="createDirectMessage('${friend.id}')">
@@ -154,13 +160,14 @@ async function loadOnlineFriends(forceRefresh = false) {
                         <div class="relative mr-3">
                             <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                 <img src="${friend.avatar_url || ''}" 
-                                     alt="${friend.username}" 
+                                     alt="${displayName}" 
                                      class="w-full h-full object-cover user-avatar">
                             </div>
                             <div class="absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300"></div>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="font-medium text-white truncate">${friendsManager.escapeHtml(friend.username)}</div>
+                            <div class="font-medium text-white truncate">${friendsManager.escapeHtml(displayName)}</div>
+                            <div class="text-xs text-gray-400">${friendsManager.escapeHtml(userTag)}</div>
                             <div class="text-xs text-gray-400">${statusText}</div>
                         </div>
                     </div>
@@ -239,7 +246,9 @@ async function loadAllFriends(forceRefresh = false) {
             
             if (priorityA !== priorityB) return priorityA - priorityB;
             
-            return a.username.localeCompare(b.username);
+            const nameA = a.display_name || a.username;
+            const nameB = b.display_name || b.username;
+            return nameA.localeCompare(nameB);
         });
         
         let friendsHtml = '';
@@ -248,6 +257,8 @@ async function loadAllFriends(forceRefresh = false) {
             const status = userData?.status || 'offline';
             const statusClass = getStatusClass(status);
             const statusText = getStatusText(status);
+            const displayName = friend.display_name || friend.username;
+            const userTag = friend.discriminator ? `${friend.username}#${friend.discriminator}` : friend.username;
             
             friendsHtml += `
                 <div class="flex justify-between items-center p-3 rounded hover:bg-discord-light group friend-item transition-all duration-200" onclick="createDirectMessage('${friend.id}')">
@@ -255,13 +266,14 @@ async function loadAllFriends(forceRefresh = false) {
                         <div class="relative mr-3">
                             <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                 <img src="${friend.avatar_url || ''}" 
-                                     alt="${friend.username}" 
+                                     alt="${displayName}" 
                                      class="w-full h-full object-cover user-avatar">
                             </div>
                             <div class="friend-status-indicator absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300" data-user-id="${friend.id}"></div>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="font-medium text-white truncate">${friendsManager.escapeHtml(friend.username)}</div>
+                            <div class="font-medium text-white truncate">${friendsManager.escapeHtml(displayName)}</div>
+                            <div class="text-xs text-gray-400">${friendsManager.escapeHtml(userTag)}</div>
                             <div class="friend-status-text text-xs text-gray-400" data-user-id="${friend.id}">${statusText}</div>
                         </div>
                     </div>

@@ -141,7 +141,8 @@
 
 .user-detail-name-container {
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 16px;
 }
 
@@ -149,13 +150,18 @@
   font-size: 20px;
   font-weight: 700;
   color: var(--discord-white);
+  margin: 0 0 4px 0;
+}
+
+.user-detail-username {
+  font-size: 14px;
+  color: var(--discord-lighter);
   margin: 0;
+  font-weight: 400;
 }
 
 .user-detail-discriminator {
-  font-size: 14px;
-  color: var(--discord-lighter);
-  margin-left: 4px;
+  display: none;
 }
 
 .user-detail-divider {

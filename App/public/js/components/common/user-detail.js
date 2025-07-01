@@ -17,10 +17,11 @@ class UserDetailModal {
         this.avatarContainer = this.modal.querySelector('#user-detail-avatar-container');
         this.banner = this.modal.querySelector('.user-banner');
         this.nameElement = this.modal.querySelector('#user-detail-name');
+        this.usernameElement = this.modal.querySelector('#user-detail-username');
         this.discriminatorElement = this.modal.querySelector('#user-detail-discriminator');
         this.statusIndicator = this.modal.querySelector('.user-status-indicator');
 
-        this.aboutSection = this.modal.querySelector('#user-detail-about');
+        this.aboutSection = this.modal.querySelector('#user-detail-bio');
         this.memberSinceSection = this.modal.querySelector('#user-detail-member-since');
         this.rolesSection = this.modal.querySelector('#user-detail-roles');
 
@@ -192,6 +193,10 @@ class UserDetailModal {
             this.nameElement.innerHTML = '<div class="skeleton-loading skeleton-name"></div>';
         }
         
+        if (this.usernameElement) {
+            this.usernameElement.innerHTML = '<div class="skeleton-loading skeleton-username"></div>';
+        }
+        
         if (this.discriminatorElement) {
             this.discriminatorElement.innerHTML = '<div class="skeleton-loading skeleton-discriminator"></div>';
         }
@@ -253,6 +258,10 @@ class UserDetailModal {
     showErrorState(errorMessage = 'User not found') {
         if (this.nameElement) {
             this.nameElement.textContent = errorMessage;
+        }
+        
+        if (this.usernameElement) {
+            this.usernameElement.textContent = '';
         }
         
         if (this.discriminatorElement) {
@@ -400,6 +409,7 @@ class UserDetailModal {
 
         const containers = [
             this.nameElement,
+            this.usernameElement,
             this.discriminatorElement,
             this.avatarContainer,
             this.banner,
@@ -431,9 +441,16 @@ class UserDetailModal {
                 this.nameElement.classList.add('fade-in');
             }
 
+            if (this.usernameElement) {
+                this.usernameElement.innerHTML = '';
+                const username = user.username || 'unknown';
+                const discriminator = user.discriminator || '0000';
+                this.usernameElement.textContent = `${username}#${discriminator}`;
+                this.usernameElement.classList.add('fade-in');
+            }
+
             if (this.discriminatorElement) {
                 this.discriminatorElement.innerHTML = '';
-                this.discriminatorElement.textContent = user.discriminator ? `#${user.discriminator}` : '#0000';
                 this.discriminatorElement.classList.add('fade-in');
             }
 

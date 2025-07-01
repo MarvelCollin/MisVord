@@ -87,6 +87,11 @@ class SimpleChannelSwitcher {
         this.updateMetaTags(channelId, channelType);
         this.updateChannelHeader(channelId, channelType);
         
+        if (window.emojiReactions && typeof window.emojiReactions.updateChannelContext === 'function') {
+            console.log('🔄 [SWITCH-MANAGER] Updating emoji reactions context for channel switch');
+            window.emojiReactions.updateChannelContext(channelId, 'channel');
+        }
+        
         if (channelType === 'text') {
             await this.initializeTextChannel(channelId, true);
             
@@ -341,6 +346,8 @@ class SimpleChannelSwitcher {
     updateMetaTags(channelId, channelType) {
         let metaChannelId = document.querySelector('meta[name="channel-id"]');
         let metaChannelType = document.querySelector('meta[name="channel-type"]');
+        let metaChatId = document.querySelector('meta[name="chat-id"]');
+        let metaChatType = document.querySelector('meta[name="chat-type"]');
         
         if (!metaChannelId) {
             metaChannelId = document.createElement('meta');
@@ -354,8 +361,29 @@ class SimpleChannelSwitcher {
             document.head.appendChild(metaChannelType);
         }
         
+        if (!metaChatId) {
+            metaChatId = document.createElement('meta');
+            metaChatId.name = 'chat-id';
+            document.head.appendChild(metaChatId);
+        }
+        
+        if (!metaChatType) {
+            metaChatType = document.createElement('meta');
+            metaChatType.name = 'chat-type';
+            document.head.appendChild(metaChatType);
+        }
+        
         metaChannelId.content = channelId;
         metaChannelType.content = channelType;
+        metaChatId.content = channelId;
+        metaChatType.content = 'channel';
+        
+        console.log('✅ [SWITCH-MANAGER] Meta tags updated for reactions system:', {
+            channelId,
+            channelType,
+            chatId: channelId,
+            chatType: 'channel'
+        });
     }
     
     updateChannelHeader(channelId, channelType) {
