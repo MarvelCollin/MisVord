@@ -7,6 +7,7 @@ class ServerDetailModal {
         this.currentServerId = null;
         this.currentInviteLink = null;
         this.initialized = false;
+        this.skeletonTimeout = null;
         
         this.initModal();
     }
@@ -77,38 +78,46 @@ class ServerDetailModal {
         }
         
         this.currentServerId = serverId;
+        this.showModalWithAnimation();
         
         if (serverData) {
-            this.updateModalContent(serverData);
-            this.showModalWithAnimation();
+            setTimeout(() => {
+                this.updateModalContent(serverData);
+            }, 500);
             return;
         }
         
         try {
             if (typeof window.serverAPI === 'undefined') {
+                this.hideSkeletonAndShowContent();
                 return;
             }
             
             const response = await window.serverAPI.getServer(serverId);
             const server = response.server;
             
-            if (!server) return;
+            if (!server) {
+                this.hideSkeletonAndShowContent();
+                return;
+            }
             
             this.updateModalContent(server);
-            this.showModalWithAnimation();
         } catch (error) {
             console.error('[Server Detail] Error loading server details:', error);
+            this.hideSkeletonAndShowContent();
         }
     }
     
     updateModalContent(server) {
+        console.log('[Server Detail] Updating modal with server data:', server);
+        
         const nameElement = document.getElementById('server-modal-name');
         const descriptionElement = document.getElementById('server-modal-description');
         const membersCountElement = document.querySelector('.member-count');
-        const onlineCountElement = document.querySelector('.online-count');
         const iconElement = document.getElementById('server-modal-icon');
-
         const bannerElement = document.getElementById('server-modal-banner');
+        
+        console.log('[Server Detail] Image URLs - Icon:', server.image_url, 'Banner:', server.banner_url);
         
         if (nameElement) nameElement.textContent = server.name || 'Unknown Server';
         
@@ -124,65 +133,48 @@ class ServerDetailModal {
             membersCountElement.textContent = (server.member_count || 0).toLocaleString();
         }
         
-        if (onlineCountElement) {
-            const onlineCount = Math.min(
-                Math.floor(Math.random() * (server.member_count || 10)) + 1,
-                server.member_count || 1
-            );
-            onlineCountElement.textContent = onlineCount;
-        }
-        
         if (iconElement) {
-            if (window.fallbackImageHandler) {
-                window.fallbackImageHandler.updateServerIcon(iconElement, server.image_url, server.name);
+            const fallbackElement = document.getElementById('server-modal-icon-fallback');
+            
+            if (server.image_url && server.image_url.trim() !== '') {
+                iconElement.src = server.image_url;
+                iconElement.onload = function() {
+                    this.classList.remove('hidden');
+                    if (fallbackElement) {
+                        fallbackElement.classList.add('hidden');
+                    }
+                };
+                iconElement.onerror = function() {
+                    this.onerror = null;
+                    this.classList.add('hidden');
+                    if (fallbackElement) {
+                        fallbackElement.classList.remove('hidden');
+                        fallbackElement.textContent = (server.name || 'S').charAt(0).toUpperCase();
+                    }
+                };
+                iconElement.classList.remove('hidden');
+                if (fallbackElement) {
+                    fallbackElement.classList.add('hidden');
+                }
             } else {
-                const fallbackElement = document.getElementById('server-modal-icon-fallback');
-                
-                if (server.image_url) {
-                    iconElement.src = server.image_url;
-                    iconElement.onerror = function() {
-                        this.onerror = null;
-                        this.src = '/public/assets/common/default-profile-picture.png';
-                        this.onerror = function() {
-                            this.onerror = null;
-                            this.classList.add('hidden');
-                            if (fallbackElement) {
-                                fallbackElement.classList.remove('hidden');
-                                fallbackElement.textContent = (server.name || 'S').charAt(0).toUpperCase();
-                            }
-                        };
-                    };
-                    iconElement.onload = function() {
-                        this.classList.remove('hidden');
-                        if (fallbackElement) {
-                            fallbackElement.classList.add('hidden');
-                        }
-                    };
-                    iconElement.classList.remove('hidden');
-                    if (fallbackElement) {
-                        fallbackElement.classList.add('hidden');
-                    }
-                } else {
-                    iconElement.src = '/public/assets/common/default-profile-picture.png';
-                    iconElement.onerror = function() {
-                        this.onerror = null;
-                        this.classList.add('hidden');
-                        if (fallbackElement) {
-                            fallbackElement.classList.remove('hidden');
-                            fallbackElement.textContent = (server.name || 'S').charAt(0).toUpperCase();
-                        }
-                    };
-                    iconElement.classList.remove('hidden');
-                    if (fallbackElement) {
-                        fallbackElement.classList.add('hidden');
-                    }
+                iconElement.classList.add('hidden');
+                if (fallbackElement) {
+                    fallbackElement.classList.remove('hidden');
+                    fallbackElement.textContent = (server.name || 'S').charAt(0).toUpperCase();
                 }
             }
         }
         
         if (bannerElement) {
-            if (server.banner_url) {
+            if (server.banner_url && server.banner_url.trim() !== '') {
                 bannerElement.src = server.banner_url;
+                bannerElement.onload = function() {
+                    this.classList.remove('hidden');
+                };
+                bannerElement.onerror = function() {
+                    this.onerror = null;
+                    this.classList.add('hidden');
+                };
                 bannerElement.classList.remove('hidden');
             } else {
                 bannerElement.classList.add('hidden');
@@ -192,6 +184,7 @@ class ServerDetailModal {
         this.updateJoinButton(server);
         this.currentInviteLink = server.invite_link;
         
+        this.hideSkeletonAndShowContent();
         this.addContentAnimations();
     }
     
@@ -342,6 +335,11 @@ class ServerDetailModal {
     hideModal() {
         if (!this.modal) return;
         
+        if (this.skeletonTimeout) {
+            clearTimeout(this.skeletonTimeout);
+            this.skeletonTimeout = null;
+        }
+        
         this.modal.classList.remove('active');
         document.body.style.overflow = '';
         
@@ -368,6 +366,23 @@ class ServerDetailModal {
         this.modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
         
+        const skeleton = document.getElementById('server-modal-skeleton');
+        const actualContent = document.getElementById('server-modal-actual-content');
+        
+        if (skeleton && actualContent) {
+            skeleton.style.display = 'block';
+            actualContent.style.display = 'none';
+        }
+        
+        if (this.skeletonTimeout) {
+            clearTimeout(this.skeletonTimeout);
+        }
+        
+        this.skeletonTimeout = setTimeout(() => {
+            this.hideSkeletonAndShowContent();
+            this.skeletonTimeout = null;
+        }, 5000);
+        
         requestAnimationFrame(() => {
             this.modal.classList.add('active');
             
@@ -379,6 +394,21 @@ class ServerDetailModal {
                 }, 400);
             }
         });
+    }
+    
+    hideSkeletonAndShowContent() {
+        if (this.skeletonTimeout) {
+            clearTimeout(this.skeletonTimeout);
+            this.skeletonTimeout = null;
+        }
+        
+        const skeleton = document.getElementById('server-modal-skeleton');
+        const actualContent = document.getElementById('server-modal-actual-content');
+        
+        if (skeleton && actualContent) {
+            skeleton.style.display = 'none';
+            actualContent.style.display = 'block';
+        }
     }
 }
 

@@ -2,6 +2,7 @@ class FriendsTabManager {
     constructor() {
         this.activeTab = 'online';
         this.initialized = false;
+        this.isLoading = false;
     }
 
     static getInstance() {
@@ -49,12 +50,15 @@ class FriendsTabManager {
         
         this.updateTabDisplay();
         this.updateTabContent();
+        this.loadTabData(this.activeTab);
     }
 
     switchTab(tabName) {
         if (!['online', 'all', 'pending', 'add-friend'].includes(tabName)) {
             return;
         }
+
+        if (this.activeTab === tabName) return;
 
         this.activeTab = tabName;
         
@@ -63,8 +67,55 @@ class FriendsTabManager {
         this.updateURL(tabName);
         this.hideMobileMenu();
         
-
+        this.loadTabData(tabName);
     }
+
+
+
+    getTabContainers(tabName) {
+        const containers = {
+            'online': {
+                main: document.getElementById('online-friends-container'),
+                count: document.getElementById('online-count')
+            },
+            'all': {
+                main: document.getElementById('all-friends-container'),
+                count: null
+            },
+            'pending': {
+                main: document.getElementById('pending-friends-container'),
+                count: null
+            }
+        };
+        
+        return containers[tabName] || { main: null, count: null };
+    }
+
+    loadTabData(tabName) {
+        console.log(`📊 [FRIENDS-TABS] Loading data for ${tabName} tab`);
+        
+        switch (tabName) {
+            case 'online':
+                if (window.loadOnlineFriends) {
+                    window.loadOnlineFriends(true);
+                } else if (window.checkAndUpdateOnlineTab) {
+                    window.checkAndUpdateOnlineTab();
+                }
+                break;
+            case 'all':
+                if (window.loadAllFriends) {
+                    window.loadAllFriends(true);
+                }
+                break;
+            case 'pending':
+                if (window.loadPendingRequests) {
+                    window.loadPendingRequests(true);
+                }
+                break;
+        }
+    }
+
+
 
     updateTabDisplay() {
         const desktopTabs = document.querySelectorAll('.friends-desktop-tabs [data-tab]');
@@ -131,6 +182,8 @@ class FriendsTabManager {
             mobileMenu.classList.add('hidden');
         }
     }
+
+
 }
 
 window.FriendsTabManager = FriendsTabManager;

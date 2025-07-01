@@ -59,7 +59,7 @@ if (file_exists($tooltipPath)) {
                     ?>
                     
                     <div class="server-sidebar-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>">
-                        <a href="/server/<?php echo $serverId; ?>" class="block" data-server-id="<?php echo $serverId; ?>">
+                        <a href="/server/<?php echo $serverId; ?>" class="block server-link" data-server-id="<?php echo $serverId; ?>">
                             <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">
                                 <?php if (!empty($serverImage)): ?>
                                     <img src="<?php echo htmlspecialchars($serverImage); ?>" alt="<?php echo htmlspecialchars($serverName); ?>" class="w-full h-full object-cover rounded-full">
@@ -117,7 +117,6 @@ if (file_exists($tooltipPath)) {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
-    
     document.querySelectorAll('.server-sidebar-icon').forEach(icon => {
         const tooltip = icon.querySelector('.tooltip');
         if (tooltip) {
@@ -131,6 +130,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 tooltip.style.opacity = '0';
             });
         }
+    });
+
+    document.querySelectorAll('.server-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const serverId = this.getAttribute('data-server-id');
+            
+            if (!serverId) return;
+            
+            console.log('[Server Sidebar] Server clicked, navigating to:', serverId);
+            
+            window.location.href = `/server/${serverId}`;
+        });
     });
 });
 </script>

@@ -84,13 +84,6 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
             </div>
 
             <div class="space-y-1" id="online-friends-container">
-                <div class="p-4 bg-discord-dark rounded text-center">
-                    <div class="mb-2 text-gray-400">
-                        <i class="fa-solid fa-user-group text-3xl"></i>
-                    </div>
-                    <p class="text-gray-300 mb-1">No friends online</p>
-                    <p class="text-gray-500 text-sm">Friends will appear here when they come online</p>
-                </div>
             </div>
         </div>
     </div>
@@ -107,7 +100,7 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
             
             <div class="space-y-1" id="all-friends-container">
                 <?php if (empty($friends)): ?>
-                <div class="p-4 bg-discord-dark rounded text-center">
+                <div class="p-4 bg-discord-dark rounded text-center" style="display: none;">
                     <div class="mb-2 text-gray-400">
                         <i class="fa-solid fa-user-group text-3xl"></i>
                     </div>
@@ -260,6 +253,8 @@ function getStatusClass(status) {
     switch (status) {
         case 'online':
             return 'bg-discord-green';
+        case 'afk':
+            return 'bg-yellow-500';
         case 'offline':
         default:
             return 'bg-gray-500';
@@ -270,6 +265,8 @@ function getStatusText(status) {
     switch (status) {
         case 'online':
             return 'Online';
+        case 'afk':
+            return 'Away';
         case 'offline':
         default:
             return 'Offline';
@@ -455,7 +452,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const onlineFriendsFromCache = friends.filter(friend => {
             const userData = onlineUsers[friend.id];
-            return userData && userData.status === 'online';
+            return userData && (userData.status === 'online' || userData.status === 'afk');
         });
         
         const onlineFriendsFromDOM = friends.filter(friend => {
@@ -551,22 +548,38 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🚀 [HOME-FRIENDS] Initializing home friends');
         
         setupFriendsManagerIntegration();
-        updateAllFriendsStatus();
         
-        renderOnlineTab();
+        setTimeout(() => {
+            clearInitialSkeletons();
+            updateAllFriendsStatus();
+            renderOnlineTab();
+        }, 1500);
         
-        setTimeout(checkAndUpdateOnlineTab, 1000);
         setTimeout(checkAndUpdateOnlineTab, 3000);
         setTimeout(checkAndUpdateOnlineTab, 5000);
         
         setInterval(checkAndUpdateOnlineTab, 10000);
     }
     
+    function clearInitialSkeletons() {
+        console.log('🧹 [HOME-FRIENDS] Clearing initial skeleton loaders');
+        const containers = ['online-friends-container', 'all-friends-container', 'pending-friends-container'];
+        containers.forEach(containerId => {
+            const container = document.getElementById(containerId);
+            if (container) {
+                const skeletonContainer = container.querySelector('.skeleton-loading-container');
+                if (skeletonContainer) {
+                    skeletonContainer.remove();
+                }
+            }
+        });
+    }
+    
     function updateAllFriendsStatus() {
         console.log('🔄 [HOME-FRIENDS] Updating all friends status');
         friends.forEach(friend => {
             const userData = onlineUsers[friend.id];
-            const status = userData?.status === 'online' ? 'online' : 'offline';
+            const status = userData?.status || 'offline';
             updateAllTabStatus(friend.id, status);
         });
     }
@@ -632,6 +645,24 @@ document.addEventListener('DOMContentLoaded', function() {
         detectFromDOM: detectOnlineFriendsFromDOM,
         lastRendered: () => lastRenderedOnlineFriends,
         checkUpdate: checkAndUpdateOnlineTab
+    };
+    
+    window.checkAndUpdateOnlineTab = checkAndUpdateOnlineTab;
+    window.loadOnlineFriends = function(forceRefresh = false) {
+        if (window.FriendsManager) {
+            console.log('📊 [HOME-FRIENDS] Loading online friends data');
+            const friendsManager = window.FriendsManager.getInstance();
+            onlineUsers = friendsManager.cache.onlineUsers || {};
+            updateAllFriendsStatus();
+            renderOnlineTab();
+        }
+    };
+    window.loadAllFriends = function(forceRefresh = false) {
+        console.log('📊 [HOME-FRIENDS] Loading all friends data');
+        updateAllFriendsStatus();
+    };
+    window.loadPendingRequests = function(forceRefresh = false) {
+        console.log('📊 [HOME-FRIENDS] Loading pending requests data');
     };
     
     initializeHomeFriends();

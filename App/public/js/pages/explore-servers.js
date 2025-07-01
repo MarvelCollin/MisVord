@@ -115,28 +115,33 @@ function initCategoryFilter() {
 }
 
 function initSearchFilter() {
-    const searchInput = document.querySelector('#server-search');
-
+    const searchInput = document.getElementById('server-search');
+    
     if (searchInput) {
-        let debounceTimeout;
-
-        searchInput.addEventListener('input', function () {
-            currentSearch = this.value.toLowerCase().trim();
-
-            clearTimeout(debounceTimeout);
-            debounceTimeout = setTimeout(() => {
+        searchInput.addEventListener('input', function() {
+            currentSearch = this.value.toLowerCase();
+            applyFilters();
+        });
+        
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                this.blur();
+                currentSearch = '';
                 applyFilters();
-            }, 300);
-        });
-
-        searchInput.addEventListener('focus', function() {
-            this.style.transform = 'translateY(-2px)';
-        });
-
-        searchInput.addEventListener('blur', function() {
-            this.style.transform = 'translateY(0)';
+            }
         });
     }
+    
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select();
+            }
+        }
+    });
 }
 
 function initSortFunctionality() {
@@ -344,7 +349,8 @@ function updateCategoryCounts(filteredCards) {
         }
     });
     
-    filteredCards.forEach(card => {
+    const allServerCards = document.querySelectorAll('.misvord-initial-server-card .explore-server-card');
+    allServerCards.forEach(card => {
         const category = card.getAttribute('data-category');
         if (category && categoryCounts.hasOwnProperty(category)) {
             categoryCounts[category]++;
@@ -353,7 +359,7 @@ function updateCategoryCounts(filteredCards) {
     
     const allServersCount = document.querySelector('.category-item[data-category=""] .misvord-category-count');
     if (allServersCount) {
-        allServersCount.textContent = filteredCards.length;
+        allServersCount.textContent = allServerCards.length;
     }
     
     categoryItems.forEach(item => {
@@ -378,11 +384,16 @@ function createSkeletonCard() {
                 <div class="misvord-skeleton-shimmer w-full h-full rounded-xl"></div>
             </div>
             <div class="mt-8 pl-2">
-                <div class="misvord-skeleton-shimmer misvord-skeleton-title mb-2"></div>
-                <div class="misvord-skeleton-shimmer misvord-skeleton-description mb-4"></div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="misvord-skeleton-shimmer misvord-skeleton-title flex-1"></div>
+                    <div class="misvord-skeleton-shimmer misvord-skeleton-category"></div>
+                </div>
+                <div class="misvord-skeleton-shimmer misvord-skeleton-description mb-3"></div>
+                <div class="misvord-skeleton-shimmer misvord-skeleton-created mb-3"></div>
                 <div class="misvord-skeleton-shimmer misvord-skeleton-stats mb-4"></div>
-                <div class="mt-4">
+                <div class="mt-4 space-y-2">
                     <div class="misvord-skeleton-shimmer misvord-skeleton-button"></div>
+                    <div class="misvord-skeleton-shimmer misvord-skeleton-invite-button"></div>
                 </div>
             </div>
         </div>
@@ -606,14 +617,14 @@ function extractServerDataFromCard(card) {
     const isJoined = joinButton ? (joinButton.textContent.includes('Joined') || joinButton.classList.contains('bg-discord-green')) : false;
 
     let bannerUrl = null;
-    const bannerImg = card.querySelector('.server-banner img') || card.querySelector('.h-32 img') || card.querySelector('.h-36 img');
-    if (bannerImg) {
+    const bannerImg = card.querySelector('.server-banner img');
+    if (bannerImg && bannerImg.src && !bannerImg.src.includes('default-profile-picture.png')) {
         bannerUrl = bannerImg.src;
     }
 
     let iconUrl = null;
-    const iconImg = card.querySelector('.explore-server-icon img') || card.querySelector('.rounded-xl img') || card.querySelector('.rounded-2xl img') || card.querySelector('.explore-server-icon-small img');
-    if (iconImg) {
+    const iconImg = card.querySelector('.explore-server-icon-small img, .server-icon');
+    if (iconImg && iconImg.src && !iconImg.src.includes('default-profile-picture.png')) {
         iconUrl = iconImg.src;
     }
 

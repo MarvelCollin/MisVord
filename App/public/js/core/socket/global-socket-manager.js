@@ -26,6 +26,11 @@ class GlobalSocketManager {
         this.presenceInterval = null;
         this.currentPresenceStatus = 'online';
         this.currentActivityDetails = null;
+        this.lastActivityTime = Date.now();
+        this.activityCheckInterval = null;
+        this.isUserActive = true;
+        this.afkTimeout = 20000;
+        this.activityTracking = true;
     }
     
     async initialize() {
@@ -48,6 +53,7 @@ class GlobalSocketManager {
             
             if (this.io) {
                 this.setupEventListeners();
+                this.setupActivityTracking();
                 return true;
             }
             
@@ -279,7 +285,10 @@ class GlobalSocketManager {
             });
             
             this.log('Sending initial online presence update after authentication');
-            this.updatePresence('online');
+            this.lastActivityTime = Date.now();
+            this.isUserActive = true;
+            this.currentPresenceStatus = 'online';
+            this.updatePresence('online', { type: 'active' });
             this.startPresenceHeartbeat();
             
             console.log('🔔 [SOCKET] Dispatching globalSocketReady event');
@@ -344,6 +353,7 @@ class GlobalSocketManager {
             this.isConnected = false;
             this.isAuthenticated = false;
             this.stopPresenceHeartbeat();
+            this.stopActivityCheck();
             this.debug('Socket disconnected', {
                 previousSocketId: this.io.id,
                 wasAuthenticated: this.isAuthenticated,
@@ -745,6 +755,7 @@ class GlobalSocketManager {
     
     disconnect() {
         this.stopPresenceHeartbeat();
+        this.stopActivityCheck();
         if (this.io) {
             this.io.disconnect();
             this.io = null;
@@ -1031,6 +1042,63 @@ class GlobalSocketManager {
     
     handleStopTyping(data) {
         console.log('⌨️ [GLOBAL-SOCKET] Stop typing event received:', data);
+    }
+
+    setupActivityTracking() {
+        if (!this.activityTracking) return;
+        
+        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+        
+        const updateActivity = () => {
+            this.lastActivityTime = Date.now();
+            if (!this.isUserActive || this.currentPresenceStatus === 'afk') {
+                this.isUserActive = true;
+                console.log('🎯 [SOCKET] User activity detected, setting status to online');
+                this.currentPresenceStatus = 'online';
+                this.updatePresence('online', { type: 'active' });
+            }
+        };
+        
+        events.forEach(event => {
+            document.addEventListener(event, updateActivity, true);
+        });
+        
+        window.addEventListener('focus', () => {
+            console.log('🎯 [SOCKET] Window focused, user is active');
+            updateActivity();
+        });
+        
+        window.addEventListener('blur', () => {
+            console.log('🎯 [SOCKET] Window blurred, starting afk detection');
+        });
+        
+        this.startActivityCheck();
+        console.log('✅ [SOCKET] Activity tracking initialized');
+    }
+    
+    startActivityCheck() {
+        this.stopActivityCheck();
+        
+        this.activityCheckInterval = setInterval(() => {
+            const timeSinceActivity = Date.now() - this.lastActivityTime;
+            
+            if (timeSinceActivity >= this.afkTimeout && this.isUserActive) {
+                this.isUserActive = false;
+                console.log('😴 [SOCKET] User inactive for 20 seconds, setting status to afk');
+                this.currentPresenceStatus = 'afk';
+                this.updatePresence('afk', { type: 'afk' });
+            }
+        }, 5000);
+        
+        console.log('⏰ [SOCKET] Activity check started (5 second intervals)');
+    }
+    
+    stopActivityCheck() {
+        if (this.activityCheckInterval) {
+            clearInterval(this.activityCheckInterval);
+            this.activityCheckInterval = null;
+            console.log('⏰ [SOCKET] Activity check stopped');
+        }
     }
 }
 

@@ -762,7 +762,16 @@ function handleDisconnect(io, client) {
         console.log(`🔌 [DISCONNECT] User ${username} (${user_id}) disconnected, socket: ${client.id}`);
         
         if (userOffline) {
-            console.log(`⏰ [DISCONNECT] User ${username} has no more active sockets, letting presence system handle offline status`);
+            console.log(`⏰ [DISCONNECT] User ${username} has no more active sockets, marking as offline`);
+            userService.updatePresence(user_id, 'offline', null, username);
+            io.emit('user-offline', {
+                user_id: user_id,
+                username: username,
+                status: 'offline',
+                activity_details: null,
+                timestamp: Date.now()
+            });
+            console.log(`📡 [DISCONNECT] Broadcasted offline event for user ${username} (${user_id})`);
         } else {
             console.log(`🔌 [DISCONNECT] User ${username} still has other active sockets, keeping online`);
         }

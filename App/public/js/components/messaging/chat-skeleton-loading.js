@@ -88,7 +88,14 @@ class ChatSkeletonLoader {
         this.clear();
         this.container.removeAttribute('data-channel-skeleton');
         this.container.classList.remove('skeleton-loading');
-        console.log('🧹 [ChatSkeletonLoader] Skeleton cleared after message load');
+        
+        const allContainers = document.querySelectorAll('.messages-container, .chat-section, .main-content-area');
+        allContainers.forEach(container => {
+            container.removeAttribute('data-channel-skeleton');
+            container.classList.remove('skeleton-loading');
+        });
+        
+        console.log('🧹 [ChatSkeletonLoader] Complete skeleton cleanup after message load');
     }
 
     createSkeleton(isAlternate = false) {

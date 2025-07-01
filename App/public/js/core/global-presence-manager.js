@@ -187,7 +187,7 @@ class GlobalPresenceManager {
             
             const activeFriends = friends.filter(friend => {
                 const userData = onlineUsers[friend.id];
-                return userData && userData.status === 'online';
+                return userData && (userData.status === 'online' || userData.status === 'afk');
             });
             
             const newState = this.createFriendStateSignature(activeFriends, onlineUsers);
@@ -238,7 +238,7 @@ class GlobalPresenceManager {
     }
     
     updateExistingFriend(friendEl, friend, userData) {
-        const status = userData?.status === 'online' ? 'online' : 'offline';
+        const status = userData?.status || 'offline';
         const statusClass = this.getStatusClass(status);
         const activityDetails = userData?.activity_details;
         const activityText = this.getActivityText(activityDetails);
@@ -264,7 +264,7 @@ class GlobalPresenceManager {
     }
     
     createFriendElement(friend, userData) {
-        const status = userData?.status === 'online' ? 'online' : 'offline';
+        const status = userData?.status || 'offline';
         const statusClass = this.getStatusClass(status);
         const activityText = this.getActivityText(userData?.activity_details);
         const activityIcon = this.getActivityIcon(userData?.activity_details);
@@ -361,6 +361,7 @@ class GlobalPresenceManager {
     getStatusClass(status) {
         switch (status) {
             case 'online': return 'bg-discord-green';
+            case 'afk': return 'bg-yellow-500';
             case 'offline':
             default: return 'bg-gray-500';
         }
@@ -374,6 +375,7 @@ class GlobalPresenceManager {
         switch (activityDetails.type) {
             case 'playing Tic Tac Toe': return 'Playing Tic Tac Toe';
             case 'In Voice Call': return 'In Voice Call';
+            case 'afk': return 'Away';
             case 'idle':
             default: return 'Online';
         }
@@ -387,6 +389,7 @@ class GlobalPresenceManager {
         switch (activityDetails.type) {
             case 'playing Tic Tac Toe': return 'fa-solid fa-gamepad';
             case 'In Voice Call': return 'fa-solid fa-microphone';
+            case 'afk': return 'fa-solid fa-moon-over-sun';
             case 'idle':
             default: return 'fa-solid fa-moon';
         }

@@ -307,8 +307,6 @@
   transform: scale(1.05);
 }
 
-
-
 .explore-server-card:hover .explore-server-icon-small {
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -340,8 +338,6 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-
-
 .featured-badge {
   position: absolute;
   top: 12px;
@@ -361,16 +357,18 @@
 }
 
 .category-badge {
-  background: linear-gradient(135deg, #4f545c 0%, #5c6270 100%);
-  color: #dcddde;
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 11px;
+  background: linear-gradient(135deg, #5865f2 0%, #7289da 100%);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 10px;
   font-weight: 600;
   display: inline-block;
-  margin-right: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(88, 101, 242, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }
 
 .server-stats {
@@ -395,25 +393,7 @@
   color: #a3a6aa;
 }
 
-.online-dot {
-  width: 8px;
-  height: 8px;
-  background-color: #3ba55d;
-  border-radius: 50%;
-  margin-right: 6px;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(59, 165, 93, 0.2);
-  animation: pulse-green 2s infinite;
-}
 
-@keyframes pulse-green {
-  0%, 100% {
-    box-shadow: 0 0 0 2px rgba(59, 165, 93, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(59, 165, 93, 0.1);
-  }
-}
 
 .join-server-btn {
   position: relative;
@@ -511,6 +491,21 @@
   height: 34px;
 }
 
+.misvord-skeleton-category {
+  width: 60px;
+  height: 18px;
+}
+
+.misvord-skeleton-created {
+  width: 80%;
+  height: 14px;
+}
+
+.misvord-skeleton-invite-button {
+  width: 100%;
+  height: 28px;
+}
+
 .misvord-skeleton-icon-placeholder {
   background-color: #2f3136;
   border: 3px solid #36393f;
@@ -542,10 +537,6 @@
   content: '00';
   opacity: 0;
 }
-
-
-
-
 
 @media (max-width: 1200px) {
   .grid-container {

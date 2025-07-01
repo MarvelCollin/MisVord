@@ -34,63 +34,37 @@ class ServerController extends BaseController
     public function show($id)
     {
         try {
-            if (function_exists('logger')) {
-                logger()->debug("ServerController::show called", [
-                    'server_id' => $id,
-                    'user_id' => $_SESSION['user_id'] ?? 'not_set',
-                    'session_id' => session_id(),
-                    'request_uri' => $_SERVER['REQUEST_URI'] ?? ''
-                ]);
-            }
-
             $this->requireAuth();
-
-            if (function_exists('logger')) {
-                logger()->debug("Authentication passed", [
-                    'server_id' => $id,
-                    'user_id' => $_SESSION['user_id']
-                ]);
-            }
 
             $server = $this->serverRepository->find($id);
             if (!$server) {
                 return $this->notFound('Server not found');
             }
 
-            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $id);
-            if (!$membership) {
+            $serverId = (int)$id;
+            $currentUserId = $this->getCurrentUserId();
+
+            if (!$this->userServerMembershipRepository->isMember($currentUserId, $serverId)) {
                 return $this->forbidden('You are not a member of this server');
             }
+
             try {
-                $channels = $this->channelRepository->getByServerId($id);
-                $categories = $this->categoryRepository->getForServer($id);
+                $channels = $this->channelRepository->getByServerId($serverId);
+                $categories = $this->categoryRepository->getForServer($serverId);
+                $serverMembers = $this->userServerMembershipRepository->getServerMembers($serverId);
 
-                $serverMembers = $this->userServerMembershipRepository->getServerMembers($id);
-
-                if (function_exists('logger')) {
-                    logger()->debug("Loaded server data", [
-                        'server_id' => $id,
-                        'channels_count' => count($channels),
-                        'categories_count' => count($categories),
-                        'members_count' => count($serverMembers)
-                    ]);
-                }
+                $this->logActivity('server_channels_loaded', [
+                    'server_id' => $serverId,
+                    'channel_count' => count($channels),
+                    'category_count' => count($categories)
+                ]);
 
                 $activeChannelId = $_GET['channel'] ?? null;
                 $activeChannel = null;
                 $channelMessages = [];
+
                 if (!$activeChannelId && !empty($channels)) {
-                    $defaultChannelId = null;
-                    foreach ($channels as $channel) {
-                        if ($channel['type'] === 'text' || $channel['type'] === 0 || $channel['type_name'] === 'text') {
-                            $defaultChannelId = $channel['id'];
-                            break;
-                        }
-                    }
-                    if ($defaultChannelId) {
-                        $this->redirect("/server/{$id}?channel={$defaultChannelId}");
-                        return;
-                    }
+                    $activeChannelId = $channels[0]['id'];
                 }
 
                 if ($activeChannelId) {
@@ -2078,13 +2052,12 @@ class ServerController extends BaseController
                 return $this->notFound('Server not found');
             }
 
-            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $serverId);
-            if (!$membership) {
+            if (!$this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
                 return $this->forbidden('You are not a member of this server');
             }
 
             $channels = $this->channelRepository->getByServerId($serverId);
-            $categories = $this->categoryRepository->getForServer($serverId);
+            $categories = $this->categoryRepository->getByServerId($serverId);
             $serverMembers = $this->userServerMembershipRepository->getServerMembers($serverId);
 
             $defaultChannelId = null;
@@ -2095,6 +2068,12 @@ class ServerController extends BaseController
                 }
             }
 
+            $this->logActivity('server_bundle_loaded', [
+                'server_id' => $serverId,
+                'channel_count' => count($channels),
+                'category_count' => count($categories)
+            ]);
+
             return $this->success([
                 'server' => $this->formatServer($server),
                 'channels' => array_map([$this, 'formatChannel'], $channels),
@@ -2104,6 +2083,10 @@ class ServerController extends BaseController
             ]);
 
         } catch (Exception $e) {
+            $this->logActivity('server_bundle_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
             return $this->serverError('Failed to load server data: ' . $e->getMessage());
         }
     }

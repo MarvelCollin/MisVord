@@ -14,17 +14,30 @@ function extractServerIdFromURL(url) {
 
 async function loadDefaultChannel(serverId) {
     try {
+        console.log('[Channel Redirect] Loading default channel for server:', serverId);
+        
         const response = await fetch(`/api/servers/${serverId}/channels`);
         const data = await response.json();
         
         if (data.success && data.data && data.data.channels && data.data.channels.length > 0) {
             const firstChannel = data.data.channels[0];
             
+            console.log('[Channel Redirect] Found default channel:', firstChannel.id);
+            
             if (window.simpleChannelSwitcher) {
                 window.simpleChannelSwitcher.switchToChannel(firstChannel.id, 'text');
+            } else {
+                console.warn('[Channel Redirect] simpleChannelSwitcher not available, will retry');
+                setTimeout(() => {
+                    if (window.simpleChannelSwitcher) {
+                        window.simpleChannelSwitcher.switchToChannel(firstChannel.id, 'text');
+                    }
+                }, 1000);
             }
+        } else {
+            console.warn('[Channel Redirect] No channels found for server:', serverId);
         }
     } catch (error) {
-        console.error('Failed to load default channel:', error);
+        console.error('[Channel Redirect] Failed to load default channel:', error);
     }
 }

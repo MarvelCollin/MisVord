@@ -8,6 +8,7 @@ const friendAPI = window.FriendAPI;
 function getStatusClass(status) {
     switch (status) {
         case 'online': return 'bg-discord-green';
+        case 'afk': return 'bg-yellow-500';
         case 'offline':
         default: return 'bg-gray-500';
     }
@@ -16,6 +17,7 @@ function getStatusClass(status) {
 function getStatusText(status) {
     switch (status) {
         case 'online': return 'Online';
+        case 'afk': return 'Away';
         case 'offline':
         default: return 'Offline';
     }
@@ -86,6 +88,8 @@ async function loadOnlineFriends(forceRefresh = false) {
     const container = document.getElementById('online-friends-container');
     if (!container) return;
     
+    clearContainerSkeleton(container);
+    
     if (!window.FriendsManager) {
         console.error('FriendsManager not loaded');
         container.innerHTML = '<div class="text-gray-400 p-4">Loading friends system...</div>';
@@ -112,12 +116,13 @@ async function loadOnlineFriends(forceRefresh = false) {
                     <p class="text-gray-500 text-sm">Add friends to see them here when they're online</p>
                 </div>
             `;
+            updateOnlineCount(0);
             return;
         }
 
         const onlineFriends = friends.filter(friend => {
             const userData = onlineUsers[friend.id];
-            return userData && userData.status === 'online';
+            return userData && (userData.status === 'online' || userData.status === 'afk');
         });
 
         if (!onlineFriends || onlineFriends.length === 0) {
@@ -130,6 +135,7 @@ async function loadOnlineFriends(forceRefresh = false) {
                     <p class="text-gray-500 text-sm">Friends will appear here when they come online</p>
                 </div>
             `;
+            updateOnlineCount(0);
             return;
         }
 
@@ -138,7 +144,7 @@ async function loadOnlineFriends(forceRefresh = false) {
         let friendsHtml = '';
         onlineFriends.forEach(friend => {
             const userData = onlineUsers[friend.id];
-            const status = userData?.status === 'online' ? 'online' : 'offline';
+            const status = userData?.status || 'offline';
             const statusClass = getStatusClass(status);
             const statusText = getStatusText(status);
             
@@ -171,8 +177,8 @@ async function loadOnlineFriends(forceRefresh = false) {
         });
 
         container.innerHTML = friendsHtml;
+        updateOnlineCount(onlineFriends.length);
         
-        // Apply fallback image handler to new images
         if (window.fallbackImageHandler) {
             setTimeout(() => {
                 container.querySelectorAll('img.user-avatar').forEach(img => {
@@ -184,12 +190,15 @@ async function loadOnlineFriends(forceRefresh = false) {
     } catch (error) {
         console.error('Error loading online friends:', error);
         container.innerHTML = '<div class="text-gray-400 p-4">Error loading online friends</div>';
+        updateOnlineCount(0);
     }
 }
 
 async function loadAllFriends(forceRefresh = false) {
     const container = document.getElementById('all-friends-container');
     if (!container) return;
+    
+    clearContainerSkeleton(container);
     
     if (!window.FriendsManager) {
         console.error('FriendsManager not loaded');
@@ -221,11 +230,14 @@ async function loadAllFriends(forceRefresh = false) {
         }
 
         friends.sort((a, b) => {
-            const statusA = onlineUsers[a.id]?.status === 'online' ? 'online' : 'offline';
-            const statusB = onlineUsers[b.id]?.status === 'online' ? 'online' : 'offline';
+            const statusA = onlineUsers[a.id]?.status || 'offline';
+            const statusB = onlineUsers[b.id]?.status || 'offline';
             
-            if (statusA === 'online' && statusB === 'offline') return -1;
-            if (statusB === 'online' && statusA === 'offline') return 1;
+            const priorityOrder = { 'online': 0, 'afk': 1, 'offline': 2 };
+            const priorityA = priorityOrder[statusA] || 2;
+            const priorityB = priorityOrder[statusB] || 2;
+            
+            if (priorityA !== priorityB) return priorityA - priorityB;
             
             return a.username.localeCompare(b.username);
         });
@@ -233,7 +245,7 @@ async function loadAllFriends(forceRefresh = false) {
         let friendsHtml = '';
         friends.forEach(friend => {
             const userData = onlineUsers[friend.id];
-            const status = userData?.status === 'online' ? 'online' : 'offline';
+            const status = userData?.status || 'offline';
             const statusClass = getStatusClass(status);
             const statusText = getStatusText(status);
             
@@ -267,7 +279,6 @@ async function loadAllFriends(forceRefresh = false) {
 
         container.innerHTML = friendsHtml;
         
-        // Apply fallback image handler to new images
         if (window.fallbackImageHandler) {
             setTimeout(() => {
                 container.querySelectorAll('img.user-avatar').forEach(img => {
@@ -285,6 +296,8 @@ async function loadAllFriends(forceRefresh = false) {
 async function loadPendingRequests(forceRefresh = false) {
     const container = document.getElementById('pending-friends-container');
     if (!container) return;
+    
+    clearContainerSkeleton(container);
     
     if (!window.FriendsManager) {
         console.error('FriendsManager not loaded');
@@ -347,7 +360,7 @@ async function loadPendingRequests(forceRefresh = false) {
         
         if (outgoing.length > 0) {
             html += `
-                <h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Outgoing Friend Requests — ${outgoing.length}</h3>
+                <h3 class="text-xs uppercase font-semibold text-gray-400 mt-4 mb-2">Outgoing Friend Requests — ${outgoing.length}</h3>
                 <div class="space-y-2">
                     ${outgoing.map(user => `
                         <div class="flex items-center justify-between p-3 bg-discord-dark rounded transition-all duration-200">
@@ -377,7 +390,6 @@ async function loadPendingRequests(forceRefresh = false) {
         container.innerHTML = html;
         updatePendingCount(incoming.length);
         
-        // Apply fallback image handler to new images
         if (window.fallbackImageHandler) {
             setTimeout(() => {
                 container.querySelectorAll('img.user-avatar').forEach(img => {
@@ -389,6 +401,16 @@ async function loadPendingRequests(forceRefresh = false) {
     } catch (error) {
         console.error('Error loading pending requests:', error);
         container.innerHTML = '<div class="text-gray-400 p-4">Error loading pending requests</div>';
+    }
+}
+
+function clearContainerSkeleton(container) {
+    if (!container) return;
+    
+    const skeletonContainer = container.querySelector('.skeleton-loading-container');
+    if (skeletonContainer) {
+        skeletonContainer.remove();
+        console.log('🧹 [APP-LAYOUT] Cleared skeleton from container');
     }
 }
 
@@ -909,5 +931,18 @@ function updateOnlineCount(count) {
 }
 
 function updatePendingCount(count) {
-    updatePendingCountDisplay(count);
+    const pendingTabs = document.querySelectorAll('[data-tab="pending"]');
+    pendingTabs.forEach(tab => {
+        const existingBadge = tab.querySelector('.bg-discord-red');
+        if (existingBadge) {
+            existingBadge.remove();
+        }
+        
+        if (count > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'bg-discord-red text-white text-xs rounded-full px-1.5 py-0.5 ml-1';
+            badge.textContent = count;
+            tab.appendChild(badge);
+        }
+    });
 }

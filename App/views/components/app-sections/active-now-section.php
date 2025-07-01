@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', function() {
         switch (status) {
             case 'online':
                 return 'bg-discord-green';
+            case 'afk':
+                return 'bg-yellow-500';
             case 'offline':
             default:
                 return 'bg-gray-500';
@@ -48,6 +50,8 @@ document.addEventListener('DOMContentLoaded', function() {
         switch (status) {
             case 'online':
                 return 'Online';
+            case 'afk':
+                return 'Away';
             case 'offline':
             default:
                 return 'Offline';
@@ -56,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function getActivityText(activityDetails) {
         if (!activityDetails || !activityDetails.type) {
-            return 'Idle';
+            return 'Online';
         }
         
         switch (activityDetails.type) {
@@ -64,15 +68,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 return 'Playing Tic Mac Voe';
             case 'In Voice Call':
                 return 'In Voice Call';
+            case 'afk':
+                return 'Away';
             case 'idle':
             default:
-                return 'Idle';
+                return 'Online';
         }
     }
     
     function getActivityIcon(activityDetails) {
         if (!activityDetails || !activityDetails.type) {
-            return 'fa-solid fa-moon';
+            return 'fa-solid fa-circle';
         }
         
         switch (activityDetails.type) {
@@ -80,6 +86,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return 'fa-solid fa-gamepad';
             case 'In Voice Call':
                 return 'fa-solid fa-microphone';
+            case 'afk':
+                return 'fa-solid fa-moon-over-sun';
             case 'idle':
             default:
                 return 'fa-solid fa-moon';
@@ -113,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateExistingFriend(friendEl, friend, userData) {
-        const status = userData?.status === 'online' ? 'online' : 'offline';
+        const status = userData?.status || 'offline';
         const statusClass = getStatusClass(status);
         const activityDetails = userData?.activity_details;
         const activityText = getActivityText(activityDetails);
@@ -140,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function createFriendElement(friend) {
         const userData = onlineUsers[friend.id];
-        const status = userData?.status === 'online' ? 'online' : 'offline';
+        const status = userData?.status || 'offline';
         const statusClass = getStatusClass(status);
         const activityDetails = userData?.activity_details;
         const activityText = getActivityText(activityDetails);
@@ -199,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateActiveFriends() {
         const activeFriends = friends.filter(friend => {
             const userData = onlineUsers[friend.id];
-            return userData && userData.status === 'online';
+            return userData && (userData.status === 'online' || userData.status === 'afk');
         });
 
         const newState = createFriendStateSignature(activeFriends);

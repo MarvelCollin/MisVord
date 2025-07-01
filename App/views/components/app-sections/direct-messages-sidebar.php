@@ -59,7 +59,47 @@ if (file_exists($tooltipPath)) {
         </button>
     </div>
 
-    <div class="px-2 mt-1 flex-grow overflow-y-auto">
+    <div class="px-2 mt-1 flex-grow overflow-y-auto" id="dm-list-container">
+        <div id="dm-skeleton-loading" class="dm-skeleton-container">
+            <div class="dm-skeleton-item flex items-center p-1.5 rounded animate-pulse">
+                <div class="relative mr-3">
+                    <div class="skeleton-avatar"></div>
+                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="skeleton-text mb-1"></div>
+                </div>
+            </div>
+            <div class="dm-skeleton-item flex items-center p-1.5 rounded animate-pulse">
+                <div class="relative mr-3">
+                    <div class="skeleton-avatar"></div>
+                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="skeleton-text mb-1"></div>
+                </div>
+            </div>
+            <div class="dm-skeleton-item flex items-center p-1.5 rounded animate-pulse">
+                <div class="relative mr-3">
+                    <div class="skeleton-avatar"></div>
+                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="skeleton-text mb-1"></div>
+                </div>
+            </div>
+            <div class="dm-skeleton-item flex items-center p-1.5 rounded animate-pulse">
+                <div class="relative mr-3">
+                    <div class="skeleton-avatar"></div>
+                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="skeleton-text mb-1"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="dm-real-content" style="display: none;">
         <?php foreach ($chatRooms as $chatRoom): ?>
             <?php 
             $statusColor = 'bg-gray-500';
@@ -120,6 +160,7 @@ if (file_exists($tooltipPath)) {
                 </div>
             </div>
         <?php endforeach; ?>
+        </div>
     </div>
 
     <?php include dirname(__DIR__) . '/common/user-profile.php'; ?>
@@ -127,9 +168,89 @@ if (file_exists($tooltipPath)) {
 
 <?php include dirname(__DIR__) . '/home/new-direct-modal.php'; ?>
 
+<style>
+.dm-skeleton-container {
+    animation-delay: 0.1s;
+}
+
+.dm-skeleton-item:nth-child(1) {
+    animation-delay: 0ms;
+}
+
+.dm-skeleton-item:nth-child(2) {
+    animation-delay: 200ms;
+}
+
+.dm-skeleton-item:nth-child(3) {
+    animation-delay: 400ms;
+}
+
+.dm-skeleton-item:nth-child(4) {
+    animation-delay: 600ms;
+}
+
+.skeleton-avatar {
+    width: 32px;
+    height: 32px;
+}
+
+.dm-skeleton-item .skeleton-text {
+    width: 65%;
+    height: 12px;
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔌 [DM-SIDEBAR] Direct messages sidebar loaded');
+    
+    function initializeDMSkeleton() {
+        console.log('🎨 [DM-SIDEBAR] Initializing skeleton loading');
+        
+        setTimeout(() => {
+            hideDMSkeleton();
+        }, 1500);
+    }
+    
+    function hideDMSkeleton() {
+        console.log('🧹 [DM-SIDEBAR] Hiding skeleton and showing real content');
+        
+        const skeletonContainer = document.getElementById('dm-skeleton-loading');
+        const realContent = document.getElementById('dm-real-content');
+        
+        if (skeletonContainer) {
+            skeletonContainer.style.display = 'none';
+        }
+        
+        if (realContent) {
+            realContent.style.display = 'block';
+        }
+        
+        updateAllUserStatuses();
+    }
+    
+    function showDMSkeleton() {
+        console.log('🎨 [DM-SIDEBAR] Showing skeleton loading');
+        
+        const skeletonContainer = document.getElementById('dm-skeleton-loading');
+        const realContent = document.getElementById('dm-real-content');
+        
+        if (skeletonContainer) {
+            skeletonContainer.style.display = 'block';
+        }
+        
+        if (realContent) {
+            realContent.style.display = 'none';
+        }
+    }
+    
+    initializeDMSkeleton();
+    
+    window.dmSidebarSkeleton = {
+        show: showDMSkeleton,
+        hide: hideDMSkeleton,
+        initialized: true
+    };
     
     function getStatusColor(isOnline) {
         return isOnline ? 'bg-discord-green' : 'bg-gray-500';

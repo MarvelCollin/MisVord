@@ -77,10 +77,8 @@ async function initializeServerComponents() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[Server Page] DOM loaded, initializing server page');
     
-    // Initialize server components
     initializeServerComponents();
     
-    // Load server content (without AJAX)
     loadServerContent();
     
     console.log('[Server Page] Server page initialization complete');
