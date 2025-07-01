@@ -16,7 +16,7 @@ function tooltip($content, $text, $position = 'right', $additionalClasses = '') 
     
     return '<div class="relative group ' . $additionalClasses . '">
         ' . $content . '
-        <div class="absolute ' . $positionClasses[$position] . ' opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 delay-500 pointer-events-none z-50">
+        <div class="absolute ' . $positionClasses[$position] . ' opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 delay-500 pointer-events-none z-[9999]">
             <div class="bg-gray-800 text-white text-sm font-semibold px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
                 ' . htmlspecialchars($text) . '
             </div>

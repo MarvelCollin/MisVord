@@ -851,8 +851,6 @@ class EmojiReactions {
                 console.error('❌ [EMOJI-REACTIONS] No target ID found');
                 return;
             }
-                return;
-            }
             
             const tempReactionId = `temp-reaction-remove-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
             

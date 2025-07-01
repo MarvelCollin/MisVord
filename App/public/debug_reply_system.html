@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reply System Debug Test</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        button { margin: 5px; padding: 10px; }
+        #log { height: 300px; overflow-y: scroll; background: #f8f9fa; padding: 10px; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Reply System Debug Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Check Message Format</h2>
+        <button onclick="testMessageFormat()">Test Message Format</button>
+        <div id="formatResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Check Socket Connection</h2>
+        <button onclick="testSocketConnection()">Test Socket Connection</button>
+        <div id="socketResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Check API Endpoints</h2>
+        <button onclick="testApiEndpoints()">Test API Endpoints</button>
+        <div id="apiResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Debug Log</h2>
+        <button onclick="clearLog()">Clear Log</button>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let socket = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toISOString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        async function testMessageFormat() {
+            const resultDiv = document.getElementById('formatResult');
+            
+            try {
+                log('Testing message format with reply data...');
+                
+                // Test with a mock message that has reply data
+                const mockMessage = {
+                    id: 123,
+                    content: 'This is a reply message',
+                    user_id: 1,
+                    username: 'testuser',
+                    reply_message_id: 456,
+                    reply_data: {
+                        message_id: 456,
+                        content: 'Original message',
+                        username: 'originaluser'
+                    }
+                };
+                
+                log(`Mock message structure: ${JSON.stringify(mockMessage, null, 2)}`);
+                
+                // Check if all required fields are present
+                const requiredFields = ['id', 'content', 'user_id', 'username'];
+                const replyFields = ['reply_message_id', 'reply_data'];
+                
+                let hasAllRequired = requiredFields.every(field => mockMessage.hasOwnProperty(field));
+                let hasReplyFields = replyFields.every(field => mockMessage.hasOwnProperty(field));
+                
+                if (hasAllRequired && hasReplyFields) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '✅ Message format is correct - all reply fields present';
+                    log('✅ Message format test passed');
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = '❌ Message format missing required fields';
+                    log('❌ Message format test failed');
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ Error: ${error.message}`;
+                log(`❌ Message format test error: ${error.message}`);
+            }
+        }
+        
+        async function testSocketConnection() {
+            const resultDiv = document.getElementById('socketResult');
+            
+            try {
+                log('Testing socket connection...');
+                
+                socket = io('http://localhost:3001');
+                
+                socket.on('connect', () => {
+                    log('✅ Socket connected successfully');
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '✅ Socket connection successful';
+                });
+                
+                socket.on('disconnect', () => {
+                    log('⚠️ Socket disconnected');
+                });
+                
+                socket.on('connect_error', (error) => {
+                    log(`❌ Socket connection error: ${error.message}`);
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ Socket connection failed: ${error.message}`;
+                });
+                
+                // Test reply system events
+                socket.on('new-channel-message', (data) => {
+                    log(`📨 Received new channel message: ${JSON.stringify(data, null, 2)}`);
+                    if (data.reply_message_id && data.reply_data) {
+                        log('✅ Reply data received correctly in socket event');
+                    }
+                });
+                
+                socket.on('message_id_updated', (data) => {
+                    log(`🔄 Message ID updated: ${JSON.stringify(data, null, 2)}`);
+                    if (data.message_data && data.message_data.reply_data) {
+                        log('✅ Reply data received correctly in ID update event');
+                    }
+                });
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ Error: ${error.message}`;
+                log(`❌ Socket test error: ${error.message}`);
+            }
+        }
+        
+        async function testApiEndpoints() {
+            const resultDiv = document.getElementById('apiResult');
+            
+            try {
+                log('Testing API endpoints...');
+                
+                // Test 1: Check if save-message endpoint exists
+                log('Testing /api/chat/save-message endpoint...');
+                const saveResponse = await fetch('/api/chat/save-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: 'test',
+                        target_type: 'channel',
+                        target_id: 1,
+                        reply_message_id: null
+                    })
+                });
+                
+                log(`Save endpoint status: ${saveResponse.status}`);
+                
+                // Test 2: Check if get message endpoint exists
+                log('Testing /api/messages/{id} endpoint...');
+                const getResponse = await fetch('/api/messages/1');
+                log(`Get message endpoint status: ${getResponse.status}`);
+                
+                if (saveResponse.status !== 404 && getResponse.status !== 404) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '✅ API endpoints are accessible';
+                    log('✅ API endpoints test passed');
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = '❌ Some API endpoints not found';
+                    log('❌ API endpoints test failed');
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ Error: ${error.message}`;
+                log(`❌ API test error: ${error.message}`);
+            }
+        }
+        
+        // Auto-start basic tests when page loads
+        window.onload = function() {
+            log('🚀 Reply System Debug Test started');
+            log('Click the test buttons to run individual tests');
+        };
+    </script>
+</body>
+</html>

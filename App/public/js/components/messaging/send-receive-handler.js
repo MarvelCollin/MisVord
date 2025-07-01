@@ -21,7 +21,7 @@ class SendReceiveHandler {
             const options = { message_type: 'text' };
             
             if (this.chatSection.replyingTo) {
-                options.reply_message_id = this.chatSection.replyingTo.id;
+                options.reply_message_id = this.chatSection.replyingTo.messageId;
             }
             
             const attachmentUrls = this.chatSection.fileUploadHandler.hasFiles() 
@@ -117,7 +117,7 @@ class SendReceiveHandler {
         
         if (this.chatSection.replyingTo) {
             tempMessageData.reply_data = {
-                message_id: this.chatSection.replyingTo.id,
+                message_id: this.chatSection.replyingTo.messageId,
                 content: this.chatSection.replyingTo.content,
                 username: this.chatSection.replyingTo.username
             };

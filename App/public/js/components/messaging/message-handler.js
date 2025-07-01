@@ -319,7 +319,7 @@ class MessageHandler {
 }
 
 .bubble-message-temporary {
-    opacity: 0.7;
+    opacity: 1.0;
 }
 
 .bubble-message-failed {
@@ -621,7 +621,6 @@ class MessageHandler {
     
     markAsTemporary(messageElement) {
         messageElement.classList.add('bubble-message-temporary');
-        messageElement.style.opacity = '0.7';
         
         const reactionButton = messageElement.querySelector('.message-action-reaction, .bubble-action-button[data-action="react"]');
         if (reactionButton) {

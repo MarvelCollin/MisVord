@@ -22,8 +22,8 @@ class UserDetailModal {
         this.statusIndicator = this.modal.querySelector('.user-status-indicator');
 
         this.aboutSection = this.modal.querySelector('#user-detail-bio');
-        this.memberSinceSection = this.modal.querySelector('#user-detail-member-since');
-        this.rolesSection = this.modal.querySelector('#user-detail-roles');
+        this.memberSinceSection = this.modal.querySelector('#user-detail-server-info');
+        this.rolesSection = this.modal.querySelector('#user-detail-roles'); // May not exist
 
         this.mutualSection = this.modal.querySelector('.user-detail-mutual');
         this.mutualServersElement = this.modal.querySelector('#user-detail-mutual-servers');
