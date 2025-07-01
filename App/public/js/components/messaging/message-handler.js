@@ -913,6 +913,117 @@ class MessageHandler {
         console.log(`✅ [MESSAGE-HANDLER] Successfully displayed ${messages.length} messages in batch`);
     }
     
+    async prependMessagesProgressively(messages) {
+        console.log(`📨 [MESSAGE-HANDLER] Progressively prepending ${messages.length} messages`);
+        
+        if (!Array.isArray(messages)) {
+            console.error('❌ [MESSAGE-HANDLER] prependMessagesProgressively called with non-array:', messages);
+            return;
+        }
+        
+        if (messages.length === 0) {
+            console.log('📭 [MESSAGE-HANDLER] No messages to prepend');
+            return;
+        }
+        
+        const messagesContainer = this.chatSection.getMessagesContainer();
+        if (!messagesContainer) {
+            console.error('❌ [MESSAGE-HANDLER] Messages container not found');
+            return;
+        }
+        
+        this.chatSection.hideEmptyState();
+        
+        const firstChild = messagesContainer.firstChild;
+        const currentScrollHeight = messagesContainer.scrollHeight;
+        const currentScrollTop = messagesContainer.scrollTop;
+        
+        const separator = this.createMessageSeparator(messages.length);
+        if (separator) {
+            messagesContainer.insertBefore(separator, firstChild);
+        }
+        
+        const reversedMessages = [...messages].reverse();
+        const messageBatches = this.createMessageBatches(reversedMessages, 5);
+        
+        for (let batchIndex = 0; batchIndex < messageBatches.length; batchIndex++) {
+            const batch = messageBatches[batchIndex];
+            const batchContainer = document.createElement('div');
+            batchContainer.className = 'progressive-load-group';
+            
+            for (const message of batch) {
+                try {
+                    const formattedMessage = this.formatMessageForBubble(message);
+                    
+                    if (!this.isValidFormattedMessage(formattedMessage)) {
+                        console.error('❌ [MESSAGE-HANDLER] Formatted message failed validation:', formattedMessage);
+                        continue;
+                    }
+                    
+                    const bubbleHtml = await this.renderBubbleMessage(formattedMessage);
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = bubbleHtml;
+                    const messageGroup = tempDiv.querySelector('.bubble-message-group');
+                    
+                    if (messageGroup) {
+                        this.ensureBubbleStyles(tempDiv);
+                        batchContainer.appendChild(messageGroup);
+                        this.processedMessageIds.add(message.id);
+                    } else {
+                        const fallbackMessage = this.fallbackCreateMessage(formattedMessage, false);
+                        if (fallbackMessage) {
+                            batchContainer.appendChild(fallbackMessage);
+                            this.processedMessageIds.add(message.id);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`❌ [MESSAGE-HANDLER] Error processing message ${message.id}:`, error);
+                    const formattedMessage = this.formatMessageForBubble(message);
+                    const fallbackMessage = this.fallbackCreateMessage(formattedMessage, false);
+                    if (fallbackMessage) {
+                        batchContainer.appendChild(fallbackMessage);
+                        this.processedMessageIds.add(message.id);
+                    }
+                }
+            }
+            
+            if (batchContainer.children.length > 0) {
+                messagesContainer.insertBefore(batchContainer, separator || firstChild);
+                
+                setTimeout(() => {
+                    batchContainer.classList.add('animate-in');
+                }, batchIndex * 100);
+                
+                await new Promise(resolve => setTimeout(resolve, 150));
+            }
+        }
+        
+        const newScrollHeight = messagesContainer.scrollHeight;
+        messagesContainer.scrollTop = currentScrollTop + (newScrollHeight - currentScrollHeight);
+        
+        console.log(`✅ [MESSAGE-HANDLER] Successfully prepended ${messages.length} messages progressively`);
+    }
+    
+    createMessageBatches(messages, batchSize) {
+        const batches = [];
+        for (let i = 0; i < messages.length; i += batchSize) {
+            batches.push(messages.slice(i, i + batchSize));
+        }
+        return batches;
+    }
+    
+    createMessageSeparator(messageCount) {
+        const separator = document.createElement('div');
+        separator.className = 'message-separator';
+        separator.innerHTML = `
+            <div class="message-separator-text">
+                <i class="fas fa-clock mr-2"></i>
+                ${messageCount} older message${messageCount !== 1 ? 's' : ''} loaded
+            </div>
+        `;
+        return separator;
+    }
+    
     async prependMessages(messages) {
         console.log(`📨 [MESSAGE-HANDLER] Prepending ${messages.length} messages`);
         

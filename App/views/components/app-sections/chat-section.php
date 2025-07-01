@@ -493,9 +493,62 @@ if (!function_exists('renderMessage')) {
 
     <div id="chat-messages" class="flex-1 overflow-y-auto overflow-x-hidden">
         <div id="load-more-container" class="hidden p-4 text-center">
-            <button id="load-more-messages" class="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                <i class="fas fa-chevron-up mr-2"></i>Load More Messages
+            <div id="load-more-skeleton" class="hidden space-y-4 animate-pulse">
+                <div class="text-xs text-[#b9bbbe] text-center mb-4">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>Loading older messages...
+                </div>
+                <div class="flex items-start space-x-3 px-4">
+                    <div class="w-8 h-8 bg-[#4f545c] rounded-full skeleton"></div>
+                    <div class="flex-1 space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <div class="h-3 bg-[#4f545c] rounded w-20 skeleton"></div>
+                            <div class="h-2 bg-[#4f545c] rounded w-16 skeleton"></div>
+                        </div>
+                        <div class="h-3 bg-[#4f545c] rounded w-3/4 skeleton"></div>
+                        <div class="h-3 bg-[#4f545c] rounded w-1/2 skeleton"></div>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-3 px-4">
+                    <div class="w-8 h-8 bg-[#4f545c] rounded-full skeleton"></div>
+                    <div class="flex-1 space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <div class="h-3 bg-[#4f545c] rounded w-24 skeleton"></div>
+                            <div class="h-2 bg-[#4f545c] rounded w-16 skeleton"></div>
+                        </div>
+                        <div class="h-3 bg-[#4f545c] rounded w-2/3 skeleton"></div>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-3 px-4">
+                    <div class="w-8 h-8 bg-[#4f545c] rounded-full skeleton"></div>
+                    <div class="flex-1 space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <div class="h-3 bg-[#4f545c] rounded w-16 skeleton"></div>
+                            <div class="h-2 bg-[#4f545c] rounded w-16 skeleton"></div>
+                        </div>
+                        <div class="h-3 bg-[#4f545c] rounded w-5/6 skeleton"></div>
+                        <div class="h-3 bg-[#4f545c] rounded w-1/3 skeleton"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="load-more-messages" class="group bg-[#5865f2] hover:bg-[#4752c4] text-white px-6 py-3 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl">
+                <span class="load-more-content flex items-center justify-center">
+                    <i class="fas fa-chevron-up mr-3 text-sm transition-transform duration-300 group-hover:-translate-y-1"></i>
+                    <span class="load-more-text font-medium">Load Older Messages</span>
+                </span>
+                <div class="load-more-progress hidden">
+                    <div class="flex items-center space-x-3">
+                        <div class="spinner w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span class="progress-text">Loading...</span>
+                        <span class="progress-count text-xs opacity-75"></span>
+                    </div>
+                </div>
             </button>
+            
+            <div id="load-more-status" class="hidden mt-3 text-sm text-[#a3a6aa]">
+                <i class="fas fa-check-circle text-green-400 mr-2"></i>
+                <span class="status-text">Loaded messages successfully</span>
+            </div>
         </div>
         
         <div id="chat-skeleton-loading" class="chat-skeleton-container">

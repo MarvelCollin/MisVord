@@ -788,7 +788,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(checkAndUpdateOnlineTab, 3000);
         setTimeout(checkAndUpdateOnlineTab, 5000);
         
-        setInterval(checkAndUpdateOnlineTab, 10000);
+        setInterval(checkAndUpdateOnlineTab, 5000);
     }
     
     function clearInitialSkeletons() {

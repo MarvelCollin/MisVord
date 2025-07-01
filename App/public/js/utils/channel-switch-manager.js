@@ -159,35 +159,102 @@ class SimpleChannelSwitcher {
         
         console.log('🔄 [SWITCH-MANAGER] Switching from voice to text - full reset needed');
         
+        // Show skeleton immediately regardless of chat section state
+        this.showChatSkeletonDirect();
+        
         if (window.chatSection) {
-            console.log('🔄 [SWITCH-MANAGER] Chat section exists, showing skeleton first');
-            window.chatSection.showChatSkeleton();
-            
+            console.log('🔄 [SWITCH-MANAGER] Chat section exists, using it');
             await window.chatSection.resetForNewChannel();
             await new Promise(resolve => setTimeout(resolve, 100));
             await window.chatSection.switchToChannel(channelId, 'text', true);
         } else {
-            console.log('🔄 [SWITCH-MANAGER] Chat section not ready, waiting...');
-            let attempts = 0;
-            const maxAttempts = 10;
+            console.log('🔄 [SWITCH-MANAGER] Chat section not ready, attempting to initialize...');
             
-            while (!window.chatSection && attempts < maxAttempts) {
-                await new Promise(resolve => setTimeout(resolve, 200));
-                attempts++;
-            }
-            
-            if (window.chatSection) {
-                console.log('🔄 [SWITCH-MANAGER] Chat section ready after wait, initializing');
-                window.chatSection.showChatSkeleton();
-                await window.chatSection.resetForNewChannel();
-                await new Promise(resolve => setTimeout(resolve, 100));
-                await window.chatSection.switchToChannel(channelId, 'text', true);
-            } else {
-                console.error('❌ [SWITCH-MANAGER] Chat section never became available');
+            // Try to initialize chat section
+            try {
+                if (typeof window.initializeChatSection === 'function') {
+                    console.log('🔄 [SWITCH-MANAGER] Calling initializeChatSection function');
+                    await window.initializeChatSection();
+                } else if (typeof initializeChatSection === 'function') {
+                    console.log('🔄 [SWITCH-MANAGER] Calling global initializeChatSection function');
+                    await initializeChatSection();
+                }
+                
+                // Now check if it's available
+                if (window.chatSection) {
+                    console.log('🔄 [SWITCH-MANAGER] Chat section initialized successfully');
+                    await window.chatSection.resetForNewChannel();
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await window.chatSection.switchToChannel(channelId, 'text', true);
+                } else {
+                    console.log('🔄 [SWITCH-MANAGER] Still waiting for chat section...');
+                    let attempts = 0;
+                    const maxAttempts = 15;
+                    
+                    while (!window.chatSection && attempts < maxAttempts) {
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        attempts++;
+                        console.log(`🔄 [SWITCH-MANAGER] Waiting attempt ${attempts}/${maxAttempts}`);
+                    }
+                    
+                    if (window.chatSection) {
+                        console.log('🔄 [SWITCH-MANAGER] Chat section finally available');
+                        await window.chatSection.resetForNewChannel();
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        await window.chatSection.switchToChannel(channelId, 'text', true);
+                    } else {
+                        console.error('❌ [SWITCH-MANAGER] Chat section never became available, using fallback');
+                        this.fallbackTextChannelInit(channelId);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ [SWITCH-MANAGER] Error initializing chat section:', error);
+                this.fallbackTextChannelInit(channelId);
             }
         }
         
         console.log('✅ [SWITCH-MANAGER] Text channel initialization complete');
+    }
+    
+    showChatSkeletonDirect() {
+        const skeletonContainer = document.getElementById('chat-skeleton-loading');
+        const realContent = document.getElementById('chat-real-content');
+        
+        if (skeletonContainer) {
+            skeletonContainer.style.display = 'block';
+        }
+        
+        if (realContent) {
+            realContent.style.display = 'none';
+        }
+        
+        console.log('🎨 [SWITCH-MANAGER] Chat skeleton shown directly');
+    }
+    
+    fallbackTextChannelInit(channelId) {
+        console.log('🔧 [SWITCH-MANAGER] Using fallback text channel initialization');
+        
+        // Update meta tags
+        this.updateMetaTags(channelId, 'text');
+        
+        // Update header
+        this.updateChannelHeader(channelId, 'text');
+        
+        // Hide skeleton after a short delay to simulate loading
+        setTimeout(() => {
+            const skeletonContainer = document.getElementById('chat-skeleton-loading');
+            const realContent = document.getElementById('chat-real-content');
+            
+            if (skeletonContainer) {
+                skeletonContainer.style.display = 'none';
+            }
+            
+            if (realContent) {
+                realContent.style.display = 'block';
+            }
+            
+            console.log('🔧 [SWITCH-MANAGER] Fallback initialization complete');
+        }, 1500);
     }
     
     async initializeVoiceChannel(channelId, forceFresh = false) {

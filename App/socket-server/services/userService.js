@@ -3,6 +3,8 @@ class UserService {
         this.userPresence = new Map();
         this.afkTimeout = 20 * 1000;
         this.cleanupInterval = 15 * 1000;
+        this.disconnectGracePeriod = 30 * 1000;
+        this.disconnectingUsers = new Map();
         this.io = null;
         this.usernames = new Map();
         this.startCleanupTimer();
@@ -18,6 +20,12 @@ class UserService {
             this.usernames.set(userId, username);
         }
         
+        if (this.disconnectingUsers.has(userId)) {
+            console.log(`🔄 [USER-SERVICE] User ${userId} reconnected during grace period, restoring presence`);
+            clearTimeout(this.disconnectingUsers.get(userId).timeout);
+            this.disconnectingUsers.delete(userId);
+        }
+        
         this.userPresence.set(userId, {
             user_id: userId,
             status,
@@ -25,6 +33,49 @@ class UserService {
             last_seen: Date.now()
         });
         console.log(`💓 [USER-SERVICE] Presence updated for user ${userId}: ${status}`);
+    }
+
+    markUserDisconnecting(userId, username = null) {
+        if (username) {
+            this.usernames.set(userId, username);
+        }
+        
+        const currentPresence = this.userPresence.get(userId);
+        if (!currentPresence) return;
+        
+        if (this.disconnectingUsers.has(userId)) {
+            clearTimeout(this.disconnectingUsers.get(userId).timeout);
+        }
+        
+        console.log(`⏳ [USER-SERVICE] User ${userId} marked as disconnecting, starting ${this.disconnectGracePeriod/1000}s grace period`);
+        
+        const timeout = setTimeout(() => {
+            console.log(`⏰ [USER-SERVICE] Grace period expired for user ${userId}, marking as offline`);
+            this.forceUserOffline(userId);
+        }, this.disconnectGracePeriod);
+        
+        this.disconnectingUsers.set(userId, {
+            timeout: timeout,
+            originalPresence: { ...currentPresence },
+            disconnectedAt: Date.now()
+        });
+    }
+    
+    forceUserOffline(userId) {
+        this.userPresence.delete(userId);
+        this.disconnectingUsers.delete(userId);
+        
+        if (this.io) {
+            const username = this.usernames.get(userId) || 'Unknown';
+            this.io.emit('user-offline', {
+                user_id: userId,
+                username: username,
+                status: 'offline',
+                activity_details: null,
+                timestamp: Date.now()
+            });
+            console.log(`📡 [USER-SERVICE] Broadcasted offline event for user ${username} (${userId}) after grace period`);
+        }
     }
 
     getPresence(userId) {
@@ -61,8 +112,13 @@ class UserService {
         const presence = this.userPresence.get(userId);
         if (presence) {
             console.log(`❌ [USER-SERVICE] Removing presence for user ${userId}`);
-        this.userPresence.delete(userId);
+            this.userPresence.delete(userId);
             this.usernames.delete(userId);
+            
+            if (this.disconnectingUsers.has(userId)) {
+                clearTimeout(this.disconnectingUsers.get(userId).timeout);
+                this.disconnectingUsers.delete(userId);
+            }
         }
     }
 
@@ -74,6 +130,16 @@ class UserService {
                 presence[userId] = updatedPresence;
             }
         });
+        
+        this.disconnectingUsers.forEach((disconnectData, userId) => {
+            if (!presence[userId]) {
+                presence[userId] = {
+                    ...disconnectData.originalPresence,
+                    last_seen: disconnectData.disconnectedAt
+                };
+            }
+        });
+        
         return presence;
     }
 
@@ -93,8 +159,24 @@ class UserService {
             this.usernames.delete(userId);
         });
         
-        if (toRemove.length > 0) {
-            console.log(`🧹 [USER-SERVICE] Cleaned ${toRemove.length} old offline presence entries`);
+        const expiredDisconnecting = [];
+        for (const [userId, disconnectData] of this.disconnectingUsers.entries()) {
+            if (now - disconnectData.disconnectedAt > this.disconnectGracePeriod + 60000) {
+                expiredDisconnecting.push(userId);
+            }
+        }
+        
+        expiredDisconnecting.forEach(userId => {
+            console.log(`🧹 [USER-SERVICE] Cleaning expired disconnecting user ${userId}`);
+            const disconnectData = this.disconnectingUsers.get(userId);
+            if (disconnectData?.timeout) {
+                clearTimeout(disconnectData.timeout);
+            }
+            this.disconnectingUsers.delete(userId);
+        });
+        
+        if (toRemove.length > 0 || expiredDisconnecting.length > 0) {
+            console.log(`🧹 [USER-SERVICE] Cleaned ${toRemove.length} old offline presence entries and ${expiredDisconnecting.length} expired disconnecting users`);
         }
     }
 

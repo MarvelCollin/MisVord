@@ -25,7 +25,6 @@ class ExploreController extends BaseController
                 return is_array($server) ? $server : (array) $server;
             }, $servers);
         } catch (Exception $e) {
-            log_error("Error fetching public servers", ['error' => $e->getMessage()]);
             return [];
         }
     }
@@ -39,7 +38,6 @@ class ExploreController extends BaseController
                 return is_array($server) ? $server : (array) $server;
             }, $featuredServers);
         } catch (Exception $e) {
-            log_error("Error fetching featured servers", ['error' => $e->getMessage()]);
             return [];
         }
     }
@@ -49,7 +47,6 @@ class ExploreController extends BaseController
         try {
             return $this->userServerMembershipRepository->getServerIdsForUser($userId);
         } catch (Exception $e) {
-            log_error("Error fetching user server IDs", ['error' => $e->getMessage()]);
             return [];
         }
     }

@@ -560,7 +560,7 @@ function handleJoinServer(serverId, button) {
         }
     })
     .catch(error => {
-        console.error('Error joining server:', error);
+
         button.innerHTML = '<i class="fas fa-plus mr-2"></i>Join Server';
         button.disabled = false;
         

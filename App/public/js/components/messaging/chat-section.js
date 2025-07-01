@@ -81,9 +81,16 @@ async function initializeChatSection() {
     window.__CHAT_SECTION_INITIALIZING__ = true;
     
     if (typeof window.ChatAPI === 'undefined') {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        window.__CHAT_SECTION_INITIALIZING__ = false;
-        return await initializeChatSection();
+        console.log('⏳ [CHAT-SECTION] ChatAPI not available, waiting...');
+        let waitAttempts = 0;
+        while (typeof window.ChatAPI === 'undefined' && waitAttempts < 20) {
+            await new Promise(resolve => setTimeout(resolve, 150));
+            waitAttempts++;
+        }
+        
+        if (typeof window.ChatAPI === 'undefined') {
+            console.warn('⚠️ [CHAT-SECTION] ChatAPI still not available, proceeding anyway');
+        }
     }
     
 
@@ -109,6 +116,9 @@ async function initializeChatSection() {
     }
 }
 
+// Make initializeChatSection globally available
+window.initializeChatSection = initializeChatSection;
+
 document.addEventListener('DOMContentLoaded', function() {
     if (isExcludedPage()) {
         return;
@@ -116,7 +126,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const initWhenReady = () => {
         if (!window.chatSection && !isExcludedPage()) {
-            initializeChatSection();
+            initializeChatSection().catch(error => {
+                console.error('❌ [CHAT-SECTION] Initialization failed:', error);
+            });
         }
     };
     
@@ -148,50 +160,71 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 3000);
         }
     }
+    
+    // Also try immediate initialization if DOM is ready
+    setTimeout(() => {
+        if (!window.chatSection && !isExcludedPage()) {
+            console.log('🔄 [CHAT-SECTION] Attempting immediate initialization');
+            initWhenReady();
+        }
+    }, 100);
 });
 
 class ChatSection {
     constructor(options = {}) {
-        this.chatType = options.chatType || this.detectChatType();
-        this.targetId = options.targetId || this.detectTargetId();
-        this.userId = options.userId || null;
-        this.username = options.username || null;
-        this.isInitialized = false;
-        this.isLoading = false;
-        this.hasMoreMessages = true;
-        this.lastLoadedMessageId = null;
-        this.replyingTo = null;
-        this.currentEditingMessage = null;
-        this.socketRoomJoined = false;
-        this.socketListenersSetup = false;
-        this.channelSwitchManager = null;
-        this.lastJoinedRoom = null;
+        console.log('🔧 [CHAT-SECTION] ChatSection constructor called with options:', options);
         
-        this.chatContainer = null;
-        this.chatMessages = null;
-        this.messageForm = null;
-        this.messageInput = null;
-        this.sendButton = null;
-        this.loadMoreButton = null;
-        this.loadMoreContainer = null;
-        this.topReloadButton = null;
-        this.emptyStateContainer = null;
-        this.contextMenu = null;
-        this.fileUploadInput = null;
-        this.filePreviewModal = null;
-        this.currentOffset = 0;
-        
-        this.messageHandler = new MessageHandler(this);
-        this.socketHandler = new SocketHandler(this);
-        this.uiHandler = new ChatUIHandler(this);
-        this.fileUploadHandler = new FileUploadHandler(this);
-        this.sendReceiveHandler = new SendReceiveHandler(this);
-        this.chatBot = new ChatBot(this);
-        this.mentionHandler = null;
-        
-        this.init();
-        
-        window.chatSection = this;
+        try {
+            this.chatType = options.chatType || this.detectChatType();
+            this.targetId = options.targetId || this.detectTargetId();
+            this.userId = options.userId || null;
+            this.username = options.username || null;
+            this.isInitialized = false;
+            this.isLoading = false;
+            this.hasMoreMessages = true;
+            this.lastLoadedMessageId = null;
+            this.replyingTo = null;
+            this.currentEditingMessage = null;
+            this.socketRoomJoined = false;
+            this.socketListenersSetup = false;
+            this.channelSwitchManager = null;
+            this.lastJoinedRoom = null;
+            
+            this.chatContainer = null;
+            this.chatMessages = null;
+            this.messageForm = null;
+            this.messageInput = null;
+            this.sendButton = null;
+            this.loadMoreButton = null;
+            this.loadMoreContainer = null;
+            this.topReloadButton = null;
+            this.emptyStateContainer = null;
+            this.contextMenu = null;
+            this.fileUploadInput = null;
+            this.filePreviewModal = null;
+            this.currentOffset = 0;
+            
+            console.log('🔧 [CHAT-SECTION] Creating handlers...');
+            this.messageHandler = new MessageHandler(this);
+            this.socketHandler = new SocketHandler(this);
+            this.uiHandler = new ChatUIHandler(this);
+            this.fileUploadHandler = new FileUploadHandler(this);
+            this.sendReceiveHandler = new SendReceiveHandler(this);
+            this.chatBot = new ChatBot(this);
+            this.mentionHandler = null;
+            
+            console.log('🔧 [CHAT-SECTION] Setting window.chatSection and starting init...');
+            window.chatSection = this;
+            
+            this.init().catch(error => {
+                console.error('❌ [CHAT-SECTION] Init failed:', error);
+            });
+            
+            console.log('✅ [CHAT-SECTION] Constructor completed successfully');
+        } catch (error) {
+            console.error('❌ [CHAT-SECTION] Constructor error:', error);
+            throw error;
+        }
     }
     
     detectChatType() {
@@ -775,8 +808,16 @@ class ChatSection {
                 
                 if (isLoadMore) {
                     console.log('📜 [CHAT-SECTION] Prepending older messages (load more)');
-                    await this.messageHandler.prependMessages(messages);
+                    
+                    if (typeof this.messageHandler.prependMessagesProgressively === 'function') {
+                        await this.messageHandler.prependMessagesProgressively(messages);
+                    } else {
+                        console.warn('⚠️ [CHAT-SECTION] Progressive prepend not available, using fallback');
+                        await this.messageHandler.prependMessages(messages);
+                    }
+                    
                     this.currentOffset += messages.length;
+                    this.hideLoadMoreProgress(true, `Loaded ${messages.length} older messages`);
                 } else {
                     console.log('📝 [CHAT-SECTION] Displaying fresh messages');
                     await this.messageHandler.displayMessages(messages);
@@ -801,6 +842,11 @@ class ChatSection {
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Error loading messages:', error);
             this.hideChatSkeleton();
+            
+            if (isLoadMore) {
+                this.hideLoadMoreProgress(true, 'Failed to load older messages');
+            }
+            
             this.showNotification('Failed to load messages. Please try again.', 'error');
             
             if (!isLoadMore) {
@@ -823,15 +869,77 @@ class ChatSection {
         
         console.log('📜 [CHAT-SECTION] Loading more messages, offset:', this.currentOffset);
         
-        if (this.loadMoreButton) {
-            this.loadMoreButton.disabled = true;
-            this.loadMoreButton.innerHTML = '<i class="fas fa-chevron-up mr-2"></i>Loading...';
-        }
+        this.showLoadMoreProgress();
         
         this.loadMessages({
             isLoadMore: true,
             limit: 20
         });
+    }
+    
+    showLoadMoreProgress() {
+        const loadMoreButton = this.loadMoreButton;
+        const loadMoreSkeleton = document.getElementById('load-more-skeleton');
+        
+        if (loadMoreButton) {
+            loadMoreButton.disabled = true;
+            
+            const content = loadMoreButton.querySelector('.load-more-content');
+            const progress = loadMoreButton.querySelector('.load-more-progress');
+            const progressText = loadMoreButton.querySelector('.progress-text');
+            const progressCount = loadMoreButton.querySelector('.progress-count');
+            
+            if (content && progress) {
+                content.style.display = 'none';
+                progress.style.display = 'flex';
+                
+                if (progressText) progressText.textContent = 'Loading older messages...';
+                if (progressCount) progressCount.textContent = '';
+            }
+        }
+        
+        if (loadMoreSkeleton) {
+            loadMoreSkeleton.classList.remove('hidden');
+        }
+    }
+    
+    hideLoadMoreProgress(showStatus = false, statusMessage = '') {
+        const loadMoreButton = this.loadMoreButton;
+        const loadMoreSkeleton = document.getElementById('load-more-skeleton');
+        const loadMoreStatus = document.getElementById('load-more-status');
+        
+        if (loadMoreSkeleton) {
+            loadMoreSkeleton.classList.add('hidden');
+        }
+        
+        if (loadMoreButton) {
+            loadMoreButton.disabled = false;
+            
+            const content = loadMoreButton.querySelector('.load-more-content');
+            const progress = loadMoreButton.querySelector('.load-more-progress');
+            
+            if (content && progress) {
+                progress.style.display = 'none';
+                content.style.display = 'flex';
+            }
+        }
+        
+        if (showStatus && loadMoreStatus && statusMessage) {
+            const statusText = loadMoreStatus.querySelector('.status-text');
+            if (statusText) statusText.textContent = statusMessage;
+            
+            loadMoreStatus.classList.remove('hidden');
+            loadMoreStatus.classList.add('show');
+            
+            setTimeout(() => {
+                loadMoreStatus.classList.remove('show');
+                loadMoreStatus.classList.add('hide');
+                setTimeout(() => {
+                    loadMoreStatus.classList.add('hidden');
+                    loadMoreStatus.classList.remove('hide');
+                }, 300);
+            }, 2000);
+        }
     }
     
     updateLoadMoreButton() {
@@ -854,7 +962,13 @@ class ChatSection {
         }
         
         this.loadMoreButton.disabled = false;
-        this.loadMoreButton.innerHTML = '<i class="fas fa-chevron-up mr-2"></i>Load More Messages';
+        const content = this.loadMoreButton.querySelector('.load-more-content');
+        const progress = this.loadMoreButton.querySelector('.load-more-progress');
+        
+        if (content && progress) {
+            progress.style.display = 'none';
+            content.style.display = 'flex';
+        }
         
         if (this.hasMoreMessages) {
             this.loadMoreContainer.classList.remove('hidden');

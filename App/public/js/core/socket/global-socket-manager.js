@@ -251,8 +251,10 @@ class GlobalSocketManager {
                 reconnectAttempts: this.reconnectAttempts
             });
             
-            console.log('🔌 [SOCKET] Socket connected successfully, sending authentication...');
+            console.log('🔌 [SOCKET] Socket connected successfully, setting up activity tracking...');
+            this.setupActivityTracking();
             
+            console.log('🔌 [SOCKET] Sending authentication...');
             this.sendAuthentication();
         });
         
@@ -284,12 +286,18 @@ class GlobalSocketManager {
                 data: data
             });
             
-            this.log('Sending initial online presence update after authentication');
+            this.log('Sending immediate online presence update after authentication');
             this.lastActivityTime = Date.now();
             this.isUserActive = true;
             this.currentPresenceStatus = 'online';
+            
             this.updatePresence('online', { type: 'active' });
             this.startPresenceHeartbeat();
+            
+            setTimeout(() => {
+                this.updatePresence('online', { type: 'active' });
+                console.log('✅ [SOCKET] Secondary presence update sent for reliability');
+            }, 500);
             
             console.log('🔔 [SOCKET] Dispatching globalSocketReady event');
             const event = new CustomEvent('globalSocketReady', {
@@ -485,7 +493,16 @@ class GlobalSocketManager {
     }
     
     authenticate() {
-        return this.sendAuthentication();
+        this.sendAuthentication();
+        this.setupActivityTracking();
+        this.startPresenceHeartbeat();
+        
+        setTimeout(() => {
+            if (this.isConnected && this.isAuthenticated) {
+                this.updatePresence(this.currentPresenceStatus, this.currentActivityDetails);
+                console.log('✅ [SOCKET] Initial presence sent immediately after authentication');
+            }
+        }, 100);
     }
     
     joinChannel(channelId) {
@@ -740,9 +757,9 @@ class GlobalSocketManager {
                 });
                 console.log('💓 [SOCKET] Presence heartbeat sent');
             }
-        }, 10000);
+        }, 5000);
         
-        console.log('⏰ [SOCKET] Presence heartbeat started (10 second intervals)');
+        console.log('⏰ [SOCKET] Presence heartbeat started (5 second intervals)');
     }
     
     stopPresenceHeartbeat() {
@@ -1088,9 +1105,9 @@ class GlobalSocketManager {
                 this.currentPresenceStatus = 'afk';
                 this.updatePresence('afk', { type: 'afk' });
             }
-        }, 5000);
+        }, 10000);
         
-        console.log('⏰ [SOCKET] Activity check started (5 second intervals)');
+        console.log('⏰ [SOCKET] Activity check started (10 second intervals)');
     }
     
     stopActivityCheck() {

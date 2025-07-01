@@ -103,21 +103,16 @@ class ServerDetailModal {
             
             this.updateModalContent(server);
         } catch (error) {
-            console.error('[Server Detail] Error loading server details:', error);
             this.hideSkeletonAndShowContent();
         }
     }
     
     updateModalContent(server) {
-        console.log('[Server Detail] Updating modal with server data:', server);
-        
         const nameElement = document.getElementById('server-modal-name');
         const descriptionElement = document.getElementById('server-modal-description');
         const membersCountElement = document.querySelector('.member-count');
         const iconElement = document.getElementById('server-modal-icon');
         const bannerElement = document.getElementById('server-modal-banner');
-        
-        console.log('[Server Detail] Image URLs - Icon:', server.image_url, 'Banner:', server.banner_url);
         
         if (nameElement) nameElement.textContent = server.name || 'Unknown Server';
         
@@ -274,7 +269,6 @@ class ServerDetailModal {
                 }
             }
         } catch (error) {
-            console.error('Error joining server:', error);
             this.joinButton.innerHTML = originalContent;
             this.joinButton.classList.remove('joining');
             this.joinButton.style.pointerEvents = 'auto';
@@ -455,13 +449,11 @@ window.ServerDetailModal = ServerDetailModal;
 
 function initServerDetailModal() {
     if (window.serverDetailModal) {
-        console.log('[Server Detail] Modal already initialized');
         return;
     }
     
     const modalExists = document.getElementById('server-detail-modal');
     if (!modalExists) {
-        console.log('[Server Detail] Modal HTML not available, skipping initialization');
         return;
     }
     
@@ -471,14 +463,9 @@ function initServerDetailModal() {
         window.showServerDetail = (serverId, serverData) => {
             if (window.serverDetailModal && window.serverDetailModal.initialized) {
                 window.serverDetailModal.showServerDetail(serverId, serverData);
-            } else {
-                console.log('[Server Detail] Modal not ready for showServerDetail call');
             }
         };
-        
-        console.log('[Server Detail] Initialization completed');
     } catch (error) {
-        console.error('[Server Detail] Initialization failed:', error);
     }
 }
 

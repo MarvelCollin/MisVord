@@ -1000,3 +1000,108 @@ button {
         background-color: #4f545c;
     }
 }
+
+.load-more-container {
+    transition: all 0.3s ease;
+}
+
+.load-more-messages {
+    min-width: 180px;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+}
+
+.load-more-progress .spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.message-separator {
+    display: flex;
+    align-items: center;
+    margin: 16px 0;
+    opacity: 0;
+    animation: fadeInSeparator 0.5s ease-out 0.3s forwards;
+}
+
+.message-separator::before,
+.message-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #4f545c, transparent);
+}
+
+.message-separator-text {
+    padding: 0 16px;
+    font-size: 12px;
+    color: #a3a6aa;
+    font-weight: 500;
+    background: #313338;
+}
+
+@keyframes fadeInSeparator {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-load-animation {
+    opacity: 0;
+    transform: translateY(-20px);
+    animation: messageSlideIn 0.4s ease-out forwards;
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.progressive-load-group {
+    opacity: 0;
+    transform: translateY(-15px);
+}
+
+.progressive-load-group.animate-in {
+    animation: progressiveMessageIn 0.3s ease-out forwards;
+}
+
+@keyframes progressiveMessageIn {
+    from {
+        opacity: 0;
+        transform: translateY(-15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.load-more-status {
+    transition: all 0.3s ease;
+}
+
+.load-more-status.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.load-more-status.hide {
+    opacity: 0;
+    transform: translateY(-10px);
+}
