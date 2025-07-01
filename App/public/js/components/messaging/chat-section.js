@@ -918,16 +918,17 @@ class ChatSection {
                 if (before) {
                     console.log('📜 [CHAT-SECTION] Prepending older messages');
                     await this.messageHandler.prependMessages(messages);
+                    this.lastLoadedMessageId = messages[0]?.id || this.lastLoadedMessageId;
                 } else {
                     console.log('📝 [CHAT-SECTION] Displaying fresh messages');
                     await this.messageHandler.displayMessages(messages);
+                    this.lastLoadedMessageId = messages[0]?.id || null;
                 }
                 
                 if (!before) {
                     this.scrollToBottom();
                 }
                 
-                this.lastLoadedMessageId = messages[messages.length - 1]?.id || null;
                 this.hideEmptyState();
                 console.log('✅ [CHAT-SECTION] Messages processed successfully');
             } else {
@@ -958,7 +959,7 @@ class ChatSection {
         
         this.loadMessages({
             before: this.lastLoadedMessageId,
-            limit: 30
+            limit: 20
         });
     }
     
@@ -2203,15 +2204,22 @@ class ChatSection {
         if (!this.topReloadButton) {
             this.topReloadButton = document.createElement('div');
             this.topReloadButton.id = 'top-reload-button';
-            this.topReloadButton.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 py-2 rounded-full shadow-lg cursor-pointer transition-all duration-200 flex items-center gap-2';
+            this.topReloadButton.className = 'absolute top-4 left-1/2 transform -translate-x-1/2 z-50 bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 py-2 rounded-full shadow-lg cursor-pointer transition-all duration-200 flex items-center gap-2';
             this.topReloadButton.innerHTML = '<i class="fas fa-arrow-up"></i>Load older messages';
             
             this.topReloadButton.addEventListener('click', () => {
                 this.loadOlderMessages();
             });
             
-            document.body.appendChild(this.topReloadButton);
-            console.log('✅ [CHAT-SECTION] Top reload button created');
+            const chatContainer = this.chatContainer || messagesContainer.parentElement;
+            if (chatContainer) {
+                chatContainer.style.position = 'relative';
+                chatContainer.appendChild(this.topReloadButton);
+                console.log('✅ [CHAT-SECTION] Top reload button created and positioned relative to chat container');
+            } else {
+                document.body.appendChild(this.topReloadButton);
+                console.log('✅ [CHAT-SECTION] Top reload button created and positioned fixed to body');
+            }
         }
         
         this.topReloadButton.style.display = 'flex';

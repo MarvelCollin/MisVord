@@ -557,48 +557,29 @@ function performHomeLayoutUpdate(response, pageType, currentChannelId) {
     
     updateHomeLayout(response);
     
-    console.log('[Home AJAX] Validating layout update');
-    validateHomeLayoutRendering();
+    const validationPassed = validateHomeLayoutRendering();
     
-    console.log('[Home AJAX] Disabling skeleton loading');
-    handleHomeSkeletonLoading(false);
-    
-    if (typeof window.initHomePage === 'function') {
-        window.initHomePage();
-        console.log('[Home AJAX] Home page initialized');
+    if (validationPassed) {
+        console.log('[Home Layout] ✅ Layout validation passed, setting up navigation');
+        setupHomeServerNavigation();
+        
+        console.log('[Home Layout] Initializing chat section for home page');
+        if (typeof initializeChatSection === 'function') {
+            initializeChatSection().catch(error => {
+                console.warn('[Home Layout] Chat section initialization failed (non-critical):', error);
+            });
+        } else if (typeof window.initializeChatSection === 'function') {
+            window.initializeChatSection().catch(error => {
+                console.warn('[Home Layout] Chat section initialization failed (non-critical):', error);
+            });
+        } else {
+            console.log('[Home Layout] Chat section initialization not available (expected for home page)');
+        }
+    } else {
+        console.error('[Home Layout] ❌ Layout validation failed, skipping navigation setup');
     }
     
-    console.log('[Home AJAX] Initializing home components');
-    if (typeof window.initFriendsTabManager === 'function') {
-        window.initFriendsTabManager();
-        console.log('[Home AJAX] Friends tab manager initialized');
-    }
-    if (typeof window.initDirectMessageNavigation === 'function') {
-        window.initDirectMessageNavigation();
-        console.log('[Home AJAX] Direct message navigation initialized');
-    }
-    
-    console.log('[Home AJAX] Setting up server navigation handlers');
-    setupHomeServerNavigation();
-    
-    const event = new CustomEvent('HomePageChanged', { 
-        detail: { 
-            pageType,
-            previousChannelId: currentChannelId 
-        } 
-    });
-    document.dispatchEvent(event);
-    console.log('[Home AJAX] HomePageChanged event dispatched');
-    
-    setTimeout(() => {
-        console.log('[Home Layout] 📄 Dispatching layout change events');
-        window.dispatchEvent(new CustomEvent('layoutChanged', { 
-            detail: { type: 'home', pageType } 
-        }));
-        window.dispatchEvent(new CustomEvent('pageLoaded', { 
-            detail: { type: 'home', pageType } 
-        }));
-    }, 300);
+    hideHomeSkeletonLoading();
 }
 
 window.loadHomePage = loadHomePage;
