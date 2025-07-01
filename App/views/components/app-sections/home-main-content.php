@@ -78,11 +78,8 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-gray-400 font-bold text-xs uppercase">Online — <span id="online-count">0</span></h2>
                 <div class="relative w-60">
-                    <input type="text" placeholder="Search friends" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 pr-8 focus:outline-none focus:ring-1 focus:ring-discord-primary transition-all" id="online-search">
+                    <input type="text" placeholder="Search friends" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary transition-all" id="online-search">
                     <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
-                    <button class="absolute right-2 top-1 p-1 text-gray-500 hover:text-gray-300 transition-colors hidden" id="online-search-clear">
-                        <i class="fas fa-times text-xs"></i>
-                    </button>
                 </div>
             </div>
 
@@ -96,11 +93,8 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-gray-400 font-bold text-xs uppercase">All Friends — <?php echo count($friends); ?></h2>
                 <div class="relative w-60">
-                    <input type="text" placeholder="Search friends" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 pr-8 focus:outline-none focus:ring-1 focus:ring-discord-primary transition-all" id="all-search">
+                    <input type="text" placeholder="Search friends" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary transition-all" id="all-search">
                     <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
-                    <button class="absolute right-2 top-1 p-1 text-gray-500 hover:text-gray-300 transition-colors hidden" id="all-search-clear">
-                        <i class="fas fa-times text-xs"></i>
-                    </button>
                 </div>
             </div>
             
@@ -152,11 +146,8 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-gray-400 font-bold text-xs uppercase">Pending</h2>
                 <div class="relative w-60">
-                    <input type="text" placeholder="Search requests" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 pr-8 focus:outline-none focus:ring-1 focus:ring-discord-primary transition-all" id="pending-search">
+                    <input type="text" placeholder="Search requests" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary transition-all" id="pending-search">
                     <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
-                    <button class="absolute right-2 top-1 p-1 text-gray-500 hover:text-gray-300 transition-colors hidden" id="pending-search-clear">
-                        <i class="fas fa-times text-xs"></i>
-                    </button>
                 </div>
             </div>
             
@@ -403,228 +394,8 @@ function initFriendRequestInput() {
     updateButtonState();
 }
 
-function initFriendsSearch() {
-    const searchInputs = [
-        { input: document.getElementById('online-search'), clear: document.getElementById('online-search-clear'), type: 'online' },
-        { input: document.getElementById('all-search'), clear: document.getElementById('all-search-clear'), type: 'all' },
-        { input: document.getElementById('pending-search'), clear: document.getElementById('pending-search-clear'), type: 'pending' }
-    ];
-
-    searchInputs.forEach(({ input, clear, type }) => {
-        if (!input || !clear) return;
-
-        input.addEventListener('input', function() {
-            const query = this.value.trim();
-            searchFriends(type, query);
-            
-            if (query.length > 0) {
-                clear.classList.remove('hidden');
-                input.classList.add('pr-8');
-            } else {
-                clear.classList.add('hidden');
-                input.classList.remove('pr-8');
-            }
-        });
-
-        clear.addEventListener('click', function() {
-            input.value = '';
-            searchFriends(type, '');
-            clear.classList.add('hidden');
-            input.classList.remove('pr-8');
-            input.focus();
-        });
-
-        input.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                input.value = '';
-                searchFriends(type, '');
-                clear.classList.add('hidden');
-                input.classList.remove('pr-8');
-                input.blur();
-            }
-        });
-    });
-}
-
-function initGlobalSearchShortcut() {
-    document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key === 'k') {
-            e.preventDefault();
-            focusCurrentTabSearch();
-        }
-    });
-}
-
-function focusCurrentTabSearch() {
-    const activeTabContent = document.querySelector('.tab-content:not(.hidden)');
-    if (!activeTabContent) return;
-
-    const searchInput = activeTabContent.querySelector('input[type="text"][placeholder*="Search"]');
-    if (searchInput) {
-        searchInput.focus();
-        searchInput.select();
-    }
-}
-
-function searchFriends(tabType, query) {
-    const normalizedQuery = query.toLowerCase().trim();
-    
-    if (tabType === 'online') {
-        searchOnlineFriends(normalizedQuery);
-    } else if (tabType === 'all') {
-        searchAllFriends(normalizedQuery);
-    } else if (tabType === 'pending') {
-        searchPendingFriends(normalizedQuery);
-    }
-}
-
-function searchOnlineFriends(query) {
-    const container = document.getElementById('online-friends-container');
-    if (!container) return;
-
-    const friendItems = container.querySelectorAll('.friend-item');
-    const totalItems = friendItems.length;
-    let visibleCount = 0;
-
-    friendItems.forEach(item => {
-        const username = item.getAttribute('data-username') || '';
-        const friendNameEl = item.querySelector('.friend-name');
-        const friendName = friendNameEl ? friendNameEl.textContent : '';
-        
-        const matches = username.toLowerCase().includes(query) || 
-                      friendName.toLowerCase().includes(query);
-        
-        if (matches || query === '') {
-            item.style.display = '';
-            visibleCount++;
-        } else {
-            item.style.display = 'none';
-        }
-    });
-
-    if (onlineCount) {
-        onlineCount.textContent = visibleCount;
-    }
-
-    if (totalItems > 0 && visibleCount === 0 && query !== '') {
-        showNoResultsMessage(container, 'online');
-    } else {
-        hideNoResultsMessage(container);
-    }
-}
-
-function searchAllFriends(query) {
-    const container = document.getElementById('all-friends-container');
-    if (!container) return;
-
-    const friendItems = container.querySelectorAll('.friend-item');
-    const totalItems = friendItems.length;
-    let visibleCount = 0;
-
-    friendItems.forEach(item => {
-        const username = item.getAttribute('data-username') || '';
-        const friendNameEl = item.querySelector('.friend-name');
-        const friendName = friendNameEl ? friendNameEl.textContent : '';
-        
-        const matches = username.toLowerCase().includes(query) || 
-                      friendName.toLowerCase().includes(query);
-        
-        if (matches || query === '') {
-            item.style.display = '';
-            visibleCount++;
-        } else {
-            item.style.display = 'none';
-        }
-    });
-
-    if (totalItems > 0 && visibleCount === 0 && query !== '') {
-        showNoResultsMessage(container, 'all');
-    } else {
-        hideNoResultsMessage(container);
-    }
-}
-
-function searchPendingFriends(query) {
-    const container = document.getElementById('pending-friends-container');
-    if (!container) return;
-
-    const friendItems = container.querySelectorAll('.friend-item');
-    const totalItems = friendItems.length;
-    let visibleCount = 0;
-
-    friendItems.forEach(item => {
-        const username = item.getAttribute('data-username') || '';
-        const friendNameEl = item.querySelector('.friend-name');
-        const friendName = friendNameEl ? friendNameEl.textContent : '';
-        
-        const matches = username.toLowerCase().includes(query) || 
-                      friendName.toLowerCase().includes(query);
-        
-        if (matches || query === '') {
-            item.style.display = '';
-            visibleCount++;
-        } else {
-            item.style.display = 'none';
-        }
-    });
-
-    if (totalItems > 0 && visibleCount === 0 && query !== '') {
-        showNoResultsMessage(container, 'pending');
-    } else {
-        hideNoResultsMessage(container);
-    }
-}
-
-function showNoResultsMessage(container, tabType) {
-    hideNoResultsMessage(container);
-    
-    const messages = {
-        online: { title: 'No online friends found', subtitle: 'No online friends match your search' },
-        all: { title: 'No friends found', subtitle: 'Try a different search term' },
-        pending: { title: 'No requests found', subtitle: 'No pending requests match your search' }
-    };
-    
-    const message = messages[tabType] || messages.all;
-    
-    const noResultsEl = document.createElement('div');
-    noResultsEl.className = 'no-search-results p-6 bg-discord-dark rounded text-center mt-4 animate-fadeIn';
-    noResultsEl.innerHTML = `
-        <div class="mb-3 text-gray-400">
-            <i class="fa-solid fa-magnifying-glass text-3xl opacity-50"></i>
-        </div>
-        <p class="text-gray-300 mb-1 font-medium">${message.title}</p>
-        <p class="text-gray-500 text-sm">${message.subtitle}</p>
-    `;
-    
-    container.appendChild(noResultsEl);
-}
-
-function hideNoResultsMessage(container) {
-    const existingMessage = container.querySelector('.no-search-results');
-    if (existingMessage) {
-        existingMessage.remove();
-    }
-}
-
-function updateAllTabStatus(userId, status) {
-    console.log(`🎯 [HOME-FRIENDS] Updating status for user ${userId} to ${status}`);
-    const statusIndicator = document.querySelector(`.friend-status-indicator[data-user-id="${userId}"]`);
-    const statusText = document.querySelector(`.friend-status-text[data-user-id="${userId}"]`);
-    
-    if (statusIndicator) {
-        statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${getStatusClass(status)} friend-status-indicator transition-colors duration-300`;
-        statusIndicator.setAttribute('data-user-id', userId);
-    }
-    
-    if (statusText) {
-        statusText.textContent = getStatusText(status);
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     initFriendRequestInput();
-    initFriendsSearch();
-    initGlobalSearchShortcut();
     
     if (window.FallbackImageHandler) {
         window.fallbackImageHandler = window.FallbackImageHandler.getInstance();
@@ -636,6 +407,194 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let onlineUsers = {};
     let lastRenderedOnlineFriends = [];
+
+    function initFriendsSearch() {
+        const searchInputs = [
+            { input: document.getElementById('online-search'), type: 'online' },
+            { input: document.getElementById('all-search'), type: 'all' },
+            { input: document.getElementById('pending-search'), type: 'pending' }
+        ];
+
+        searchInputs.forEach(({ input, type }) => {
+            if (!input) return;
+
+            input.addEventListener('input', function() {
+                const query = this.value.trim();
+                searchFriends(type, query);
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    input.value = '';
+                    searchFriends(type, '');
+                    input.blur();
+                }
+            });
+        });
+    }
+
+    function initGlobalSearchShortcut() {
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                focusCurrentTabSearch();
+            }
+        });
+    }
+
+    function focusCurrentTabSearch() {
+        const activeTabContent = document.querySelector('.tab-content:not(.hidden)');
+        if (!activeTabContent) return;
+
+        const searchInput = activeTabContent.querySelector('input[type="text"][placeholder*="Search"]');
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+        }
+    }
+
+    function searchFriends(tabType, query) {
+        const normalizedQuery = query.toLowerCase().trim();
+        
+        if (tabType === 'online') {
+            searchOnlineFriends(normalizedQuery);
+        } else if (tabType === 'all') {
+            searchAllFriends(normalizedQuery);
+        } else if (tabType === 'pending') {
+            searchPendingFriends(normalizedQuery);
+        }
+    }
+
+    function searchOnlineFriends(query) {
+        const container = document.getElementById('online-friends-container');
+        if (!container) return;
+
+        const friendItems = container.querySelectorAll('.friend-item');
+        const totalItems = friendItems.length;
+        let visibleCount = 0;
+
+        friendItems.forEach(item => {
+            const username = item.getAttribute('data-username') || '';
+            const friendNameEl = item.querySelector('.friend-name');
+            const friendName = friendNameEl ? friendNameEl.textContent : '';
+            
+            const matches = username.toLowerCase().includes(query) || 
+                          friendName.toLowerCase().includes(query);
+            
+            if (matches || query === '') {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        if (onlineCount) {
+            onlineCount.textContent = visibleCount;
+        }
+
+        if (totalItems > 0 && visibleCount === 0 && query !== '') {
+            showNoResultsMessage(container, 'online');
+        } else {
+            hideNoResultsMessage(container);
+        }
+    }
+
+    function searchAllFriends(query) {
+        const container = document.getElementById('all-friends-container');
+        if (!container) return;
+
+        const friendItems = container.querySelectorAll('.friend-item');
+        const totalItems = friendItems.length;
+        let visibleCount = 0;
+
+        friendItems.forEach(item => {
+            const username = item.getAttribute('data-username') || '';
+            const friendNameEl = item.querySelector('.friend-name');
+            const friendName = friendNameEl ? friendNameEl.textContent : '';
+            
+            const matches = username.toLowerCase().includes(query) || 
+                          friendName.toLowerCase().includes(query);
+            
+            if (matches || query === '') {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        if (totalItems > 0 && visibleCount === 0 && query !== '') {
+            showNoResultsMessage(container, 'all');
+        } else {
+            hideNoResultsMessage(container);
+        }
+    }
+
+    function searchPendingFriends(query) {
+        const container = document.getElementById('pending-friends-container');
+        if (!container) return;
+
+        const friendItems = container.querySelectorAll('.friend-item');
+        const totalItems = friendItems.length;
+        let visibleCount = 0;
+
+        friendItems.forEach(item => {
+            const username = item.getAttribute('data-username') || '';
+            const friendNameEl = item.querySelector('.friend-name');
+            const friendName = friendNameEl ? friendNameEl.textContent : '';
+            
+            const matches = username.toLowerCase().includes(query) || 
+                          friendName.toLowerCase().includes(query);
+            
+            if (matches || query === '') {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        if (totalItems > 0 && visibleCount === 0 && query !== '') {
+            showNoResultsMessage(container, 'pending');
+        } else {
+            hideNoResultsMessage(container);
+        }
+    }
+
+    function showNoResultsMessage(container, tabType) {
+        hideNoResultsMessage(container);
+        
+        const messages = {
+            online: { title: 'No online friends found', subtitle: 'No online friends match your search' },
+            all: { title: 'No friends found', subtitle: 'Try a different search term' },
+            pending: { title: 'No requests found', subtitle: 'No pending requests match your search' }
+        };
+        
+        const message = messages[tabType] || messages.all;
+        
+        const noResultsEl = document.createElement('div');
+        noResultsEl.className = 'no-search-results p-6 bg-discord-dark rounded text-center mt-4 animate-fadeIn';
+        noResultsEl.innerHTML = `
+            <div class="mb-3 text-gray-400">
+                <i class="fa-solid fa-magnifying-glass text-3xl opacity-50"></i>
+            </div>
+            <p class="text-gray-300 mb-1 font-medium">${message.title}</p>
+            <p class="text-gray-500 text-sm">${message.subtitle}</p>
+        `;
+        
+        container.appendChild(noResultsEl);
+    }
+
+    function hideNoResultsMessage(container) {
+        const existingMessage = container.querySelector('.no-search-results');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+    }
+
+    initFriendsSearch();
+    initGlobalSearchShortcut();
     
     function updateAllTabStatus(userId, status) {
         console.log(`🎯 [HOME-FRIENDS] Updating status for user ${userId} to ${status}`);

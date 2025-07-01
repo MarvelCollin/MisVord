@@ -31,7 +31,7 @@ if (!function_exists('asset')) {
             <div class="hexagon-container">
                 <div class="crown-center">
                     <div class="crown-icon">
-                        <i class="fas fa-crown"></i>
+                        <img src="/public/assets/common/nitro.webp" alt="Nitro Crown" class="w-8 h-8">
                     </div>
                 </div>
 
@@ -60,7 +60,7 @@ if (!function_exists('asset')) {
                         <div class="hexagon-feature" data-delay="200" style="--rotation: 120deg">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
-                                    <i class="fas fa-crown"></i>
+                                    <img src="/public/assets/common/nitro.webp" alt="Premium Badge" class="w-6 h-6">
                                 </div>
                                 <h3 class="feature-title">Premium Badge</h3>
                             </div>

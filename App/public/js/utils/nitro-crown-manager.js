@@ -17,9 +17,11 @@ class NitroCrownManager {
         const wrapper = document.createElement('span');
         wrapper.className = 'nitro-crown-wrapper';
         
-        const crown = document.createElement('i');
-        crown.className = 'fas fa-crown nitro-crown';
+        const crown = document.createElement('img');
+        crown.src = '/public/assets/common/nitro.webp';
+        crown.className = 'nitro-crown';
         crown.setAttribute('aria-label', 'Nitro Member');
+        crown.setAttribute('alt', 'Nitro');
         
         const tooltip = document.createElement('div');
         tooltip.className = 'nitro-crown-tooltip';
@@ -253,12 +255,12 @@ class NitroCrownManager {
                         const userElements = node.querySelectorAll('[data-user-id]');
                         userElements.forEach(el => {
                             const userId = el.dataset.userId;
-                            if (userId && userId !== 'null') {
+                            if (userId && userId !== 'null' && !this.shouldExcludeElement(el)) {
                                 newUserElements.push({ element: el, userId });
                             }
                         });
                         
-                        if (node.dataset?.userId && node.dataset.userId !== 'null') {
+                        if (node.dataset?.userId && node.dataset.userId !== 'null' && !this.shouldExcludeElement(node)) {
                             newUserElements.push({ element: node, userId: node.dataset.userId });
                         }
                     }
@@ -280,6 +282,12 @@ class NitroCrownManager {
         return observer;
     }
 
+    shouldExcludeElement(element) {
+        return element.classList.contains('dm-username') ||
+               element.closest('.dm-friend-item') ||
+               element.closest('#dm-list-container');
+    }
+
     scanAndUpdateExistingElements(containerSelector = 'body') {
         const container = document.querySelector(containerSelector);
         if (!container) return;
@@ -289,7 +297,7 @@ class NitroCrownManager {
         
         userElements.forEach(el => {
             const userId = el.dataset.userId;
-            if (userId && userId !== 'null') {
+            if (userId && userId !== 'null' && !this.shouldExcludeElement(el)) {
                 elementsToUpdate.push({ element: el, userId });
             }
         });
@@ -303,6 +311,14 @@ class NitroCrownManager {
     clearCache() {
         this.nitroCache.clear();
         console.log('🎯 [NITRO-CROWN] Cache cleared');
+    }
+
+    removeExistingCrownsFromDirectMessages() {
+        const dmUsernames = document.querySelectorAll('.dm-username[data-user-id]');
+        dmUsernames.forEach(element => {
+            this.removeCrownFromElement(element);
+        });
+        console.log(`🎯 [NITRO-CROWN] Removed crowns from ${dmUsernames.length} DM usernames`);
     }
 
     getCacheStats() {

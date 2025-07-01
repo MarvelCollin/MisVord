@@ -37,7 +37,7 @@ class ChannelMessageRepository extends Repository {
             LIMIT ? OFFSET ?
         ";
         
-        $results = $query->query($sql, [$channelId, $limit, $offset]);
+        $results = $query->query($sql, [$channelId, $limit + 1, $offset]);
         
         foreach ($results as &$row) {
             $row['attachments'] = $this->parseAttachments($row['attachment_url']);
@@ -45,6 +45,20 @@ class ChannelMessageRepository extends Repository {
         }
         
         return array_reverse($results);
+    }
+    
+    public function getMessagesByChannelIdWithPagination($channelId, $limit = 20, $offset = 0) {
+        $messages = $this->getMessagesByChannelId($channelId, $limit, $offset);
+        
+        $hasMore = count($messages) > $limit;
+        if ($hasMore) {
+            array_pop($messages);
+        }
+        
+        return [
+            'messages' => $messages,
+            'has_more' => $hasMore
+        ];
     }
     
     private function parseAttachments($attachmentUrl) {

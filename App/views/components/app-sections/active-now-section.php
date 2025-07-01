@@ -144,6 +144,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 activityEl.innerHTML = `<i class="${activityIcon} mr-1"></i>${activityText}`;
             }
         }
+        
+        if (window.nitroCrownManager) {
+            const usernameEl = friendEl.querySelector('.active-now-username');
+            if (usernameEl) {
+                window.nitroCrownManager.updateUserElement(usernameEl, friend.id);
+            }
+        }
     }
     
     function createFriendElement(friend) {
@@ -166,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300"></div>
             </div>
             <div class="flex-1">
-                <div class="font-semibold text-white">${friend.username}</div>
+                <div class="font-semibold text-white active-now-username" data-user-id="${friend.id}">${friend.username}</div>
                 <div class="text-xs text-gray-400 transition-all duration-200 flex items-center">
                     <i class="${activityIcon} mr-1"></i>
                     ${activityText}
@@ -188,6 +195,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const img = friendEl.querySelector('img.user-avatar');
             if (img) {
                 window.fallbackImageHandler.processImage(img);
+            }
+        }
+        
+        if (window.nitroCrownManager) {
+            const usernameEl = friendEl.querySelector('.active-now-username');
+            if (usernameEl) {
+                window.nitroCrownManager.updateUserElement(usernameEl, friend.id);
             }
         }
         

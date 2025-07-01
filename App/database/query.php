@@ -783,7 +783,7 @@ class Query {
                 'error' => $e->getMessage()
             ]);
             throw $e;
-        }
+        } 
     }
 
     public function pagination($page, $perPage = 15) {

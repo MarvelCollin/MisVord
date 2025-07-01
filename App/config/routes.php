@@ -301,6 +301,11 @@ Route::get('/api/servers/([0-9]+)/details', function($serverId) {
     $controller->getServerBundle($serverId);
 });
 
+Route::get('/api/servers/([0-9]+)/search', function($serverId) {
+    $controller = new ChatController();
+    $controller->searchServerMessages($serverId);
+});
+
 Route::get('/api/user/servers', function() {
     $controller = new ServerController();
     $controller->getUserServersData();
@@ -1297,7 +1302,7 @@ Route::post('/api/debug/set-security', function() {
 
 Route::post('/api/chat/create', function() {
     $controller = new ChatController();
-    $controller->create();
+    return $controller->create();
 });
 
 Route::post('/api/chat/dm/create', function() {

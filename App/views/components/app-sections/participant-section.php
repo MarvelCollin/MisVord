@@ -42,8 +42,26 @@ foreach ($members as $member) {
 ?>
 
 <div class="w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-full max-h-screen">
-    <div class="h-12 border-b border-gray-800 flex items-center px-4">
-        <input type="text" placeholder="Search" class="w-full bg-black bg-opacity-30 text-white text-sm rounded px-2 py-1 focus:outline-none">
+    <div class="h-12 border-b border-gray-800 flex items-center px-4 relative">
+        <div class="relative w-full">
+            <input type="text" 
+                   placeholder="Search messages in server" 
+                   class="w-full bg-black bg-opacity-30 text-white text-sm rounded px-2 py-1 pr-8 focus:outline-none focus:ring-1 focus:ring-[#5865f2] transition-all" 
+                   id="server-search-input">
+            <div class="absolute right-2 top-1/2 transform -translate-y-1/2">
+                <i class="fas fa-search text-gray-500 text-xs" id="search-icon"></i>
+                <i class="fas fa-spinner fa-spin text-gray-500 text-xs hidden" id="search-loading"></i>
+            </div>
+        </div>
+        
+        <div id="search-results-dropdown" class="absolute top-full left-0 right-0 bg-[#2b2d31] border border-gray-700 rounded-lg mt-1 max-h-80 overflow-y-auto shadow-lg z-50 hidden">
+            <div id="search-results-content">
+                <div class="p-3 text-center text-gray-400 text-sm">
+                    <i class="fas fa-search mr-2"></i>
+                    Type to search messages...
+                </div>
+            </div>
+        </div>
     </div>
     
 
@@ -154,6 +172,9 @@ window.ENABLE_USER_SECTION_MOVEMENT = ENABLE_USER_SECTION_MOVEMENT;
 
 let socketConnectionStatus = 'disconnected';
 let lastSocketEvent = null;
+let searchTimeout = null;
+let currentSearchQuery = '';
+let searchResults = [];
 
 function loadSocketIO(callback) {
     if (window.io) {
@@ -182,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     loadSocketIO(initializeSocketConnection);
     initializeParticipantHover();
+    initializeServerSearch();
 });
 
 
@@ -375,6 +397,248 @@ window.initializeParticipantSection = function() {
 window.toggleParticipantLoading = function(loading = true) {
     console.log('Participant loading toggle called but using simple DOM - no skeleton');
 };
+
+function initializeServerSearch() {
+    const searchInput = document.getElementById('server-search-input');
+    const searchIcon = document.getElementById('search-icon');
+    const searchLoading = document.getElementById('search-loading');
+    const searchDropdown = document.getElementById('search-results-dropdown');
+    const searchContent = document.getElementById('search-results-content');
+    
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+        
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        if (query.length < 2) {
+            hideSearchResults();
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            performServerSearch(query);
+        }, 300);
+    });
+    
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideSearchResults();
+            searchInput.blur();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectNextResult();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectPreviousResult();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            activateSelectedResult();
+        }
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (!searchDropdown.contains(e.target) && !searchInput.contains(e.target)) {
+            hideSearchResults();
+        }
+    });
+}
+
+async function performServerSearch(query) {
+    const serverId = <?php echo $currentServerId; ?>;
+    const searchIcon = document.getElementById('search-icon');
+    const searchLoading = document.getElementById('search-loading');
+    const searchContent = document.getElementById('search-results-content');
+    
+    if (!window.ChatAPI) {
+        console.error('ChatAPI not available');
+        return;
+    }
+    
+    currentSearchQuery = query;
+    
+    searchIcon.classList.add('hidden');
+    searchLoading.classList.remove('hidden');
+    
+    try {
+        searchResults = await window.ChatAPI.searchServerMessages(serverId, query);
+        
+        if (currentSearchQuery === query) {
+            displaySearchResults(searchResults, query);
+        }
+    } catch (error) {
+        console.error('Search error:', error);
+        searchContent.innerHTML = `
+            <div class="p-3 text-center text-red-400 text-sm">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                Search failed. Please try again.
+            </div>
+        `;
+        showSearchResults();
+    } finally {
+        searchIcon.classList.remove('hidden');
+        searchLoading.classList.add('hidden');
+    }
+}
+
+function displaySearchResults(results, query) {
+    const searchContent = document.getElementById('search-results-content');
+    
+    if (!results || results.length === 0) {
+        searchContent.innerHTML = `
+            <div class="p-3 text-center text-gray-400 text-sm">
+                <i class="fas fa-search mr-2"></i>
+                No messages found for "${query}"
+            </div>
+        `;
+        showSearchResults();
+        return;
+    }
+    
+    const html = `
+        <div class="p-2 border-b border-gray-600 text-xs text-gray-400 font-semibold uppercase">
+            ${results.length} result${results.length !== 1 ? 's' : ''} for "${query}"
+        </div>
+        ${results.map((message, index) => `
+            <div class="search-result-item p-3 hover:bg-[#404249] cursor-pointer border-b border-gray-700 last:border-b-0" 
+                 data-index="${index}"
+                 onclick="navigateToMessage('${message.id}', '${message.channel_id}')">
+                <div class="flex items-start space-x-3">
+                    <img src="${message.avatar_url}" 
+                         alt="${message.username}" 
+                         class="w-8 h-8 rounded-full flex-shrink-0"
+                         onerror="this.src='/public/assets/common/default-profile-picture.png'">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="font-medium text-white text-sm">${message.username}</span>
+                            <span class="text-xs text-gray-400">in #${message.channel_name}</span>
+                            <span class="text-xs text-gray-500">${formatSearchTimestamp(message.sent_at)}</span>
+                        </div>
+                        <div class="text-sm text-gray-300 line-clamp-2">
+                            ${highlightSearchQuery(message.content, query)}
+                        </div>
+                    </div>
+                    <i class="fas fa-arrow-right text-gray-500 text-xs mt-1"></i>
+                </div>
+            </div>
+        `).join('')}
+    `;
+    
+    searchContent.innerHTML = html;
+    showSearchResults();
+}
+
+function highlightSearchQuery(content, query) {
+    if (!query) return content;
+    
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    
+    return content.replace(regex, '<span class="bg-yellow-500 bg-opacity-30 text-yellow-300 font-medium">$1</span>');
+}
+
+function formatSearchTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+        return 'Today ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    } else if (diffDays === 1) {
+        return 'Yesterday ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    } else {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+}
+
+function showSearchResults() {
+    const searchDropdown = document.getElementById('search-results-dropdown');
+    searchDropdown.classList.remove('hidden');
+}
+
+function hideSearchResults() {
+    const searchDropdown = document.getElementById('search-results-dropdown');
+    searchDropdown.classList.add('hidden');
+    currentSearchQuery = '';
+}
+
+function selectNextResult() {
+    const items = document.querySelectorAll('.search-result-item');
+    const current = document.querySelector('.search-result-item.selected');
+    
+    if (!current) {
+        items[0]?.classList.add('selected', 'bg-[#5865f2]');
+    } else {
+        current.classList.remove('selected', 'bg-[#5865f2]');
+        const index = parseInt(current.dataset.index);
+        const next = items[index + 1] || items[0];
+        next?.classList.add('selected', 'bg-[#5865f2]');
+    }
+}
+
+function selectPreviousResult() {
+    const items = document.querySelectorAll('.search-result-item');
+    const current = document.querySelector('.search-result-item.selected');
+    
+    if (!current) {
+        items[items.length - 1]?.classList.add('selected', 'bg-[#5865f2]');
+    } else {
+        current.classList.remove('selected', 'bg-[#5865f2]');
+        const index = parseInt(current.dataset.index);
+        const prev = items[index - 1] || items[items.length - 1];
+        prev?.classList.add('selected', 'bg-[#5865f2]');
+    }
+}
+
+function activateSelectedResult() {
+    const selected = document.querySelector('.search-result-item.selected');
+    if (selected) {
+        selected.click();
+    }
+}
+
+async function navigateToMessage(messageId, channelId) {
+    hideSearchResults();
+    
+    try {
+        const currentUrl = new URL(window.location.href);
+        const currentChannelId = currentUrl.searchParams.get('channel');
+        
+        if (currentChannelId !== channelId) {
+            currentUrl.searchParams.set('channel', channelId);
+            currentUrl.searchParams.set('highlight', messageId);
+            window.location.href = currentUrl.toString();
+        } else {
+            highlightMessage(messageId);
+        }
+    } catch (error) {
+        console.error('Navigation error:', error);
+    }
+}
+
+function highlightMessage(messageId) {
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    
+    if (messageElement) {
+        messageElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        messageElement.classList.add('highlight-message');
+        
+        setTimeout(() => {
+            messageElement.classList.remove('highlight-message');
+        }, 3000);
+    } else {
+        if (window.showToast) {
+            window.showToast('Message not found or not loaded', 'warning');
+        }
+    }
+}
 
 
 </script>

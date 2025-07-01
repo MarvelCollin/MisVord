@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="bg-discord-light rounded-lg p-8 border-2 border-purple-500 relative transform shadow-2xl nitro-card-hover scroll-reveal" style="z-index: 20;">
                     <div class="flex items-center gap-3 mb-6">
                         <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
-                            <i class="fas fa-crown text-white text-xl"></i>
+                            <img src="/public/assets/common/nitro.webp" alt="Nitro" class="w-6 h-6">
                         </div>
                         <div>
                             <h3 class="text-xl font-bold">Nitro</h3>
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </li>
                     </ul>
                     <button class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 rounded-md transition-all nitro-subscribe-btn">
-                        <i class="fas fa-crown mr-2"></i>Subscribe
+                        <img src="/public/assets/common/nitro.webp" alt="Nitro" class="inline w-4 h-4 mr-2">Subscribe
                     </button>
                 </div>
 

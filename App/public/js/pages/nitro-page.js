@@ -739,7 +739,7 @@ function handleNitroStatus(nitroData) {
         
         if (redeemBtn) {
             redeemBtn.disabled = true;
-            redeemBtn.innerHTML = '<i class="fas fa-crown mr-2"></i>Already Redeemed';
+            redeemBtn.innerHTML = '<img src="/public/assets/common/nitro.webp" alt="Nitro" class="inline w-4 h-4 mr-2">Already Redeemed';
             redeemBtn.classList.add('nitro-already-redeemed');
         }
         
@@ -755,7 +755,7 @@ function handleNitroStatus(nitroData) {
             statusDiv.innerHTML = `
                 <div class="flex items-center gap-3 mb-4 p-4 bg-purple-600/20 border border-purple-500/30 rounded-lg">
                     <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
-                        <i class="fas fa-crown text-white text-xl"></i>
+                        <img src="/public/assets/common/nitro.webp" alt="Nitro" class="w-6 h-6">
                     </div>
                     <div>
                         <h4 class="font-bold text-purple-300">Nitro Active</h4>

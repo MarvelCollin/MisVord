@@ -356,7 +356,7 @@ export class NitroManager {
       }
       
       const nitroIndicator = hasNitro ? 
-        '<div class="ml-2 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30 font-medium"><i class="fas fa-crown mr-1"></i>Has Nitro</div>' : 
+        '<div class="ml-2 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30 font-medium"><img src="/public/assets/common/nitro.webp" alt="Nitro" class="inline w-3 h-3 mr-1">Has Nitro</div>' : 
         '';
       
       const avatarOpacity = hasNitro ? 'opacity-50 grayscale' : '';

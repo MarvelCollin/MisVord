@@ -56,6 +56,40 @@ class MessageRepository extends Repository {
         return $messages;
     }
     
+    public function searchInServer($serverId, $searchQuery, $limit = 50) {
+        try {
+            if (!$serverId || !is_numeric($serverId)) {
+                return [];
+            }
+
+            if (empty($searchQuery) || strlen(trim($searchQuery)) < 1) {
+                return [];
+            }
+
+            $searchQuery = trim($searchQuery);
+            if (strlen($searchQuery) > 255) {
+                $searchQuery = substr($searchQuery, 0, 255);
+            }
+
+            $query = new Query();
+            $results = $query->table('messages m')
+                ->join('channel_messages cm', 'm.id', '=', 'cm.message_id')
+                ->join('channels c', 'cm.channel_id', '=', 'c.id')
+                ->join('users u', 'm.user_id', '=', 'u.id')
+                ->where('c.server_id', (int)$serverId)
+                ->where('m.content', 'LIKE', "%{$searchQuery}%")
+                ->select('m.id, m.content, m.user_id, m.sent_at, m.message_type, u.username, u.avatar_url, c.name as channel_name, c.id as channel_id')
+                ->orderBy('m.sent_at', 'DESC')
+                ->limit((int)$limit)
+                ->get();
+            
+            return $results ?: [];
+        } catch (Exception $e) {
+            error_log("Error in MessageRepository::searchInServer: " . $e->getMessage());
+            return [];
+        }
+    }
+    
   
     public function countToday() {
         $query = new Query();

@@ -53,6 +53,24 @@ set_error_handler(function($severity, $message, $file, $line) {
 set_exception_handler(function($exception) {
     logger()->exception($exception);
 
+    $isApiRoute = isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') === 0;
+    
+    if ($isApiRoute) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error' => [
+                'code' => 500,
+                'message' => EnvLoader::get('APP_ENV') !== 'production' 
+                    ? $exception->getMessage() 
+                    : 'Internal server error'
+            ],
+            'timestamp' => date('Y-m-d H:i:s')
+        ]);
+        exit;
+    }
+
     if (EnvLoader::get('APP_ENV') !== 'production') {
         echo "<h1>Uncaught Exception</h1>";
         echo "<pre>" . $exception->getMessage() . "\n";

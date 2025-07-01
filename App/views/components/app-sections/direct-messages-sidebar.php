@@ -292,6 +292,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log(`✅ [DM-SIDEBAR] Updated status for ${allStatusIndicators.length} users`);
         }
+        
     }
     
     function setupSocketListeners() {
@@ -344,6 +345,12 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('🔄 [DM-SIDEBAR] Initial setup failed, waiting for socket events...');
         }
     }, 1000);
+    
+    setTimeout(() => {
+        if (window.nitroCrownManager) {
+            window.nitroCrownManager.removeExistingCrownsFromDirectMessages();
+        }
+    }, 2000);
     
     setInterval(() => {
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {

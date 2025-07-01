@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . '/../config/helpers.php';
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
 require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
 require_once __DIR__ . '/../database/repositories/ChannelMessageRepository.php';
@@ -8,6 +9,7 @@ require_once __DIR__ . '/../database/repositories/ChatRoomMessageRepository.php'
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/../database/repositories/FriendListRepository.php';
+require_once __DIR__ . '/../database/repositories/ServerRepository.php';
 require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/models/User.php';
 require_once __DIR__ . '/../database/query.php';
@@ -24,6 +26,7 @@ class ChatController extends BaseController
     private $userServerMembershipRepository;
     private $userRepository;
     private $friendListRepository;
+    private $serverRepository;
 
     public function __construct()
     {
@@ -36,6 +39,7 @@ class ChatController extends BaseController
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
         $this->userRepository = new UserRepository();
         $this->friendListRepository = new FriendListRepository();
+        $this->serverRepository = new ServerRepository();
     }
 
     public function getMessages($targetType, $targetId)
@@ -81,7 +85,10 @@ class ChatController extends BaseController
                 $offset = 0;
             }
 
-            $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, $offset);
+            $paginationResult = $this->channelMessageRepository->getMessagesByChannelIdWithPagination($channelId, $limit, $offset);
+            $messages = $paginationResult['messages'];
+            $hasMore = $paginationResult['has_more'];
+            
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             $replyCount = 0;
@@ -91,10 +98,59 @@ class ChatController extends BaseController
                 }
             }
 
-            return $this->respondMessages('channel', $channelId, $formattedMessages, count($messages) >= $limit);
+            return $this->respondMessages('channel', $channelId, $formattedMessages, $hasMore);
         } catch (Exception $e) {
             error_log("Error getting channel messages: " . $e->getMessage());
             return $this->serverError('Failed to load channel messages: ' . $e->getMessage());
+        }
+    }
+
+    private function getChannelMessagesInternal($channelId, $userId)
+    {
+        try {
+            $channel = $this->channelRepository->find($channelId);
+            if (!$channel) {
+                return $this->internalNotFound('Channel not found');
+            }
+
+            if ($channel->server_id != 0) {
+                $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
+                if (!$membership) {
+                    return $this->internalForbidden('You are not a member of this server');
+                }
+            }
+
+            $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int)$_GET['limit'] : 20;
+            $offset = isset($_GET['offset']) && is_numeric($_GET['offset']) ? (int)$_GET['offset'] : 0;
+            $timestamp = $_GET['timestamp'] ?? null;
+            $cacheBust = $_GET['_cache_bust'] ?? null;
+            
+            if ($timestamp || $cacheBust) {
+                $offset = 0;
+            }
+
+            $paginationResult = $this->channelMessageRepository->getMessagesByChannelIdWithPagination($channelId, $limit, $offset);
+            $messages = $paginationResult['messages'];
+            $hasMore = $paginationResult['has_more'];
+            
+            $formattedMessages = array_map([$this, 'formatMessage'], $messages);
+
+            $replyCount = 0;
+            foreach ($formattedMessages as $msg) {
+                if (isset($msg['reply_data'])) {
+                    $replyCount++;
+                }
+            }
+
+            return $this->internalSuccess([
+                'type' => 'channel',
+                'target_id' => $channelId,
+                'messages' => $formattedMessages,
+                'has_more' => $hasMore
+            ], 'Messages retrieved successfully');
+        } catch (Exception $e) {
+            error_log("Error getting channel messages: " . $e->getMessage());
+            return $this->internalServerError('Failed to load channel messages: ' . $e->getMessage());
         }
     }
     
@@ -129,7 +185,10 @@ class ChatController extends BaseController
                 $offset = 0;
             }
 
-            $messages = $this->chatRoomMessageRepository->getMessagesByRoomId($chatRoomId, $limit, $offset);
+            $paginationResult = $this->chatRoomMessageRepository->getMessagesByRoomIdWithPagination($chatRoomId, $limit, $offset);
+            $messages = $paginationResult['messages'];
+            $hasMore = $paginationResult['has_more'];
+            
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             $replyCount = 0;
@@ -139,7 +198,7 @@ class ChatController extends BaseController
                 }
             }
 
-            return $this->respondMessages('dm', $chatRoomId, $formattedMessages, count($messages) >= $limit);
+            return $this->respondMessages('dm', $chatRoomId, $formattedMessages, $hasMore);
         } catch (Exception $e) {
             error_log("Error getting DM messages: " . $e->getMessage());
             return $this->serverError('Failed to load direct messages: ' . $e->getMessage());
@@ -223,12 +282,12 @@ class ChatController extends BaseController
     {
         $channel = $this->channelRepository->find($channelId);
         if (!$channel) {
-            return $this->notFound('Channel not found');
+            return $this->internalNotFound('Channel not found');
         }
         if ($channel->server_id != 0) {
             $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
             if (!$membership) {
-                return $this->forbidden('You are not a member of this server');
+                return $this->internalForbidden('You are not a member of this server');
             }
         }
 
@@ -281,7 +340,7 @@ class ChatController extends BaseController
 
                 $query->commit();
                 
-                return $this->success([
+                return $this->internalSuccess([
                     'data' => [
                         'message' => $formattedMessage,
                         'channel_id' => $channelId
@@ -293,7 +352,7 @@ class ChatController extends BaseController
             }
         } catch (Exception $e) {
             $query->rollback();
-            return $this->serverError('Failed to send message');
+            return $this->internalServerError('Failed to send message');
         }
     }
 
@@ -301,10 +360,10 @@ class ChatController extends BaseController
     {
         $chatRoom = $this->chatRoomRepository->find($chatRoomId);
         if (!$chatRoom) {
-            return $this->notFound('Chat room not found');
+            return $this->internalNotFound('Chat room not found');
         }
         if (!$this->chatRoomRepository->isParticipant($chatRoomId, $userId)) {
-            return $this->forbidden('You are not a participant in this chat');
+            return $this->internalForbidden('You are not a participant in this chat');
         }
 
         $query = new Query();
@@ -367,21 +426,19 @@ class ChatController extends BaseController
                 
                 $query->commit();
                 
-                $response = $this->success([
+                return $this->internalSuccess([
                     'data' => [
                         'message' => $formattedMessage,
                         'room_id' => $chatRoomId
                     ]
                 ], 'Message sent successfully');
-                
-                return $response;
             } else {
                 $query->rollback();
                 throw new Exception('Failed to save message');
             }
         } catch (Exception $e) {
             $query->rollback();
-            return $this->serverError('Failed to send message');
+            return $this->internalServerError('Failed to send message');
         }
     }
 
@@ -815,7 +872,7 @@ class ChatController extends BaseController
             
             if ($chatType === 'channel') {
                 error_log("[Chat Section] Fetching channel messages");
-                $messages = $this->getChannelMessages($chatId, $userId);
+                $messages = $this->getChannelMessagesInternal($chatId, $userId);
                 error_log("[Chat Section] Found " . count($messages['data']['messages']) . " messages");
                 
                 $channel = $this->channelRepository->find($chatId);
@@ -1216,6 +1273,67 @@ class ChatController extends BaseController
             return $this->serverError('Failed to search messages');
         }
     }
+    
+    public function searchServerMessages($serverId)
+    {
+        try {
+            $this->requireAuth();
+            $userId = $this->getCurrentUserId();
+
+            if (!$serverId || !is_numeric($serverId)) {
+                return $this->validationError(['server_id' => 'Invalid server ID']);
+            }
+
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
+            if (!$membership) {
+                return $this->forbidden('You are not a member of this server');
+            }
+
+            $searchQuery = $_GET['q'] ?? '';
+            if (empty($searchQuery) || strlen(trim($searchQuery)) < 1) {
+                return $this->validationError(['q' => 'Search query is required and must be at least 1 character']);
+            }
+
+            $searchQuery = trim($searchQuery);
+            if (strlen($searchQuery) > 255) {
+                return $this->validationError(['q' => 'Search query is too long']);
+            }
+
+            $messages = $this->messageRepository->searchInServer($serverId, $searchQuery, 30);
+            
+            $formattedMessages = [];
+            foreach ($messages as $message) {
+                $formattedMessages[] = [
+                    'id' => $message['id'] ?? '',
+                    'content' => $message['content'] ?? '',
+                    'user_id' => $message['user_id'] ?? '',
+                    'username' => $message['username'] ?? 'Unknown User',
+                    'avatar_url' => (!empty($message['avatar_url'])) 
+                        ? $message['avatar_url'] 
+                        : '/public/assets/common/default-profile-picture.png',
+                    'sent_at' => $message['sent_at'] ?? '',
+                    'channel_id' => $message['channel_id'] ?? '',
+                    'channel_name' => $message['channel_name'] ?? 'Unknown Channel',
+                    'message_type' => $message['message_type'] ?? 'text'
+                ];
+            }
+
+            return $this->success([
+                'server_id' => (int)$serverId,
+                'query' => $searchQuery,
+                'messages' => $formattedMessages,
+                'total' => count($formattedMessages)
+            ]);
+        } catch (Exception $e) {
+            error_log("Error in searchServerMessages: " . $e->getMessage());
+            return $this->serverError('Failed to search server messages');
+        }
+    }
 
     public function getMessageReactions($messageId) {
         $this->requireAuth();
@@ -1576,5 +1694,41 @@ class ChatController extends BaseController
             error_log('Group image processing error: ' . $e->getMessage());
             throw new Exception('Failed to process group image: ' . $e->getMessage());
         }
+    }
+
+    private function internalSuccess($data = [], $message = 'Success', $code = 200)
+    {
+        return [
+            'success' => true,
+            'message' => $message,
+            'data' => $data,
+            'code' => $code,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+    }
+
+    private function internalError($message, $code = 400)
+    {
+        return [
+            'success' => false,
+            'message' => $message,
+            'code' => $code,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+    }
+
+    private function internalNotFound($message = 'Resource not found')
+    {
+        return $this->internalError($message, 404);
+    }
+
+    private function internalForbidden($message = 'Access forbidden')
+    {
+        return $this->internalError($message, 403);
+    }
+
+    private function internalServerError($message = 'Internal server error', $code = 500)
+    {
+        return $this->internalError($message, $code);
     }
 }

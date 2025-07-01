@@ -75,15 +75,9 @@ class FriendsTabManager {
         const searchInputs = ['online-search', 'all-search', 'pending-search'];
         searchInputs.forEach(inputId => {
             const input = document.getElementById(inputId);
-            const clearBtn = document.getElementById(inputId + '-clear');
             
             if (input) {
                 input.value = '';
-                input.classList.remove('pr-8');
-            }
-            
-            if (clearBtn) {
-                clearBtn.classList.add('hidden');
             }
         });
         

@@ -1,7 +1,8 @@
 <?php
 
 class CreateChatParticipantsTableMigration {
-    public function up($migration) {        $migration->createTable('chat_participants', function($table) {
+    public function up($migration) {
+        $migration->createTable('chat_participants', function($table) {
             $table->id();
             $table->integer('chat_room_id');
             $table->integer('user_id');

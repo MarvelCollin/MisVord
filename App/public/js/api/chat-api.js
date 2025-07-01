@@ -165,6 +165,48 @@ class ChatAPI {
         
         return response;
     }
+    
+    async searchServerMessages(serverId, query) {
+        if (!serverId || !query) {
+            throw new Error('Server ID and search query are required');
+        }
+
+        if (typeof serverId !== 'number' && !Number.isInteger(parseInt(serverId))) {
+            throw new Error('Invalid server ID');
+        }
+
+        if (typeof query !== 'string' || query.trim().length < 1) {
+            throw new Error('Search query must be at least 1 character');
+        }
+
+        const trimmedQuery = query.trim();
+        if (trimmedQuery.length > 255) {
+            throw new Error('Search query is too long');
+        }
+
+        try {
+            const response = await this.makeRequest(
+                `/api/servers/${serverId}/search?q=${encodeURIComponent(trimmedQuery)}&t=${Date.now()}`
+            );
+            
+            return response.data?.messages || response.messages || [];
+        } catch (error) {
+            console.error('Server search error:', error);
+            throw error;
+        }
+    }
+
+    async getMessageReactions(messageId) {
+        if (!messageId) {
+            throw new Error('Message ID is required');
+        }
+
+        const response = await this.makeRequest(
+            `/api/messages/${messageId}/reactions?t=${Date.now()}`
+        );
+        
+        return response.reactions || [];
+    }
 }
 
 const chatAPI = new ChatAPI();
