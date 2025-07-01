@@ -63,8 +63,13 @@ const channelAPI = {
         });
     },
 
-    getChannelDetails: function(channelId) {
-        return fetch(`/api/channels/${channelId}`, {
+    getChannelDetails: function(channelId, forceFresh = false) {
+        let url = `/api/channels/${channelId}`;
+        if (forceFresh) {
+            url += `?timestamp=${Date.now()}`;
+        }
+        
+        return fetch(url, {
             method: 'GET',
             credentials: 'include',
             headers: {

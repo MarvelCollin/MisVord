@@ -67,6 +67,17 @@ class ExploreController extends BaseController
         $featuredServers = $this->getFeaturedServers(3);
         $userServerIds = $this->getUserServerIds($currentUserId);
 
+        $allServers = array_merge($featuredServers, $servers);
+        $uniqueServers = [];
+        $seenIds = [];
+        
+        foreach ($allServers as $server) {
+            if (!in_array($server['id'], $seenIds)) {
+                $uniqueServers[] = $server;
+                $seenIds[] = $server['id'];
+            }
+        }
+
         $categories = [
             'gaming' => 'Gaming',
             'music' => 'Music',
@@ -78,7 +89,7 @@ class ExploreController extends BaseController
 
         return [
             'userServers' => $userServers,
-            'servers' => $servers,
+            'servers' => $uniqueServers,
             'userServerIds' => $userServerIds,
             'featuredServers' => $featuredServers,
             'categories' => $categories,

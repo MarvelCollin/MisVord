@@ -259,15 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function getStatusClass(status) {
         switch (status) {
             case 'online':
-            case 'appear':
                 return 'bg-discord-green';
-            case 'idle':
-            case 'away':
-                return 'bg-discord-yellow';
-            case 'dnd':
-            case 'do_not_disturb':
-                return 'bg-discord-red';
-            case 'invisible':
             case 'offline':
             default:
                 return 'bg-gray-500';
@@ -277,16 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function getStatusText(status) {
         switch (status) {
             case 'online':
-            case 'appear':
                 return 'Online';
-            case 'idle':
-            case 'away':
-                return 'Idle';
-            case 'dnd':
-            case 'do_not_disturb':
-                return 'Do Not Disturb';
-            case 'invisible':
-                return 'Invisible';
             case 'offline':
             default:
                 return 'Offline';
@@ -369,8 +352,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (statusA === 'online' && statusB !== 'online') return -1;
                 if (statusB === 'online' && statusA !== 'online') return 1;
-                if (statusA === 'idle' && statusB === 'offline') return -1;
-                if (statusB === 'idle' && statusA === 'offline') return 1;
                 
                 return a.username.localeCompare(b.username);
             });
@@ -378,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let friendsHtml = '';
             onlineFriends.forEach(friend => {
                 const userData = onlineUsers[friend.id];
-                const status = userData?.status || 'idle';
+                const status = userData?.status || 'offline';
                 const statusClass = getStatusClass(status);
                 const statusText = getStatusText(status);
                 

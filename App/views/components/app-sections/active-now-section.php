@@ -37,15 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function getStatusClass(status) {
         switch (status) {
             case 'online':
-            case 'appear':
                 return 'bg-discord-green';
-            case 'idle':
-            case 'away':
-                return 'bg-discord-yellow';
-            case 'dnd':
-            case 'do_not_disturb':
-                return 'bg-discord-red';
-            case 'invisible':
             case 'offline':
             default:
                 return 'bg-gray-500';
@@ -55,16 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function getStatusText(status) {
         switch (status) {
             case 'online':
-            case 'appear':
                 return 'Online';
-            case 'idle':
-            case 'away':
-                return 'Idle';
-            case 'dnd':
-            case 'do_not_disturb':
-                return 'Do Not Disturb';
-            case 'invisible':
-                return 'Invisible';
             case 'offline':
             default:
                 return 'Offline';
@@ -73,23 +56,23 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function getActivityText(activityDetails) {
         if (!activityDetails || !activityDetails.type) {
-            return 'Online';
+            return 'Idle';
         }
         
         switch (activityDetails.type) {
             case 'playing Tic Tac Toe':
-                return 'Playing Tic Tac Toe';
+                return 'Playing Tic Mac Voe';
             case 'In Voice Call':
                 return 'In Voice Call';
             case 'idle':
             default:
-                return 'Online';
+                return 'Idle';
         }
     }
     
     function getActivityIcon(activityDetails) {
         if (!activityDetails || !activityDetails.type) {
-            return 'fa-solid fa-circle';
+            return 'fa-solid fa-moon';
         }
         
         switch (activityDetails.type) {
@@ -99,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return 'fa-solid fa-microphone';
             case 'idle':
             default:
-                return 'fa-solid fa-circle';
+                return 'fa-solid fa-moon';
         }
     }
     
@@ -146,10 +129,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const statusA = onlineUsers[a.id]?.status || 'idle';
                 const statusB = onlineUsers[b.id]?.status || 'idle';
                 
-                if (statusA === 'online' && statusB !== 'online') return -1;
-                if (statusB === 'online' && statusA !== 'online') return 1;
-                if (statusA === 'idle' && statusB === 'offline') return -1;
-                if (statusB === 'idle' && statusA === 'offline') return 1;
+                            if (statusA === 'online' && statusB !== 'online') return -1;
+            if (statusB === 'online' && statusA !== 'online') return 1;
                 
                 return a.username.localeCompare(b.username);
             });

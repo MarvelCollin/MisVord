@@ -15,6 +15,7 @@ class ChannelController extends BaseController
     private $messageRepository;
     private $membershipRepository;
     private $categoryRepository;
+    private $serverRepository;
 
     public function __construct()
     {
@@ -24,6 +25,7 @@ class ChannelController extends BaseController
         $this->channelMessageRepository = new ChannelMessageRepository();
         $this->membershipRepository = new UserServerMembershipRepository();
         $this->categoryRepository = new CategoryRepository();
+        $this->serverRepository = new ServerRepository();
     }
 
     private function validateServerAccess($serverId, $requireOwner = false)
@@ -489,37 +491,37 @@ class ChannelController extends BaseController
     public function switchToChannel()
     {
         $this->requireAuth();
+        
         $input = $this->getInput();
-        $channelId = $input['channel_id'] ?? $_GET['channel_id'] ?? null;
-        $limit = $input['limit'] ?? $_GET['limit'] ?? 50;
+        $channelId = $input['channel_id'] ?? null;
+        $forceFresh = $input['force_fresh'] ?? false;
+        $timestamp = $input['timestamp'] ?? null;
         
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
         }
-        
+
         try {
-            $channel = $this->channelRepository->find($channelId);
-            if (!$channel) {
-                return $this->notFound('Channel not found');
+            [$channel, $error] = $this->validateChannelAccess($channelId);
+            if ($error) return $error;
+
+            $serverId = $channel->server_id;
+            $server = $this->serverRepository->find($serverId);
+            
+            $limit = $input['limit'] ?? 50;
+            $offset = $input['offset'] ?? 0;
+            $before = $input['before'] ?? null;
+            
+            if ($forceFresh || $timestamp) {
+                $offset = 0;
+                $before = null;
             }
             
-            $currentUserId = $this->getCurrentUserId();
+            $messages = $this->messageRepository->getForChannel($channelId, $limit, $offset, $before);
             
-            if ($channel->server_id != 0) {
-                $membership = $this->membershipRepository->findByUserAndServer($currentUserId, $channel->server_id);
-                if (!$membership) {
-                    return $this->forbidden('You are not a member of this server');
-                }
+            foreach ($messages as &$message) {
+                $message = $this->formatMessage($message);
             }
-            
-            $messages = [];
-            if ($channel->type === 'text' || $channel->type === '1' || $channel->type == 1) {
-                $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, 0);
-            }
-            
-            require_once __DIR__ . '/../database/repositories/ServerRepository.php';
-            $serverRepository = new ServerRepository();
-            $server = $serverRepository->find($channel->server_id);
             
             return $this->success([
                 'channel' => [
@@ -537,7 +539,8 @@ class ChannelController extends BaseController
                 ] : null,
                 'messages' => $messages,
                 'message_count' => count($messages),
-                'has_more' => count($messages) >= $limit
+                'has_more' => count($messages) >= $limit,
+                'timestamp' => time()
             ]);
         } catch (Exception $e) {
             return $this->serverError('Failed to switch to channel: ' . $e->getMessage());

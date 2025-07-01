@@ -8,7 +8,19 @@ const friendAPI = window.FriendAPI;
 document.addEventListener('DOMContentLoaded', function () {
     initFriendRequestForm();
     
-
+    if (window.location.pathname === '/home/friends' || window.location.pathname === '/home') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab') || 'online';
+        
+        setTimeout(() => {
+            if (window.FriendsTabManager) {
+                const tabManager = window.FriendsTabManager.getInstance();
+                if (tabManager) {
+                    tabManager.switchTab(tab);
+                }
+            }
+        }, 100);
+    }
 
     requestAnimationFrame(() => {
         initServerModal();
@@ -913,5 +925,25 @@ function updateOnlineCount(count) {
     const onlineCountElement = document.getElementById('online-count');
     if (onlineCountElement) {
         onlineCountElement.textContent = count;
+    }
+}
+
+function getStatusClass(status) {
+    switch (status) {
+        case 'online':
+            return 'bg-discord-green';
+        case 'offline':
+        default:
+            return 'bg-gray-500';
+    }
+}
+
+function getStatusText(status) {
+    switch (status) {
+        case 'online':
+            return 'Online';
+        case 'offline':
+        default:
+            return 'Offline';
     }
 }

@@ -65,9 +65,9 @@ class UserService {
             const timeSinceUpdate = now - data.last_seen;
             if (timeSinceUpdate > this.idleTimeout && data.status === 'online') {
                 if (!data.activity_details || data.activity_details.type === 'idle') {
-                    data.status = 'idle';
+                    data.activity_details = { type: 'idle' };
                     this.userPresence.set(userId, data);
-                    console.log(`⏰ [USER-SERVICE] User ${userId} automatically set to idle after ${Math.round(timeSinceUpdate / 1000)}s inactivity`);
+                    console.log(`⏰ [USER-SERVICE] User ${userId} activity set to idle after ${Math.round(timeSinceUpdate / 1000)}s inactivity`);
                 }
             }
         }

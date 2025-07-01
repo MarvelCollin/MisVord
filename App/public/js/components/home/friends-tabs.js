@@ -62,6 +62,8 @@ class FriendsTabManager {
         this.updateTabContent();
         this.updateURL(tabName);
         this.hideMobileMenu();
+        
+
     }
 
     updateTabDisplay() {

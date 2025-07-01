@@ -321,11 +321,17 @@ class VoiceSection {
         }, 300);
     }
     
-    updateChannelId(channelId) {
+    updateChannelId(channelId, forceFresh = false) {
+        console.log('🔄 [VOICE-SECTION] Updating channel ID:', channelId, 'forceFresh:', forceFresh);
+        
         this.currentChannelId = channelId;
         
         if (this.elements.joinBtn) {
             this.elements.joinBtn.setAttribute('data-channel-id', channelId);
+        }
+        
+        if (forceFresh) {
+            this.fetchChannelData(channelId);
         }
         
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
@@ -339,6 +345,36 @@ class VoiceSection {
             if (typeof window.voiceManager.updateChannelContext === 'function') {
                 window.voiceManager.updateChannelContext(channelId, channelName);
             }
+        }
+        
+        console.log('✅ [VOICE-SECTION] Channel ID updated:', channelId);
+    }
+    
+    async fetchChannelData(channelId) {
+        try {
+            console.log('📡 [VOICE-SECTION] Fetching channel data for:', channelId);
+            
+            const response = await fetch(`/api/channels/${channelId}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data) {
+                    window.currentChannelData = data.data.channel;
+                    console.log('✅ [VOICE-SECTION] Channel data fetched:', data.data.channel);
+                    
+                    if (data.data.channel.name) {
+                        this.updateChannelNames(data.data.channel.name);
+                    }
+                }
+            } else {
+                console.error('❌ [VOICE-SECTION] Failed to fetch channel data:', response.status);
+            }
+        } catch (error) {
+            console.error('❌ [VOICE-SECTION] Error fetching channel data:', error);
         }
     }
 }

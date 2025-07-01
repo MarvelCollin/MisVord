@@ -101,10 +101,14 @@ class ChatAPI {
         const limit = options.limit || 50;
         const before = options.before || null;
         const offset = options.offset || 0;
+        const timestamp = options.timestamp || null;
         
         let url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
         if (before) {
             url += `&before=${before}`;
+        }
+        if (timestamp) {
+            url += `&timestamp=${timestamp}`;
         }
         
         const response = await this.makeRequest(url);

@@ -68,21 +68,6 @@ require_once dirname(__DIR__) . '/explore/server-card.php';
             </div>
         </div>
 
-        <div class="mb-10 fade-in">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl lg:text-2xl font-bold text-white">Featured Servers</h2>
-                <div class="flex items-center text-discord-lighter text-sm">
-                    <i class="fas fa-star text-yellow-400 mr-2"></i>
-                    <span>Hand-picked communities</span>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="featured-servers">
-                <?php foreach ($featuredServers as $server): ?>
-                    <?php renderServerCard($server, $userServerId, true); ?>
-                <?php endforeach; ?>
-            </div>
-        </div>
-
         <div class="fade-in">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-xl lg:text-2xl font-bold text-white">Discover Communities</h2>

@@ -644,7 +644,9 @@ class ChatSection {
     }
     
     async loadMessages(options = {}) {
-        if (this.isLoading) {
+        const forceFresh = options.forceFresh || false;
+        
+        if (this.isLoading && !forceFresh) {
             console.log('⚠️ [CHAT-SECTION] Already loading messages, skipping request');
             return;
         }
@@ -656,7 +658,14 @@ class ChatSection {
         }
         
         const limit = options.limit || 20;
-        const before = options.before || null;
+        const before = forceFresh ? null : (options.before || null);
+        
+        if (forceFresh) {
+            console.log('🔄 [CHAT-SECTION] Force fresh loading - clearing cache');
+            this.clearChatMessages();
+            this.lastLoadedMessageId = null;
+            this.hasMoreMessages = true;
+        }
         
         this.isLoading = true;
         this.showLoadingIndicator();
@@ -686,11 +695,21 @@ class ChatSection {
                 });
             }
             
+            const requestOptions = {
+                limit,
+                before,
+                offset: options.offset || 0
+            };
+            
+            if (forceFresh) {
+                requestOptions.timestamp = Date.now();
+            }
+            
             console.log('📡 [CHAT-SECTION] Making API call to getMessages...');
             const response = await window.ChatAPI.getMessages(
                 this.targetId,
                 this.chatType,
-                { limit, before, offset: options.offset || 0 }
+                requestOptions
             );
             
             console.log('📨 [CHAT-SECTION] API Response received:', {
@@ -1887,20 +1906,16 @@ class ChatSection {
     async switchToChannel(channelId, channelType = 'text', forceFresh = false) {
         console.log('🔄 [CHAT-SECTION] Switching to channel:', channelId, channelType, 'forceFresh:', forceFresh);
         
-        this.leaveCurrentSocketRoom();
-
+        this.forceStopAllOperations();
+        
         this.targetId = channelId;
         this.chatType = 'channel';
-        this.isLoading = false;
-        this.hasMoreMessages = true;
-        this.lastLoadedMessageId = null;
         
-        this.clearChatMessages();
-        this.hideEmptyState();
+        this.fullStateReset();
         
         this.joinSocketRoom();
         
-        await this.loadMessages({ forceFresh: true });
+        await this.loadMessages({ forceFresh: true, isChannelSwitch: true });
         
         this.updateChannelHeader();
         
@@ -1910,15 +1925,16 @@ class ChatSection {
     resetForNewChannel() {
         console.log('🔄 [CHAT-SECTION] Resetting for new channel');
         
-        this.leaveCurrentSocketRoom();
-        this.clearChatMessages();
-        this.hideEmptyState();
+        this.forceStopAllOperations();
+        this.fullStateReset();
         
+        console.log('✅ [CHAT-SECTION] Reset completed');
+    }
+    
+    forceStopAllOperations() {
         this.isLoading = false;
-        this.hasMoreMessages = true;
-        this.lastLoadedMessageId = null;
-        this.replyingTo = null;
-        this.currentEditingMessage = null;
+        
+        this.leaveCurrentSocketRoom();
         
         if (this.loadMoreButton) {
             this.loadMoreButton.remove();
@@ -1930,7 +1946,32 @@ class ChatSection {
             this.topReloadButton = null;
         }
         
-        console.log('✅ [CHAT-SECTION] Reset completed');
+        if (this.loadingIndicator) {
+            this.loadingIndicator.remove();
+            this.loadingIndicator = null;
+        }
+        
+        if (this.emptyStateContainer) {
+            this.emptyStateContainer.remove();
+            this.emptyStateContainer = null;
+        }
+    }
+    
+    fullStateReset() {
+        this.clearChatMessages();
+        this.hideEmptyState();
+        
+        this.hasMoreMessages = true;
+        this.lastLoadedMessageId = null;
+        this.replyingTo = null;
+        this.currentEditingMessage = null;
+        this.isInitialized = false;
+        
+        const messagesContainer = this.getMessagesContainer();
+        if (messagesContainer) {
+            messagesContainer.innerHTML = '';
+            messagesContainer.scrollTop = 0;
+        }
     }
 
     leaveCurrentSocketRoom() {
