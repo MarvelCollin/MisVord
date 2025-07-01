@@ -14,25 +14,55 @@ $categories = $GLOBALS['categories'] ?? [];
             <p class="text-discord-lighter text-lg">Find and join amazing communities on misvord</p>
         </div>
 
-        <div class="mb-8 filter-section flex flex-col sm:flex-row gap-4 slide-up">
-            <div class="search-container flex-1 min-w-0">
-                <input type="text" id="server-search" placeholder="Search for communities..." 
-                       class="server-search w-full bg-discord-dark text-white rounded-lg px-4 py-3 pl-4 pr-12 focus:outline-none focus:ring-2 focus:ring-discord-primary transition-all">
+        <div class="filter-section mb-8 slide-up">
+            <div class="search-container">
+                <input type="text" 
+                       id="server-search" 
+                       placeholder="Search for communities..." 
+                       class="server-search">
                 <i class="search-icon fas fa-search"></i>
             </div>
-
-            <div class="flex gap-3">
-                <select id="category-filter" class="filter-dropdown bg-discord-dark text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-discord-primary min-w-[140px]">
+            
+            <div class="filter-controls">
+                <select id="category-filter" class="filter-dropdown">
                     <option value="">All Categories</option>
                     <?php foreach ($categories as $key => $name): ?>
                         <option value="<?php echo $key; ?>"><?php echo $name; ?></option>
                     <?php endforeach; ?>
                 </select>
 
-                <button id="sort-btn" class="sort-btn bg-discord-dark text-white rounded-lg px-5 py-3 focus:outline-none hover:bg-discord-light transition-all flex items-center gap-2">
-                    <i class="fas fa-sort-amount-down"></i>
-                    <span class="hidden sm:inline">Sort</span>
-                </button>
+                <div class="sort-container">
+                    <button id="sort-btn" class="sort-btn">
+                        <i class="fas fa-sort-amount-down"></i>
+                        <span>Sort</span>
+                    </button>
+                    <div id="sort-dropdown" class="sort-dropdown">
+                        <div class="sort-option" data-sort="newest">
+                            <i class="fas fa-calendar-plus"></i>
+                            <span>Newest First</span>
+                        </div>
+                        <div class="sort-option" data-sort="oldest">
+                            <i class="fas fa-calendar-minus"></i>
+                            <span>Oldest First</span>
+                        </div>
+                        <div class="sort-option" data-sort="members-desc">
+                            <i class="fas fa-users"></i>
+                            <span>Most Members</span>
+                        </div>
+                        <div class="sort-option" data-sort="members-asc">
+                            <i class="fas fa-user"></i>
+                            <span>Least Members</span>
+                        </div>
+                        <div class="sort-option active" data-sort="alphabetical">
+                            <i class="fas fa-sort-alpha-down"></i>
+                            <span>A to Z</span>
+                        </div>
+                        <div class="sort-option" data-sort="alphabetical-desc">
+                            <i class="fas fa-sort-alpha-up"></i>
+                            <span>Z to A</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

@@ -185,11 +185,15 @@ function handleMouseMove(event) {
 
 async function ensureVoiceScriptsLoaded() {
     try {
+        console.log('[Voice Not Join] Starting voice scripts loading check');
+        
         if (typeof VideoSDK === 'undefined') {
+            console.log('[Voice Not Join] Loading VideoSDK script...');
             await window.loadVoiceScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
             await new Promise(resolve => {
                 const checkVideoSDK = () => {
                     if (typeof VideoSDK !== 'undefined') {
+                        console.log('[Voice Not Join] ✅ VideoSDK loaded');
                         resolve();
                     } else {
                         setTimeout(checkVideoSDK, 100);
@@ -197,42 +201,117 @@ async function ensureVoiceScriptsLoaded() {
                 };
                 checkVideoSDK();
             });
+        } else {
+            console.log('[Voice Not Join] ✅ VideoSDK already available');
         }
         
         if (!window.videoSDKManager) {
+            console.log('[Voice Not Join] Loading VideoSDK Manager...');
             await window.loadVoiceScript('/public/js/components/videosdk/videosdk.js?v=' + Date.now());
+            await new Promise(resolve => {
+                const checkManager = () => {
+                    if (window.videoSDKManager) {
+                        console.log('[Voice Not Join] ✅ VideoSDK Manager loaded');
+                        resolve();
+                    } else {
+                        setTimeout(checkManager, 100);
+                    }
+                };
+                checkManager();
+            });
+        } else {
+            console.log('[Voice Not Join] ✅ VideoSDK Manager already available');
+        }
+        
+        if (window.videoSDKManager && !window.videoSDKManager.initialized) {
+            console.log('[Voice Not Join] Initializing VideoSDK Manager...');
+            try {
+                await window.videoSDKManager.init();
+                console.log('[Voice Not Join] ✅ VideoSDK Manager initialized');
+            } catch (error) {
+                console.warn('[Voice Not Join] VideoSDK Manager initialization warning:', error);
+            }
         }
         
         if (!window.voiceManager) {
+            console.log('[Voice Not Join] Loading Voice Manager...');
             await window.loadVoiceScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
+            await new Promise(resolve => {
+                const checkVoiceManager = () => {
+                    if (window.VoiceManager) {
+                        console.log('[Voice Not Join] ✅ Voice Manager class loaded');
+                        resolve();
+                    } else {
+                        setTimeout(checkVoiceManager, 100);
+                    }
+                };
+                checkVoiceManager();
+            });
+        } else {
+            console.log('[Voice Not Join] ✅ Voice Manager already available');
+        }
+        
+        if (!window.voiceManager && window.VoiceManager) {
+            console.log('[Voice Not Join] Creating VoiceManager instance...');
+            try {
+                window.voiceManager = new window.VoiceManager();
+                if (window.voiceManager.preloadResources) {
+                    await window.voiceManager.preloadResources();
+                }
+                console.log('[Voice Not Join] ✅ VoiceManager instance created');
+            } catch (error) {
+                console.error('[Voice Not Join] Error creating VoiceManager:', error);
+            }
         }
         
         if (!window.VoiceSection) {
+            console.log('[Voice Not Join] Loading Voice Section...');
             await window.loadVoiceScript('/public/js/components/voice/voice-section.js?v=' + Date.now());
+            await new Promise(resolve => {
+                const checkVoiceSection = () => {
+                    if (window.VoiceSection) {
+                        console.log('[Voice Not Join] ✅ Voice Section loaded');
+                        resolve();
+                    } else {
+                        setTimeout(checkVoiceSection, 100);
+                    }
+                };
+                checkVoiceSection();
+            });
+        } else {
+            console.log('[Voice Not Join] ✅ Voice Section already available');
         }
         
         await new Promise(resolve => {
             const checkReady = () => {
-                if (window.voiceManager && window.videoSDKManager && window.VoiceSection && typeof VideoSDK !== 'undefined') {
+                const isReady = window.voiceManager && 
+                              window.videoSDKManager && 
+                              window.VoiceSection && 
+                              typeof VideoSDK !== 'undefined' &&
+                              window.videoSDKManager.initialized;
+                              
+                if (isReady) {
+                    console.log('[Voice Not Join] ✅ All voice components ready');
                     resolve();
                 } else {
-                    setTimeout(checkReady, 50);
+                    console.log('[Voice Not Join] Waiting for components...', {
+                        voiceManager: !!window.voiceManager,
+                        videoSDKManager: !!window.videoSDKManager,
+                        voiceSection: !!window.VoiceSection,
+                        videoSDK: typeof VideoSDK !== 'undefined',
+                        videoSDKInitialized: window.videoSDKManager ? window.videoSDKManager.initialized : false
+                    });
+                    setTimeout(checkReady, 200);
                 }
             };
             checkReady();
         });
         
-        if (window.videoSDKManager && !window.videoSDKManager.initialized) {
-            try {
-                await window.videoSDKManager.init();
-            } catch (error) {
-                return true;
-            }
-        }
-        
+        console.log('[Voice Not Join] ✅ Voice scripts loading completed successfully');
         return true;
     } catch (error) {
-        return true;
+        console.error('[Voice Not Join] Error during voice scripts loading:', error);
+        return false;
     }
 }
 
@@ -253,6 +332,8 @@ async function joinVoiceChannel() {
     const joinView = document.getElementById('joinView');
     const connectingView = document.getElementById('connectingView');
     
+    console.log('[Voice Not Join] Join voice channel button clicked');
+    
     if (joinBtn) joinBtn.disabled = true;
     if (joinView) joinView.classList.add('hidden');
     if (connectingView) connectingView.classList.remove('hidden');
@@ -262,20 +343,35 @@ async function joinVoiceChannel() {
     }
     
     try {
-        await ensureVoiceScriptsLoaded();
+        console.log('[Voice Not Join] Ensuring voice scripts are loaded...');
+        const scriptsLoaded = await ensureVoiceScriptsLoaded();
         
-        if (window.voiceManager) {
-            await window.voiceManager.joinVoice();
-            if (window.waitForVideoSDKReady) {
-                await window.waitForVideoSDKReady();
-            }
+        if (!scriptsLoaded) {
+            throw new Error('Failed to load voice scripts');
         }
         
+        if (!window.voiceManager) {
+            throw new Error('Voice manager not available after script loading');
+        }
+        
+        console.log('[Voice Not Join] Voice scripts ready, attempting to join voice...');
+        await window.voiceManager.joinVoice();
+        
+        if (window.waitForVideoSDKReady) {
+            console.log('[Voice Not Join] Waiting for VideoSDK to be fully ready...');
+            await window.waitForVideoSDKReady();
+        }
+        
+        console.log('[Voice Not Join] ✅ Voice channel join completed successfully');
+        
     } catch (error) {
+        console.error('[Voice Not Join] ❌ Error joining voice channel:', error);
         resetJoinState();
         
         if (window.showToast) {
             window.showToast('Failed to join voice channel. Please try again.', 'error');
+        } else {
+            alert('Failed to join voice channel. Please try again.');
         }
     }
 }

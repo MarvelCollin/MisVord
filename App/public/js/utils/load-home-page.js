@@ -32,11 +32,6 @@ export function loadHomePage(pageType = 'friends') {
         }
 
         console.log('[Home AJAX] Starting request to:', url);
-        console.log('[Home AJAX] Request headers:', {
-            'X-Requested-With': 'XMLHttpRequest',
-            'method': 'GET',
-            'dataType': 'text'
-        });
 
         $.ajax({
             url: url,
@@ -47,9 +42,6 @@ export function loadHomePage(pageType = 'friends') {
             },
             success: function(response) {
                 console.log('[Home AJAX] SUCCESS - Response received');
-                console.log('[Home AJAX] Response type:', typeof response);
-                console.log('[Home AJAX] Response length:', response ? response.length : 'null');
-                console.log('[Home AJAX] Response preview:', response ? response.substring(0, 150) + '...' : 'empty');
                 
                 if (typeof response === 'string') {
                     console.log('[Home AJAX] Processing string response');
@@ -75,19 +67,11 @@ export function loadHomePage(pageType = 'friends') {
                     window.location.href = response.data.redirect;
                 } else {
                     console.error('[Home AJAX] INVALID RESPONSE FORMAT');
-                    console.error('[Home AJAX] Expected string, got:', typeof response);
-                    console.error('[Home AJAX] Response content:', response);
                     window.location.href = '/home';
                 }
             },
             error: function(xhr, status, error) {
                 console.error('[Home AJAX] ERROR - Request failed');
-                console.error('[Home AJAX] XHR status:', xhr ? xhr.status : 'unknown');
-                console.error('[Home AJAX] XHR statusText:', xhr ? xhr.statusText : 'unknown');
-                console.error('[Home AJAX] Error status:', status);
-                console.error('[Home AJAX] Error message:', error);
-                console.error('[Home AJAX] XHR responseText:', xhr ? xhr.responseText : 'none');
-                
                 console.log('[Home AJAX] Disabling skeleton loading due to error');
                 handleHomeSkeletonLoading(false);
                 console.error('[Home AJAX] FALLBACK - Redirecting to /home');
@@ -238,28 +222,15 @@ function hideHomeSkeletonLoading() {
 function actuallyHideHomeSkeleton() {
     const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
     if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
-        // Remove skeleton attribute
         mainLayoutContainer.removeAttribute('data-skeleton');
         console.log('[Home Skeleton] Home skeleton actually hidden');
     }
     
-    // Clear start time
     window.homeSkeletonStartTime = null;
-}
-
-function showPageLoading(container) {
-    if (!container) return;
-    container.innerHTML = `
-        <div class="flex items-center justify-center h-full">
-            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-    `;
 }
 
 function updateHomeLayout(html) {
     console.log('[Home Layout] Starting home layout replacement');
-    console.log('[Home Layout] Input HTML length:', html.length);
-    console.log('[Home Layout] HTML preview:', html.substring(0, 200) + '...');
     
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
@@ -269,28 +240,15 @@ function updateHomeLayout(html) {
     console.log('[Home Layout] New layout element found:', !!newLayout);
     
     if (newLayout) {
-        console.log('[Home Layout] New layout innerHTML length:', newLayout.innerHTML.length);
-        
         const currentLayout = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
         console.log('[Home Layout] Current layout container found:', !!currentLayout);
         
         if (currentLayout) {
-            console.log('[Home Layout] Before replacement - current layout children:', currentLayout.children.length);
-            
             console.log('[Home Layout] Hiding server channel section');
             hideServerChannelSection();
             
             console.log('[Home Layout] Replacing layout innerHTML');
             currentLayout.innerHTML = newLayout.innerHTML;
-            
-            console.log('[Home Layout] After replacement - new layout children:', currentLayout.children.length);
-            console.log('[Home Layout] New layout structure:', {
-                directChildren: Array.from(currentLayout.children).map(child => ({
-                    tagName: child.tagName,
-                    className: child.className,
-                    id: child.id
-                }))
-            });
             
             console.log('[Home Layout] Executing inline scripts');
             executeInlineScripts(doc);
@@ -310,21 +268,9 @@ function updateHomeLayout(html) {
             console.log('[Home Layout] SUCCESS - Home layout replacement completed');
         } else {
             console.error('[Home Layout] FAILED - Layout container not found');
-            console.error('[Home Layout] Available containers:', {
-                'app-container': !!document.querySelector('#app-container'),
-                'flex.flex-1': !!document.querySelector('.flex.flex-1'),
-                'overflow-hidden': !!document.querySelector('.overflow-hidden'),
-                'all-flex-elements': document.querySelectorAll('.flex').length
-            });
         }
     } else {
         console.error('[Home Layout] FAILED - New layout element not found in response');
-        console.error('[Home Layout] Available elements in response:', {
-            'flex-elements': doc.querySelectorAll('.flex').length,
-            'overflow-elements': doc.querySelectorAll('.overflow-hidden').length,
-            'body-children': doc.body ? doc.body.children.length : 0
-        });
-        console.error('[Home Layout] Response HTML structure preview:', html.substring(0, 500));
     }
 }
 
@@ -347,11 +293,6 @@ function hideServerChannelSection() {
     
     if (!found) {
         console.log('[Home Loader] No server channel section found to hide');
-        const allElements = document.querySelectorAll('div[class*="w-60"]');
-        console.log('[Home Loader] Available w-60 elements:', allElements.length);
-        allElements.forEach((el, i) => {
-            console.log(`[Home Loader] Element ${i}:`, el.className);
-        });
     }
 }
 
@@ -372,21 +313,9 @@ function validateHomeLayoutRendering() {
     const failedChecks = Object.keys(validationChecks).filter(key => !validationChecks[key]);
     if (failedChecks.length > 0) {
         console.error('[Home Validation] FAILED VALIDATION - Missing elements:', failedChecks);
-        console.error('[Home Validation] Available containers:');
-        console.error('[Home Validation] - app-container:', document.querySelector('#app-container'));
-        console.error('[Home Validation] - flex containers:', document.querySelectorAll('.flex').length);
-        console.error('[Home Validation] - sidebar containers:', document.querySelectorAll('[class*="w-60"]').length);
     } else {
         console.log('[Home Validation] SUCCESS - All layout elements rendered correctly');
     }
-    
-    const homeIndicators = {
-        'url-is-home': window.location.pathname === '/home' || window.location.pathname === '/home/' || window.location.pathname === '/',
-        'active-home-icon': !!document.querySelector('.server-icon.active:first-child'),
-        'no-server-channels': !document.querySelector('.channel-wrapper') || document.querySelector('.channel-wrapper').style.display === 'none'
-    };
-    
-    console.log('[Home Validation] Home state indicators:', homeIndicators);
     
     return failedChecks.length === 0;
 }
@@ -404,6 +333,244 @@ function executeInlineScripts(doc) {
             }
         }
     });
+}
+
+async function loadHomeDependencies() {
+    console.log('[Home Dependencies] Loading home page dependencies');
+    
+    const dependencies = [
+        '/public/js/api/friend-api.js',
+        '/public/js/api/chat-api.js', 
+        '/public/js/api/user-api.js',
+        '/public/js/api/channel-api.js',
+        '/public/js/core/socket/global-socket-manager.js',
+        '/public/js/components/messaging/message-handler.js',
+        '/public/js/components/messaging/socket-handler.js',
+        '/public/js/components/messaging/chat-ui-handler.js',
+        '/public/js/components/messaging/send-receive-handler.js',
+        '/public/js/components/messaging/mention-handler.js',
+        '/public/js/components/messaging/chat-section.js',
+        '/public/js/components/home/friends-tabs.js',
+        '/public/js/components/home/direct-message-nav.js',
+        '/public/js/components/common/user-detail.js',
+        '/public/js/core/ui/toast.js'
+    ];
+    
+    const loadPromises = dependencies.map(dep => {
+        return import(dep).catch(error => {
+            console.warn('[Home Dependencies] Failed to load:', dep, error);
+            return null;
+        });
+    });
+    
+    try {
+        await Promise.all(loadPromises);
+        console.log('[Home Dependencies] All dependencies loaded');
+        return true;
+    } catch (error) {
+        console.error('[Home Dependencies] Error loading dependencies:', error);
+        return false;
+    }
+}
+
+function initializeHomePage() {
+    console.log('[Home Initialize] Initializing home page components');
+    
+    if (typeof window.initFriendsTabManager === 'function') {
+        window.initFriendsTabManager();
+        console.log('[Home Initialize] Friends tab manager initialized');
+    }
+    
+    if (typeof window.initDirectMessageNavigation === 'function') {
+        window.initDirectMessageNavigation();
+        console.log('[Home Initialize] Direct message navigation initialized');
+    }
+    
+    if (typeof window.initializeUserDetail === 'function') {
+        window.initializeUserDetail();
+        console.log('[Home Initialize] User detail modal initialized');
+    }
+    
+    initializeFriendRequestHandlers();
+    initializeSearchHandlers();
+    
+    console.log('[Home Initialize] Home page initialization completed');
+}
+
+function initializeFriendRequestHandlers() {
+    console.log('[Home Friends] Initializing friend request handlers');
+    
+    const friendInput = document.getElementById('friend-username-input');
+    const sendButton = document.getElementById('send-friend-request');
+    const errorDiv = document.getElementById('friend-request-error');
+    const successDiv = document.getElementById('friend-request-success');
+    
+    if (friendInput && sendButton) {
+        friendInput.addEventListener('input', function() {
+            const username = this.value.trim();
+            sendButton.disabled = username.length < 2;
+        });
+        
+        sendButton.addEventListener('click', async function() {
+            const username = friendInput.value.trim();
+            if (!username) return;
+            
+            if (errorDiv) errorDiv.classList.add('hidden');
+            if (successDiv) successDiv.classList.add('hidden');
+            
+            try {
+                if (window.FriendAPI) {
+                    const result = await window.FriendAPI.sendFriendRequest(username);
+                    if (result.success) {
+                        friendInput.value = '';
+                        sendButton.disabled = true;
+                        if (successDiv) {
+                            successDiv.textContent = 'Friend request sent successfully!';
+                            successDiv.classList.remove('hidden');
+                        }
+                    } else {
+                        throw new Error(result.error || 'Failed to send friend request');
+                    }
+                } else {
+                    throw new Error('Friend API not available');
+                }
+            } catch (error) {
+                console.error('[Home Friends] Error sending friend request:', error);
+                if (errorDiv) {
+                    errorDiv.textContent = error.message;
+                    errorDiv.classList.remove('hidden');
+                }
+            }
+        });
+    }
+    
+    window.acceptFriendRequest = async function(friendshipId) {
+        try {
+            if (window.FriendAPI) {
+                const result = await window.FriendAPI.acceptFriendRequest(friendshipId);
+                if (result.success) {
+                    location.reload();
+                }
+            }
+        } catch (error) {
+            console.error('[Home Friends] Error accepting friend request:', error);
+        }
+    };
+    
+    window.ignoreFriendRequest = async function(friendshipId) {
+        try {
+            if (window.FriendAPI) {
+                const result = await window.FriendAPI.declineFriendRequest(friendshipId);
+                if (result.success) {
+                    location.reload();
+                }
+            }
+        } catch (error) {
+            console.error('[Home Friends] Error declining friend request:', error);
+        }
+    };
+    
+    window.cancelFriendRequest = async function(userId) {
+        try {
+            if (window.FriendAPI) {
+                const result = await window.FriendAPI.cancelFriendRequest(userId);
+                if (result.success) {
+                    location.reload();
+                }
+            }
+        } catch (error) {
+            console.error('[Home Friends] Error canceling friend request:', error);
+        }
+    };
+    
+    window.createDirectMessage = async function(friendId) {
+        try {
+            if (window.ChatAPI) {
+                const result = await window.ChatAPI.createDirectMessage(friendId);
+                if (result.success && result.data.channel_id) {
+                    if (window.directMessageNavigation) {
+                        const friendEl = document.querySelector(`[data-user-id="${friendId}"]`);
+                        const username = friendEl ? friendEl.dataset.username : 'User';
+                        window.directMessageNavigation.switchToDirectMessage(result.data.channel_id, username);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('[Home Friends] Error creating direct message:', error);
+        }
+    };
+}
+
+function initializeSearchHandlers() {
+    console.log('[Home Search] Initializing search handlers');
+    
+    const searchInputs = {
+        'online-search': '#online-friends-container .friend-item',
+        'all-search': '#all-friends-container .friend-item', 
+        'pending-search': '#pending-requests > div'
+    };
+    
+    Object.entries(searchInputs).forEach(([inputId, selector]) => {
+        const searchInput = document.getElementById(inputId);
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const items = document.querySelectorAll(selector);
+                
+                items.forEach(item => {
+                    const username = item.querySelector('.friend-name, .font-medium')?.textContent.toLowerCase() || '';
+                    const shouldShow = username.includes(searchTerm);
+                    item.style.display = shouldShow ? '' : 'none';
+                });
+            });
+        }
+    });
+}
+
+function initializeChatSystems() {
+    console.log('[Home Chat Systems] Initializing chat systems for home page');
+    
+    if (typeof window.initializeChatSection === 'function') {
+        window.initializeChatSection();
+        console.log('[Home Chat Systems] Chat section initialized');
+    } else {
+        console.warn('[Home Chat Systems] initializeChatSection function not available');
+    }
+    
+    if (typeof window.initializeMessageHandler === 'function') {
+        window.initializeMessageHandler();
+        console.log('[Home Chat Systems] Message handler initialized');
+    } else {
+        console.warn('[Home Chat Systems] initializeMessageHandler function not available');
+    }
+    
+    if (typeof window.initializeSocketHandler === 'function') {
+        window.initializeSocketHandler();
+        console.log('[Home Chat Systems] Socket handler initialized');
+    } else {
+        console.warn('[Home Chat Systems] initializeSocketHandler function not available');
+    }
+    
+    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+        const activeChannelId = getCurrentChannelId();
+        if (activeChannelId) {
+            console.log('[Home Chat Systems] Joining channel socket room:', activeChannelId);
+            window.globalSocketManager.joinChannel(activeChannelId);
+        } else {
+            console.log('[Home Chat Systems] No active channel ID found for direct messages');
+        }
+    } else {
+        console.warn('[Home Chat Systems] Global socket manager not ready');
+    }
+    
+    setTimeout(() => {
+        if (typeof window.initializeChannelManager === 'function') {
+            window.initializeChannelManager();
+            console.log('[Home Chat Systems] Channel manager initialized');
+        } else {
+            console.warn('[Home Chat Systems] initializeChannelManager function not available');
+        }
+    }, 200);
 }
 
 async function getDefaultChannelForServer(serverId) {
@@ -542,45 +709,46 @@ function setupHomeServerNavigation() {
     }, 300);
 }
 
-function debugHomeServerNavigation() {
-    console.log('=== HOME SERVER NAVIGATION DEBUG ===');
-    console.log('loadServerPage available:', typeof loadServerPage === 'function');
-    console.log('Server links:', document.querySelectorAll('a[href^="/server/"]').length);
-    console.log('Server buttons:', document.querySelectorAll('button[data-server-id]').length);
-    console.log('updateActiveServer available:', typeof window.updateActiveServer === 'function');
-    console.log('Current URL:', window.location.href);
-    console.log('=== END DEBUG ===');
-}
-
 function performHomeLayoutUpdate(response, pageType, currentChannelId) {
     console.log('[Home Layout] Performing delayed layout update');
     
     updateHomeLayout(response);
     
-    const validationPassed = validateHomeLayoutRendering();
+    console.log('[Home AJAX] Validating layout update');
+    validateHomeLayoutRendering();
     
-    if (validationPassed) {
-        console.log('[Home Layout] ✅ Layout validation passed, setting up navigation');
+    console.log('[Home AJAX] Disabling skeleton loading');
+    handleHomeSkeletonLoading(false);
+    
+    console.log('[Home AJAX] Loading dependencies and initializing');
+    loadHomeDependencies().then(() => {
+        initializeHomePage();
+        
+        console.log('[Home AJAX] Initializing chat systems');
+        initializeChatSystems();
+        
+        console.log('[Home AJAX] Setting up server navigation handlers');
         setupHomeServerNavigation();
         
-        console.log('[Home Layout] Initializing chat section for home page');
-        if (typeof initializeChatSection === 'function') {
-            initializeChatSection().catch(error => {
-                console.warn('[Home Layout] Chat section initialization failed (non-critical):', error);
-            });
-        } else if (typeof window.initializeChatSection === 'function') {
-            window.initializeChatSection().catch(error => {
-                console.warn('[Home Layout] Chat section initialization failed (non-critical):', error);
-            });
-        } else {
-            console.log('[Home Layout] Chat section initialization not available (expected for home page)');
-        }
-    } else {
-        console.error('[Home Layout] ❌ Layout validation failed, skipping navigation setup');
-    }
-    
-    hideHomeSkeletonLoading();
+        const event = new CustomEvent('HomePageChanged', { 
+            detail: { 
+                pageType,
+                previousChannelId: currentChannelId 
+            } 
+        });
+        document.dispatchEvent(event);
+        console.log('[Home AJAX] HomePageChanged event dispatched');
+        
+        setTimeout(() => {
+            console.log('[Home Layout] Dispatching layout change events');
+            window.dispatchEvent(new CustomEvent('layoutChanged', { 
+                detail: { type: 'home', pageType } 
+            }));
+            window.dispatchEvent(new CustomEvent('pageLoaded', { 
+                detail: { type: 'home', pageType } 
+            }));
+        }, 300);
+    });
 }
 
 window.loadHomePage = loadHomePage;
-window.debugHomeServerNavigation = debugHomeServerNavigation; 

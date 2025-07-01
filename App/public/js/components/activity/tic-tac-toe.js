@@ -1114,21 +1114,11 @@ class TicTacToeModal {
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.TicTacToeGame = TicTacToeGame;
-    window.TicTacToeModal = TicTacToeModal;
-    
-    window.toggleTicTacToeModal = function(serverId, userId, username) {
-        if (window.activeTicTacToeModal) {
-            if (window.activeTicTacToeModal.isMinimized) {
-                window.activeTicTacToeModal.toggleMinimize();
-            } else {
-                window.activeTicTacToeModal.toggleMinimize();
-            }
-        } else {
-            if (serverId && userId && username) {
-                window.TicTacToeModal.createTicTacToeModal(serverId, userId, username);
-            }
-        }
-    };
-}
+// Make classes globally available
+window.TicTacToeGame = TicTacToeGame;
+window.TicTacToeModal = TicTacToeModal;
+
+console.log('✅ [TIC-TAC-TOE] Tic Tac Toe components loaded and available globally');
+
+export { TicTacToeGame, TicTacToeModal };
+export default TicTacToeModal;

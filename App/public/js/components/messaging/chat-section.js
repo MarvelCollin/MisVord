@@ -2075,15 +2075,33 @@ class ChatSection {
         if (this.socketRoomJoined && this.lastJoinedRoom && window.globalSocketManager) {
             console.log('🔌 [CHAT-SECTION] Leaving current socket room:', this.lastJoinedRoom);
             
-            if (this.chatType === 'channel') {
-                window.globalSocketManager.leaveChannel(this.lastJoinedRoom);
-            } else if (this.chatType === 'direct') {
-                window.globalSocketManager.leaveDMRoom(this.lastJoinedRoom);
+            try {
+                if (this.chatType === 'channel') {
+                    if (typeof window.globalSocketManager.leaveChannel === 'function') {
+                        window.globalSocketManager.leaveChannel(this.lastJoinedRoom);
+                    } else {
+                        console.warn('⚠️ [CHAT-SECTION] leaveChannel method not available, using generic leaveRoom');
+                        window.globalSocketManager.leaveRoom('channel', this.lastJoinedRoom);
+                    }
+                } else if (this.chatType === 'direct') {
+                    if (typeof window.globalSocketManager.leaveDMRoom === 'function') {
+                        window.globalSocketManager.leaveDMRoom(this.lastJoinedRoom);
+                    } else if (typeof window.globalSocketManager.leaveRoom === 'function') {
+                        console.log('🔄 [CHAT-SECTION] Using generic leaveRoom for DM room');
+                        window.globalSocketManager.leaveRoom('dm', this.lastJoinedRoom);
+                    } else {
+                        console.warn('⚠️ [CHAT-SECTION] No available method to leave DM room');
+                    }
+                }
+                
+                this.socketRoomJoined = false;
+                this.lastJoinedRoom = null;
+                console.log('✅ [CHAT-SECTION] Successfully left socket room');
+            } catch (error) {
+                console.error('❌ [CHAT-SECTION] Error leaving socket room:', error);
+                this.socketRoomJoined = false;
+                this.lastJoinedRoom = null;
             }
-            
-            this.socketRoomJoined = false;
-            this.lastJoinedRoom = null;
-            console.log('✅ [CHAT-SECTION] Successfully left socket room');
         } else {
             console.log('🔍 [CHAT-SECTION] No socket room to leave:', {
                 socketRoomJoined: this.socketRoomJoined,
@@ -2339,3 +2357,5 @@ window.debugChatSection = function() {
 };
   
   export default ChatSection;
+
+export { initializeChatSection };

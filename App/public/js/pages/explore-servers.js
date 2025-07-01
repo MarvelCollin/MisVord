@@ -9,6 +9,7 @@ function initExplorePage() {
     initServerCards();
     initCategoryFilter();
     initSearchFilter();
+    initSortFunctionality();
     initJoinServerHandlers();
     initSidebarServerIcons();
     highlightExploreButton();
@@ -18,103 +19,53 @@ function initExplorePage() {
 
 window.initExplorePage = initExplorePage;
 
+let currentSort = 'alphabetical';
+let currentCategory = '';
+let currentSearch = '';
+
 function initScrollAnimations() {
     const animatedElements = document.querySelectorAll('.slide-up, .fade-in');
     
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
+                entry.target.style.animationDelay = `${Math.random() * 0.5}s`;
+                entry.target.classList.add('animate');
             }
         });
-    }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    });
+    }, { threshold: 0.1 });
 
-    animatedElements.forEach(el => {
-        if (el.classList.contains('slide-up')) {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(30px)';
-            el.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-        } else if (el.classList.contains('fade-in')) {
-            el.style.opacity = '0';
-            el.style.transition = 'opacity 0.8s ease-out';
-        }
-        observer.observe(el);
-    });
-}
-
-function highlightExploreButton() {
-    const exploreButton = document.querySelector('a[href="/explore-servers"]');
-    if (exploreButton) {
-        const parentDiv = exploreButton.closest('div');
-        if (parentDiv) {
-            parentDiv.classList.add('active');
-        }
-    }
-}
-
-function initSidebarServerIcons() {
-    const serverIcons = document.querySelectorAll('.sidebar-server-icon');
-
-    serverIcons.forEach(icon => {
-        icon.style.display = 'block';
-        icon.style.margin = '0 auto 8px auto';
-        icon.style.position = 'relative';
-
-        if (!icon.getAttribute('data-initialized')) {
-            icon.setAttribute('data-initialized', 'true');
-        }
-    });
+    animatedElements.forEach(el => observer.observe(el));
 }
 
 function initServerCards() {
     const serverCards = document.querySelectorAll('.explore-server-card');
-
+    
     serverCards.forEach((card, index) => {
-        card.addEventListener('mouseenter', handleServerCardHover);
-        card.addEventListener('mouseleave', handleServerCardLeave);
         card.style.animationDelay = `${index * 0.1}s`;
+        
+        const joinButton = card.querySelector('.join-server-btn');
+        const serverId = card.getAttribute('data-server-id');
+        
+        if (joinButton && serverId) {
+            const newButton = joinButton.cloneNode(true);
+            joinButton.parentNode.replaceChild(newButton, joinButton);
+            
+            newButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleJoinServer(serverId, newButton);
+            });
+        }
     });
-}
-
-function handleServerCardHover(e) {
-    const card = e.currentTarget;
-    const icon = card.querySelector('.explore-server-icon, .explore-server-icon-small');
-    
-    if (icon) {
-        icon.style.transform = 'scale(1.1) rotate(3deg)';
-        icon.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-    }
-}
-
-function handleServerCardLeave(e) {
-    const card = e.currentTarget;
-    const icon = card.querySelector('.explore-server-icon, .explore-server-icon-small');
-    
-    if (icon) {
-        icon.style.transform = 'scale(1) rotate(0deg)';
-    }
 }
 
 function initCategoryFilter() {
-    const categoryButtons = document.querySelectorAll('[data-category]');
-
-    categoryButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const category = this.getAttribute('data-category');
-            filterServersByCategory(category);
-            updateActiveCategory(this);
-        });
-    });
-
     const categoryFilter = document.getElementById('category-filter');
     if (categoryFilter) {
         categoryFilter.addEventListener('change', function () {
-            const category = this.value || 'all';
-            filterServersByCategory(category);
+            currentCategory = this.value || '';
+            applyFilters();
             
             this.style.transform = 'scale(0.95)';
             setTimeout(() => {
@@ -124,46 +75,6 @@ function initCategoryFilter() {
     }
 }
 
-function filterServersByCategory(category) {
-    const serverCards = document.querySelectorAll('.explore-server-card:not(#featured-servers .explore-server-card)');
-
-    serverCards.forEach((card, index) => {
-        const serverCategory = card.getAttribute('data-category');
-
-        if (category === 'all' || serverCategory === category) {
-            card.style.display = 'block';
-            setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0) scale(1)';
-            }, index * 50);
-        } else {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(-10px) scale(0.95)';
-            setTimeout(() => {
-                card.style.display = 'none';
-            }, 300);
-        }
-    });
-}
-
-function updateActiveCategory(activeButton) {
-    const categoryButtons = document.querySelectorAll('[data-category]');
-
-    categoryButtons.forEach(button => {
-        if (button === activeButton) {
-            button.classList.add('bg-discord-green', 'text-white');
-            button.classList.remove('bg-discord-dark', 'text-gray-300');
-            button.style.transform = 'scale(1.05)';
-            setTimeout(() => {
-                button.style.transform = 'scale(1)';
-            }, 200);
-        } else {
-            button.classList.remove('bg-discord-green', 'text-white');
-            button.classList.add('bg-discord-dark', 'text-gray-300');
-        }
-    });
-}
-
 function initSearchFilter() {
     const searchInput = document.querySelector('#server-search');
 
@@ -171,15 +82,11 @@ function initSearchFilter() {
         let debounceTimeout;
 
         searchInput.addEventListener('input', function () {
-            const query = this.value.toLowerCase().trim();
+            currentSearch = this.value.toLowerCase().trim();
 
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
-                if (query.length >= 2) {
-                    performServerSearch(query);
-                } else if (query.length === 0) {
-                    resetServerSearch();
-                }
+                applyFilters();
             }, 300);
         });
 
@@ -193,199 +100,336 @@ function initSearchFilter() {
     }
 }
 
-function performServerSearch(query) {
-    const allServerCards = document.querySelectorAll('.explore-server-card');
-    let visibleCount = 0;
+function initSortFunctionality() {
+    const sortBtn = document.getElementById('sort-btn');
+    const sortDropdown = document.getElementById('sort-dropdown');
+    const sortOptions = document.querySelectorAll('.sort-option');
 
-    allServerCards.forEach((card, index) => {
-        const serverName = card.querySelector('.server-name')?.textContent.toLowerCase() || '';
-        const serverDescription = card.querySelector('.server-description')?.textContent.toLowerCase() || '';
+    if (sortBtn && sortDropdown) {
+        sortBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const isActive = sortDropdown.classList.contains('active');
+            
+            if (isActive) {
+                closeSortDropdown();
+            } else {
+                openSortDropdown();
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!sortBtn.contains(e.target) && !sortDropdown.contains(e.target)) {
+                closeSortDropdown();
+            }
+        });
+
+        sortOptions.forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const sortType = this.getAttribute('data-sort');
+                selectSortOption(sortType, this);
+                closeSortDropdown();
+            });
+        });
+    }
+}
+
+function openSortDropdown() {
+    const sortBtn = document.getElementById('sort-btn');
+    const sortDropdown = document.getElementById('sort-dropdown');
+    
+    if (sortBtn && sortDropdown) {
+        sortBtn.classList.add('active');
+        sortDropdown.classList.add('active');
         
-        const matches = serverName.includes(query) || serverDescription.includes(query);
+        const icon = sortBtn.querySelector('i');
+        if (icon) {
+            icon.style.transform = 'rotate(180deg)';
+        }
+    }
+}
+
+function closeSortDropdown() {
+    const sortBtn = document.getElementById('sort-btn');
+    const sortDropdown = document.getElementById('sort-dropdown');
+    
+    if (sortBtn && sortDropdown) {
+        sortBtn.classList.remove('active');
+        sortDropdown.classList.remove('active');
         
-        if (matches) {
+        const icon = sortBtn.querySelector('i');
+        if (icon) {
+            icon.style.transform = 'rotate(0deg)';
+        }
+    }
+}
+
+function selectSortOption(sortType, optionElement) {
+    const sortOptions = document.querySelectorAll('.sort-option');
+    
+    sortOptions.forEach(option => {
+        option.classList.remove('active');
+    });
+    
+    optionElement.classList.add('active');
+    currentSort = sortType;
+    
+    const sortBtn = document.getElementById('sort-btn');
+    const sortText = sortBtn.querySelector('span');
+    const sortIcon = sortBtn.querySelector('i');
+    
+    if (sortText && sortIcon) {
+        sortText.textContent = optionElement.querySelector('span').textContent;
+        
+        const newIcon = optionElement.querySelector('i').className;
+        sortIcon.className = newIcon;
+    }
+    
+    applyFilters();
+}
+
+function applyFilters() {
+    const serverCards = Array.from(document.querySelectorAll('.explore-server-card:not(#featured-servers .explore-server-card)'));
+    
+    let filteredCards = serverCards.filter(card => {
+        const matchesCategory = !currentCategory || card.getAttribute('data-category') === currentCategory;
+        const matchesSearch = !currentSearch || matchesSearchQuery(card, currentSearch);
+        return matchesCategory && matchesSearch;
+    });
+
+    const sortedCards = sortServerCards(filteredCards, currentSort);
+    
+    serverCards.forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(-10px) scale(0.95)';
+        card.style.display = 'none';
+    });
+    
+    setTimeout(() => {
+        sortedCards.forEach((card, index) => {
             card.style.display = 'block';
             setTimeout(() => {
                 card.style.opacity = '1';
                 card.style.transform = 'translateY(0) scale(1)';
-            }, visibleCount * 50);
-            visibleCount++;
-        } else {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(-10px) scale(0.95)';
-            setTimeout(() => {
-                card.style.display = 'none';
-            }, 300);
+            }, index * 50);
+        });
+        
+        const container = document.getElementById('all-servers');
+        if (container) {
+            const sortedFragment = document.createDocumentFragment();
+            sortedCards.forEach(card => sortedFragment.appendChild(card));
+            container.appendChild(sortedFragment);
         }
-    });
+        
+        if (filteredCards.length === 0) {
+            showNoResults();
+        } else {
+            hideNoResults();
+        }
+    }, 300);
+}
 
-    if (visibleCount === 0) {
-        showNoResults();
-    } else {
-        hideNoResults();
+function matchesSearchQuery(card, query) {
+    const serverName = card.querySelector('.server-name')?.textContent.toLowerCase() || '';
+    const serverDescription = card.querySelector('.server-description')?.textContent.toLowerCase() || '';
+    const serverCategory = card.getAttribute('data-category')?.toLowerCase() || '';
+    
+    return serverName.includes(query) || 
+           serverDescription.includes(query) || 
+           serverCategory.includes(query);
+}
+
+function sortServerCards(cards, sortType) {
+    const cardsCopy = [...cards];
+    
+    switch (sortType) {
+        case 'alphabetical':
+            return cardsCopy.sort((a, b) => {
+                const nameA = a.querySelector('.server-name')?.textContent || '';
+                const nameB = b.querySelector('.server-name')?.textContent || '';
+                return nameA.localeCompare(nameB);
+            });
+            
+        case 'alphabetical-desc':
+            return cardsCopy.sort((a, b) => {
+                const nameA = a.querySelector('.server-name')?.textContent || '';
+                const nameB = b.querySelector('.server-name')?.textContent || '';
+                return nameB.localeCompare(nameA);
+            });
+            
+        case 'members-desc':
+            return cardsCopy.sort((a, b) => {
+                const membersA = extractMemberCount(a);
+                const membersB = extractMemberCount(b);
+                return membersB - membersA;
+            });
+            
+        case 'members-asc':
+            return cardsCopy.sort((a, b) => {
+                const membersA = extractMemberCount(a);
+                const membersB = extractMemberCount(b);
+                return membersA - membersB;
+            });
+            
+        case 'newest':
+            return cardsCopy.sort((a, b) => {
+                const idA = parseInt(a.getAttribute('data-server-id')) || 0;
+                const idB = parseInt(b.getAttribute('data-server-id')) || 0;
+                return idB - idA;
+            });
+            
+        case 'oldest':
+            return cardsCopy.sort((a, b) => {
+                const idA = parseInt(a.getAttribute('data-server-id')) || 0;
+                const idB = parseInt(b.getAttribute('data-server-id')) || 0;
+                return idA - idB;
+            });
+            
+        default:
+            return cardsCopy;
     }
 }
 
-function resetServerSearch() {
-    const allServerCards = document.querySelectorAll('.explore-server-card');
-    allServerCards.forEach((card, index) => {
-        card.style.display = 'block';
-        setTimeout(() => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0) scale(1)';
-        }, index * 50);
-    });
-    hideNoResults();
+function extractMemberCount(card) {
+    const memberCountElem = card.querySelector('.server-stats span');
+    if (memberCountElem) {
+        const memberMatch = memberCountElem.textContent.match(/[\d,]+/);
+        return memberMatch ? parseInt(memberMatch[0].replace(/,/g, '')) : 0;
+    }
+    return 0;
 }
 
 function showNoResults() {
-    let noResultsDiv = document.getElementById('no-results-message');
-    if (!noResultsDiv) {
-        const serverGrid = document.querySelector('.server-grid');
-        if (serverGrid) {
-            noResultsDiv = document.createElement('div');
-            noResultsDiv.id = 'no-results-message';
-            noResultsDiv.className = 'col-span-full text-center py-12';
-            noResultsDiv.innerHTML = `
-                <div class="w-20 h-20 bg-discord-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-search text-3xl text-discord-primary"></i>
-                </div>
-                <h3 class="text-xl font-bold mb-2 text-white">No Results Found</h3>
-                <p class="text-discord-lighter">No servers match your search criteria.</p>
-            `;
-            serverGrid.appendChild(noResultsDiv);
-        }
-    }
-    if (noResultsDiv) {
-        noResultsDiv.style.display = 'block';
+    const container = document.getElementById('all-servers');
+    if (container && !document.getElementById('no-results-message')) {
+        const noResultsDiv = document.createElement('div');
+        noResultsDiv.id = 'no-results-message';
+        noResultsDiv.className = 'col-span-full text-center py-12';
+        noResultsDiv.innerHTML = `
+            <div class="text-gray-400 mb-4">
+                <i class="fas fa-search text-4xl mb-4"></i>
+                <h3 class="text-xl font-semibold mb-2">No servers found</h3>
+                <p>Try adjusting your search terms or filters</p>
+            </div>
+        `;
+        container.appendChild(noResultsDiv);
     }
 }
 
 function hideNoResults() {
-    const noResultsDiv = document.getElementById('no-results-message');
-    if (noResultsDiv) {
-        noResultsDiv.style.display = 'none';
+    const noResultsMessage = document.getElementById('no-results-message');
+    if (noResultsMessage) {
+        noResultsMessage.remove();
     }
 }
 
 function initJoinServerHandlers() {
-    const joinButtons = document.querySelectorAll('.join-server-btn:not([data-listener])');
-
-    joinButtons.forEach(button => {
-        button.setAttribute('data-listener', 'true');
-        button.addEventListener('click', function (e) {
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('join-server-btn') || e.target.closest('.join-server-btn')) {
             e.preventDefault();
             e.stopPropagation();
             
-            if (this.disabled) return;
+            const button = e.target.closest('.join-server-btn');
+            const card = button.closest('.explore-server-card');
+            const serverId = card ? card.getAttribute('data-server-id') : null;
             
-            const serverId = this.getAttribute('data-server-id');
-            joinServer(serverId, this);
+            if (serverId && button) {
+                handleJoinServer(serverId, button);
+            }
+        }
+    });
+}
+
+function handleJoinServer(serverId, button) {
+    if (!serverId || !button) return;
+    
+    const isJoined = button.textContent.includes('Joined') || button.classList.contains('bg-discord-green');
+    
+    if (isJoined) return;
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Joining...';
+    
+    fetch('/api/servers/join', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ server_id: serverId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            button.innerHTML = '<i class="fas fa-check mr-2"></i>Joined';
+            button.classList.remove('bg-discord-primary', 'hover:bg-discord-primary-dark');
+            button.classList.add('bg-discord-green');
+            button.disabled = false;
+            
+            if (window.showToast) {
+                window.showToast('Successfully joined the server!', 'success');
+            }
+        } else {
+            throw new Error(data.message || 'Failed to join server');
+        }
+    })
+    .catch(error => {
+        console.error('Error joining server:', error);
+        button.innerHTML = '<i class="fas fa-plus mr-2"></i>Join Server';
+        button.disabled = false;
+        
+        if (window.showToast) {
+            window.showToast('Failed to join server. Please try again.', 'error');
+        }
+    });
+}
+
+function initSidebarServerIcons() {
+    const serverIcons = document.querySelectorAll('.sidebar-server-icon');
+    
+    serverIcons.forEach(icon => {
+        icon.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        
+        icon.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
         });
     });
 }
 
-async function joinServer(serverId, button) {
-    if (!serverId || button.disabled) return;
-
-    const originalText = button.innerHTML;
-    const originalClasses = button.className;
+function highlightExploreButton() {
+    const exploreButtons = document.querySelectorAll('.discord-explore-server-button');
     
-    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Joining...';
-    button.disabled = true;
-    button.style.opacity = '0.7';
-
-    try {
-        if (typeof window.serverAPI !== 'undefined') {
-            const response = await window.serverAPI.joinServer({ server_id: serverId });
-            
-            if (response.success) {
-                button.innerHTML = '<i class="fas fa-check mr-2"></i>Joined!';
-                button.className = 'join-server-btn w-full bg-discord-green text-white text-center py-2.5 text-sm rounded-lg transition-all font-semibold';
-                button.style.opacity = '1';
-
-                button.style.transform = 'scale(1.05)';
-                setTimeout(() => {
-                    button.style.transform = 'scale(1)';
-                }, 200);
-
-                if (window.showToast) {
-                    window.showToast('Successfully joined server!', 'success');
-                }
-
-                if (window.loadServerPage && typeof window.loadServerPage === 'function') {
-                    await window.loadServerPage(serverId);
-                } else {
-                    window.location.href = `/server/${serverId}`;
-                }
-            } else {
-                throw new Error(response.message || 'Failed to join server');
-            }
-        } else {
-            const response = await fetch('/api/servers/join', {
-                method: 'POST',
-                body: JSON.stringify({ server_id: serverId }),
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                button.innerHTML = '<i class="fas fa-check mr-2"></i>Joined!';
-                button.className = 'join-server-btn w-full bg-discord-green text-white text-center py-2.5 text-sm rounded-lg transition-all font-semibold';
-                button.style.opacity = '1';
-
-                if (window.showToast) {
-                    window.showToast('Successfully joined server!', 'success');
-                }
-
-                window.location.href = `/server/${serverId}`;
-            } else {
-                throw new Error(data.message || 'Failed to join server');
-            }
+    exploreButtons.forEach(button => {
+        button.classList.add('explore-button-active');
+        
+        const indicator = button.nextElementSibling;
+        if (indicator && indicator.classList.contains('absolute')) {
+            indicator.style.height = '40px';
         }
-    } catch (error) {
-        button.innerHTML = originalText;
-        button.className = originalClasses;
-        button.disabled = false;
-        button.style.opacity = '1';
-
-        if (window.showToast) {
-            window.showToast('Error joining server', 'error');
-        }
-    }
+    });
 }
 
 function initServerDetailTriggers() {
-    const serverCards = document.querySelectorAll('.explore-server-card:not([data-detail-listener])');
-
+    const serverCards = document.querySelectorAll('.explore-server-card');
+    
     serverCards.forEach(card => {
-        card.setAttribute('data-detail-listener', 'true');
-
-        card.addEventListener('click', function (e) {
-            if (e.target.closest('.join-server-btn')) {
-                return;
-            }
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            this.style.transform = 'scale(0.98)';
-            setTimeout(() => {
-                this.style.transform = 'scale(1)';
-            }, 150);
-
-            const serverId = this.getAttribute('data-server-id');
-            if (!serverId) return;
-
-            const serverData = extractServerDataFromCard(this);
-
-            if (typeof window.showServerDetail === 'function') {
-                window.showServerDetail(serverId, serverData);
-            }
-        });
+        const serverId = card.getAttribute('data-server-id');
+        if (serverId) {
+            card.addEventListener('click', function(e) {
+                if (!e.target.closest('button')) {
+                    const serverData = extractServerDataFromCard(this);
+                    if (typeof window.showServerDetail === 'function') {
+                        window.showServerDetail(serverId, serverData);
+                    }
+                }
+            });
+        }
     });
 }
 

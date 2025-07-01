@@ -259,16 +259,35 @@ class MentionHandler {
             
             if (response.ok) {
                 const result = await response.json();
-                if (result.success && result.data && Array.isArray(result.data)) {
-                    result.data.forEach(participant => {
+                if (result.success) {
+                    let participantsData = null;
+                    
+                    // Handle different response structures
+                    if (result.participants && Array.isArray(result.participants)) {
+                        participantsData = result.participants;
+                        console.log('✅ [MENTION-HANDLER] Using result.participants array:', participantsData.length, 'participants');
+                    } else if (result.data && Array.isArray(result.data)) {
+                        participantsData = result.data;
+                        console.log('✅ [MENTION-HANDLER] Using result.data array:', participantsData.length, 'participants');
+                    } else if (result.data && result.data.participants && Array.isArray(result.data.participants)) {
+                        participantsData = result.data.participants;
+                        console.log('✅ [MENTION-HANDLER] Using result.data.participants array:', participantsData.length, 'participants');
+                    } else {
+                        console.warn('⚠️ [MENTION-HANDLER] DM participants data structure not recognized:', result);
+                        return;
+                    }
+                    
+                    participantsData.forEach(participant => {
                         this.availableUsers.set(participant.username.toLowerCase(), {
                             id: participant.user_id,
                             username: participant.username,
                             avatar_url: participant.avatar_url || '/public/assets/common/default-profile-picture.png'
                         });
                     });
+                    
+                    console.log('✅ [MENTION-HANDLER] DM participants loaded:', participantsData.length, 'total users now:', this.availableUsers.size);
                 } else {
-                    console.warn('DM participants data is not an array:', result.data);
+                    console.warn('⚠️ [MENTION-HANDLER] DM participants request unsuccessful:', result);
                 }
             }
         } catch (error) {
