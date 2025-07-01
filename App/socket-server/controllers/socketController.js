@@ -593,7 +593,7 @@ function handleGetOnlineUsers(io, client) {
             onlineUsers[user_id] = {
                 user_id,
                 username: socket.data.username || 'Unknown',
-                status: presence?.status || 'online',
+                status: presence?.status || 'idle',
                 last_seen: Date.now()
             };
         }

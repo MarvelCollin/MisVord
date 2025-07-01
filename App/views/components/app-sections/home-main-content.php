@@ -76,7 +76,7 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
     <div class="tab-content <?php echo $activeTab === 'online' ? '' : 'hidden'; ?>" id="online-tab">
         <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-gray-400 font-bold text-xs uppercase">Online — <span id="online-count"><?php echo count($onlineFriends); ?></span></h2>
+                <h2 class="text-gray-400 font-bold text-xs uppercase">Online — <span id="online-count">0</span></h2>
                 <div class="relative w-60">
                     <input type="text" placeholder="Search" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary" id="online-search">
                     <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
@@ -84,7 +84,6 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
             </div>
 
             <div class="space-y-1" id="online-friends-container">
-                <?php if (empty($onlineFriends)): ?>
                 <div class="p-4 bg-discord-dark rounded text-center">
                     <div class="mb-2 text-gray-400">
                         <i class="fa-solid fa-user-group text-3xl"></i>
@@ -92,35 +91,6 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                     <p class="text-gray-300 mb-1">No friends online</p>
                     <p class="text-gray-500 text-sm">Friends will appear here when they come online</p>
                 </div>
-                <?php else: ?>
-                    <?php foreach ($onlineFriends as $friend): ?>
-                        <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item" 
-                             data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"
-                             data-username="<?php echo htmlspecialchars($friend['username']); ?>">
-                            <div class="flex items-center">
-                                <div class="relative mr-3">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                        <img src="<?php echo htmlspecialchars($friend['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'); ?>" 
-                                             alt="Avatar" class="w-full h-full object-cover">
-                                    </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-discord-green"></span>
-                                </div>
-                                <div>
-                                    <div class="font-medium text-white"><?php echo htmlspecialchars($friend['username']); ?></div>
-                                    <div class="text-xs text-gray-400">Online</div>
-                                </div>
-                            </div>
-                            <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="createDirectMessage('<?php echo htmlspecialchars($friend['id']); ?>')">
-                                    <i class="fa-solid fa-message"></i>
-                                </button>
-                                <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
-                                    <i class="fa-solid fa-ellipsis-vertical"></i>
-                                </button>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -146,7 +116,7 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                 </div>
                 <?php else: ?>
                     <?php foreach ($friends as $friend): ?>
-                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-3 rounded hover:bg-discord-light group friend-item gap-2 sm:gap-0" 
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-2 rounded hover:bg-discord-light group friend-item" 
                              data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"
                              data-username="<?php echo htmlspecialchars($friend['username']); ?>">
                             <div class="flex items-center">
@@ -155,11 +125,11 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                                         <img src="<?php echo htmlspecialchars($friend['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'); ?>" 
                                              alt="Avatar" class="w-full h-full object-cover">
                                     </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-gray-500"></span>
+                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-gray-500 friend-status-indicator" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"></span>
                                 </div>
                                 <div>
                                     <div class="font-medium text-white friend-name text-sm sm:text-base"><?php echo htmlspecialchars($friend['username']); ?></div>
-                                    <div class="text-xs text-gray-400 friend-status">Offline</div>
+                                    <div class="text-xs text-gray-400 friend-status-text" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>">Offline</div>
                                 </div>
                             </div>
                             <div class="flex space-x-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-end sm:self-auto">

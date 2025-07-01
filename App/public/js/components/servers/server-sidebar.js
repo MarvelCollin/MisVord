@@ -1,4 +1,4 @@
-import { LocalStorageManager } from '../servers/local-storage-server-grouping.js';
+import { LocalStorageManager } from '../../utils/local-storage-manager.js';
 
 let isRendering = false;
 let serverDataCache = null;

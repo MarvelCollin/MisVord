@@ -224,21 +224,13 @@ class FriendController extends BaseController
             $currentUserId = $this->getCurrentUserId();
 
             $currentUser = $this->userRepository->find($currentUserId);
-
-            $friends = $this->friendListRepository->getUserFriends($currentUserId);            $onlineFriends = [];
-              foreach ($friends as &$friend) {
-                $friend['status'] = 'offline';
-                
-                if ($friend['status'] !== 'offline') {
-                    $onlineFriends[] = $friend;
-                }
-            }
+            $friends = $this->friendListRepository->getUserFriends($currentUserId);
 
             $this->logActivity('friends_data_retrieved');
             return [
                 'currentUser' => $currentUser,
                 'friends' => $friends,
-                'onlineFriends' => $onlineFriends
+                'onlineFriends' => []
             ];
         } catch (Exception $e) {
             $this->logActivity('friends_data_error', [
@@ -259,13 +251,10 @@ class FriendController extends BaseController
         
         $userId = $this->getCurrentUserId();
         
-        try {            $friends = $this->friendListRepository->getUserFriends($userId);
-              foreach ($friends as &$friend) {
-                $friend['status'] = 'offline';
-                $friend['activity'] = null;
-                $friend['last_seen'] = null;
-            }
-              $this->logActivity('friends_viewed');
+        try {
+            $friends = $this->friendListRepository->getUserFriends($userId);
+            
+            $this->logActivity('friends_viewed');
             
             $this->jsonResponse([
                 'success' => true,
@@ -283,21 +272,16 @@ class FriendController extends BaseController
         $this->requireAuth();
         
         $userId = $this->getCurrentUserId();
-          try {
+        
+        try {
             $friends = $this->friendListRepository->getUserFriends($userId);
-            $onlineFriends = [];            
-            foreach ($friends as $friend) {
-                $friend['status'] = 'offline';
-                if ($friend['status'] === 'online') {
-                    $onlineFriends[] = $friend;
-                }
-            }
-              $this->logActivity('online_friends_viewed');
+            
+            $this->logActivity('online_friends_viewed');
             
             $this->jsonResponse([
                 'success' => true,
-                'data' => ['friends' => $onlineFriends],
-                'message' => 'Online friends retrieved successfully'
+                'data' => ['friends' => $friends],
+                'message' => 'Friends retrieved successfully'
             ]);
             return;
         } catch (Exception $e) {

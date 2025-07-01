@@ -42,6 +42,7 @@ if ($is_auth_page) {
 </script>
 
 <?php if (!$is_auth_page): ?>
+<script src="<?php echo js('utils/presence-manager'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('api/chat-api'); ?>?v=<?php echo time(); ?>"></script>
 <script>
 
@@ -115,7 +116,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endforeach; ?>
 
 <script type="module" src="/public/js/utils/channel-switch-manager.js"></script>
-<script type="module" src="/public/js/utils/load-explore-page.js"></script>
 
 <!-- Voice components (consolidated and deduplication-free) -->
 <script src="<?php echo asset('/js/components/voice/voice-events.js'); ?>"></script>

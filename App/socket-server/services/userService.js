@@ -1,6 +1,9 @@
 class UserService {
     constructor() {
         this.userPresence = new Map();
+        this.idleTimeout = 5 * 60 * 1000;
+        this.cleanupInterval = 60 * 1000;
+        this.startCleanupTimer();
     }
 
     updatePresence(userId, status, activityDetails = null) {
@@ -12,7 +15,16 @@ class UserService {
     }
 
     getPresence(userId) {
-        return this.userPresence.get(userId) || null;
+        const presence = this.userPresence.get(userId);
+        if (!presence) return null;
+        
+        const timeSinceUpdate = Date.now() - presence.lastUpdated;
+        if (timeSinceUpdate > this.idleTimeout && presence.status === 'online') {
+            presence.status = 'idle';
+            this.userPresence.set(userId, presence);
+        }
+        
+        return presence;
     }
 
     removePresence(userId) {
@@ -22,7 +34,10 @@ class UserService {
     getAllPresence() {
         const presence = {};
         this.userPresence.forEach((data, userId) => {
-            presence[userId] = data;
+            const updatedPresence = this.getPresence(userId);
+            if (updatedPresence) {
+                presence[userId] = updatedPresence;
+            }
         });
         return presence;
     }
@@ -34,6 +49,45 @@ class UserService {
                 this.userPresence.delete(userId);
             }
         }
+    }
+
+    startCleanupTimer() {
+        setInterval(() => {
+            this.cleanOldPresence();
+            this.updateIdleUsers();
+        }, this.cleanupInterval);
+    }
+
+    updateIdleUsers() {
+        const now = Date.now();
+        for (const [userId, data] of this.userPresence.entries()) {
+            const timeSinceUpdate = now - data.lastUpdated;
+            if (timeSinceUpdate > this.idleTimeout && data.status === 'online') {
+                data.status = 'idle';
+                this.userPresence.set(userId, data);
+                console.log(`⏰ [USER-SERVICE] User ${userId} automatically set to idle after ${Math.round(timeSinceUpdate / 1000)}s inactivity`);
+            }
+        }
+    }
+
+    getUserCount() {
+        return this.userPresence.size;
+    }
+
+    getOnlineCount() {
+        let count = 0;
+        this.userPresence.forEach(data => {
+            if (data.status === 'online') count++;
+        });
+        return count;
+    }
+
+    getIdleCount() {
+        let count = 0;
+        this.userPresence.forEach(data => {
+            if (data.status === 'idle') count++;
+        });
+        return count;
     }
 }
 

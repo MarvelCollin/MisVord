@@ -562,7 +562,6 @@ class MessageHandler {
                 const BotHandler = require('./botHandler');
                 BotHandler.emitBotMessageIntercept(broadcastData);
                 
-                // Handle mentions notification for global broadcast
                 this.handleMentionNotifications(io, client, broadcastData, null);
                 
                 io.emit(eventName, broadcastData);

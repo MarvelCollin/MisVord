@@ -60,12 +60,10 @@ function isChatPage() {
 
 async function initializeChatSection() {
     if (window.chatSection) {
-        console.log('🔄 [CHAT-SECTION] ChatSection already exists, skipping initialization');
         return window.chatSection;
     }
     
     if (window.__CHAT_SECTION_INITIALIZING__) {
-        console.log('⏳ [CHAT-SECTION] Initialization already in progress, waiting...');
         return new Promise((resolve) => {
             const checkInit = () => {
                 if (window.chatSection) {
@@ -83,35 +81,12 @@ async function initializeChatSection() {
     window.__CHAT_SECTION_INITIALIZING__ = true;
     
     if (typeof window.ChatAPI === 'undefined') {
-        console.log('ChatAPI not ready, retrying...');
         await new Promise(resolve => setTimeout(resolve, 100));
         window.__CHAT_SECTION_INITIALIZING__ = false;
         return await initializeChatSection();
     }
     
-    console.log('✅ Initializing ChatSection with ChatAPI ready');
-    
-    console.log('🔍 [CHAT-SECTION-INIT] Pre-initialization diagnostics:');
-    console.log('  URL:', window.location.href);
-    console.log('  Pathname:', window.location.pathname);
-    console.log('  Search:', window.location.search);
-    
-    const metaTags = {
-        chatType: document.querySelector('meta[name="chat-type"]')?.content,
-        chatId: document.querySelector('meta[name="chat-id"]')?.content,
-        channelId: document.querySelector('meta[name="channel-id"]')?.content,
-        roomId: document.querySelector('meta[name="room-id"]')?.content,
-        userId: document.querySelector('meta[name="user-id"]')?.content,
-        username: document.querySelector('meta[name="username"]')?.content
-    };
-    console.log('  Meta tags:', metaTags);
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    console.log('  URL parameters:', {
-        channel: urlParams.get('channel'),
-        room: urlParams.get('room'),
-        server: urlParams.get('server')
-    });
+
     
     try {
         const chatSection = new ChatSection();
@@ -119,15 +94,7 @@ async function initializeChatSection() {
         window.chatSection = chatSection;
         window.__CHAT_SECTION_INITIALIZING__ = false;
         
-        console.log('🎯 [CHAT-SECTION-INIT] Final ChatSection state:', {
-            chatType: chatSection.chatType,
-            targetId: chatSection.targetId,
-            userId: chatSection.userId,
-            username: chatSection.username
-        });
-        
         if (typeof window.emojiReactions === 'undefined' || !window.emojiReactions.initialized) {
-            console.log('Ensuring emoji reactions system is initialized from ChatSection');
             if (typeof window.initializeEmojiReactions === 'function') {
                 window.initializeEmojiReactions();
             }
@@ -137,7 +104,6 @@ async function initializeChatSection() {
     } catch (error) {
         window.__CHAT_SECTION_INITIALIZING__ = false;
         if (!isExcludedPage()) {
-            console.error('❌ Failed to initialize ChatSection:', error);
         }
         throw error;
     }
@@ -145,32 +111,21 @@ async function initializeChatSection() {
 
 document.addEventListener('DOMContentLoaded', function() {
     if (isExcludedPage()) {
-        console.log('📄 [CHAT-SECTION] Page excluded from chat initialization:', {
-            path: window.location.pathname,
-            search: window.location.search,
-            isChatPage: isChatPage()
-        });
         return;
     }
     
-    console.log('✅ [CHAT-SECTION] Page allowed for chat initialization:', window.location.pathname);
-    
     const initWhenReady = () => {
         if (!window.chatSection && !isExcludedPage()) {
-            console.log('🔄 [CHAT-SECTION] Initializing chat section...');
             initializeChatSection();
         }
     };
     
     if (window.__MAIN_SOCKET_READY__) {
-        console.log('🔌 [CHAT-SECTION] Socket already ready, initializing immediately');
         initWhenReady();
     } else {
-        console.log('⏳ [CHAT-SECTION] Waiting for socket to be ready...');
         
         const checkSocketReady = () => {
             if (window.__MAIN_SOCKET_READY__ || window.globalSocketManager?.isReady()) {
-                console.log('✅ [CHAT-SECTION] Socket is ready, proceeding with initialization');
                 initWhenReady();
                 return true;
             }
@@ -179,18 +134,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!checkSocketReady()) {
             window.addEventListener('globalSocketReady', () => {
-                console.log('🔌 [CHAT-SECTION] Received globalSocketReady event');
                 initWhenReady();
             });
             
             window.addEventListener('socketAuthenticated', () => {
-                console.log('🔐 [CHAT-SECTION] Received socketAuthenticated event');
                 initWhenReady();
             });
             
             setTimeout(() => {
                 if (!checkSocketReady()) {
-                    console.log('⏰ [CHAT-SECTION] Socket ready timeout, initializing anyway');
                     initWhenReady();
                 }
             }, 3000);
@@ -200,8 +152,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 class ChatSection {
     constructor(options = {}) {
-        console.log('🏗️ [CHAT-SECTION] Constructor called with options:', options);
-        
         this.chatType = options.chatType || this.detectChatType();
         this.targetId = options.targetId || this.detectTargetId();
         this.userId = options.userId || null;
@@ -216,13 +166,6 @@ class ChatSection {
         this.socketListenersSetup = false;
         this.channelSwitchManager = null;
         this.lastJoinedRoom = null;
-        
-        console.log('🎯 [CHAT-SECTION] Detected chat configuration:', {
-            chatType: this.chatType,
-            targetId: this.targetId,
-            userId: this.userId,
-            username: this.username
-        });
         
         this.chatContainer = null;
         this.chatMessages = null;
@@ -255,19 +198,15 @@ class ChatSection {
         
         if (currentPath === '/home' || currentPath.startsWith('/home/')) {
             if (currentPath.includes('/channels/dm/')) {
-                console.log('🔍 [CHAT-SECTION] Detected chat type: direct (DM page)');
                 return 'direct';
             }
-            console.log('🔍 [CHAT-SECTION] Detected chat type: direct (home page)');
             return 'direct';
         }
         
         if (currentPath.match(/^\/server\/\d+$/)) {
-            console.log('🔍 [CHAT-SECTION] Detected chat type: channel (server page)');
             return 'channel';
         }
         
-        console.log('🔍 [CHAT-SECTION] Default chat type: channel');
         return 'channel';
     }
 
@@ -275,28 +214,19 @@ class ChatSection {
         const currentPath = window.location.pathname;
         const urlParams = new URLSearchParams(window.location.search);
         
-        console.log('🔍 [CHAT-SECTION] detectTargetId - URL Analysis:', {
-            pathname: currentPath,
-            search: window.location.search,
-            chatType: this.chatType
-        });
-        
         if (this.chatType === 'channel') {
             const channelIdFromUrl = urlParams.get('channel');
             if (channelIdFromUrl) {
-                console.log('🎯 [CHAT-SECTION] Channel ID from URL parameter (priority):', channelIdFromUrl);
                 return channelIdFromUrl;
             }
             
             const chatIdMeta = document.querySelector('meta[name="chat-id"]');
             if (chatIdMeta && chatIdMeta.content && chatIdMeta.content !== '') {
-                console.log('🎯 [CHAT-SECTION] Channel ID from chat-id meta tag:', chatIdMeta.content);
                 return chatIdMeta.content;
             }
             
             const channelMeta = document.querySelector('meta[name="channel-id"]');
             if (channelMeta && channelMeta.content && channelMeta.content !== '') {
-                console.log('🎯 [CHAT-SECTION] Channel ID from channel-id meta tag:', channelMeta.content);
                 return channelMeta.content;
             }
             
@@ -304,7 +234,6 @@ class ChatSection {
             if (activeChannelElement) {
                 const channelId = activeChannelElement.getAttribute('data-channel-id');
                 if (channelId) {
-                    console.log('🎯 [CHAT-SECTION] Channel ID from active channel element:', channelId);
                     return channelId;
                 }
             }
@@ -313,56 +242,37 @@ class ChatSection {
             if (firstTextChannel) {
                 const channelId = firstTextChannel.getAttribute('data-channel-id');
                 if (channelId) {
-                    console.log('🎯 [CHAT-SECTION] Channel ID from first text channel:', channelId);
                     return channelId;
                 }
             }
             
-            console.warn('⚠️ [CHAT-SECTION] Could not detect channel ID. Available sources:', {
-                urlParam: channelIdFromUrl || 'not found',
-                chatId: chatIdMeta?.content || 'not found',
-                channelId: channelMeta?.content || 'not found',
-                activeChannel: activeChannelElement ? 'found but no ID' : 'not found',
-                firstTextChannel: firstTextChannel ? 'found but no ID' : 'not found'
-            });
             return null;
         }
         
         if (this.chatType === 'direct') {
             const chatIdMeta = document.querySelector('meta[name="chat-id"]');
             if (chatIdMeta && chatIdMeta.content && chatIdMeta.content !== '') {
-                console.log('🎯 [CHAT-SECTION] DM room ID from chat-id meta tag:', chatIdMeta.content);
                 return chatIdMeta.content;
             }
             
             const dmMatch = currentPath.match(/\/channels\/dm\/(\d+)/);
             if (dmMatch) {
-                console.log('🎯 [CHAT-SECTION] DM room ID from URL path:', dmMatch[1]);
                 return dmMatch[1];
             }
             
             const roomIdFromUrl = urlParams.get('room');
             if (roomIdFromUrl) {
-                console.log('🎯 [CHAT-SECTION] DM room ID from URL parameter:', roomIdFromUrl);
                 return roomIdFromUrl;
             }
             
             const roomMeta = document.querySelector('meta[name="room-id"]');
             if (roomMeta && roomMeta.content && roomMeta.content !== '') {
-                console.log('🎯 [CHAT-SECTION] DM room ID from room-id meta tag:', roomMeta.content);
                 return roomMeta.content;
             }
             
-            console.warn('⚠️ [CHAT-SECTION] Could not detect room ID for direct message. Available sources:', {
-                chatId: chatIdMeta?.content || 'not found',
-                urlPath: dmMatch ? dmMatch[1] : 'not found',
-                urlParam: roomIdFromUrl || 'not found',
-                roomMeta: roomMeta?.content || 'not found'
-            });
             return null;
         }
         
-        console.warn('⚠️ [CHAT-SECTION] Unknown chat type for target ID detection:', this.chatType);
         return null;
     }
     
@@ -379,13 +289,6 @@ class ChatSection {
         this.contextMenu = document.getElementById('message-context-menu') || document.getElementById('context-menu');
         this.fileUploadInput = document.getElementById('file-upload');
         this.filePreviewModal = document.getElementById('file-preview-modal');
-        
-        console.log('🔍 [CHAT-SECTION] DOM elements found:', {
-            chatMessages: !!this.chatMessages,
-            messageForm: !!this.messageForm,
-            messageInput: !!this.messageInput,
-            sendButton: !!this.sendButton
-        });
     }
     
     waitForRequiredElements() {
@@ -397,7 +300,6 @@ class ChatSection {
                 this.findDOMElements();
                 
                 if (this.chatMessages && this.messageForm && this.messageInput) {
-                    console.log('✅ [CHAT-SECTION] Required DOM elements found');
                     resolve();
                     return;
                 }
@@ -405,19 +307,12 @@ class ChatSection {
                 attempts++;
                 if (attempts >= maxAttempts) {
                     if (!isExcludedPage()) {
-                        console.error('❌ [CHAT-SECTION] Required DOM elements not found after', maxAttempts, 'attempts');
-                        console.error('❌ [CHAT-SECTION] Missing elements:', {
-                            chatMessages: !this.chatMessages,
-                            messageForm: !this.messageForm,
-                            messageInput: !this.messageInput
-                        });
                     }
                     reject(new Error('Required DOM elements not found'));
                     return;
                 }
                 
                 if (!isExcludedPage() && attempts % 5 === 0) {
-                    console.log(`⏳ [CHAT-SECTION] Waiting for DOM elements (attempt ${attempts}/${maxAttempts})`);
                 }
                 setTimeout(checkElements, 100);
             };
@@ -428,30 +323,19 @@ class ChatSection {
     
     async init() {
         try {
-            console.log('🔄 [CHAT-SECTION] Starting initialization...');
-        
             await this.waitForRequiredElements();
         
             if (!this.targetId) {
-                console.log('🔄 [CHAT-SECTION] Target ID not detected initially, retrying...');
                 this.targetId = this.detectTargetId();
                 
                 if (!this.targetId) {
-                    console.log('⏳ [CHAT-SECTION] Target ID still not found, waiting for DOM updates...');
                     await new Promise(resolve => setTimeout(resolve, 500));
                     this.targetId = this.detectTargetId();
                     
                     if (!this.targetId) {
-                        console.log('⏳ [CHAT-SECTION] Final retry for target ID detection...');
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         this.targetId = this.detectTargetId();
-            }
-        }
-        
-                if (this.targetId) {
-                    console.log('✅ [CHAT-SECTION] Target ID detected on retry:', this.targetId);
-                } else {
-                    console.warn('⚠️ [CHAT-SECTION] Target ID detection failed after retries');
+                    }
                 }
             }
             
@@ -462,8 +346,6 @@ class ChatSection {
             this.setupEventListeners();
             
             if (this.targetId && this.chatType) {
-                console.log(`🎯 [CHAT-SECTION] Valid target found, loading messages for ${this.chatType}:${this.targetId}`);
-                
                 this.setupHandlers();
             
                 if (this.messageHandler) {
@@ -478,69 +360,44 @@ class ChatSection {
             
                 this.updateChannelHeader();
             } else {
-                console.warn('⚠️ [CHAT-SECTION] No valid target found:', {
-                    targetId: this.targetId,
-                    chatType: this.chatType
-                });
             }
             
             this.addTopReloadButtonStyles();
             
             if (this.mentionHandler && this.targetId) {
-                console.log('🔍 [CHAT-SECTION] Loading mention users for target:', this.targetId, 'type:', this.chatType);
                 setTimeout(() => {
                     this.mentionHandler.loadAvailableUsers();
                 }, 500);
             } else {
-                console.warn('⚠️ [CHAT-SECTION] Cannot load mention users:', {
-                    hasTargetId: !!this.targetId,
-                    hasMentionHandler: !!this.mentionHandler
-                });
             }
             
             this.chatBot.init();
             
-            console.log('✅ [CHAT-SECTION] Initialization completed successfully');
-            
         } catch (error) {
             if (!isExcludedPage()) {
-                console.error('❌ [CHAT-SECTION] Initialization failed:', error);
-                console.error('❌ [CHAT-SECTION] ChatSection will not be functional');
             }
         }
     }
     
     joinSocketRoom() {
         if (!this.targetId) {
-            console.warn('⚠️ [CHAT-SECTION] Cannot join room: No target ID specified');
             return;
         }
         
         const socketStatus = this.getDetailedSocketStatus();
-        console.log('🔍 [CHAT-SECTION] Socket status check:', socketStatus);
         
         if (!socketStatus.isReady) {
-            console.warn('⚠️ [CHAT-SECTION] Socket not ready, will join when ready:', {
-                connected: socketStatus.connected,
-                authenticated: socketStatus.authenticated,
-                hasIO: socketStatus.hasIO,
-                reason: socketStatus.readyReason
-            });
             this.setupSocketReadyListeners();
             return;
         }
         
         if (this.socketRoomJoined && this.lastJoinedRoom === this.targetId) {
-            console.log('✅ [CHAT-SECTION] Already joined the target room:', this.targetId);
             return;
         }
         
         if (this.socketRoomJoined && this.lastJoinedRoom && this.lastJoinedRoom !== this.targetId) {
-            console.log('🔄 [CHAT-SECTION] Leaving previous room before joining new one');
             this.leaveCurrentSocketRoom();
         }
-        
-        console.log(`🔌 [CHAT-SECTION] Joining socket room for ${this.chatType} with ID ${this.targetId}`);
         
         try {
             const success = window.globalSocketManager.joinRoom(this.chatType === 'direct' ? 'dm' : 'channel', this.targetId);
@@ -548,16 +405,9 @@ class ChatSection {
             if (success) {
                 this.socketRoomJoined = true;
                 this.lastJoinedRoom = this.targetId;
-                console.log('✅ [CHAT-SECTION] Successfully joined socket room:', {
-                    chatType: this.chatType,
-                    targetId: this.targetId,
-                    roomName: this.chatType === 'direct' ? `dm-room-${this.targetId}` : `channel-${this.targetId}`
-                });
             } else {
-                console.error('❌ [CHAT-SECTION] Failed to join socket room');
             }
         } catch (error) {
-            console.error('❌ [CHAT-SECTION] Error joining socket room:', error);
         }
     }
     
