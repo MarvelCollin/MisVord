@@ -866,6 +866,27 @@ document.addEventListener('DOMContentLoaded', function() {
     window.hideNoResultsMessage = hideNoResultsMessage;
     window.searchFriends = searchFriends;
     
+    // Function to open user detail modal
+    window.openUserDetail = function(userId) {
+        console.log('🔍 [HOME-FRIENDS] Opening user detail for user:', userId);
+        
+        // Try to use the user detail modal if available
+        if (window.userDetailModal && typeof window.userDetailModal.show === 'function') {
+            window.userDetailModal.show({ userId: userId });
+        } else {
+            console.log('📝 [HOME-FRIENDS] UserDetailModal not yet available, waiting...');
+            
+            // Wait a moment for the modal to be initialized and try again
+            setTimeout(() => {
+                if (window.userDetailModal && typeof window.userDetailModal.show === 'function') {
+                    window.userDetailModal.show({ userId: userId });
+                } else {
+                    console.error('❌ [HOME-FRIENDS] UserDetailModal not available after waiting');
+                }
+            }, 500);
+        }
+    };
+    
     setTimeout(() => {
         if (window.fallbackImageHandler) {
             document.querySelectorAll('img.user-avatar').forEach(img => {
