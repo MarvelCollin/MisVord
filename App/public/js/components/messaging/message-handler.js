@@ -794,17 +794,10 @@ class MessageHandler {
     }
 
     clearProcessedMessages() {
-        console.log('🧹 [MESSAGE-HANDLER] Clearing all processed messages and state');
         this.processedMessageIds.clear();
         this.temporaryMessages.clear();
         this.lastMessageGroup = null;
-        
-        const messagesContainer = this.chatSection ? this.chatSection.getMessagesContainer() : null;
-        if (messagesContainer) {
-            messagesContainer.innerHTML = '';
-        }
-        
-        console.log('✅ [MESSAGE-HANDLER] All processed messages and state cleared');
+        console.log('🧹 [MESSAGE-HANDLER] Processed messages cleared');
     }
     
     removeMessage(messageId) {

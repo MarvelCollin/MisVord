@@ -500,7 +500,7 @@ class ChannelController extends BaseController
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
         }
-
+        
         try {
             [$channel, $error] = $this->validateChannelAccess($channelId);
             if ($error) return $error;

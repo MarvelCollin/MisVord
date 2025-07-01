@@ -524,10 +524,6 @@
 }
 
 .skeleton-card {
-  background-color: #2f3136;
-  border-radius: 12px;
-  overflow: hidden;
-  height: 320px;
   animation: slideIn 0.5s ease-out;
   border: 1px solid rgba(79, 84, 92, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -536,6 +532,13 @@
 .skeleton-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.skeleton-icon-small {
+  background-color: #2f3136;
+  border: 3px solid #36393f;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 3px 8px rgba(0, 0, 0, 0.3);
+  z-index: 10;
 }
 
 @keyframes slideIn {
@@ -549,19 +552,7 @@
   }
 }
 
-.skeleton-banner {
-  height: 140px;
-  border-radius: 12px 12px 0 0;
-}
 
-.skeleton-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 20px;
-  position: absolute;
-  bottom: -32px;
-  left: 20px;
-}
 
 .skeleton-text {
   height: 16px;
@@ -642,12 +633,9 @@
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
-  .skeleton-card {
-    height: 260px;
-  }
 
-  .explore-server-icon-small {
+  .explore-server-icon-small,
+  .skeleton-icon-small {
     width: 52px !important;
     height: 52px !important;
     top: -26px;

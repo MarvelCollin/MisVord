@@ -76,89 +76,26 @@ class ChatController extends BaseController
             $offset = isset($_GET['offset']) && is_numeric($_GET['offset']) ? (int)$_GET['offset'] : 0;
             $timestamp = $_GET['timestamp'] ?? null;
             $cacheBust = $_GET['_cache_bust'] ?? null;
-            $isChannelSwitch = isset($_GET['channel_switch']) && $_GET['channel_switch'] === 'true';
-            $forceFresh = isset($_GET['force_fresh']) && $_GET['force_fresh'] === 'true';
-            $beforeMessageId = $_GET['before'] ?? null;
             
-            if ($timestamp || $cacheBust || $isChannelSwitch || $forceFresh) {
+            if ($timestamp || $cacheBust) {
                 $offset = 0;
             }
 
-            if ($beforeMessageId) {
-                $messages = $this->getMessagesBeforeId($channelId, $beforeMessageId, $limit);
-            } else {
-                $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, $offset);
-            }
-            
+            $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
-            $hasMore = count($messages) >= $limit;
-            
-            if ($beforeMessageId) {
-                $totalMessagesInChannel = $this->getTotalMessageCount($channelId);
-                $hasMore = $totalMessagesInChannel > (count($formattedMessages) + $offset);
+            $replyCount = 0;
+            foreach ($formattedMessages as $msg) {
+                if (isset($msg['reply_data'])) {
+                    $replyCount++;
+                }
             }
 
-            $response = $this->respondMessages('channel', $channelId, $formattedMessages, $hasMore);
-            
-            if ($isChannelSwitch || $forceFresh) {
-                header('Cache-Control: no-cache, no-store, must-revalidate');
-                header('Pragma: no-cache');
-                header('Expires: 0');
-            }
-            
-            return $response;
+            return $this->respondMessages('channel', $channelId, $formattedMessages, count($messages) >= $limit);
         } catch (Exception $e) {
             error_log("Error getting channel messages: " . $e->getMessage());
             return $this->serverError('Failed to load channel messages: ' . $e->getMessage());
         }
-    }
-    
-    private function getMessagesBeforeId($channelId, $beforeMessageId, $limit)
-    {
-        $query = new Query();
-        $sql = "
-            SELECT m.id as id, m.user_id, m.content, m.sent_at, m.edited_at, 
-                   m.message_type, m.attachment_url, m.reply_message_id,
-                   m.created_at, m.updated_at,
-                   u.username, u.avatar_url,
-                   cm.created_at as channel_message_created_at
-            FROM channel_messages cm
-            INNER JOIN messages m ON cm.message_id = m.id
-            INNER JOIN users u ON m.user_id = u.id
-            WHERE cm.channel_id = ? AND m.id < ?
-            ORDER BY m.sent_at DESC
-            LIMIT ?
-        ";
-        
-        $results = $query->query($sql, [$channelId, $beforeMessageId, $limit]);
-        
-        foreach ($results as &$row) {
-            $row['attachments'] = $this->parseAttachments($row['attachment_url']);
-            unset($row['attachment_url']);
-        }
-        
-        return $results;
-    }
-    
-    private function getTotalMessageCount($channelId)
-    {
-        $query = new Query();
-        $result = $query->table('channel_messages')
-            ->where('channel_id', $channelId)
-            ->count();
-        return $result;
-    }
-    
-    private function parseAttachments($attachmentUrl) {
-        if (!$attachmentUrl) return [];
-        
-        $decoded = json_decode($attachmentUrl, true);
-        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-            return $decoded;
-        }
-        
-        return [$attachmentUrl];
     }
     
     private function respondMessages($type, $targetId, $messages, $hasMore = false)
@@ -852,6 +789,17 @@ class ChatController extends BaseController
         }
         
         return $formatted;
+    }
+    
+    private function parseAttachments($attachmentUrl) {
+        if (!$attachmentUrl) return [];
+        
+        $decoded = json_decode($attachmentUrl, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $decoded;
+        }
+        
+        return [$attachmentUrl];
     }
 
     public function renderChatSection($chatType, $chatId)

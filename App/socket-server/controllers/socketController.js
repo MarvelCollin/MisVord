@@ -16,6 +16,7 @@ const voiceMeetings = new Map();
 
 function setup(io) {
     eventController.setIO(io);
+    userService.setIO(io);
     io.on('connection', (client) => {
         console.log(`🔌 [CONNECTION] Client connected: ${client.id}`);
         
@@ -576,14 +577,27 @@ function handlePresence(io, client, data) {
     
     if (!user_id || !username) return;
     
-    userService.updatePresence(user_id, status, activity_details);
+    const previousPresence = userService.getPresence(user_id);
+    userService.updatePresence(user_id, status, activity_details, username);
     
-    io.emit('user-presence-update', {
+    const broadcastData = {
         user_id,
         username,
         status,
         activity_details
-    });
+    };
+    
+    if (!previousPresence || previousPresence.status !== status) {
+        console.log(`📡 [PRESENCE] Broadcasting presence change for ${username}: ${previousPresence?.status || 'none'} -> ${status}`);
+        
+        if (status === 'online' && (!previousPresence || previousPresence.status === 'offline')) {
+            io.emit('user-online', broadcastData);
+        } else {
+            io.emit('user-presence-update', broadcastData);
+        }
+    } else {
+        io.emit('user-presence-update', broadcastData);
+    }
 }
 
 function handleGetOnlineUsers(io, client) {
@@ -745,18 +759,12 @@ function handleDisconnect(io, client) {
         
         const userOffline = roomManager.removeUserSocket(user_id, client.id);
         
+        console.log(`🔌 [DISCONNECT] User ${username} (${user_id}) disconnected, socket: ${client.id}`);
+        
         if (userOffline) {
-            userService.removePresence(user_id);
-            
-            if (io && typeof io.emit === 'function') {
-                io.emit('user-offline', {
-                    user_id: user_id,
-                    username: username,
-                    status: 'offline',
-                    activity_details: null,
-                    timestamp: Date.now()
-                });
-            }
+            console.log(`⏰ [DISCONNECT] User ${username} has no more active sockets, letting presence system handle offline status`);
+        } else {
+            console.log(`🔌 [DISCONNECT] User ${username} still has other active sockets, keeping online`);
         }
         
         let voiceMeetingsUpdated = [];

@@ -81,8 +81,6 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
             <?php include dirname(__DIR__) . '/app-sections/direct-messages-sidebar.php'; ?>
         <?php elseif ($contentType === 'server'): ?>
             <?php include dirname(__DIR__) . '/app-sections/channel-section.php'; ?>
-        <?php elseif ($contentType === 'explore'): ?>
-            <?php include dirname(__DIR__) . '/app-sections/explore-sidebar.php'; ?>
         <?php endif; ?>
 
         <div class="flex flex-col flex-1" id="main-content">
@@ -126,17 +124,11 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
             <?php endif; ?>
         </div>
 
-        <?php 
-        $showActiveNow = in_array($contentType, ['home', 'dm']);
-        $currentPath = $_SERVER['REQUEST_URI'] ?? '';
-        $isSettingsPage = strpos($currentPath, '/settings/') === 0;
-        
-        if ($showActiveNow && !$isSettingsPage): 
-        ?>
+        <?php if ($contentType === 'home'): ?>
             <?php include dirname(__DIR__) . '/app-sections/active-now-section.php'; ?>
-        <?php elseif ($contentType === 'server' && $isSettingsPage): ?>
+        <?php elseif ($contentType === 'server'): ?>
             <?php include dirname(__DIR__) . '/app-sections/participant-section.php'; ?>
-        <?php elseif ($contentType === 'dm' && $isSettingsPage): ?>
+        <?php elseif ($contentType === 'dm'): ?>
             <?php include dirname(__DIR__) . '/app-sections/participant-section.php'; ?>
         <?php endif; ?>
     </div>

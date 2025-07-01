@@ -551,6 +551,13 @@ class ChatSection {
     }
     
     handleMessageActions(e) {
+        console.log('🔍 [CHAT-SECTION] Message action clicked:', {
+            target: e.target,
+            targetClasses: Array.from(e.target.classList),
+            targetTagName: e.target.tagName,
+            targetDataAction: e.target.dataset?.action,
+            targetDataMessageId: e.target.dataset?.messageId
+        });
         
         let actionButton = null;
         let messageId = null;
@@ -627,13 +634,18 @@ class ChatSection {
                     console.log('🔄 [CHAT-SECTION] Unhandled action:', action);
                     break;
             }
+        } else {
+            console.log('⚠️ [CHAT-SECTION] No valid action detected:', {
+                action: action,
+                messageId: messageId,
+                targetElement: e.target
+            });
         }
     }
     
     async loadMessages(options = {}) {
         const forceFresh = options.forceFresh || false;
         const isChannelSwitch = options.isChannelSwitch || false;
-        const loadingOlder = options.loadingOlder || false;
         
         if (!this.targetId) {
             console.warn('⚠️ Cannot load messages: No target ID');
@@ -641,7 +653,7 @@ class ChatSection {
             return;
         }
         
-        if (this.isLoading && !forceFresh && !isChannelSwitch && !loadingOlder) {
+        if (this.isLoading && !forceFresh && !isChannelSwitch) {
             console.log('⚠️ [CHAT-SECTION] Already loading messages, skipping request');
             return;
         }
@@ -649,40 +661,27 @@ class ChatSection {
         this.isLoading = true;
         
         const limit = options.limit || 20;
-        const beforeMessageId = (forceFresh || isChannelSwitch) ? null : (options.beforeMessageId || null);
+        const before = (forceFresh || isChannelSwitch) ? null : (options.before || null);
         
-        if (isChannelSwitch || forceFresh) {
+        if (forceFresh || isChannelSwitch) {
             console.log('🔄 [CHAT-SECTION] Force fresh loading - complete reset');
-            this.showSkeletonLoading();
             const messagesContainer = this.getMessagesContainer();
             if (messagesContainer) {
                 messagesContainer.innerHTML = '';
             }
             this.lastLoadedMessageId = null;
-            this.oldestMessageId = null;
             this.hasMoreMessages = true;
-            
-            if (this.messageHandler) {
-                this.messageHandler.clearProcessedMessages();
-                this.messageHandler.processedMessageIds.clear();
-                this.messageHandler.temporaryMessages.clear();
-            }
         }
         
-        if (loadingOlder) {
-            this.showLoadingIndicator();
-        } else if (!isChannelSwitch) {
-            this.showLoadingIndicator();
-        }
+        this.showLoadingIndicator();
         
         console.log('🔍 [CHAT-SECTION] Starting loadMessages with:', {
             targetId: this.targetId, 
             chatType: this.chatType,
-            beforeMessageId: beforeMessageId,
+            before: before,
             limit: limit,
             ChatAPIExists: !!window.ChatAPI,
-            isChannelSwitch: isChannelSwitch,
-            loadingOlder: loadingOlder
+            isChannelSwitch: options.isChannelSwitch || false
         });
         
         try {
@@ -701,34 +700,23 @@ class ChatSection {
                 });
             }
             
-            let response;
+            const requestOptions = {
+                limit,
+                before,
+                offset: options.offset || 0
+            };
             
-            if (loadingOlder && beforeMessageId) {
-                console.log('📜 [CHAT-SECTION] Loading older messages before:', beforeMessageId);
-                response = await window.ChatAPI.getOlderMessages(
-                    this.targetId,
-                    this.chatType,
-                    beforeMessageId,
-                    limit
-                );
-            } else {
-                const requestOptions = {
-                    limit,
-                    beforeMessageId,
-                    offset: options.offset || 0,
-                    isChannelSwitch: isChannelSwitch,
-                    forceFresh: forceFresh || isChannelSwitch,
-                    bypass_cache: true,
-                    timestamp: Date.now()
-                };
-                
-                console.log('📡 [CHAT-SECTION] Making API call to getMessages with options:', requestOptions);
-                response = await window.ChatAPI.getMessages(
-                    this.targetId,
-                    this.chatType,
-                    requestOptions
-                );
+            if (forceFresh || isChannelSwitch) {
+                requestOptions.timestamp = Date.now();
+                requestOptions.bypass_cache = true;
             }
+            
+            console.log('📡 [CHAT-SECTION] Making API call to getMessages with options:', requestOptions);
+            const response = await window.ChatAPI.getMessages(
+                this.targetId,
+                this.chatType,
+                requestOptions
+            );
             
             console.log('📨 [CHAT-SECTION] API Response received:', {
                 responseType: typeof response,
@@ -781,28 +769,22 @@ class ChatSection {
             console.log('🎯 [CHAT-SECTION] Processing messages:', {
                 messageCount: messages.length,
                 hasMore: hasMore,
-                loadingOlder: loadingOlder,
-                isChannelSwitch: isChannelSwitch
+                append: !!before
             });
 
             if (messages.length > 0) {
-                if (loadingOlder) {
-                    console.log('📜 [CHAT-SECTION] Prepending older messages to top');
-                    await this.prependOlderMessages(messages);
-                    this.oldestMessageId = messages[0]?.id || this.oldestMessageId;
-                } else if (isChannelSwitch || forceFresh) {
-                    console.log('📝 [CHAT-SECTION] Displaying fresh messages (channel switch or force refresh)');
-                    await this.displayFreshMessages(messages);
-                    this.lastLoadedMessageId = messages[messages.length - 1]?.id || null;
-                    this.oldestMessageId = messages[0]?.id || null;
-                    this.scrollToBottom();
+                if (before && !isChannelSwitch && !forceFresh) {
+                    console.log('📜 [CHAT-SECTION] Prepending older messages');
+                    await this.messageHandler.prependMessages(messages);
+                    this.lastLoadedMessageId = messages[0]?.id || this.lastLoadedMessageId;
                 } else {
-                    console.log('📝 [CHAT-SECTION] Displaying regular messages');
-                    await this.messageHandler.displayMessages(messages);
-                    this.lastLoadedMessageId = messages[messages.length - 1]?.id || null;
-                    if (!this.oldestMessageId) {
-                        this.oldestMessageId = messages[0]?.id || null;
+                    console.log('📝 [CHAT-SECTION] Displaying fresh messages (channel switch or force refresh)');
+                    const messagesContainer = this.getMessagesContainer();
+                    if (messagesContainer) {
+                        messagesContainer.innerHTML = '';
                     }
+                    await this.messageHandler.displayMessages(messages);
+                    this.lastLoadedMessageId = messages[0]?.id || null;
                     this.scrollToBottom();
                 }
                 
@@ -810,7 +792,7 @@ class ChatSection {
                 this.isInitialized = true;
                 console.log('✅ [CHAT-SECTION] Messages processed successfully');
             } else {
-                if (!loadingOlder) {
+                if (!before || isChannelSwitch || forceFresh) {
                     this.showEmptyState();
                 }
                 console.log('📭 [CHAT-SECTION] No messages to display');
@@ -822,111 +804,21 @@ class ChatSection {
             console.error('❌ [CHAT-SECTION] Error loading messages:', error);
             this.showNotification('Failed to load messages. Please try again.', 'error');
             
-            if (!loadingOlder) {
+            if (!before) {
                 this.showEmptyState('Failed to load messages. Please try again.');
             }
         } finally {
             this.isLoading = false;
             this.hideLoadingIndicator();
-            if (isChannelSwitch) {
-                this.hideSkeletonLoading();
-            }
             console.log('🏁 [CHAT-SECTION] loadMessages completed');
         }
     }
     
-    async displayFreshMessages(messages) {
-        const messagesContainer = this.getMessagesContainer();
-        if (!messagesContainer) {
-            console.error('❌ [CHAT-SECTION] Messages container not found');
-            return;
-        }
-        
-        messagesContainer.innerHTML = '';
-        
-        if (this.messageHandler && this.messageHandler.displayMessages) {
-            await this.messageHandler.displayMessages(messages);
-        } else {
-            console.warn('⚠️ [CHAT-SECTION] MessageHandler not available, using fallback display');
-            for (const message of messages) {
-                this.displaySingleMessage(message);
-            }
-        }
-    }
-    
-    async prependOlderMessages(messages) {
-        const messagesContainer = this.getMessagesContainer();
-        if (!messagesContainer) {
-            console.error('❌ [CHAT-SECTION] Messages container not found');
-            return;
-        }
-        
-        const scrollHeight = messagesContainer.scrollHeight;
-        const scrollTop = messagesContainer.scrollTop;
-        
-        if (this.messageHandler && this.messageHandler.prependMessages) {
-            await this.messageHandler.prependMessages(messages);
-        } else {
-            console.warn('⚠️ [CHAT-SECTION] MessageHandler prependMessages not available, using fallback');
-            for (let i = messages.length - 1; i >= 0; i--) {
-                const messageElement = this.createMessageElement(messages[i]);
-                if (messagesContainer.firstChild) {
-                    messagesContainer.insertBefore(messageElement, messagesContainer.firstChild);
-                } else {
-                    messagesContainer.appendChild(messageElement);
-                }
-            }
-        }
-        
-        const newScrollHeight = messagesContainer.scrollHeight;
-        const heightDifference = newScrollHeight - scrollHeight;
-        messagesContainer.scrollTop = scrollTop + heightDifference;
-    }
-    
-    showSkeletonLoading() {
-        const messagesContainer = this.getMessagesContainer();
-        if (!messagesContainer) {
-            console.error('❌ [CHAT-SECTION] Cannot show skeleton: messages container not found');
-            return;
-        }
-        
-        if (window.ChatSkeletonLoader) {
-            if (!this.skeletonLoader) {
-                this.skeletonLoader = new window.ChatSkeletonLoader(messagesContainer);
-            }
-            messagesContainer.setAttribute('data-channel-skeleton', 'active');
-            this.skeletonLoader.show();
-            console.log('✅ [CHAT-SECTION] Skeleton loading displayed');
-        } else {
-            console.warn('⚠️ [CHAT-SECTION] ChatSkeletonLoader not available');
-        }
-    }
-    
-    hideSkeletonLoading() {
-        const messagesContainer = this.getMessagesContainer();
-        if (!messagesContainer) return;
-        
-        if (this.skeletonLoader) {
-            this.skeletonLoader.clear();
-            messagesContainer.removeAttribute('data-channel-skeleton');
-            console.log('✅ [CHAT-SECTION] Skeleton loading hidden');
-        }
-    }
-    
     loadMoreMessages() {
-        if (!this.hasMoreMessages || this.isLoading || !this.oldestMessageId) {
-            console.log('⚠️ [CHAT-SECTION] Cannot load more:', {
-                hasMore: this.hasMoreMessages,
-                isLoading: this.isLoading,
-                oldestMessageId: this.oldestMessageId
-            });
-            return;
-        }
+        if (!this.hasMoreMessages || this.isLoading) return;
         
-        console.log('📜 [CHAT-SECTION] Loading more messages before:', this.oldestMessageId);
         this.loadMessages({
-            loadingOlder: true,
-            beforeMessageId: this.oldestMessageId,
+            before: this.lastLoadedMessageId,
             limit: 20
         });
     }
@@ -941,8 +833,8 @@ class ChatSection {
         if (!this.loadMoreButton) {
             this.loadMoreButton = document.createElement('div');
             this.loadMoreButton.id = 'load-more-messages';
-            this.loadMoreButton.className = 'load-more-messages text-center p-3 text-[#5865f2] hover:text-[#4752c4] cursor-pointer border border-[#5865f2] rounded-md mx-4 my-2 transition-colors hidden';
-            this.loadMoreButton.innerHTML = '<i class="fas fa-chevron-up mr-2"></i>Load older messages';
+            this.loadMoreButton.className = 'load-more-messages text-center p-2 text-[#949ba4] hover:text-[#dcddde] cursor-pointer hidden';
+            this.loadMoreButton.innerHTML = 'Load more messages';
             
             try {
                 if (messagesContainer.firstChild) {
@@ -961,7 +853,7 @@ class ChatSection {
             });
         }
         
-        if (this.hasMoreMessages && this.oldestMessageId) {
+        if (this.hasMoreMessages) {
             this.loadMoreButton.classList.remove('hidden');
         } else {
             this.loadMoreButton.classList.add('hidden');
@@ -2072,20 +1964,9 @@ class ChatSection {
         
         this.fullStateReset();
         
-        if (this.messageHandler) {
-            this.messageHandler.clearProcessedMessages();
-            this.messageHandler.processedMessageIds.clear();
-            this.messageHandler.temporaryMessages.clear();
-        }
-        
         this.joinSocketRoom();
         
-        await this.loadMessages({ 
-            forceFresh: true, 
-            isChannelSwitch: true,
-            bypass_cache: true,
-            timestamp: Date.now()
-        });
+        await this.loadMessages({ forceFresh: true, isChannelSwitch: true });
         
         this.updateChannelHeader();
         

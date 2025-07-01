@@ -1,7 +1,6 @@
 class ChatAPI {
     constructor() {
         this.baseURL = '/api/chat';
-        this.defaultLimit = 20;
     }
 
     async makeRequest(url, options = {}) {
@@ -48,57 +47,16 @@ class ChatAPI {
 
         const apiChatType = this.normalizeApiChatType(chatType);
         
-        const limit = options.limit || this.defaultLimit;
+        const limit = options.limit || 50;
         const before = options.before || null;
         const offset = options.offset || 0;
-        const isChannelSwitch = options.isChannelSwitch || false;
         
-        let url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
-        
+        let url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}&t=${Date.now()}`;
         if (before) {
             url += `&before=${before}`;
         }
         
-        url += `&_t=${Date.now()}`;
-        url += `&_cache_bust=${Math.random().toString(36).substring(7)}`;
-        
-        if (isChannelSwitch) {
-            url += `&channel_switch=true`;
-            url += `&force_fresh=true`;
-        }
-        if (options.timestamp || options.forceFresh || isChannelSwitch) {
-            url += `&timestamp=${Date.now()}`;
-            url += `&fresh=${Date.now()}`;
-        }
-        if (options.bypass_cache || isChannelSwitch) {
-            url += `&no_cache=${Date.now()}`;
-        }
-        
         const response = await this.makeRequest(url);
-        
-        if (response && response.success && response.data && response.data.messages) {
-            response.data.messages.reverse();
-        }
-        
-        return response;
-    }
-
-    async getOlderMessages(targetId, chatType, beforeMessageId, limit = null) {
-        if (!targetId || !beforeMessageId) {
-            throw new Error('Target ID and before message ID are required');
-        }
-
-        const apiChatType = this.normalizeApiChatType(chatType);
-        const messageLimit = limit || this.defaultLimit;
-        
-        const url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${messageLimit}&before=${beforeMessageId}&t=${Date.now()}`;
-        
-        const response = await this.makeRequest(url);
-        
-        if (response && response.success && response.data && response.data.messages) {
-            response.data.messages.reverse();
-        }
-        
         return response;
     }
 

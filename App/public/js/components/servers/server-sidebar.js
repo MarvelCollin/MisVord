@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', async function(e) {
         const homeLink = e.target.closest('a[href="/home"]') || 
                         e.target.closest('a[href="/"]') ||
-                        e.target.closest('.server-sidebar-icon:first-child a');
+                        e.target.closest('.server-icon:first-child a');
         if (homeLink && !isHandlingClick) {
             e.preventDefault();
             
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const serverLink = e.target.closest('.server-sidebar-icon a[href^="/server/"]');
+        const serverLink = e.target.closest('.server-icon a[href^="/server/"]');
         if (serverLink && !isHandlingClick) {
             e.preventDefault(); 
             
@@ -122,14 +122,14 @@ function performCompleteRender() {
 
 function clearAllPreviousState() {
     console.log('[Server Sidebar] Clearing previous state');
-    document.querySelectorAll('.server-sidebar-icon[data-setup]').forEach(icon => {
+    document.querySelectorAll('.server-icon[data-setup]').forEach(icon => {
         icon.removeAttribute('data-setup');
         icon.draggable = false;
         const newIcon = icon.cloneNode(true);
         icon.parentNode.replaceChild(newIcon, icon);
     });
     
-    document.querySelectorAll('.server-sidebar-group[data-drop-setup]').forEach(folder => {
+    document.querySelectorAll('.server-group[data-drop-setup]').forEach(folder => {
         folder.removeAttribute('data-drop-setup');
         const newFolder = folder.cloneNode(true);
         folder.parentNode.replaceChild(newFolder, folder);
@@ -151,7 +151,7 @@ function clearAllPreviousState() {
 
 function setupServerIcons() {           
     console.log('[Server Sidebar] Setting up server icons drag and drop');
-    document.querySelectorAll('.server-sidebar-icon[data-server-id]:not([data-setup])').forEach(icon => {
+    document.querySelectorAll('.server-icon[data-server-id]:not([data-setup])').forEach(icon => {
         icon.setAttribute('data-setup', 'true');
         icon.draggable = true;
         
@@ -223,10 +223,10 @@ async function renderFolders() {
     
     const groups = LocalStorageManager.getServerGroups();
     
-    document.querySelectorAll('.server-sidebar-group').forEach(el => el.remove());
+    document.querySelectorAll('.server-group').forEach(el => el.remove());
     
     const serverImageData = await buildServerImageData();
-    const insertPoint = serverList.querySelector('.server-sidebar-divider');
+    const insertPoint = serverList.querySelector('.server-divider');
     
     for (const group of groups) {
         if (group.servers.length === 0) {
@@ -244,7 +244,7 @@ async function renderFolders() {
         const serversContainer = folderElement.querySelector('.group-servers');
         
         group.servers.forEach(serverId => {
-            const serverElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
+            const serverElement = document.querySelector(`.server-icon[data-server-id="${serverId}"]`);
             if (serverElement && serversContainer) {
                 if (serverElement.parentNode) {
                     serverElement.parentNode.removeChild(serverElement);
@@ -268,7 +268,7 @@ async function buildServerImageData() {
     
     const serverData = await getServerData();
     
-    document.querySelectorAll('.server-sidebar-icon[data-server-id]').forEach(icon => {
+    document.querySelectorAll('.server-icon[data-server-id]').forEach(icon => {
         icon.removeAttribute('data-setup');
         const serverId = icon.getAttribute('data-server-id');
         
@@ -289,8 +289,8 @@ async function buildServerImageData() {
             return;
         }
         
-        const existingImg = icon.querySelector('.server-sidebar-button img');
-        const existingText = icon.querySelector('.server-sidebar-button span');
+        const existingImg = icon.querySelector('.server-button img');
+        const existingText = icon.querySelector('.server-button span');
         
         if (existingImg && existingImg.src && !existingImg.src.includes('main-logo')) {
             serverImageData.set(serverId, {
@@ -316,7 +316,7 @@ async function buildServerImageData() {
 
 function createFolderElement(group) {
     const folder = document.createElement('div');
-    folder.className = 'server-sidebar-group';
+    folder.className = 'server-group';
     folder.setAttribute('data-group-id', group.id);
     
     const header = document.createElement('div');
@@ -447,7 +447,7 @@ function setupFolderEvents(group, folderElement) {
 }
 
 function setupDropZones() {
-    document.querySelectorAll('.server-sidebar-group:not([data-drop-setup])').forEach(folder => {
+    document.querySelectorAll('.server-group:not([data-drop-setup])').forEach(folder => {
         folder.setAttribute('data-drop-setup', 'true');
         const header = folder.querySelector('.group-header');
         const serversContainer = folder.querySelector('.group-servers');
@@ -502,7 +502,7 @@ function setupDropZones() {
             });
         });
         
-        folder.querySelectorAll('.server-sidebar-icon').forEach(serverIcon => {
+        folder.querySelectorAll('.server-icon').forEach(serverIcon => {
             serverIcon.addEventListener('dragover', e => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -542,7 +542,7 @@ function setupDropZones() {
         serverList.setAttribute('data-drop-setup', 'true');
         
         serverList.addEventListener('dragover', e => {
-            if (e.target.closest('.server-sidebar-group') || e.target.closest('.server-sidebar-icon')) return;
+            if (e.target.closest('.server-group') || e.target.closest('.server-icon')) return;
             e.preventDefault();
             serverList.classList.add('drop-target');
         });
@@ -556,7 +556,7 @@ function setupDropZones() {
         });
         
         serverList.addEventListener('drop', e => {
-            if (e.target.closest('.server-sidebar-group') || e.target.closest('.server-sidebar-icon')) return;
+            if (e.target.closest('.server-group') || e.target.closest('.server-icon')) return;
             
             e.preventDefault();
             serverList.classList.remove('drop-target');
@@ -573,7 +573,7 @@ function setupDropZones() {
 async function handleServerAddToGroup(serverId, groupId, folderElement) {
     LocalStorageManager.addServerToGroup(groupId, serverId);
     
-    const serverElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
+    const serverElement = document.querySelector(`.server-icon[data-server-id="${serverId}"]`);
     if (!serverElement) {
         performCompleteRender();
         return;
@@ -710,7 +710,7 @@ async function getServerData() {
 export function updateActiveServer(pageType = null, serverId = null) {
     console.log('[Update Active Server] Called with:', { pageType, serverId });
     
-    document.querySelectorAll('.server-sidebar-icon.active').forEach(icon => {
+    document.querySelectorAll('.server-icon.active').forEach(icon => {
         icon.classList.remove('active');
     });
     
@@ -740,7 +740,7 @@ export function updateActiveServer(pageType = null, serverId = null) {
                 console.log('[Update Active Server] Looking for server ID:', serverIdStr);
                 
                 const serverLink = document.querySelector(`a[data-server-id="${serverIdStr}"]`);
-                const activeIcon = serverLink ? serverLink.closest('.server-sidebar-icon') : null;
+                const activeIcon = serverLink ? serverLink.closest('.server-icon') : null;
                 if (activeIcon) {
                     activeIcon.classList.add('active');
                     console.log('[Update Active Server] Activated server icon for ID:', serverIdStr);
@@ -758,7 +758,7 @@ export function updateActiveServer(pageType = null, serverId = null) {
             break;
             
         case 'home':
-            const homeIcon = document.querySelector('.server-sidebar-icon:first-child');
+            const homeIcon = document.querySelector('.server-icon:first-child');
             if (homeIcon) {
                 homeIcon.classList.add('active');
                 console.log('[Update Active Server] Activated home icon');
@@ -862,7 +862,7 @@ export async function handleExploreClick(event) {
         console.log('[Explore Navigation] Already on explore page, skipping navigation');
         return;
     }
-
+    
     try {
         console.log('[Explore Navigation] Redirecting to explore page');
         window.location.href = '/explore-servers';
