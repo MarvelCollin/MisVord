@@ -4,6 +4,20 @@ class ChatSkeletonLoader {
         this.container = container;
         this.skeletonCount = 6;
     }
+    
+    static isAnySkeletonActive() {
+        const containers = document.querySelectorAll('.messages-container');
+        for (const container of containers) {
+            const hasSkeletonAttr = container.getAttribute('data-channel-skeleton') === 'active';
+            const hasSkeletonElements = container.querySelectorAll('.bubble-message-group.animate-pulse').length > 0;
+            const hasSkeletonClass = container.classList.contains('skeleton-loading');
+            
+            if (hasSkeletonAttr || hasSkeletonElements || hasSkeletonClass) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     show() {
         if (!this.container) return;
@@ -63,6 +77,7 @@ class ChatSkeletonLoader {
         if (!this.container) return;
         
         this.container.setAttribute('data-channel-skeleton', 'active');
+        this.container.classList.add('skeleton-loading');
         this.show();
         console.log('🎨 [ChatSkeletonLoader] Skeleton shown for channel switch');
     }
@@ -72,6 +87,7 @@ class ChatSkeletonLoader {
         
         this.clear();
         this.container.removeAttribute('data-channel-skeleton');
+        this.container.classList.remove('skeleton-loading');
         console.log('🧹 [ChatSkeletonLoader] Skeleton cleared after message load');
     }
 

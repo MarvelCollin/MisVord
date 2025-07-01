@@ -1,6 +1,18 @@
 <?php
 $categories = $GLOBALS['categories'] ?? [];
 $servers = $GLOBALS['servers'] ?? [];
+
+$categoryCounts = [];
+foreach ($categories as $key => $name) {
+    $categoryCounts[$key] = 0;
+}
+
+foreach ($servers as $server) {
+    $serverCategory = $server['category'] ?? '';
+    if ($serverCategory && isset($categoryCounts[$serverCategory])) {
+        $categoryCounts[$serverCategory]++;
+    }
+}
 ?>
 
 <div class="w-60 bg-discord-dark flex flex-col">
@@ -37,6 +49,7 @@ $servers = $GLOBALS['servers'] ?? [];
                     <i class="<?php echo $icon; ?>"></i>
                 </div>
                 <span class="font-medium"><?php echo htmlspecialchars($name); ?></span>
+                <span class="ml-auto text-xs bg-discord-darker px-2 py-1 rounded"><?php echo $categoryCounts[$key] ?? 0; ?></span>
             </div>
         <?php endforeach; ?>
     </div>

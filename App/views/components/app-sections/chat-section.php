@@ -409,7 +409,7 @@ if (!function_exists('renderMessage')) {
             </button>
         </div>
         
-        <div class="messages-container flex flex-col h-full <?php echo empty($messages) ? 'items-center justify-center' : ''; ?>">
+        <div class="messages-container flex flex-col <?php echo empty($messages) ? 'min-h-full items-center justify-center' : ''; ?>">
             <?php if (!empty($messages)): ?>
                 <?php
                 $i = 0;

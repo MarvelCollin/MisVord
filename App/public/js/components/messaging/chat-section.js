@@ -863,14 +863,15 @@ class ChatSection {
             return;
         }
         
-        const messagesContainer = this.getMessagesContainer();
-        const isSkeletonActive = messagesContainer && 
-                                messagesContainer.getAttribute('data-channel-skeleton') === 'active' ||
-                                messagesContainer && messagesContainer.querySelector('.bubble-message-group.animate-pulse');
-        
-        if (isSkeletonActive) {
+        if (window.ChatSkeletonLoader && window.ChatSkeletonLoader.isAnySkeletonActive()) {
             this.loadMoreContainer.classList.add('hidden');
-            console.log('🎨 [CHAT-SECTION] Load more button hidden - skeleton is active');
+            console.log('🎨 [CHAT-SECTION] Load more button hidden - skeleton is active globally');
+            return;
+        }
+        
+        if (this.isLoading) {
+            this.loadMoreContainer.classList.add('hidden');
+            console.log('🎨 [CHAT-SECTION] Load more button hidden - currently loading');
             return;
         }
         

@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let onlineUsers = {};
     let updateTimer = null;
+    let lastRenderedState = null;
     
     function getStatusClass(status) {
         switch (status) {
@@ -85,8 +86,106 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-
+    function createFriendStateSignature(activeFriends) {
+        return activeFriends.map(friend => {
+            const userData = onlineUsers[friend.id];
+            return {
+                id: friend.id,
+                username: friend.username,
+                avatar_url: friend.avatar_url,
+                status: userData?.status || 'offline',
+                activity_type: userData?.activity_details?.type || 'idle'
+            };
+        }).sort((a, b) => a.username.localeCompare(b.username));
+    }
     
+    function statesAreEqual(state1, state2) {
+        if (!state1 || !state2) return false;
+        if (state1.length !== state2.length) return false;
+        
+        return state1.every((friend1, index) => {
+            const friend2 = state2[index];
+            return friend1.id === friend2.id &&
+                   friend1.username === friend2.username &&
+                   friend1.status === friend2.status &&
+                   friend1.activity_type === friend2.activity_type;
+        });
+    }
+    
+    function updateExistingFriend(friendEl, friend, userData) {
+        const status = userData?.status === 'online' ? 'online' : 'offline';
+        const statusClass = getStatusClass(status);
+        const activityDetails = userData?.activity_details;
+        const activityText = getActivityText(activityDetails);
+        const activityIcon = getActivityIcon(activityDetails);
+        
+        const currentStatus = friendEl.getAttribute('data-status');
+        if (currentStatus !== status) {
+            const statusIndicator = friendEl.querySelector('.w-3.h-3.rounded-full');
+            if (statusIndicator) {
+                statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300`;
+            }
+            friendEl.setAttribute('data-status', status);
+        }
+        
+        const activityEl = friendEl.querySelector('.text-xs.text-gray-400');
+        if (activityEl) {
+            const currentActivity = activityEl.textContent.trim();
+            const newActivity = activityText;
+            if (currentActivity !== newActivity) {
+                activityEl.innerHTML = `<i class="${activityIcon} mr-1"></i>${activityText}`;
+            }
+        }
+    }
+    
+    function createFriendElement(friend) {
+        const userData = onlineUsers[friend.id];
+        const status = userData?.status === 'online' ? 'online' : 'offline';
+        const statusClass = getStatusClass(status);
+        const activityDetails = userData?.activity_details;
+        const activityText = getActivityText(activityDetails);
+        const activityIcon = getActivityIcon(activityDetails);
+        
+        const friendEl = document.createElement('div');
+        friendEl.className = 'flex items-center mb-4 p-3 bg-discord-background rounded-md hover:bg-discord-darker cursor-pointer transition-all duration-200 animate-fadeIn';
+        friendEl.innerHTML = `
+            <div class="relative mr-3">
+                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                    <img src="${friend.avatar_url || ''}" 
+                         alt="${friend.username}" 
+                         class="w-full h-full object-cover user-avatar">
+                </div>
+                <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300"></div>
+            </div>
+            <div class="flex-1">
+                <div class="font-semibold text-white">${friend.username}</div>
+                <div class="text-xs text-gray-400 transition-all duration-200 flex items-center">
+                    <i class="${activityIcon} mr-1"></i>
+                    ${activityText}
+                </div>
+            </div>
+        `;
+        
+        friendEl.setAttribute('data-user-id', friend.id);
+        friendEl.setAttribute('data-status', status);
+        friendEl.addEventListener('click', function() {
+            if (window.userDetailModal) {
+                window.userDetailModal.show({
+                    userId: friend.id
+                });
+            }
+        });
+        
+        if (window.fallbackImageHandler) {
+            const img = friendEl.querySelector('img.user-avatar');
+            if (img) {
+                window.fallbackImageHandler.processImage(img);
+            }
+        }
+        
+        return friendEl;
+    }
+
     function scheduleUpdate() {
         if (updateTimer) {
             clearTimeout(updateTimer);
@@ -103,56 +202,59 @@ document.addEventListener('DOMContentLoaded', function() {
             return userData && userData.status === 'online';
         });
 
+        const newState = createFriendStateSignature(activeFriends);
+        
+        if (statesAreEqual(lastRenderedState, newState)) {
+            return;
+        }
+
         if (activeFriends.length > 0) {
-            activeFriendsList.innerHTML = '';
+            const existingFriends = new Map();
+            Array.from(activeFriendsList.children).forEach(child => {
+                const userId = child.getAttribute('data-user-id');
+                if (userId) {
+                    existingFriends.set(userId, child);
+                }
+            });
             
-            activeFriends.sort((a, b) => a.username.localeCompare(b.username));
-            
+            const newFriendsMap = new Map();
             activeFriends.forEach(friend => {
-                const userData = onlineUsers[friend.id];
-                const status = userData?.status === 'online' ? 'online' : 'offline';
-                const statusClass = getStatusClass(status);
-                const activityDetails = userData?.activity_details;
-                const activityText = getActivityText(activityDetails);
-                const activityIcon = getActivityIcon(activityDetails);
+                newFriendsMap.set(friend.id, friend);
+            });
+            
+            existingFriends.forEach((element, userId) => {
+                if (!newFriendsMap.has(userId)) {
+                    element.remove();
+                }
+            });
+            
+            const sortedActiveFriends = activeFriends.sort((a, b) => a.username.localeCompare(b.username));
+            
+            sortedActiveFriends.forEach((friend, index) => {
+                const existingEl = existingFriends.get(friend.id);
                 
-                const friendEl = document.createElement('div');
-                friendEl.className = 'flex items-center mb-4 p-3 bg-discord-background rounded-md hover:bg-discord-darker cursor-pointer transition-all duration-200 animate-fadeIn';
-                friendEl.innerHTML = `
-                    <div class="relative mr-3">
-                        <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                            <img src="${friend.avatar_url || ''}" 
-                                 alt="${friend.username}" 
-                                 class="w-full h-full object-cover user-avatar">
-                        </div>
-                        <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300"></div>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-semibold text-white">${friend.username}</div>
-                        <div class="text-xs text-gray-400 transition-all duration-200 flex items-center">
-                            <i class="${activityIcon} mr-1"></i>
-                            ${activityText}
-                        </div>
-                    </div>
-                `;
-                
-                friendEl.setAttribute('data-user-id', friend.id);
-                friendEl.setAttribute('data-status', status);
-                friendEl.addEventListener('click', function() {
-                    if (window.userDetailModal) {
-                        window.userDetailModal.show({
-                            userId: friend.id
-                        });
+                if (existingEl) {
+                    updateExistingFriend(existingEl, friend, onlineUsers[friend.id]);
+                    
+                    const currentIndex = Array.from(activeFriendsList.children).indexOf(existingEl);
+                    if (currentIndex !== index) {
+                        if (index === 0) {
+                            activeFriendsList.prepend(existingEl);
+                        } else {
+                            const referenceEl = activeFriendsList.children[index];
+                            activeFriendsList.insertBefore(existingEl, referenceEl);
+                        }
                     }
-                });
-                
-                activeFriendsList.appendChild(friendEl);
-                
-                // Apply fallback image handler to the new image
-                if (window.fallbackImageHandler) {
-                    const img = friendEl.querySelector('img.user-avatar');
-                    if (img) {
-                        window.fallbackImageHandler.processImage(img);
+                } else {
+                    const newEl = createFriendElement(friend);
+                    
+                    if (index === 0) {
+                        activeFriendsList.prepend(newEl);
+                    } else if (index >= activeFriendsList.children.length) {
+                        activeFriendsList.appendChild(newEl);
+                    } else {
+                        const referenceEl = activeFriendsList.children[index];
+                        activeFriendsList.insertBefore(newEl, referenceEl);
                     }
                 }
             });
@@ -163,6 +265,8 @@ document.addEventListener('DOMContentLoaded', function() {
             activeFriendsList.classList.add('hidden');
             noActiveFriends.classList.remove('hidden');
         }
+        
+        lastRenderedState = newState;
     }
     
     function setupFriendsManagerIntegration() {

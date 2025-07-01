@@ -4,6 +4,7 @@ class GlobalPresenceManager {
         this.isInitialized = false;
         this.activePagesWithActiveNow = ['home', 'server', 'admin', 'nitro', 'accept-invite'];
         this.currentPage = this.detectCurrentPage();
+        this.lastRenderedState = null;
         
         console.log('🌐 [GLOBAL-PRESENCE] Initializing for page:', this.currentPage);
     }
@@ -189,67 +190,172 @@ class GlobalPresenceManager {
                 return userData && userData.status === 'online';
             });
             
+            const newState = this.createFriendStateSignature(activeFriends, onlineUsers);
+            
+            if (this.statesAreEqual(this.lastRenderedState, newState)) {
+                return;
+            }
+            
             if (activeFriends.length > 0) {
-                this.renderActiveFriends(container, activeFriends, onlineUsers);
+                this.smartRenderActiveFriends(container, activeFriends, onlineUsers);
                 container.classList.remove('hidden');
                 emptyState.classList.add('hidden');
             } else {
                 container.classList.add('hidden');
                 emptyState.classList.remove('hidden');
             }
+            
+            this.lastRenderedState = newState;
         } catch (error) {
             console.error('❌ [GLOBAL-PRESENCE] Error updating Active Now:', error);
         }
     }
 
-    renderActiveFriends(container, activeFriends, onlineUsers) {
-        activeFriends.sort((a, b) => a.username.localeCompare(b.username));
-        
-        container.innerHTML = '';
-        
-        activeFriends.forEach(friend => {
+    createFriendStateSignature(activeFriends, onlineUsers) {
+        return activeFriends.map(friend => {
             const userData = onlineUsers[friend.id];
-            const status = userData?.status === 'online' ? 'online' : 'offline';
-            const statusClass = this.getStatusClass(status);
-            const activityText = this.getActivityText(userData?.activity_details);
-            const activityIcon = this.getActivityIcon(userData?.activity_details);
-            
-            const friendEl = document.createElement('div');
-            friendEl.className = 'flex items-center mb-4 p-3 bg-discord-background rounded-md hover:bg-discord-darker cursor-pointer transition-all duration-200';
-            friendEl.innerHTML = `
-                <div class="relative mr-3">
-                    <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                        <img src="${friend.avatar_url || ''}" 
-                             alt="${friend.username}" 
-                             class="w-full h-full object-cover user-avatar">
-                    </div>
-                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300"></div>
+            return {
+                id: friend.id,
+                username: friend.username,
+                avatar_url: friend.avatar_url,
+                status: userData?.status || 'offline',
+                activity_type: userData?.activity_details?.type || 'idle'
+            };
+        }).sort((a, b) => a.username.localeCompare(b.username));
+    }
+    
+    statesAreEqual(state1, state2) {
+        if (!state1 || !state2) return false;
+        if (state1.length !== state2.length) return false;
+        
+        return state1.every((friend1, index) => {
+            const friend2 = state2[index];
+            return friend1.id === friend2.id &&
+                   friend1.username === friend2.username &&
+                   friend1.status === friend2.status &&
+                   friend1.activity_type === friend2.activity_type;
+        });
+    }
+    
+    updateExistingFriend(friendEl, friend, userData) {
+        const status = userData?.status === 'online' ? 'online' : 'offline';
+        const statusClass = this.getStatusClass(status);
+        const activityDetails = userData?.activity_details;
+        const activityText = this.getActivityText(activityDetails);
+        const activityIcon = this.getActivityIcon(activityDetails);
+        
+        const currentStatus = friendEl.getAttribute('data-status');
+        if (currentStatus !== status) {
+            const statusIndicator = friendEl.querySelector('.w-3.h-3.rounded-full');
+            if (statusIndicator) {
+                statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300`;
+            }
+            friendEl.setAttribute('data-status', status);
+        }
+        
+        const activityEl = friendEl.querySelector('.text-xs.text-gray-400');
+        if (activityEl) {
+            const currentActivity = activityEl.textContent.trim();
+            const newActivity = activityText;
+            if (currentActivity !== newActivity) {
+                activityEl.innerHTML = `<i class="${activityIcon} mr-1"></i>${activityText}`;
+            }
+        }
+    }
+    
+    createFriendElement(friend, userData) {
+        const status = userData?.status === 'online' ? 'online' : 'offline';
+        const statusClass = this.getStatusClass(status);
+        const activityText = this.getActivityText(userData?.activity_details);
+        const activityIcon = this.getActivityIcon(userData?.activity_details);
+        
+        const friendEl = document.createElement('div');
+        friendEl.className = 'flex items-center mb-4 p-3 bg-discord-background rounded-md hover:bg-discord-darker cursor-pointer transition-all duration-200';
+        friendEl.innerHTML = `
+            <div class="relative mr-3">
+                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                    <img src="${friend.avatar_url || ''}" 
+                         alt="${friend.username}" 
+                         class="w-full h-full object-cover user-avatar">
                 </div>
-                <div class="flex-1">
-                    <div class="font-semibold text-white">${friend.username}</div>
-                    <div class="text-xs text-gray-400 transition-all duration-200 flex items-center">
-                        <i class="${activityIcon} mr-1"></i>
-                        ${activityText}
-                    </div>
+                <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300"></div>
+            </div>
+            <div class="flex-1">
+                <div class="font-semibold text-white">${friend.username}</div>
+                <div class="text-xs text-gray-400 transition-all duration-200 flex items-center">
+                    <i class="${activityIcon} mr-1"></i>
+                    ${activityText}
                 </div>
-            `;
+            </div>
+        `;
+        
+        friendEl.setAttribute('data-user-id', friend.id);
+        friendEl.setAttribute('data-status', status);
+        
+        if (window.fallbackImageHandler) {
+            const img = friendEl.querySelector('img.user-avatar');
+            if (img) {
+                window.fallbackImageHandler.processImage(img);
+            }
+        }
+        
+        return friendEl;
+    }
+
+    smartRenderActiveFriends(container, activeFriends, onlineUsers) {
+        const existingFriends = new Map();
+        Array.from(container.children).forEach(child => {
+            const userId = child.getAttribute('data-user-id');
+            if (userId) {
+                existingFriends.set(userId, child);
+            }
+        });
+        
+        const newFriendsMap = new Map();
+        activeFriends.forEach(friend => {
+            newFriendsMap.set(friend.id, friend);
+        });
+        
+        existingFriends.forEach((element, userId) => {
+            if (!newFriendsMap.has(userId)) {
+                element.remove();
+            }
+        });
+        
+        const sortedActiveFriends = activeFriends.sort((a, b) => a.username.localeCompare(b.username));
+        
+        sortedActiveFriends.forEach((friend, index) => {
+            const existingEl = existingFriends.get(friend.id);
             
-            friendEl.addEventListener('click', () => {
-                if (window.userDetailModal) {
-                    window.userDetailModal.show({ userId: friend.id });
+            if (existingEl) {
+                this.updateExistingFriend(existingEl, friend, onlineUsers[friend.id]);
+                
+                const currentIndex = Array.from(container.children).indexOf(existingEl);
+                if (currentIndex !== index) {
+                    if (index === 0) {
+                        container.prepend(existingEl);
+                    } else {
+                        const referenceEl = container.children[index];
+                        container.insertBefore(existingEl, referenceEl);
+                    }
                 }
-            });
-            
-            container.appendChild(friendEl);
-            
-            // Apply fallback image handler to the new image
-            if (window.fallbackImageHandler) {
-                const img = friendEl.querySelector('img.user-avatar');
-                if (img) {
-                    window.fallbackImageHandler.processImage(img);
+            } else {
+                const newEl = this.createFriendElement(friend, onlineUsers[friend.id]);
+                
+                if (index === 0) {
+                    container.prepend(newEl);
+                } else if (index >= container.children.length) {
+                    container.appendChild(newEl);
+                } else {
+                    const referenceEl = container.children[index];
+                    container.insertBefore(newEl, referenceEl);
                 }
             }
         });
+    }
+
+    renderActiveFriends(container, activeFriends, onlineUsers) {
+        this.smartRenderActiveFriends(container, activeFriends, onlineUsers);
     }
 
     getStatusClass(status) {
