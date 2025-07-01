@@ -18,11 +18,9 @@ if (typeof window !== 'undefined' && !window.logger) {
         trace: (module, message) => console.trace(`[${module.toUpperCase()}] ${message}`)
     };
     
-    window.logger._isFallback = true;
+
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    if (window.logger && window.logger._isFallback) {
-        console.log('[LOGGER] Using fallback logger - real logger may not be loaded');
-    }
+
 });

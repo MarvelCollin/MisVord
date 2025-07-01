@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initFriendProfileCards();
     initSearchFilter();
     setupUniqueSocketListeners();
-    initTabFromUrl();
 });
 
 function initFriendProfileCards() {
@@ -265,47 +264,3 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function initTabFromUrl() {
-    if (window.location.pathname !== '/home/friends') {
-        return;
-    }
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const tab = urlParams.get('tab') || 'online';
-    
-    const tabButton = document.querySelector(`[data-tab="${tab}"]`);
-    const tabContent = document.getElementById(`${tab}-tab`);
-    
-    if (tabButton && tabContent) {
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.add('hidden');
-        });
-        
-        tabContent.classList.remove('hidden');
-        
-        document.querySelectorAll('[data-tab]').forEach(button => {
-            button.classList.add('text-gray-300');
-            button.classList.remove('text-white', 'bg-discord-primary', 'bg-discord-green');
-            
-            if (button.getAttribute('data-tab') === 'add-friend') {
-                button.classList.remove('hover:bg-discord-green/90');
-            } else {
-                button.classList.add('hover:bg-discord-light');
-            }
-        });
-        
-        tabButton.classList.remove('text-gray-300');
-        tabButton.classList.add('text-white');
-        
-        if (tab === 'online') {
-            tabButton.classList.add('bg-discord-primary');
-            tabButton.classList.remove('hover:bg-discord-light');
-        } else if (tab === 'add-friend') {
-            tabButton.classList.add('bg-discord-green');
-            tabButton.classList.remove('hover:bg-discord-green/90');
-        } else {
-            tabButton.classList.add('bg-discord-primary');
-            tabButton.classList.remove('hover:bg-discord-light');
-        }
-    }
-}

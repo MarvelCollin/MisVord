@@ -5,30 +5,8 @@ if (typeof $ === 'undefined' && typeof jQuery !== 'undefined') {
 }
 
 function initChannelManager() {
-    loadServerChannels();
     initUpdateChannelForms();
     initDeleteChannelButtons();
-}
-
-function loadServerChannels() {
-    const serverId = getServerId();
-    if (!serverId) return;
-
-    window.serverAPI.getServerChannels(serverId)
-        .then(response => {
-            if (response.data) {
-                renderChannelList(response.data);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading channels:', error);
-        });
-}
-
-function renderChannelList(data) {
-    if (data.channels) {
-        console.log('Channels loaded:', data.channels.length);
-    }
 }
 
 function initUpdateChannelForms() {
@@ -57,13 +35,13 @@ function initUpdateChannelForms() {
             .then(response => {
                 if (response.success) {
                     showToast('Channel updated successfully', 'success');
-                    refreshChannelData();
+                    updateChannelInUI(channelId, data);
                 } else {
                     showToast('Failed to update channel', 'error');
                 }
             })
             .catch(error => {
-                console.error('Error updating channel:', error);
+    
                 showToast('Error updating channel', 'error');
             })
             .finally(() => {
@@ -97,13 +75,13 @@ function initDeleteChannelButtons() {
             .then(response => {
                 if (response.success) {
                     showToast('Channel deleted successfully', 'success');
-                    refreshChannelData();
+                    removeChannelFromUI(channelId);
                 } else {
                     showToast('Failed to delete channel', 'error');
                 }
             })
             .catch(error => {
-                console.error('Error deleting channel:', error);
+    
                 showToast('Error deleting channel', 'error');
             })
             .finally(() => {
@@ -113,10 +91,21 @@ function initDeleteChannelButtons() {
     });
 }
 
-function refreshChannelData() {
-    setTimeout(() => {
-        window.location.reload();
-    }, 1000);
+function updateChannelInUI(channelId, data) {
+    const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+    if (channelElement) {
+        const nameElement = channelElement.querySelector('.channel-name');
+        if (nameElement && data.name) {
+            nameElement.textContent = data.name;
+        }
+    }
+}
+
+function removeChannelFromUI(channelId) {
+    const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+    if (channelElement) {
+        channelElement.remove();
+    }
 }
 
 function getServerId() {
@@ -125,14 +114,14 @@ function getServerId() {
 }
 
 function initChannelEventListeners() {
-    console.log('Channel event listeners initialized');
+    
 }
 
 if (typeof window.initChannelManager === 'undefined') {
     window.initChannelManager = initChannelManager;
-    window.refreshChannelList = refreshChannelData;
     window.channelManager = {
-        refreshChannelList: refreshChannelData
+        updateChannelInUI,
+        removeChannelFromUI
     };
 }
 

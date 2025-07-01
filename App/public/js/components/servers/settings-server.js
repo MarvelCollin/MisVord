@@ -92,55 +92,59 @@ function initServerSettingsPage() {
     initCloseButton();
 }
 
-function initServerIconUpload() {
-    const iconContainer = document.getElementById('server-icon-container');
-    const iconInput = document.getElementById('server-icon-input');
-    const iconPreview = document.getElementById('server-icon-preview');
+function createImageUploadHandler(containerId, inputId, previewId, placeholderId, type, onSuccess) {
+    const container = document.getElementById(containerId);
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const placeholder = document.getElementById(placeholderId);
     
-    if (!iconContainer || !iconInput) return;
+    if (!container || !input) return;
     
     try {
-        const iconCutter = new ImageCutter({
-            container: iconContainer,
-            type: 'profile',
-            modalTitle: 'Upload Server Icon',
-            aspectRatio: 1,
+        const cutter = new ImageCutter({
+            container: container,
+            type: type,
+            modalTitle: `Upload Server ${type === 'profile' ? 'Icon' : 'Banner'}`,
+            aspectRatio: type === 'profile' ? 1 : 16/9,
             onCrop: (result) => {
                 if (result && result.error) {
-                    showToast(result.message || 'Error cropping server icon', 'error');
+                    showToast(result.message || `Error cropping server ${type === 'profile' ? 'icon' : 'banner'}`, 'error');
                     return;
                 }
                 
-                if (iconPreview) {
-                    iconPreview.src = result.dataUrl;
-                    iconPreview.classList.remove('hidden');
+                if (preview) {
+                    preview.src = result.dataUrl;
+                    preview.classList.remove('hidden');
                     
-                    const placeholder = document.getElementById('server-icon-placeholder');
                     if (placeholder) placeholder.classList.add('hidden');
                 }
                 
-                iconContainer.dataset.croppedImage = result.dataUrl;
+                container.dataset.croppedImage = result.dataUrl;
                 
-                updateServerPreviewIcon(result.dataUrl);
+                if (onSuccess) onSuccess(result.dataUrl);
                 
-                showToast('Server icon updated. Save changes to apply.', 'info');
+                showToast(`Server ${type === 'profile' ? 'icon' : 'banner'} updated. Save changes to apply.`, 'info');
             }
         });
         
-        window.serverIconCutter = iconCutter;
+        if (type === 'profile') {
+            window.serverIconCutter = cutter;
+        } else {
+            window.serverBannerCutter = cutter;
+        }
     } catch (error) {
-        console.error('Error initializing image cutter:', error);
+        console.error(`Error initializing ${type} cutter:`, error);
     }
     
-    if (iconContainer) {
-        iconContainer.addEventListener('click', function(e) {
+    if (container) {
+        container.addEventListener('click', function(e) {
             e.preventDefault();
-            iconInput.click();
+            input.click();
         });
     }
     
-    if (iconInput) {
-        iconInput.addEventListener('change', function() {
+    if (input) {
+        input.addEventListener('change', function() {
             if (!this.files || !this.files[0]) return;
             
             const file = this.files[0];
@@ -153,23 +157,23 @@ function initServerIconUpload() {
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    if (window.serverIconCutter) {
-                        window.serverIconCutter.loadImage(e.target.result);
+                    const cutter = type === 'profile' ? window.serverIconCutter : window.serverBannerCutter;
+                    if (cutter) {
+                        cutter.loadImage(e.target.result);
                     } else {
-                        if (iconPreview) {
-                            iconPreview.src = e.target.result;
-                            iconPreview.classList.remove('hidden');
+                        if (preview) {
+                            preview.src = e.target.result;
+                            preview.classList.remove('hidden');
                             
-                            const placeholder = document.getElementById('server-icon-placeholder');
                             if (placeholder) placeholder.classList.add('hidden');
                         }
                         
-                        iconContainer.dataset.croppedImage = e.target.result;
+                        container.dataset.croppedImage = e.target.result;
                         
-                        updateServerPreviewIcon(e.target.result);
+                        if (onSuccess) onSuccess(e.target.result);
                     }
                 } catch (error) {
-                    showToast('Error processing server icon', 'error');
+                    showToast(`Error processing server ${type === 'profile' ? 'icon' : 'banner'}`, 'error');
                 }
             };
             
@@ -178,7 +182,27 @@ function initServerIconUpload() {
     }
 }
 
+function initServerIconUpload() {
+    createImageUploadHandler(
+        'server-icon-container',
+        'server-icon-input', 
+        'server-icon-preview',
+        'server-icon-placeholder',
+        'profile',
+        updateServerPreviewIcon
+    );
+}
 
+function initServerBannerUpload() {
+    createImageUploadHandler(
+        'server-banner-container',
+        'server-banner-input',
+        'server-banner-preview', 
+        'server-banner-placeholder',
+        'banner',
+        updateServerPreviewBanner
+    );
+}
 
 function updateServerPreviewIcon(imageUrl) {
     const previewIcon = document.querySelector('.server-icon-preview img');
@@ -792,95 +816,6 @@ function initMemberManagementTab() {
 }
 
 /**
- * Initialize server banner upload
- */
-function initServerBannerUpload() {
-    const bannerContainer = document.getElementById('server-banner-container');
-    const bannerInput = document.getElementById('server-banner-input');
-    const bannerPreview = document.getElementById('server-banner-preview');
-    
-    if (!bannerContainer || !bannerInput) return;
-    
-    try {
-        const bannerCutter = new ImageCutter({
-            container: bannerContainer,
-            type: 'banner',
-            modalTitle: 'Upload Server Banner',
-            aspectRatio: 16/9,
-            onCrop: (result) => {
-                if (result && result.error) {
-                    showToast(result.message || 'Error cropping server banner', 'error');
-                    return;
-                }
-                
-                if (bannerPreview) {
-                    bannerPreview.src = result.dataUrl;
-                    bannerPreview.classList.remove('hidden');
-                    
-                    const placeholder = document.getElementById('server-banner-placeholder');
-                    if (placeholder) placeholder.classList.add('hidden');
-                }
-                
-                bannerContainer.dataset.croppedImage = result.dataUrl;
-                
-                updateServerPreviewBanner(result.dataUrl);
-                
-                showToast('Server banner updated. Save changes to apply.', 'info');
-            }
-        });
-        
-        window.serverBannerCutter = bannerCutter;
-    } catch (error) {
-        console.error('Error initializing banner cutter:', error);
-    }
-    
-    if (bannerContainer) {
-        bannerContainer.addEventListener('click', function(e) {
-            e.preventDefault();
-            bannerInput.click();
-        });
-    }
-    
-    if (bannerInput) {
-        bannerInput.addEventListener('change', function() {
-            if (!this.files || !this.files[0]) return;
-            
-            const file = this.files[0];
-            
-            if (!file.type.match('image.*')) {
-                showToast('Please select a valid image file', 'error');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    if (window.serverBannerCutter) {
-                        window.serverBannerCutter.loadImage(e.target.result);
-                    } else {
-                        if (bannerPreview) {
-                            bannerPreview.src = e.target.result;
-                            bannerPreview.classList.remove('hidden');
-                            
-                            const placeholder = document.getElementById('server-banner-placeholder');
-                            if (placeholder) placeholder.classList.add('hidden');
-                        }
-                        
-                        bannerContainer.dataset.croppedImage = e.target.result;
-                        
-                        updateServerPreviewBanner(e.target.result);
-                    }
-                } catch (error) {
-                    showToast('Error processing server banner', 'error');
-                }
-            };
-            
-            reader.readAsDataURL(file);
-        });
-    }
-}
-
-/**
  * Update the server banner in the preview panel
  */
 function updateServerPreviewBanner(imageUrl) {
@@ -997,10 +932,7 @@ function initDeleteServerTab() {
             try {
                 confirmDeleteBtn.disabled = true;
                 confirmDeleteBtn.innerHTML = `
-                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <i class="fas fa-spinner fa-spin -ml-1 mr-2 h-4 w-4 text-white inline-block"></i>
                     Deleting...
                 `;
                 

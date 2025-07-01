@@ -585,10 +585,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <button class="close-button">
     <div class="close-button-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
+        <i class="fas fa-times"></i>
     </div>
     <span class="close-button-text">ESC</span>
 </button>

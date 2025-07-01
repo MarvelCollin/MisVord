@@ -23,7 +23,6 @@ if (file_exists($tooltipPath)) {
 }
 ?>
 
-<!-- Load server sidebar CSS -->
 <link rel="stylesheet" href="/public/css/server-sidebar.css">
 
 <?php if ($isExplorePage): ?>
@@ -126,9 +125,7 @@ if (file_exists($tooltipPath)) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Server sidebar loaded with servers:', <?php echo json_encode($servers); ?>);
-    console.log('Current user ID:', <?php echo $currentUserId; ?>);
-    console.log('Is home page:', <?php echo $isHomePage ? 'true' : 'false'; ?>);
+    
     
     document.querySelectorAll('.server-icon').forEach(icon => {
         const tooltip = icon.querySelector('.tooltip');

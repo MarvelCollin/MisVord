@@ -11,7 +11,6 @@ require_once __DIR__ . '/BaseController.php';
 
 class ChannelController extends BaseController
 {
-
     private $channelRepository;
     private $messageRepository;
     private $membershipRepository;
@@ -33,11 +32,7 @@ class ChannelController extends BaseController
         
         if ($requireOwner) {
             $membership = $this->membershipRepository->findByUserAndServer($userId, $serverId);
-            if (!$membership) {
-                return $this->forbidden('You are not a member of this server');
-            }
-            
-            if ($membership->role !== 'owner' && $membership->role !== 'admin') {
+            if (!$membership || ($membership->role !== 'owner' && $membership->role !== 'admin')) {
                 return $this->forbidden('You do not have permission to perform this action');
             }
         } else {
@@ -67,7 +62,6 @@ class ChannelController extends BaseController
     public function index()
     {
         $this->requireAuth();
-
         $input = $this->getInput();
         $serverId = $input['server_id'] ?? null;
 
@@ -80,21 +74,12 @@ class ChannelController extends BaseController
             if ($accessCheck) return $accessCheck;
 
             $channels = $this->channelRepository->getByServerId($serverId);
-
-            $this->logActivity('channels_viewed', ['server_id' => $serverId]);
-
-            return $this->success([
-                'channels' => $channels,
-                'server_id' => $serverId
-            ]);
+            return $this->success(['channels' => $channels, 'server_id' => $serverId]);
         } catch (Exception $e) {
-            $this->logActivity('channels_view_error', [
-                'server_id' => $serverId,
-                'error' => $e->getMessage()
-            ]);
             return $this->serverError('Failed to load channels');
         }
     }
+
         public function show($channelId = null)
     {
         $this->requireAuth();
@@ -112,14 +97,8 @@ class ChannelController extends BaseController
             [$channel, $error] = $this->validateChannelAccess($channelId);
             if ($error) return $error;
 
-            $this->logActivity('channel_viewed', ['channel_id' => $channelId]);
-
             return $this->success(['channel' => $channel]);
         } catch (Exception $e) {
-            $this->logActivity('channel_view_error', [
-                'channel_id' => $channelId,
-                'error' => $e->getMessage()
-            ]);
             return $this->serverError('Failed to load channel');
         }
     }
@@ -127,7 +106,6 @@ class ChannelController extends BaseController
     public function create()
     {
         $this->requireAuth();
-
         $input = $this->getInput();
         $input = $this->sanitize($input);
 
@@ -154,24 +132,11 @@ class ChannelController extends BaseController
             $channel = $this->channelRepository->createWithPosition($channelData);
 
             if ($channel) {
-                $this->logActivity('channel_created', [
-                    'channel_id' => $channel->id,
-                    'server_id' => $input['server_id'],
-                    'name' => $input['name']
-                ]);
-
-                return $this->success([
-                    'message' => 'Channel created successfully',
-                    'channel_id' => $channel->id
-                ], 201);
+                return $this->success(['message' => 'Channel created successfully', 'channel_id' => $channel->id], 201);
             } else {
                 return $this->serverError('Failed to create channel');
             }
         } catch (Exception $e) {
-            $this->logActivity('channel_create_error', [
-                'server_id' => $input['server_id'],
-                'error' => $e->getMessage()
-            ]);
             return $this->serverError('Failed to create channel');
         }
     }
@@ -179,15 +144,12 @@ class ChannelController extends BaseController
     public function update()
     {
         $this->requireAuth();
-
         $input = $this->getInput();
         $input = $this->sanitize($input);
 
-        $this->validate($input, [
-            'channel_id' => 'required'
-        ]);
-
+        $this->validate($input, ['channel_id' => 'required']);
         $channelId = $input['channel_id'];
+        
         try {
             [$channel, $error] = $this->validateChannelAccess($channelId, true);
             if ($error) return $error;
@@ -209,15 +171,6 @@ class ChannelController extends BaseController
             if ($updated) {
                 $channel->updated_at = date('Y-m-d H:i:s');
                 if ($this->channelRepository->update($channel->id, (array)$channel)) {
-                    $this->logActivity('channel_updated', [
-                        'channel_id' => $channelId,
-                        'updates' => array_keys(array_filter([
-                            'name' => isset($input['name']),
-                            'description' => isset($input['description']),
-                            'category_id' => isset($input['category_id'])
-                        ]))
-                    ]);
-
                     return $this->success(['message' => 'Channel updated successfully']);
                 } else {
                     return $this->serverError('Failed to update channel');
@@ -226,10 +179,6 @@ class ChannelController extends BaseController
 
             return $this->success(['message' => 'No changes to update']);
         } catch (Exception $e) {
-            $this->logActivity('channel_update_error', [
-                'channel_id' => $channelId,
-                'error' => $e->getMessage()
-            ]);
             return $this->serverError('Failed to update channel');
         }
     }
@@ -237,7 +186,6 @@ class ChannelController extends BaseController
     public function delete()
     {
         $this->requireAuth();
-
         $input = $this->getInput();
         $channelId = $input['channel_id'] ?? null;
 
@@ -250,20 +198,11 @@ class ChannelController extends BaseController
             if ($error) return $error;
 
             if ($this->channelRepository->delete($channelId)) {
-                $this->logActivity('channel_deleted', [
-                    'channel_id' => $channelId,
-                    'server_id' => $channel->server_id
-                ]);
-
                 return $this->success(['message' => 'Channel deleted successfully']);
             } else {
                 return $this->serverError('Failed to delete channel');
             }
         } catch (Exception $e) {
-            $this->logActivity('channel_delete_error', [
-                'channel_id' => $channelId,
-                'error' => $e->getMessage()
-            ]);
             return $this->serverError('Failed to delete channel');
         }
     }
@@ -289,11 +228,6 @@ class ChannelController extends BaseController
             $offset = $_GET['offset'] ?? 0;
             $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, $offset);
 
-            $this->logActivity('channel_messages_viewed', [
-                'channel_id' => $channelId,
-                'message_count' => count($messages)
-            ]);
-
             return $this->success([
                 'messages' => $messages,
                 'channel_id' => $channelId,
@@ -301,10 +235,6 @@ class ChannelController extends BaseController
                 'has_more' => count($messages) >= $limit
             ]);
         } catch (Exception $e) {
-            $this->logActivity('channel_messages_error', [
-                'channel_id' => $channelId,
-                'error' => $e->getMessage()
-            ]);
             return $this->serverError('Failed to load channel messages');
         }
     }
@@ -312,7 +242,6 @@ class ChannelController extends BaseController
     public function sendMessage($channelId = null)
     {
         $this->requireAuth();
-
         $input = $this->getInput();
         $input = $this->sanitize($input);
 
@@ -330,7 +259,6 @@ class ChannelController extends BaseController
         $userId = $this->getCurrentUserId();
         $messageType = $input['message_type'] ?? 'text';
         $attachmentUrl = $input['attachment_url'] ?? null;
-        $mentions = $input['mentions'] ?? [];
         $replyMessageId = $input['reply_message_id'] ?? null;
 
         try {
@@ -406,10 +334,6 @@ class ChannelController extends BaseController
                     }
                 }
 
-                if (!empty($mentions)) {
-                    $formattedMessage['mentions'] = $mentions;
-                }
-
                 $query->commit();
                 
                 return $this->success([
@@ -427,7 +351,6 @@ class ChannelController extends BaseController
             if (isset($query)) {
                 $query->rollback();
             }
-            error_log('Channel message send error: ' . $e->getMessage());
             return $this->serverError('Failed to send message');
         }
     }
@@ -435,7 +358,6 @@ class ChannelController extends BaseController
     public function createCategory()
     {
         $this->requireAuth();
-
         $input = $this->getInput();
         $input = $this->sanitize($input);
 
@@ -460,12 +382,6 @@ class ChannelController extends BaseController
             $category = $categoryRepository->createWithPosition($categoryData);
 
             if ($category) {
-                $this->logActivity('category_created', [
-                    'category_id' => $category->id,
-                    'server_id' => $input['server_id'],
-                    'name' => $input['name']
-                ]);
-
                 return $this->success([
                     'message' => 'Category created successfully',
                     'category_id' => $category->id
@@ -474,143 +390,7 @@ class ChannelController extends BaseController
                 return $this->serverError('Failed to create category');
             }
         } catch (Exception $e) {
-            $this->logActivity('category_create_error', [
-                'server_id' => $input['server_id'],
-                'error' => $e->getMessage()
-            ]);
             return $this->serverError('Failed to create category');
-        }
-    }
-
-    public function batchUpdatePositions()
-    {
-        $this->requireAuth();
-
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-
-        $this->validate($input, [
-            'server_id' => 'required',
-            'updates' => 'required'
-        ]);
-        
-        try {
-            $accessCheck = $this->validateServerAccess($input['server_id'], true);
-            if ($accessCheck) return $accessCheck;
-
-            $updates = $input['updates'];
-            $successCount = 0;
-
-            foreach ($updates as $update) {
-                if (isset($update['id']) && isset($update['position'])) {
-                    $channel = $this->channelRepository->find($update['id']);
-                    if ($channel && $channel->server_id == $input['server_id']) {
-                        $channel->position = $update['position'];
-                        if ($channel->save()) {
-                            $successCount++;
-                        }
-                    }
-                }
-            }
-
-            $this->logActivity('positions_batch_updated', [
-                'server_id' => $input['server_id'],
-                'success_count' => $successCount,
-                'total_updates' => count($updates)
-            ]);
-
-            return $this->success([
-                'message' => 'Positions updated successfully',
-                'updated_count' => $successCount
-            ]);
-        } catch (Exception $e) {
-            $this->logActivity('positions_batch_update_error', [
-                'server_id' => $input['server_id'],
-                'error' => $e->getMessage()
-            ]);
-            return $this->serverError('Failed to update positions');
-        }
-    }
-
-    public function updateChannelPosition()
-    {
-        $this->requireAuth();
-
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-
-        $this->validate($input, [
-            'channel_id' => 'required',
-            'position' => 'required'
-        ]);
-        try {
-            $channel = $this->channelRepository->find($input['channel_id']);
-            if (!$channel) {
-                return $this->notFound('Channel not found');
-            }
-
-            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $channel->server_id)) {
-                return $this->forbidden('You do not have permission to update channel position');
-            }
-
-            $channel->position = $input['position'];
-            if ($channel->save()) {
-                $this->logActivity('channel_position_updated', [
-                    'channel_id' => $input['channel_id'],
-                    'new_position' => $input['position']
-                ]);
-
-                return $this->success(['message' => 'Channel position updated successfully']);
-            } else {
-                return $this->serverError('Failed to update channel position');
-            }
-        } catch (Exception $e) {
-            $this->logActivity('channel_position_update_error', [
-                'channel_id' => $input['channel_id'],
-                'error' => $e->getMessage()
-            ]);
-            return $this->serverError('Failed to update channel position');
-        }
-    }
-
-    public function updateCategoryPosition()
-    {
-        $this->requireAuth();
-
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-
-        $this->validate($input, [
-            'category_id' => 'required',
-            'position' => 'required'
-        ]);
-        try {
-            $category = $this->channelRepository->find($input['category_id']);
-            if (!$category || $category->type !== 'category') {
-                return $this->notFound('Category not found');
-            }
-
-            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $category->server_id)) {
-                return $this->forbidden('You do not have permission to update category position');
-            }
-
-            $category->position = $input['position'];
-            if ($category->save()) {
-                $this->logActivity('category_position_updated', [
-                    'category_id' => $input['category_id'],
-                    'new_position' => $input['position']
-                ]);
-
-                return $this->success(['message' => 'Category position updated successfully']);
-            } else {
-                return $this->serverError('Failed to update category position');
-            }
-        } catch (Exception $e) {
-            $this->logActivity('category_position_update_error', [
-                'category_id' => $input['category_id'],
-                'error' => $e->getMessage()
-            ]);
-            return $this->serverError('Failed to update category position');
         }
     }
 
@@ -626,6 +406,7 @@ class ChannelController extends BaseController
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
         }
+        
         try {
             $channel = $this->channelRepository->find($channelId);
             if (!$channel) {
@@ -648,11 +429,6 @@ class ChannelController extends BaseController
                 ];
             }, $participants);
 
-            $this->logActivity('channel_participants_viewed', [
-                'channel_id' => $channelId,
-                'participant_count' => count($participants)
-            ]);
-
             return $this->success([
                 'data' => $formattedParticipants,
                 'participants' => $participants,
@@ -660,10 +436,6 @@ class ChannelController extends BaseController
                 'total' => count($participants)
             ]);
         } catch (Exception $e) {
-            $this->logActivity('channel_participants_error', [
-                'channel_id' => $channelId,
-                'error' => $e->getMessage()
-            ]);
             return $this->serverError('Failed to load channel participants');
         }
     }
@@ -676,17 +448,10 @@ class ChannelController extends BaseController
     public function getServerChannels($serverId)
     {
         $this->requireAuth();
-        
         $currentUserId = $this->getCurrentUserId();
         
         try {
             if (!$this->membershipRepository->isMember($currentUserId, $serverId)) {
-                if (function_exists('logger')) {
-                    logger()->warning("User attempted to access server channels without membership", [
-                        'user_id' => $currentUserId,
-                        'server_id' => $serverId
-                    ]);
-                }
                 return [
                     'activeChannelId' => null,
                     'channels' => [],
@@ -696,7 +461,6 @@ class ChannelController extends BaseController
 
             $channels = $this->channelRepository->getByServerId($serverId);
             $categories = $this->categoryRepository->getForServer($serverId);
-            
             $activeChannelId = $_GET['channel'] ?? null;
             
             if (!$activeChannelId && !empty($channels)) {
@@ -707,16 +471,6 @@ class ChannelController extends BaseController
             $GLOBALS['serverCategories'] = $categories;
             $GLOBALS['activeChannelId'] = $activeChannelId;
             
-            if (function_exists('logger')) {
-                logger()->debug("Server channels loaded", [
-                    'server_id' => $serverId,
-                    'user_id' => $currentUserId,
-                    'channel_count' => count($channels),
-                    'category_count' => count($categories),
-                    'active_channel_id' => $activeChannelId
-                ]);
-            }
-            
             return [
                 'activeChannelId' => $activeChannelId,
                 'channels' => $channels,
@@ -724,15 +478,6 @@ class ChannelController extends BaseController
             ];
             
         } catch (Exception $e) {
-            if (function_exists('logger')) {
-                logger()->error("Failed to get server channels", [
-                    'server_id' => $serverId,
-                    'user_id' => $currentUserId,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-            }
-            
             return [
                 'activeChannelId' => null,
                 'channels' => [],
@@ -744,7 +489,6 @@ class ChannelController extends BaseController
     public function switchToChannel()
     {
         $this->requireAuth();
-        
         $input = $this->getInput();
         $channelId = $input['channel_id'] ?? $_GET['channel_id'] ?? null;
         $limit = $input['limit'] ?? $_GET['limit'] ?? 50;
@@ -777,8 +521,6 @@ class ChannelController extends BaseController
             $serverRepository = new ServerRepository();
             $server = $serverRepository->find($channel->server_id);
             
-            $this->logActivity('channel_switched', ['channel_id' => $channelId]);
-            
             return $this->success([
                 'channel' => [
                     'id' => $channel->id,
@@ -798,599 +540,7 @@ class ChannelController extends BaseController
                 'has_more' => count($messages) >= $limit
             ]);
         } catch (Exception $e) {
-            $this->logActivity('channel_switch_error', [
-                'channel_id' => $channelId,
-                'error' => $e->getMessage()
-            ]);
             return $this->serverError('Failed to switch to channel: ' . $e->getMessage());
-        }
-    }
-
-    public function getChannelContent()
-    {
-        $this->requireAuth();
-        
-        $serverId = $_GET['server_id'] ?? null;
-        $channelId = $_GET['channel_id'] ?? null;
-        $type = $_GET['type'] ?? 'text';
-        
-        if (!$serverId || !$channelId) {
-            return $this->validationError(['server_id' => 'Server ID required', 'channel_id' => 'Channel ID required']);
-        }
-        
-        try {
-            $currentUserId = $this->getCurrentUserId();
-            
-            if (!$this->membershipRepository->isMember($currentUserId, $serverId)) {
-                return $this->forbidden('Access denied to server');
-            }
-            
-            require_once __DIR__ . '/../database/repositories/ServerRepository.php';
-            require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
-            require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
-            
-            $serverRepository = new ServerRepository();
-            $categoryRepository = new CategoryRepository();
-            $userServerMembershipRepository = new UserServerMembershipRepository();
-            
-            $server = $serverRepository->find($serverId);
-            if (!$server) {
-                return $this->notFound('Server not found');
-            }
-            
-            $channel = $this->channelRepository->find($channelId);
-            if (!$channel) {
-                return $this->notFound('Channel not found');
-            }
-            
-            if ($channel->server_id != $serverId) {
-                return $this->forbidden('Channel not in specified server');
-            }
-            
-            $channels = $this->channelRepository->getByServerId($serverId);
-            $categories = $categoryRepository->getForServer($serverId);
-            $serverMembers = $userServerMembershipRepository->getServerMembers($serverId);
-            $channelMessages = [];
-            
-            if ($type === 'text') {
-                try {
-                    $channelMessages = $this->messageRepository->getForChannel($channelId, 50, 0);
-                } catch (Exception $e) {
-                    $channelMessages = [];
-                }
-            }
-            
-            $GLOBALS['server'] = $server;
-            $GLOBALS['currentServer'] = $server;
-            $GLOBALS['serverChannels'] = $channels;
-            $GLOBALS['serverCategories'] = $categories;
-            $GLOBALS['activeChannelId'] = $channelId;
-            $GLOBALS['activeChannel'] = $channel;
-            $GLOBALS['channelMessages'] = $channelMessages;
-            $GLOBALS['serverMembers'] = $serverMembers;
-            
-            if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                if (isset($_GET['render_html']) && $_GET['render_html'] === 'true') {
-                    ob_start();
-                    
-                    if ($type === 'voice') {
-                        require_once __DIR__ . '/../views/components/app-sections/voice-section.php';
-                    } else {
-                        require_once __DIR__ . '/../views/components/app-sections/chat-section.php';
-                    }
-                    
-                    $html = ob_get_clean();
-                    
-                    return $this->success([
-                        'html' => $html,
-                        'server' => [
-                            'id' => $server->id,
-                            'name' => $server->name
-                        ],
-                        'channel' => [
-                            'id' => $channel->id,
-                            'name' => $channel->name,
-                            'type' => $channel->type
-                        ],
-                        'channels' => $channels,
-                        'categories' => $categories,
-                        'messages' => $channelMessages,
-                        'members' => $serverMembers,
-                        'activeChannelId' => $channelId,
-                        'type' => $type
-                    ]);
-                }
-                
-                return $this->success([
-                'channel' => [
-                    'id' => $channel->id,
-                    'name' => $channel->name,
-                    'type' => $channel->type,
-                    'description' => $channel->description,
-                    'server_id' => $channel->server_id
-                ],
-                    'server' => [
-                        'id' => $server->id,
-                        'name' => $server->name
-                    ],
-                    'channels' => $channels,
-                    'categories' => $categories,
-                    'messages' => $channelMessages,
-                    'members' => $serverMembers,
-                    'activeChannelId' => $channelId,
-                'server_id' => $serverId,
-                    'channel_type' => $type,
-                    'meeting_id' => $type === 'voice' ? 'voice_channel_' . $channelId : null,
-                    'username' => $_SESSION['username'] ?? 'Anonymous'
-                ]);
-            }
-            
-            $this->logActivity('channel_content_api_accessed', [
-                'channel_id' => $channelId,
-                'server_id' => $serverId,
-                'type' => $type
-            ]);
-            
-            if ($type === 'voice') {
-                require_once __DIR__ . '/../views/components/app-sections/voice-section.php';
-            } else {
-                require_once __DIR__ . '/../views/components/app-sections/chat-section.php';
-            }
-            
-        } catch (Exception $e) {
-            $this->logActivity('channel_content_api_error', [
-                'channel_id' => $channelId,
-                'server_id' => $serverId,
-                'error' => $e->getMessage()
-            ]);
-            return $this->serverError('Failed to load channel content');
-        }
-    }
-
-    public function moveChannelToCategory()
-    {
-        $this->requireAuth();
-
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-
-        $this->validate($input, [
-            'channel_id' => 'required',
-            'server_id' => 'required',
-            'new_position' => 'required'
-        ]);
-
-        try {
-            $accessCheck = $this->validateServerAccess($input['server_id'], true);
-            if ($accessCheck) return $accessCheck;
-
-            $channelId = $input['channel_id'];
-            $newCategoryId = $input['category_id'] ?? null;
-            $newPosition = (int)$input['new_position'];
-            $serverId = $input['server_id'];
-
-            $channel = $this->channelRepository->find($channelId);
-            if (!$channel || $channel->server_id != $serverId) {
-                return $this->notFound('Channel not found');
-            }
-
-            $query = new Query();
-            $query->beginTransaction();
-
-            if ($newCategoryId) {
-                $query->table('channels')
-                    ->where('category_id', $newCategoryId)
-                    ->where('position', '>=', $newPosition)
-                    ->where('id', '!=', $channelId)
-                    ->increment('position');
-            } else {
-                $query->table('channels')
-                    ->where('server_id', $serverId)
-                    ->whereNull('category_id')
-                    ->where('position', '>=', $newPosition)
-                    ->where('id', '!=', $channelId)
-                    ->increment('position');
-            }
-
-            $channel->category_id = $newCategoryId;
-            $channel->position = $newPosition;
-            $channel->updated_at = date('Y-m-d H:i:s');
-
-            if ($channel->save()) {
-                $query->commit();
-
-                $this->logActivity('channel_moved', [
-                    'channel_id' => $channelId,
-                    'old_category_id' => $input['old_category_id'] ?? null,
-                    'new_category_id' => $newCategoryId,
-                    'new_position' => $newPosition,
-                    'server_id' => $serverId
-                ]);
-
-                return $this->success([
-                    'message' => 'Channel moved successfully',
-                    'channel' => [
-                        'id' => $channel->id,
-                        'category_id' => $channel->category_id,
-                        'position' => $channel->position
-                    ]
-                ]);
-            } else {
-                $query->rollback();
-                return $this->serverError('Failed to move channel');
-            }
-        } catch (Exception $e) {
-            if (isset($query)) {
-                $query->rollback();
-            }
-            $this->logActivity('channel_move_error', [
-                'channel_id' => $input['channel_id'],
-                'error' => $e->getMessage()
-            ]);
-            return $this->serverError('Failed to move channel');
-        }
-    }
-
-    public function reorderChannels()
-    {
-        $this->requireAuth();
-
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-
-        $this->validate($input, [
-            'server_id' => 'required',
-            'channel_orders' => 'required'
-        ]);
-
-        try {
-            $accessCheck = $this->validateServerAccess($input['server_id'], true);
-            if ($accessCheck) return $accessCheck;
-
-            $serverId = $input['server_id'];
-            $channelOrders = $input['channel_orders'];
-
-            $query = new Query();
-            $query->beginTransaction();
-
-            $successCount = 0;
-            foreach ($channelOrders as $order) {
-                if (isset($order['id']) && isset($order['position'])) {
-                    $channelId = $order['id'];
-                    $position = (int)$order['position'];
-                    $categoryId = $order['category_id'] ?? null;
-
-                    $updated = $query->table('channels')
-                        ->where('id', $channelId)
-                        ->where('server_id', $serverId)
-                        ->update([
-                            'position' => $position,
-                            'category_id' => $categoryId,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]);
-
-                    if ($updated) {
-                        $successCount++;
-                    }
-                }
-            }
-
-            $query->commit();
-
-            $this->logActivity('channels_reordered', [
-                'server_id' => $serverId,
-                'success_count' => $successCount,
-                'total_updates' => count($channelOrders)
-            ]);
-
-            return $this->success([
-                'message' => 'Channels reordered successfully',
-                'updated_count' => $successCount
-            ]);
-        } catch (Exception $e) {
-            if (isset($query)) {
-                $query->rollback();
-            }
-            $this->logActivity('channels_reorder_error', [
-                'server_id' => $input['server_id'],
-                'error' => $e->getMessage()
-            ]);
-            return $this->serverError('Failed to reorder channels');
-        }
-    }
-
-    public function reorderCategories()
-    {
-        $this->requireAuth();
-
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-
-        $this->validate($input, [
-            'server_id' => 'required',
-            'category_orders' => 'required'
-        ]);
-
-        try {
-            $accessCheck = $this->validateServerAccess($input['server_id'], true);
-            if ($accessCheck) return $accessCheck;
-
-            $serverId = $input['server_id'];
-            $categoryOrders = $input['category_orders'];
-
-            $query = new Query();
-            $query->beginTransaction();
-
-            $successCount = 0;
-            foreach ($categoryOrders as $order) {
-                if (isset($order['id']) && isset($order['position'])) {
-                    $categoryId = $order['id'];
-                    $position = (int)$order['position'];
-
-                    $updated = $query->table('categories')
-                        ->where('id', $categoryId)
-                        ->where('server_id', $serverId)
-                        ->update([
-                            'position' => $position,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]);
-
-                    if ($updated) {
-                        $successCount++;
-                    }
-                }
-            }
-
-            $query->commit();
-
-            $this->logActivity('categories_reordered', [
-                'server_id' => $serverId,
-                'success_count' => $successCount,
-                'total_updates' => count($categoryOrders)
-            ]);
-
-            return $this->success([
-                'message' => 'Categories reordered successfully',
-                'updated_count' => $successCount
-            ]);
-        } catch (Exception $e) {
-            if (isset($query)) {
-                $query->rollback();
-            }
-            $this->logActivity('categories_reorder_error', [
-                'server_id' => $input['server_id'],
-                'error' => $e->getMessage()
-            ]);
-            return $this->serverError('Failed to reorder categories');
-        }
-    }
-
-    public function syncServerPositions()
-    {
-        $this->requireAuth();
-
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-
-        $this->validate($input, [
-            'server_id' => 'required'
-        ]);
-        
-        try {
-            $accessCheck = $this->validateServerAccess($input['server_id'], true);
-            if ($accessCheck) return $accessCheck;
-
-            $globalSequence = $input['global_sequence'] ?? false;
-
-            if ($globalSequence) {
-                return $this->syncServerPositionsGlobal($input['server_id']);
-            } else {
-                return $this->syncServerPositionsTraditional($input['server_id']);
-            }
-        } catch (Exception $e) {
-            $this->logActivity('server_positions_sync_error', [
-                'server_id' => $input['server_id'] ?? null,
-                'error' => $e->getMessage()
-            ]);
-            return $this->serverError('Failed to sync server positions: ' . $e->getMessage());
-        }
-    }
-
-    private function syncServerPositionsGlobal($serverId)
-    {
-        require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
-        $categoryRepository = new CategoryRepository();
-        
-        $query = new Query();
-        $query->beginTransaction();
-
-        $categories = $categoryRepository->getForServer($serverId);
-        $channels = $this->channelRepository->getForServer($serverId);
-
-        $allItems = [];
-
-        foreach ($categories as $category) {
-            $allItems[] = [
-                'type' => 'category',
-                'id' => $category->id,
-                'name' => $category->name,
-                'creation_id' => $category->id
-            ];
-        }
-
-        $uncategorizedChannels = array_filter($channels, function($channel) {
-            return is_null($channel->category_id) || $channel->category_id == 0;
-        });
-
-        foreach ($uncategorizedChannels as $channel) {
-            $allItems[] = [
-                'type' => 'channel',
-                'id' => $channel->id,
-                'name' => $channel->name,
-                'category_id' => null,
-                'creation_id' => $channel->id
-            ];
-        }
-
-        usort($allItems, function($a, $b) {
-            return $a['creation_id'] <=> $b['creation_id'];
-        });
-
-        $globalPosition = 1;
-        foreach ($allItems as $item) {
-            if ($item['type'] === 'category') {
-                $query->table('categories')
-                    ->where('id', $item['id'])
-                    ->update(['position' => $globalPosition]);
-            } else {
-                $query->table('channels')
-                    ->where('id', $item['id'])
-                    ->update(['position' => $globalPosition]);
-            }
-            $globalPosition++;
-        }
-
-        foreach ($categories as $category) {
-            $categoryChannels = array_filter($channels, function($channel) use ($category) {
-                return $channel->category_id == $category->id;
-            });
-            usort($categoryChannels, function($a, $b) {
-                return $a->id <=> $b->id;
-            });
-            
-            $categoryChannelPosition = 1;
-            foreach ($categoryChannels as $channel) {
-                $query->table('channels')
-                    ->where('id', $channel->id)
-                    ->update(['position' => $categoryChannelPosition]);
-                $categoryChannelPosition++;
-            }
-        }
-
-        $query->commit();
-
-        $this->logActivity('server_positions_synced_global', [
-            'server_id' => $serverId,
-            'categories_synced' => count($categories),
-            'channels_synced' => count($channels),
-            'global_items_synced' => count($allItems)
-        ]);
-
-        return $this->success([
-            'message' => 'Server positions synchronized with global sequence',
-            'categories_synced' => count($categories),
-            'channels_synced' => count($channels),
-            'global_items_synced' => count($allItems),
-            'sync_type' => 'global'
-        ]);
-    }
-
-    private function syncServerPositionsTraditional($serverId)
-    {
-        require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
-        $categoryRepository = new CategoryRepository();
-        
-        $query = new Query();
-        $query->beginTransaction();
-
-        $categories = $categoryRepository->getForServer($serverId);
-        usort($categories, function($a, $b) {
-            return $a->id <=> $b->id;
-        });
-        
-        $categoryPosition = 1;
-        foreach ($categories as $category) {
-            $query->table('categories')
-                ->where('id', $category->id)
-                ->update(['position' => $categoryPosition]);
-            $categoryPosition++;
-        }
-
-        $channels = $this->channelRepository->getForServer($serverId);
-        
-        $uncategorizedChannels = array_filter($channels, function($channel) {
-            return is_null($channel->category_id) || $channel->category_id == 0;
-        });
-        usort($uncategorizedChannels, function($a, $b) {
-            return $a->id <=> $b->id;
-        });
-        
-        $channelPosition = 1;
-        foreach ($uncategorizedChannels as $channel) {
-            $query->table('channels')
-                ->where('id', $channel->id)
-                ->update(['position' => $channelPosition]);
-            $channelPosition++;
-        }
-
-        foreach ($categories as $category) {
-            $categoryChannels = array_filter($channels, function($channel) use ($category) {
-                return $channel->category_id == $category->id;
-            });
-            usort($categoryChannels, function($a, $b) {
-                return $a->id <=> $b->id;
-            });
-            
-            $categoryChannelPosition = 1;
-            foreach ($categoryChannels as $channel) {
-                $query->table('channels')
-                    ->where('id', $channel->id)
-                    ->update(['position' => $categoryChannelPosition]);
-                $categoryChannelPosition++;
-            }
-        }
-
-        $query->commit();
-
-        $this->logActivity('server_positions_synced_traditional', [
-            'server_id' => $serverId,
-            'categories_synced' => count($categories),
-            'channels_synced' => count($channels)
-        ]);
-
-        return $this->success([
-            'message' => 'Server positions synchronized with traditional sequence',
-            'categories_synced' => count($categories),
-            'channels_synced' => count($channels),
-            'sync_type' => 'traditional'
-        ]);
-    }
-
-    public function debugMembership($serverId = null) {
-        $this->requireAuth();
-        
-        if (!$serverId) {
-            $input = $this->getInput();
-            $serverId = $input['server_id'] ?? $_GET['server_id'] ?? null;
-        }
-        
-        if (!$serverId) {
-            return $this->validationError(['server_id' => 'Server ID is required']);
-        }
-        
-        $userId = $this->getCurrentUserId();
-        
-        try {
-            $membership = $this->membershipRepository->findByUserAndServer($userId, $serverId);
-            $isMember = $this->membershipRepository->isMember($userId, $serverId);
-            $isOwner = $this->membershipRepository->isOwner($userId, $serverId);
-            
-            return $this->success([
-                'user_id' => $userId,
-                'server_id' => $serverId,
-                'membership' => $membership ? [
-                    'id' => $membership->id,
-                    'user_id' => $membership->user_id,
-                    'server_id' => $membership->server_id,
-                    'role' => $membership->role,
-                    'created_at' => $membership->created_at
-                ] : null,
-                'is_member' => $isMember,
-                'is_owner' => $isOwner,
-                'can_create_channels' => $membership && ($membership->role === 'owner' || $membership->role === 'admin')
-            ]);
-        } catch (Exception $e) {
-            return $this->serverError('Debug failed: ' . $e->getMessage());
         }
     }
 }

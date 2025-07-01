@@ -6,7 +6,6 @@ import '../core/ui/toast.js';
 const friendAPI = window.FriendAPI;
 
 document.addEventListener('DOMContentLoaded', function () {
-    initTabHandling();
     initFriendRequestForm();
     
     if (window.location.pathname === '/home/friends' || window.location.pathname === '/home') {
@@ -21,64 +20,13 @@ document.addEventListener('DOMContentLoaded', function () {
         initResponsiveHandling();
         initMobileMenu();
         
-        const createServerButtons = document.querySelectorAll('[data-action="create-server"]');
-        if (createServerButtons.length > 0) {
-            console.log('Found create server buttons in app-layout.js:', createServerButtons.length);
-            
-            createServerButtons.forEach(button => {
-                const newButton = button.cloneNode(true);
-                button.parentNode.replaceChild(newButton, button);
-                
-                newButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Create server button clicked from app-layout.js');
-                    
-                    const modal = document.getElementById('create-server-modal');
-                    if (modal) {
-                        console.log('Modal found, opening directly');
-                        modal.classList.remove('hidden');
-                        modal.style.display = 'flex';
-                        
-                        requestAnimationFrame(() => {
-                            modal.classList.remove('opacity-0');
-                        });
-                    } else {
-                        console.error('Modal not found in the DOM from app-layout.js');
-                    }
-                });
-            });
-        }
+
         
         initializeOnPageLoad();
     });
 });
 
 function initServerModal() {
-    const createServerBtn = document.querySelector('[data-action="create-server"]');
-    const modal = document.getElementById('create-server-modal');
-    const closeBtn = document.getElementById('close-server-modal');
-
-    if (createServerBtn && modal) {
-        createServerBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            modal.classList.remove('hidden');
-        });
-    }
-
-    if (closeBtn && modal) {
-        closeBtn.addEventListener('click', function () {
-            modal.classList.add('hidden');
-        });
-    }
-
-    if (modal) {
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) {
-                modal.classList.add('hidden');
-            }
-        });
-    }
 }
 
 
@@ -111,126 +59,66 @@ function createDirectMessage(userId) {
         });
 }
 
-function initTabHandling() {
-    const tabs = document.querySelectorAll('[data-tab]');
 
-    if (!tabs.length) return;
-
-    tabs.forEach(tab => {
-        if (tab.closest('.settings-page') || tab.classList.contains('voice-tab')) {
-            return;
-        }
-        
-        tab.addEventListener('click', function (e) {
-            e.preventDefault();
-            const tabName = this.getAttribute('data-tab');
-            activateTab(tabName);
-        });
-    });
-}
-
-function activateTab(tabName) {
-    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
-    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
-        console.log('[App Layout] Skeleton loading active, deferring tab activation');
-        return;
-    }
-    
-    const tabs = document.querySelectorAll('[data-tab]');
-    const tabContents = document.querySelectorAll('.tab-content');
-    
-    updateTabUI(tabName, tabs, tabContents);
-    
-    if (window.location.pathname === '/home/friends' || window.location.pathname === '/home') {
-        const url = new URL(window.location);
-        url.searchParams.set('tab', tabName);
-        window.history.pushState({}, '', url);
-    } else {
-        window.location.href = '/home/friends?tab=' + tabName;
-    }
-}
-
-function updateTabUI(tabName, tabs, tabContents) {
-    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
-    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
-        console.log('[App Layout] Skeleton loading active, deferring tab UI update');
-        return;
-    }
-    
-    tabs.forEach(tab => {
-        if (tab.getAttribute('data-tab') === tabName) {
-            tab.classList.remove('text-gray-300');
-            tab.classList.add('text-white');
-            
-            if (tabName === 'online' || tabName === 'add-friend') {
-                tab.classList.add(tabName === 'online' ? 'bg-discord-primary' : 'bg-discord-green');
-                tab.classList.remove(tabName === 'online' ? 'hover:bg-discord-light' : 'hover:bg-discord-green/90');
-            } else {
-                tab.classList.add('bg-discord-primary');
-                tab.classList.remove('hover:bg-discord-light');
-            }
-        } else {
-            tab.classList.add('text-gray-300');
-            tab.classList.remove('text-white');
-            
-            const currentTabName = tab.getAttribute('data-tab');
-            if (currentTabName === 'online' || currentTabName === 'add-friend') {
-                tab.classList.remove(currentTabName === 'online' ? 'bg-discord-primary' : 'bg-discord-green');
-                tab.classList.add('hover:bg-discord-light');
-            } else {
-                tab.classList.remove('bg-discord-primary');
-                tab.classList.add('hover:bg-discord-light');
-            }
-        }
-    });
-    
-    tabContents.forEach(content => {
-        if (content.id === tabName + '-tab') {
-            content.classList.remove('hidden');
-            
-            if (window.FriendsManager) {
-                const friendsManager = window.FriendsManager.getInstance();
-                friendsManager.invalidateCache(['friends', 'pending', 'online']);
-            }
-            
-            if (tabName === 'online') {
-                loadOnlineFriends(true);
-            } else if (tabName === 'all') {
-                loadAllFriends(true);
-            } else if (tabName === 'pending') {
-                loadPendingRequests(true);
-            }
-        } else {
-            content.classList.add('hidden');
-        }
-    });
-}
 
 async function loadOnlineFriends(forceRefresh = false) {
+    console.log('🔄 [APP-LAYOUT] loadOnlineFriends called, forceRefresh:', forceRefresh);
+    
     const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
-    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
-        console.log('[App Layout] Skeleton loading active, skipping online friends load');
+    const skeletonAttribute = mainLayoutContainer?.getAttribute('data-skeleton');
+    console.log('🔍 [APP-LAYOUT] Skeleton check:', {
+        containerFound: !!mainLayoutContainer,
+        skeletonAttribute: skeletonAttribute,
+        willSkip: skeletonAttribute === 'home'
+    });
+    
+    if (mainLayoutContainer && skeletonAttribute === 'home') {
+        console.log('⏸️ [APP-LAYOUT] Skeleton loading active, skipping online friends load');
         return;
     }
     
     const container = document.getElementById('online-friends-container');
-    if (!container) return;
+    if (!container) {
+        console.warn('⚠️ [APP-LAYOUT] Online friends container not found');
+        return;
+    }
     
     if (!window.FriendsManager) {
-        console.error('FriendsManager not loaded');
+        console.error('❌ [APP-LAYOUT] FriendsManager not loaded');
         container.innerHTML = '<div class="text-gray-400 p-4">Loading friends system...</div>';
         return;
     }
     
     const friendsManager = window.FriendsManager.getInstance();
-    
-    if (forceRefresh) {
-        container.innerHTML = generateSkeletonFriends(3);
-    }
+    console.log('📊 [APP-LAYOUT] FriendsManager instance obtained');
     
     try {
         const friends = await friendsManager.getFriends(forceRefresh);
-        const onlineFriends = friends ? friends.filter(friend => friend.status === 'online') : [];
+        let onlineUsers = {};
+        
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            onlineUsers = await friendsManager.getOnlineUsers(forceRefresh);
+        }
+        
+        console.log('📊 [APP-LAYOUT] Data loaded:', {
+            friendsCount: friends?.length || 0,
+            onlineUsersCount: Object.keys(onlineUsers).length,
+            onlineUsers: Object.keys(onlineUsers),
+            friendIds: friends?.map(f => f.id) || []
+        });
+        
+        const onlineFriends = friends ? friends.filter(friend => {
+            const userData = onlineUsers[friend.id];
+            const isOnline = userData && userData.status !== 'offline';
+            console.log(`🔍 [APP-LAYOUT] Friend ${friend.username} (${friend.id}):`, {
+                userData,
+                isOnline,
+                status: userData?.status
+            });
+            return isOnline;
+        }) : [];
+        
+        console.log('✨ [APP-LAYOUT] Online friends found:', onlineFriends.length, onlineFriends.map(f => f.username));
 
         if (!onlineFriends || onlineFriends.length === 0) {
             container.innerHTML = `
@@ -243,29 +131,41 @@ async function loadOnlineFriends(forceRefresh = false) {
                 </div>
             `;
             updateOnlineCount(0);
+            console.log('📭 [APP-LAYOUT] No online friends, showing empty state');
             return;
         }
+
+        onlineFriends.sort((a, b) => {
+            const statusA = onlineUsers[a.id]?.status || 'offline';
+            const statusB = onlineUsers[b.id]?.status || 'offline';
+            
+            if (statusA === 'online' && statusB !== 'online') return -1;
+            if (statusB === 'online' && statusA !== 'online') return 1;
+            if (statusA === 'idle' && statusB === 'offline') return -1;
+            if (statusB === 'idle' && statusA === 'offline') return 1;
+            
+            return a.username.localeCompare(b.username);
+        });
         
         let friendsHtml = '';
-        
         onlineFriends.forEach(friend => {
-            const statusColor = friendsManager.getStatusColor('online');
-            const statusText = friendsManager.getStatusText('online');
+            const userData = onlineUsers[friend.id];
+            const status = userData?.status || 'offline';
+            const statusClass = getStatusClass(status);
+            const statusText = getStatusText(status);
             
             friendsHtml += `
-                <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item" data-user-id="${friend.id}">
-                    <div class="flex items-center">
-                        <div class="relative mr-3">
-                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                     alt="Avatar" class="w-full h-full object-cover">
-                            </div>
-                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${statusColor}"></span>
+                <div class="flex items-center p-3 hover:bg-discord-light rounded group cursor-pointer transition-colors animate-fadeIn" onclick="createDirectMessage('${friend.id}')">
+                    <div class="relative mr-3">
+                        <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                            <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                                 alt="Avatar" class="w-full h-full object-cover">
                         </div>
-                        <div>
-                            <div class="font-medium text-white">${friendsManager.escapeHtml(friend.username)}</div>
-                            <div class="text-xs text-gray-400">${statusText}</div>
-                        </div>
+                        <div class="absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background"></div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-white truncate">${friendsManager.escapeHtml(friend.username)}</div>
+                        <div class="text-xs text-gray-400">${statusText}</div>
                     </div>
                     <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="createDirectMessage('${friend.id}')">
@@ -281,20 +181,15 @@ async function loadOnlineFriends(forceRefresh = false) {
         
         container.innerHTML = friendsHtml;
         updateOnlineCount(onlineFriends.length);
+        
+        console.log(`✅ [APP-LAYOUT] Successfully updated UI with ${onlineFriends.length} online friends`);
     } catch (error) {
-        console.error('Error loading online friends:', error);
-        container.innerHTML = '<div class="text-gray-400 p-4">Failed to load online friends</div>';
-        updateOnlineCount(0);
+        console.error('❌ [APP-LAYOUT] Error loading online friends:', error);
+        container.innerHTML = '<div class="text-red-400 p-4">Error loading friends</div>';
     }
 }
 
 async function loadAllFriends(forceRefresh = false) {
-    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
-    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
-        console.log('[App Layout] Skeleton loading active, skipping all friends load');
-        return;
-    }
-    
     const container = document.getElementById('all-friends-container');
     if (!container) return;
     
@@ -306,12 +201,13 @@ async function loadAllFriends(forceRefresh = false) {
     
     const friendsManager = window.FriendsManager.getInstance();
     
-    if (forceRefresh) {
-        container.innerHTML = generateSkeletonFriends(3);
-    }
-    
     try {
         const friends = await friendsManager.getFriends(forceRefresh);
+        let onlineUsers = {};
+        
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            onlineUsers = await friendsManager.getOnlineUsers();
+        }
 
         if (!friends || friends.length === 0) {
             container.innerHTML = `
@@ -319,45 +215,50 @@ async function loadAllFriends(forceRefresh = false) {
                     <div class="mb-2 text-gray-400">
                         <i class="fa-solid fa-user-group text-3xl"></i>
                     </div>
-                    <p class="text-gray-300 mb-1">No friends found</p>
-                    <p class="text-gray-500 text-sm">Add some friends to get started!</p>
+                    <p class="text-gray-300 mb-1">No friends yet</p>
+                    <p class="text-gray-500 text-sm">Send friend requests to get started</p>
                 </div>
             `;
             return;
         }
+
+        friends.sort((a, b) => {
+            const statusA = onlineUsers[a.id]?.status || 'offline';
+            const statusB = onlineUsers[b.id]?.status || 'offline';
+            
+            if (statusA !== 'offline' && statusB === 'offline') return -1;
+            if (statusB !== 'offline' && statusA === 'offline') return 1;
+            if (statusA === 'online' && statusB !== 'online') return -1;
+            if (statusB === 'online' && statusA !== 'online') return 1;
+            
+            return a.username.localeCompare(b.username);
+        });
         
         let friendsHtml = '';
-        
-        if (!Array.isArray(friends)) {
-            console.error('Friends data is not an array:', typeof friends, friends);
-            friends = [];
-        }
-        
         friends.forEach(friend => {
-            const status = 'offline';
-            const statusColor = friendsManager.getStatusColor(status);
-            const statusText = friendsManager.getStatusText(status);
+            const userData = onlineUsers[friend.id];
+            const status = userData?.status || 'offline';
+            const statusClass = getStatusClass(status);
+            const statusText = getStatusText(status);
             
             friendsHtml += `
-                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-3 rounded hover:bg-discord-light group friend-item gap-2 sm:gap-0" data-user-id="${friend.id}">
-                    <div class="flex items-center">
-                        <div class="relative mr-3">
-                            <div class="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                     alt="Avatar" class="w-full h-full object-cover">
-                            </div>
-                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${statusColor}"></span>
+                <div class="flex items-center p-3 hover:bg-discord-light rounded group cursor-pointer transition-colors" onclick="createDirectMessage('${friend.id}')">
+                    <div class="relative mr-3">
+                        <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                            <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                                 alt="Avatar" class="w-full h-full object-cover">
                         </div>
-                        <div>
-                            <div class="font-medium text-white friend-name text-sm sm:text-base">${friendsManager.escapeHtml(friend.username)}</div>
-                            <div class="text-xs text-gray-400 friend-status">${statusText}</div>
-                        </div>
+                        <div class="friend-status-indicator absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background" data-user-id="${friend.id}"></div>
                     </div>
-                    <div class="flex space-x-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-end sm:self-auto">
-                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full text-sm" title="Message" onclick="createDirectMessage('${friend.id}')">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-white truncate">${friendsManager.escapeHtml(friend.username)}</div>
+                        <div class="friend-status-text text-xs text-gray-400" data-user-id="${friend.id}">${statusText}</div>
+                    </div>
+                    <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="createDirectMessage('${friend.id}')">
                             <i class="fa-solid fa-message"></i>
                         </button>
-                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full text-sm" title="More">
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
                             <i class="fa-solid fa-ellipsis-vertical"></i>
                         </button>
                     </div>
@@ -366,126 +267,105 @@ async function loadAllFriends(forceRefresh = false) {
         });
         
         container.innerHTML = friendsHtml;
+        console.log(`[App Layout] Loaded ${friends.length} friends with real-time presence`);
     } catch (error) {
-        console.error('Error loading friends:', error);
-        container.innerHTML = '<div class="text-gray-400 p-4">Failed to load friends</div>';
+        console.error('[App Layout] Error loading all friends:', error);
+        container.innerHTML = '<div class="text-red-400 p-4">Error loading friends</div>';
     }
 }
 
 async function loadPendingRequests(forceRefresh = false) {
-    const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
-    if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
-        console.log('[App Layout] Skeleton loading active, skipping pending requests load');
-        return;
-    }
+    const container = document.getElementById('pending-friends-container');
+    if (!container) return;
     
-    const pendingContainer = document.getElementById('pending-requests');
-    if (!pendingContainer) return;
-
     if (!window.FriendsManager) {
         console.error('FriendsManager not loaded');
-        pendingContainer.innerHTML = '<div class="text-gray-400 p-4">Loading friends system...</div>';
+        container.innerHTML = '<div class="text-gray-400 p-4">Loading friends system...</div>';
         return;
     }
-
+    
     const friendsManager = window.FriendsManager.getInstance();
     
-    if (forceRefresh) {
-        pendingContainer.innerHTML = generateSkeletonPending();
-    }
-
     try {
-        const pendingData = await friendsManager.getPendingRequests(forceRefresh);
-        pendingContainer.innerHTML = '';
+        const pending = await friendsManager.getPendingRequests(forceRefresh);
+        const { incoming = [], outgoing = [] } = pending;
 
-        if (pendingData) {
-            const { incoming, outgoing, count } = pendingData;
-            
-            updatePendingCountDisplay(count || incoming?.length || 0);
+        if (incoming.length === 0 && outgoing.length === 0) {
+            container.innerHTML = `
+                <div class="p-4 bg-discord-dark rounded text-center">
+                    <div class="mb-2 text-gray-400">
+                        <i class="fa-solid fa-user-clock text-3xl"></i>
+                    </div>
+                    <p class="text-gray-300 mb-1">No pending friend requests</p>
+                    <p class="text-gray-500 text-sm">Send friend requests to connect with others</p>
+                </div>
+            `;
+            updatePendingCount(0);
+            return;
+        }
 
-            if (incoming && incoming.length > 0) {
-                const incomingHtml = `
-                    <h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Incoming Friend Requests — ${incoming.length}</h3>
-                    <div class="space-y-2">
-                        ${incoming.map(user => `
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
-                                <div class="flex items-center">
-                                    <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                        <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                             alt="Avatar" class="w-full h-full object-cover">
-                                    </div>
-                                    <div>
-                                        <div class="font-medium text-white text-sm sm:text-base">${friendsManager.escapeHtml(user.username)}</div>
-                                        <div class="text-xs text-gray-400">Incoming Friend Request</div>
-                                    </div>
+        let html = '';
+        
+        if (incoming.length > 0) {
+            html += `
+                <h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Incoming Friend Requests — ${incoming.length}</h3>
+                <div class="space-y-2 mb-4">
+                    ${incoming.map(user => `
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
+                                    <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                                         alt="Avatar" class="w-full h-full object-cover">
                                 </div>
-                                <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
-                                    <button class="bg-discord-green hover:bg-discord-green/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm order-1 sm:order-none transition-colors"
-                                            onclick="acceptFriendRequest('${user.friendship_id}')">Accept</button>
-                                    <button class="bg-discord-dark hover:bg-discord-light disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm border border-gray-600 order-2 sm:order-none transition-colors"
-                                            onclick="ignoreFriendRequest('${user.friendship_id}')">Ignore</button>
+                                <div>
+                                    <div class="font-medium text-white text-sm sm:text-base">${friendsManager.escapeHtml(user.username)}</div>
+                                    <div class="text-xs text-gray-400">Incoming Friend Request</div>
                                 </div>
                             </div>
-                        `).join('')}
-                    </div>
-                `;
-                pendingContainer.insertAdjacentHTML('beforeend', incomingHtml);
-            }
-
-            if (outgoing && outgoing.length > 0) {
-                const outgoingHtml = `
-                    <h3 class="text-xs uppercase font-semibold text-gray-400 mt-4 mb-2">Outgoing Friend Requests — ${outgoing.length}</h3>
-                    <div class="space-y-2">
-                        ${outgoing.map(user => `
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
-                                <div class="flex items-center">
-                                    <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                                        <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                             alt="Avatar" class="w-full h-full object-cover">
-                                    </div>
-                                    <div>
-                                        <div class="font-medium text-white text-sm sm:text-base">${friendsManager.escapeHtml(user.username)}</div>
-                                        <div class="text-xs text-gray-400">Outgoing Friend Request</div>
-                                    </div>
-                                </div>
-                                <div class="self-start sm:self-auto">
-                                    <button class="bg-discord-red hover:bg-discord-red/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm w-full sm:w-auto transition-colors"
-                                            onclick="cancelFriendRequest('${user.id}')">Cancel</button>
-                                </div>
+                            <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
+                                <button class="bg-discord-green hover:bg-discord-green/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm order-1 sm:order-none transition-colors"
+                                        onclick="acceptFriendRequest('${user.friendship_id}')">Accept</button>
+                                <button class="bg-discord-dark hover:bg-discord-light disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm border border-gray-600 order-2 sm:order-none transition-colors"
+                                        onclick="ignoreFriendRequest('${user.friendship_id}')">Ignore</button>
                             </div>
-                        `).join('')}
-                    </div>
-                `;
-                pendingContainer.insertAdjacentHTML('beforeend', outgoingHtml);
-            }
-
-            if ((!incoming || incoming.length === 0) && (!outgoing || outgoing.length === 0)) {
-                updatePendingCountDisplay(0);
-                pendingContainer.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-8">
-                        <div class="mb-4 text-gray-400">
-                            <i class="fas fa-user-plus text-4xl"></i>
                         </div>
-                        <div class="text-white font-medium mb-1">Wumpus is waiting on friends</div>
-                        <div class="text-gray-400 text-sm text-center">You don't have any pending friend requests. Here's Wumpus for now.</div>
-                    </div>
-                `;
-            }
-        } else {
-            updatePendingCountDisplay(0);
-            pendingContainer.innerHTML = `
-                <div class="flex flex-col items-center justify-center py-8">
-                    <div class="mb-4 text-gray-400">
-                        <i class="fas fa-user-plus text-4xl"></i>
-                    </div>
-                    <div class="text-white font-medium mb-1">Wumpus is waiting on friends</div>
-                    <div class="text-gray-400 text-sm text-center">You don't have any pending friend requests. Here's Wumpus for now.</div>
+                    `).join('')}
                 </div>
             `;
         }
+
+        if (outgoing.length > 0) {
+            html += `
+                <h3 class="text-xs uppercase font-semibold text-gray-400 mt-4 mb-2">Outgoing Friend Requests — ${outgoing.length}</h3>
+                <div class="space-y-2">
+                    ${outgoing.map(user => `
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-discord-dark rounded gap-3 sm:gap-0">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
+                                    <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                                         alt="Avatar" class="w-full h-full object-cover">
+                                </div>
+                                <div>
+                                    <div class="font-medium text-white text-sm sm:text-base">${friendsManager.escapeHtml(user.username)}</div>
+                                    <div class="text-xs text-gray-400">Outgoing Friend Request</div>
+                                </div>
+                            </div>
+                            <div class="self-start sm:self-auto">
+                                <button class="bg-discord-red hover:bg-discord-red/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-2 sm:py-1 text-sm w-full sm:w-auto transition-colors"
+                                        onclick="cancelFriendRequest('${user.id}')">Cancel</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+        updatePendingCount(incoming.length);
+        console.log(`[App Layout] Loaded ${incoming.length} incoming and ${outgoing.length} outgoing friend requests`);
     } catch (error) {
-        console.error('Error loading pending requests:', error);
-        pendingContainer.innerHTML = '<div class="text-gray-400 p-4">Failed to load pending requests</div>';
+        console.error('[App Layout] Error loading pending requests:', error);
+        container.innerHTML = '<div class="text-red-400 p-4">Error loading pending requests</div>';
     }
 }
 
@@ -570,7 +450,9 @@ async function acceptFriendRequest(friendshipId) {
         
         if (window.FriendsManager) {
             const friendsManager = window.FriendsManager.getInstance();
-            friendsManager.invalidateCache(['friends', 'pending']);
+            friendsManager.getFriends(true);
+            friendsManager.getPendingRequests(true);
+            friendsManager.getOnlineUsers(true);
         }
         
     } catch (error) {
@@ -613,7 +495,7 @@ async function ignoreFriendRequest(friendshipId) {
         
         if (window.FriendsManager) {
             const friendsManager = window.FriendsManager.getInstance();
-            friendsManager.invalidateCache('pending');
+            friendsManager.getPendingRequests(true);
         }
         
     } catch (error) {
@@ -656,7 +538,7 @@ async function cancelFriendRequest(userId) {
         
         if (window.FriendsManager) {
             const friendsManager = window.FriendsManager.getInstance();
-            friendsManager.invalidateCache('pending');
+            friendsManager.getPendingRequests(true);
         }
         
     } catch (error) {
@@ -669,7 +551,7 @@ async function cancelFriendRequest(userId) {
 }
 
 function updatePendingCountAfterRemoval() {
-    const pendingContainer = document.getElementById('pending-requests');
+    const pendingContainer = document.getElementById('pending-friends-container');
     if (!pendingContainer) return;
     
     const incomingCount = Array.from(pendingContainer.children).filter(el => 
@@ -700,7 +582,7 @@ function updatePendingCountAfterRemoval() {
 }
 
 function checkIfNoPendingRequests() {
-    const pendingContainer = document.getElementById('pending-requests');
+    const pendingContainer = document.getElementById('pending-friends-container');
     if (!pendingContainer) return;
     
     const requestElements = pendingContainer.querySelectorAll('div[class*="flex"][class*="flex-col"]');
@@ -720,103 +602,42 @@ function checkIfNoPendingRequests() {
 }
 
 function initFriendRequestForm() {
-    const friendUsernameInput = document.getElementById('friend-username-input');
-    const sendFriendRequestBtn = document.getElementById('send-friend-request');
-    const errorDiv = document.getElementById('friend-request-error');
-    const successDiv = document.getElementById('friend-request-success');
-
-    if (!friendUsernameInput || !sendFriendRequestBtn) return;
-
-    let validationTimeout;
+    const form = document.getElementById('friend-request-form');
+    const input = document.getElementById('friend-username-input');
+    const errorDiv = document.getElementById('add-friend-error');
+    const successDiv = document.getElementById('add-friend-success');
     
-    function updateButtonState(isValid) {
-        sendFriendRequestBtn.disabled = !isValid;
-        
-        if (isValid) {
-            sendFriendRequestBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        } else {
-            sendFriendRequestBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        }
-    }
+    if (!form || !input) return;
     
-    function clearMessages() {
-        if (errorDiv) errorDiv.classList.add('hidden');
-        if (successDiv) successDiv.classList.add('hidden');
-    }
-
-    friendUsernameInput.addEventListener('input', function () {
-        const value = this.value.trim();
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
         
-        clearTimeout(validationTimeout);
-        clearMessages();
+        const username = input.value.trim();
         
-        if (value.length === 0) {
-            updateButtonState(false);
+        if (!username) {
+            showError(errorDiv, 'Please enter a username');
             return;
         }
         
-        if (value.length >= 2) {
-            updateButtonState(true);
-        } else {
-            updateButtonState(false);
-        }
+        if (errorDiv) errorDiv.classList.add('hidden');
+        if (successDiv) successDiv.classList.add('hidden');
         
-        validationTimeout = setTimeout(() => {
-            const validation = friendAPI.validateUsername(value);
-            updateButtonState(validation.valid);
-            
-            if (!validation.valid && validation.message && errorDiv) {
-                errorDiv.textContent = validation.message;
-                errorDiv.classList.remove('hidden');
-            }
-        }, 100);
-    });
-
-    sendFriendRequestBtn.addEventListener('click', async function () {
-        if (this.disabled) return;
-        
-        const username = friendUsernameInput.value.trim();
-        if (!username) return;
-
-        const originalText = this.textContent;
-        updateButtonState(false);
-        clearMessages();
-        
-        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Sending...';
-
         try {
-            const result = await window.userAPI.sendFriendRequest(username);
+            const response = await friendAPI.sendFriendRequest(username);
             
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to send friend request');
+            if (response.success) {
+                showSuccess(successDiv, response.message || 'Friend request sent successfully!');
+                input.value = '';
+                
+                setTimeout(() => {
+                    if (successDiv) successDiv.classList.add('hidden');
+                }, 3000);
+            } else {
+                showError(errorDiv, response.message || 'Failed to send friend request');
             }
-
-            window.showToast('Friend request sent!', 'success');
-            
-            if (successDiv) {
-                successDiv.textContent = 'Friend request sent!';
-                successDiv.classList.remove('hidden');
-            }
-            friendUsernameInput.value = '';
-            this.textContent = originalText;
-            updateButtonState(false);
-
-            if (window.FriendsManager) {
-                const friendsManager = window.FriendsManager.getInstance();
-                friendsManager.invalidateCache('pending');
-            }
-
         } catch (error) {
             console.error('Error sending friend request:', error);
-            window.showToast(error.message || 'Failed to send friend request', 'error');
-            
-            if (errorDiv) {
-                errorDiv.textContent = error.message || 'Failed to send friend request';
-                errorDiv.classList.remove('hidden');
-            }
-            
-            this.textContent = originalText;
-            updateButtonState(!!friendUsernameInput.value.trim());
+            showError(errorDiv, 'An error occurred while sending the friend request');
         }
     });
 }
@@ -837,6 +658,20 @@ function showToast(message, type = 'info') {
         window.showToast(message, type);
     } else {
         console.log(type + ': ' + message);
+    }
+}
+
+function showError(errorDiv, message) {
+    if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
+    }
+}
+
+function showSuccess(successDiv, message) {
+    if (successDiv) {
+        successDiv.textContent = message;
+        successDiv.classList.remove('hidden');
     }
 }
 
@@ -976,36 +811,94 @@ function initMobileMenu() {
 
 function initializeOnPageLoad() {
     const currentPath = window.location.pathname;
-    if (currentPath.includes('/friends')) {
-        const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
-        if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'home') {
-            console.log('[App Layout] Skeleton loading active, deferring initialization');
-            document.addEventListener('HomePageChanged', function() {
-                setTimeout(() => {
-                    performDelayedInitialization();
-                }, 100);
-            }, { once: true });
+    
+    if (window.directMessageNavigation) {
+        window.directMessageNavigation.init();
+    }
+    
+    if (window.initDirectMessageNavigation) {
+        window.initDirectMessageNavigation();
+    }
+    
+    if (window.initFriendsTabManager) {
+        window.initFriendsTabManager();
+    }
+    
+    const setupSocketListeners = () => {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            setTimeout(setupSocketListeners, 200);
             return;
         }
         
-        performDelayedInitialization();
-    }
-}
-
-function performDelayedInitialization() {
-    const currentPath = window.location.pathname;
-    if (currentPath.includes('/friends')) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tab = urlParams.get('tab') || 'online';
-        
-        if (tab === 'online') {
-            loadOnlineFriends(false);
-        } else if (tab === 'all') {
-            loadAllFriends(false);
-        } else if (tab === 'pending') {
-            loadPendingRequests(false);
+        if (window.FriendsManager) {
+            const friendsManager = window.FriendsManager.getInstance();
+            console.log('🔗 [APP-LAYOUT] Setting up FriendsManager listeners');
+            
+            friendsManager.subscribe((type, data) => {
+                console.log(`🔄 [APP-LAYOUT] FriendsManager event: ${type}`, data);
+                switch(type) {
+                    case 'user-online':
+                    case 'user-offline':
+                    case 'user-presence-update':
+                    case 'online-users-updated':
+                        console.log('🔄 [APP-LAYOUT] Refreshing online friends due to presence update');
+                        loadOnlineFriends(true);
+                        break;
+                    case 'friends-updated':
+                        console.log('🔄 [APP-LAYOUT] Refreshing all friends due to friends update');
+                        loadAllFriends(true);
+                        break;
+                    case 'pending-updated':
+                        console.log('🔄 [APP-LAYOUT] Refreshing pending requests due to pending update');
+                        loadPendingRequests(true);
+                        break;
+                }
+            });
+            
+            if (friendsManager && friendsManager.setupSocketListeners) {
+                friendsManager.setupSocketListeners();
+            }
+            console.log('✅ [APP-LAYOUT] FriendsManager integration complete');
         }
+    };
+    
+    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+        setupSocketListeners();
+    } else {
+        window.addEventListener('globalSocketReady', () => {
+            console.log('🔌 [APP-LAYOUT] Socket ready event received');
+            setupSocketListeners();
+        });
+        window.addEventListener('socketAuthenticated', () => {
+            console.log('🔐 [APP-LAYOUT] Socket authenticated event received');
+            setupSocketListeners();
+        });
     }
+    
+    if (currentPath === '/home' || currentPath === '/home/friends' || currentPath.startsWith('/home/')) {
+        setTimeout(() => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab') || 'online';
+            
+            switch (tab) {
+                case 'online':
+                    loadOnlineFriends();
+                    break;
+                case 'all':
+                    loadAllFriends();
+                    break;
+                case 'pending':
+                    loadPendingRequests();
+                    break;
+            }
+        }, 200);
+    }
+    
+    setInterval(() => {
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            window.globalSocketManager.io.emit('get-online-users');
+        }
+    }, 30000);
 }
 
 function setupCreateServerButton() {

@@ -111,9 +111,7 @@ ob_start();
 
                     <div class="bg-discord-dark rounded-md p-4 mb-8 flex items-center">
                         <div class="flex items-center text-discord-blue">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                            </svg>
+                            <i class="fas fa-shield-alt text-2xl mr-2"></i>
                             <span class="font-medium">Permissions synced with category:</span>
                         </div>
                         <span class="ml-2 text-red-500 font-medium">IMPORTANT THINGS</span>
@@ -122,10 +120,7 @@ ob_start();
                     <div class="bg-discord-dark rounded-md p-4 mb-6">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                </svg>
+                                <i class="fas fa-lock text-xl mr-2"></i>
                                 <span class="font-medium">Private Channel</span>
                             </div>
 
@@ -220,11 +215,7 @@ ob_start();
                     <h1 class="text-2xl font-bold mb-6">Integrations</h1>
 
                     <div class="bg-discord-dark rounded-md p-6 text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="mx-auto mb-4 text-discord-lighter">
-                            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-                            <path d="M3 9h18"></path>
-                            <path d="M9 21V9"></path>
-                        </svg>
+                        <i class="fas fa-th-large text-5xl mx-auto mb-4 text-discord-lighter"></i>
 
                         <h3 class="text-xl font-semibold mb-2">No Integrations Yet</h3>
                         <p class="text-discord-lighter mb-4">Connect your server with apps from the App Directory.</p>
@@ -240,7 +231,7 @@ ob_start();
 
     <!-- Close button to return to server page -->
     <a href="/server/<?php echo $serverId; ?>?channel=<?php echo $channelId; ?>" class="settings-close-button">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="close-icon"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <i class="fas fa-times text-2xl"></i>
     </a>
 </div>
 

@@ -313,9 +313,6 @@ function uploadAvatar(dataUrl) {
     fetch('/user/avatar/update', {
         method: 'POST',
         body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        },
         credentials: 'same-origin'
     })
     .then(async response => {
@@ -376,9 +373,6 @@ function uploadBanner(dataUrl) {
     fetch('/user/banner/update', {
         method: 'POST',
         body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        },
         credentials: 'same-origin'
     })
     .then(async response => {
@@ -658,8 +652,7 @@ function updateUserStatus(status) {
     fetch('/user/status', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ status }),
         credentials: 'same-origin'
@@ -967,8 +960,7 @@ function initPasswordChangeForms() {
             const response = await fetch('/api/user/set-security-question', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     security_question: question,
@@ -1730,8 +1722,7 @@ function updateUsername(username) {
     fetch('/api/users/profile', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(profileData),
         credentials: 'same-origin'
@@ -1816,8 +1807,7 @@ function updateDisplayName(displayName) {
     fetch('/api/users/profile', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(profileData),
         credentials: 'same-origin'
@@ -1951,8 +1941,7 @@ function removeUserImage(type) {
     fetch(endpoint, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'Content-Type': 'application/json'
         },
         credentials: 'same-origin'
     })

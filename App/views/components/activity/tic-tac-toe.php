@@ -90,55 +90,7 @@ $serverId = $GLOBALS['server']->id ?? $GLOBALS['currentServer']->id ?? null;
     </div>
 </div>
 
-<div id="tic-tac-toe-fallback" class="hidden relative p-8 rounded-2xl max-w-lg mx-auto cyber-grid">
-    <div class="matrix-rain">
-        <div class="matrix-char" style="left: 10%; animation-duration: 3s; animation-delay: 0s;">0</div>
-        <div class="matrix-char" style="left: 20%; animation-duration: 4s; animation-delay: 1s;">1</div>
-        <div class="matrix-char" style="left: 30%; animation-duration: 2s; animation-delay: 0.5s;">0</div>
-        <div class="matrix-char" style="left: 40%; animation-duration: 5s; animation-delay: 2s;">1</div>
-        <div class="matrix-char" style="left: 50%; animation-duration: 3s; animation-delay: 1.5s;">0</div>
-        <div class="matrix-char" style="left: 60%; animation-duration: 4s; animation-delay: 0.8s;">1</div>
-        <div class="matrix-char" style="left: 70%; animation-duration: 2.5s; animation-delay: 0.3s;">0</div>
-        <div class="matrix-char" style="left: 80%; animation-duration: 3.5s; animation-delay: 1.8s;">1</div>
-        <div class="matrix-char" style="left: 90%; animation-duration: 4.5s; animation-delay: 0.6s;">0</div>
-    </div>
-    
-    <div class="relative z-10 text-center">
-        <div class="mb-6">
-            <h2 class="glitch-effect text-3xl font-bold text-red-400 mb-4" data-text="SYSTEM ERROR">
-                SYSTEM ERROR
-            </h2>
-            <p class="cyber-text text-lg">ATTEMPTING RECONNECTION...</p>
-        </div>
-        
-        <div class="mb-6">
-            <div class="relative mx-auto w-24 h-24">
-                <div class="portal-effect"></div>
-                <div class="lightning-effect" style="top: 20%; left: 50%; animation-delay: 0.1s;"></div>
-                <div class="lightning-effect" style="top: 40%; left: 30%; animation-delay: 0.3s;"></div>
-                <div class="lightning-effect" style="top: 60%; left: 70%; animation-delay: 0.5s;"></div>
-            </div>
-            <p class="text-red-400 font-bold cyber-text mt-4">MATRIX LOADING...</p>
-            <p class="text-[#949ba4] text-sm cyber-text">NEURAL LINK ESTABLISHING...</p>
-        </div>
-        
-        <div class="flex justify-center mb-6">
-            <div class="relative">
-                <div class="w-12 h-12 border-4 border-red-400/30 border-t-red-400 rounded-full animate-spin"></div>
-                <div class="absolute inset-0 w-12 h-12 border-4 border-transparent border-r-blue-400 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
-            </div>
-        </div>
-        
-        <div class="quantum-border">
-            <div class="bg-black p-4 rounded-lg">
-                <p class="text-red-400 cyber-text text-sm mb-2">ENSURE QUANTUM ENTANGLEMENT IS ACTIVE</p>
-                <p class="font-mono text-[#00ff00] text-xs">
-                    NODE: <?php echo htmlspecialchars($serverId ?? 'UNKNOWN'); ?>
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -244,35 +196,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     startButton.disabled = false;
                 } else {
                     console.error('TicTacToeModal not found. Make sure tic-tac-toe.js is loaded.');
-                    showFallback();
                 }
             }, 1000);
         });
     }
     
-    function showFallback() {
-        const container = document.getElementById('tic-tac-toe-container');
-        const fallback = document.getElementById('tic-tac-toe-fallback');
-        
-        if (container && fallback) {
-            container.style.animation = 'glitch-1 0.3s ease-out';
-            
-            setTimeout(() => {
-                container.classList.add('hidden');
-                fallback.classList.remove('hidden');
-                
-                setTimeout(() => {
-                    fallback.style.animation = 'glitch-2 0.3s ease-out';
-                    
-                    setTimeout(() => {
-                        fallback.classList.add('hidden');
-                        container.classList.remove('hidden');
-                        container.style.animation = '';
-                    }, 300);
-                }, 5000);
-            }, 300);
-        }
-    }
+
     
     window.addEventListener('globalSocketReady', function() {
         updateConnectionStatus();

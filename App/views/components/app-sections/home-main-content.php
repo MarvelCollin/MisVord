@@ -244,4 +244,353 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
     </div>
 </div>
 
+<script>
+const friends = <?php echo json_encode($friends); ?>;
+window.initialFriendsData = friends;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const onlineFriendsContainer = document.getElementById('online-friends-container');
+    const onlineCount = document.getElementById('online-count');
+    const allFriendsContainer = document.getElementById('all-friends-container');
+    
+    let onlineUsers = {};
+    let isSocketReady = false;
+    
+    function getStatusClass(status) {
+        switch (status) {
+            case 'online':
+            case 'appear':
+                return 'bg-discord-green';
+            case 'idle':
+            case 'away':
+                return 'bg-discord-yellow';
+            case 'dnd':
+            case 'do_not_disturb':
+                return 'bg-discord-red';
+            case 'invisible':
+            case 'offline':
+            default:
+                return 'bg-gray-500';
+        }
+    }
+    
+    function getStatusText(status) {
+        switch (status) {
+            case 'online':
+            case 'appear':
+                return 'Online';
+            case 'idle':
+            case 'away':
+                return 'Idle';
+            case 'dnd':
+            case 'do_not_disturb':
+                return 'Do Not Disturb';
+            case 'invisible':
+                return 'Invisible';
+            case 'offline':
+            default:
+                return 'Offline';
+        }
+    }
+    
+    function updateUserStatus(userId, status, username) {
+        console.log(`🔄 [HOME-FRIENDS] Updating user ${username} (${userId}) status to ${status}`);
+        
+        if (status === 'offline' || status === 'invisible') {
+            if (onlineUsers[userId]) {
+                delete onlineUsers[userId];
+            }
+        } else {
+            onlineUsers[userId] = {
+                user_id: userId,
+                username: username,
+                status: status,
+                last_seen: Date.now(),
+                activity_details: null
+            };
+        }
+        
+        updateAllTabStatus(userId, status);
+        renderOnlineTab();
+    }
+    
+    function updateAllTabStatus(userId, status) {
+        console.log(`🎯 [HOME-FRIENDS] Updating status for user ${userId} to ${status}`);
+        const statusIndicator = document.querySelector(`.friend-status-indicator[data-user-id="${userId}"]`);
+        const statusText = document.querySelector(`.friend-status-text[data-user-id="${userId}"]`);
+        
+        console.log(`🔍 [HOME-FRIENDS] Found elements for user ${userId}:`, {
+            statusIndicator: !!statusIndicator,
+            statusText: !!statusText
+        });
+        
+        if (statusIndicator) {
+            const oldClass = statusIndicator.className;
+            statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${getStatusClass(status)} friend-status-indicator`;
+            statusIndicator.setAttribute('data-user-id', userId);
+            console.log(`✅ [HOME-FRIENDS] Updated status indicator for ${userId}: ${oldClass} -> ${statusIndicator.className}`);
+        }
+        
+        if (statusText) {
+            const oldText = statusText.textContent;
+            statusText.textContent = getStatusText(status);
+            console.log(`✅ [HOME-FRIENDS] Updated status text for ${userId}: ${oldText} -> ${statusText.textContent}`);
+        }
+    }
+    
+    function renderOnlineTab() {
+        console.log('🎨 [HOME-FRIENDS] Rendering online tab');
+        console.log('👥 [HOME-FRIENDS] All friends:', friends.length);
+        console.log('🌐 [HOME-FRIENDS] Online users:', Object.keys(onlineUsers).length, Object.keys(onlineUsers));
+        
+        const onlineFriends = friends.filter(friend => {
+            const userData = onlineUsers[friend.id];
+            const isOnline = userData && userData.status !== 'offline';
+            console.log(`🔍 [HOME-FRIENDS] Friend ${friend.username} (${friend.id}):`, {
+                userData,
+                isOnline
+            });
+            return isOnline;
+        });
+        
+        console.log('✨ [HOME-FRIENDS] Online friends found:', onlineFriends.length, onlineFriends.map(f => f.username));
+        
+        if (onlineCount) {
+            onlineCount.textContent = onlineFriends.length;
+            console.log(`📊 [HOME-FRIENDS] Updated online count to: ${onlineFriends.length}`);
+        } else {
+            console.warn('⚠️ [HOME-FRIENDS] Online count element not found');
+        }
+        
+        if (onlineFriends.length > 0) {
+            onlineFriends.sort((a, b) => {
+                const statusA = onlineUsers[a.id]?.status || 'offline';
+                const statusB = onlineUsers[b.id]?.status || 'offline';
+                
+                if (statusA === 'online' && statusB !== 'online') return -1;
+                if (statusB === 'online' && statusA !== 'online') return 1;
+                if (statusA === 'idle' && statusB === 'offline') return -1;
+                if (statusB === 'idle' && statusA === 'offline') return 1;
+                
+                return a.username.localeCompare(b.username);
+            });
+            
+            let friendsHtml = '';
+            onlineFriends.forEach(friend => {
+                const userData = onlineUsers[friend.id];
+                const status = userData?.status || 'idle';
+                const statusClass = getStatusClass(status);
+                const statusText = getStatusText(status);
+                
+                friendsHtml += `
+                    <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item transition-all duration-200 animate-fadeIn" 
+                         data-user-id="${friend.id}"
+                         data-username="${friend.username}">
+                        <div class="flex items-center">
+                            <div class="relative mr-3">
+                                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                    <img src="${friend.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                                         alt="Avatar" class="w-full h-full object-cover">
+                                </div>
+                                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${statusClass} transition-colors duration-300"></span>
+                            </div>
+                            <div>
+                                <div class="font-medium text-white">${friend.username}</div>
+                                <div class="text-xs text-gray-400 transition-all duration-200">${statusText}</div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="createDirectMessage('${friend.id}')">
+                                <i class="fa-solid fa-message"></i>
+                            </button>
+                            <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            onlineFriendsContainer.innerHTML = friendsHtml;
+            console.log(`✅ [HOME-FRIENDS] Updated online friends container with ${onlineFriends.length} friends`);
+        } else {
+            onlineFriendsContainer.innerHTML = `
+                <div class="p-4 bg-discord-dark rounded text-center">
+                    <div class="mb-2 text-gray-400">
+                        <i class="fa-solid fa-user-group text-3xl"></i>
+                    </div>
+                    <p class="text-gray-300 mb-1">No friends online</p>
+                    <p class="text-gray-500 text-sm">Friends will appear here when they come online</p>
+                </div>
+            `;
+            console.log('📭 [HOME-FRIENDS] No online friends, showing empty state');
+        }
+    }
+    
+    function loadInitialOnlineUsers() {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            setTimeout(loadInitialOnlineUsers, 500);
+            return;
+        }
+        
+        console.log('🔄 [HOME-FRIENDS] Loading initial online users...');
+        
+        if (window.FriendsManager) {
+            const friendsManager = window.FriendsManager.getInstance();
+            onlineUsers = friendsManager.cache.onlineUsers || {};
+            updateAllFriendsStatus();
+            renderOnlineTab();
+        }
+    }
+    
+    function updateAllFriendsStatus() {
+        console.log('🔄 [HOME-FRIENDS] Updating all friends status');
+        friends.forEach(friend => {
+            const userData = onlineUsers[friend.id];
+            const status = userData?.status || 'offline';
+            console.log(`👤 [HOME-FRIENDS] Processing friend ${friend.username} (${friend.id}): ${status}`);
+            updateAllTabStatus(friend.id, status);
+        });
+        console.log('✅ [HOME-FRIENDS] Finished updating all friends status');
+    }
+    
+    function handleUserOnline(data) {
+        console.log('👥 [HOME-FRIENDS] User came online:', data);
+        if (data.user_id && data.username) {
+            updateUserStatus(data.user_id, data.status || 'online', data.username);
+        }
+    }
+    
+    function handleUserOffline(data) {
+        console.log('👥 [HOME-FRIENDS] User went offline:', data);
+        if (data.user_id && data.username) {
+            updateUserStatus(data.user_id, 'offline', data.username);
+        }
+    }
+    
+    function handlePresenceUpdate(data) {
+        console.log('👥 [HOME-FRIENDS] User presence updated:', data);
+        if (data.user_id && data.username) {
+            updateUserStatus(data.user_id, data.status, data.username);
+        }
+    }
+    
+    function setupSocketListeners() {
+        if (!window.globalSocketManager || !window.globalSocketManager.io) {
+            console.warn('⚠️ [HOME-FRIENDS] Socket manager not ready');
+            return false;
+        }
+        
+        console.log('🔌 [HOME-FRIENDS] Setting up real-time socket listeners');
+        
+        const socket = window.globalSocketManager.io;
+        
+        socket.off('user-online');
+        socket.off('user-offline');
+        socket.off('user-presence-update');
+        
+        socket.on('user-online', handleUserOnline);
+        socket.on('user-offline', handleUserOffline);
+        socket.on('user-presence-update', handlePresenceUpdate);
+        
+        socket.on('online-users-response', (data) => {
+            console.log('📊 [HOME-FRIENDS] Received online users response:', data);
+            onlineUsers = data.users || {};
+            updateAllFriendsStatus();
+            renderOnlineTab();
+        });
+        
+        isSocketReady = true;
+        console.log('✅ [HOME-FRIENDS] Real-time socket listeners configured');
+        
+        loadInitialOnlineUsers();
+        return true;
+    }
+    
+    function setupFriendsManagerIntegration() {
+        if (window.FriendsManager) {
+            const friendsManager = window.FriendsManager.getInstance();
+            friendsManager.subscribe((type, data) => {
+                console.log(`🔄 [HOME-FRIENDS] FriendsManager event: ${type}`, data);
+                switch(type) {
+                    case 'user-online':
+                    case 'user-offline':
+                    case 'user-presence-update':
+                    case 'online-users-updated':
+                        console.log('📊 [HOME-FRIENDS] Before update - onlineUsers:', Object.keys(onlineUsers).length);
+                        onlineUsers = friendsManager.cache.onlineUsers || {};
+                        console.log('📊 [HOME-FRIENDS] After update - onlineUsers:', Object.keys(onlineUsers).length, onlineUsers);
+                        console.log('👥 [HOME-FRIENDS] Friends list:', friends.length, friends.map(f => f.id));
+                        updateAllFriendsStatus();
+                        renderOnlineTab();
+                        break;
+                }
+            });
+            console.log('✅ [HOME-FRIENDS] FriendsManager integration setup complete');
+        } else {
+            console.warn('⚠️ [HOME-FRIENDS] FriendsManager not available');
+        }
+    }
+    
+    function initializeHomeFriends() {
+        console.log('🚀 [HOME-FRIENDS] Initializing real-time home friends');
+        
+        setupFriendsManagerIntegration();
+        
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            setupSocketListeners();
+        } else {
+            console.log('⏳ [HOME-FRIENDS] Waiting for socket to be ready...');
+        }
+    }
+    
+    window.addEventListener('globalSocketReady', function(event) {
+        console.log('🔌 [HOME-FRIENDS] Socket ready event received');
+        setupSocketListeners();
+    });
+    
+    window.addEventListener('socketAuthenticated', function(event) {
+        console.log('🔐 [HOME-FRIENDS] Socket authenticated event received');
+        if (!isSocketReady) {
+            setupSocketListeners();
+        }
+    });
+    
+    window.addEventListener('globalSocketDisconnected', function() {
+        console.log('❌ [HOME-FRIENDS] Socket disconnected');
+        isSocketReady = false;
+        onlineUsers = {};
+        updateAllFriendsStatus();
+        renderOnlineTab();
+    });
+    
+    initializeHomeFriends();
+    
+    setInterval(() => {
+        if (isSocketReady && window.globalSocketManager && window.globalSocketManager.isReady()) {
+            window.globalSocketManager.io.emit('get-online-users');
+        }
+    }, 30000);
+});
+</script>
+
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.transition-all {
+    transition: all 0.2s ease-in-out;
+}
+
+.transition-colors {
+    transition: color 0.3s ease, background-color 0.3s ease;
+}
+</style>
+
  

@@ -779,16 +779,20 @@ function showContextMenu(event, groupId, groupName) {
 
 async function getServerData() {
     try {
-        const response = await $.ajax({
-            url: '/api/user/servers',
+        const response = await fetch('/api/user/servers', {
             method: 'GET',
-            dataType: 'json',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            credentials: 'include',
+            headers: { 
+                'Accept': 'application/json'
+            }
         });
         
-        if (response.data && response.data.servers) {
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const data = await response.json();
+        
+        if (data.data && data.data.servers) {
             const serverMap = {};
-            response.data.servers.forEach(server => {
+            data.data.servers.forEach(server => {
                 serverMap[server.id] = server;
             });
             serverDataCache = serverMap;

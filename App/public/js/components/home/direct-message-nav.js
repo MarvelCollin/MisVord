@@ -1,11 +1,9 @@
 class DirectMessageNavigation {
     constructor() {
         this.activeDmId = null;
-        this.init();
     }
 
     init() {
-        console.log('[DM Navigation] Initializing direct message navigation');
         this.bindFriendsLinkEvent();
         this.bindDmItemEvents();
         this.bindNewDmEvent();
@@ -13,14 +11,11 @@ class DirectMessageNavigation {
     }
 
     bindFriendsLinkEvent() {
-        console.log('[DM Navigation] Binding friends link event');
-        
         document.addEventListener('click', (e) => {
             const friendsLink = e.target.closest('a[href="/home/friends?tab=online"]') ||
                                e.target.closest('a[href*="/home/friends"]');
             
             if (friendsLink && friendsLink.getAttribute('href')?.includes('/home/friends')) {
-                console.log('[DM Navigation] Friends link clicked');
                 e.preventDefault();
                 e.stopPropagation();
                 
@@ -31,22 +26,20 @@ class DirectMessageNavigation {
     }
 
     bindDmItemEvents() {
-        console.log('[DM Navigation] Binding DM item events');
-        
         document.addEventListener('click', (e) => {
             const dmItem = e.target.closest('.dm-friend-item');
             if (dmItem) {
-                console.log('[DM Navigation] DM item clicked');
                 e.preventDefault();
                 e.stopPropagation();
                 
                 const chatRoomId = dmItem.dataset.chatRoomId;
                 const friendId = dmItem.dataset.friendId;
                 const username = dmItem.dataset.username;
+                const roomType = dmItem.dataset.roomType || 'direct';
                 
                 if (chatRoomId) {
-                    this.switchToDirectMessage(chatRoomId, username);
-                } else if (friendId) {
+                    this.switchToChat(chatRoomId, username, roomType);
+                } else if (friendId && roomType === 'direct') {
                     this.createAndSwitchToDirectMessage(friendId, username);
                 }
                 return false;
@@ -55,14 +48,16 @@ class DirectMessageNavigation {
     }
 
     bindNewDmEvent() {
-        const newDmBtn = document.getElementById('new-direct-message-btn');
-        if (newDmBtn) {
-            console.log('[DM Navigation] Binding new DM button');
-            newDmBtn.addEventListener('click', (e) => {
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'new-direct-message-btn') {
                 e.preventDefault();
-                this.openNewDirectMessageModal();
-            });
-        }
+                
+                const modal = document.getElementById('new-direct-modal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                }
+            }
+        });
     }
 
     setInitialState() {
@@ -71,462 +66,169 @@ class DirectMessageNavigation {
         
         if (dmMatch) {
             const dmId = dmMatch[1];
-            console.log('[DM Navigation] Initial DM detected:', dmId);
             this.activeDmId = dmId;
             this.updateActiveDmDisplay();
             
-            // Find the username for this DM
             const dmElement = document.querySelector(`[data-chat-room-id="${dmId}"]`);
-            const username = dmElement ? dmElement.dataset.username : 'User';
+            const username = dmElement ? dmElement.dataset.username : 'Chat';
+            const roomType = dmElement ? dmElement.dataset.roomType : 'direct';
             
-            // Show the DM chat section
-            this.showDirectMessageContent(dmId, username);
-        } else {
-            console.log('[DM Navigation] No initial DM detected');
-            // Make sure friends content is visible
+            this.showChatContent(dmId, username, roomType);
+        } else if (currentPath.includes('/home/friends')) {
             this.showFriendsContent();
+            this.initializeFriendsTabs();
+        } else {
+            this.showFriendsContent();
+            this.initializeFriendsTabs();
         }
     }
 
     switchToFriends() {
-        console.log('[DM Navigation] Switching to friends tab');
-        
         this.clearActiveDm();
-        
-        // Show friends content and hide chat section
         this.showFriendsContent();
-        
-        if (window.friendsTabManager) {
-            window.friendsTabManager.switchTab('online');
-        } else {
-            // If friends tab manager is not available, ensure the online tab is visible
-            const onlineTab = document.querySelector('#online-tab');
-            if (onlineTab) {
-                onlineTab.classList.remove('hidden');
-            }
-            
-            // Hide other tabs
-            ['#all-tab', '#pending-tab', '#add-friend-tab'].forEach(selector => {
-                const tab = document.querySelector(selector);
-                if (tab) {
-                    tab.classList.add('hidden');
-                }
-            });
-        }
+        this.initializeFriendsTabs();
         
         history.replaceState(
             { pageType: 'home', contentType: 'friends' }, 
             'misvord - Friends', 
             '/home/friends?tab=online'
         );
-        
-        console.log('[DM Navigation] Successfully switched to friends');
     }
 
-    switchToDirectMessage(dmId, username) {
-        console.log('[DM Navigation] Switching to DM:', { dmId, username });
-        
+    initializeFriendsTabs() {
+        setTimeout(() => {
+            if (window.FriendsTabManager) {
+                const tabManager = window.FriendsTabManager.getInstance();
+                if (tabManager) {
+                    tabManager.setInitialTab();
+                }
+            }
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab') || 'online';
+            
+            const activeTab = document.querySelector(`[data-tab="${tab}"]`);
+            if (activeTab) {
+                activeTab.click();
+            }
+            
+
+        }, 100);
+    }
+
+    switchToChat(dmId, chatName, roomType) {
         this.activeDmId = dmId;
         this.updateActiveDmDisplay();
+        this.showChatContent(dmId, chatName, roomType);
         
-        // Simple DOM manipulation instead of AJAX
-        this.hideFriendsContent();
-        this.showDirectMessageContent(dmId, username);
-        
-        history.pushState(
+        history.replaceState(
             { pageType: 'home', contentType: 'dm', dmId: dmId }, 
-            `misvord - ${username}`, 
+            `misvord - ${chatName}`, 
             `/home/channels/dm/${dmId}`
         );
     }
 
     createAndSwitchToDirectMessage(friendId, username) {
-        console.log('[DM Navigation] Creating new DM with friend:', { friendId, username });
-
-        $.ajax({
-            url: '/api/chat/create',
-            method: 'POST',
-            dataType: 'json',
-            data: JSON.stringify({ user_id: friendId }),
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            success: (response) => {
-                console.log('[DM Navigation] DM created successfully:', response);
-                if (response.success && response.data && response.data.channel_id) {
-                    this.switchToDirectMessage(response.data.channel_id, username);
-                } else {
-                    console.error('[DM Navigation] Failed to create DM:', response.message);
-                    if (window.showToast) {
-                        window.showToast('Failed to create conversation: ' + (response.message || 'Unknown error'), 'error');
-                    }
-                }
-            },
-            error: (xhr, status, error) => {
-                console.error('[DM Navigation] Error creating DM:', error);
-                if (window.showToast) {
-                    window.showToast('Error creating conversation. Please try again.', 'error');
-                }
-            }
-        });
+        if (window.createDirectMessage) {
+            window.createDirectMessage(friendId);
+        }
     }
 
-    showDirectMessageContent(dmId, username) {
-        console.log('[DM Navigation] Showing DM content for:', dmId, username);
-        
+    showChatContent(dmId, chatName, roomType) {
         const mainContent = document.querySelector('#main-content');
         if (!mainContent) {
-            console.error('[DM Navigation] Main content container not found');
             return;
         }
         
-        // Hide friends content
         this.hideFriendsContent();
         
-        // Look for existing chat section or create it
         let chatSection = document.querySelector('.chat-section');
         
         if (!chatSection) {
-            // Create chat section if it doesn't exist
-            console.log('[DM Navigation] Creating new chat section for DM');
-            
             chatSection = document.createElement('div');
             chatSection.className = 'chat-section flex-1 flex flex-col bg-[#313338] h-screen overflow-hidden';
             chatSection.setAttribute('data-channel-id', dmId);
             
-            // Create the chat section HTML structure
+            const headerIcon = roomType === 'group' ? 'fas fa-users' : 'fas fa-user';
+            const headerPrefix = roomType === 'group' ? '' : '@ ';
+            
             chatSection.innerHTML = `
                 <div class="h-12 min-h-[48px] px-4 border-b border-[#2d2f32] flex items-center shadow-sm z-10 bg-[#313338]">
-                    <i class="fas fa-user text-[#949ba4] mr-2"></i>
-                    <span class="font-semibold text-white">@ ${username}</span>
+                    <i class="${headerIcon} text-[#949ba4] mr-2"></i>
+                    <span class="font-semibold text-white">${headerPrefix}${chatName}</span>
                 </div>
-
-                <div id="chat-messages" class="flex-1 overflow-y-auto overflow-x-hidden">
-                    <div class="messages-container flex flex-col min-h-full">
-                        <div class="flex flex-col items-center justify-center h-full text-[#dcddde]">
-                            <i class="fas fa-comments text-6xl mb-4 text-[#4f545c]"></i>
-                            <p class="text-lg">No messages yet</p>
-                            <p class="text-sm text-[#a3a6aa]">Be the first to send a message!</p>
-                        </div>
+                <div class="flex-1 flex flex-col overflow-hidden" id="chat-container-${dmId}">
+                    <div class="flex-1 flex flex-col justify-end p-4 overflow-y-auto" id="messages-container-${dmId}">
                     </div>
-                </div>
-
-                <div class="px-4 py-[10px] bg-[#313338] border-t border-[#3f4147]">
-                    <div id="reply-container" class="hidden"></div>
-
-                    <form id="message-form" class="flex items-center bg-[#383a40] rounded-lg h-11 relative">
-                        <div class="flex items-center pr-[2px] gap-1">
-                            <button
-                                type="button"
-                                class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-1"
-                            >
-                            +
-                                </button>
+                    <div class="p-4 border-t border-[#2d2f32]">
+                        <div class="flex items-center space-x-3">
+                            <div class="flex-1 relative">
+                                <input type="text" 
+                                       class="w-full bg-[#383a40] text-white rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                                       placeholder="Message ${headerPrefix}${chatName}"
+                                       id="message-input-${dmId}">
                             </div>
-
-                        <div class="flex-1 flex items-center">
-                            <textarea
-                                id="message-input"
-                                class="block w-full bg-transparent text-[#dcddde] placeholder-[#6d6f78] border-none resize-none py-[11px] px-0 focus:outline-none min-h-[22px] max-h-[50vh] text-[16px] leading-[22px]"
-                                rows="1"
-                                placeholder="Message @${username}"
-                                maxlength="2000"
-                            ></textarea>
-                        </div>
-
-                        <div class="flex items-center pr-[2px] gap-1">
-                            <button
-                                type="button"
-                                class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-1"
-                            >
-                                <i class="fas fa-gift text-[20px]"></i>
-                            </button>
-                            <button
-                                type="button"
-                                class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1"
-                            >
-                                <i class="fas fa-face-smile text-[20px]"></i>
-                            </button>
-                            <button
-                                id="send-button"
-                                type="submit"
-                                class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1 opacity-50 cursor-not-allowed"
-                                disabled
-                            >
-                                <i class="fas fa-paper-plane"></i>
+                            <button class="text-[#949ba4] hover:text-white p-2 rounded-md hover:bg-[#404249] transition-colors">
+                                <i class="fas fa-smile text-xl"></i>
                             </button>
                         </div>
-                    </form>
                     </div>
-                `;
+                </div>
+            `;
             
             mainContent.appendChild(chatSection);
         } else {
-            // Update existing chat section
-            console.log('[DM Navigation] Updating existing chat section for DM');
-            
-            // Update the header
-            const chatHeader = chatSection.querySelector('.h-12 span');
-            if (chatHeader) {
-                chatHeader.textContent = `@ ${username}`;
-            }
-            
-            // Update the icon
-            const chatIcon = chatSection.querySelector('.h-12 i');
-            if (chatIcon) {
-                chatIcon.className = 'fas fa-user text-[#949ba4] mr-2';
-            }
-            
-            // Update the placeholder
-            const messageInput = chatSection.querySelector('#message-input');
-            if (messageInput) {
-                messageInput.placeholder = `Message @${username}`;
-            }
-            
-            // Update data attributes
-            chatSection.setAttribute('data-channel-id', dmId);
-            
-            // Show the chat section
             chatSection.style.display = 'flex';
             chatSection.classList.remove('hidden');
+            chatSection.setAttribute('data-channel-id', dmId);
         }
         
-        // Update meta tags for chat section initialization
-        this.updateChatMetaTags(dmId, username);
-        
-        // Initialize or reinitialize chat section (with small delay to ensure DOM is ready)
-        setTimeout(() => {
-            console.log('[DM Navigation] Chat section initialization handled by main component');
-        }, 50);
-        
-        console.log('[DM Navigation] DM chat section displayed successfully');
-    }
-    
-    updateChatMetaTags(dmId, username) {
-        // Update meta tags for the chat section
-        let metaTag;
-        
-        // Chat type
-        metaTag = document.querySelector('meta[name="chat-type"]');
-        if (metaTag) {
-            metaTag.setAttribute('content', 'direct');
-        } else {
-            metaTag = document.createElement('meta');
-            metaTag.setAttribute('name', 'chat-type');
-            metaTag.setAttribute('content', 'direct');
-            document.head.appendChild(metaTag);
-        }
-        
-        // Chat ID
-        metaTag = document.querySelector('meta[name="chat-id"]');
-        if (metaTag) {
-            metaTag.setAttribute('content', dmId);
-        } else {
-            metaTag = document.createElement('meta');
-            metaTag.setAttribute('name', 'chat-id');
-            metaTag.setAttribute('content', dmId);
-            document.head.appendChild(metaTag);
-        }
-        
-        // Channel ID (for compatibility)
-        metaTag = document.querySelector('meta[name="channel-id"]');
-        if (metaTag) {
-            metaTag.setAttribute('content', dmId);
-        } else {
-            metaTag = document.createElement('meta');
-            metaTag.setAttribute('name', 'channel-id');
-            metaTag.setAttribute('content', dmId);
-            document.head.appendChild(metaTag);
-        }
-        
-        // Chat title
-        metaTag = document.querySelector('meta[name="chat-title"]');
-        if (metaTag) {
-            metaTag.setAttribute('content', username);
-        } else {
-            metaTag = document.createElement('meta');
-            metaTag.setAttribute('name', 'chat-title');
-            metaTag.setAttribute('content', username);
-            document.head.appendChild(metaTag);
-        }
-        
-        // Chat placeholder
-        metaTag = document.querySelector('meta[name="chat-placeholder"]');
-        if (metaTag) {
-            metaTag.setAttribute('content', `Message @${username}`);
-        } else {
-            metaTag = document.createElement('meta');
-            metaTag.setAttribute('name', 'chat-placeholder');
-            metaTag.setAttribute('content', `Message @${username}`);
-            document.head.appendChild(metaTag);
-        }
-        
-        console.log('[DM Navigation] Updated meta tags for DM chat');
-    }
-    
-    async initializeChatSection(dmId, username) {
-        console.log('[DM Navigation] Initializing chat section for DM:', dmId, username);
-        
-        if (window.chatSection && typeof window.chatSection.switchTarget === 'function') {
-            console.log('[DM Navigation] Switching existing chat section to DM');
-            window.chatSection.switchTarget('direct', dmId);
-            return;
-        }
-        
-        const ensureDependencies = () => {
-            return new Promise((resolve) => {
-                const checkDependencies = () => {
-                    const hasJQuery = typeof $ !== 'undefined';
-                    const hasChatAPI = typeof window.ChatAPI !== 'undefined';
-                    const hasChatSection = typeof window.ChatSection === 'function';
-                    const hasInitFunction = typeof window.initializeChatSection === 'function';
-                    const hasSocketManager = typeof window.globalSocketManager !== 'undefined';
-                    
-                    console.log('[DM Navigation] Dependencies check:', {
-                        jQuery: hasJQuery,
-                        ChatAPI: hasChatAPI,
-                        ChatSection: hasChatSection,
-                        initFunction: hasInitFunction,
-                        socketManager: hasSocketManager
-                    });
-                    
-                    if (hasJQuery && hasChatAPI && (hasChatSection || hasInitFunction)) {
-                        console.log('[DM Navigation] All dependencies ready');
-                        resolve();
-                        return true;
-                    }
-                    return false;
-                };
-                
-                if (checkDependencies()) {
-                    return;
-                }
-                
-                console.log('[DM Navigation] Waiting for dependencies...');
-                let attempts = 0;
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (checkDependencies()) {
-                        clearInterval(checkInterval);
-                    } else if (attempts > 100) {
-                        clearInterval(checkInterval);
-                        console.warn('[DM Navigation] Dependencies not loaded after timeout, attempting anyway');
-                        resolve();
-                    }
-                }, 100);
-            });
-        };
-        
-        const createChatSection = async () => {
-            if (typeof window.ChatSection === 'function') {
-                console.log('[DM Navigation] Creating new ChatSection instance');
-                try {
-                    const chatSection = new window.ChatSection({
-                        chatType: 'direct',
-                        targetId: dmId,
-                        userId: window.currentUserId || document.querySelector('meta[name="user-id"]')?.getAttribute('content'),
-                        username: window.currentUsername || document.querySelector('meta[name="username"]')?.getAttribute('content')
-                    });
-                    await chatSection.init();
-                    window.chatSection = chatSection;
-                    return true;
-                } catch (error) {
-                    console.error('[DM Navigation] Error creating ChatSection:', error);
-                    return false;
-                }
-            }
-            return false;
-        };
-        
-        try {
-            await ensureDependencies();
-            
-            if (await createChatSection()) {
-                console.log('[DM Navigation] Chat section initialized directly');
-                return;
-            }
-            
-            if (typeof window.initializeChatSection === 'function') {
-                console.log('[DM Navigation] Using global initializeChatSection function');
-                try {
-                    await window.initializeChatSection();
-                    console.log('[DM Navigation] Global initializeChatSection completed');
-                } catch (error) {
-                    console.error('[DM Navigation] Error with global initializeChatSection:', error);
-                }
-                return;
-            }
-            
-            console.error('[DM Navigation] Failed to initialize chat section - no available methods');
-            
-        } catch (error) {
-            console.error('[DM Navigation] Error during chat section initialization:', error);
+        if (window.chatManager && window.chatManager.loadChat) {
+            window.chatManager.loadChat(dmId, 'direct');
         }
     }
 
-    showFriendsContent() {
-        console.log('[DM Navigation] Showing friends content');
+    updateActiveDmDisplay() {
+        document.querySelectorAll('.dm-friend-item').forEach(item => {
+            item.classList.remove('bg-discord-light');
+            item.classList.add('hover:bg-discord-light');
+        });
         
+        if (this.activeDmId) {
+            const activeItem = document.querySelector(`[data-chat-room-id="${this.activeDmId}"]`);
+            if (activeItem) {
+                activeItem.classList.add('bg-discord-light');
+                activeItem.classList.remove('hover:bg-discord-light');
+            }
+        }
+    }
+
+    clearActiveDm() {
+        this.activeDmId = null;
+        this.updateActiveDmDisplay();
+    }
+
+    showFriendsContent() {
         const friendsContainer = document.querySelector('.flex-1.bg-discord-background.flex.flex-col');
         if (friendsContainer) {
             friendsContainer.style.display = 'flex';
             friendsContainer.classList.remove('hidden');
         }
         
-        // Hide chat section
         const chatSection = document.querySelector('.chat-section');
         if (chatSection) {
             chatSection.style.display = 'none';
             chatSection.classList.add('hidden');
         }
         
-        // Clear active DM
         this.clearActiveDm();
-        
-        console.log('[DM Navigation] Friends content is now visible');
     }
 
     hideFriendsContent() {
-        console.log('[DM Navigation] Hiding friends content');
-        
         const friendsContainer = document.querySelector('.flex-1.bg-discord-background.flex.flex-col');
         if (friendsContainer) {
             friendsContainer.style.display = 'none';
             friendsContainer.classList.add('hidden');
-        }
-        
-        console.log('[DM Navigation] Friends content is now hidden');
-    }
-
-    updateActiveDmDisplay() {
-        console.log('[DM Navigation] Updating active DM display');
-        
-        document.querySelectorAll('.dm-friend-item').forEach(item => {
-            const itemDmId = item.dataset.chatRoomId;
-            if (itemDmId === this.activeDmId) {
-                item.classList.add('bg-discord-light');
-                item.classList.remove('hover:bg-discord-light');
-            } else {
-                item.classList.remove('bg-discord-light');
-                item.classList.add('hover:bg-discord-light');
-            }
-        });
-    }
-
-    clearActiveDm() {
-        console.log('[DM Navigation] Clearing active DM');
-        this.activeDmId = null;
-        this.updateActiveDmDisplay();
-    }
-
-    openNewDirectMessageModal() {
-        console.log('[DM Navigation] Opening new DM modal');
-        
-        const modal = document.querySelector('#new-direct-modal');
-        if (modal) {
-            modal.classList.remove('hidden');
         }
     }
 }
@@ -535,8 +237,8 @@ let directMessageNavigation;
 
 function initDirectMessageNavigation() {
     if (document.querySelector('.dm-friend-item') || document.querySelector('#new-direct-message-btn')) {
-        console.log('[DM Navigation] Initializing direct message navigation');
         directMessageNavigation = new DirectMessageNavigation();
+        directMessageNavigation.init();
         window.directMessageNavigation = directMessageNavigation;
     }
 }
@@ -549,19 +251,20 @@ window.addEventListener('popstate', (event) => {
             window.directMessageNavigation.switchToFriends();
         } else if (event.state.contentType === 'dm' && event.state.dmId && window.directMessageNavigation) {
             const dmElement = document.querySelector(`[data-chat-room-id="${event.state.dmId}"]`);
-            const username = dmElement ? dmElement.dataset.username : 'User';
-            window.directMessageNavigation.switchToDirectMessage(event.state.dmId, username);
+            const chatName = dmElement ? dmElement.dataset.username : 'Chat';
+            const roomType = dmElement ? dmElement.dataset.roomType : 'direct';
+            window.directMessageNavigation.switchToChat(event.state.dmId, chatName, roomType);
         }
     } else {
-        // Handle case where there's no state (e.g., direct URL navigation)
         const currentPath = window.location.pathname;
         const dmMatch = currentPath.match(/\/home\/channels\/dm\/(\d+)/);
         
         if (dmMatch && window.directMessageNavigation) {
             const dmId = dmMatch[1];
             const dmElement = document.querySelector(`[data-chat-room-id="${dmId}"]`);
-            const username = dmElement ? dmElement.dataset.username : 'User';
-            window.directMessageNavigation.switchToDirectMessage(dmId, username);
+            const chatName = dmElement ? dmElement.dataset.username : 'Chat';
+            const roomType = dmElement ? dmElement.dataset.roomType : 'direct';
+            window.directMessageNavigation.switchToChat(dmId, chatName, roomType);
         } else if (currentPath.includes('/home/friends') && window.directMessageNavigation) {
             window.directMessageNavigation.switchToFriends();
         }

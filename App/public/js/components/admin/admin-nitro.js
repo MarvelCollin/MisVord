@@ -40,8 +40,7 @@ export class NitroManager {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+        'Content-Type': 'application/json'
       },
       credentials: 'same-origin'
     };
@@ -272,8 +271,7 @@ export class NitroManager {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+        'Content-Type': 'application/json'
       },
       credentials: 'same-origin',
       signal: this.searchController.signal
@@ -734,8 +732,7 @@ export class NitroManager {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+        'Content-Type': 'application/json'
       },
       credentials: 'same-origin',
       signal: this.searchController.signal

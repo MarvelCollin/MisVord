@@ -7,12 +7,10 @@ class UserAdminAPI {
         const text = await response.text();
 
         if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>')) {
-            console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
             throw new Error('Server error occurred. Please try again.');
         }
 
         if (text.includes('Fatal error') || text.includes('Parse error')) {
-            console.error('Server returned PHP error:', text.substring(0, 200));
             throw new Error('Server configuration error. Please contact support.');
         }
 
@@ -23,7 +21,6 @@ class UserAdminAPI {
         try {
             return JSON.parse(text);
         } catch (e) {
-            console.error('Failed to parse JSON response:', text);
             throw new Error('Invalid response from server');
         }
     }
@@ -33,7 +30,6 @@ class UserAdminAPI {
             const defaultOptions = {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
                 }
             };
@@ -61,7 +57,6 @@ class UserAdminAPI {
 
             return data;
         } catch (error) {
-            console.error(`Admin API request to ${url} failed:`, error.message);
             return {
                 success: false,
                 error: error.message

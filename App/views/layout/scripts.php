@@ -42,14 +42,13 @@ if ($is_auth_page) {
 </script>
 
 <?php if (!$is_auth_page): ?>
-<script src="<?php echo js('utils/presence-manager'); ?>?v=<?php echo time(); ?>"></script>
+
 <script src="<?php echo js('api/chat-api'); ?>?v=<?php echo time(); ?>"></script>
 <script>
 
 document.addEventListener('DOMContentLoaded', function() {
     if (!window.ChatAPI) {
         window.ChatAPI = new ChatAPI();
-        console.log("✅ ChatAPI initialized in scripts.php");
     }
 });
 </script>
@@ -59,12 +58,11 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     if (!window.ChatAPI) {
         window.ChatAPI = new ChatAPI();
-        console.log("✅ ChatAPI initialized in scripts.php");
     }
     
     setTimeout(() => {
         if (window.userAPI && window.userAPI.getAllUsers) {
-            console.log("✅ UserAPI getAllUsers method available");
+    
         } else {
             console.warn("⚠️ UserAPI getAllUsers method not available, will load on demand");
         }
@@ -81,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     if (window.JaroWinkler || window.jaroWinkler) {
-        console.log("✅ JaroWinkler loaded successfully");
+
     } else {
         console.warn("⚠️ JaroWinkler not loaded");
     }
@@ -127,3 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-section.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/components/voice/global-voice-indicator.js'); ?>"></script>
+
+<script src="<?php echo js('components/home/friends-tabs'); ?>?v=<?php echo time(); ?>" type="module"></script>
+<script src="<?php echo js('components/home/direct-message-nav'); ?>?v=<?php echo time(); ?>" type="module"></script>
+<script src="<?php echo js('components/app-layout'); ?>?v=<?php echo time(); ?>" type="module"></script>

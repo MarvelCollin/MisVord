@@ -8,9 +8,10 @@ class UserService {
 
     updatePresence(userId, status, activityDetails = null) {
         this.userPresence.set(userId, {
+            user_id: userId,
             status,
-            activityDetails,
-            lastUpdated: Date.now()
+            activity_details: activityDetails,
+            last_seen: Date.now()
         });
     }
 
@@ -18,7 +19,7 @@ class UserService {
         const presence = this.userPresence.get(userId);
         if (!presence) return null;
         
-        const timeSinceUpdate = Date.now() - presence.lastUpdated;
+        const timeSinceUpdate = Date.now() - presence.last_seen;
         if (timeSinceUpdate > this.idleTimeout && presence.status === 'online') {
             presence.status = 'idle';
             this.userPresence.set(userId, presence);
@@ -45,7 +46,7 @@ class UserService {
     cleanOldPresence(maxAge = 300000) {
         const now = Date.now();
         for (const [userId, data] of this.userPresence.entries()) {
-            if (now - data.lastUpdated > maxAge) {
+            if (now - data.last_seen > maxAge) {
                 this.userPresence.delete(userId);
             }
         }
@@ -61,7 +62,7 @@ class UserService {
     updateIdleUsers() {
         const now = Date.now();
         for (const [userId, data] of this.userPresence.entries()) {
-            const timeSinceUpdate = now - data.lastUpdated;
+            const timeSinceUpdate = now - data.last_seen;
             if (timeSinceUpdate > this.idleTimeout && data.status === 'online') {
                 data.status = 'idle';
                 this.userPresence.set(userId, data);

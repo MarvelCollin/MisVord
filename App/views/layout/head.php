@@ -116,14 +116,8 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
     
     <script>
-    console.log('🔍 SOCKET DIAGNOSTIC: Starting early diagnostic checks...');
-    
-    
     window.addEventListener('DOMContentLoaded', function() {
-        console.log('🔍 DOM Loaded - Socket.IO available:', typeof io !== 'undefined');
-        
         if (typeof io === 'undefined') {
-            console.error('❌ CRITICAL: Socket.IO library failed to load!');
             return;
         }
         
@@ -131,16 +125,7 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
         const userId = document.querySelector('meta[name="user-id"]')?.content;
         const username = document.querySelector('meta[name="username"]')?.content;
         
-        console.log('🔍 Page Authentication Check:', {
-            isAuthenticated,
-            hasUserId: !!userId,
-            hasUsername: !!username,
-            userId: userId ? `[${userId.length} chars]` : null,
-            username: username ? `[${username.length} chars]` : null
-        });
-        
         if (!isAuthenticated) {
-            console.log('📄 [SOCKET-INIT] Not authenticated, skipping socket initialization');
             return;
         }
         
@@ -149,24 +134,15 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
         
         const checkSocketManager = () => {
             checkCount++;
-            console.log(`🔍 [SOCKET-INIT] Check #${checkCount}: Looking for globalSocketManager...`);
             
             if (window.globalSocketManager) {
-                console.log('✅ [SOCKET-INIT] GlobalSocketManager found, checking connection status...');
-                
                 setTimeout(() => {
                     const status = window.globalSocketManager.getStatus();
-                    console.log('🔍 [SOCKET-INIT] Initial Socket Status:', status);
                     
                     if (!status.connected && !status.lastError) {
-                        console.log('🔧 [SOCKET-INIT] Socket not connected, attempting manual initialization...');
-                        
                         if (isAuthenticated && userId && username) {
                             window.__SOCKET_INITIALISED__ = false;
                             const initResult = window.globalSocketManager.init({ user_id: userId, username: username });
-                            console.log('🔧 [SOCKET-INIT] Manual init result:', initResult);
-                        } else {
-                            console.warn('⚠️ [SOCKET-INIT] Cannot init - missing user data:', { userId: !!userId, username: !!username });
                         }
                     }
                 }, 1000);
@@ -175,7 +151,6 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
             }
             
             if (checkCount >= maxChecks) {
-                console.error('❌ [SOCKET-INIT] GlobalSocketManager not found after 10 seconds');
                 return;
             }
             
@@ -186,38 +161,27 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
     });
     
     window.addEventListener('globalSocketReady', function(event) {
-        console.log('🎉 SOCKET READY EVENT:', event.detail);
     });
     
     window.addEventListener('socketAuthenticated', function(event) {
-        console.log('🔐 SOCKET AUTHENTICATED EVENT:', event.detail);
     });
     
     window.testSocketConnection = function() {
-        console.log('🧪 [SOCKET-TEST] Starting manual socket connection test...');
-        
         if (typeof io === 'undefined') {
-            console.error('❌ [SOCKET-TEST] Socket.IO library not loaded');
             return false;
         }
         
         if (!window.globalSocketManager) {
-            console.error('❌ [SOCKET-TEST] Global socket manager not found');
             return false;
         }
         
         const status = window.globalSocketManager.getStatus();
-        console.log('🔍 [SOCKET-TEST] Current socket status:', status);
         
         if (status.connected && status.authenticated) {
-            console.log('✅ [SOCKET-TEST] Socket already connected and authenticated');
-            
             if (window.chatSection) {
                 const chatStatus = window.chatSection.getDetailedSocketStatus();
-                console.log('💬 [SOCKET-TEST] Chat section status:', chatStatus);
                 
                 if (chatStatus.isReady && window.chatSection.targetId) {
-                    console.log('🎯 [SOCKET-TEST] Attempting to join chat room...');
                     window.chatSection.joinSocketRoom();
                 }
             }
@@ -231,19 +195,15 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
         };
         
         if (!userData.user_id || !userData.username) {
-            console.error('❌ [SOCKET-TEST] User data not found:', userData);
             return false;
         }
         
-        console.log('🔧 [SOCKET-TEST] Reinitializing socket with user data:', userData);
         window.__SOCKET_INITIALISED__ = false;
         
         const initResult = window.globalSocketManager.init(userData);
-        console.log('🔧 [SOCKET-TEST] Init result:', initResult);
         
         setTimeout(() => {
             const newStatus = window.globalSocketManager.getStatus();
-            console.log('🔍 [SOCKET-TEST] Status after reinit:', newStatus);
         }, 2000);
         
         return true;
@@ -251,7 +211,6 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
     
     window.addEventListener('error', function(event) {
         if (event.message && (event.message.includes('socket') || event.message.includes('Socket') || event.message.includes('io'))) {
-            console.error('🚨 SOCKET-RELATED ERROR:', event.error);
         }
     });
     </script>
@@ -1093,7 +1052,7 @@ function addDebugLogMaster(message, type = 'info') {
 }
 
 function resetAuthSession() {
-    console.log('🔓 Starting authentication reset...');
+    
     
     const modal = document.getElementById('auth-reset-modal');
     if (modal) {
@@ -1106,16 +1065,16 @@ function resetAuthSession() {
     
     try {
         if (window.globalSocketManager && window.globalSocketManager.io) {
-            console.log('Disconnecting from socket...');
+    
             window.globalSocketManager.io.disconnect();
         }
         
         if (window.MisVordMessaging && window.MisVordMessaging.disconnect) {
-            console.log('Disconnecting messaging...');
+    
             window.MisVordMessaging.disconnect();
         }
         
-        console.log('Clearing localStorage...');
+
         const authKeys = [
             'authToken', 'rememberMe', 'userAuth', 'lastEmail', 
             'user_id', 'username', 'discriminator', 'avatar_url', 
@@ -1129,14 +1088,14 @@ function resetAuthSession() {
             sessionStorage.removeItem(key);
         });
         
-        console.log('Clearing cookies...');
+
         document.cookie.split(';').forEach(cookie => {
             const [name] = cookie.trim().split('=');
             document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
             document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
         });
         
-        console.log('Making logout request...');
+
         fetch('/logout', {
             method: 'GET',
             credentials: 'include',
@@ -1145,11 +1104,11 @@ function resetAuthSession() {
                 'Pragma': 'no-cache'
             }
         }).then(() => {
-            console.log('✅ Logout request completed');
+    
         }).catch(error => {
             console.warn('Logout request failed, but continuing with redirect:', error);
         }).finally(() => {
-            console.log('🚀 Redirecting to login...');
+    
             window.location.href = '/login';
         });
         

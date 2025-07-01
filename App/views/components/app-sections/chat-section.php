@@ -403,7 +403,7 @@ if (!function_exists('renderMessage')) {
     <?php endif; ?>
 
     <div id="chat-messages" class="flex-1 overflow-y-auto overflow-x-hidden">
-        <div class="messages-container flex flex-col min-h-full">
+        <div class="messages-container flex flex-col h-full <?php echo empty($messages) ? 'items-center justify-center' : ''; ?>">
             <?php if (!empty($messages)): ?>
                 <?php
                 $i = 0;
@@ -413,7 +413,7 @@ if (!function_exists('renderMessage')) {
                 }
                 ?>
             <?php else: ?>
-                <div class="flex flex-col items-center justify-center h-full text-[#dcddde]">
+                <div class="flex flex-col items-center justify-center text-[#dcddde]">
                     <i class="fas fa-comments text-6xl mb-4 text-[#4f545c]"></i>
                     <p class="text-lg">No messages yet</p>
                     <p class="text-sm text-[#a3a6aa]">Be the first to send a message!</p>

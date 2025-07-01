@@ -13,8 +13,6 @@ if (!function_exists('getChannelIcon')) {
 
 if (!function_exists('renderChannel')) {
     function renderChannel($channel, $activeChannelId) {
-        error_log("[Channel Section] Rendering channel: " . ($channel['name'] ?? 'unnamed') . " (ID: " . ($channel['id'] ?? 'no-id') . ")");
-        
         $type = $channel['type'] ?? 'text';
         $icon = getChannelIcon($type);
         $isActive = $activeChannelId == $channel['id'];

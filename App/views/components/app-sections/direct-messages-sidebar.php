@@ -10,7 +10,7 @@ $friendData = $friendController->getUserFriends();
 require_once dirname(dirname(dirname(__DIR__))) . '/database/repositories/ChatRoomRepository.php';
 $chatRoomRepository = new ChatRoomRepository();
 $userId = $_SESSION['user_id'] ?? 0;
-$chatRooms = $chatRoomRepository->getUserDirectRooms($userId);
+$chatRooms = $chatRoomRepository->getUserChatRooms($userId);
 
 $currentUser = $friendData['currentUser'];
 $friends = $friendData['friends'];
@@ -63,28 +63,60 @@ if (file_exists($tooltipPath)) {
         <?php foreach ($chatRooms as $chatRoom): ?>
             <?php 
             $statusColor = 'bg-gray-500';
-            $otherUserId = $chatRoom['other_user_id'] ?? 0;
-            $otherUsername = $chatRoom['other_username'] ?? 'Unknown';
-            $otherAvatar = $chatRoom['other_avatar'] ?? '';
             $roomId = $chatRoom['id'] ?? 0;
+            $roomType = $chatRoom['type'] ?? 'direct';
+            $roomName = '';
+            $roomAvatar = '';
+            $otherUserId = null;
+            
+            if ($roomType === 'direct') {
+                $otherUserId = $chatRoom['other_user_id'] ?? 0;
+                $roomName = $chatRoom['other_username'] ?? 'Unknown';
+                $roomAvatar = $chatRoom['other_avatar'] ?? '';
+            } else {
+                $roomName = $chatRoom['name'] ?? 'Group Chat';
+                $roomAvatar = $chatRoom['image_url'] ?? '';
+                $participantCount = $chatRoom['participant_count'] ?? 0;
+            }
             
             $activeDmId = $_SESSION['active_dm'] ?? null;
             $isActive = ($activeDmId == $roomId);
             $activeClass = $isActive ? 'bg-discord-light' : 'hover:bg-discord-light';
             ?>
             <div class="dm-friend-item flex items-center p-1.5 rounded <?php echo $activeClass; ?> text-discord-lighter hover:text-white cursor-pointer"
-                 data-friend-id="<?php echo htmlspecialchars($otherUserId); ?>"
+                 data-friend-id="<?php echo htmlspecialchars($otherUserId ?? ''); ?>"
                  data-chat-room-id="<?php echo htmlspecialchars($roomId); ?>"
-                 data-chat-type="direct"
-                 data-username="<?php echo htmlspecialchars($otherUsername); ?>">
+                 data-chat-type="<?php echo htmlspecialchars($roomType); ?>"
+                 data-username="<?php echo htmlspecialchars($roomName); ?>"
+                 data-room-type="<?php echo htmlspecialchars($roomType); ?>">
                 <div class="relative mr-3">
                     <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                        <img src="<?php echo getUserAvatar($otherAvatar, $otherUsername); ?>" 
-                            alt="Avatar" class="w-full h-full object-cover">
+                        <?php if ($roomType === 'direct'): ?>
+                            <img src="<?php echo getUserAvatar($roomAvatar, $roomName); ?>" 
+                                alt="Avatar" class="w-full h-full object-cover">
+                        <?php else: ?>
+                            <?php if ($roomAvatar): ?>
+                                <img src="<?php echo htmlspecialchars($roomAvatar); ?>" 
+                                    alt="Group Avatar" class="w-full h-full object-cover">
+                            <?php else: ?>
+                                <i class="fas fa-users text-gray-400 text-sm"></i>
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </div>
-                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> user-status-indicator" data-user-id="<?php echo htmlspecialchars($otherUserId); ?>"></span>
+                    <?php if ($roomType === 'direct' && $otherUserId): ?>
+                        <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> user-status-indicator" data-user-id="<?php echo htmlspecialchars($otherUserId); ?>"></span>
+                    <?php elseif ($roomType === 'group'): ?>
+                        <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-green-500"></span>
+                    <?php endif; ?>
                 </div>
-                <span class="font-medium truncate dm-username" data-user-id="<?php echo htmlspecialchars($otherUserId); ?>"><?php echo htmlspecialchars($otherUsername); ?></span>
+                <div class="flex-1 min-w-0">
+                    <span class="font-medium truncate dm-username block" data-user-id="<?php echo htmlspecialchars($otherUserId ?? ''); ?>">
+                        <?php echo htmlspecialchars($roomName); ?>
+                    </span>
+                    <?php if ($roomType === 'group' && isset($participantCount)): ?>
+                        <span class="text-xs text-gray-400"><?php echo $participantCount; ?> members</span>
+                    <?php endif; ?>
+                </div>
             </div>
         <?php endforeach; ?>
     </div>
@@ -118,13 +150,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        if (!window.ChatAPI) {
-            console.warn('⚠️ [DM-SIDEBAR] ChatAPI not available, retrying in 1 second');
+        if (!window.FriendsManager) {
+            console.warn('⚠️ [DM-SIDEBAR] FriendsManager not available, retrying in 1 second');
             setTimeout(updateAllUserStatuses, 1000);
             return;
         }
         
-        window.ChatAPI.getOnlineUsers().then(onlineUsers => {
+        if (window.FriendsManager) {
+            const friendsManager = window.FriendsManager.getInstance();
+            const onlineUsers = friendsManager.cache.onlineUsers || {};
             console.log('📊 [DM-SIDEBAR] Retrieved online users:', onlineUsers);
             
             const allStatusIndicators = document.querySelectorAll('.user-status-indicator[data-user-id]');
@@ -135,9 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             console.log(`✅ [DM-SIDEBAR] Updated status for ${allStatusIndicators.length} users`);
-        }).catch(error => {
-            console.error('❌ [DM-SIDEBAR] Failed to get online users:', error);
-        });
+        }
     }
     
     function setupSocketListeners() {

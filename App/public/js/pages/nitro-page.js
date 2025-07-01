@@ -420,7 +420,6 @@ function initRedeemButton() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
                 },
                 credentials: 'same-origin',

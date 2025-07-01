@@ -412,24 +412,12 @@ class ChatSection {
     }
     
     setupSocketReadyListeners() {
-        console.log('📡 [CHAT-SECTION] Setting up socket ready listeners...');
-        
         const handleSocketReady = () => {
-            console.log('🔌 [CHAT-SECTION] Socket ready event received, attempting to join room');
-            
             const socketStatus = this.getDetailedSocketStatus();
-            console.log('🔍 [CHAT-SECTION] Socket status after ready event:', socketStatus);
             
             if (socketStatus.isReady && this.targetId) {
-                console.log(`🎯 [CHAT-SECTION] Socket is ready, joining ${this.chatType} room ${this.targetId}`);
                 this.joinSocketRoom();
             } else {
-                console.warn('⚠️ [CHAT-SECTION] Socket ready event received but conditions not met:', {
-                    isReady: socketStatus.isReady,
-                    hasTargetId: !!this.targetId,
-                    targetId: this.targetId,
-                    chatType: this.chatType
-                });
             }
         };
         
@@ -439,17 +427,11 @@ class ChatSection {
         const checkWithTimeout = () => {
             setTimeout(() => {
                 const socketStatus = this.getDetailedSocketStatus();
-                console.log('⏰ [CHAT-SECTION] Timeout check - Socket status:', socketStatus);
                 
                 if (socketStatus.isReady && this.targetId && !this.socketRoomJoined) {
-                    console.log('🔄 [CHAT-SECTION] Socket became ready during timeout check, joining room');
                     this.joinSocketRoom();
                 } else if (!socketStatus.socketInitialized) {
-                    console.warn('⚠️ [CHAT-SECTION] Socket not initialized after timeout, checking global socket manager...');
-                    
                     if (window.globalSocketManager && !window.globalSocketManager.connected) {
-                        console.log('🔄 [CHAT-SECTION] Attempting to reinitialize socket connection...');
-                        
                         const userData = {
                             user_id: this.userId || document.querySelector('meta[name="user-id"]')?.content,
                             username: this.username || document.querySelector('meta[name="username"]')?.content

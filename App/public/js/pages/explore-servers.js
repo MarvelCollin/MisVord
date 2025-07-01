@@ -357,8 +357,7 @@ function handleJoinServer(serverId, button) {
     fetch('/api/servers/join', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ server_id: serverId })
     })

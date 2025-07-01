@@ -276,11 +276,6 @@ Route::delete('/api/channels/([0-9]+)', function($channelId) {
     $controller->delete();
 });
 
-Route::get('/api/channels/content', function() {
-    $controller = new ChannelController();
-    $controller->getChannelContent();
-});
-
 Route::get('/api/channels/([0-9]+)/participants', function($channelId) {
     $controller = new ChannelController();
     $controller->getChannelParticipants($channelId);
@@ -329,26 +324,6 @@ Route::get('/api/servers/([0-9]+)/membership', function($serverId) {
 Route::get('/api/servers/([0-9]+)/debug-membership', function($serverId) {
     $controller = new ServerController();
     $controller->debugMembership($serverId);
-});
-
-Route::get('/api/channels/debug-membership', function() {
-    $controller = new ChannelController();
-    $controller->debugMembership();
-});
-
-Route::post('/api/channels/position', function() {
-    $controller = new ChannelController();
-    $controller->updateChannelPosition();
-});
-
-Route::post('/api/categories/position', function() {
-    $controller = new ChannelController();
-    $controller->updateCategoryPosition();
-});
-
-Route::post('/api/positions/batch', function() {
-    $controller = new ChannelController();
-    $controller->batchUpdatePositions();
 });
 
 Route::get('/debug/messages', function() {

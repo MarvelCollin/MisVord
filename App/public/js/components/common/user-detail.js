@@ -612,21 +612,21 @@ class UserDetailModal {
                 this.addFriendBtn.style.display = 'none';
             } else if (user.is_friend) {
                 this.addFriendBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                    <i class="fas fa-user-minus w-4 h-4"></i>
                     Remove Friend
                 `;
                 this.addFriendBtn.classList.add('bg-discord-red');
                 this.addFriendBtn.classList.remove('bg-discord-dark');
             } else if (user.friend_request_sent) {
                 this.addFriendBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    <i class="fas fa-clock w-4 h-4"></i>
                     Pending
                 `;
                 this.addFriendBtn.disabled = true;
                 this.addFriendBtn.classList.add('opacity-50', 'cursor-not-allowed');
             } else {
                 this.addFriendBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                    <i class="fas fa-user-plus w-4 h-4"></i>
                     Add Friend
                 `;
                 this.addFriendBtn.disabled = false;
@@ -675,8 +675,7 @@ class UserDetailModal {
                 const response = await fetch('/api/friends', {
                     method: 'DELETE',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ user_id: this.currentUserId })
                 });
@@ -684,7 +683,7 @@ class UserDetailModal {
                 if (!response.ok) throw new Error('Failed to remove friend');
 
                 this.addFriendBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                    <i class="fas fa-user-plus w-4 h-4"></i>
                     Add Friend
                 `;
                 this.addFriendBtn.classList.remove('bg-discord-red');
@@ -693,8 +692,7 @@ class UserDetailModal {
                 const response = await fetch('/api/friends', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ user_id: this.currentUserId })
                 });
@@ -702,7 +700,7 @@ class UserDetailModal {
                 if (!response.ok) throw new Error('Failed to send friend request');
 
                 this.addFriendBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    <i class="fas fa-clock w-4 h-4"></i>
                     Pending
                 `;
                 this.addFriendBtn.disabled = true;

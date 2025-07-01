@@ -69,7 +69,6 @@ class ChatRoomRepository extends Repository {
             }
         } catch (Exception $e) {
             $query->rollback();
-            error_log('Error creating direct message room: ' . $e->getMessage());
             return null;
         }
     }
@@ -90,10 +89,47 @@ class ChatRoomRepository extends Repository {
             
         return $results;
     }
+
+    public function getUserChatRooms($userId) {
+        $directRooms = [];
+        $groupRooms = [];
+        
+        $query1 = new Query();
+        $directRooms = $query1->table('chat_rooms cr')
+            ->join('chat_participants cp', 'cr.id', '=', 'cp.chat_room_id')
+            ->join('chat_participants cp2', 'cr.id', '=', 'cp2.chat_room_id')
+            ->join('users u', 'cp2.user_id', '=', 'u.id')
+            ->where('cr.type', 'direct')
+            ->where('cp.user_id', $userId)
+            ->where('cp2.user_id', '!=', $userId)
+            ->select('cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at, u.username as other_username, u.avatar_url as other_avatar, u.id as other_user_id')
+            ->get();
+
+        $query2 = new Query();
+        $groupRooms = $query2->table('chat_rooms cr')
+            ->join('chat_participants cp', 'cr.id', '=', 'cp.chat_room_id')
+            ->where('cr.type', 'group')
+            ->where('cp.user_id', $userId)
+            ->select('cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at')
+            ->get();
+
+        foreach ($groupRooms as &$room) {
+            $participants = $this->getParticipants($room['id']);
+            $room['participants'] = $participants;
+            $room['participant_count'] = count($participants);
+        }
+
+        $allRooms = array_merge($directRooms, $groupRooms);
+        
+        usort($allRooms, function($a, $b) {
+            return strtotime($b['updated_at']) - strtotime($a['updated_at']);
+        });
+
+        return $allRooms;
+    }
+      
       public function getRoomMessages($roomId, $limit = 50, $offset = 0) {
         $query = new Query();
-        
-        error_log("Getting messages for DM room $roomId with limit $limit and offset $offset");
         
         $results = $query->table('messages m')
             ->join('chat_room_messages crm', 'm.id', '=', 'crm.message_id')
@@ -104,8 +140,6 @@ class ChatRoomRepository extends Repository {
             ->limit($limit)
             ->offset($offset)
             ->get();
-        
-        error_log("Found " . count($results) . " messages for DM room $roomId");
         
         return array_reverse($results);
     }
@@ -203,7 +237,6 @@ class ChatRoomRepository extends Repository {
             }
         } catch (Exception $e) {
             $query->rollback();
-            error_log('Error creating group chat room: ' . $e->getMessage());
             throw $e;
         }
     }

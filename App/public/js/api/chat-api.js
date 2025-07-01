@@ -66,13 +66,10 @@ class ChatAPI {
 
     async makeRequest(url, options = {}) {
         try {
-            console.log('📡 API Request:', url);
-            
             const defaultOptions = {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'Content-Type': 'application/json'
                 },
                 credentials: 'same-origin'
             };
@@ -80,31 +77,16 @@ class ChatAPI {
             const fetchOptions = { ...defaultOptions, ...options };
             
             const response = await fetch(url, fetchOptions);
-            console.log('📡 Response received:', {
-                url,
-                status: response.status,
-                statusText: response.statusText
-            });
             
             if (!response.ok) {
-                console.error('API Request failed with status:', {
-                    url,
-                    status: response.status, 
-                    statusText: response.statusText
-                });
-                
                 const errorText = await response.text();
-                console.error('Error response body:', errorText);
-                
                 throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
             }
             
             const data = await response.json();
-            console.log('📡 API Response data:', data);
             
             return data;
         } catch (error) {
-            console.error('API Request failed:', error);
             throw error;
         }
     }
@@ -124,8 +106,6 @@ class ChatAPI {
         if (before) {
             url += `&before=${before}`;
         }
-        
-        console.log('🔍 Getting messages from:', url);
         
         const response = await this.makeRequest(url);
         return response;
@@ -157,7 +137,6 @@ class ChatAPI {
             
             return await response.json();
         } catch (error) {
-            console.error('Error uploading files:', error);
             throw error;
         }
     }
@@ -271,14 +250,12 @@ class ChatAPI {
         try {
             const response = await this.makeRequest(`/api/messages/${messageId}`);
             if (response && response.data && response.data.message) {
-                // Extract target info from message response
                 return {
-                    target_type: 'channel', // Default, would need backend enhancement
+                    target_type: 'channel',
                     target_id: null
                 };
             }
         } catch (error) {
-            console.warn('Failed to get message target:', error);
         }
         return null;
     }
@@ -313,14 +290,10 @@ class ChatAPI {
             chatSectionExists: !!window.chatSection
         };
         
-        console.log('🔍 Socket & Chat Debug Info:', status);
-        
         if (status.socketReady && window.globalSocketManager?.io) {
-            console.log('🔍 Testing room debug...');
             window.globalSocketManager.io.emit('debug-rooms');
             
             window.globalSocketManager.io.once('debug-rooms-info', (roomInfo) => {
-                console.log('🔍 Room debug response:', roomInfo);
             });
         }
         
@@ -334,24 +307,17 @@ class ChatAPI {
     }
     
     testMessageSend(content = 'Test message') {
-        console.log('🧪 Testing message send functionality...');
-        
         if (!window.chatSection) {
-            console.error('❌ ChatSection not available');
             return false;
         }
         
         if (!window.chatSection.targetId) {
-            console.error('❌ No target ID set in ChatSection');
             return false;
         }
         
         if (!window.chatSection.sendReceiveHandler) {
-            console.error('❌ SendReceiveHandler not available');
             return false;
         }
-        
-        console.log('✅ Calling sendReceiveHandler.sendMessage with test content');
         
         const originalValue = window.chatSection.messageInput?.value || '';
         if (window.chatSection.messageInput) {
@@ -362,7 +328,6 @@ class ChatAPI {
             window.chatSection.sendReceiveHandler.sendMessage();
             return true;
         } catch (error) {
-            console.error('❌ Test message send failed:', error);
             return false;
         } finally {
             if (window.chatSection.messageInput) {
@@ -386,7 +351,6 @@ class ChatAPI {
 
     async getOnlineUsers() {
         if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
-            console.warn('⚠️ Socket not ready, cannot get online users');
             return {};
         }
         
@@ -424,7 +388,6 @@ class ChatAPI {
             
             throw new Error(response?.message || 'Failed to create DM room');
         } catch (error) {
-            console.error('Error creating DM room:', error);
             throw error;
         }
     }
@@ -458,7 +421,6 @@ class ChatAPI {
                 type: result.mime_type
             };
         } catch (error) {
-            console.error('Error uploading file:', error);
             if (error.message.includes('too large')) {
                 throw new Error('File is too large. Please choose a smaller file.');
             }
@@ -478,143 +440,107 @@ class ChatAPI {
             const reactions = response.data?.reactions || response.reactions || [];
             return reactions;
         } catch (error) {
-            console.error(`Error fetching reactions for message ${messageId}:`, error);
             return [];
         }
     }
 
     emitSocketEventForMessage(chatType, targetId, eventName, data) {
-        console.log(`🔌 [CHAT-API] emitSocketEvent called:`, {
-            chatType,
-            targetId,
-            eventName,
-            userId: data.user_id,
-            messageId: data.id || data.message_id
-        });
-
-        // Determine the correct event name based on chat type and original event
         const eventNameMap = {
             'new-message': {
                 'channel': 'new-channel-message',
                 'dm': 'user-message-dm'
             },
-            'message-updated': 'message-updated',
-            'message-deleted': 'message-deleted',
-            'reaction-added': 'reaction-added',
-            'reaction-removed': 'reaction-removed',
-            'message-pinned': 'message-pinned',
-            'message-unpinned': 'message-unpinned'
+            'edit-message': {
+                'channel': 'edit-channel-message',
+                'dm': 'edit-message-dm'
+            },
+            'delete-message': {
+                'channel': 'delete-channel-message',
+                'dm': 'delete-message-dm'
+            },
+            'add-reaction': {
+                'channel': 'add-reaction-channel',
+                'dm': 'add-reaction-dm'
+            },
+            'remove-reaction': {
+                'channel': 'remove-reaction-channel',
+                'dm': 'remove-reaction-dm'
+            }
         };
 
-        const finalEventName = eventNameMap[eventName]?.[chatType] || eventNameMap[eventName] || eventName;
+        const mappedEventName = eventNameMap[eventName]?.[chatType] || eventName;
 
-        console.log(`🔄 [CHAT-API] Event name determined:`, {
-            originalEventName: eventName,
-            finalEventName,
-            socketEventName: finalEventName,
-            chatType
-        });
+        if (window.globalSocketManager?.io) {
+            const socketData = {
+                ...data,
+                target_id: targetId,
+                chat_type: chatType,
+                user_id: data.user_id
+            };
 
-        // Normalize targetId for DM rooms (strip prefix if present)
-        let normalizedTargetId = targetId;
-        if (chatType === 'dm' && typeof targetId === 'string') {
-            // Always use plain ID without prefix for socket communication
-            normalizedTargetId = targetId.replace('dm-room-', '');
-            console.log(`🔄 [CHAT-API] Normalized DM room ID from ${targetId} to ${normalizedTargetId}`);
-        }
-        
-        // Prepare the socket data
-        const socketData = {
-            ...data,
-            event: finalEventName
-        };
-
-        // Add chat type specific fields
-        if (chatType === 'channel') {
-            socketData.channel_id = normalizedTargetId;
-        } else if (chatType === 'dm') {
-            socketData.room_id = normalizedTargetId;
-        }
-        
-        console.log(`📡 [CHAT-API] Final socket data prepared:`, {
-            event: socketData.event,
-            id: socketData.id,
-            userId: socketData.user_id,
-            username: socketData.username,
-            channelId: socketData.channel_id,
-            roomId: socketData.room_id
-        });
-
-        // Emit the event
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            console.log(`🚀 [CHAT-API] Emitting socket event...`);
-            window.globalSocketManager.emitToRoom(finalEventName, socketData, chatType, normalizedTargetId);
-            console.log(`✅ [CHAT-API] Socket event emitted successfully:`, {
-                event: finalEventName,
-                messageId: socketData.id || socketData.message_id,
-                targetRoom: chatType === 'channel' ? `channel-${normalizedTargetId}` : `dm-room-${normalizedTargetId}`
-            });
-        } else {
-            console.warn(`⚠️ [CHAT-API] Socket manager not ready, skipping event emission`);
+            window.globalSocketManager.io.emit(mappedEventName, socketData);
         }
     }
 
-    debugSocketStatus() {
-        console.log(`🔍 [CHAT-API] Socket Status Debug:`, {
-            hasGlobalSocketManager: !!window.globalSocketManager,
-            socketReady: window.globalSocketManager?.isReady(),
-            socketConnected: window.globalSocketManager?.connected,
-            socketAuthenticated: window.globalSocketManager?.authenticated,
-            socketId: window.globalSocketManager?.io?.id,
-            userId: window.globalSocketManager?.userId,
-            username: window.globalSocketManager?.username,
-            joinedChannels: Array.from(window.globalSocketManager?.joinedChannels || []),
-            joinedDMRooms: Array.from(window.globalSocketManager?.joinedDMRooms || [])
-        });
-        
-        if (window.globalSocketManager?.io) {
-            console.log(`📊 [CHAT-API] Socket IO Status:`, {
-                connected: window.globalSocketManager.io.connected,
-                disconnected: window.globalSocketManager.io.disconnected,
-                id: window.globalSocketManager.io.id
-            });
+    sendDirectSocketMessage(targetId, content, chatType = 'channel') {
+        if (!window.globalSocketManager || !window.globalSocketManager.io) {
+            return false;
         }
+
+        const eventName = chatType === 'dm' ? 'user-message-dm' : 'new-channel-message';
         
-        return {
-            ready: window.globalSocketManager?.isReady(),
-            connected: window.globalSocketManager?.connected,
-            authenticated: window.globalSocketManager?.authenticated
+        const messageData = {
+            content: content,
+            target_id: targetId,
+            chat_type: chatType,
+            temporary_id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         };
+
+        window.globalSocketManager.io.emit(eventName, messageData);
+        
+        return true;
+    }
+
+    debugSocketStatus() {
+        const socketManager = window.globalSocketManager;
+        const status = {
+            exists: !!socketManager,
+            connected: socketManager?.connected || false,
+            authenticated: socketManager?.authenticated || false,
+            ready: socketManager?.isReady() || false,
+            socketId: socketManager?.io?.id || null,
+            userId: socketManager?.userId || null,
+            username: socketManager?.username || null
+        };
+        
+        return status;
     }
 
     async getMessage(messageId) {
         if (!messageId) {
             throw new Error('Message ID is required');
         }
+        
         const url = `/api/messages/${messageId}`;
+        
         try {
             const response = await this.makeRequest(url);
             return response.data?.message || response.message || null;
         } catch (error) {
-            console.error('Error fetching message:', error);
             return null;
         }
     }
 
-    // Helper to prevent memory leaks by cleaning up sent message tracking
     cleanupSentMessageIds() {
         if (window._sentMessageIds && window._sentMessageIds.size > 1000) {
-            console.log(`%c[CHAT-API CLEANUP]`, 'color: #607D8B; font-weight: bold;', 
-                `Cleaning up sent message tracking (${window._sentMessageIds.size} ids)`);
-            window._sentMessageIds.clear();
+            const entries = Array.from(window._sentMessageIds);
+            const toKeep = entries.slice(-500);
+            window._sentMessageIds = new Set(toKeep);
         }
     }
 }
 
-console.log('🔄 Creating ChatAPI instance...');
 const chatAPI = new ChatAPI();
-console.log('✅ ChatAPI instance created:', chatAPI);
-
 window.ChatAPI = chatAPI;
 window.chatAPI = chatAPI;
 

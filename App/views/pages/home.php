@@ -161,9 +161,9 @@ $additional_js = [
     'components/servers/server-dropdown', 
     'components/servers/server-sidebar',
     'components/messaging/chat-section',
-    'components/home/direct-message-nav',
     'components/home/friends-tabs',
-    'wrapper/home-wrapper',
+    'components/home/direct-message-nav',
+    'components/app-layout',
     'utils/load-server-page'
 ];
 $head_scripts = ['logger-init'];
@@ -205,15 +205,12 @@ window.currentUsername = <?php echo json_encode($_SESSION['username'] ?? $GLOBAL
 <?php 
 $content = ob_get_clean();
 
-// Check if this is an AJAX request
 $isAjaxRequest = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 
 if ($isAjaxRequest) {
-    // For AJAX requests, output only the content
     echo $content;
 } else {
-    // For regular requests, include the full layout
     include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 }
 ?>

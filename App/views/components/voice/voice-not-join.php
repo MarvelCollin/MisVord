@@ -184,7 +184,7 @@ function handleMouseMove(event) {
 
 
 async function ensureVoiceScriptsLoaded() {
-    console.log('[Voice Not Join] Checking voice components availability...');
+    
     
     return new Promise((resolve) => {
         let attempts = 0;
@@ -205,10 +205,10 @@ async function ensureVoiceScriptsLoaded() {
             const readyComponents = Object.values(components).filter(Boolean).length;
             const totalComponents = Object.keys(components).length;
             
-            console.log(`[Voice Not Join] Component check progress: ${readyComponents}/${totalComponents} (attempt ${attempts}/${maxAttempts})`);
+            
             
             if (readyComponents >= totalComponents - 1 || attempts >= maxAttempts) {
-                console.log('[Voice Not Join] ✅ Voice components ready:', Object.keys(components).filter(key => components[key]));
+
                 
                 if (!window.voiceManager && window.VoiceManager) {
                     console.log('[Voice Not Join] Creating VoiceManager instance...');

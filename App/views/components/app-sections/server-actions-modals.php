@@ -44,7 +44,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                 <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                 <input type="hidden" name="position" id="channel-position" value="">
                 <input type="hidden" name="category_id" id="category-id" value="">
-                <input type="hidden" name="ajax_fallback" id="channel-ajax-fallback" value="false">
+
                 
                 <div class="mb-4">
                     <label class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Type</label>
@@ -140,7 +140,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
             <form id="create-category-form" action="/api/categories" method="POST" onsubmit="return submitCategoryForm(event)" class="space-y-4">
                 <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                 <input type="hidden" name="position" id="category-position" value="">
-                <input type="hidden" name="ajax_fallback" id="category-ajax-fallback" value="false">
+
                 
                 <div class="mb-4">
                     <label for="category-name" class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Category Name</label>
@@ -1036,7 +1036,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const submitBtn = form.querySelector('[type="submit"]');
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creating...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin h-5 w-5 mr-2 inline"></i> Creating...';
         }
         
         try {
@@ -1050,7 +1050,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
                 }
             })
@@ -1201,7 +1200,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const submitBtn = form.querySelector('[type="submit"]');
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creating...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin h-5 w-5 mr-2 inline"></i> Creating...';
         }
         
         try {
@@ -1209,7 +1208,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
                 }
             })

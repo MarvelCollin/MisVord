@@ -15,21 +15,8 @@ class Channel extends Model {
                 ->get();
 
             foreach ($channels as &$channel) {
-                if (isset($channel['type'])) {
-                    $type = $channel['type'];
-                    $channel['type_name'] = match($type) {
-                        'voice', '2', 2 => 'voice',
-                        'text', '1', 1 => 'text',
-                        'category', '3', 3 => 'category',
-                        'announcement', '4', 4 => 'announcement',
-                        'forum', '5', 5 => 'forum',
-                        default => 'text'
-                    };
-                    $channel['type'] = $channel['type_name'];
-                } else {
-                    $channel['type'] = 'text';
-                    $channel['type_name'] = 'text';
-                }
+                $channel['type'] = $channel['type'] ?? 'text';
+                $channel['type_name'] = $channel['type'];
             }
 
             return $channels;
@@ -226,50 +213,28 @@ class Channel extends Model {
 
     public static function getServerChannels($serverId) {
         $query = new Query();
-        error_log("Fetching channels for server ID: $serverId");
-
         try {
-            $channel_types_exists = $query->tableExists('channel_types');
-
-            if ($channel_types_exists) {
-                $channels = $query->table('channels c')
-                    ->select('c.*, t.name as type_name')
-                    ->join('channel_types t', 'c.type', '=', 't.id')
-                    ->where('c.server_id', $serverId)
-                    ->orderBy('c.position')
-                    ->get();
-            } else {
-                $channels = $query->table('channels c')
-                    ->select('c.*')
-                    ->where('c.server_id', $serverId)
-                    ->orderBy('c.position')
-                    ->get();
-
-                error_log("Using direct type field instead of channel_types join");
-            }
+            $channels = $query->table('channels c')
+                ->select('c.*')
+                ->where('c.server_id', $serverId)
+                ->orderBy('c.position')
+                ->get();
 
             foreach ($channels as &$channel) {
-                if (isset($channel['type'])) {
-                    $type = $channel['type'];
-                    $channel['type_name'] = match($type) {
-                        'voice', '2', 2 => 'voice',
-                        'text', '1', 1 => 'text', 
-                        'category', '3', 3 => 'category',
-                        'announcement', '4', 4 => 'announcement',
-                        'forum', '5', 5 => 'forum',
-                        default => 'text'
-                    };
-                    $channel['type'] = $channel['type_name'];
-                } else {
-                    $channel['type'] = 'text';
-                    $channel['type_name'] = 'text';
-                }
+                $type = $channel['type'] ?? 1;
+                $channel['type_name'] = match($type) {
+                    2 => 'voice',
+                    3 => 'category',
+                    4 => 'announcement',
+                    5 => 'forum',
+                    default => 'text'
+                };
+                $channel['type'] = $channel['type_name'];
             }
 
-            error_log("Found " . count($channels) . " channels for server ID: $serverId");
             return $channels;
         } catch (Exception $e) {
-            error_log("Error fetching channels: " . $e->getMessage());
+            log_error("Error fetching channels: " . $e->getMessage());
             return [];
         }
     }
@@ -284,20 +249,19 @@ class Channel extends Model {
             ->limit($limit)
             ->get();
 
-        return array_reverse($messages); 
+        return array_reverse($messages);
     }
 
     public static function getServerChannelsMinimal($serverId) {
         $query = new Query();
         try {
-
             return $query->table(self::$table)
                 ->select('id, name, type, category_id, is_private, server_id')
                 ->where('server_id', $serverId)
                 ->orderBy('name', 'ASC')
                 ->get();
         } catch (Exception $e) {
-            error_log("Error getting minimal channels for server: " . $e->getMessage());
+            log_error("Error getting minimal channels for server: " . $e->getMessage());
             return [];
         }
     }

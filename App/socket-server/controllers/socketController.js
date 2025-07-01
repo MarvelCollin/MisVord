@@ -558,20 +558,14 @@ function setup(io) {
 }
 
 function handlePresence(io, client, data) {
-    console.log(`👤 [PRESENCE-HANDLER] Processing presence update:`, {
-        userId: client.data?.user_id,
-        username: client.data?.username,
-        status: data.status,
-        activityDetails: data.activity_details
-    });
-    
     const { status, activity_details } = data;
-    const user_id = client.data.user_id;
-    const username = client.data.username;
+    const user_id = client.data?.user_id;
+    const username = client.data?.username;
+    
+    if (!user_id || !username) return;
     
     userService.updatePresence(user_id, status, activity_details);
     
-    console.log(`📡 [PRESENCE-HANDLER] Broadcasting presence update for user ${user_id}`);
     io.emit('user-presence-update', {
         user_id,
         username,
@@ -581,8 +575,6 @@ function handlePresence(io, client, data) {
 }
 
 function handleGetOnlineUsers(io, client) {
-    console.log(`👥 [USERS-HANDLER] Processing online users request from ${client.id}`);
-    
     const onlineUsers = {};
     
     for (const [socketId, socket] of io.sockets.sockets.entries()) {
@@ -593,13 +585,12 @@ function handleGetOnlineUsers(io, client) {
             onlineUsers[user_id] = {
                 user_id,
                 username: socket.data.username || 'Unknown',
-                status: presence?.status || 'idle',
+                status: presence?.status || 'online',
                 last_seen: Date.now()
             };
         }
     }
     
-    console.log(`✅ [USERS-HANDLER] Sending ${Object.keys(onlineUsers).length} online users to client ${client.id}`);
     client.emit('online-users-response', { users: onlineUsers });
 }
 
@@ -718,17 +709,9 @@ function handleDebugRooms(io, client) {
 }
 
 function handleDisconnect(io, client) {
-    console.log(`❌ [DISCONNECT-HANDLER] Processing disconnect for client ${client.id}`);
-    
     if (client.data?.user_id) {
         const user_id = client.data.user_id;
         const username = client.data.username;
-        
-        console.log(`👤 [DISCONNECT-HANDLER] User disconnecting:`, {
-            userId: user_id,
-            username: username,
-            socketId: client.id
-        });
         
         userSockets.delete(client.id);
         
@@ -738,42 +721,32 @@ function handleDisconnect(io, client) {
         const userOffline = roomManager.removeUserSocket(user_id, client.id);
         
         if (userOffline) {
-            console.log(`👤 [DISCONNECT-HANDLER] User ${user_id} is now offline, removing presence`);
             userService.removePresence(user_id);
             
             if (io && typeof io.emit === 'function') {
-                console.log(`📡 [DISCONNECT-HANDLER] Broadcasting user offline status to all clients`);
                 io.emit('user-offline', {
                     user_id: user_id,
                     username: username,
                     status: 'offline',
                     timestamp: Date.now()
                 });
-                console.log(`✅ [DISCONNECT-HANDLER] User offline broadcast sent successfully`);
-            } else {
-                console.error(`❌ [DISCONNECT-HANDLER] IO object not available for broadcasting user offline status`);
             }
         }
         
-        // Clean up voice meetings and voice connection tracker
         let voiceMeetingsUpdated = [];
         for (const [channel_id, meeting] of voiceMeetings.entries()) {
             if (meeting.participants.has(client.id)) {
                 meeting.participants.delete(client.id);
-                console.log(`🎤 [DISCONNECT-HANDLER] Removed ${client.id} from voice meeting in channel ${channel_id}`);
                 
                 VoiceConnectionTracker.removeUserFromVoice(user_id);
-                console.log(`🔇 [DISCONNECT-HANDLER] Removed user ${user_id} from voice connection tracker`);
                 
                 const titiBotId = BotHandler.getTitiBotId();
                 if (titiBotId) {
                     BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
-                    console.log(`🤖 [DISCONNECT-HANDLER] Removed bot from voice channel ${channel_id}`);
                 }
                 
                 if (meeting.participants.size === 0) {
                     voiceMeetings.delete(channel_id);
-                    console.log(`🗑️ [DISCONNECT-HANDLER] Removed empty voice meeting for channel ${channel_id}`);
                 }
                 
                 voiceMeetingsUpdated.push({
@@ -784,18 +757,12 @@ function handleDisconnect(io, client) {
             }
         }
         
-        // Broadcast voice meeting updates
         voiceMeetingsUpdated.forEach(update => {
-            console.log(`📡 [DISCONNECT-HANDLER] Broadcasting voice meeting update for channel ${update.channel_id}`);
             io.emit('voice-meeting-update', {
                 ...update,
                 action: 'leave'
             });
         });
-        
-        console.log(`✅ [DISCONNECT-HANDLER] Cleanup completed for user ${user_id}`);
-    } else {
-        console.log(`❓ [DISCONNECT-HANDLER] Unauthenticated client disconnected: ${client.id}`);
     }
 }
 

@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateUserStatus(userId, status, username) {
-        console.log(`🔄 [ACTIVE-NOW] Updating user ${username} (${userId}) status to ${status}`);
+
         
         if (status === 'offline' || status === 'invisible') {
             if (onlineUsers[userId]) {
@@ -83,7 +83,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 user_id: userId,
                 username: username,
                 status: status,
-                last_seen: Date.now()
+                last_seen: Date.now(),
+                activity_details: null
             };
         }
         
@@ -96,17 +97,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         updateTimer = setTimeout(() => {
-            renderActiveFriends();
+            updateActiveFriends();
         }, 50);
     }
     
-    function renderActiveFriends() {
+    function updateActiveFriends() {
         const activeFriends = friends.filter(friend => {
             const userData = onlineUsers[friend.id];
             return userData && userData.status !== 'offline';
         });
         
-        console.log(`📊 [ACTIVE-NOW] Rendering ${activeFriends.length} active friends`);
+
         
         if (activeFriends.length > 0) {
             activeFriendsList.innerHTML = '';
@@ -165,24 +166,79 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function loadInitialOnlineUsers() {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            setTimeout(loadInitialOnlineUsers, 500);
-            return;
+    function setupFriendsManagerIntegration() {
+        if (window.FriendsManager) {
+            const friendsManager = window.FriendsManager.getInstance();
+            
+            friendsManager.subscribe((type, data) => {
+    
+                
+                switch (type) {
+                    case 'user-online':
+                    case 'user-offline':
+                    case 'user-presence-update':
+                    case 'online-users-updated':
+                        onlineUsers = friendsManager.cache.onlineUsers || {};
+                        updateActiveFriends();
+                        break;
+                }
+            });
+            
+    
+        }
+    }
+    
+    function initializeActiveNowSection() {
+
+        
+        setupFriendsManagerIntegration();
+        
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            setupSocketListeners();
+        } else {
+            console.log('⏳ [ACTIVE-NOW] Waiting for socket to be ready...');
         }
         
-        console.log('🔄 [ACTIVE-NOW] Loading initial online users...');
+        if (window.FriendsManager) {
+            const friendsManager = window.FriendsManager.getInstance();
+            onlineUsers = friendsManager.cache.onlineUsers || {};
+        }
         
-        if (window.presenceManager && window.presenceManager.getOnlineUsers) {
-            onlineUsers = window.presenceManager.getOnlineUsers();
-            renderActiveFriends();
-        } else if (window.ChatAPI && window.ChatAPI.getOnlineUsers) {
-            window.ChatAPI.getOnlineUsers().then(users => {
-                onlineUsers = users || {};
-                renderActiveFriends();
-            }).catch(error => {
-                console.error('❌ [ACTIVE-NOW] Failed to load initial users:', error);
+        updateActiveFriends();
+    }
+    
+    function setupSocketListeners() {
+        console.log('🔌 [ACTIVE-NOW] Setting up socket listeners');
+        if (window.globalSocketManager && window.globalSocketManager.io) {
+            console.log('✅ [ACTIVE-NOW] Socket manager available, setting up listeners');
+            
+            window.globalSocketManager.io.on('user-online', (data) => {
+                console.log('👥 [ACTIVE-NOW] User came online:', data);
+                handleUserOnline(data);
             });
+            
+            window.globalSocketManager.io.on('user-offline', (data) => {
+                console.log('👥 [ACTIVE-NOW] User went offline:', data);
+                handleUserOffline(data);
+            });
+            
+            window.globalSocketManager.io.on('user-presence-update', (data) => {
+                console.log('👥 [ACTIVE-NOW] User presence updated:', data);
+                handlePresenceUpdate(data);
+            });
+            
+            window.globalSocketManager.io.on('online-users-list', (data) => {
+                console.log('👥 [ACTIVE-NOW] Received online users list:', data);
+                onlineUsers = data || {};
+                updateActiveFriends();
+            });
+            
+            isSocketReady = true;
+            console.log('✅ [ACTIVE-NOW] Socket listeners setup complete');
+            
+            window.globalSocketManager.io.emit('get-online-users');
+        } else {
+            console.warn('⚠️ [ACTIVE-NOW] Socket manager not available');
         }
     }
     
@@ -207,74 +263,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function setupSocketListeners() {
-        if (!window.globalSocketManager || !window.globalSocketManager.io) {
-            console.warn('⚠️ [ACTIVE-NOW] Socket manager not ready');
-            return false;
-        }
-        
-        console.log('🔌 [ACTIVE-NOW] Setting up real-time socket listeners');
-        
-        const socket = window.globalSocketManager.io;
-        
-        socket.off('user-online');
-        socket.off('user-offline'); 
-        socket.off('user-presence-update');
-        
-        socket.on('user-online', handleUserOnline);
-        socket.on('user-offline', handleUserOffline);
-        socket.on('user-presence-update', handlePresenceUpdate);
-        
-        socket.on('online-users-response', (data) => {
-            console.log('📊 [ACTIVE-NOW] Received online users response:', data);
-            onlineUsers = data.users || {};
-            renderActiveFriends();
-        });
-        
-        isSocketReady = true;
-        console.log('✅ [ACTIVE-NOW] Real-time socket listeners configured');
-        
-        loadInitialOnlineUsers();
-        return true;
-    }
-    
-    function setupPresenceListeners() {
-        console.log('🎯 [ACTIVE-NOW] Setting up presence manager listeners');
-        
-        window.addEventListener('presenceUserOnline', (event) => {
-            handleUserOnline(event.detail);
-        });
-        
-        window.addEventListener('presenceUserOffline', (event) => {
-            handleUserOffline(event.detail);
-        });
-        
-        window.addEventListener('presenceUpdate', (event) => {
-            handlePresenceUpdate(event.detail);
-        });
-        
-        window.addEventListener('userStatusChanged', (event) => {
-            const currentUserId = <?php echo json_encode($currentUserId); ?>;
-            if (currentUserId) {
-                console.log('👤 [ACTIVE-NOW] Current user status changed:', event.detail);
-            }
-        });
-        
-        console.log('✅ [ACTIVE-NOW] Presence listeners configured');
-    }
-    
-    function initializeActiveNow() {
-        console.log('🚀 [ACTIVE-NOW] Initializing real-time active now section');
-        
-        setupPresenceListeners();
-        
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            setupSocketListeners();
-        } else {
-            console.log('⏳ [ACTIVE-NOW] Waiting for socket to be ready...');
-        }
-    }
-    
     window.addEventListener('globalSocketReady', function(event) {
         console.log('🔌 [ACTIVE-NOW] Socket ready event received');
         setupSocketListeners();
@@ -291,10 +279,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('❌ [ACTIVE-NOW] Socket disconnected');
         isSocketReady = false;
         onlineUsers = {};
-        renderActiveFriends();
+        updateActiveFriends();
     });
     
-    initializeActiveNow();
+    initializeActiveNowSection();
     
     setInterval(() => {
         if (isSocketReady && window.globalSocketManager && window.globalSocketManager.isReady()) {

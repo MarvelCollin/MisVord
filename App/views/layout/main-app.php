@@ -82,22 +82,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
                 const modal = document.getElementById('create-server-modal');
-                console.log('Create server modal status:', modal ? 'found' : 'not found');
-                
-                if (modal) {
-                    console.log('Modal display:', window.getComputedStyle(modal).display);
-                    console.log('Modal opacity:', window.getComputedStyle(modal).opacity);
-                    console.log('Modal classes:', modal.className);
-                }
-                
                 const createButton = document.querySelector('[data-action="create-server"]');
-                console.log('Create server button status:', createButton ? 'found' : 'not found');
-                
-                if (typeof window.openCreateServerModal === 'function') {
-                    console.log('openCreateServerModal function is available');
-                } else {
-                    console.log('openCreateServerModal function is NOT available');
-                }
             }, 1000);
         });
     </script>

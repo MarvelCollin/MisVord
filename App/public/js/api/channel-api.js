@@ -1,38 +1,36 @@
 const channelAPI = {
     createChannel: function(formData) {
-        return $.ajax({
-            url: '/api/channels',
+        return fetch('/api/channels', {
             method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            body: formData,
+            credentials: 'include'
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     updateChannel: function(channelId, data) {
-        return $.ajax({
-            url: `/api/channels/${channelId}`,
+        return fetch(`/api/channels/${channelId}`, {
             method: 'PUT',
-            dataType: 'json',
+            credentials: 'include',
             headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             },
-            data: JSON.stringify(data)
+            body: JSON.stringify(data)
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     deleteChannel: function(channelId) {
-        return $.ajax({
-            url: `/api/channels/${channelId}`,
+        return fetch(`/api/channels/${channelId}`, {
             method: 'DELETE',
-            dataType: 'json',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            credentials: 'include'
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
@@ -42,103 +40,39 @@ const channelAPI = {
             limit: limit
         });
         
-        return $.ajax({
-            url: `/api/chat/channel/${channelId}/messages?${params.toString()}`,
+        return fetch(`/api/chat/channel/${channelId}/messages?${params.toString()}`, {
             method: 'GET',
-            dataType: 'json',
+            credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     createCategory: function(formData) {
-        return $.ajax({
-            url: '/api/categories',
+        return fetch('/api/categories', {
             method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-    },
-
-    updateChannelOrder: function(channelId, newPosition) {
-        return $.ajax({
-            url: `/api/channels/${channelId}/order`,
-            method: 'PUT',
-            dataType: 'json',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            data: JSON.stringify({ position: newPosition })
+            body: formData,
+            credentials: 'include'
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     getChannelDetails: function(channelId) {
-        return $.ajax({
-            url: `/api/channels/${channelId}`,
+        return fetch(`/api/channels/${channelId}`, {
             method: 'GET',
-            dataType: 'json',
+            credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
-        });
-    },
-
-    moveChannelToCategory: function(channelId, serverId, categoryId, newPosition, oldCategoryId = null) {
-        return $.ajax({
-            url: '/api/channels/move',
-            method: 'POST',
-            dataType: 'json',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            data: JSON.stringify({
-                channel_id: channelId,
-                server_id: serverId,
-                category_id: categoryId,
-                old_category_id: oldCategoryId,
-                new_position: newPosition
-            })
-        });
-    },
-
-    reorderChannels: function(serverId, channelOrders) {
-        return $.ajax({
-            url: '/api/channels/reorder',
-            method: 'POST',
-            dataType: 'json',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            data: JSON.stringify({
-                server_id: serverId,
-                channel_orders: channelOrders
-            })
-        });
-    },
-
-    reorderCategories: function(serverId, categoryOrders) {
-        return $.ajax({
-            url: '/api/categories/reorder',
-            method: 'POST',
-            dataType: 'json',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            data: JSON.stringify({
-                server_id: serverId,
-                category_orders: categoryOrders
-            })
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     }
 };

@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch('/api/nitro/status', {
         method: 'GET',
         headers: {
-            'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json'
         },
         credentials: 'same-origin'

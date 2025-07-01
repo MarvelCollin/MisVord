@@ -7,7 +7,6 @@ class NitroAPI {
         try {
             const defaultOptions = {
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
                 },
                 credentials: 'same-origin'
@@ -30,7 +29,6 @@ class NitroAPI {
                 delete mergedOptions.headers['Content-Type'];
             }
 
-            console.log(`Making request to ${url}`, mergedOptions);
             const response = await fetch(url, mergedOptions);
             
             if (!response.ok) {
@@ -40,7 +38,6 @@ class NitroAPI {
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 const text = await response.text();
-                console.error('Non-JSON response:', text.substring(0, 500));
                 throw new Error('Server returned non-JSON response');
             }
             
@@ -50,12 +47,9 @@ class NitroAPI {
                 const data = JSON.parse(text);
                 return data;
             } catch (parseError) {
-                console.error('JSON parse error:', parseError);
-                console.error('Raw response:', text.substring(0, 500));
                 throw new Error('Failed to parse JSON response');
             }
         } catch (error) {
-            console.error('Nitro API request failed:', error);
             throw error;
         }
     }

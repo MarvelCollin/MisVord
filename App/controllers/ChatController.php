@@ -411,7 +411,6 @@ class ChatController extends BaseController
             }
 
             if ($friend->status === 'banned' || $friend->status === 'deleted' || $friend->status === 'bot') {
-                error_log("ChatController: Cannot message user $friendId due to status: " . $friend->status);
                 return $this->forbidden('Cannot message this user');
             }
 
@@ -438,7 +437,6 @@ class ChatController extends BaseController
                     ]
                 ], 'Direct message created');
             } catch (Exception $e) {
-                error_log('Create Chat Error: ' . $e->getMessage());
                 return $this->serverError('Failed to create direct message: ' . $e->getMessage());
             }
         }
@@ -479,7 +477,6 @@ class ChatController extends BaseController
                         try {
                             $processedGroupImage = $this->processGroupImage($groupImage);
                         } catch (Exception $e) {
-                            error_log('Error processing group image: ' . $e->getMessage());
                             return $this->validationError(['group_image' => 'Failed to process group image: ' . $e->getMessage()]);
                         }
                     }
@@ -500,7 +497,6 @@ class ChatController extends BaseController
                     ]
                 ], count($userIds) === 1 ? 'Direct message created' : 'Group chat created');
             } catch (Exception $e) {
-                error_log('Create Group Chat Error: ' . $e->getMessage());
                 return $this->serverError('Failed to create chat: ' . $e->getMessage());
             }
         }
@@ -573,7 +569,6 @@ class ChatController extends BaseController
                 ]
             ], 'Direct message created');
         } catch (Exception $e) {
-            error_log('CreateDirectMessage Error: ' . $e->getMessage());
             return $this->serverError('Failed to create direct message: ' . $e->getMessage());
         }
     }

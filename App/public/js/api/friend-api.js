@@ -28,7 +28,7 @@ class FriendAPI {
         const text = await response.text();
         
         if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
-            console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
+            
             
             if (text.includes('Fatal error') || text.includes('Parse error')) {
                 throw new Error('Server configuration error. Please contact support.');
@@ -40,14 +40,14 @@ class FriendAPI {
         }
         
         if (text.includes('Fatal error') || text.includes('Parse error') || text.includes('Warning:') || text.includes('Notice:')) {
-            console.error('Server returned PHP error:', text.substring(0, 200));
+            
             throw new Error('Server configuration error. Please contact support.');
         }
         
         try {
             return JSON.parse(text);
         } catch (e) {
-            console.error('Failed to parse JSON response:', text);
+
             throw new Error('Invalid response from server');
         }
     }
@@ -69,7 +69,7 @@ class FriendAPI {
             
             return data;
         } catch (error) {
-            console.error('API Request failed:', error);
+    
             throw error;
         }
     }

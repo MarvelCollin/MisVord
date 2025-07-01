@@ -165,8 +165,7 @@ class NitroCrownManager {
             const response = await fetch('/api/users/bulk-nitro-status', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'Content-Type': 'application/json'
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify({ user_ids: uncachedUserIds })

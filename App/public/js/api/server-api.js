@@ -1,25 +1,22 @@
 const serverAPI = {
     createServer: function(formData) {
-        return $.ajax({
-            url: '/api/servers/create',
+        return fetch('/api/servers/create', {
             method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            body: formData,
+            credentials: 'include'
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     getServerPageHTML: function(serverId) {
-        return $.ajax({
-            url: `/server/${serverId}?render_html=1`,
+        return fetch(`/server/${serverId}?render_html=1`, {
             method: 'GET',
-            dataType: 'html',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            credentials: 'include'
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.text();
         });
     },
     
@@ -28,8 +25,7 @@ const serverAPI = {
             method: 'GET',
             credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
         })
         .then(response => {
@@ -47,14 +43,15 @@ const serverAPI = {
     },
     
     getStats: function() {
-        return $.ajax({
-            url: '/api/admin/servers/stats',
+        return fetch('/api/admin/servers/stats', {
             method: 'GET',
-            dataType: 'json',
+            credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
     
@@ -65,38 +62,41 @@ const serverAPI = {
             q: search
         });
         
-        return $.ajax({
-            url: `/api/admin/servers?${params.toString()}`,
+        return fetch(`/api/admin/servers?${params.toString()}`, {
             method: 'GET',
-            dataType: 'json',
+            credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
     
     getServerDetails: function(serverId) {
-        return $.ajax({
-            url: `/api/admin/servers/${serverId}`,
+        return fetch(`/api/admin/servers/${serverId}`, {
             method: 'GET',
-            dataType: 'json',
+            credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     deleteServer: function(serverId) {
-        return $.ajax({
-            url: `/api/admin/servers/${serverId}`,
+        return fetch(`/api/admin/servers/${serverId}`, {
             method: 'DELETE',
-            dataType: 'json',
+            credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
     
@@ -105,7 +105,6 @@ const serverAPI = {
             method: 'DELETE',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -124,10 +123,7 @@ const serverAPI = {
         return fetch(`/api/servers/${serverId}/settings`, {
             method: 'POST',
             body: formData,
-            credentials: 'include',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            credentials: 'include'
         })
         .then(response => {
             if (!response.ok) {
@@ -142,8 +138,7 @@ const serverAPI = {
             method: 'GET',
             credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
         })
         .then(response => {
@@ -159,8 +154,7 @@ const serverAPI = {
             method: 'GET',
             credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
         })
         .then(response => {
@@ -177,7 +171,6 @@ const serverAPI = {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             }
         })
@@ -195,7 +188,6 @@ const serverAPI = {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             }
         })
@@ -213,7 +205,6 @@ const serverAPI = {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             }
         })
@@ -231,7 +222,6 @@ const serverAPI = {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ name: name })
@@ -250,7 +240,6 @@ const serverAPI = {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ description: description })
@@ -269,7 +258,6 @@ const serverAPI = {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ is_public: isPublic })
@@ -288,7 +276,6 @@ const serverAPI = {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ category: category })
@@ -302,14 +289,15 @@ const serverAPI = {
     },
 
     getServerChannels: function(serverId) {
-        return $.ajax({
-            url: `/api/servers/${serverId}/channels`,
+        return fetch(`/api/servers/${serverId}/channels`, {
             method: 'GET',
-            dataType: 'json',
+            credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
@@ -318,8 +306,7 @@ const serverAPI = {
             method: 'GET',
             credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
         })
         .then(response => {
@@ -336,7 +323,6 @@ const serverAPI = {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(options)
@@ -354,8 +340,7 @@ const serverAPI = {
             method: 'GET',
             credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
         })
         .then(response => {
@@ -371,8 +356,7 @@ const serverAPI = {
             method: 'GET',
             credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
         })
         .then(response => {
@@ -391,15 +375,13 @@ const serverAPI = {
             formData.append('server_id', data);
         }
 
-        return $.ajax({
-            url: '/api/servers/join',
+        return fetch('/api/servers/join', {
             method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            body: formData,
+            credentials: 'include'
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
@@ -409,7 +391,6 @@ const serverAPI = {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -429,8 +410,7 @@ const serverAPI = {
             method: 'GET',
             credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
         })
         .then(response => {
@@ -452,7 +432,6 @@ const serverAPI = {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
@@ -466,88 +445,101 @@ const serverAPI = {
     },
 
     createChannel: function(serverId, channelData) {
-        return $.ajax({
-            url: `/api/servers/${serverId}/channels`,
+        return fetch(`/api/servers/${serverId}/channels`, {
             method: 'POST',
-            data: JSON.stringify(channelData),
-            contentType: 'application/json',
+            body: JSON.stringify(channelData),
+            credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     updateChannel: function(serverId, channelId, channelData) {
-        return $.ajax({
-            url: `/api/servers/${serverId}/channels/${channelId}`,
+        return fetch(`/api/servers/${serverId}/channels/${channelId}`, {
             method: 'PUT',
-            data: JSON.stringify(channelData),
-            contentType: 'application/json',
+            body: JSON.stringify(channelData),
+            credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     deleteChannel: function(serverId, channelId) {
-        return $.ajax({
-            url: `/api/servers/${serverId}/channels/${channelId}`,
+        return fetch(`/api/servers/${serverId}/channels/${channelId}`, {
             method: 'DELETE',
+            credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     createCategory: function(serverId, categoryData) {
-        return $.ajax({
-            url: `/api/servers/${serverId}/categories`,
+        return fetch(`/api/servers/${serverId}/categories`, {
             method: 'POST',
-            data: JSON.stringify(categoryData),
-            contentType: 'application/json',
+            body: JSON.stringify(categoryData),
+            credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     updateCategory: function(serverId, categoryId, categoryData) {
-        return $.ajax({
-            url: `/api/servers/${serverId}/categories/${categoryId}`,
+        return fetch(`/api/servers/${serverId}/categories/${categoryId}`, {
             method: 'PUT',
-            data: JSON.stringify(categoryData),
-            contentType: 'application/json',
+            body: JSON.stringify(categoryData),
+            credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     deleteCategory: function(serverId, categoryId) {
-        return $.ajax({
-            url: `/api/servers/${serverId}/categories/${categoryId}`,
+        return fetch(`/api/servers/${serverId}/categories/${categoryId}`, {
             method: 'DELETE',
+            credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     },
 
     getInviteDetails: function(inviteCode) {
-        return $.ajax({
-            url: `/api/invites/${inviteCode}`,
+        return fetch(`/api/invites/${inviteCode}`, {
             method: 'GET',
-            dataType: 'json',
+            credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Accept': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
         });
     }
 };

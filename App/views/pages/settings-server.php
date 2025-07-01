@@ -86,9 +86,7 @@ ob_start();
                 <div class="bg-discord-darker rounded-lg p-6 space-y-6">
                     <div class="bg-discord-red bg-opacity-10 text-discord-red border-l-4 border-discord-red px-4 py-3 rounded-r">
                         <div class="flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
+                            <i class="fas fa-exclamation-triangle h-5 w-5 mr-2"></i>
                             <span class="font-medium">This action cannot be undone</span>
                         </div>
                     </div>
@@ -99,21 +97,15 @@ ob_start();
                     
                     <ul class="ml-6 space-y-2 text-discord-lighter">
                         <li class="flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-discord-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                            <i class="fas fa-times h-4 w-4 mr-2 text-discord-red"></i>
                             Permanently delete all channels and their content
                         </li>
                         <li class="flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-discord-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                            <i class="fas fa-times h-4 w-4 mr-2 text-discord-red"></i>
                             Remove all members from the server
                         </li>
                         <li class="flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-discord-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                            <i class="fas fa-times h-4 w-4 mr-2 text-discord-red"></i>
                             Delete all server settings and custom emojis
                         </li>
                     </ul>
@@ -486,10 +478,7 @@ ob_start();
     
     <a href="/server/<?php echo $serverId; ?>" class="close-button">
         <div class="close-button-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            <i class="fas fa-times"></i>
         </div>
         <span class="close-button-text">ESC</span>
     </a>

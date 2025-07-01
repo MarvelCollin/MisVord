@@ -30,35 +30,6 @@ function handleUrlParameters() {
 }
 
 function initServerCreationModal() {
-    const createServerButtons = document.querySelectorAll('[data-action="create-server"]');
-    const createServerModal = document.getElementById('create-server-modal');
-    const closeServerModalButton = document.getElementById('close-server-modal');
-
-    if (createServerButtons.length && createServerModal) {
-
-        createServerButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                createServerModal.classList.remove('hidden');
-            });
-        });
-
-        if (closeServerModalButton) {
-            closeServerModalButton.addEventListener('click', function() {
-                createServerModal.classList.add('hidden');
-            });
-        }
-
-        createServerModal.addEventListener('click', function(e) {
-            if (e.target === createServerModal) {
-                createServerModal.classList.add('hidden');
-            }
-        });
-
-        initImageUpload();
-        initDragAndDrop();
-
-    }
 }
 
 function initImageUpload() {

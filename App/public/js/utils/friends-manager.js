@@ -3,7 +3,7 @@ class FriendsManager {
         this.cache = {
             friends: null,
             pendingRequests: null,
-            onlineUsers: null
+            onlineUsers: {}
         };
         this.lastUpdated = {
             friends: 0,
@@ -12,6 +12,10 @@ class FriendsManager {
         };
         this.CACHE_DURATION = 30000;
         this.observers = new Set();
+        this.socketListenersSetup = false;
+        this.initialDataLoaded = false;
+        this.setupSocketListeners();
+        this.loadInitialServerData();
     }
 
     static getInstance() {
@@ -23,6 +27,176 @@ class FriendsManager {
 
     static resetInstance() {
         window._friendsManager = null;
+    }
+
+    loadInitialServerData() {
+        if (this.initialDataLoaded) return;
+        
+        console.log('📊 [FRIENDS-MANAGER] Loading initial server-side data');
+        
+        if (typeof window.initialFriendsData !== 'undefined') {
+            this.cache.friends = window.initialFriendsData || [];
+            this.lastUpdated.friends = Date.now();
+            this.initialDataLoaded = true;
+            console.log('✅ [FRIENDS-MANAGER] Loaded friends from window.initialFriendsData:', this.cache.friends.length);
+        }
+        else if (typeof friends !== 'undefined' && Array.isArray(friends)) {
+            this.cache.friends = friends;
+            this.lastUpdated.friends = Date.now();
+            this.initialDataLoaded = true;
+            console.log('✅ [FRIENDS-MANAGER] Loaded friends from global friends variable:', this.cache.friends.length);
+        }
+        else {
+            const friendsScript = document.querySelector('script');
+            if (friendsScript && friendsScript.textContent.includes('const friends = ')) {
+                try {
+                    const match = friendsScript.textContent.match(/const friends = (\[.*?\]);/s);
+                    if (match) {
+                        this.cache.friends = JSON.parse(match[1]);
+                        this.lastUpdated.friends = Date.now();
+                        this.initialDataLoaded = true;
+                        console.log('✅ [FRIENDS-MANAGER] Extracted friends from script:', this.cache.friends.length);
+                    }
+                } catch (e) {
+                    console.warn('⚠️ [FRIENDS-MANAGER] Failed to extract friends from script:', e);
+                }
+            }
+        }
+        
+        if (!this.initialDataLoaded) {
+            this.cache.friends = [];
+            this.lastUpdated.friends = Date.now();
+            this.initialDataLoaded = true;
+            console.log('ℹ️ [FRIENDS-MANAGER] No initial friends data found, starting with empty array');
+        }
+    }
+
+    setupSocketListeners() {
+        if (this.socketListenersSetup) return;
+        
+        const setupListeners = () => {
+            if (window.globalSocketManager && window.globalSocketManager.io) {
+                const socket = window.globalSocketManager.io;
+                
+                socket.on('user-online', (data) => {
+                    console.log('👥 [FRIENDS-MANAGER] User came online:', data);
+                    this.handleUserOnline(data);
+                });
+                
+                socket.on('user-offline', (data) => {
+                    console.log('👥 [FRIENDS-MANAGER] User went offline:', data);
+                    this.handleUserOffline(data);
+                });
+                
+                socket.on('user-presence-update', (data) => {
+                    console.log('👥 [FRIENDS-MANAGER] User presence updated:', data);
+                    this.handlePresenceUpdate(data);
+                });
+                
+                socket.on('friend-request-received', (data) => {
+                    console.log('📬 [FRIENDS-MANAGER] Friend request received:', data);
+                    this.notify('friend-request-received', data);
+                });
+                
+                socket.on('friend-request-accepted', (data) => {
+                    console.log('✅ [FRIENDS-MANAGER] Friend request accepted:', data);
+                    this.notify('friend-request-accepted', data);
+                    this.refreshFriendsFromSocket(data);
+                });
+                
+                socket.on('friend-request-declined', (data) => {
+                    console.log('❌ [FRIENDS-MANAGER] Friend request declined:', data);
+                    this.notify('friend-request-declined', data);
+                });
+                
+                socket.on('online-users-list', (data) => {
+                    console.log('👥 [FRIENDS-MANAGER] Received online users list:', data);
+                    this.handleOnlineUsersList(data);
+                });
+                
+                socket.on('online-users-response', (data) => {
+                    console.log('👥 [FRIENDS-MANAGER] Received online users response:', data);
+                    this.handleOnlineUsersList(data.users || data);
+                });
+                
+                this.socketListenersSetup = true;
+                console.log('🔌 [FRIENDS-MANAGER] Socket listeners setup complete');
+            }
+        };
+        
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            setupListeners();
+        } else {
+            window.addEventListener('globalSocketReady', setupListeners);
+            window.addEventListener('socketAuthenticated', setupListeners);
+        }
+    }
+
+    refreshFriendsFromSocket(data) {
+        if (data.friend && this.cache.friends) {
+            const existingFriend = this.cache.friends.find(f => f.id === data.friend.id);
+            if (!existingFriend) {
+                this.cache.friends.push({
+                    id: data.friend.id,
+                    username: data.friend.username,
+                    avatar_url: data.friend.avatar_url || null
+                });
+                this.notify('friends-updated', this.cache.friends);
+                console.log('👥 [FRIENDS-MANAGER] Added new friend to cache:', data.friend.username);
+            }
+        }
+    }
+
+    handleUserOnline(data) {
+        const standardizedData = this.standardizePresenceData(data);
+        if (standardizedData.user_id && standardizedData.username) {
+            this.cache.onlineUsers[standardizedData.user_id] = standardizedData;
+            this.notify('user-online', standardizedData);
+        }
+    }
+
+    handleUserOffline(data) {
+        const standardizedData = this.standardizePresenceData(data);
+        if (standardizedData.user_id && this.cache.onlineUsers[standardizedData.user_id]) {
+            delete this.cache.onlineUsers[standardizedData.user_id];
+            this.notify('user-offline', standardizedData);
+        }
+    }
+
+    handlePresenceUpdate(data) {
+        const standardizedData = this.standardizePresenceData(data);
+        if (standardizedData.user_id && standardizedData.username) {
+            if (standardizedData.status === 'offline' || standardizedData.status === 'invisible') {
+                if (this.cache.onlineUsers[standardizedData.user_id]) {
+                    delete this.cache.onlineUsers[standardizedData.user_id];
+                }
+            } else {
+                this.cache.onlineUsers[standardizedData.user_id] = standardizedData;
+            }
+            this.notify('user-presence-update', standardizedData);
+        }
+    }
+
+    handleOnlineUsersList(data) {
+        if (data && typeof data === 'object') {
+            const standardizedUsers = {};
+            Object.keys(data).forEach(userId => {
+                standardizedUsers[userId] = this.standardizePresenceData(data[userId]);
+            });
+            this.cache.onlineUsers = standardizedUsers;
+            this.lastUpdated.online = Date.now();
+            this.notify('online-users-updated', standardizedUsers);
+        }
+    }
+
+    standardizePresenceData(data) {
+        return {
+            user_id: data.user_id || data.userId || data.id,
+            username: data.username || data.name,
+            status: data.status || 'online',
+            last_seen: data.last_seen || data.lastUpdated || Date.now(),
+            activity_details: data.activity_details || data.activityDetails || null
+        };
     }
 
     subscribe(callback) {
@@ -40,91 +214,61 @@ class FriendsManager {
         });
     }
 
-    isCacheValid(type) {
-        if (!this.lastUpdated || !this.cache) {
-            return false;
-        }
-        
-        const keyMap = {
-            'friends': 'friends',
-            'pending': 'pendingRequests', 
-            'online': 'onlineUsers'
-        };
-        
-        const cacheKey = keyMap[type] || type;
-        const age = Date.now() - (this.lastUpdated[type] || 0);
-        return age < this.CACHE_DURATION && this.cache[cacheKey] !== null && this.cache[cacheKey] !== undefined;
-    }
-
     async getFriends(forceRefresh = false) {
-        if (!forceRefresh && this.isCacheValid('friends')) {
+        if (!forceRefresh && this.cache.friends && this.cache.friends.length > 0) {
+            console.log('📊 [FRIENDS-MANAGER] Returning cached friends:', this.cache.friends.length);
             return this.cache.friends;
         }
 
-        try {
-            const response = await window.FriendAPI.getFriends();
-            
-            let friends = [];
-            
-            if (Array.isArray(response)) {
-                friends = response;
-            } else if (response && response.success && response.data) {
-                friends = Array.isArray(response.data) ? response.data : [];
-            } else if (response && response.data) {
-                friends = Array.isArray(response.data) ? response.data : [];
-            } else if (response && Array.isArray(response.friends)) {
-                friends = response.friends;
-            } else if (response && response.success === false) {
-                console.warn('Friends API returned error:', response.error || response.message);
-                friends = [];
-            } else {
-                console.warn('Unexpected friends API response format:', response);
-                friends = [];
-            }
-            
-            this.cache.friends = friends;
-            this.lastUpdated.friends = Date.now();
-            this.notify('friends-updated', friends);
-            return friends;
-        } catch (error) {
-            console.error('Error loading friends:', error);
-            return this.cache.friends || [];
+        if (!this.initialDataLoaded) {
+            this.loadInitialServerData();
         }
+        
+        console.log('📊 [FRIENDS-MANAGER] Returning friends from cache/server data:', this.cache.friends?.length || 0);
+        return this.cache.friends || [];
     }
 
     async getPendingRequests(forceRefresh = false) {
-        if (!forceRefresh && this.isCacheValid('pending')) {
+        if (!forceRefresh && this.cache.pendingRequests) {
             return this.cache.pendingRequests;
         }
 
         try {
-            const response = await window.userAPI.getPendingRequests();
+            const response = await fetch('/api/friends/pending', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
             
             let pending = { incoming: [], outgoing: [] };
             
-            if (response && response.success && response.data) {
-                    pending = {
-                        incoming: Array.isArray(response.data.incoming) ? response.data.incoming : [],
-                    outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : [],
-                    count: response.data.count || 0,
-                    total_count: response.data.total_count || 0
-                    };
-            } else if (response && response.data) {
-                    pending = {
-                        incoming: Array.isArray(response.data.incoming) ? response.data.incoming : [],
-                    outgoing: Array.isArray(response.data.outgoing) ? response.data.outgoing : [],
-                    count: response.data.count || 0,
-                    total_count: response.data.total_count || 0
-                    };
-            } else if (response && response.incoming !== undefined && response.outgoing !== undefined) {
-                    pending = {
-                        incoming: Array.isArray(response.incoming) ? response.incoming : [],
-                    outgoing: Array.isArray(response.outgoing) ? response.outgoing : [],
-                    count: response.count || 0,
-                    total_count: response.total_count || 0
-                    };
-            } else if (response && response.success === false) {
-                    console.warn('Pending requests API returned error:', response.error || response.message);
+            if (data && data.success && data.data) {
+                pending = {
+                    incoming: Array.isArray(data.data.incoming) ? data.data.incoming : [],
+                    outgoing: Array.isArray(data.data.outgoing) ? data.data.outgoing : [],
+                    count: data.data.count || 0,
+                    total_count: data.data.total_count || 0
+                };
+            } else if (data && data.data) {
+                pending = {
+                    incoming: Array.isArray(data.data.incoming) ? data.data.incoming : [],
+                    outgoing: Array.isArray(data.data.outgoing) ? data.data.outgoing : [],
+                    count: data.data.count || 0,
+                    total_count: data.data.total_count || 0
+                };
+            } else if (data && data.incoming !== undefined && data.outgoing !== undefined) {
+                pending = {
+                    incoming: Array.isArray(data.incoming) ? data.incoming : [],
+                    outgoing: Array.isArray(data.outgoing) ? data.outgoing : [],
+                    count: data.count || 0,
+                    total_count: data.total_count || 0
+                };
+            } else if (data && data.success === false) {
+                console.warn('Pending requests API returned error:', data.error || data.message);
             }
             
             this.cache.pendingRequests = pending;
@@ -138,18 +282,22 @@ class FriendsManager {
     }
 
     async getOnlineUsers(forceRefresh = false) {
-        if (!forceRefresh && this.isCacheValid('online')) {
+        if (!forceRefresh && this.cache.onlineUsers) {
             return this.cache.onlineUsers;
         }
 
         try {
-            let onlineUsers = {};
-            if (window.ChatAPI && typeof window.ChatAPI.getOnlineUsers === 'function') {
-                onlineUsers = await window.ChatAPI.getOnlineUsers();
+            if (window.globalSocketManager && window.globalSocketManager.io) {
+                window.globalSocketManager.io.emit('get-online-users');
+                
+                setTimeout(() => {
+                    if (!this.cache.onlineUsers) {
+                        this.cache.onlineUsers = {};
+                    }
+                }, 1000);
             }
-            this.cache.onlineUsers = onlineUsers || {};
-            this.lastUpdated.online = Date.now();
-            return onlineUsers || {};
+            
+            return this.cache.onlineUsers || {};
         } catch (error) {
             console.error('Error getting online users:', error);
             return this.cache.onlineUsers || {};
@@ -157,44 +305,81 @@ class FriendsManager {
     }
 
     async sendFriendRequest(username) {
-        const result = await window.userAPI.sendFriendRequest(username);
-        this.invalidateCache('pending');
-        return result;
+        try {
+            const response = await fetch('/api/friends', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ username })
+            });
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error sending friend request:', error);
+            throw error;
+        }
     }
 
     async acceptFriendRequest(friendshipId) {
-        const result = await window.userAPI.acceptFriendRequest(friendshipId);
-        this.invalidateCache(['friends', 'pending']);
-        return result;
+        try {
+            const response = await fetch(`/api/friends/accept?id=${friendshipId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error accepting friend request:', error);
+            throw error;
+        }
     }
 
     async declineFriendRequest(friendshipId) {
-        const result = await window.userAPI.declineFriendRequest(friendshipId);
-        this.invalidateCache('pending');
-        return result;
+        try {
+            const response = await fetch(`/api/friends/decline?id=${friendshipId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error declining friend request:', error);
+            throw error;
+        }
     }
 
     async removeFriend(userId) {
-        const result = await window.userAPI.cancelFriendRequest(userId);
-        this.invalidateCache('friends');
-        return result;
-    }
-
-    invalidateCache(types) {
-        const typeArray = Array.isArray(types) ? types : [types];
-        const keyMap = {
-            'friends': 'friends',
-            'pending': 'pendingRequests',
-            'online': 'onlineUsers'
-        };
-        
-        typeArray.forEach(type => {
-            const cacheKey = keyMap[type] || type;
-            if (this.cache && this.lastUpdated) {
-                this.cache[cacheKey] = null;
-                this.lastUpdated[type] = 0;
-            }
-        });
+        try {
+            const response = await fetch('/api/friends', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ user_id: userId })
+            });
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error removing friend:', error);
+            throw error;
+        }
     }
 
     getStatusColor(status) {

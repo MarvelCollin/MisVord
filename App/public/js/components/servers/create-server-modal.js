@@ -672,18 +672,19 @@ window.navigateToServer = function (serverId) {
 };
 
 export function openCreateServerModal() {
+    console.log('openCreateServerModal called');
     const modal = document.getElementById('create-server-modal');
     if (modal) {
+        console.log('Modal found, opening...');
         const form = document.getElementById('create-server-form');
         if (form) {
             FormValidator.clearErrors(form);
         }
         
-        modal.classList.remove('hidden');
+        modal.classList.remove('hidden', 'opacity-0');
         modal.style.display = 'flex';
         
         requestAnimationFrame(() => {
-            modal.classList.remove('opacity-0');
             modal.classList.add('animate-fade-in');
             const modalContent = modal.querySelector('.bg-discord-background');
             if (modalContent) {
@@ -780,6 +781,8 @@ function initCategorySelection() {
 
 function initCreateServerButton() {
     const createServerButtons = document.querySelectorAll('[data-action="create-server"]');
+    console.log('Initializing create server buttons:', createServerButtons.length);
+    
     createServerButtons.forEach(button => {
         if (button.hasAttribute('data-listener-attached')) {
             return;
@@ -788,32 +791,13 @@ function initCreateServerButton() {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            window.openCreateServerModal();
+            console.log('Create server button clicked!');
+            openCreateServerModal();
         });
     });
 }
 
 function initCreateServerModal() {
-    const createServerModal = document.getElementById('create-server-modal');
-    const createServerForm = document.getElementById('create-server-form');
-    const createServerBtn = document.getElementById('create-server-btn');
-    const joinServerBtn = document.getElementById('join-server-btn');
-    const joinServerModal = document.getElementById('join-server-modal');
-    
-    if (createServerBtn) {
-        createServerBtn.addEventListener('click', function() {
-            openModal(createServerModal);
-        });
-    }
-    
-    if (joinServerBtn) {
-        joinServerBtn.addEventListener('click', function() {
-            openModal(joinServerModal);
-        });
-    }
-    
-
-    
     setupJoinServerForm();
     setupModalNavigation();
     setupInviteForm();
@@ -841,8 +825,7 @@ function setupJoinServerForm() {
                 const response = await fetch('/api/servers/join', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ invite_code: inviteCode }),
                     credentials: 'include'
@@ -911,8 +894,7 @@ function setupInviteForm() {
             const response = await fetch('/api/invites/join', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ invite_code: inviteCode }),
                 credentials: 'include'
@@ -935,8 +917,8 @@ function setupInviteForm() {
 
 function openModal(modal) {
     if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        modal.classList.remove('hidden', 'opacity-0');
+        modal.style.display = 'flex';
         
         const firstInput = modal.querySelector('input');
         if (firstInput) {

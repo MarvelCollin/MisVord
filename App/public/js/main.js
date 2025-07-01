@@ -60,6 +60,18 @@ document.addEventListener('DOMContentLoaded', function() {
             nitroCrownManager: window.nitroCrownManager
         }
     }));
+
+    if (window.location.pathname.includes('/home')) {
+        setTimeout(() => {
+            if (window.initFriendsTabManager) {
+                window.initFriendsTabManager();
+            }
+            
+            if (window.initDirectMessageNavigation) {
+                window.initDirectMessageNavigation();
+            }
+        }, 300);
+    }
 });
 
 function initGlobalUI() {

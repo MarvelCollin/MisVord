@@ -15,9 +15,7 @@
                 <div class="server-icon absolute -top-12 left-6">
                     <div class="w-24 h-24 rounded-3xl bg-[#2f3136] p-1 shadow-2xl border-4 border-[#2f3136]">
                         <img id="server-modal-icon" src="" alt="Server Icon" class="w-full h-full object-cover rounded-2xl">
-                        <div id="server-modal-icon-fallback" class="w-full h-full bg-gradient-to-br from-[#5865f2] to-[#7289da] rounded-2xl flex items-center justify-center hidden">
-                            <span class="text-white font-bold text-3xl"></span>
-                        </div>
+
                     </div>
                 </div>
                 

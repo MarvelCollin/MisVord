@@ -107,8 +107,7 @@ class ServerDetailModal {
         const membersCountElement = document.querySelector('.member-count');
         const onlineCountElement = document.querySelector('.online-count');
         const iconElement = document.getElementById('server-modal-icon');
-        const iconFallback = document.getElementById('server-modal-icon-fallback');
-        const iconFallbackText = iconFallback ? iconFallback.querySelector('span') : null;
+
         const bannerElement = document.getElementById('server-modal-banner');
         
         if (nameElement) nameElement.textContent = server.name || 'Unknown Server';
@@ -141,11 +140,9 @@ class ServerDetailModal {
                     this.src = '/public/assets/common/default-profile-picture.png';
                 };
                 iconElement.classList.remove('hidden');
-                if (iconFallback) iconFallback.classList.add('hidden');
             } else {
                 iconElement.src = '/public/assets/common/default-profile-picture.png';
                 iconElement.classList.remove('hidden');
-                if (iconFallback) iconFallback.classList.add('hidden');
             }
         }
         

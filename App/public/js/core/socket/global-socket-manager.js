@@ -374,20 +374,23 @@ class GlobalSocketManager {
         });
         
         this.io.on('user-online', (data) => {
-            if (window.presenceManager) {
-                window.presenceManager.handleUserOnline(data);
+            if (window.FriendsManager) {
+                const friendsManager = window.FriendsManager.getInstance();
+                friendsManager.handleUserOnline(data);
             }
         });
         
         this.io.on('user-offline', (data) => {
-            if (window.presenceManager) {
-                window.presenceManager.handleUserOffline(data);
+            if (window.FriendsManager) {
+                const friendsManager = window.FriendsManager.getInstance();
+                friendsManager.handleUserOffline(data);
             }
         });
         
         this.io.on('user-presence-update', (data) => {
-            if (window.presenceManager) {
-                window.presenceManager.handlePresenceUpdate(data);
+            if (window.FriendsManager) {
+                const friendsManager = window.FriendsManager.getInstance();
+                friendsManager.handlePresenceUpdate(data);
             }
         });
         

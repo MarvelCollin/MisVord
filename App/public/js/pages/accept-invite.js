@@ -60,8 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(href, {
                 method: 'GET',
                 headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'Accept': 'application/json'
                 },
                 credentials: 'include'
             })

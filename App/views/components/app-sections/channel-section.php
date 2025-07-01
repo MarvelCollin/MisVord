@@ -4,8 +4,6 @@ require_once dirname(__DIR__) . '/common/channel-functions.php';
 $currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
 
 if (!isset($currentServer) || empty($currentServer)) {
-    error_log("[Channel Section] ERROR - No server loaded. currentServer: " . var_export($currentServer, true));
-    error_log("[Channel Section] GLOBALS currentServer: " . var_export($GLOBALS['currentServer'] ?? 'not set', true));
     echo '<div class="p-4 text-gray-400 text-center">No server loaded</div>';
     return;
 }
@@ -14,11 +12,6 @@ $currentServerId = $currentServer->id ?? 0;
 $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
 $channels = $GLOBALS['serverChannels'] ?? [];
 $categories = $GLOBALS['serverCategories'] ?? [];
-
-error_log("[Channel Section] Data received - Server ID: " . $currentServerId . 
-         ", Active Channel: " . ($activeChannelId ?? 'none') . 
-         ", Channels: " . count($channels) . 
-         ", Categories: " . count($categories));
 ?>
 
 <div class="w-60 bg-discord-dark flex flex-col h-full border-r border-gray-800">
@@ -64,8 +57,6 @@ error_log("[Channel Section] Data received - Server ID: " . $currentServerId .
         <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">
         
         <?php
-        error_log("[Channel Section] Processing channels - Total: " . count($channels));
-        
         $uncategorizedChannels = array_filter($channels, function($ch) {
             return !isset($ch['category_id']) || $ch['category_id'] === null || $ch['category_id'] === '';
         });
@@ -73,8 +64,6 @@ error_log("[Channel Section] Data received - Server ID: " . $currentServerId .
         usort($uncategorizedChannels, function($a, $b) {
             return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
         });
-        
-        error_log("[Channel Section] Uncategorized channels: " . count($uncategorizedChannels));
 
         if (!empty($uncategorizedChannels)):
             $textChannels = array_filter($uncategorizedChannels, function($ch) {
@@ -84,11 +73,6 @@ error_log("[Channel Section] Data received - Server ID: " . $currentServerId .
             usort($textChannels, function($a, $b) {
                 return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
             });
-            
-            error_log("[Channel Section] Text channels: " . count($textChannels));
-            if (!empty($textChannels)) {
-                error_log("[Channel Section] Rendering text channels: " . json_encode(array_column($textChannels, 'name')));
-            }
             
             if (!empty($textChannels)):
         ?>
@@ -151,7 +135,6 @@ error_log("[Channel Section] Data received - Server ID: " . $currentServerId .
         <?php endif; ?>
 
         <?php if (empty($channels)): ?>
-        <?php error_log("[Channel Section] No channels found - showing 'No channels available' message"); ?>
         <div class="p-4 text-gray-400 text-center text-sm">No channels available</div>
         <?php endif; ?>
     </div>
@@ -164,18 +147,6 @@ error_log("[Channel Section] Data received - Server ID: " . $currentServerId .
     }
     ?>
 </div>
-
-<?php if (isset($_GET['debug'])): ?>
-<div style="position:fixed;top:10px;right:10px;background:#000;color:#0f0;padding:10px;font-size:12px;max-width:300px;z-index:9999;border:1px solid #0f0;">
-    <strong>Debug Info:</strong><br>
-    Channels: <?php echo count($channels); ?><br>
-    Categories: <?php echo count($categories); ?><br>
-    Server ID: <?php echo $currentServerId; ?><br>
-    Active Channel: <?php echo $activeChannelId ?? 'none'; ?><br>
-    <pre style="font-size:10px;max-height:200px;overflow:auto;"><?php echo htmlspecialchars(json_encode($channels, JSON_PRETTY_PRINT)); ?></pre>
-    <button onclick="this.parentNode.style.display='none'" style="background:#333;color:white;border:none;padding:2px 5px;margin-top:5px;">Close</button>
-</div>
-<?php endif; ?>
 
 <style>
 .channel-item {

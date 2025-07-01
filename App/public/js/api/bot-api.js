@@ -1,7 +1,6 @@
 class BotAPI {
     constructor() {
         this.baseURL = '/api/bots';
-        console.log('🤖 BotAPI initialized (Limited AJAX for bot check only)');
     }
 
     async checkBot(username) {
@@ -9,7 +8,6 @@ class BotAPI {
             const response = await fetch(`${this.baseURL}/check/${encodeURIComponent(username)}`, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
                 }
             });
@@ -30,7 +28,6 @@ class BotAPI {
 
             return JSON.parse(text);
         } catch (error) {
-            console.error(`Bot check failed for ${username}:`, error.message);
             return {
                 success: false,
                 message: error.message || 'Failed to check bot status'
@@ -39,7 +36,6 @@ class BotAPI {
     }
 
     async createBot(botData) {
-        console.log('🤖 Bot creation via AJAX disabled');
         return {
             success: false,
             message: 'Bot creation via AJAX has been disabled. Use WebSocket methods instead.'
@@ -47,7 +43,6 @@ class BotAPI {
     }
 
     async listBots(limit = 50) {
-        console.log('🤖 Bot listing via AJAX disabled');
         return {
             success: false,
             message: 'Bot listing via AJAX has been disabled. Use WebSocket methods instead.'
@@ -55,7 +50,6 @@ class BotAPI {
     }
 
     async addToServer(botId, serverId) {
-        console.log('🤖 Add to server via AJAX disabled');
         return {
             success: false,
             message: 'Add to server via AJAX has been disabled. Use WebSocket methods instead.'
@@ -63,7 +57,6 @@ class BotAPI {
     }
 
     async removeFromServer(botId, serverId) {
-        console.log('🤖 Remove from server via AJAX disabled');
         return {
             success: false,
             message: 'Remove from server via AJAX has been disabled. Use WebSocket methods instead.'
@@ -71,7 +64,6 @@ class BotAPI {
     }
 
     async deleteBot(botId) {
-        console.log('🤖 Bot deletion via AJAX disabled');
         return {
             success: false,
             message: 'Bot deletion via AJAX has been disabled. Use WebSocket methods instead.'
