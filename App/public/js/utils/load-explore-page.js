@@ -33,7 +33,6 @@ function loadJS(jsFiles) {
             const src = `/public/js/${jsFile}.js`;
             
             if (document.querySelector(`script[src="${src}"]`)) {
-                console.log(`[Explore Loader] Script already loaded: ${src}`);
                 resolve();
                 return;
             }
@@ -42,14 +41,8 @@ function loadJS(jsFiles) {
             script.type = 'module';
             script.src = src;
             
-            script.onload = () => {
-                console.log(`[Explore Loader] Script loaded successfully: ${src}`);
-                resolve();
-            };
-            script.onerror = () => {
-                console.error(`[Explore Loader] Failed to load script: ${src}`);
-                reject(new Error(`Failed to load JS: ${src}`));
-            };
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error(`Failed to load JS: ${src}`));
             
             document.head.appendChild(script);
         });
@@ -58,48 +51,7 @@ function loadJS(jsFiles) {
     return Promise.all(promises);
 }
 
-function ensureServerAPI() {
-    return new Promise((resolve) => {
-        if (typeof window.serverAPI !== 'undefined') {
-            console.log('[Explore Loader] Server API already available');
-            resolve();
-            return;
-        }
-        
-        const serverApiScript = document.querySelector('script[src*="server-api.js"]');
-        if (serverApiScript) {
-            const checkAPI = () => {
-                if (typeof window.serverAPI !== 'undefined') {
-                    console.log('[Explore Loader] Server API ready');
-                    resolve();
-                } else {
-                    setTimeout(checkAPI, 100);
-                }
-            };
-            checkAPI();
-        } else {
-            const script = document.createElement('script');
-            script.type = 'module';
-            script.src = '/public/js/api/server-api.js';
-            script.onload = () => {
-                const checkAPI = () => {
-                    if (typeof window.serverAPI !== 'undefined') {
-                        console.log('[Explore Loader] Server API loaded and ready');
-                        resolve();
-                    } else {
-                        setTimeout(checkAPI, 100);
-                    }
-                };
-                checkAPI();
-            };
-            document.head.appendChild(script);
-        }
-    });
-}
-
 export function loadExplorePage() {
-    console.log('[Explore AJAX] Starting direct AJAX explore page load');
-    
     const mainContent = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
 
     if (mainContent) {
@@ -126,46 +78,61 @@ export function loadExplorePage() {
             }
         }
 
-        $.ajax({
-            url: '/explore-servers/layout',
-            method: 'GET',
-            dataType: 'html',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            success: function(response) {
-                if (typeof response === 'string') {
-                    updateExploreLayout(response);
-                    
+        Promise.all([
+            loadCSS(['explore-servers', 'server-detail']),
+            loadJS([
+                'logger-init',
+                'components/servers/server-detail',
+                'pages/explore-servers',
+                'components/servers/server-dropdown'
+            ])
+        ]).then(() => {
+            $.ajax({
+                url: '/explore-servers/layout',
+                method: 'GET',
+                dataType: 'html',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(response) {
+                    if (typeof response === 'string') {
+                        updateExploreLayout(response);
+                        
+                        if (typeof window.handleSkeletonLoading === 'function') {
+                            window.handleSkeletonLoading(false);
+                        }
+                        
+                        setTimeout(() => {
+                            initializeExploreComponents();
+                        }, 200);
+                        
+                        const event = new CustomEvent('ExplorePageChanged', { 
+                            detail: { pageType: 'explore' } 
+                        });
+                        document.dispatchEvent(event);
+                        
+                    } else if (response && response.data && response.data.redirect) {
+                        window.location.href = response.data.redirect;
+                    } else {
+                        window.location.href = '/explore-servers';
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('[Explore Loader] AJAX error:', error);
                     if (typeof window.handleSkeletonLoading === 'function') {
                         window.handleSkeletonLoading(false);
                     }
-                    
-                    setTimeout(() => {
-                        initializeExploreComponents();
-                    }, 200);
-                    
-                    const event = new CustomEvent('ExplorePageChanged', { 
-                        detail: { pageType: 'explore' } 
-                    });
-                    document.dispatchEvent(event);
-                    
-                } else if (response && response.data && response.data.redirect) {
-                    window.location.href = response.data.redirect;
-                } else {
                     window.location.href = '/explore-servers';
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('[Explore Loader] AJAX error:', error);
-                if (typeof window.handleSkeletonLoading === 'function') {
-                    window.handleSkeletonLoading(false);
-                }
-                window.location.href = '/explore-servers';
+            });
+        }).catch(error => {
+            console.error('[Explore Loader] Resource loading error:', error);
+            if (typeof window.handleSkeletonLoading === 'function') {
+                window.handleSkeletonLoading(false);
             }
+            window.location.href = '/explore-servers';
         });
     } else {
-        console.error('[Explore Loader] Main content container not found');
         window.location.href = '/explore-servers';
     }
 }
@@ -185,52 +152,28 @@ function updateExploreLayout(html) {
         if (typeof window.updateActiveServer === 'function') {
             window.updateActiveServer('explore');
         }
-        
-        console.log('[Explore Loader] Layout updated successfully');
     }
 }
 
 function initializeExploreComponents() {
-    console.log('[Explore Loader] Initializing explore components...');
-    
     if (typeof window.initExplorePage === 'function') {
         window.initExplorePage();
-        console.log('[Explore Loader] Explore page initialized');
     }
     
     if (typeof window.ServerDetailModal !== 'undefined' && !window.serverDetailModal) {
-        console.log('[Explore Loader] Initializing server detail modal for explore page');
         window.serverDetailModal = new window.ServerDetailModal();
     }
     
     if (typeof window.showServerDetail !== 'function') {
         window.showServerDetail = (serverId, serverData) => {
-            console.log('[Explore Loader] showServerDetail called with:', serverId, serverData);
             if (window.serverDetailModal && window.serverDetailModal.initialized) {
                 window.serverDetailModal.showServerDetail(serverId, serverData);
-            } else {
-                console.log('[Explore Loader] Server detail modal not ready');
             }
         };
     }
     
-    console.log('[Explore Loader] Setting up server navigation handlers');
     setupExploreServerNavigation();
 }
-
-function debugExploreState() {
-    console.log('=== EXPLORE DEBUG STATE ===');
-    console.log('ServerDetailModal available:', typeof window.ServerDetailModal !== 'undefined');
-    console.log('serverDetailModal instance:', !!window.serverDetailModal);
-    console.log('showServerDetail function:', typeof window.showServerDetail === 'function');
-    console.log('Server API available:', typeof window.serverAPI !== 'undefined');
-    console.log('Modal element exists:', !!document.getElementById('server-detail-modal'));
-    console.log('Server cards count:', document.querySelectorAll('.explore-server-card').length);
-    console.log('Scripts loaded:', Array.from(document.querySelectorAll('script')).map(s => s.src).filter(s => s.includes('server-detail')));
-    console.log('=== END EXPLORE DEBUG ===');
-}
-
-window.debugExploreState = debugExploreState;
 
 function showPageLoading(container) {
     container.innerHTML = `
@@ -329,11 +272,8 @@ async function getDefaultChannelForServer(serverId) {
 }
 
 function setupExploreServerNavigation() {
-    console.log('[Explore Navigation] Setting up server navigation handlers');
-    
     setTimeout(() => {
         const visitServerButtons = document.querySelectorAll('button[data-action="visit-server"]');
-        console.log('[Explore Navigation] Found', visitServerButtons.length, 'visit server buttons');
         
         visitServerButtons.forEach(button => {
             const newButton = button.cloneNode(true);
@@ -344,7 +284,6 @@ function setupExploreServerNavigation() {
                 e.stopPropagation();
                 
                 const serverId = this.getAttribute('data-server-id');
-                console.log('[Explore Navigation] Visit server button clicked, navigating to server:', serverId);
                 
                 try {
                     const defaultChannelId = await getDefaultChannelForServer(serverId);
@@ -361,13 +300,14 @@ function setupExploreServerNavigation() {
                     }
                 } catch (error) {
                     console.error('[Explore Navigation] Error navigating to server:', error);
-                    window.location.href = `/server/${serverId}`;
+                    if (window.showToast) {
+                        window.showToast('Unable to access server. You may need to join first.', 'error');
+                    }
                 }
             });
         });
         
         const serverCards = document.querySelectorAll('.server-card, .explore-server-card');
-        console.log('[Explore Navigation] Found', serverCards.length, 'server cards');
         
         serverCards.forEach(card => {
             const serverId = card.getAttribute('data-server-id');
@@ -380,24 +320,34 @@ function setupExploreServerNavigation() {
                         e.preventDefault();
                         e.stopPropagation();
                         
-                        console.log('[Explore Navigation] Server card clicked, navigating to server:', serverId);
+                        const joinButton = this.querySelector('.join-server-btn');
+                        const isJoined = joinButton && (joinButton.textContent.includes('Joined') || joinButton.classList.contains('bg-discord-green'));
                         
-                        try {
-                            const defaultChannelId = await getDefaultChannelForServer(serverId);
-                            
-                            if (window.loadServerPage) {
-                                await window.loadServerPage(serverId, defaultChannelId);
+                        if (isJoined) {
+                            try {
+                                const defaultChannelId = await getDefaultChannelForServer(serverId);
                                 
-                                if (typeof window.updateActiveServer === 'function') {
-                                    window.updateActiveServer('server', serverId);
+                                if (window.loadServerPage) {
+                                    await window.loadServerPage(serverId, defaultChannelId);
+                                    
+                                    if (typeof window.updateActiveServer === 'function') {
+                                        window.updateActiveServer('server', serverId);
+                                    }
+                                } else {
+                                    const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : `/server/${serverId}`;
+                                    window.location.href = fallbackUrl;
                                 }
-                            } else {
-                                const fallbackUrl = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : `/server/${serverId}`;
-                                window.location.href = fallbackUrl;
+                            } catch (error) {
+                                console.error('[Explore Navigation] Error navigating to server:', error);
+                                if (window.showToast) {
+                                    window.showToast('Unable to access server', 'error');
+                                }
                             }
-                        } catch (error) {
-                            console.error('[Explore Navigation] Error navigating to server:', error);
-                            window.location.href = `/server/${serverId}`;
+                        } else {
+                            const serverData = extractServerDataFromCard(this);
+                            if (typeof window.showServerDetail === 'function') {
+                                window.showServerDetail(serverId, serverData);
+                            }
                         }
                     }
                 });
@@ -407,15 +357,45 @@ function setupExploreServerNavigation() {
     }, 300);
 }
 
-function debugExploreServerNavigation() {
-    console.log('=== EXPLORE SERVER NAVIGATION DEBUG ===');
-    console.log('loadServerPage available:', typeof loadServerPage === 'function');
-    console.log('Server links:', document.querySelectorAll('a[href^="/server/"]').length);
-    console.log('Server cards:', document.querySelectorAll('.explore-server-card, .server-card').length);
-    console.log('Join buttons:', document.querySelectorAll('button[data-server-id]').length);
-    console.log('updateActiveServer available:', typeof window.updateActiveServer === 'function');
-    console.log('=== END DEBUG ===');
+function extractServerDataFromCard(card) {
+    const serverId = card.getAttribute('data-server-id');
+    const serverName = card.querySelector('.server-name')?.textContent;
+    const serverDescription = card.querySelector('.server-description')?.textContent;
+
+    let memberCount = 0;
+    const memberCountElem = card.querySelector('.server-stats span');
+    if (memberCountElem) {
+        const memberMatch = memberCountElem.textContent.match(/[\d,]+/);
+        memberCount = memberMatch ? parseInt(memberMatch[0].replace(/,/g, '')) : 0;
+    }
+
+    const joinButton = card.querySelector('.join-server-btn');
+    const isJoined = joinButton ? (joinButton.textContent.includes('Joined') || joinButton.classList.contains('bg-discord-green')) : false;
+
+    let bannerUrl = null;
+    const bannerImg = card.querySelector('.server-banner img') || card.querySelector('.h-32 img') || card.querySelector('.h-36 img');
+    if (bannerImg) {
+        bannerUrl = bannerImg.src;
+    }
+
+    let iconUrl = null;
+    const iconImg = card.querySelector('.explore-server-icon img') || card.querySelector('.rounded-xl img') || card.querySelector('.rounded-2xl img') || card.querySelector('.explore-server-icon-small img');
+    if (iconImg) {
+        iconUrl = iconImg.src;
+    }
+
+    const category = card.getAttribute('data-category');
+
+    return {
+        id: serverId,
+        name: serverName || 'Unknown Server',
+        description: serverDescription || 'No description available.',
+        member_count: memberCount,
+        is_member: isJoined,
+        banner_url: bannerUrl,
+        image_url: iconUrl,
+        category: category
+    };
 }
 
-window.loadExplorePage = loadExplorePage;
-window.debugExploreServerNavigation = debugExploreServerNavigation; 
+window.loadExplorePage = loadExplorePage; 

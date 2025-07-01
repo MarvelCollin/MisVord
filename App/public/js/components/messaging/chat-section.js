@@ -230,6 +230,7 @@ class ChatSection {
         this.messageInput = null;
         this.sendButton = null;
         this.loadMoreButton = null;
+        this.topReloadButton = null;
         this.emptyStateContainer = null;
         this.loadingIndicator = null;
         this.contextMenu = null;
@@ -372,6 +373,7 @@ class ChatSection {
         this.messageInput = document.getElementById('message-input');
         this.sendButton = document.getElementById('send-button');
         this.loadMoreButton = document.getElementById('load-more-messages');
+        this.topReloadButton = document.getElementById('top-reload-button');
         this.emptyStateContainer = document.getElementById('empty-state-container');
         this.loadingIndicator = document.getElementById('loading-indicator');
         this.contextMenu = document.getElementById('message-context-menu') || document.getElementById('context-menu');
@@ -481,6 +483,8 @@ class ChatSection {
                     chatType: this.chatType
                 });
             }
+            
+            this.addTopReloadButtonStyles();
             
             if (this.mentionHandler && this.targetId) {
                 console.log('🔍 [CHAT-SECTION] Loading mention users for target:', this.targetId, 'type:', this.chatType);
@@ -701,6 +705,16 @@ class ChatSection {
             this.fileUploadHandler.setupFilePreviewEventListeners();
         }
         
+        // Chat messages scroll event listener
+        if (this.chatMessages) {
+            this.chatMessages.addEventListener('scroll', () => {
+                this.handleChatScroll();
+            });
+            console.log('✅ [CHAT-SECTION] Chat scroll listener added');
+        } else {
+            console.warn('⚠️ [CHAT-SECTION] Chat messages container not found for scroll listener');
+        }
+        
         console.log('✅ [CHAT-SECTION] Event listeners setup complete');
     }
     
@@ -809,7 +823,7 @@ class ChatSection {
             return;
         }
         
-        const limit = options.limit || 50;
+        const limit = options.limit || 20;
         const before = options.before || null;
         
         this.isLoading = true;
@@ -1860,17 +1874,33 @@ class ChatSection {
     clearChatMessages() {
         console.log('🧹 [CHAT-SECTION] Clearing chat messages');
         
-        const messagesContainer = this.getMessagesContainer();
-        if (messagesContainer) {
-            messagesContainer.innerHTML = '';
+        if (this.chatMessages) {
+            this.chatMessages.innerHTML = '';
+            console.log('✅ [CHAT-SECTION] Chat messages cleared');
         }
         
-        if (this.messageHandler) {
-            this.messageHandler.clearProcessedMessages();
+        if (this.emptyStateContainer) {
+            this.emptyStateContainer.remove();
+            this.emptyStateContainer = null;
         }
         
-        this.hasMoreMessages = true;
+        if (this.loadingIndicator) {
+            this.loadingIndicator.remove();
+            this.loadingIndicator = null;
+        }
+        
+        if (this.loadMoreButton) {
+            this.loadMoreButton.remove();
+            this.loadMoreButton = null;
+        }
+        
+        if (this.topReloadButton) {
+            this.topReloadButton.remove();
+            this.topReloadButton = null;
+        }
+        
         this.lastLoadedMessageId = null;
+        this.hasMoreMessages = true;
     }
 
     clearMessage() {
@@ -2146,6 +2176,109 @@ class ChatSection {
         }
         
         return status;
+    }
+    
+    handleChatScroll() {
+        if (!this.chatMessages) return;
+        
+        const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
+        const isAtTop = scrollTop <= 10;
+        const isNearBottom = scrollTop + clientHeight >= scrollHeight - 200;
+        
+        if (isAtTop && this.hasMoreMessages && !this.isLoading) {
+            this.showTopReloadButton();
+        } else {
+            this.hideTopReloadButton();
+        }
+        
+        if (isNearBottom) {
+            this.scrollToBottomIfNeeded();
+        }
+    }
+    
+    showTopReloadButton() {
+        const messagesContainer = this.getMessagesContainer();
+        if (!messagesContainer) return;
+        
+        if (!this.topReloadButton) {
+            this.topReloadButton = document.createElement('div');
+            this.topReloadButton.id = 'top-reload-button';
+            this.topReloadButton.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 py-2 rounded-full shadow-lg cursor-pointer transition-all duration-200 flex items-center gap-2';
+            this.topReloadButton.innerHTML = '<i class="fas fa-arrow-up"></i>Load older messages';
+            
+            this.topReloadButton.addEventListener('click', () => {
+                this.loadOlderMessages();
+            });
+            
+            document.body.appendChild(this.topReloadButton);
+            console.log('✅ [CHAT-SECTION] Top reload button created');
+        }
+        
+        this.topReloadButton.style.display = 'flex';
+        this.topReloadButton.style.animation = 'slideInFromTop 0.3s ease-out';
+    }
+    
+    hideTopReloadButton() {
+        if (this.topReloadButton) {
+            this.topReloadButton.style.animation = 'slideOutToTop 0.3s ease-in';
+            setTimeout(() => {
+                if (this.topReloadButton) {
+                    this.topReloadButton.style.display = 'none';
+                }
+            }, 300);
+        }
+    }
+    
+    loadOlderMessages() {
+        if (!this.hasMoreMessages || this.isLoading) return;
+        
+        console.log('📜 [CHAT-SECTION] Loading older messages from top reload button');
+        
+        this.hideTopReloadButton();
+        
+        const currentScrollHeight = this.chatMessages.scrollHeight;
+        
+        this.loadMessages({
+            before: this.lastLoadedMessageId,
+            limit: 20
+        }).then(() => {
+            const newScrollHeight = this.chatMessages.scrollHeight;
+            const scrollDiff = newScrollHeight - currentScrollHeight;
+            this.chatMessages.scrollTop = scrollDiff;
+            console.log('✅ [CHAT-SECTION] Scroll position maintained after loading older messages');
+        });
+    }
+    
+    addTopReloadButtonStyles() {
+        if (document.getElementById('top-reload-button-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'top-reload-button-styles';
+        style.textContent = `
+            @keyframes slideInFromTop {
+                0% { transform: translate(-50%, -100%); opacity: 0; }
+                100% { transform: translate(-50%, 0); opacity: 1; }
+            }
+            
+            @keyframes slideOutToTop {
+                0% { transform: translate(-50%, 0); opacity: 1; }
+                100% { transform: translate(-50%, -100%); opacity: 0; }
+            }
+            
+            #top-reload-button {
+                font-size: 14px;
+                font-weight: 500;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                backdrop-filter: blur(10px);
+            }
+            
+            #top-reload-button:hover {
+                transform: translate(-50%, 0) scale(1.05);
+            }
+        `;
+        
+        document.head.appendChild(style);
+        console.log('✅ [CHAT-SECTION] Top reload button styles added');
     }
 }
 

@@ -65,11 +65,12 @@ $categories = $GLOBALS['categories'] ?? [];
                             <div class="explore-server-icon server-icon featured absolute -top-10 left-6">
                                 <div class="w-18 h-18 rounded-2xl bg-discord-dark p-1 shadow-xl">
                                     <?php if (!empty($server['image_url'])): ?>
-                                        <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-xl">
+                                        <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-xl"
+                                             onerror="this.onerror=null; this.src='/public/assets/common/default-profile-picture.png';">
                                     <?php else: ?>
-                                        <div class="w-full h-full bg-discord-primary rounded-xl flex items-center justify-center">
-                                            <span class="text-white font-bold text-2xl"><?php echo substr($server['name'], 0, 1); ?></span>
-                                        </div>
+                                        <img src="/public/assets/common/default-profile-picture.png" 
+                                             alt="<?php echo htmlspecialchars($server['name']); ?>" 
+                                             class="w-full h-full object-cover rounded-xl">
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -133,11 +134,12 @@ $categories = $GLOBALS['categories'] ?? [];
                             <div class="flex items-start mb-4">
                                 <div class="explore-server-icon-small server-icon-small rounded-xl bg-discord-primary overflow-hidden mr-4 flex-shrink-0 shadow-lg">
                                     <?php if (!empty($server['image_url'])): ?>
-                                        <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover">
+                                        <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover"
+                                             onerror="this.onerror=null; this.src='/public/assets/common/default-profile-picture.png';">
                                     <?php else: ?>
-                                        <div class="w-full h-full flex items-center justify-center">
-                                            <span class="text-white font-bold text-lg"><?php echo substr($server['name'] ?? 'N', 0, 1); ?></span>
-                                        </div>
+                                        <img src="/public/assets/common/default-profile-picture.png" 
+                                             alt="<?php echo htmlspecialchars($server['name']); ?>" 
+                                             class="w-full h-full object-cover">
                                     <?php endif; ?>
                                 </div>
 

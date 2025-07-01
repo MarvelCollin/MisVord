@@ -295,58 +295,55 @@ async function joinServer(serverId, button) {
     button.disabled = true;
     button.style.opacity = '0.7';
 
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/api/servers/join';
-    form.style.display = 'none';
-
-    const serverIdInput = document.createElement('input');
-    serverIdInput.type = 'hidden';
-    serverIdInput.name = 'server_id';
-    serverIdInput.value = serverId;
-
-    form.appendChild(serverIdInput);
-    document.body.appendChild(form);
-
     try {
-        const response = await fetch(form.action, {
-            method: 'POST',
-            body: new FormData(form),
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-        const data = await response.json();
+        if (typeof window.serverAPI !== 'undefined') {
+            const response = await window.serverAPI.joinServer({ server_id: serverId });
+            
+            if (response.success) {
+                button.innerHTML = '<i class="fas fa-check mr-2"></i>Joined!';
+                button.className = 'join-server-btn w-full bg-discord-green text-white text-center py-2.5 text-sm rounded-lg transition-all font-semibold';
+                button.style.opacity = '1';
 
-        if (data.success) {
-            button.innerHTML = '<i class="fas fa-check mr-2"></i>Joined!';
-            button.className = 'join-server-btn w-full bg-discord-green text-white text-center py-2.5 text-sm rounded-lg transition-all font-semibold';
-            button.style.opacity = '1';
+                button.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    button.style.transform = 'scale(1)';
+                }, 200);
 
-            button.style.transform = 'scale(1.05)';
-            setTimeout(() => {
-                button.style.transform = 'scale(1)';
-            }, 200);
+                if (window.showToast) {
+                    window.showToast('Successfully joined server!', 'success');
+                }
 
-            if (window.showToast) {
-                window.showToast('Successfully joined server!', 'success');
-            }
-
-            if (window.loadServerPage && typeof window.loadServerPage === 'function') {
-                console.log('[Explore Servers] Using AJAX navigation to server:', serverId);
-                await window.loadServerPage(serverId);
+                if (window.loadServerPage && typeof window.loadServerPage === 'function') {
+                    await window.loadServerPage(serverId);
+                } else {
+                    window.location.href = `/server/${serverId}`;
+                }
             } else {
-                console.log('[Explore Servers] AJAX navigation not available, using direct navigation');
-                window.location.href = `/server/${serverId}`;
+                throw new Error(response.message || 'Failed to join server');
             }
         } else {
-            button.innerHTML = originalText;
-            button.className = originalClasses;
-            button.disabled = false;
-            button.style.opacity = '1';
+            const response = await fetch('/api/servers/join', {
+                method: 'POST',
+                body: JSON.stringify({ server_id: serverId }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json();
 
-            if (window.showToast) {
-                window.showToast(data.message || 'Failed to join server', 'error');
+            if (data.success) {
+                button.innerHTML = '<i class="fas fa-check mr-2"></i>Joined!';
+                button.className = 'join-server-btn w-full bg-discord-green text-white text-center py-2.5 text-sm rounded-lg transition-all font-semibold';
+                button.style.opacity = '1';
+
+                if (window.showToast) {
+                    window.showToast('Successfully joined server!', 'success');
+                }
+
+                window.location.href = `/server/${serverId}`;
+            } else {
+                throw new Error(data.message || 'Failed to join server');
             }
         }
     } catch (error) {
@@ -358,8 +355,6 @@ async function joinServer(serverId, button) {
         if (window.showToast) {
             window.showToast('Error joining server', 'error');
         }
-    } finally {
-        document.body.removeChild(form);
     }
 }
 
@@ -387,25 +382,9 @@ function initServerDetailTriggers() {
 
             const serverData = extractServerDataFromCard(this);
 
-            let attempts = 0;
-            const maxAttempts = 10;
-            
-            const tryShowDetail = () => {
-                attempts++;
-                console.log(`[Explore] Attempting to show server detail (${attempts}/${maxAttempts})`);
-                
-                if (typeof window.showServerDetail === 'function') {
-                    console.log('[Explore] Calling showServerDetail function');
-                    window.showServerDetail(serverId, serverData);
-                } else if (attempts < maxAttempts) {
-                    console.log(`[Explore] showServerDetail not ready, retrying in 300ms...`);
-                    setTimeout(tryShowDetail, 300);
-                } else {
-                    console.error('[Explore] showServerDetail function not available after maximum attempts');
-                }
-            };
-            
-            tryShowDetail();
+            if (typeof window.showServerDetail === 'function') {
+                window.showServerDetail(serverId, serverData);
+            }
         });
     });
 }

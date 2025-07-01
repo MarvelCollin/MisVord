@@ -806,22 +806,16 @@ async function getServerData() {
 export function updateActiveServer(pageType = null, serverId = null) {
     console.log('[Update Active Server] Called with:', { pageType, serverId });
     
-    // Clear all active states from server icons
     document.querySelectorAll('.server-icon.active').forEach(icon => {
         icon.classList.remove('active');
-        console.log('[Update Active Server] Removed active from server icon');
     });
     
-    // Clear explore button active state
     document.querySelectorAll('.discord-explore-server-button.active').forEach(btn => {
         btn.classList.remove('active');
-        console.log('[Update Active Server] Removed active from explore button');
     });
     
-    // If no parameters provided, try to detect from URL
     if (!pageType) {
         const currentPath = window.location.pathname;
-        console.log('[Update Active Server] Detecting from URL:', currentPath);
         
         if (currentPath.includes('/server/')) {
             pageType = 'server';
@@ -835,15 +829,12 @@ export function updateActiveServer(pageType = null, serverId = null) {
     
     console.log('[Update Active Server] Final state:', { pageType, serverId });
     
-    // Apply active state based on page type
     switch (pageType) {
         case 'server':
             if (serverId) {
-                // Convert serverId to string for consistent comparison
                 const serverIdStr = String(serverId);
                 console.log('[Update Active Server] Looking for server ID:', serverIdStr);
                 
-                // Find the server icon by looking for the anchor with data-server-id, then get its parent
                 const serverLink = document.querySelector(`a[data-server-id="${serverIdStr}"]`);
                 const activeIcon = serverLink ? serverLink.closest('.server-icon') : null;
                 if (activeIcon) {
@@ -851,10 +842,13 @@ export function updateActiveServer(pageType = null, serverId = null) {
                     console.log('[Update Active Server] Activated server icon for ID:', serverIdStr);
                 } else {
                     console.warn('[Update Active Server] Server icon not found for ID:', serverIdStr);
-                    // Debug: Let's see what server links we have
                     const allServerLinks = document.querySelectorAll('a[data-server-id]');
-                    console.log('[Update Active Server] Available server IDs:', 
-                        Array.from(allServerLinks).map(link => link.getAttribute('data-server-id')));
+                    const availableIds = Array.from(allServerLinks).map(link => link.getAttribute('data-server-id'));
+                    console.log('[Update Active Server] Available server IDs:', availableIds);
+                    
+                    if (availableIds.length === 0) {
+                        console.log('[Update Active Server] No server icons found in sidebar - user may not be a member');
+                    }
                 }
             }
             break;
@@ -993,8 +987,6 @@ export async function handleServerClick(serverId, event) {
         hideServerLoadingIndicator(serverId);
     }
 }
-
-
 
 export async function handleExploreClick(event) {
     console.log('[Explore Navigation] Explore Click Flow Started');

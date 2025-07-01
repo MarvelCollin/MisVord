@@ -17,7 +17,6 @@ class ServerDetailModal {
         if (this.modal && this.modalContent && this.closeButton && this.joinButton) {
             this.init();
             this.initialized = true;
-            console.log('[Server Detail] Modal initialized successfully');
         } else {
             this.waitForModalElements();
         }
@@ -41,11 +40,9 @@ class ServerDetailModal {
             if (this.modal && this.modalContent && this.closeButton && this.joinButton) {
                 this.init();
                 this.initialized = true;
-                console.log('[Server Detail] Modal elements found and initialized after', attempts, 'attempts');
             } else if (attempts < maxAttempts) {
                 setTimeout(checkForElements, 200);
             } else {
-                console.log('[Server Detail] Modal elements not available - this is normal if not on explore page');
                 this.initialized = false;
             }
         };
@@ -55,7 +52,6 @@ class ServerDetailModal {
     
     init() {
         if (!this.modal || !this.closeButton || !this.joinButton) {
-            console.error('[Server Detail] Cannot initialize - required elements missing');
             return;
         }
         
@@ -77,7 +73,6 @@ class ServerDetailModal {
     
     async showServerDetail(serverId, serverData = null) {
         if (!this.initialized || !this.modal) {
-            console.log('[Server Detail] Modal not ready, skipping display');
             return;
         }
         
@@ -91,7 +86,6 @@ class ServerDetailModal {
         
         try {
             if (typeof window.serverAPI === 'undefined') {
-                console.error('[Server Detail] Server API not available');
                 return;
             }
             
@@ -142,10 +136,14 @@ class ServerDetailModal {
         if (iconElement) {
             if (server.image_url) {
                 iconElement.src = server.image_url;
+                iconElement.onerror = function() {
+                    this.onerror = null;
+                    this.src = '/public/assets/common/default-profile-picture.png';
+                };
                 iconElement.classList.remove('hidden');
                 if (iconFallback) iconFallback.classList.add('hidden');
             } else {
-                iconElement.src = '/assets/common/default-profile-picture.png';
+                iconElement.src = '/public/assets/common/default-profile-picture.png';
                 iconElement.classList.remove('hidden');
                 if (iconFallback) iconFallback.classList.add('hidden');
             }

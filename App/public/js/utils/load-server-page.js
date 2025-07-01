@@ -204,7 +204,37 @@ function initializeVoiceSystems() {
 }
 
 function initializeChatSystems() {
-    console.log('[Chat Systems] Chat initialization handled by main component');
+    console.log('[Chat Systems] Initializing chat systems');
+    
+    if (typeof window.initializeChatSection === 'function') {
+        window.initializeChatSection();
+        console.log('[Chat Systems] Chat section initialized');
+    }
+    
+    if (typeof window.initializeMessageHandler === 'function') {
+        window.initializeMessageHandler();
+        console.log('[Chat Systems] Message handler initialized');
+    }
+    
+    if (typeof window.initializeSocketHandler === 'function') {
+        window.initializeSocketHandler();
+        console.log('[Chat Systems] Socket handler initialized');
+    }
+    
+    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+        const activeChannelId = getCurrentChannelId();
+        if (activeChannelId) {
+            console.log('[Chat Systems] Joining channel socket room:', activeChannelId);
+            window.globalSocketManager.joinChannel(activeChannelId);
+        }
+    }
+    
+    setTimeout(() => {
+        if (typeof window.initializeChannelManager === 'function') {
+            window.initializeChannelManager();
+            console.log('[Chat Systems] Channel manager initialized');
+        }
+    }, 200);
 }
 
 function handleServerSkeletonLoading(show) {
@@ -399,7 +429,7 @@ function updateServerLayout(html, serverId, channelId) {
                 'chat-section': !!document.querySelector('.chat-section'),
                 'voice-section': !!document.querySelector('.voice-section'),
                 'main-content': !!document.querySelector('#main-content'),
-                'participant-section': !!document.querySelector('[class*="w-60"][class*="bg-discord-background"]')
+                'participant-section': !!document.querySelector('.w-60.bg-discord-dark.border-l') || !!document.querySelector('[class*="participant"]'),
             });
             
             console.log('[Server Layout] Executing inline scripts');
@@ -465,7 +495,7 @@ function validateServerLayoutRendering(serverId, channelId) {
             'channel-wrapper': !!document.querySelector('.channel-wrapper'),
             'chat-section': !!document.querySelector('.chat-section'),
             'voice-section': !!document.querySelector('.voice-section'),
-            'participant-section': !!document.querySelector('.w-60.bg-discord-background') || !!document.querySelector('[class*="participant"]'),
+            'participant-section': !!document.querySelector('.w-60.bg-discord-dark.border-l') || !!document.querySelector('[class*="participant"]'),
             'main-content-area': !!document.querySelector('.main-content-area'),
             'server-layout-structure': !!document.querySelector('#main-content')
         };
@@ -565,8 +595,6 @@ function getActiveChannelFromLayout(layoutContainer) {
     return null;
 }
 
-
-
 function cleanupForServerSwitch() {
     console.log('[Server AJAX] Cleaning up for server switch');
     
@@ -592,6 +620,31 @@ async function initializeServerSystems() {
     console.log('[Server Loader] Starting comprehensive server initialization');
     
     try {
+        console.log('[Server Loader] Waiting for APIs to load...');
+        await waitForAPIsToLoad();
+        
+        const componentStatus = checkServerComponentsInitialization();
+        console.log('[Server Loader] Component status:', componentStatus);
+        
+        console.log('[Server Loader] Initializing voice systems');
+        initializeVoiceSystems();
+        
+        console.log('[Server Loader] Initializing chat systems');
+        initializeChatSystems();
+        
+        console.log('[Server Loader] Initializing channel switching systems');
+        initializeChannelSwitchingSystems();
+        
+        if (typeof window.initializeParticipantSection === 'function') {
+            window.initializeParticipantSection();
+            console.log('[Server Loader] Participant section initialized');
+        }
+        
+        if (typeof window.initializeChannelSection === 'function') {
+            window.initializeChannelSection();
+            console.log('[Server Loader] Channel section initialized');
+        }
+        
         if (!window.initializeServerPage) {
             const module = await import('./server-initializer.js');
             window.initializeServerPage = module.initializeServerPage;
@@ -604,6 +657,141 @@ async function initializeServerSystems() {
     }
 }
 
+function checkServerComponentsInitialization() {
+    console.log('[Server Components] Checking server component initialization status');
+    
+    const requiredComponents = {
+        'Chat Section': typeof window.initializeChatSection === 'function',
+        'Message Handler': typeof window.initializeMessageHandler === 'function',
+        'Socket Handler': typeof window.initializeSocketHandler === 'function',
+        'Channel Manager': typeof window.initializeChannelManager === 'function',
+        'Voice Manager': typeof window.VoiceManager === 'function',
+        'Global Voice Indicator': typeof window.GlobalVoiceIndicator === 'function',
+        'Simple Channel Switcher': typeof window.SimpleChannelSwitcher === 'function',
+        'Socket Manager': !!window.globalSocketManager,
+        'channelAPI': !!window.channelAPI,
+        'serverAPI': !!window.serverAPI,
+        'chatAPI': !!(window.ChatAPI || window.chatAPI),
+        'userAPI': !!window.userAPI,
+        'mediaAPI': !!window.MediaAPI,
+        'botAPI': !!window.botAPI,
+        'friendAPI': !!window.FriendAPI
+    };
+    
+    const missing = Object.keys(requiredComponents).filter(key => !requiredComponents[key]);
+    const available = Object.keys(requiredComponents).filter(key => requiredComponents[key]);
+    
+    console.log('[Server Components] ✅ Available components:', available);
+    if (missing.length > 0) {
+        console.warn('[Server Components] ⚠️ Missing components:', missing);
+        
+        missing.forEach(component => {
+            if (component.includes('API')) {
+                console.warn(`[Server Components] 📝 ${component} - Check if the API file is loaded in pages/server-page.php`);
+            } else if (component.includes('initialize')) {
+                console.warn(`[Server Components] 🔧 ${component} - Check if the component module is loaded`);
+            } else {
+                console.warn(`[Server Components] 🏗️ ${component} - Check if the class/object is available`);
+            }
+        });
+    }
+    
+    return {
+        available: available.length,
+        missing: missing.length,
+        total: Object.keys(requiredComponents).length,
+        missingComponents: missing,
+        availableComponents: available
+    };
+}
+
+function initializeChannelSwitchingSystems() {
+    console.log('[Channel Switch] Initializing channel switching systems');
+    
+    if (!window.SimpleChannelSwitcher) {
+        console.error('[Channel Switch] ❌ SimpleChannelSwitcher class not available');
+        return false;
+    }
+    
+    if (!window.simpleChannelSwitcher) {
+        try {
+            window.simpleChannelSwitcher = new window.SimpleChannelSwitcher();
+            console.log('[Channel Switch] ✅ SimpleChannelSwitcher initialized');
+        } catch (error) {
+            console.error('[Channel Switch] ❌ Failed to initialize SimpleChannelSwitcher:', error);
+            return false;
+        }
+    }
+    
+    if (typeof window.initializeChannelManager === 'function') {
+        window.initializeChannelManager();
+        console.log('[Channel Switch] ✅ Channel manager initialized');
+    }
+    
+    if (typeof window.initializeChatSection === 'function') {
+        window.initializeChatSection();
+        console.log('[Channel Switch] ✅ Chat section initialized');
+    }
+    
+    const requiredAPIs = {
+        'channelAPI': window.channelAPI,
+        'chatAPI': window.ChatAPI || window.chatAPI, 
+        'serverAPI': window.serverAPI
+    };
+    
+    const missingAPIs = Object.keys(requiredAPIs).filter(key => !requiredAPIs[key]);
+    if (missingAPIs.length > 0) {
+        console.warn('[Channel Switch] ⚠️ Missing APIs:', missingAPIs);
+    } else {
+        console.log('[Channel Switch] ✅ All required APIs available');
+    }
+    
+    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+        console.log('[Channel Switch] ✅ Socket manager ready for channel operations');
+    } else {
+        console.warn('[Channel Switch] ⚠️ Socket manager not ready - channel switching may be limited');
+    }
+    
+    return true;
+}
+
+function waitForAPIsToLoad() {
+    return new Promise((resolve) => {
+        const checkAPIs = () => {
+            const requiredAPIs = ['channelAPI', 'serverAPI', 'chatAPI', 'userAPI', 'botAPI', 'friendAPI', 'mediaAPI'];
+            const availableAPIs = requiredAPIs.filter(api => {
+                if (api === 'chatAPI') {
+                    return !!(window.ChatAPI || window.chatAPI);
+                } else if (api === 'mediaAPI') {
+                    return !!window.MediaAPI;
+                } else if (api === 'friendAPI') {
+                    return !!window.FriendAPI;
+                } else {
+                    return !!window[api];
+                }
+            });
+            
+            console.log(`[API Loading] ${availableAPIs.length}/${requiredAPIs.length} APIs loaded:`, availableAPIs);
+            
+            if (availableAPIs.length >= requiredAPIs.length - 1) {
+                console.log('[API Loading] ✅ Sufficient APIs loaded');
+                resolve(true);
+            } else {
+                setTimeout(checkAPIs, 100);
+            }
+        };
+        
+        checkAPIs();
+        
+        setTimeout(() => {
+            console.warn('[API Loading] ⚠️ Timeout waiting for APIs, proceeding anyway');
+            resolve(false);
+        }, 5000);
+    });
+}
+
 window.loadServerPage = loadServerPage; 
 window.handleServerSkeletonLoading = handleServerSkeletonLoading;
 window.hideServerSkeletonLoading = hideServerSkeletonLoading; 
+window.checkServerComponentsInitialization = checkServerComponentsInitialization;
+window.initializeChannelSwitchingSystems = initializeChannelSwitchingSystems; 

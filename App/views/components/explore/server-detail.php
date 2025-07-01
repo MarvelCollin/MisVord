@@ -58,32 +58,3 @@
         </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('server-detail-modal');
-    const closeBtn = document.getElementById('close-server-modal');
-    
-    if (closeBtn && modal) {
-        closeBtn.addEventListener('click', function() {
-            modal.classList.remove('active');
-            document.body.style.overflow = '';
-            setTimeout(() => {
-                modal.style.display = 'none';
-            }, 300);
-        });
-        
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal || e.target.classList.contains('modal-backdrop')) {
-                closeBtn.click();
-            }
-        });
-        
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && modal.classList.contains('active')) {
-                closeBtn.click();
-            }
-        });
-    }
-});
-</script>

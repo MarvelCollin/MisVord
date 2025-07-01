@@ -139,11 +139,9 @@ function showHomeSkeletonLoading() {
         return;
     }
     
-    // Create skeleton for home layout
     const skeletonHTML = `
         <div class="home-skeleton-loading flex flex-1 overflow-hidden">
-            <!-- DM Sidebar Skeleton -->
-            <div class="w-60 bg-discord-darker flex flex-col">
+            <div class="w-60 bg-discord-dark flex flex-col">
                 <div class="p-4 border-b border-gray-700">
                     <div class="h-6 bg-gray-700 rounded w-32 animate-pulse"></div>
                 </div>
@@ -175,9 +173,7 @@ function showHomeSkeletonLoading() {
                 </div>
             </div>
             
-            <!-- Main Content Skeleton -->
             <div class="flex-1 bg-discord-background flex flex-col">
-                <!-- Header -->
                 <div class="h-12 border-b border-gray-700 px-6 flex items-center">
                     <div class="h-6 bg-gray-700 rounded w-40 animate-pulse"></div>
                     <div class="ml-auto flex space-x-3">
@@ -185,9 +181,7 @@ function showHomeSkeletonLoading() {
                     </div>
                 </div>
                 
-                <!-- Content Area -->
                 <div class="flex-1 p-6">
-                    <!-- Friends List Header -->
                     <div class="mb-6">
                         <div class="h-8 bg-gray-700 rounded w-48 mb-4 animate-pulse"></div>
                         <div class="flex space-x-4 mb-4">
@@ -195,7 +189,6 @@ function showHomeSkeletonLoading() {
                         </div>
                     </div>
                     
-                    <!-- Friends List -->
                     <div class="space-y-3">
                         ${Array(8).fill().map(() => `
                             <div class="flex items-center justify-between p-3 bg-discord-dark rounded">
@@ -216,8 +209,7 @@ function showHomeSkeletonLoading() {
                 </div>
             </div>
             
-            <!-- Active Now Sidebar Skeleton -->
-            <div class="w-60 bg-discord-background border-l border-gray-700 flex flex-col">
+            <div class="w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-full max-h-screen">
                 <div class="p-4 border-b border-gray-700">
                     <div class="h-5 bg-gray-700 rounded w-24 animate-pulse"></div>
                 </div>
@@ -369,9 +361,9 @@ function validateHomeLayoutRendering() {
     const validationChecks = {
         'app-container': !!document.querySelector('#app-container'),
         'main-content-layout': !!document.querySelector('.flex.flex-1.overflow-hidden'),
-        'dm-sidebar': !!document.querySelector('.w-60.bg-discord-darker'),
+        'dm-sidebar': !!document.querySelector('.w-60.bg-discord-dark.flex.flex-col'),
         'friends-section': !!document.querySelector('[class*="Friends"]') || !!document.querySelector('.tab-content'),
-        'active-now-section': !!document.querySelector('.w-60.bg-discord-background'),
+        'active-now-section': !!document.querySelector('.w-60.bg-discord-dark.border-l'),
         'home-layout-structure': !!document.querySelector('#main-content')
     };
     

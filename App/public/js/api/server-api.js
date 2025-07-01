@@ -23,6 +23,29 @@ const serverAPI = {
         });
     },
     
+    getServer: function(serverId) {
+        return fetch(`/api/servers/${serverId}/details`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.data && data.data.server) {
+                return { server: data.data.server };
+            }
+            throw new Error(data.message || 'Failed to get server details');
+        });
+    },
+    
     getStats: function() {
         return $.ajax({
             url: '/api/admin/servers/stats',
@@ -359,10 +382,6 @@ const serverAPI = {
             return response.json();
         });
     },
-
-
-
-
 
     joinServer: function(data) {
         const formData = new FormData();
