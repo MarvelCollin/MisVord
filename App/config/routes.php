@@ -356,6 +356,11 @@ Route::get('/api/servers/([0-9]+)/debug-membership', function($serverId) {
     $controller->debugMembership($serverId);
 });
 
+Route::get('/api/channels/debug-membership', function() {
+    $controller = new ChannelController();
+    $controller->debugMembership();
+});
+
 Route::post('/api/channels/position', function() {
     $controller = new ChannelController();
     $controller->updateChannelPosition();

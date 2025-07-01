@@ -114,8 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔄 [DM-SIDEBAR] Updating all user statuses');
         
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.warn('⚠️ [DM-SIDEBAR] Socket not ready, retrying in 1 second');
-            setTimeout(updateAllUserStatuses, 1000);
+            console.log('⏳ [DM-SIDEBAR] Socket not ready, will wait for socket events');
             return;
         }
         
@@ -143,8 +142,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function setupSocketListeners() {
         console.log('🔌 [DM-SIDEBAR] Setting up socket listeners');
-        if (window.globalSocketManager && window.globalSocketManager.io) {
-            console.log('✅ [DM-SIDEBAR] Socket manager available, setting up listeners');
+        if (window.globalSocketManager && window.globalSocketManager.io && window.globalSocketManager.isReady()) {
+            console.log('✅ [DM-SIDEBAR] Socket manager available and ready, setting up listeners');
             
             window.globalSocketManager.io.on('user-online', (data) => {
                 console.log('👥 [DM-SIDEBAR] User came online:', data);
@@ -169,45 +168,34 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             console.log('✅ [DM-SIDEBAR] All socket listeners set up');
+            updateAllUserStatuses();
             return true;
         }
-        console.warn('⚠️ [DM-SIDEBAR] Socket manager not ready yet');
+        console.log('⏳ [DM-SIDEBAR] Socket manager not ready, waiting for events');
         return false;
     }
     
     window.addEventListener('globalSocketReady', function() {
         console.log('🔌 [DM-SIDEBAR] Global socket ready event received');
         setupSocketListeners();
-        updateAllUserStatuses();
     });
     
     window.addEventListener('socketAuthenticated', function() {
         console.log('🔐 [DM-SIDEBAR] Socket authenticated event received');
         setupSocketListeners();
-        updateAllUserStatuses();
     });
     
-    if (!setupSocketListeners()) {
-        let retryCount = 0;
-        const maxRetries = 10;
-        const retryInterval = setInterval(() => {
-            retryCount++;
-            console.log(`🔄 [DM-SIDEBAR] Retry ${retryCount}/${maxRetries} to setup socket listeners`);
-            
-            if (setupSocketListeners() || retryCount >= maxRetries) {
-                clearInterval(retryInterval);
-                if (retryCount >= maxRetries) {
-                    console.error('❌ [DM-SIDEBAR] Failed to setup socket listeners after max retries');
-                }
-            }
-        }, 1000);
-    }
+    setTimeout(() => {
+        if (!setupSocketListeners()) {
+            console.log('🔄 [DM-SIDEBAR] Initial setup failed, waiting for socket events...');
+        }
+    }, 1000);
     
-    updateAllUserStatuses();
-    
-    setInterval(updateAllUserStatuses, 60000);
-    
-
+    setInterval(() => {
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            updateAllUserStatuses();
+        }
+    }, 60000);
 });
 </script>
 

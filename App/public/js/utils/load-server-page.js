@@ -194,14 +194,7 @@ function initializeVoiceSystems() {
 }
 
 function initializeChatSystems() {
-    console.log('[Chat Systems] Simple chat initialization');
-    
-    setTimeout(() => {
-        if (typeof window.initializeChatSection === 'function') {
-            console.log('[Chat Systems] Initializing chat section');
-            window.initializeChatSection();
-        }
-    }, 100);
+    console.log('[Chat Systems] Chat initialization handled by main component');
 }
 
 function handleServerSkeletonLoading(show) {
@@ -585,34 +578,20 @@ function cleanupForServerSwitch() {
     console.log('[Server AJAX] Cleanup completed');
 }
 
-function initializeServerSystems() {
-    console.log('[Server Loader] Initializing components only');
+async function initializeServerSystems() {
+    console.log('[Server Loader] Starting comprehensive server initialization');
     
-    setTimeout(async () => {
-        if (window.SimpleChannelSwitcher && !window.simpleChannelSwitcher) {
-            new window.SimpleChannelSwitcher();
+    try {
+        if (!window.initializeServerPage) {
+            const module = await import('./server-initializer.js');
+            window.initializeServerPage = module.initializeServerPage;
         }
-
-        if (typeof window.initServerDropdown === 'function') {
-            setTimeout(() => {
-                window.initServerDropdown();
-            }, 150);
-        }
-
-        if (typeof window.initializeChatSection === 'function') {
-            await window.initializeChatSection();
-        }
-
-        if (typeof window.initializeVoiceSection === 'function') {
-            window.initializeVoiceSection();
-        }
-
-        if (typeof window.initChannelManager === 'function') {
-            window.initChannelManager();
-        }
-
-        console.log('[Server Loader] Components initialized');
-    }, 100);
+        
+        await window.initializeServerPage();
+        console.log('[Server Loader] ✅ Complete server initialization finished');
+    } catch (error) {
+        console.error('[Server Loader] ❌ Server initialization failed:', error);
+    }
 }
 
 window.loadServerPage = loadServerPage; 

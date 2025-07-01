@@ -107,14 +107,7 @@ class ActivityManager {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const currentPage = document.body.getAttribute('data-page');
-    if (currentPage === 'server') {
-        setTimeout(() => {
-            new ActivityManager();
-        }, 1000);
-    }
-});
+
 
 if (document.readyState === 'complete') {
     const currentPage = document.body.getAttribute('data-page');

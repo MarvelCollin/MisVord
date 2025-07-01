@@ -32,7 +32,12 @@ class ChannelController extends BaseController
         $userId = $this->getCurrentUserId();
         
         if ($requireOwner) {
-            if (!$this->membershipRepository->isOwner($userId, $serverId)) {
+            $membership = $this->membershipRepository->findByUserAndServer($userId, $serverId);
+            if (!$membership) {
+                return $this->forbidden('You are not a member of this server');
+            }
+            
+            if ($membership->role !== 'owner' && $membership->role !== 'admin') {
                 return $this->forbidden('You do not have permission to perform this action');
             }
         } else {
@@ -1349,5 +1354,43 @@ class ChannelController extends BaseController
             'channels_synced' => count($channels),
             'sync_type' => 'traditional'
         ]);
+    }
+
+    public function debugMembership($serverId = null) {
+        $this->requireAuth();
+        
+        if (!$serverId) {
+            $input = $this->getInput();
+            $serverId = $input['server_id'] ?? $_GET['server_id'] ?? null;
+        }
+        
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
+        }
+        
+        $userId = $this->getCurrentUserId();
+        
+        try {
+            $membership = $this->membershipRepository->findByUserAndServer($userId, $serverId);
+            $isMember = $this->membershipRepository->isMember($userId, $serverId);
+            $isOwner = $this->membershipRepository->isOwner($userId, $serverId);
+            
+            return $this->success([
+                'user_id' => $userId,
+                'server_id' => $serverId,
+                'membership' => $membership ? [
+                    'id' => $membership->id,
+                    'user_id' => $membership->user_id,
+                    'server_id' => $membership->server_id,
+                    'role' => $membership->role,
+                    'created_at' => $membership->created_at
+                ] : null,
+                'is_member' => $isMember,
+                'is_owner' => $isOwner,
+                'can_create_channels' => $membership && ($membership->role === 'owner' || $membership->role === 'admin')
+            ]);
+        } catch (Exception $e) {
+            return $this->serverError('Debug failed: ' . $e->getMessage());
+        }
     }
 }

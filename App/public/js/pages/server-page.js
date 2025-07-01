@@ -52,7 +52,7 @@ function getServerIdFromURL() {
     return match ? match[1] : null;
 }
 
-function initializeServerComponents() {
+async function initializeServerComponents() {
     console.log('[Server Page] Initializing server components');
     
     const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
@@ -61,50 +61,17 @@ function initializeServerComponents() {
         return;
     }
     
-    console.log('[Server Page] Initializing server dropdown');
-    if (typeof window.initializeServerDropdown === 'function') {
-        try {
-            window.initializeServerDropdown();
-            console.log('[Server Page] ✅ Server dropdown initialized');
-        } catch (error) {
-            console.error('[Server Page] Error initializing server dropdown:', error);
+    try {
+        if (!window.initializeServerPage) {
+            const module = await import('../utils/server-initializer.js');
+            window.initializeServerPage = module.initializeServerPage;
         }
-    } else if (typeof window.initServerDropdown === 'function') {
-        try {
-            window.initServerDropdown();
-            console.log('[Server Page] ✅ Server dropdown initialized (fallback)');
-        } catch (error) {
-            console.error('[Server Page] Error initializing server dropdown (fallback):', error);
-        }
-    } else {
-        console.warn('[Server Page] No server dropdown function available');
+        
+        await window.initializeServerPage();
+        console.log('[Server Page] ✅ Complete server initialization finished');
+    } catch (error) {
+        console.error('[Server Page] ❌ Server initialization failed:', error);
     }
-    
-    console.log('[Server Page] Initializing chat section');
-    if (typeof window.initializeChatSection === 'function') {
-        try {
-            window.initializeChatSection();
-            console.log('[Server Page] ✅ Chat section initialized');
-        } catch (error) {
-            console.error('[Server Page] Error initializing chat section:', error);
-        }
-    } else {
-        console.warn('[Server Page] initializeChatSection function not available');
-    }
-    
-    console.log('[Server Page] Initializing participant section');
-    if (typeof window.initializeParticipantSection === 'function') {
-        try {
-            window.initializeParticipantSection();
-            console.log('[Server Page] ✅ Participant section initialized');
-        } catch (error) {
-            console.error('[Server Page] Error initializing participant section:', error);
-        }
-    } else {
-        console.warn('[Server Page] initializeParticipantSection function not available');
-    }
-    
-    console.log('[Server Page] Server components initialized');
 }
 
 document.addEventListener('DOMContentLoaded', function() {

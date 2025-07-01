@@ -1,8 +1,10 @@
 import { showToast } from '../../core/ui/toast.js';
 
-document.addEventListener('DOMContentLoaded', function() {
-    initChannelManager();
-});
+if (typeof $ === 'undefined' && typeof jQuery !== 'undefined') {
+    window.$ = jQuery;
+}
+
+
 
 function initChannelManager() {
     loadServerChannels();
@@ -122,16 +124,31 @@ function initDeleteChannelButtons() {
 }
 
 function deleteChannel(channelId) {
-    window.channelAPI.deleteChannel(channelId)
+    return window.channelAPI.deleteChannel(channelId)
         .then(response => {
-            if (response.data) {
+            if (response.data || response.success) {
                 showToast('Channel deleted successfully', 'success');
                 refreshChannelList();
+                
+                const currentChannelId = new URLSearchParams(window.location.search).get('channel');
+                if (currentChannelId && currentChannelId === channelId) {
+                    const urlParts = window.location.pathname.split('/');
+                    const serverId = urlParts[urlParts.indexOf('server') + 1];
+                    if (serverId) {
+                        window.history.replaceState({}, '', `/server/${serverId}`);
+                        if (typeof window.loadServerPage === 'function') {
+                            window.loadServerPage(serverId);
+                        }
+                    }
+                }
+                return response;
             }
+            throw new Error(response?.message || 'Failed to delete channel');
         })
         .catch(error => {
             console.error('Error deleting channel:', error);
             showToast('Failed to delete channel', 'error');
+            throw error;
         });
 }
 
@@ -140,18 +157,71 @@ function refreshChannelList() {
     const serverId = urlParts[urlParts.indexOf('server') + 1];
 
     if (serverId) {
-        window.serverAPI.getServerChannels(serverId)
+        console.log('🔄 Refreshing channel list via AJAX for server:', serverId);
+        
+        return $.ajax({
+            url: `/server/${serverId}`,
+            method: 'GET',
+            data: { ajax_channel_refresh: '1' },
+            dataType: 'html',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newChannelList = doc.querySelector('.channel-list');
+            const currentChannelList = document.querySelector('.channel-list');
+            
+            if (newChannelList && currentChannelList) {
+                const currentScrollTop = currentChannelList.parentElement?.scrollTop || 0;
+                currentChannelList.innerHTML = newChannelList.innerHTML;
+                
+                if (currentChannelList.parentElement) {
+                    currentChannelList.parentElement.scrollTop = currentScrollTop;
+                }
+                
+                initChannelEventListeners();
+                
+                if (window.channelDragDropManager) {
+                    window.channelDragDropManager.initializeDragElements();
+                }
+                
+                console.log('✅ Channel list refreshed successfully via AJAX');
+                return true;
+            } else {
+                console.warn('⚠️ Could not find channel list in response, falling back to API');
+                return fallbackRefresh(serverId);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error refreshing channel list via AJAX:', error);
+            return fallbackRefresh(serverId);
+        });
+    } else {
+        console.warn('No server ID found, cannot refresh channel list');
+        return Promise.resolve(false);
+    }
+}
+
+function fallbackRefresh(serverId) {
+    console.log('🔄 Using fallback refresh method');
+    if (window.serverAPI && window.serverAPI.getServerChannels) {
+        return window.serverAPI.getServerChannels(serverId)
             .then(response => {
                 if (response.data) {
                     renderChannelList(response.data);
+                    return true;
                 }
+                return false;
             })
             .catch(error => {
-                console.error('Error refreshing channels:', error);
+                console.error('Error in fallback refresh:', error);
+                return false;
             });
-    } else {
-        console.warn('No server ID found, cannot refresh channel list');
     }
+    return Promise.resolve(false);
 }
 
 function renderChannelList(rawData) {

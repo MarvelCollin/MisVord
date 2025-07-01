@@ -94,7 +94,7 @@ const channelAPI = {
 
     createCategory: function(formData) {
         return $.ajax({
-            url: '/api/categories/create',
+            url: '/api/categories',
             method: 'POST',
             data: formData,
             processData: false,

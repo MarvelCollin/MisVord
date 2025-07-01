@@ -53,6 +53,12 @@ class GlobalSocketManager {
             if (connected !== false) {
                 window.__SOCKET_INITIALISED__ = true;
                 this.log('Socket initialization completed successfully');
+                
+                setTimeout(() => {
+                    if (!this.connected) {
+                        this.log('Connection taking longer than expected, but initialization marked complete');
+                    }
+                }, 2000);
             }
             return true;
         } catch (e) {
@@ -62,23 +68,47 @@ class GlobalSocketManager {
     }
     
     loadConnectionDetails() {
-        // Force connection details to localhost:1002  
-        this.socketHost = 'localhost';
-        this.socketPort = '1002';
-        this.socketSecure = false;
+        let socketHost = 'localhost';
+        let socketPort = '1002';
+        let socketSecure = false;
+        
+        const currentHost = window.location.hostname;
+        const currentPort = window.location.port;
+        const currentProtocol = window.location.protocol;
+        
+        if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+            socketHost = currentHost;
+            socketSecure = currentProtocol === 'https:';
+        }
+        
+        if (currentPort && currentPort !== '80' && currentPort !== '443') {
+            const basePort = parseInt(currentPort);
+            if (basePort === 1001) {
+                socketPort = '1002';
+            } else {
+                socketPort = (basePort + 1).toString();
+            }
+        }
+        
+        this.socketHost = socketHost;
+        this.socketPort = socketPort;
+        this.socketSecure = socketSecure;
         
         console.log('🔧 [SOCKET] Connection details loaded:', {
             host: this.socketHost,
             port: this.socketPort,
             secure: this.socketSecure,
-            url: `http://${this.socketHost}:${this.socketPort}`
+            url: `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}`,
+            detectedFrom: {
+                currentHost,
+                currentPort,
+                currentProtocol
+            }
         });
         
-        // Try multiple sources for user data
         let metaUserId = document.querySelector('meta[name="user-id"]')?.content;
         let metaUsername = document.querySelector('meta[name="username"]')?.content;
         
-        // Fallback to body attributes if meta tags don't exist
         if (!metaUserId) {
             metaUserId = document.body?.getAttribute('data-user-id');
         }
@@ -86,7 +116,6 @@ class GlobalSocketManager {
             metaUsername = document.body?.getAttribute('data-username');
         }
         
-        // Additional fallback to window globals if they exist
         if (!metaUserId && window.currentUserId) {
             metaUserId = window.currentUserId;
         }
@@ -119,8 +148,7 @@ class GlobalSocketManager {
             return true;
         }
         
-        // Simple hardcoded connection
-        const socketUrl = 'http://localhost:1002';
+        const socketUrl = `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}`;
         this.log(`Connecting to socket: ${socketUrl}`);
         
         try {
@@ -133,7 +161,9 @@ class GlobalSocketManager {
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
-                reconnectionAttempts: 10
+                reconnectionAttempts: 10,
+                timeout: 10000,
+                forceNew: true
             });
             
             this.setupEventHandlers();
@@ -158,11 +188,9 @@ class GlobalSocketManager {
             
             console.log('🔌 [SOCKET] Socket connected successfully, sending authentication...');
             
-            // Send authentication immediately after connection
             this.sendAuthentication();
         });
         
-        // Add debug-test-response handler
         this.io.on('debug-test-response', (data) => {
             this.debug('Debug ping response received from server', {
                 response: data,
@@ -175,7 +203,6 @@ class GlobalSocketManager {
             }
         });
         
-        // Handle authentication success
         this.io.on('auth-success', (data) => {
             this.authenticated = true;
             console.log('🔐 [SOCKET] Authentication successful!', {
@@ -219,7 +246,6 @@ class GlobalSocketManager {
             console.log('✅ [SOCKET] All authentication events dispatched successfully');
         });
         
-        // Handle authentication error
         this.io.on('auth-error', (data) => {
             this.authenticated = false;
             this.error('Socket authentication failed:', data);
@@ -229,6 +255,11 @@ class GlobalSocketManager {
                 socketId: this.io.id,
                 errorData: data
             });
+            
+            setTimeout(() => {
+                console.log('🔄 [SOCKET] Retrying authentication after error...');
+                this.sendAuthentication();
+            }, 2000);
         });
         
         this.io.on('channel-joined', (data) => {
@@ -303,10 +334,6 @@ class GlobalSocketManager {
                 window.presenceManager.handlePresenceUpdate(data);
             }
         });
-        
-        // NOTE: Message events are now handled by individual component socket-handlers
-        // Removed duplicate listeners for 'user-message-dm' and 'new-channel-message'
-        // to prevent double message processing
         
         this.io.on('jump-to-message-response', (data) => {
             if (window.jumpToMessage) {

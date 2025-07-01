@@ -7,21 +7,7 @@ import SendReceiveHandler from './send-receive-handler.js';
 import ChatBot from './chat-bot.js';
 import MentionHandler from './mention-handler.js';
 
-document.addEventListener('DOMContentLoaded', function() {
-    if (isExcludedPage()) {
-        console.log('📄 [CHAT-SECTION] Page excluded from chat initialization:', {
-            path: window.location.pathname,
-            search: window.location.search,
-            isChatPage: isChatPage()
-        });
-        return;
-    }
-    
-    console.log('✅ [CHAT-SECTION] Page allowed for chat initialization:', window.location.pathname);
-    if (!window.chatSection && !isExcludedPage()) {
-        initializeChatSection();
-    }
-});
+
 
 function isExcludedPage() {
     return !isChatPage();
@@ -157,17 +143,60 @@ async function initializeChatSection() {
     }
 }
 
-if (document.readyState === 'complete' && !window.chatSection && !isExcludedPage()) {
-    console.log('💬 [CHAT-SECTION] Immediate execution - page ready for chat');
-    setTimeout(() => {
-        if (!isExcludedPage()) {
-            console.log('💬 [CHAT-SECTION] Delayed initialization starting');
+document.addEventListener('DOMContentLoaded', function() {
+    if (isExcludedPage()) {
+        console.log('📄 [CHAT-SECTION] Page excluded from chat initialization:', {
+            path: window.location.pathname,
+            search: window.location.search,
+            isChatPage: isChatPage()
+        });
+        return;
+    }
+    
+    console.log('✅ [CHAT-SECTION] Page allowed for chat initialization:', window.location.pathname);
+    
+    const initWhenReady = () => {
+        if (!window.chatSection && !isExcludedPage()) {
+            console.log('🔄 [CHAT-SECTION] Initializing chat section...');
             initializeChatSection();
         }
-    }, 100);
-} else if (isExcludedPage()) {
-    console.log('📄 [CHAT-SECTION] Immediate execution - page excluded from chat');
-}
+    };
+    
+    if (window.__MAIN_SOCKET_READY__) {
+        console.log('🔌 [CHAT-SECTION] Socket already ready, initializing immediately');
+        initWhenReady();
+    } else {
+        console.log('⏳ [CHAT-SECTION] Waiting for socket to be ready...');
+        
+        const checkSocketReady = () => {
+            if (window.__MAIN_SOCKET_READY__ || window.globalSocketManager?.isReady()) {
+                console.log('✅ [CHAT-SECTION] Socket is ready, proceeding with initialization');
+                initWhenReady();
+                return true;
+            }
+            return false;
+        };
+        
+        if (!checkSocketReady()) {
+            window.addEventListener('globalSocketReady', () => {
+                console.log('🔌 [CHAT-SECTION] Received globalSocketReady event');
+                initWhenReady();
+            });
+            
+            window.addEventListener('socketAuthenticated', () => {
+                console.log('🔐 [CHAT-SECTION] Received socketAuthenticated event');
+                initWhenReady();
+            });
+            
+            setTimeout(() => {
+                if (!checkSocketReady()) {
+                    console.log('⏰ [CHAT-SECTION] Socket ready timeout, initializing anyway');
+                    initWhenReady();
+                }
+            }, 3000);
+        }
+    }
+});
 
 class ChatSection {
     constructor(options = {}) {
@@ -497,54 +526,55 @@ class ChatSection {
             return;
         }
         
+        if (this.socketRoomJoined && this.lastJoinedRoom === this.targetId) {
+            console.log('✅ [CHAT-SECTION] Already joined the target room:', this.targetId);
+            return;
+        }
+        
+        if (this.socketRoomJoined && this.lastJoinedRoom && this.lastJoinedRoom !== this.targetId) {
+            console.log('🔄 [CHAT-SECTION] Leaving previous room before joining new one');
+            this.leaveCurrentSocketRoom();
+        }
+        
         console.log(`🔌 [CHAT-SECTION] Joining socket room for ${this.chatType} with ID ${this.targetId}`);
         
         try {
-            if (this.chatType === 'channel' && window.globalSocketManager.joinChannel) {
-                window.globalSocketManager.joinChannel(this.targetId);
-                console.log(`✅ [CHAT-SECTION] Successfully joined channel room: ${this.targetId}`);
-                this.socketRoomJoined = true;
-            } else if (this.chatType === 'direct' && window.globalSocketManager.joinDMRoom) {
-                window.globalSocketManager.joinDMRoom(this.targetId);
-                console.log(`✅ [CHAT-SECTION] Successfully joined DM room: ${this.targetId}`);
-                this.socketRoomJoined = true;
-            } else {
-                console.error('❌ [CHAT-SECTION] Invalid chat type or missing join method:', {
-                    chatType: this.chatType,
-                    hasJoinChannel: !!window.globalSocketManager.joinChannel,
-                    hasJoinDMRoom: !!window.globalSocketManager.joinDMRoom
-                });
-                return false;
-            }
+            const success = window.globalSocketManager.joinRoom(this.chatType === 'direct' ? 'dm' : 'channel', this.targetId);
             
-            this.lastJoinedRoom = this.targetId;
-            console.log(`✅ [CHAT-SECTION] Socket room joined successfully: ${this.chatType}:${this.targetId}`);
-            return true;
+            if (success) {
+                this.socketRoomJoined = true;
+                this.lastJoinedRoom = this.targetId;
+                console.log('✅ [CHAT-SECTION] Successfully joined socket room:', {
+                    chatType: this.chatType,
+                    targetId: this.targetId,
+                    roomName: this.chatType === 'direct' ? `dm-room-${this.targetId}` : `channel-${this.targetId}`
+                });
+            } else {
+                console.error('❌ [CHAT-SECTION] Failed to join socket room');
+            }
         } catch (error) {
-            console.error('❌ [CHAT-SECTION] Failed to join socket room:', error);
-            return false;
+            console.error('❌ [CHAT-SECTION] Error joining socket room:', error);
         }
     }
     
     setupSocketReadyListeners() {
-        if (this.socketListenersSetup) return;
-        
-        console.log('🔌 [CHAT-SECTION] Setting up socket ready listeners...');
+        console.log('📡 [CHAT-SECTION] Setting up socket ready listeners...');
         
         const handleSocketReady = () => {
-            console.log('🎉 [CHAT-SECTION] Socket ready event received, checking status...');
-            const status = this.getDetailedSocketStatus();
-            console.log('🔍 [CHAT-SECTION] Socket status after event:', status);
+            console.log('🔌 [CHAT-SECTION] Socket ready event received, attempting to join room');
             
-            if (status.isReady && this.targetId && !this.socketRoomJoined) {
-                console.log('✅ [CHAT-SECTION] Socket is ready, joining room now');
+            const socketStatus = this.getDetailedSocketStatus();
+            console.log('🔍 [CHAT-SECTION] Socket status after ready event:', socketStatus);
+            
+            if (socketStatus.isReady && this.targetId) {
+                console.log(`🎯 [CHAT-SECTION] Socket is ready, joining ${this.chatType} room ${this.targetId}`);
                 this.joinSocketRoom();
             } else {
-                console.log('⏳ [CHAT-SECTION] Socket not fully ready yet:', {
-                    isReady: status.isReady,
+                console.warn('⚠️ [CHAT-SECTION] Socket ready event received but conditions not met:', {
+                    isReady: socketStatus.isReady,
                     hasTargetId: !!this.targetId,
-                    alreadyJoined: this.socketRoomJoined,
-                    reason: status.readyReason
+                    targetId: this.targetId,
+                    chatType: this.chatType
                 });
             }
         };
@@ -553,22 +583,33 @@ class ChatSection {
         window.addEventListener('socketAuthenticated', handleSocketReady);
         
         const checkWithTimeout = () => {
-            const status = this.getDetailedSocketStatus();
-            console.log('⏰ [CHAT-SECTION] Timeout check - socket status:', status);
-            
-            if (status.isReady && this.targetId && !this.socketRoomJoined) {
-                console.log('🔄 [CHAT-SECTION] Socket became ready during timeout, joining room');
-                this.joinSocketRoom();
-            } else if (!status.isReady) {
-                console.log('⏳ [CHAT-SECTION] Socket still not ready, will wait for events:', status.readyReason);
-            }
+            setTimeout(() => {
+                const socketStatus = this.getDetailedSocketStatus();
+                console.log('⏰ [CHAT-SECTION] Timeout check - Socket status:', socketStatus);
+                
+                if (socketStatus.isReady && this.targetId && !this.socketRoomJoined) {
+                    console.log('🔄 [CHAT-SECTION] Socket became ready during timeout check, joining room');
+                    this.joinSocketRoom();
+                } else if (!socketStatus.socketInitialized) {
+                    console.warn('⚠️ [CHAT-SECTION] Socket not initialized after timeout, checking global socket manager...');
+                    
+                    if (window.globalSocketManager && !window.globalSocketManager.connected) {
+                        console.log('🔄 [CHAT-SECTION] Attempting to reinitialize socket connection...');
+                        
+                        const userData = {
+                            user_id: this.userId || document.querySelector('meta[name="user-id"]')?.content,
+                            username: this.username || document.querySelector('meta[name="username"]')?.content
+                        };
+                        
+                        if (userData.user_id && userData.username) {
+                            window.globalSocketManager.init(userData);
+                        }
+                    }
+                }
+            }, 3000);
         };
         
-        setTimeout(checkWithTimeout, 2000);
-        setTimeout(checkWithTimeout, 5000);
-        
-        this.socketListenersSetup = true;
-        console.log('✅ [CHAT-SECTION] Socket ready listeners configured');
+        checkWithTimeout();
     }
     
     setupEventListeners() {
@@ -2041,6 +2082,44 @@ class ChatSection {
         this.channelSwitchManager = manager;
         console.log('🔗 [CHAT-SECTION] Channel switch manager linked');
     }
+    
+    retrySocketConnection() {
+        console.log('🔄 [CHAT-SECTION] Manually retrying socket connection...');
+        
+        if (!window.globalSocketManager) {
+            console.error('❌ [CHAT-SECTION] No global socket manager available');
+            return false;
+        }
+        
+        const userData = {
+            user_id: this.userId || document.querySelector('meta[name="user-id"]')?.content,
+            username: this.username || document.querySelector('meta[name="username"]')?.content
+        };
+        
+        if (!userData.user_id || !userData.username) {
+            console.error('❌ [CHAT-SECTION] Cannot retry - missing user data');
+            return false;
+        }
+        
+        window.__SOCKET_INITIALISED__ = false;
+        const result = window.globalSocketManager.init(userData);
+        
+        if (result) {
+            console.log('✅ [CHAT-SECTION] Socket reconnection initiated');
+            
+            setTimeout(() => {
+                const status = this.getDetailedSocketStatus();
+                if (status.isReady && this.targetId) {
+                    this.joinSocketRoom();
+                }
+            }, 3000);
+            
+            return true;
+        } else {
+            console.error('❌ [CHAT-SECTION] Failed to initiate socket reconnection');
+            return false;
+        }
+    }
 
     getDetailedSocketStatus() {
         const manager = window.globalSocketManager;
@@ -2051,7 +2130,8 @@ class ChatSection {
                 connected: false,
                 authenticated: false,
                 hasIO: false,
-                readyReason: 'No socket manager found'
+                readyReason: 'No socket manager found',
+                socketInitialized: false
             };
         }
         
@@ -2074,6 +2154,11 @@ class ChatSection {
             status.readyReason = 'Socket not authenticated';
         } else {
             status.readyReason = 'Ready';
+        }
+        
+        if (manager.io) {
+            status.socketId = manager.io.id;
+            status.connectionState = manager.io.connected ? 'connected' : 'disconnected';
         }
         
         return status;

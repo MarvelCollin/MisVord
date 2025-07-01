@@ -9,20 +9,6 @@ window.SERVER_DROPDOWN_VERSION = '3.0';
 let currentUserRole = null;
 let isInitialized = false;
 
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof window !== 'undefined' && window.logger) {
-        window.logger.debug('server', 'server-dropdown.js DOMContentLoaded triggered');
-    }
-    
-    setTimeout(() => {
-        const isServerPage = document.getElementById('server-dropdown-btn') !== null;
-        
-        if (isServerPage) {
-            initServerDropdown();
-        }
-    }, 100);
-});
-
 function waitForServerAPI() {
     return new Promise((resolve) => {
         if (window.serverAPI) {
@@ -217,25 +203,6 @@ function initServerActions() {
 
         dropdown.classList.add('hidden');
 
-        if (currentUserRole === 'non-member') {
-            showToast('You are not a member of this server', 'error');
-            return;
-        }
-
-        const adminOnlyActions = ['Invite People', 'Server Settings', 'Create Channel', 'Create Category'];
-        
-        if (adminOnlyActions.includes(actionText)) {
-            if (!isAdminOrOwner(currentUserRole)) {
-                showToast('You do not have permission to perform this action', 'error');
-                return;
-            }
-            
-            if (item.getAttribute('data-role-restricted') === 'true') {
-                showToast('Access denied: Insufficient permissions', 'error');
-                return;
-            }
-        }
-
         executeDropdownAction(actionText);
     });
     
@@ -294,75 +261,19 @@ function showInvitePeopleModal() {
 }
 
 function showCreateChannelModal() {
-    console.log('🔍 showCreateChannelModal called');
-    
-    const modal = document.getElementById('create-channel-modal');
-    console.log('📦 Modal element found:', !!modal);
-    
-    if (!modal) {
-        console.error('❌ Create channel modal not found');
-        console.log('🔍 Available modal elements:', 
-            Array.from(document.querySelectorAll('[id*="modal"]')).map(el => el.id)
-        );
-        return;
+    if (typeof window.openCreateChannelModal === 'function') {
+        window.openCreateChannelModal();
+    } else {
+        console.error('openCreateChannelModal function not available');
     }
-
-    console.log('📋 Modal state before changes:');
-    console.log('  - classList:', modal.classList.toString());
-    console.log('  - display:', modal.style.display);
-    console.log('  - computed display:', getComputedStyle(modal).display);
-
-    modal.classList.remove('hidden', 'opacity-0');
-    modal.style.display = 'flex';
-    modal.style.visibility = 'visible';
-    modal.style.opacity = '1';
-    
-    console.log('📋 Modal state after changes:');
-    console.log('  - classList:', modal.classList.toString());
-    console.log('  - display:', modal.style.display);
-    console.log('  - computed display:', getComputedStyle(modal).display);
-    
-    setTimeout(() => {
-        const modalContent = modal.querySelector('.bg-\\[\\#36393f\\]');
-        if (modalContent) {
-            modalContent.classList.remove('scale-95');
-            modalContent.style.transform = 'scale(1)';
-            console.log('✅ Modal content animations triggered');
-        } else {
-            console.warn('⚠️ Modal content element not found');
-        }
-    }, 50);
-    
-    setupCreateChannelModalListeners();
-    console.log('✅ showCreateChannelModal completed');
 }
 
 function showCreateCategoryModal() {
-    console.log('🔍 showCreateCategoryModal called');
-    
-    const modal = document.getElementById('create-category-modal');
-    console.log('📦 Modal element found:', !!modal);
-    
-    if (!modal) {
-        console.error('❌ Create category modal not found');
-        return;
+    if (typeof window.openCreateCategoryModal === 'function') {
+        window.openCreateCategoryModal();
+    } else {
+        console.error('openCreateCategoryModal function not available');
     }
-
-    modal.classList.remove('hidden', 'opacity-0');
-    modal.style.display = 'flex';
-    modal.style.visibility = 'visible';
-    modal.style.opacity = '1';
-    
-    setTimeout(() => {
-        const modalContent = modal.querySelector('.bg-\\[\\#36393f\\]');
-        if (modalContent) {
-            modalContent.classList.remove('scale-95');
-            modalContent.style.transform = 'scale(1)';
-        }
-    }, 50);
-    
-    setupCreateCategoryModalListeners();
-    console.log('✅ showCreateCategoryModal completed');
 }
 
 function showLeaveServerConfirmation() {
@@ -406,30 +317,6 @@ function setupInviteModalListeners() {
             });
             generateBtn.setAttribute('data-listener', 'true');
         }
-}
-
-function setupCreateChannelModalListeners() {
-    const form = document.getElementById('create-channel-form');
-    if (form && !form.hasAttribute('data-listener')) {
-                    form.addEventListener('submit', (e) => {
-                        e.preventDefault();
-            const serverId = getCurrentServerId();
-                        createChannel(e, serverId);
-                    });
-        form.setAttribute('data-listener', 'true');
-    }
-}
-
-function setupCreateCategoryModalListeners() {
-    const form = document.getElementById('create-category-form');
-    if (form && !form.hasAttribute('data-listener')) {
-                    form.addEventListener('submit', (e) => {
-                        e.preventDefault();
-            const serverId = getCurrentServerId();
-                        createCategory(e, serverId);
-                    });
-        form.setAttribute('data-listener', 'true');
-    }
 }
 
 function setupLeaveServerModalListeners() {
@@ -531,62 +418,6 @@ async function generateNewInvite(serverId, expirationValue = null) {
                 generateBtn.disabled = false;
             generateBtn.textContent = 'Generate a new link';
         }
-    }
-}
-
-async function createChannel(e, serverId) {
-    e.preventDefault();
-    
-    try {
-        await waitForServerAPI();
-        
-        if (!window.channelAPI) {
-            throw new Error('channelAPI not available');
-        }
-
-    const formData = new FormData(e.target);
-    formData.append('server_id', serverId);
-
-        const data = await window.channelAPI.createChannel(formData);
-        
-        if (data.success || data.data) {
-            showToast('Channel created successfully!', 'success');
-            closeModal('create-channel-modal');
-            setTimeout(() => window.location.reload(), 1000);
-            } else {
-            throw new Error(data.message || 'Failed to create channel');
-        }
-    } catch (error) {
-        console.error('Error creating channel:', error);
-        showToast('Error creating channel: ' + error.message, 'error');
-    }
-}
-
-async function createCategory(e, serverId) {
-    e.preventDefault();
-    
-    try {
-        await waitForServerAPI();
-        
-        if (!window.channelAPI) {
-            throw new Error('channelAPI not available');
-        }
-
-    const formData = new FormData(e.target);
-    formData.append('server_id', serverId);
-    
-        const data = await window.channelAPI.createCategory(formData);
-        
-        if (data.success || data.data) {
-            showToast('Category created successfully!', 'success');
-            closeModal('create-category-modal');
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
-            throw new Error(data.message || 'Failed to create category');
-            }
-    } catch (error) {
-            console.error('Error creating category:', error);
-        showToast('Error creating category: ' + error.message, 'error');
     }
 }
 
@@ -798,8 +629,6 @@ window.initServerDropdown = initServerDropdown;
 window.initializeServerDropdown = initServerDropdown;
 window.showInvitePeopleModal = showInvitePeopleModal;
 window.redirectToServerSettings = redirectToServerSettings;
-window.showCreateChannelModal = showCreateChannelModal;
-window.showCreateCategoryModal = showCreateCategoryModal;
 window.showLeaveServerConfirmation = showLeaveServerConfirmation;
 window.getCurrentUserRole = () => currentUserRole;
 window.isAdminOrOwner = isAdminOrOwner;

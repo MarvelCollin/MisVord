@@ -128,37 +128,43 @@ window.currentUsername = <?php echo json_encode($_SESSION['username'] ?? ''); ?>
         const isAuthenticated = document.querySelector('meta[name="user-authenticated"]')?.content === 'true';
         const userId = document.querySelector('meta[name="user-id"]')?.content;
         const username = document.querySelector('meta[name="username"]')?.content;
-        const socketHost = document.querySelector('meta[name="socket-host"]')?.content;
-        const socketPort = document.querySelector('meta[name="socket-port"]')?.content;
         
-        console.log('🔍 Early User Check:', {
+        console.log('🔍 Page Authentication Check:', {
             isAuthenticated,
-            userId,
-            username,
-            socketHost,
-            socketPort
+            hasUserId: !!userId,
+            hasUsername: !!username,
+            userId: userId ? `[${userId.length} chars]` : null,
+            username: username ? `[${username.length} chars]` : null
         });
+        
+        if (!isAuthenticated) {
+            console.log('📄 [SOCKET-INIT] Not authenticated, skipping socket initialization');
+            return;
+        }
         
         let checkCount = 0;
         const maxChecks = 20;
         
         const checkSocketManager = () => {
             checkCount++;
+            console.log(`🔍 [SOCKET-INIT] Check #${checkCount}: Looking for globalSocketManager...`);
             
             if (window.globalSocketManager) {
-                console.log('✅ GlobalSocketManager found after', checkCount * 500, 'ms');
+                console.log('✅ [SOCKET-INIT] GlobalSocketManager found, checking connection status...');
                 
                 setTimeout(() => {
                     const status = window.globalSocketManager.getStatus();
-                    console.log('🔍 Initial Socket Status:', status);
+                    console.log('🔍 [SOCKET-INIT] Initial Socket Status:', status);
                     
                     if (!status.connected && !status.lastError) {
-                        console.log('🔧 Socket not connected, attempting manual initialization...');
+                        console.log('🔧 [SOCKET-INIT] Socket not connected, attempting manual initialization...');
                         
                         if (isAuthenticated && userId && username) {
                             window.__SOCKET_INITIALISED__ = false;
                             const initResult = window.globalSocketManager.init({ user_id: userId, username: username });
-                            console.log('🔧 Manual init result:', initResult);
+                            console.log('🔧 [SOCKET-INIT] Manual init result:', initResult);
+                        } else {
+                            console.warn('⚠️ [SOCKET-INIT] Cannot init - missing user data:', { userId: !!userId, username: !!username });
                         }
                     }
                 }, 1000);
@@ -167,7 +173,7 @@ window.currentUsername = <?php echo json_encode($_SESSION['username'] ?? ''); ?>
             }
             
             if (checkCount >= maxChecks) {
-                console.error('❌ GlobalSocketManager not found after 10 seconds');
+                console.error('❌ [SOCKET-INIT] GlobalSocketManager not found after 10 seconds');
                 return;
             }
             
@@ -184,6 +190,62 @@ window.currentUsername = <?php echo json_encode($_SESSION['username'] ?? ''); ?>
     window.addEventListener('socketAuthenticated', function(event) {
         console.log('🔐 SOCKET AUTHENTICATED EVENT:', event.detail);
     });
+    
+    window.testSocketConnection = function() {
+        console.log('🧪 [SOCKET-TEST] Starting manual socket connection test...');
+        
+        if (typeof io === 'undefined') {
+            console.error('❌ [SOCKET-TEST] Socket.IO library not loaded');
+            return false;
+        }
+        
+        if (!window.globalSocketManager) {
+            console.error('❌ [SOCKET-TEST] Global socket manager not found');
+            return false;
+        }
+        
+        const status = window.globalSocketManager.getStatus();
+        console.log('🔍 [SOCKET-TEST] Current socket status:', status);
+        
+        if (status.connected && status.authenticated) {
+            console.log('✅ [SOCKET-TEST] Socket already connected and authenticated');
+            
+            if (window.chatSection) {
+                const chatStatus = window.chatSection.getDetailedSocketStatus();
+                console.log('💬 [SOCKET-TEST] Chat section status:', chatStatus);
+                
+                if (chatStatus.isReady && window.chatSection.targetId) {
+                    console.log('🎯 [SOCKET-TEST] Attempting to join chat room...');
+                    window.chatSection.joinSocketRoom();
+                }
+            }
+            
+            return true;
+        }
+        
+        const userData = {
+            user_id: document.querySelector('meta[name="user-id"]')?.content,
+            username: document.querySelector('meta[name="username"]')?.content
+        };
+        
+        if (!userData.user_id || !userData.username) {
+            console.error('❌ [SOCKET-TEST] User data not found:', userData);
+            return false;
+        }
+        
+        console.log('🔧 [SOCKET-TEST] Reinitializing socket with user data:', userData);
+        window.__SOCKET_INITIALISED__ = false;
+        
+        const initResult = window.globalSocketManager.init(userData);
+        console.log('🔧 [SOCKET-TEST] Init result:', initResult);
+        
+        setTimeout(() => {
+            const newStatus = window.globalSocketManager.getStatus();
+            console.log('🔍 [SOCKET-TEST] Status after reinit:', newStatus);
+        }, 2000);
+        
+        return true;
+    };
     
     window.addEventListener('error', function(event) {
         if (event.message && (event.message.includes('socket') || event.message.includes('Socket') || event.message.includes('io'))) {
@@ -304,7 +366,7 @@ function showMasterDebugModal() {
                             <div class="bg-gray-800 rounded-lg p-4">
                                 <h4 class="text-md font-semibold text-gray-300 mb-3">Bot Testing & Diagnostics</h4>
                                 <div class="flex space-x-2 mb-3">
-                                    <input type="text" id="test-command-master" value="/titibot ping" 
+                                    <input type="text" id="test-command-master" value="/titibot play test song" 
                                            class="flex-1 bg-discord-lighter text-white px-3 py-2 rounded">
                                     <button onclick="sendTestCommand()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded">
                                         Send
@@ -324,7 +386,7 @@ function showMasterDebugModal() {
                                     </button>
                                 </div>
                                 <div class="text-xs text-gray-500">
-                                    Commands: /titibot ping, /titibot play [song], /titibot stop, /titibot help
+                                    Commands: /titibot play [song], /titibot stop, /titibot next, /titibot queue [song]
                                 </div>
                             </div>
                         </div>
@@ -1288,7 +1350,7 @@ function runBotDiagnostics() {
         return;
     }
     
-    const testCommands = ['/titibot ping', '/titibot help', '/titibot time'];
+    const testCommands = ['/titibot play test song', '/titibot stop', '/titibot next'];
     const selectedCommand = testCommands[Math.floor(Math.random() * testCommands.length)];
     
     const testMessage = {
@@ -1655,7 +1717,7 @@ function testBotMessage() {
     }
     
     const testMessage = {
-        content: '/titibot ping',
+        content: '/titibot play test song',
         target_type: targetType,
         target_id: targetId,
         message_type: 'text',
@@ -2480,7 +2542,94 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-
+    window.testSocketInitOrder = function() {
+        console.log('🧪 [TEST] Testing socket initialization order...');
+        
+        const results = {
+            socketLibraryLoaded: typeof io !== 'undefined',
+            globalManagerExists: !!window.globalSocketManager,
+            mainSocketReady: !!window.__MAIN_SOCKET_READY__,
+            socketInitialized: !!window.__SOCKET_INITIALISED__,
+            chatSectionExists: !!window.chatSection,
+            socketConnected: window.globalSocketManager?.connected || false,
+            socketAuthenticated: window.globalSocketManager?.authenticated || false
+        };
+        
+        console.log('🧪 [TEST] Initialization status:', results);
+        
+        if (results.socketLibraryLoaded && results.globalManagerExists) {
+            console.log('✅ [TEST] Socket system properly loaded');
+        } else {
+            console.error('❌ [TEST] Socket system not properly loaded');
+        }
+        
+        if (results.chatSectionExists && !results.socketConnected) {
+            console.warn('⚠️ [TEST] Chat section exists but socket not connected - this should not happen');
+        } else if (results.chatSectionExists && results.socketConnected) {
+            console.log('✅ [TEST] Chat section and socket properly synchronized');
+        }
+        
+        return results;
+    };
+    
+    window.debugChatSocket = function() {
+        console.log('🔍 [DEBUG] === CHAT SOCKET DEBUG REPORT ===');
+        console.log('🔍 [DEBUG] Current URL:', window.location.href);
+        console.log('🔍 [DEBUG] Socket.IO Available:', typeof io !== 'undefined');
+        console.log('🔍 [DEBUG] Global Socket Manager:', !!window.globalSocketManager);
+        
+        if (window.globalSocketManager) {
+            const status = window.globalSocketManager.getStatus();
+            console.log('🔍 [DEBUG] Socket Manager Status:', status);
+            
+            if (window.globalSocketManager.io) {
+                console.log('🔍 [DEBUG] Socket IO Details:', {
+                    id: window.globalSocketManager.io.id,
+                    connected: window.globalSocketManager.io.connected,
+                    disconnected: window.globalSocketManager.io.disconnected
+                });
+            }
+        }
+        
+        console.log('🔍 [DEBUG] Chat Section:', !!window.chatSection);
+        if (window.chatSection) {
+            const chatStatus = window.chatSection.getDetailedSocketStatus();
+            console.log('🔍 [DEBUG] Chat Section Status:', chatStatus);
+            console.log('🔍 [DEBUG] Chat Section Details:', {
+                chatType: window.chatSection.chatType,
+                targetId: window.chatSection.targetId,
+                socketRoomJoined: window.chatSection.socketRoomJoined,
+                lastJoinedRoom: window.chatSection.lastJoinedRoom
+            });
+        }
+        
+        console.log('🔍 [DEBUG] Socket Initialized Flag:', window.__SOCKET_INITIALISED__);
+        console.log('🔍 [DEBUG] Main Socket Ready Flag:', window.__MAIN_SOCKET_READY__);
+        
+        const userId = document.querySelector('meta[name="user-id"]')?.content;
+        const username = document.querySelector('meta[name="username"]')?.content;
+        console.log('🔍 [DEBUG] User Data:', { userId: !!userId, username: !!username });
+        
+        console.log('🔍 [DEBUG] === END DEBUG REPORT ===');
+        
+        if (window.chatSection && !window.chatSection.socketRoomJoined && window.chatSection.targetId) {
+            console.log('💡 [DEBUG] Suggestion: Try running window.chatSection.retrySocketConnection()');
+        }
+        
+        return {
+            socketAvailable: typeof io !== 'undefined',
+            managerExists: !!window.globalSocketManager,
+            chatSectionExists: !!window.chatSection,
+            socketInitialized: !!window.__SOCKET_INITIALISED__,
+            mainSocketReady: !!window.__MAIN_SOCKET_READY__
+        };
+    };
+    
+    window.addEventListener('error', function(event) {
+        if (event.message && (event.message.includes('socket') || event.message.includes('Socket') || event.message.includes('io'))) {
+            console.error('🚨 SOCKET-RELATED ERROR:', event.error);
+        }
+    });
 });
 </script>
 

@@ -6,6 +6,7 @@ class ChatBot {
         this.botReady = false;
         
         console.log('🤖 [CHAT-BOT] ChatBot component initialized');
+        this.init();
     }
 
     init() {
@@ -47,8 +48,6 @@ class ChatBot {
             }
 
             const io = window.globalSocketManager.io;
-
-
 
             io.on('bot-music-command', (data) => {
                 console.log('🎵 [TITIBOT] Received music command:', data);
@@ -123,7 +122,7 @@ class ChatBot {
         
         if (content.startsWith('/titibot') && content.length > 8) {
             const afterSlash = content.substring(8).trim();
-            const allCommands = ['ping', 'play', 'stop', 'next', 'prev', 'queue'];
+            const allCommands = ['play', 'stop', 'next', 'prev', 'queue'];
             
             if (afterSlash === '') {
                 this.showTitiBotSuggestions(allCommands);
@@ -205,7 +204,6 @@ class ChatBot {
 
     getTitiBotCommandDescription(command) {
         const descriptions = {
-            'ping': 'Test if TitiBot is online and responsive',
             'play': 'Play music from iTunes (e.g., /titibot play never gonna give you up)',
             'stop': 'Stop the currently playing music',
             'next': 'Play the next song in the queue',
@@ -214,8 +212,6 @@ class ChatBot {
         };
         return descriptions[command] || 'TitiBot command';
     }
-
-
 
     handleBotMessage(data) {
         if (!data || !data.is_bot || !data.music_data) {

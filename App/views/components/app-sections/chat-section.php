@@ -77,27 +77,6 @@ if ($chatType === 'channel') {
     if (empty($chatTitle)) $chatTitle = 'Direct Message';
     $chatIcon = 'fas fa-user';
     $placeholder = "Message @{$chatTitle}";
-} else {
-    $currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
-    $serverChannels = $GLOBALS['serverChannels'] ?? [];
-    
-    if ($currentServer) {
-        echo '<div class="flex-1 bg-[#313338] flex flex-col items-center justify-center text-white">
-            <div class="text-center max-w-md">
-                <i class="fas fa-hashtag text-6xl text-gray-600 mb-4"></i>
-                <h2 class="text-2xl font-semibold mb-2">Welcome to ' . htmlspecialchars($currentServer->name ?? 'this server') . '!</h2>
-                <p class="text-[#b5bac1] mb-4">Select a channel from the sidebar to start chatting with other members.</p>';
-        if (!empty($serverChannels)) {
-            echo '<button class="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 py-2 rounded transition-colors" 
-                                onclick="document.querySelector(\'.channel-item\')?.click()">
-                    Go to first channel
-                </button>';
-        }
-        echo '</div></div>';
-    } else {
-        echo '<div class="flex-1 bg-[#313338] flex items-center justify-center text-white text-lg">Select a server to view channels</div>';
-    }
-    return;
 }
 
 
@@ -566,46 +545,8 @@ if (!function_exists('renderMessage')) {
 <script src="<?php echo js('test/mention-debug'); ?>?v=<?php echo time(); ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Chat Section] DOM loaded, setting up chat section');
+    console.log('[Chat Section] DOM loaded, chat section should be handled by main component');
     
-    const messageInput = document.getElementById('message-input');
-    if (messageInput) {
-        messageInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
-    }
-    
-    const fileUploadButton = document.getElementById('file-upload-button');
-    const fileUploadInput = document.getElementById('file-upload');
-    
-    if (fileUploadButton && fileUploadInput && !window.chatSection) {
-        fileUploadButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('📎 File upload button clicked (fallback)');
-            fileUploadInput.click();
-        });
-    }
-    
-    console.log('🔍 [DEBUG] Checking server-rendered message actions on page load');
-    const serverMessages = document.querySelectorAll('.message-content[data-message-id]');
-    const serverActions = document.querySelectorAll('.message-actions-js');
-    console.log(`📊 [DEBUG] Found ${serverMessages.length} server messages and ${serverActions.length} action containers`);
-    
-    setTimeout(() => {
-        if (typeof window.initializeChatSection === 'function') {
-            console.log('[Chat Section] Calling chat section initializer');
-            window.initializeChatSection();
-        } else if (typeof window.ChatSection === 'function' && !window.chatSection) {
-            console.log('[Chat Section] Creating new chat section instance');
-            try {
-                window.chatSection = new window.ChatSection();
-            } catch (error) {
-                console.error('[Chat Section] Error creating chat section:', error);
-            }
-        }
-    }, 100);
-      
     document.dispatchEvent(new CustomEvent('channelContentLoaded', {
         detail: {
             type: 'chat',

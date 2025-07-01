@@ -297,12 +297,8 @@ class DirectMessageNavigation {
         this.updateChatMetaTags(dmId, username);
         
         // Initialize or reinitialize chat section (with small delay to ensure DOM is ready)
-        setTimeout(async () => {
-            try {
-                await this.initializeChatSection(dmId, username);
-            } catch (error) {
-                console.error('[DM Navigation] Error initializing chat section:', error);
-            }
+        setTimeout(() => {
+            console.log('[DM Navigation] Chat section initialization handled by main component');
         }, 50);
         
         console.log('[DM Navigation] DM chat section displayed successfully');

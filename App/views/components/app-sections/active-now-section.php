@@ -122,8 +122,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    updateActiveFriends();
-    
     function setupSocketListeners() {
         console.log('🔌 [ACTIVE-NOW] Setting up socket listeners');
         if (window.globalSocketManager && window.globalSocketManager.io) {
@@ -159,31 +157,23 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('globalSocketReady', function() {
         console.log('🔌 [ACTIVE-NOW] Global socket ready event received');
         setupSocketListeners();
-        updateActiveFriends();
     });
     
     window.addEventListener('socketAuthenticated', function() {
         console.log('🔐 [ACTIVE-NOW] Socket authenticated event received');
         setupSocketListeners();
-        updateActiveFriends();
     });
     
-    if (!setupSocketListeners()) {
-        let retryCount = 0;
-        const maxRetries = 10;
-        const retryInterval = setInterval(() => {
-            retryCount++;
-            console.log(`🔄 [ACTIVE-NOW] Retry ${retryCount}/${maxRetries} to setup socket listeners`);
-            
-            if (setupSocketListeners() || retryCount >= maxRetries) {
-                clearInterval(retryInterval);
-                if (retryCount >= maxRetries) {
-                    console.error('❌ [ACTIVE-NOW] Failed to setup socket listeners after max retries');
-                }
-            }
-        }, 1000);
-    }
+    setTimeout(() => {
+        if (!setupSocketListeners()) {
+            console.log('🔄 [ACTIVE-NOW] Initial setup failed, waiting for socket events...');
+        }
+    }, 1000);
     
-    setInterval(updateActiveFriends, 60000);
+    setInterval(() => {
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            updateActiveFriends();
+        }
+    }, 60000);
 });
 </script>

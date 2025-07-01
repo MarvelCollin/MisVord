@@ -860,7 +860,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Channel updated successfully', 'success');
                 }
                 window.closeEditChannelModal();
-                setTimeout(() => window.location.reload(), 500);
+                
+                if (typeof window.refreshChannelList === 'function') {
+                    window.refreshChannelList();
+                } else if (typeof window.channelManager?.refreshChannelList === 'function') {
+                    window.channelManager.refreshChannelList();
+                }
             } else {
                 throw new Error(response?.message || 'Failed to update channel');
             }
@@ -886,7 +891,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Channel deleted successfully', 'success');
                 }
                 window.closeDeleteChannelModal();
-                setTimeout(() => window.location.reload(), 500);
+                
+                if (typeof window.refreshChannelList === 'function') {
+                    window.refreshChannelList();
+                } else if (typeof window.channelManager?.refreshChannelList === 'function') {
+                    window.channelManager.refreshChannelList();
+                }
+                
+                const currentChannelId = new URLSearchParams(window.location.search).get('channel');
+                if (currentChannelId && currentChannelId === channelId) {
+                    const urlParts = window.location.pathname.split('/');
+                    const serverId = urlParts[urlParts.indexOf('server') + 1];
+                    if (serverId) {
+                        window.history.replaceState({}, '', `/server/${serverId}`);
+                        if (typeof window.loadServerPage === 'function') {
+                            window.loadServerPage(serverId);
+                        }
+                    }
+                }
             } else {
                 throw new Error(response?.message || 'Failed to delete channel');
             }
@@ -987,6 +1009,14 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Channel form submission started");
         
         const form = document.getElementById('create-channel-form');
+        
+        if (form.hasAttribute('data-submitting')) {
+            console.log("Form already submitting, ignoring duplicate submission");
+            return false;
+        }
+        
+        form.setAttribute('data-submitting', 'true');
+        
         const formData = new FormData(form);
         
         const positionField = document.getElementById('channel-position');
@@ -1051,7 +1081,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             console.error("Failed to parse error response:", parseError);
                             
                             if (response.status >= 500) {
-                                return submitFormDirectly('create-channel-form');
+                                throw new Error('Server error');
                             }
                         }
                     }
@@ -1063,8 +1093,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.error("Failed to parse JSON:", e);
                         if (rawText.includes("</html>") || rawText.includes("<br />")) {
                             console.error("Server returned HTML instead of JSON. Possible PHP error.");
-                            
-                            return submitFormDirectly('create-channel-form');
+                            throw new Error("Server returned HTML instead of JSON");
                         }
                         throw new Error("Invalid response format from server");
                     }
@@ -1093,12 +1122,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data && data.success) {
                     closeCreateChannelModal();
                     form.reset();
-                    
+                    form.removeAttribute('data-submitting');
                     
                     if (typeof showToast === 'function') {
                         showToast('Channel created successfully', 'success');
                     }
-                    
                     
                     try {
                         if (typeof refreshChannelList === 'function') {
@@ -1108,19 +1136,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             window.channelManager.refreshChannelList();
                             console.log("Channel list refreshed via channel manager");
                         } else {
-                            console.log("No AJAX refresh method available, falling back to page reload");
-                            setTimeout(function() {
-                                window.location.reload();
-                            }, 500);
+                            console.log("Channel list refresh method not available");
                         }
                     } catch (navError) {
                         console.error("Navigation error:", navError);
-                        setTimeout(function() {
-                            window.location.reload();
-                        }, 1000);
                     }
                 } else {
-                    
+                    form.removeAttribute('data-submitting');
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = 'Create Channel';
@@ -1129,31 +1151,25 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('API Error:', error);
+                form.removeAttribute('data-submitting');
                 
                 if (typeof showToast === 'function') {
                     showToast('Error creating channel. Please try again.', 'error');
                 }
                 
-                
                 if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = 'Create Channel';
                 }
-                
-                
-                submitFormDirectly('create-channel-form');
             });
         } catch (outerError) {
             console.error('Critical error in form submission:', outerError);
-            
+            form.removeAttribute('data-submitting');
             
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Create Channel';
             }
-            
-            
-            submitFormDirectly('create-channel-form');
         }
         
         
@@ -1166,16 +1182,21 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Category form submission started");
         
         const form = document.getElementById('create-category-form');
+        
+        if (form.hasAttribute('data-submitting')) {
+            console.log("Category form already submitting, ignoring duplicate submission");
+            return false;
+        }
+        
+        form.setAttribute('data-submitting', 'true');
+        
         const formData = new FormData(form);
         
-        
         const positionField = document.getElementById('category-position');
-        
         
         if (positionField && (positionField.value === '' || positionField.value === null)) {
             formData.set('position', null);
         }
-        
         
         const submitBtn = form.querySelector('[type="submit"]');
         if (submitBtn) {
@@ -1226,7 +1247,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             
                             if (response.status >= 500) {
-                                return submitFormDirectly('create-category-form');
+                                throw new Error('Server error');
                             }
                         }
                     }
@@ -1240,9 +1261,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         if (rawText.includes("</html>") || rawText.includes("<br />")) {
                             console.error("Server returned HTML instead of JSON. Possible PHP error.");
-                            
-                            
-                            return submitFormDirectly('create-category-form');
+                            throw new Error("Server returned HTML instead of JSON");
                         }
                         throw new Error("Invalid response format from server");
                     }
@@ -1275,12 +1294,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data && data.success) {
                     closeCreateCategoryModal();
                     form.reset();
-                    
+                    form.removeAttribute('data-submitting');
                     
                     if (typeof showToast === 'function') {
                         showToast('Category created successfully', 'success');
                     }
-                    
                     
                     try {
                         if (data.redirect) {
@@ -1301,13 +1319,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } catch (navError) {
                         console.error("Navigation error:", navError);
-                        
                         setTimeout(function() {
                             window.location.reload();
                         }, 1000);
                     }
                 } else {
-                    
+                    form.removeAttribute('data-submitting');
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = 'Create Category';
@@ -1316,54 +1333,32 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('API Error:', error);
+                form.removeAttribute('data-submitting');
                 
                 if (typeof showToast === 'function') {
                     showToast('Error creating category. Please try again.', 'error');
                 }
                 
-                
                 if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = 'Create Category';
                 }
-                
-                
-                submitFormDirectly('create-category-form');
             });
         } catch (outerError) {
             console.error('Critical error in form submission:', outerError);
-            
+            form.removeAttribute('data-submitting');
             
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Create Category';
             }
-            
-            
-            submitFormDirectly('create-category-form');
         }
         
         
         return false;
     };
     
-    
-    window.submitFormDirectly = function(formId) {
-        console.log("Attempting direct form submission for", formId);
-        const form = document.getElementById(formId);
-        if (form) {
-            
-            const fallbackField = form.querySelector('[name="ajax_fallback"]');
-            if (fallbackField) {
-                fallbackField.value = "true";
-            }
-            
-            
-            form.submit();
-            return true;
-        }
-        return false;
-    };
+
 
     
     console.log("Modal scripts initialized");

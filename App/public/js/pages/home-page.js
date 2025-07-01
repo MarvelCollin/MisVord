@@ -158,12 +158,25 @@ function filterFriends() {
 
 function setupUniqueSocketListeners() {
     if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-        return;
+        console.log('⏳ [HOME-PAGE] Socket not ready, waiting for socket events');
+        return false;
     }
     
     const io = window.globalSocketManager.io;
     io.on('friend-activity-update', updateFriendActivity);
+    console.log('✅ [HOME-PAGE] Socket listeners setup complete');
+    return true;
 }
+
+window.addEventListener('globalSocketReady', function() {
+    console.log('🔌 [HOME-PAGE] Global socket ready event received');
+    setupUniqueSocketListeners();
+});
+
+window.addEventListener('socketAuthenticated', function() {
+    console.log('🔐 [HOME-PAGE] Socket authenticated event received');
+    setupUniqueSocketListeners();
+});
 
 function updateFriendActivity(data) {
     const { user_id: userId, activity } = data;

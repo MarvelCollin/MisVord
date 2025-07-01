@@ -39,6 +39,8 @@ document.addEventListener('DOMContentLoaded', function() {
         ].join(', '));
     }
 
+    initGlobalSocketManager();
+    
     PageLoader.init();
 
     if (LazyLoader) {
@@ -47,7 +49,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     initGlobalUI();
-    initGlobalSocketManager();
     initPageSpecificComponents();
     initNitroCrowns();
     
@@ -169,6 +170,7 @@ function initGlobalSocketManager() {
 function initSocketAfterLoad() {
     if (window.__SOCKET_INITIALISED__) {
         logger.info('socket', 'Socket already initialized, skipping...');
+        window.__MAIN_SOCKET_READY__ = true;
         return;
     }
     
@@ -184,17 +186,33 @@ function initSocketAfterLoad() {
             logger.info('socket', 'Socket initialization started');
         } else {
             logger.warn('socket', 'Socket initialization bypassed or already running');
+            window.__MAIN_SOCKET_READY__ = true;
         }
         
         window.addEventListener('globalSocketReady', function(event) {
             logger.info('socket', 'Global socket manager ready:', event.detail);
+            window.__MAIN_SOCKET_READY__ = true;
             
             window.dispatchEvent(new CustomEvent('misVordGlobalReady', {
                 detail: { socketManager: event.detail.manager }
             }));
         });
+        
+        window.addEventListener('socketAuthenticated', function(event) {
+            logger.info('socket', 'Socket authenticated:', event.detail);
+            window.__MAIN_SOCKET_READY__ = true;
+        });
+        
+        setTimeout(() => {
+            if (!window.__MAIN_SOCKET_READY__) {
+                logger.warn('socket', 'Socket initialization taking longer than expected, marking ready anyway');
+                window.__MAIN_SOCKET_READY__ = true;
+            }
+        }, 5000);
+        
     } catch (error) {
         logger.error('socket', 'Failed to initialize socket manager:', error);
+        window.__MAIN_SOCKET_READY__ = true;
     }
 }
 
