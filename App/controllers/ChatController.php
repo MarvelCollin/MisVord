@@ -205,6 +205,52 @@ class ChatController extends BaseController
         }
     }
 
+    private function getDirectMessagesInternal($chatRoomId, $userId)
+    {
+        try {
+            $chatRoom = $this->chatRoomRepository->find($chatRoomId);
+            if (!$chatRoom) {
+                return $this->internalNotFound('Chat room not found');
+            }
+
+            if (!$this->chatRoomRepository->isParticipant($chatRoomId, $userId)) {
+                return $this->internalForbidden('You are not a participant in this chat');
+            }
+
+            $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int)$_GET['limit'] : 20;
+            $offset = isset($_GET['offset']) && is_numeric($_GET['offset']) ? (int)$_GET['offset'] : 0;
+            $timestamp = $_GET['timestamp'] ?? null;
+            $cacheBust = $_GET['_cache_bust'] ?? null;
+            
+            if ($timestamp || $cacheBust) {
+                $offset = 0;
+            }
+
+            $paginationResult = $this->chatRoomMessageRepository->getMessagesByRoomIdWithPagination($chatRoomId, $limit, $offset);
+            $messages = $paginationResult['messages'];
+            $hasMore = $paginationResult['has_more'];
+            
+            $formattedMessages = array_map([$this, 'formatMessage'], $messages);
+
+            $replyCount = 0;
+            foreach ($formattedMessages as $msg) {
+                if (isset($msg['reply_data'])) {
+                    $replyCount++;
+                }
+            }
+
+            return $this->internalSuccess([
+                'type' => 'dm',
+                'target_id' => $chatRoomId,
+                'messages' => $formattedMessages,
+                'has_more' => $hasMore
+            ], 'Messages retrieved successfully');
+        } catch (Exception $e) {
+            error_log("Error getting DM messages: " . $e->getMessage());
+            return $this->internalServerError('Failed to load direct messages: ' . $e->getMessage());
+        }
+    }
+
     public function sendMessage()
     {
         $this->requireAuth();
@@ -898,7 +944,7 @@ class ChatController extends BaseController
                 ]);
             } else {
                 error_log("[Chat Section] Fetching DM messages");
-                $messages = $this->getDirectMessages($chatId, $userId);
+                $messages = $this->getDirectMessagesInternal($chatId, $userId);
                 error_log("[Chat Section] Found " . count($messages['data']['messages']) . " messages");
                 
                 return $this->success([

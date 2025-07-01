@@ -445,6 +445,18 @@ function initializeServerSearch() {
             hideSearchResults();
         }
     });
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const highlightMessageId = urlParams.get('highlight');
+    if (highlightMessageId) {
+        setTimeout(() => {
+            highlightMessage(highlightMessageId);
+            
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.delete('highlight');
+            window.history.replaceState({}, '', newUrl);
+        }, 1500);
+    }
 }
 
 async function performServerSearch(query) {
@@ -505,6 +517,8 @@ function displaySearchResults(results, query) {
         ${results.map((message, index) => `
             <div class="search-result-item p-3 hover:bg-[#404249] cursor-pointer border-b border-gray-700 last:border-b-0" 
                  data-index="${index}"
+                 data-message-id="${message.id}"
+                 data-channel-id="${message.channel_id}"
                  onclick="navigateToMessage('${message.id}', '${message.channel_id}')">
                 <div class="flex items-start space-x-3">
                     <img src="${message.avatar_url}" 
@@ -570,12 +584,18 @@ function selectNextResult() {
     const current = document.querySelector('.search-result-item.selected');
     
     if (!current) {
-        items[0]?.classList.add('selected', 'bg-[#5865f2]');
+        if (items.length > 0) {
+            items[0].classList.add('selected', 'bg-[#5865f2]');
+            items[0].scrollIntoView({ block: 'nearest' });
+        }
     } else {
         current.classList.remove('selected', 'bg-[#5865f2]');
         const index = parseInt(current.dataset.index);
         const next = items[index + 1] || items[0];
-        next?.classList.add('selected', 'bg-[#5865f2]');
+        if (next) {
+            next.classList.add('selected', 'bg-[#5865f2]');
+            next.scrollIntoView({ block: 'nearest' });
+        }
     }
 }
 
@@ -584,19 +604,31 @@ function selectPreviousResult() {
     const current = document.querySelector('.search-result-item.selected');
     
     if (!current) {
-        items[items.length - 1]?.classList.add('selected', 'bg-[#5865f2]');
+        if (items.length > 0) {
+            items[items.length - 1].classList.add('selected', 'bg-[#5865f2]');
+            items[items.length - 1].scrollIntoView({ block: 'nearest' });
+        }
     } else {
         current.classList.remove('selected', 'bg-[#5865f2]');
         const index = parseInt(current.dataset.index);
         const prev = items[index - 1] || items[items.length - 1];
-        prev?.classList.add('selected', 'bg-[#5865f2]');
+        if (prev) {
+            prev.classList.add('selected', 'bg-[#5865f2]');
+            prev.scrollIntoView({ block: 'nearest' });
+        }
     }
 }
 
 function activateSelectedResult() {
     const selected = document.querySelector('.search-result-item.selected');
     if (selected) {
-        selected.click();
+        const messageId = selected.dataset.messageId;
+        const channelId = selected.dataset.channelId;
+        if (messageId && channelId) {
+            navigateToMessage(messageId, channelId);
+        } else {
+            selected.click();
+        }
     }
 }
 
@@ -608,9 +640,13 @@ async function navigateToMessage(messageId, channelId) {
         const currentChannelId = currentUrl.searchParams.get('channel');
         
         if (currentChannelId !== channelId) {
-            currentUrl.searchParams.set('channel', channelId);
-            currentUrl.searchParams.set('highlight', messageId);
-            window.location.href = currentUrl.toString();
+            if (window.simpleChannelSwitcher) {
+                await window.simpleChannelSwitcher.switchToChannel(channelId, 'text', true, messageId);
+            } else {
+                currentUrl.searchParams.set('channel', channelId);
+                currentUrl.searchParams.set('highlight', messageId);
+                window.location.href = currentUrl.toString();
+            }
         } else {
             highlightMessage(messageId);
         }
@@ -620,25 +656,71 @@ async function navigateToMessage(messageId, channelId) {
 }
 
 function highlightMessage(messageId) {
-    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-    
-    if (messageElement) {
-        messageElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
-        });
+    const waitForMessage = (retries = 0) => {
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         
-        messageElement.classList.add('highlight-message');
-        
-        setTimeout(() => {
-            messageElement.classList.remove('highlight-message');
-        }, 3000);
-    } else {
-        if (window.showToast) {
-            window.showToast('Message not found or not loaded', 'warning');
+        if (messageElement) {
+            messageElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            setTimeout(() => {
+                messageElement.classList.add('highlight-message');
+                
+                setTimeout(() => {
+                    messageElement.classList.remove('highlight-message');
+                }, 3000);
+            }, 300);
+            
+        } else if (retries < 10) {
+            setTimeout(() => waitForMessage(retries + 1), 500);
+        } else {
+            if (window.showToast) {
+                window.showToast('Message not found or not loaded', 'warning');
+            }
         }
-    }
+    };
+    
+    waitForMessage();
 }
+
+window.highlightMessage = highlightMessage;
 
 
 </script>
+
+<style>
+.highlight-message {
+    background: linear-gradient(90deg, 
+        rgba(255, 216, 0, 0.2) 0%, 
+        rgba(255, 216, 0, 0.1) 50%, 
+        rgba(255, 216, 0, 0.2) 100%) !important;
+    border-left: 3px solid #ffd800 !important;
+    animation: pulseHighlight 0.6s ease-in-out;
+    transition: all 0.3s ease-out;
+}
+
+@keyframes pulseHighlight {
+    0% {
+        background: rgba(255, 216, 0, 0.4);
+        transform: scale(1.01);
+    }
+    50% {
+        background: rgba(255, 216, 0, 0.2);
+        transform: scale(1);
+    }
+    100% {
+        background: rgba(255, 216, 0, 0.15);
+        transform: scale(1);
+    }
+}
+
+.search-result-item {
+    transition: all 0.2s ease;
+}
+
+.search-result-item:hover {
+    transform: translateX(4px);
+}
+</style>

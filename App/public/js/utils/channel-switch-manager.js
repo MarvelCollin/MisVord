@@ -67,7 +67,7 @@ class SimpleChannelSwitcher {
         }
     }
     
-    async switchToChannel(channelId, channelType = 'text', forceFresh = false) {
+    async switchToChannel(channelId, channelType = 'text', forceFresh = false, highlightMessageId = null) {
         if (this.isLoading) return;
         
         this.isLoading = true;
@@ -89,11 +89,49 @@ class SimpleChannelSwitcher {
         
         if (channelType === 'text') {
             await this.initializeTextChannel(channelId, true);
+            
+            if (highlightMessageId) {
+                setTimeout(() => {
+                    this.highlightMessage(highlightMessageId);
+                }, 1000);
+            }
         } else if (channelType === 'voice') {
             await this.initializeVoiceChannel(channelId, true);
         }
         
         this.isLoading = false;
+    }
+    
+    highlightMessage(messageId) {
+        if (typeof window.highlightMessage === 'function') {
+            window.highlightMessage(messageId);
+        } else {
+            const waitForMessage = (retries = 0) => {
+                const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                
+                if (messageElement) {
+                    messageElement.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    
+                    setTimeout(() => {
+                        messageElement.classList.add('highlight-message');
+                        
+                        setTimeout(() => {
+                            messageElement.classList.remove('highlight-message');
+                        }, 3000);
+                    }, 300);
+                    
+                } else if (retries < 10) {
+                    setTimeout(() => waitForMessage(retries + 1), 500);
+                } else {
+                    console.warn('Message not found for highlighting:', messageId);
+                }
+            };
+            
+            waitForMessage();
+        }
     }
     
     updateActiveChannel(channelId) {
