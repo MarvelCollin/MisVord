@@ -23,6 +23,9 @@ require_once dirname(__DIR__) . '/explore/server-card.php';
                        placeholder="Search for communities..." 
                        class="server-search">
                 <i class="search-icon fas fa-search"></i>
+                <div class="search-shortcut-hint">
+                    <kbd>Ctrl</kbd> + <kbd>K</kbd>
+                </div>
             </div>
             
             <div class="filter-controls">

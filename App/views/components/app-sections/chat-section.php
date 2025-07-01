@@ -135,6 +135,95 @@ if (!function_exists('renderMessage')) {
     padding: 16px 0;
 }
 
+.chat-skeleton-container {
+    padding: 16px;
+    animation-delay: 0.1s;
+}
+
+.chat-skeleton-message {
+    display: flex;
+    margin-bottom: 17px;
+    padding: 2px 16px;
+}
+
+.chat-skeleton-message:nth-child(1) {
+    animation-delay: 0ms;
+}
+
+.chat-skeleton-message:nth-child(2) {
+    animation-delay: 200ms;
+}
+
+.chat-skeleton-message:nth-child(3) {
+    animation-delay: 400ms;
+}
+
+.chat-skeleton-message:nth-child(4) {
+    animation-delay: 600ms;
+}
+
+.chat-skeleton-message:nth-child(5) {
+    animation-delay: 800ms;
+}
+
+.chat-skeleton-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #4f545c;
+    margin-right: 16px;
+    flex-shrink: 0;
+}
+
+.chat-skeleton-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-skeleton-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.chat-skeleton-username {
+    height: 16px;
+    background-color: #4f545c;
+    border-radius: 4px;
+    width: 120px;
+    margin-right: 8px;
+}
+
+.chat-skeleton-timestamp {
+    height: 12px;
+    background-color: #4f545c;
+    border-radius: 4px;
+    width: 60px;
+}
+
+.chat-skeleton-text {
+    height: 16px;
+    background-color: #4f545c;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.chat-skeleton-text.short {
+    width: 60%;
+}
+
+.chat-skeleton-text.medium {
+    width: 80%;
+}
+
+.chat-skeleton-text.long {
+    width: 95%;
+}
+
+.chat-skeleton-text.very-short {
+    width: 40%;
+}
+
 /* Bubble Chat Styles - Always Available */
 .bubble-message-group {
     position: relative;
@@ -409,7 +498,63 @@ if (!function_exists('renderMessage')) {
             </button>
         </div>
         
-        <div class="messages-container flex flex-col <?php echo empty($messages) ? 'min-h-full items-center justify-center' : ''; ?>">
+        <div id="chat-skeleton-loading" class="chat-skeleton-container">
+            <div class="chat-skeleton-message animate-pulse">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text long"></div>
+                    <div class="chat-skeleton-text medium"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message animate-pulse">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text short"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message animate-pulse">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text medium"></div>
+                    <div class="chat-skeleton-text very-short"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message animate-pulse">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text long"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message animate-pulse">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text medium"></div>
+                    <div class="chat-skeleton-text short"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="messages-container flex flex-col <?php echo empty($messages) ? 'min-h-full items-center justify-center' : ''; ?>" id="chat-real-content" style="display: none;">
             <?php if (!empty($messages)): ?>
                 <?php
                 $i = 0;
@@ -544,7 +689,7 @@ if (!function_exists('renderMessage')) {
     </button>
 </div>
 
-<script src="<?php echo js('components/messaging/chat-skeleton-loading'); ?>?v=<?php echo time(); ?>"></script>
+
 <script src="<?php echo js('components/messaging/rich-text'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('components/messaging/chat-section'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('components/messaging/emoji'); ?>?v=<?php echo time(); ?>" type="module"></script>

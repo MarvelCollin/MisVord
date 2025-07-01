@@ -1,7 +1,7 @@
 export * from './messaging/emoji.js';
 export * from './messaging/rich-text.js';
 export * from './messaging/chat-section.js';
-export * from './messaging/chat-skeleton-loading.js';
+
 export * from './servers/server-dropdown.js';
 export * from './servers/server-manager.js';
 export * from './servers/server-sidebar.js';

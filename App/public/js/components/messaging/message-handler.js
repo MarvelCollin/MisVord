@@ -893,10 +893,7 @@ class MessageHandler {
         
         console.log(`🎯 [MESSAGE-HANDLER] All ${messageElements.length} messages built, replacing skeleton`);
         
-        if (window.ChatSkeletonLoader) {
-            const skeletonLoader = new window.ChatSkeletonLoader(messagesContainer);
-            skeletonLoader.clearAfterLoad();
-        }
+        console.log('🧹 [MESSAGE-HANDLER] Clearing messages container before displaying new messages');
         
         messagesContainer.innerHTML = '';
         

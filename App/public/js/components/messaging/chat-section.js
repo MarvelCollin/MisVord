@@ -324,6 +324,8 @@ class ChatSection {
     
     async init() {
         try {
+            this.initializeChatSkeleton();
+            
             await this.waitForRequiredElements();
         
             if (!this.targetId) {
@@ -769,6 +771,8 @@ class ChatSection {
 
 
             if (messages.length > 0) {
+                this.hideChatSkeleton();
+                
                 if (isLoadMore) {
                     console.log('📜 [CHAT-SECTION] Prepending older messages (load more)');
                     await this.messageHandler.prependMessages(messages);
@@ -784,6 +788,8 @@ class ChatSection {
                 this.isInitialized = true;
                 console.log('✅ [CHAT-SECTION] Messages processed successfully');
             } else {
+                this.hideChatSkeleton();
+                
                 if (!isLoadMore) {
                     this.showEmptyState();
                 }
@@ -794,6 +800,7 @@ class ChatSection {
 
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Error loading messages:', error);
+            this.hideChatSkeleton();
             this.showNotification('Failed to load messages. Please try again.', 'error');
             
             if (!isLoadMore) {
@@ -859,21 +866,11 @@ class ChatSection {
     }
     
     showLoadingIndicator() {
-        const messagesContainer = this.getMessagesContainer();
-        if (messagesContainer && window.ChatSkeletonLoader) {
-            const skeletonLoader = new window.ChatSkeletonLoader(messagesContainer);
-            skeletonLoader.showForChannelSwitch();
-            console.log('🎨 [CHAT-SECTION] Skeleton loader shown instead of loading indicator');
-        }
+        console.log('📊 [CHAT-SECTION] Loading indicator requested');
     }
     
     hideLoadingIndicator() {
-        const messagesContainer = this.getMessagesContainer();
-        if (messagesContainer && window.ChatSkeletonLoader) {
-            const skeletonLoader = new window.ChatSkeletonLoader(messagesContainer);
-            skeletonLoader.clearAfterLoad();
-            console.log('🧹 [CHAT-SECTION] Skeleton loader cleared instead of hiding loading indicator');
-        }
+        console.log('📊 [CHAT-SECTION] Loading indicator hidden');
     }
     
     showEmptyState(message = null) {
@@ -2308,6 +2305,38 @@ class ChatSection {
         
         if (isAtBottom) {
             this.scrollToBottom();
+        }
+    }
+
+    initializeChatSkeleton() {
+        setTimeout(() => {
+            this.hideChatSkeleton();
+        }, 1500);
+    }
+    
+    hideChatSkeleton() {
+        const skeletonContainer = document.getElementById('chat-skeleton-loading');
+        const realContent = document.getElementById('chat-real-content');
+        
+        if (skeletonContainer) {
+            skeletonContainer.style.display = 'none';
+        }
+        
+        if (realContent) {
+            realContent.style.display = 'block';
+        }
+    }
+    
+    showChatSkeleton() {
+        const skeletonContainer = document.getElementById('chat-skeleton-loading');
+        const realContent = document.getElementById('chat-real-content');
+        
+        if (skeletonContainer) {
+            skeletonContainer.style.display = 'block';
+        }
+        
+        if (realContent) {
+            realContent.style.display = 'none';
         }
     }
 }

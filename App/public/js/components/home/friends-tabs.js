@@ -62,6 +62,7 @@ class FriendsTabManager {
 
         this.activeTab = tabName;
         
+        this.clearSearchInputs();
         this.updateTabDisplay();
         this.updateTabContent();
         this.updateURL(tabName);
@@ -70,7 +71,38 @@ class FriendsTabManager {
         this.loadTabData(tabName);
     }
 
-
+    clearSearchInputs() {
+        const searchInputs = ['online-search', 'all-search', 'pending-search'];
+        searchInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            const clearBtn = document.getElementById(inputId + '-clear');
+            
+            if (input) {
+                input.value = '';
+                input.classList.remove('pr-8');
+            }
+            
+            if (clearBtn) {
+                clearBtn.classList.add('hidden');
+            }
+        });
+        
+        if (window.searchFriends) {
+            window.searchFriends('online', '');
+            window.searchFriends('all', '');
+            window.searchFriends('pending', '');
+        }
+        
+        if (window.hideNoResultsMessage) {
+            const containers = ['online-friends-container', 'all-friends-container', 'pending-friends-container'];
+            containers.forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    window.hideNoResultsMessage(container);
+                }
+            });
+        }
+    }
 
     getTabContainers(tabName) {
         const containers = {
@@ -114,8 +146,6 @@ class FriendsTabManager {
                 break;
         }
     }
-
-
 
     updateTabDisplay() {
         const desktopTabs = document.querySelectorAll('.friends-desktop-tabs [data-tab]');
@@ -182,8 +212,6 @@ class FriendsTabManager {
             mobileMenu.classList.add('hidden');
         }
     }
-
-
 }
 
 window.FriendsTabManager = FriendsTabManager;

@@ -118,9 +118,23 @@ function initSearchFilter() {
     const searchInput = document.getElementById('server-search');
     
     if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            currentSearch = this.value.toLowerCase();
-            applyFilters();
+        let debounceTimeout;
+
+        searchInput.addEventListener('input', function () {
+            currentSearch = this.value.toLowerCase().trim();
+
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                applyFilters();
+            }, 300);
+        });
+        
+        searchInput.addEventListener('focus', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+
+        searchInput.addEventListener('blur', function() {
+            this.style.transform = 'translateY(0)';
         });
         
         searchInput.addEventListener('keydown', function(e) {

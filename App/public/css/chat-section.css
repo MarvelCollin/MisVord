@@ -978,3 +978,25 @@ button {
     width: 0%;
     transition: width 0.3s linear;
 }
+
+.chat-skeleton-avatar,
+.chat-skeleton-username,
+.chat-skeleton-timestamp,
+.chat-skeleton-text {
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+    0% {
+        opacity: 1;
+        background-color: #4f545c;
+    }
+    50% {
+        opacity: 0.5;
+        background-color: #36393f;
+    }
+    100% {
+        opacity: 1;
+        background-color: #4f545c;
+    }
+}

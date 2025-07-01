@@ -654,28 +654,43 @@ button[type="submit"]:hover,
 }
 
 /* Skeleton loading animations */
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 1;
+    background-color: #4f545c;
+  }
+  50% {
+    opacity: 0.5;
+    background-color: #36393f;
+  }
+  100% {
+    opacity: 1;
+    background-color: #4f545c;
+  }
+}
+
 .skeleton {
-  background: linear-gradient(-90deg, #313338 0%, #383a40 50%, #313338 100%);
-  background-size: 400% 400%;
-  animation: skeleton-loading 1.2s ease-in-out infinite;
-  border-radius: 4px;
+  background-color: #4f545c;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
 .skeleton-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
+  background-color: #4f545c;
 }
 
 .skeleton-text {
-  height: 16px;
-  width: 120px;
-  margin-bottom: 4px;
+  height: 12px;
+  background-color: #4f545c;
+  border-radius: 4px;
+  width: 100%;
 }
 
 .skeleton-text-sm {
-  height: 12px;
-  width: 80px;
+  height: 10px;
+  width: 60%;
 }
 
 .skeleton-item {

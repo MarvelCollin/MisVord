@@ -100,6 +100,41 @@
   transform: translateY(-50%) scale(1.1);
 }
 
+.search-shortcut-hint {
+  position: absolute;
+  right: 48px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  color: #80848e;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.search-container:hover .search-shortcut-hint {
+  opacity: 1;
+}
+
+.server-search:focus + .search-icon + .search-shortcut-hint {
+  opacity: 0;
+}
+
+.search-shortcut-hint kbd {
+  background: #404249;
+  border: 1px solid #5865f2;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-family: inherit;
+  font-size: 10px;
+  color: #ffffff;
+  min-width: 16px;
+  text-align: center;
+}
+
 .filter-controls {
   display: flex;
   gap: 12px;

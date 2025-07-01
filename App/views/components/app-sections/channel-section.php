@@ -52,7 +52,37 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 
 <div class="channel-wrapper flex-1 overflow-y-auto">
-    <div class="channel-list p-2" data-server-id="<?php echo $currentServerId; ?>">
+    <div id="channel-skeleton-loading" class="channel-skeleton-container p-2">
+        <div class="mb-4">
+            <div class="flex items-center px-3 py-1 mb-1 animate-pulse">
+                <div class="h-3 w-3 bg-gray-700 rounded-sm mr-1"></div>
+                <div class="h-4 bg-gray-700 rounded w-24"></div>
+            </div>
+            <div class="ml-2">
+                <?php renderChannelSkeleton(3, 'animate-pulse'); ?>
+            </div>
+        </div>
+        <div class="mb-4">
+            <div class="flex items-center px-3 py-1 mb-1 animate-pulse">
+                <div class="h-3 w-3 bg-gray-700 rounded-sm mr-1"></div>
+                <div class="h-4 bg-gray-700 rounded w-32"></div>
+            </div>
+            <div class="ml-2">
+                <?php renderChannelSkeleton(4, 'animate-pulse'); ?>
+            </div>
+        </div>
+        <div class="mb-4">
+            <div class="flex items-center px-3 py-1 mb-1 animate-pulse">
+                <div class="h-3 w-3 bg-gray-700 rounded-sm mr-1"></div>
+                <div class="h-4 bg-gray-700 rounded w-28"></div>
+            </div>
+            <div class="ml-2">
+                <?php renderChannelSkeleton(2, 'animate-pulse'); ?>
+            </div>
+        </div>
+    </div>
+    
+    <div class="channel-list p-2" data-server-id="<?php echo $currentServerId; ?>" id="channel-real-content" style="display: none;">
         <input type="hidden" id="current-server-id" value="<?php echo $currentServerId; ?>">
         <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">
         
@@ -149,6 +179,22 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 </div>
 
 <style>
+.channel-skeleton-container {
+    animation-delay: 0.1s;
+}
+
+.channel-skeleton-container > div:nth-child(1) {
+    animation-delay: 0ms;
+}
+
+.channel-skeleton-container > div:nth-child(2) {
+    animation-delay: 300ms;
+}
+
+.channel-skeleton-container > div:nth-child(3) {
+    animation-delay: 600ms;
+}
+
 .channel-item {
     transition: all 0.15s ease;
     border-radius: 4px;
@@ -185,10 +231,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     opacity: 1 !important;
 }
 
-
-
-
-
 .category-header {
     transition: color 0.15s ease;
 }
@@ -214,4 +256,48 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     z-index: 1001;
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function initializeChannelSkeleton() {
+        setTimeout(() => {
+            hideChannelSkeleton();
+        }, 1200);
+    }
+    
+    function hideChannelSkeleton() {
+        const skeletonContainer = document.getElementById('channel-skeleton-loading');
+        const realContent = document.getElementById('channel-real-content');
+        
+        if (skeletonContainer) {
+            skeletonContainer.style.display = 'none';
+        }
+        
+        if (realContent) {
+            realContent.style.display = 'block';
+        }
+    }
+    
+    function showChannelSkeleton() {
+        const skeletonContainer = document.getElementById('channel-skeleton-loading');
+        const realContent = document.getElementById('channel-real-content');
+        
+        if (skeletonContainer) {
+            skeletonContainer.style.display = 'block';
+        }
+        
+        if (realContent) {
+            realContent.style.display = 'none';
+        }
+    }
+    
+    initializeChannelSkeleton();
+    
+    window.channelSectionSkeleton = {
+        show: showChannelSkeleton,
+        hide: hideChannelSkeleton,
+        initialized: true
+    };
+});
+</script>
 

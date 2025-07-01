@@ -87,10 +87,10 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'In Voice Call':
                 return 'fa-solid fa-microphone';
             case 'afk':
-                return 'fa-solid fa-moon-over-sun';
+                return 'fa-solid fa-clock';
             case 'idle':
             default:
-                return 'fa-solid fa-moon';
+                return 'fa-solid fa-circle';
         }
     }
     

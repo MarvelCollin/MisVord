@@ -155,16 +155,14 @@ class SimpleChannelSwitcher {
         }
         
         const messagesContainer = document.querySelector('#chat-messages .messages-container');
-        if (messagesContainer && window.ChatSkeletonLoader) {
-            const skeletonLoader = new window.ChatSkeletonLoader(messagesContainer);
-            skeletonLoader.showForChannelSwitch();
-            console.log('🎨 [SWITCH-MANAGER] Skeleton loader activated for channel switch');
-        }
+        console.log('🔄 [SWITCH-MANAGER] Messages container found:', !!messagesContainer);
         
         console.log('🔄 [SWITCH-MANAGER] Switching from voice to text - full reset needed');
         
         if (window.chatSection) {
-            console.log('🔄 [SWITCH-MANAGER] Chat section exists, resetting and switching');
+            console.log('🔄 [SWITCH-MANAGER] Chat section exists, showing skeleton first');
+            window.chatSection.showChatSkeleton();
+            
             await window.chatSection.resetForNewChannel();
             await new Promise(resolve => setTimeout(resolve, 100));
             await window.chatSection.switchToChannel(channelId, 'text', true);
@@ -180,6 +178,7 @@ class SimpleChannelSwitcher {
             
             if (window.chatSection) {
                 console.log('🔄 [SWITCH-MANAGER] Chat section ready after wait, initializing');
+                window.chatSection.showChatSkeleton();
                 await window.chatSection.resetForNewChannel();
                 await new Promise(resolve => setTimeout(resolve, 100));
                 await window.chatSection.switchToChannel(channelId, 'text', true);
