@@ -189,6 +189,7 @@ class HomeController extends BaseController
                         $friend = [
                             'id' => $participant['user_id'],
                             'username' => $participant['username'],
+                            'display_name' => $participant['display_name'] ?? $participant['username'],
                             'avatar_url' => $participant['avatar_url']
                         ];
                         break;
@@ -196,7 +197,7 @@ class HomeController extends BaseController
                 }
                 
                 $chatData = [
-                    'friend_username' => $friend['username'] ?? 'Unknown User',
+                    'friend_username' => $friend['display_name'] ?? $friend['username'] ?? 'Unknown User',
                     'friend_id' => $friend['id'] ?? null,
                     'friend_avatar_url' => $friend['avatar_url'] ?? null
                 ];

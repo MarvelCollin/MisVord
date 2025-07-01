@@ -206,11 +206,12 @@ function selectSortOption(sortType, optionElement) {
 }
 
 function applyFilters() {
-    const serverCards = Array.from(document.querySelectorAll('.explore-server-card:not(#featured-servers .explore-server-card)'));
+    const serverCards = Array.from(document.querySelectorAll('.explore-server-card:not(.misvord-skeleton-loading-card):not(#featured-servers .explore-server-card)'));
     const container = document.getElementById('all-servers');
     
     if (!container) return;
     
+    hideLoadingSkeletons();
     showLoadingSkeletons();
     
     let filteredCards = serverCards.filter(card => {
@@ -252,49 +253,45 @@ function showLoadingSkeletons() {
     hideNoResults();
     hideLoadingSkeletons();
     
-    const skeletonContainer = document.createElement('div');
-    skeletonContainer.id = 'loading-skeletons';
-    skeletonContainer.className = 'loading-grid';
+    const serverCards = document.querySelectorAll('.explore-server-card');
+    const skeletonCount = Math.min(Math.max(serverCards.length, 2), 6);
     
-    const skeletonCount = 6;
     for (let i = 0; i < skeletonCount; i++) {
         const skeletonCard = createSkeletonCard();
-        skeletonContainer.appendChild(skeletonCard);
+        container.appendChild(skeletonCard);
     }
-    
-    container.appendChild(skeletonContainer);
 }
 
 function hideLoadingSkeletons() {
-    const skeletonContainer = document.getElementById('loading-skeletons');
-    if (skeletonContainer) {
-        skeletonContainer.classList.add('hiding');
+    const skeletonCards = document.querySelectorAll('.misvord-skeleton-loading-card');
+    skeletonCards.forEach(card => {
+        card.classList.add('hiding');
         setTimeout(() => {
-            if (skeletonContainer && skeletonContainer.parentNode) {
-                skeletonContainer.parentNode.removeChild(skeletonContainer);
+            if (card && card.parentNode) {
+                card.parentNode.removeChild(card);
             }
-        }, 300);
-    }
+        }, 100);
+    });
 }
 
 function createSkeletonCard() {
     const card = document.createElement('div');
-    card.className = 'skeleton-card bg-discord-dark rounded-xl overflow-hidden';
+    card.className = 'misvord-skeleton-loading-card explore-server-card server-card bg-discord-dark rounded-xl overflow-hidden transition-all cursor-pointer group';
     
     card.innerHTML = `
         <div class="server-banner h-32 bg-gradient-to-br from-purple-500 via-blue-500 to-pink-500 relative overflow-hidden">
-            <div class="skeleton w-full h-full"></div>
+            <div class="misvord-skeleton-shimmer w-full h-full"></div>
         </div>
         <div class="relative px-5 pt-5 pb-5">
-            <div class="skeleton-icon-small absolute -top-8 left-5 w-16 h-16 rounded-xl">
-                <div class="skeleton w-full h-full rounded-xl"></div>
+            <div class="misvord-skeleton-icon-placeholder absolute -top-8 left-5 w-16 h-16 rounded-xl">
+                <div class="misvord-skeleton-shimmer w-full h-full rounded-xl"></div>
             </div>
             <div class="mt-8 pl-2">
-                <div class="skeleton skeleton-text mb-2" style="width: 70%; height: 22px;"></div>
-                <div class="skeleton skeleton-text mb-4" style="width: 100%; height: 32px;"></div>
-                <div class="skeleton skeleton-text mb-4" style="width: 85%; height: 16px;"></div>
+                <div class="misvord-skeleton-shimmer misvord-skeleton-title mb-2"></div>
+                <div class="misvord-skeleton-shimmer misvord-skeleton-description mb-4"></div>
+                <div class="misvord-skeleton-shimmer misvord-skeleton-stats mb-4"></div>
                 <div class="mt-4">
-                    <div class="skeleton" style="width: 100%; height: 34px; border-radius: 8px;"></div>
+                    <div class="misvord-skeleton-shimmer misvord-skeleton-button"></div>
                 </div>
             </div>
         </div>

@@ -57,6 +57,7 @@ if ($isDMPage) {
                     $friend = [
                         'id' => $participant['user_id'],
                         'username' => $participant['username'],
+                        'display_name' => $participant['display_name'] ?? $participant['username'],
                         'avatar_url' => $participant['avatar_url']
                     ];
                     break;
@@ -64,7 +65,7 @@ if ($isDMPage) {
             }
             
             $chatData = [
-                'friend_username' => $friend['username'] ?? 'Unknown User',
+                'friend_username' => $friend['display_name'] ?? $friend['username'] ?? 'Unknown User',
                 'friend_id' => $friend['id'] ?? null,
                 'friend_avatar_url' => $friend['avatar_url'] ?? null
             ];
@@ -123,6 +124,7 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
                 $friend = [
                     'id' => $participant['user_id'],
                     'username' => $participant['username'],
+                    'display_name' => $participant['display_name'] ?? $participant['username'],
                     'avatar_url' => $participant['avatar_url']
                 ];
                 break;
@@ -130,7 +132,7 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
         }
         
         $chatData = [
-            'friend_username' => $friend['username'] ?? 'Unknown User',
+            'friend_username' => $friend['display_name'] ?? $friend['username'] ?? 'Unknown User',
             'friend_id' => $friend['id'] ?? null,
             'friend_avatar_url' => $friend['avatar_url'] ?? null
         ];

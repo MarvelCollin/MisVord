@@ -904,6 +904,11 @@ class MessageHandler {
         
         document.body.removeChild(tempContainer);
         
+        if (this.chatSection && typeof this.chatSection.updateLoadMoreButton === 'function') {
+            this.chatSection.updateLoadMoreButton();
+            console.log('🔄 [MESSAGE-HANDLER] Load more button updated after messages displayed');
+        }
+        
         console.log(`✅ [MESSAGE-HANDLER] Successfully displayed ${messages.length} messages in batch`);
     }
     

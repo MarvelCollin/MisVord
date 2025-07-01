@@ -26,6 +26,12 @@ class SimpleChannelSwitcher {
             e.preventDefault();
             e.stopPropagation();
             
+            const loadMoreContainer = document.querySelector('#load-more-container');
+            if (loadMoreContainer) {
+                loadMoreContainer.classList.add('hidden');
+                console.log('🧹 [SWITCH-MANAGER] Load more container hidden on channel click');
+            }
+            
             const channelId = channelItem.getAttribute('data-channel-id');
             const channelType = channelItem.getAttribute('data-channel-type') || 'text';
             
@@ -65,6 +71,12 @@ class SimpleChannelSwitcher {
         if (this.isLoading) return;
         
         this.isLoading = true;
+        
+        const loadMoreContainer = document.querySelector('#load-more-container');
+        if (loadMoreContainer) {
+            loadMoreContainer.classList.add('hidden');
+            console.log('🧹 [SWITCH-MANAGER] Load more container hidden immediately at channel switch start');
+        }
         
         this.currentChannelId = channelId;
         this.currentChannelType = channelType;
@@ -135,6 +147,12 @@ class SimpleChannelSwitcher {
     
     async initializeTextChannel(channelId, forceFresh = false) {
         console.log('🔄 [SWITCH-MANAGER] Initializing text channel:', channelId);
+        
+        const loadMoreContainer = document.querySelector('#load-more-container');
+        if (loadMoreContainer) {
+            loadMoreContainer.classList.add('hidden');
+            console.log('🧹 [SWITCH-MANAGER] Load more container hidden during channel switch');
+        }
         
         const messagesContainer = document.querySelector('#chat-messages .messages-container');
         if (messagesContainer && window.ChatSkeletonLoader) {

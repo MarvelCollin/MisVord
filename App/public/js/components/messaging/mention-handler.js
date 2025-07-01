@@ -227,6 +227,7 @@ class MentionHandler {
                             this.availableUsers.set(member.username.toLowerCase(), {
                                 id: member.user_id,
                                 username: member.username,
+                                display_name: member.display_name || member.username,
                                 avatar_url: member.avatar_url || '/public/assets/common/default-profile-picture.png'
                             });
                             addedCount++;
@@ -281,6 +282,7 @@ class MentionHandler {
                         this.availableUsers.set(participant.username.toLowerCase(), {
                             id: participant.user_id,
                             username: participant.username,
+                            display_name: participant.display_name || participant.username,
                             avatar_url: participant.avatar_url || '/public/assets/common/default-profile-picture.png'
                         });
                     });
@@ -460,8 +462,9 @@ class MentionHandler {
             userMatches.push({
                 id: user.id,
                 username: user.username,
+                display_name: user.display_name,
                 avatar_url: user.avatar_url,
-                display: `@${user.username}`,
+                display: `@${user.display_name || user.username}`,
                 isSpecial: false,
                 priority: priority
             });

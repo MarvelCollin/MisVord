@@ -683,6 +683,7 @@ class ChatController extends BaseController
                         $friend = [
                             'id' => $participant['user_id'],
                             'username' => $participant['username'],
+                            'display_name' => $participant['display_name'] ?? $participant['username'],
                             'avatar_url' => $participant['avatar_url']
                         ];
                         break;
@@ -1502,6 +1503,7 @@ class ChatController extends BaseController
                 return [
                     'user_id' => $participant['user_id'],
                     'username' => $participant['username'],
+                    'display_name' => $participant['display_name'] ?? $participant['username'],
                     'avatar_url' => $participant['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'
                 ];
             }, $participants);

@@ -71,7 +71,7 @@ if (file_exists($tooltipPath)) {
             
             if ($roomType === 'direct') {
                 $otherUserId = $chatRoom['other_user_id'] ?? 0;
-                $roomName = $chatRoom['other_username'] ?? 'Unknown';
+                $roomName = $chatRoom['other_display_name'] ?? $chatRoom['other_username'] ?? 'Unknown';
                 $roomAvatar = $chatRoom['other_avatar'] ?? '';
             } else {
                 $roomName = $chatRoom['name'] ?? 'Group Chat';
@@ -88,6 +88,7 @@ if (file_exists($tooltipPath)) {
                  data-chat-room-id="<?php echo htmlspecialchars($roomId); ?>"
                  data-chat-type="<?php echo htmlspecialchars($roomType); ?>"
                  data-username="<?php echo htmlspecialchars($roomName); ?>"
+                 data-display-name="<?php echo htmlspecialchars($roomName); ?>"
                  data-room-type="<?php echo htmlspecialchars($roomType); ?>">
                 <div class="relative mr-3">
                     <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">

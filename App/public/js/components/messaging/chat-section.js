@@ -662,6 +662,11 @@ class ChatSection {
         
         this.isLoading = true;
         
+        if (!isLoadMore && this.loadMoreContainer) {
+            this.loadMoreContainer.classList.add('hidden');
+            console.log('🧹 [CHAT-SECTION] Load more container hidden at start of message loading');
+        }
+        
         const limit = options.limit || 20;
         let offset = isLoadMore ? this.currentOffset : 0;
         
@@ -855,6 +860,17 @@ class ChatSection {
         
         if (!this.loadMoreContainer || !this.loadMoreButton) {
             console.warn('⚠️ [CHAT-SECTION] Load more button container not found');
+            return;
+        }
+        
+        const messagesContainer = this.getMessagesContainer();
+        const isSkeletonActive = messagesContainer && 
+                                messagesContainer.getAttribute('data-channel-skeleton') === 'active' ||
+                                messagesContainer && messagesContainer.querySelector('.bubble-message-group.animate-pulse');
+        
+        if (isSkeletonActive) {
+            this.loadMoreContainer.classList.add('hidden');
+            console.log('🎨 [CHAT-SECTION] Load more button hidden - skeleton is active');
             return;
         }
         
@@ -1944,6 +1960,11 @@ class ChatSection {
     async switchToChannel(channelId, channelType = 'text', forceFresh = false) {
         console.log('🔄 [CHAT-SECTION] Switching to channel:', channelId, channelType, 'forceFresh:', forceFresh);
         
+        if (this.loadMoreContainer) {
+            this.loadMoreContainer.classList.add('hidden');
+            console.log('🧹 [CHAT-SECTION] Load more container hidden at start of channel switch');
+        }
+        
         const messagesContainer = this.getMessagesContainer();
         if (messagesContainer && window.ChatSkeletonLoader) {
             const skeletonLoader = new window.ChatSkeletonLoader(messagesContainer);
@@ -1989,6 +2010,11 @@ class ChatSection {
         
         this.leaveCurrentSocketRoom();
         
+        if (this.loadMoreContainer) {
+            this.loadMoreContainer.classList.add('hidden');
+            console.log('🧹 [CHAT-SECTION] Load more container hidden during force stop');
+        }
+        
         if (this.loadMoreButton) {
             this.loadMoreButton.remove();
             this.loadMoreButton = null;
@@ -2033,6 +2059,7 @@ class ChatSection {
         
         if (this.loadMoreContainer) {
             this.loadMoreContainer.classList.add('hidden');
+            console.log('🧹 [CHAT-SECTION] Load more button hidden during state reset');
         }
         
         console.log('✅ [CHAT-SECTION] Full state reset completed with message handler cleanup');
