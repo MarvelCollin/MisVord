@@ -3,7 +3,19 @@ if (!isset($contentType)) {
     $contentType = 'home';
 }
 
-$currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
+$currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
+$serverChannels = $GLOBALS['serverChannels'] ?? [];
+$serverCategories = $GLOBALS['serverCategories'] ?? [];
+$activeChannelId = $GLOBALS['activeChannelId'] ?? null;
+$activeChannel = $GLOBALS['activeChannel'] ?? null;
+$channelType = 'text';
+
+if ($activeChannel) {
+    $channelType = is_array($activeChannel) ? ($activeChannel['type'] ?? 'text') : ($activeChannel->type ?? 'text');
+}
+
+$isVoiceChannel = ($channelType === 'voice' || $channelType === 'vc' || $channelType === 2);
+$isTextChannel = !$isVoiceChannel;
 
 $serverIdFromUrl = null;
 if (isset($_SERVER['REQUEST_URI']) && preg_match('/\/server\/(\d+)/', $_SERVER['REQUEST_URI'], $matches)) {
@@ -63,10 +75,10 @@ $additional_js[] = 'components/app-layout';
                     }
                     ?>
                     
-                    <div class="chat-section <?php echo $channelType === 'text' ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
+                    <div class="chat-section <?php echo $isTextChannel ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>" data-channel-type="text">
                         <?php include dirname(__DIR__) . '/app-sections/chat-section.php'; ?>
                     </div>
-                    <div class="voice-section <?php echo $channelType === 'voice' ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>">
+                    <div class="voice-section <?php echo $isVoiceChannel ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>" data-channel-type="voice">
                         <?php include dirname(__DIR__) . '/app-sections/voice-section.php'; ?>
                     </div>
                 </div>
@@ -86,3 +98,23 @@ $additional_js[] = 'components/app-layout';
         <?php endif; ?>
     </div>
 </div>
+
+<style>
+.chat-section, .voice-section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.chat-section.hidden, .voice-section.hidden {
+    display: none;
+}
+
+#main-content {
+    position: relative;
+}
+</style>

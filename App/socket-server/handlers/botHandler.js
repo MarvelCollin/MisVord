@@ -99,7 +99,29 @@ class BotHandler extends EventEmitter {
             return;
         }
 
-        if (content.toLowerCase().startsWith('/titibot play ')) {
+        const isTitiBotCommand = content.startsWith('/titibot');
+        let voiceChannelToJoin = null;
+        
+        if (isTitiBotCommand) {
+            if (data.voice_context && data.voice_context.voice_channel_id) {
+                voiceChannelToJoin = data.voice_context.voice_channel_id;
+                console.log(`🎤 [BOT-HANDLER] User ${data.user_id} sent titibot command from voice channel ${voiceChannelToJoin}`);
+            } else {
+                const userVoiceConnection = VoiceConnectionTracker.getUserVoiceConnection(data.user_id);
+                if (userVoiceConnection) {
+                    voiceChannelToJoin = userVoiceConnection.channelId;
+                    console.log(`🎤 [BOT-HANDLER] Found user voice connection: channel ${voiceChannelToJoin}`);
+                }
+            }
+            
+            if (voiceChannelToJoin) {
+                await this.ensureBotInVoiceChannel(io, botId, username, voiceChannelToJoin);
+            }
+        }
+
+        if (content.toLowerCase() === '/titibot ping') {
+            await this.sendBotResponse(io, data, messageType, botId, username, 'ping');
+        } else if (content.toLowerCase().startsWith('/titibot play ')) {
             const isInVoice = await this.checkVoiceConnection(data.user_id, io, data, messageType, botId, username);
             if (!isInVoice) return;
             
@@ -126,19 +148,14 @@ class BotHandler extends EventEmitter {
             
             const songName = content.substring('/titibot queue '.length).trim();
             await this.sendBotResponse(io, data, messageType, botId, username, 'queue', songName);
+        } else if (content.toLowerCase().startsWith('/titibot help')) {
+            await this.sendBotResponse(io, data, messageType, botId, username, 'help');
         }
     }
 
     static async checkVoiceConnection(userId, io, originalMessage, messageType, botId, username) {
         const isInVoice = VoiceConnectionTracker.isUserInVoice(userId);
         
-        // if (!isInVoice) {
-        //     await new Promise(resolve => setTimeout(resolve, 3000));
-        //     const responseContent = '😒Minimal masuk voice channel dulu bang';
-        //     await this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, null);
-        //     return false;
-        // }
-
         const voiceConnection = VoiceConnectionTracker.getUserVoiceConnection(userId);
         if (voiceConnection) {
             await this.addBotToVoiceChannel(io, botId, username, voiceConnection);
@@ -198,6 +215,20 @@ class BotHandler extends EventEmitter {
         let musicData = null;
 
         switch (command) {
+            case 'ping':
+                responseContent = '🏓 Pong! TitiBot is alive and ready to rock! 🎵';
+                break;
+
+            case 'help':
+                responseContent = `🤖 **TitiBot Commands:**
+📻 **/titibot ping** - Check if bot is alive
+🎵 **/titibot play [song]** - Play music from iTunes
+⏹️ **/titibot stop** - Stop current music
+⏭️ **/titibot next** - Play next song
+⏮️ **/titibot prev** - Play previous song
+➕ **/titibot queue [song]** - Add song to queue`;
+                break;
+
             case 'play':
                 if (!parameter) {
                     responseContent = '❌ Udah di bilang formatnya play {namaLagu} masih ngemeng';
@@ -390,6 +421,40 @@ class BotHandler extends EventEmitter {
     static getBotStatus(botId) {
         const bot = this.bots.get(botId);
         return bot || null;
+    }
+
+    static async ensureBotInVoiceChannel(io, botId, username, channelId) {
+        const botParticipantKey = `${botId}-${channelId}`;
+        
+        if (this.botVoiceParticipants.has(botParticipantKey)) {
+            console.log(`🤖 [BOT-VOICE] Bot ${username} already in voice channel ${channelId}`);
+            return;
+        }
+
+        console.log(`🤖 [BOT-VOICE] Adding bot ${username} to voice channel ${channelId}`);
+        
+        const botParticipantData = {
+            id: `bot-voice-${botId}`,
+            user_id: botId.toString(),
+            username: username,
+            avatar_url: '/public/assets/common/default-profile-picture.png',
+            isBot: true,
+            channelId: channelId,
+            meetingId: `voice_channel_${channelId}`,
+            joinedAt: Date.now()
+        };
+
+        this.botVoiceParticipants.set(botParticipantKey, botParticipantData);
+
+        const voiceChannelRoom = `voice-channel-${channelId}`;
+        
+        io.to(voiceChannelRoom).emit('bot-voice-participant-joined', {
+            participant: botParticipantData,
+            channelId: channelId,
+            meetingId: `voice_channel_${channelId}`
+        });
+        
+        console.log(`✅ [BOT-VOICE] Bot ${username} successfully joined voice channel ${channelId}`);
     }
 }
 

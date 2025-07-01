@@ -834,7 +834,8 @@ class ChatSection {
             chatType: this.chatType,
             before: before,
             limit: limit,
-            ChatAPIExists: !!window.ChatAPI
+            ChatAPIExists: !!window.ChatAPI,
+            isChannelSwitch: options.isChannelSwitch || false
         });
         
         try {
@@ -1876,7 +1877,12 @@ class ChatSection {
         console.log('🧹 [CHAT-SECTION] Clearing chat messages');
         
         if (this.chatMessages) {
-            this.chatMessages.innerHTML = '';
+            const messagesContainer = this.chatMessages.querySelector('.messages-container');
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '';
+            } else {
+                this.chatMessages.innerHTML = '';
+            }
             console.log('✅ [CHAT-SECTION] Chat messages cleared');
         }
         
@@ -2049,15 +2055,18 @@ class ChatSection {
     async switchToChannel(channelId, channelType = 'text') {
         console.log('🔄 [CHAT-SECTION] Switching to channel:', channelId, channelType);
         
-        if (this.targetId === channelId) {
-            console.log('✅ [CHAT-SECTION] Already on target channel');
+        if (this.targetId === channelId && this.isInitialized) {
+            console.log('✅ [CHAT-SECTION] Already on target channel and initialized');
             return;
         }
 
         this.leaveCurrentSocketRoom();
 
         this.targetId = channelId;
-        this.chatType = channelType === 'voice' ? 'channel' : 'channel';
+        this.chatType = 'channel';
+        this.isLoading = false;
+        this.hasMoreMessages = true;
+        this.lastLoadedMessageId = null;
         
         this.clearChatMessages();
         this.hideEmptyState();
@@ -2069,6 +2078,32 @@ class ChatSection {
         this.updateChannelHeader();
         
         console.log('✅ [CHAT-SECTION] Channel switch completed');
+    }
+
+    resetForNewChannel() {
+        console.log('🔄 [CHAT-SECTION] Resetting for new channel');
+        
+        this.leaveCurrentSocketRoom();
+        this.clearChatMessages();
+        this.hideEmptyState();
+        
+        this.isLoading = false;
+        this.hasMoreMessages = true;
+        this.lastLoadedMessageId = null;
+        this.replyingTo = null;
+        this.currentEditingMessage = null;
+        
+        if (this.loadMoreButton) {
+            this.loadMoreButton.remove();
+            this.loadMoreButton = null;
+        }
+        
+        if (this.topReloadButton) {
+            this.topReloadButton.remove();
+            this.topReloadButton = null;
+        }
+        
+        console.log('✅ [CHAT-SECTION] Reset completed');
     }
 
     leaveCurrentSocketRoom() {

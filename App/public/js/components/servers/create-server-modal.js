@@ -582,12 +582,7 @@ async function navigateToNewServer(serverId) {
 
         if (currentPath !== newPath) {
             history.pushState({ serverId: serverId, channelId: defaultChannelId }, `Server ${serverId}`, newPath);
-            if (window.loadServerPage) {
-                await window.loadServerPage(serverId, defaultChannelId);
-            } else {
-                const module = await import('/public/js/utils/load-server-page.js');
-                await module.loadServerPage(serverId, defaultChannelId);
-            }
+            window.location.href = newPath;
         }
     } catch (error) {
         console.error('[Create Server] Error navigating to new server:', error);

@@ -72,17 +72,6 @@ Route::post('/home/content', function() {
     $controller->getHomeContent();
 });
 
-Route::get('/home/layout', function() {
-    require_once __DIR__ . '/../controllers/HomeController.php';
-    $controller = new HomeController();
-    $controller->getHomeLayout();
-});
-Route::post('/home/layout', function() {
-    require_once __DIR__ . '/../controllers/HomeController.php';
-    $controller = new HomeController();
-    $controller->getHomeLayout();
-});
-
 Route::get('/login', function() {
     $controller = new AuthenticationController();
     $controller->showLogin();
@@ -185,20 +174,6 @@ Route::get('/server/([0-9]+)', function($id) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
     $controller->show($id);
-});
-
-
-
-Route::get('/server/([0-9]+)/layout', function($serverId) {
-    require_once __DIR__ . '/../controllers/ServerController.php';
-    $controller = new ServerController();
-    $controller->getServerLayoutHtml($serverId);
-});
-
-Route::post('/server/([0-9]+)/layout', function($serverId) {
-    require_once __DIR__ . '/../controllers/ServerController.php';
-    $controller = new ServerController();
-    $controller->getServerLayoutHtml($serverId);
 });
 
 Route::get('/servers/([0-9]+)', function($id) {
@@ -673,11 +648,6 @@ Route::get('/api/debug/servers/list', function() {
 
 
 
-
-Route::get('/explore-servers/layout', function() {
-    $controller = new ExploreController();
-    $controller->getExploreLayout();
-});
 
 Route::get('/api/users/([0-9]+)', function($userId) {
     $controller = new UserController();

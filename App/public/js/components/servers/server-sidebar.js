@@ -1,5 +1,4 @@
-import { LocalStorageManager } from '../../utils/local-storage-manager.js';
-import { loadServerPage } from '../../utils/load-server-page.js';
+import { LocalStorageManager } from '../servers/local-storage-server-grouping.js';
 
 let isRendering = false;
 let serverDataCache = null;
@@ -903,27 +902,11 @@ export async function handleHomeClick(event) {
     showHomeLoadingIndicator();
 
     try {
-        if (window.voiceManager && window.voiceManager.isConnected) {
-            console.log('[Home Navigation] Voice connection detected, keeping alive and showing global indicator');
-            if (window.globalVoiceIndicator) {
-                setTimeout(() => {
-                    window.globalVoiceIndicator.ensureIndicatorVisible();
-                }, 300);
-            }
-        }
-
-        if (typeof window.loadHomePage === 'function') {
-            console.log('[Home Navigation] Loading home page');
-            await window.loadHomePage('friends');
-            console.log('[Home Navigation] SUCCESS - Home navigation completed');
-        } else {
-            console.error('[Home Navigation] loadHomePage function not available');
-            return;
-        }
+        console.log('[Home Navigation] Redirecting to home page');
+        window.location.href = '/home';
 
     } catch (error) {
         console.error('[Home Navigation] ERROR in handleHomeClick:', error);
-    } finally {
         hideHomeLoadingIndicator();
     }
 }
@@ -972,18 +955,16 @@ export async function handleServerClick(serverId, event) {
         defaultChannelId = await getDefaultChannelForServer(serverId);
         console.log('[Server Navigation] Default channel ID:', defaultChannelId);
         
-        if (typeof window.loadServerPage === 'function') {
-            console.log('[Server Navigation] Loading server page with channel:', defaultChannelId);
-            await window.loadServerPage(serverId, defaultChannelId);
-            console.log('[Server Navigation] SUCCESS - Server navigation completed with channel:', defaultChannelId);
-        } else {
-            console.error('[Server Navigation] loadServerPage function not available');
-            return;
+        let redirectUrl = `/server/${serverId}`;
+        if (defaultChannelId) {
+            redirectUrl += `?channel=${defaultChannelId}`;
         }
+        
+        console.log('[Server Navigation] Redirecting to:', redirectUrl);
+        window.location.href = redirectUrl;
         
     } catch (error) {
         console.error('[Server Navigation] ERROR in handleServerClick:', error);
-    } finally {
         hideServerLoadingIndicator(serverId);
     }
 }
@@ -1013,27 +994,11 @@ export async function handleExploreClick(event) {
     showExploreLoadingIndicator();
     
     try {
-        if (window.voiceManager && window.voiceManager.isConnected) {
-            console.log('[Explore Navigation] Voice connection detected, keeping alive and showing global indicator');
-            if (window.globalVoiceIndicator) {
-                setTimeout(() => {
-                    window.globalVoiceIndicator.ensureIndicatorVisible();
-                }, 300);
-            }
-        }
-
-        if (typeof window.loadExplorePage === 'function') {
-            console.log('[Explore Navigation] Loading explore page');
-            await window.loadExplorePage();
-            console.log('[Explore Navigation] SUCCESS - Explore navigation completed');
-        } else {
-            console.error('[Explore Navigation] loadExplorePage function not available');
-            return;
-        }
+        console.log('[Explore Navigation] Redirecting to explore page');
+        window.location.href = '/explore-servers';
 
     } catch (error) {
         console.error('[Explore Navigation] ERROR in handleExploreClick:', error);
-    } finally {
         hideExploreLoadingIndicator();
     }
 }
@@ -1087,7 +1052,6 @@ export function refreshServerGroups() {
 
 // Make functions globally available
 window.updateActiveServer = updateActiveServer;
-window.loadServerPage = loadServerPage;
 
 export const ServerSidebar = {
     updateActiveServer,

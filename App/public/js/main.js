@@ -305,30 +305,8 @@ export {
 };
 
 async function initializeNavigation() {
-    console.log('[Main] Initializing navigation system');
-    
-    try {
-        if (!window.loadHomePage) {
-            console.log('[Main] Loading home page navigation');
-            await import('./utils/load-home-page.js');
-        }
-        
-        if (!window.loadServerPage) {
-            console.log('[Main] Loading server page navigation');
-            await import('./utils/load-server-page.js');
-        }
-        
-        if (!window.loadExplorePage) {
-            console.log('[Main] Loading explore page navigation');
-            await import('./utils/load-explore-page.js');
-        }
-        
-        console.log('[Main] Navigation system initialized successfully');
-        return true;
-    } catch (error) {
-        console.error('[Main] Failed to initialize navigation system:', error);
-        return false;
-    }
+    console.log('[Main] Navigation system no longer uses AJAX - using normal page redirects');
+    return true;
 }
 
 async function initializeApplication() {

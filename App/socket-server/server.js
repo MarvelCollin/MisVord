@@ -39,15 +39,32 @@ async function initializeTitiBot() {
             if (result.success && result.exists && result.is_bot && result.bot) {
                 const bot = result.bot;
                 console.log(`✅ TitiBot found in database with ID: ${bot.id}`);
-                
                 const BotHandler = require('./handlers/botHandler');
                 BotHandler.registerBot(bot.id.toString(), bot.username);
                 BotHandler.connectBot(io, bot.id.toString(), bot.username);
-                
                 console.log(`🎉 TitiBot initialized successfully with ID: ${bot.id}`);
                 return true;
+            } else if (!result.exists) {
+                console.warn('⚠️ TitiBot not found in database – creating now...');
+                try {
+                    const createRes = await fetch('http://app:1001/api/debug/create-titibot', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'User-Agent': 'SocketServer/1.0' }
+                    });
+                    if (createRes.ok) {
+                        const createResult = await createRes.json();
+                        if (createResult.success && createResult.bot_data) {
+                            console.log('✅ TitiBot created, retrying initialization');
+                            return await initializeTitiBot();
+                        }
+                    }
+                    console.error('❌ Failed to auto-create TitiBot');
+                } catch (createErr) {
+                    console.error('❌ Error while auto-creating TitiBot:', createErr.message);
+                }
+                return false;
             } else {
-                console.warn('⚠️ TitiBot not found in database - bot functionality disabled');
+                console.warn('⚠️ TitiBot exists but not a bot – bot functionality disabled');
                 return false;
             }
         } else {

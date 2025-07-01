@@ -3,180 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Socket Connection Test</title>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <title>TitiBot Ping Test</title>
     <style>
-        body {
-            font-family: 'Courier New', monospace;
-            background: #1a1a1a;
-            color: #00ff00;
-            padding: 20px;
-            margin: 0;
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #2c2f33;
+            color: #fff;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
         }
-        .log {
-            background: #000;
-            border: 1px solid #333;
-            padding: 15px;
-            height: 400px;
-            overflow-y: auto;
-            margin: 20px 0;
-            white-space: pre-wrap;
+        button { 
+            padding: 10px 20px; 
+            margin: 5px; 
+            border: none; 
+            border-radius: 5px; 
+            background: #5865f2; 
+            color: white; 
+            cursor: pointer; 
         }
-        .controls {
-            margin: 20px 0;
+        button:hover { 
+            background: #4752c4; 
         }
-        button {
-            background: #0066cc;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 5px;
-            cursor: pointer;
-            border-radius: 4px;
+        .log { 
+            background: #36393f; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+            height: 400px; 
+            overflow-y: auto; 
+            font-family: monospace; 
+            font-size: 12px;
         }
-        button:hover {
-            background: #0088ff;
+        .log-entry { 
+            margin: 2px 0; 
+            padding: 2px 5px; 
         }
-        .status {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-        }
-        .status.connected {
-            background: #004400;
-            border: 1px solid #00ff00;
-        }
-        .status.disconnected {
-            background: #440000;
-            border: 1px solid #ff0000;
+        .log-info { color: #00d4aa; }
+        .log-success { color: #57f287; }
+        .log-error { color: #ed4245; }
+        .log-warning { color: #fee75c; }
+        input { 
+            padding: 8px; 
+            margin: 5px; 
+            border: 1px solid #555; 
+            border-radius: 3px; 
+            background: #40444b;
+            color: #fff;
+            width: 300px;
         }
     </style>
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>🔌 Socket Connection Test</h1>
+        <h1>🤖 TitiBot Test Panel</h1>
         
-        <div id="status" class="status disconnected">
-            Status: Disconnected
-        </div>
-        
-        <div class="controls">
-            <button onclick="connectSocket()">Connect</button>
-            <button onclick="disconnectSocket()">Disconnect</button>
-            <button onclick="testAuthentication()">Test Auth</button>
-            <button onclick="sendPing()">Send Ping</button>
+        <div>
+            <button onclick="connectSocket()">Connect Socket</button>
+            <button onclick="testPing()">Test Ping</button>
+            <button onclick="testHelp()">Test Help</button>
             <button onclick="clearLog()">Clear Log</button>
+            <br>
+            <input type="text" id="customCommand" placeholder="Enter custom command" value="/titibot ping">
+            <button onclick="sendCustomCommand()">Send Custom</button>
         </div>
         
-        <div id="log" class="log">Waiting for connection test...\n</div>
+        <div class="log" id="logContainer"></div>
+        
+        <div>
+            <h3>Connection Status</h3>
+            <p>Socket ID: <span id="socketId">Not connected</span></p>
+            <p>User ID: <span id="userId">Not set</span></p>
+            <p>Username: <span id="username">Not set</span></p>
+            <p>Target Channel: <span id="targetChannel">13</span></p>
+        </div>
     </div>
 
     <script>
-        let testSocket = null;
-        let logElement = document.getElementById('log');
-        let statusElement = document.getElementById('status');
+        let socket = null;
+        let authenticated = false;
+        const testUserId = 1;
+        const testUsername = 'testuser';  
+        const testChannelId = '13';
 
-        function log(message) {
-            const timestamp = new Date().toLocaleTimeString();
-            logElement.textContent += `[${timestamp}] ${message}\n`;
-            logElement.scrollTop = logElement.scrollHeight;
-        }
-
-        function updateStatus(isConnected, message) {
-            statusElement.className = `status ${isConnected ? 'connected' : 'disconnected'}`;
-            statusElement.textContent = `Status: ${message}`;
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
         }
 
         function connectSocket() {
-            if (testSocket) {
-                log('Socket already exists, disconnecting first...');
-                testSocket.disconnect();
+            if (socket) {
+                socket.disconnect();
             }
 
-            log('Attempting to connect to http://localhost:1002...');
-            updateStatus(false, 'Connecting...');
-
-            testSocket = io('http://localhost:1002', {
+            log('🔌 Connecting to socket server...', 'info');
+            
+            socket = io('http://localhost:1002', {
                 path: '/socket.io',
-                transports: ['websocket', 'polling'],
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                reconnectionAttempts: 5
+                transports: ['websocket', 'polling']
             });
 
-            testSocket.on('connect', () => {
-                log(`✅ Connected successfully! Socket ID: ${testSocket.id}`);
-                updateStatus(true, `Connected (${testSocket.id})`);
+            socket.on('connect', () => {
+                log('✅ Socket connected: ' + socket.id, 'success');
+                document.getElementById('socketId').textContent = socket.id;
+                
+                log('🔐 Authenticating...', 'info');
+                socket.emit('authenticate', {
+                    user_id: testUserId,
+                    username: testUsername
+                });
             });
 
-            testSocket.on('connect_error', (error) => {
-                log(`❌ Connection error: ${error.message}`);
-                updateStatus(false, 'Connection Failed');
+            socket.on('auth-success', (data) => {
+                log('✅ Authentication successful', 'success');
+                authenticated = true;
+                document.getElementById('userId').textContent = testUserId;
+                document.getElementById('username').textContent = testUsername;
+                
+                socket.emit('join-channel', { channel_id: testChannelId });
+                
+                log('🎤 Simulating voice channel join...', 'info');
+                socket.emit('register-voice-meeting', {
+                    channel_id: testChannelId,
+                    meeting_id: `voice_channel_${testChannelId}`
+                });
             });
 
-            testSocket.on('disconnect', (reason) => {
-                log(`🔌 Disconnected: ${reason}`);
-                updateStatus(false, 'Disconnected');
+            socket.on('auth-error', (data) => {
+                log('❌ Authentication failed: ' + data.message, 'error');
             });
 
-            testSocket.on('auth-success', (data) => {
-                log(`🔐 Authentication successful: ${JSON.stringify(data)}`);
+            socket.on('voice-meeting-update', (data) => {
+                if (data.action === 'join') {
+                    log('🎤 Successfully joined voice channel ' + data.channel_id, 'success');
+                } else {
+                    log('🎤 Voice meeting update: ' + data.action, 'info');
+                }
             });
 
-            testSocket.on('auth-error', (data) => {
-                log(`❌ Authentication failed: ${JSON.stringify(data)}`);
+            socket.on('new-channel-message', (data) => {
+                if (data.is_bot) {
+                    log(`🤖 Bot Response: "${data.content}"`, 'success');
+                } else {
+                    log(`💬 Message: "${data.content}" from ${data.username}`, 'info');
+                }
             });
 
-            testSocket.on('debug-test-response', (data) => {
-                log(`🏓 Ping response: ${JSON.stringify(data)}`);
+            socket.on('bot-voice-participant-joined', (data) => {
+                log(`🤖🎵 Bot joined voice: ${data.participant?.username}`, 'success');
+            });
+
+            socket.on('bot-voice-participant-left', (data) => {
+                log(`🤖👋 Bot left voice: ${data.participant?.username}`, 'warning');
+            });
+
+            socket.on('bot-music-command', (data) => {
+                log(`🎵 Bot Music Command: ${data.music_data?.action}`, 'success');
+            });
+
+            socket.on('disconnect', () => {
+                log('🔌 Socket disconnected', 'warning');
+                authenticated = false;
+            });
+
+            socket.on('connect_error', (error) => {
+                log('❌ Connection error: ' + error.message, 'error');
             });
         }
 
-        function disconnectSocket() {
-            if (testSocket) {
-                testSocket.disconnect();
-                testSocket = null;
-                log('Socket disconnected manually');
-                updateStatus(false, 'Disconnected');
-            } else {
-                log('No socket to disconnect');
-            }
-        }
-
-        function testAuthentication() {
-            if (!testSocket || !testSocket.connected) {
-                log('❌ Socket not connected. Connect first.');
+        function testPing() {
+            if (!socket || !authenticated) {
+                log('❌ Not connected or authenticated', 'error');
                 return;
             }
 
-            log('🔐 Testing authentication...');
-            testSocket.emit('authenticate', {
-                user_id: '1',
-                username: 'testuser'
-            });
+            log('🏓 Testing ping command...', 'info');
+            sendMessage('/titibot ping');
         }
 
-        function sendPing() {
-            if (!testSocket || !testSocket.connected) {
-                log('❌ Socket not connected. Connect first.');
+        function testHelp() {
+            if (!socket || !authenticated) {
+                log('❌ Not connected or authenticated', 'error');
                 return;
             }
 
-            log('🏓 Sending ping...');
-            testSocket.emit('debug-test', 'testuser');
+            log('❓ Testing help command...', 'info');
+            sendMessage('/titibot help');
+        }
+
+        function sendCustomCommand() {
+            const command = document.getElementById('customCommand').value;
+            if (!command) {
+                log('❌ No command entered', 'error');
+                return;
+            }
+
+            if (!socket || !authenticated) {
+                log('❌ Not connected or authenticated', 'error');
+                return;
+            }
+
+            log(`📤 Sending custom command: ${command}`, 'info');
+            sendMessage(command);
+        }
+
+        function sendMessage(content) {
+            const messageData = {
+                content: content,
+                target_type: 'channel',
+                target_id: testChannelId,
+                message_type: 'text',
+                attachments: [],
+                mentions: [],
+                temp_message_id: `temp-${Date.now()}`
+            };
+
+            const isTitiBotCommand = content.toLowerCase().includes('/titibot');
+            if (isTitiBotCommand) {
+                messageData.voice_context = {
+                    voice_channel_id: testChannelId,
+                    user_in_voice: true
+                };
+                log(`🎤 Added voice context: channel ${testChannelId}`, 'info');
+            }
+
+            socket.emit('save-and-send-message', messageData);
+            log(`📤 Sent: "${content}"`, 'info');
         }
 
         function clearLog() {
-            logElement.textContent = '';
+            document.getElementById('logContainer').innerHTML = '';
         }
 
-        log('Socket test page loaded. Click Connect to start.');
-        log('Socket.IO library available: ' + (typeof io !== 'undefined' ? 'Yes' : 'No'));
+        window.addEventListener('load', () => {
+            log('🚀 TitiBot Voice Test Panel loaded', 'info');
+            log('📝 Click "Connect Socket" to start testing', 'info');
+            log('🎤 This test will simulate being in voice channel 13', 'info');
+        });
     </script>
 </body>
 </html> 

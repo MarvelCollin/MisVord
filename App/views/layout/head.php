@@ -388,7 +388,7 @@ function showMasterDebugModal() {
                                     </button>
                                 </div>
                                 <div class="text-xs text-gray-500">
-                                    Commands: /titibot play [song], /titibot stop, /titibot next, /titibot queue [song]
+                                    Commands: /titibot ping, /titibot help, /titibot play [song], /titibot stop, /titibot next, /titibot queue [song]
                                 </div>
                             </div>
                         </div>

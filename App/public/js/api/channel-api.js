@@ -53,45 +53,6 @@ const channelAPI = {
         });
     },
 
-    switchToChannel: function(channelId, channelType = 'text', limit = 50) {
-        return $.ajax({
-            url: `/api/channels/${channelId}/switch`,
-            method: 'GET',
-            dataType: 'json',
-            data: { limit: limit },
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-    },
-
-    joinVoiceChannel: function(channelId) {
-        return $.ajax({
-            url: '/api/voice/join',
-            method: 'POST',
-            dataType: 'json',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            data: JSON.stringify({ channel_id: channelId })
-        });
-    },
-
-    leaveVoiceChannel: function(channelId) {
-        return $.ajax({
-            url: '/api/voice/leave',
-            method: 'POST',
-            dataType: 'json',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            data: JSON.stringify({ channel_id: channelId })
-        });
-    },
-
     createCategory: function(formData) {
         return $.ajax({
             url: '/api/categories',

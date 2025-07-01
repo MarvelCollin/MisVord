@@ -1173,17 +1173,29 @@ class VoiceCallManager {
             const io = window.globalSocketManager.io;
             
             io.on('bot-voice-participant-joined', (data) => {
+                console.log('🤖🎵 [VOICE-CALL-MANAGER] Bot joined voice channel:', data);
                 this.participantManager.processEvent({
                     type: 'bot_joined',
                     data: data
                 });
+                
+                if (window.showToast) {
+                    const botName = data.participant?.username || 'Bot';
+                    window.showToast(`🤖 ${botName} joined the voice channel`, 'info');
+                }
             });
 
             io.on('bot-voice-participant-left', (data) => {
+                console.log('🤖👋 [VOICE-CALL-MANAGER] Bot left voice channel:', data);
                 this.participantManager.processEvent({
                     type: 'bot_left',
                     data: data
                 });
+                
+                if (window.showToast) {
+                    const botName = data.participant?.username || 'Bot';
+                    window.showToast(`🤖 ${botName} left the voice channel`, 'info');
+                }
             });
         }
     }

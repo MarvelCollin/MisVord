@@ -122,7 +122,7 @@ class ChatBot {
         
         if (content.startsWith('/titibot') && content.length > 8) {
             const afterSlash = content.substring(8).trim();
-            const allCommands = ['play', 'stop', 'next', 'prev', 'queue'];
+            const allCommands = ['ping', 'help', 'play', 'stop', 'next', 'prev', 'queue'];
             
             if (afterSlash === '') {
                 this.showTitiBotSuggestions(allCommands);
@@ -204,6 +204,8 @@ class ChatBot {
 
     getTitiBotCommandDescription(command) {
         const descriptions = {
+            'ping': 'Check if TitiBot is alive and responding',
+            'help': 'Show all available TitiBot commands',
             'play': 'Play music from iTunes (e.g., /titibot play never gonna give you up)',
             'stop': 'Stop the currently playing music',
             'next': 'Play the next song in the queue',

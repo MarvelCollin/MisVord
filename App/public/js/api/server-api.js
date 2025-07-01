@@ -403,17 +403,6 @@ const serverAPI = {
         });
     },
 
-    getExploreLayout: function() {
-        return $.ajax({
-            url: '/explore-servers/layout',
-            method: 'GET',
-            dataType: 'html',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-    },
-
     leaveServer: function(serverId) {
         return fetch(`/api/servers/leave`, {
             method: 'POST',

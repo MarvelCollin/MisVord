@@ -64,8 +64,6 @@ $additional_js = [
     'components/activity/activity',
     'components/activity/tic-tac-toe',
     'utils/channel-switch-manager',
-    'utils/load-home-page',
-    'utils/load-server-page',
     'pages/server-page'
 ];
 $contentType = 'server';

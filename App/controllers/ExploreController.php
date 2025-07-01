@@ -86,42 +86,5 @@ class ExploreController extends BaseController
         ];
     }
 
-    public function getExploreLayout()
-    {
-        $this->requireAuth();
 
-        try {
-            if (!$this->isAjaxRequest()) {
-                header('HTTP/1.1 400 Bad Request');
-                exit('AJAX request required');
-            }
-
-            $exploreData = $this->prepareExploreData();
-            
-            $GLOBALS['servers'] = $exploreData['servers'];
-            $GLOBALS['userServerIds'] = $exploreData['userServerIds'];
-            $GLOBALS['featuredServers'] = $exploreData['featuredServers'];
-            $GLOBALS['categories'] = $exploreData['categories'];
-            $GLOBALS['contentType'] = 'explore';
-
-            ob_start();
-            ?>
-            <div class="flex flex-1 overflow-hidden">
-                <div class="flex flex-col flex-1" id="main-content">
-                    <?php include __DIR__ . '/../views/components/app-sections/explore-main-content.php'; ?>
-                </div>
-            </div>
-            
-            <?php include __DIR__ . '/../views/components/explore/server-detail.php'; ?>
-            <?php
-            $html = ob_get_clean();
-            echo $html;
-            exit;
-
-        } catch (Exception $e) {
-            header('HTTP/1.1 500 Internal Server Error');
-            echo 'Failed to load explore layout: ' . $e->getMessage();
-            exit;
-        }
-    }
 }

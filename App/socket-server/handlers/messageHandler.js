@@ -505,21 +505,48 @@ class MessageHandler {
                     room_id: broadcastData.room_id
                 }, null, 2));
                 
-                // First emit to bot for processing (before room broadcast)
-                            console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing:`, {
-                messageId: broadcastData.id,
-                content: broadcastData.content?.substring(0, 50) + '...',
-                userId: broadcastData.user_id,
-                username: broadcastData.username,
-                channelId: broadcastData.channel_id
-            });
-            const BotHandler = require('./botHandler');
-            BotHandler.emitBotMessageIntercept(broadcastData);
-            
-            // Handle mentions notification
-            this.handleMentionNotifications(io, client, broadcastData, targetRoom);
-            
-            client.to(targetRoom).emit(eventName, broadcastData);
+                const BotHandler = require('./botHandler');
+                const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
+                
+                const isTitiBotCommand = broadcastData.content && broadcastData.content.toLowerCase().includes('/titibot');
+                let voiceChannelData = null;
+                
+                if (isTitiBotCommand) {
+                    const userVoiceConnection = VoiceConnectionTracker.getUserVoiceConnection(broadcastData.user_id);
+                    if (userVoiceConnection) {
+                        voiceChannelData = {
+                            voice_channel_id: userVoiceConnection.channelId,
+                            meeting_id: userVoiceConnection.meetingId,
+                            user_in_voice: true
+                        };
+                        console.log(`🎤 [SAVE-AND-SEND] User ${broadcastData.user_id} sending titibot command from voice channel ${userVoiceConnection.channelId}`);
+                    } else {
+                        console.log(`🎤 [SAVE-AND-SEND] User ${broadcastData.user_id} sending titibot command but not in voice channel`);
+                        voiceChannelData = {
+                            voice_channel_id: null,
+                            meeting_id: null,
+                            user_in_voice: false
+                        };
+                    }
+                    
+                    broadcastData.voice_context = voiceChannelData;
+                }
+                
+                console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing:`, {
+                    messageId: broadcastData.id,
+                    content: broadcastData.content?.substring(0, 50) + '...',
+                    userId: broadcastData.user_id,
+                    username: broadcastData.username,
+                    channelId: broadcastData.channel_id,
+                    voiceChannelId: voiceChannelData?.voice_channel_id,
+                    isTitiBotCommand: isTitiBotCommand
+                });
+                BotHandler.emitBotMessageIntercept(broadcastData);
+                
+                // Handle mentions notification
+                this.handleMentionNotifications(io, client, broadcastData, targetRoom);
+                
+                client.to(targetRoom).emit(eventName, broadcastData);
                 console.log(`✅ [SAVE-AND-SEND] Temporary message broadcasted to room ${targetRoom} (excluding sender)`, {
                     messageId: broadcastData.id,
                     hasReplyData: !!broadcastData.reply_data,
