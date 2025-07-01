@@ -34,6 +34,9 @@ function shouldPreserveVoiceConnection(targetPath) {
 
 export async function loadServerPage(serverId, channelId = null) {
     console.log('[Server AJAX] Loading server page with parameters:', { serverId, channelId });
+    if (window.pageLoadInProgress) { return; }
+    if (window.activeServerId === serverId && (channelId === null || window.activeChannelId === channelId)) { return; }
+    window.pageLoadInProgress = true;
     
     const mainContent = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
 
@@ -95,6 +98,7 @@ export async function loadServerPage(serverId, channelId = null) {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             },
+            complete: function() { window.pageLoadInProgress = false; },
             success: function(response) {
                 console.log('[Server AJAX] SUCCESS - Response received');
                 console.log('[Server AJAX] Response type:', typeof response);
@@ -145,6 +149,9 @@ export async function loadServerPage(serverId, channelId = null) {
 
 function performServerLayoutUpdate(response, serverId, channelId, currentChannelId) {
     console.log('[Server Layout] Performing delayed layout update');
+    
+    window.activeServerId = serverId;
+    window.activeChannelId = channelId;
     
     updateServerLayout(response, serverId, channelId);
     
@@ -349,11 +356,21 @@ async function ensureVoiceScriptsAreLoadedSequentially() {
     
     await waitForExistingScriptsToLoad();
     
+    if (typeof VideoSDK === 'undefined') {
+        console.log('[Voice Scripts] Loading VideoSDK from CDN...');
+        await loadExternalScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
+        await waitForVideoSDK();
+    }
+    
     if (window.videoSDKManager && !window.videoSDKManager.initialized) {
         console.log('[Voice Scripts] Initializing VideoSDK Manager...');
         try {
-            await window.videoSDKManager.init();
-            console.log('[Voice Scripts] ✅ VideoSDK Manager initialized');
+            if (typeof VideoSDK !== 'undefined') {
+                await window.videoSDKManager.init();
+                console.log('[Voice Scripts] ✅ VideoSDK Manager initialized');
+            } else {
+                console.warn('[Voice Scripts] ⚠️ VideoSDK not available, skipping manager init');
+            }
         } catch (error) {
             console.warn('[Voice Scripts] ⚠️ VideoSDK Manager initialization failed:', error);
         }
@@ -362,20 +379,73 @@ async function ensureVoiceScriptsAreLoadedSequentially() {
     console.log('[Voice Scripts] ✅ All voice components ready');
 }
 
+async function loadExternalScript(src) {
+    return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing) {
+            console.log('[Voice Scripts] External script already exists:', src);
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        
+        script.onload = () => {
+            console.log('[Voice Scripts] ✅ External script loaded:', src);
+            resolve();
+        };
+        
+        script.onerror = (error) => {
+            console.error('[Voice Scripts] ❌ Failed to load external script:', src, error);
+            reject(error);
+        };
+        
+        document.head.appendChild(script);
+    });
+}
+
+async function waitForVideoSDK() {
+    return new Promise((resolve) => {
+        let attempts = 0;
+        const maxAttempts = 30;
+        
+        const check = () => {
+            attempts++;
+            if (typeof VideoSDK !== 'undefined') {
+                console.log('[Voice Scripts] ✅ VideoSDK is now available');
+                resolve();
+            } else if (attempts >= maxAttempts) {
+                console.warn('[Voice Scripts] ⚠️ VideoSDK wait timeout');
+                resolve();
+            } else {
+                setTimeout(check, 100);
+            }
+        };
+        
+        check();
+    });
+}
+
 async function waitForExistingScriptsToLoad() {
     console.log('[Voice Scripts] Waiting for scripts already loaded in page to be processed...');
     
     return new Promise((resolve) => {
         let attempts = 0;
-        const maxAttempts = 50;
+        const maxAttempts = 25;
         
         const checkComponents = () => {
             attempts++;
             
-            const components = {
+            const criticalComponents = {
                 VideoSDK: typeof VideoSDK !== 'undefined',
                 videoSDKManager: !!window.videoSDKManager,
                 VoiceManager: !!window.VoiceManager,
+                globalSocketManager: !!window.globalSocketManager
+            };
+            
+            const optionalComponents = {
                 VoiceSection: !!window.VoiceSection,
                 GlobalVoiceIndicator: !!window.GlobalVoiceIndicator,
                 ActivityManager: !!window.ActivityManager,
@@ -385,19 +455,22 @@ async function waitForExistingScriptsToLoad() {
                 initializeVoiceSection: typeof window.initializeVoiceSection === 'function'
             };
             
-            const readyComponents = Object.values(components).filter(Boolean).length;
-            const totalComponents = Object.keys(components).length;
+            const criticalReady = Object.values(criticalComponents).filter(Boolean).length;
+            const criticalTotal = Object.keys(criticalComponents).length;
+            const optionalReady = Object.values(optionalComponents).filter(Boolean).length;
             
-            console.log(`[Voice Scripts] Component loading progress: ${readyComponents}/${totalComponents} (attempt ${attempts}/${maxAttempts})`);
+            console.log(`[Voice Scripts] Critical components: ${criticalReady}/${criticalTotal}, Optional: ${optionalReady} (attempt ${attempts}/${maxAttempts})`);
             
-            if (readyComponents >= totalComponents - 2 || attempts >= maxAttempts) {
-                console.log('[Voice Scripts] ✅ Sufficient components available:', Object.keys(components).filter(key => components[key]));
-                if (readyComponents < totalComponents - 2) {
-                    console.warn('[Voice Scripts] ⚠️ Some components still missing after timeout:', Object.keys(components).filter(key => !components[key]));
+            if (criticalReady >= criticalTotal || attempts >= maxAttempts) {
+                console.log('[Voice Scripts] ✅ Critical components ready, proceeding');
+                if (criticalReady < criticalTotal) {
+                    const missing = Object.keys(criticalComponents).filter(key => !criticalComponents[key]);
+                    console.warn('[Voice Scripts] ⚠️ Some critical components missing:', missing);
                 }
                 resolve();
             } else {
-                console.log('[Voice Scripts] Still waiting for components:', Object.keys(components).filter(key => !components[key]));
+                const missing = Object.keys(criticalComponents).filter(key => !criticalComponents[key]);
+                console.log('[Voice Scripts] Still waiting for critical components:', missing);
                 setTimeout(checkComponents, 200);
             }
         };
@@ -406,12 +479,23 @@ async function waitForExistingScriptsToLoad() {
     });
 }
 
-
-
 function initializeChatSystems() {
     console.log('[Chat Systems] Initializing chat systems');
     
-    if (typeof window.initializeChatSection === 'function') {
+    const activeChannelId = getCurrentChannelId();
+    console.log('[Chat Systems] Active channel ID:', activeChannelId);
+    
+    if (window.chatSection && activeChannelId) {
+        console.log('[Chat Systems] Switching existing chat section to channel mode');
+        if (typeof window.chatSection.switchTarget === 'function') {
+            window.chatSection.switchTarget('channel', activeChannelId);
+        } else {
+            console.log('[Chat Systems] Chat section switch method not available, reinitializing');
+            window.chatSection = null;
+        }
+    }
+    
+    if (!window.chatSection && typeof window.initializeChatSection === 'function') {
         window.initializeChatSection();
         console.log('[Chat Systems] Chat section initialized');
     }
@@ -426,12 +510,9 @@ function initializeChatSystems() {
         console.log('[Chat Systems] Socket handler initialized');
     }
     
-    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-        const activeChannelId = getCurrentChannelId();
-        if (activeChannelId) {
-            console.log('[Chat Systems] Joining channel socket room:', activeChannelId);
-            window.globalSocketManager.joinChannel(activeChannelId);
-        }
+    if (window.globalSocketManager && window.globalSocketManager.isReady() && activeChannelId) {
+        console.log('[Chat Systems] Joining channel socket room:', activeChannelId);
+        window.globalSocketManager.joinRoom('channel', activeChannelId);
     }
     
     setTimeout(() => {
@@ -646,6 +727,8 @@ function updateServerLayout(html, serverId, channelId) {
                 url += `?channel=${actualChannelId}`;
             }
             
+            setupServerMetaTags(serverId, actualChannelId);
+            
             console.log('[Server Layout] Updating browser history to:', url);
             console.log('[Server Layout] Active channel ID:', actualChannelId);
             history.pushState(
@@ -834,11 +917,71 @@ function cleanupForServerSwitch() {
         window.chatSection = null;
     }
     
+    clearChatMetaTags();
+    
     if (window.simpleChannelSwitcher) {
         console.log('[Server AJAX] Keeping existing simple channel switcher for reuse');
     }
     
+    window.activitySystemsInitialized = false;
+    window.botSystemsInitialized = false;
+    
     console.log('[Server AJAX] Cleanup completed');
+}
+
+function clearChatMetaTags() {
+    console.log('[Server AJAX] Clearing old chat meta tags');
+    
+    const metaTagsToRemove = [
+        'meta[name="chat-type"]',
+        'meta[name="chat-id"]', 
+        'meta[name="room-id"]',
+        'meta[name="chat-title"]',
+        'meta[name="chat-placeholder"]'
+    ];
+    
+    metaTagsToRemove.forEach(selector => {
+        const metaTag = document.querySelector(selector);
+        if (metaTag) {
+            console.log('[Server AJAX] Removing meta tag:', selector);
+            metaTag.remove();
+        }
+    });
+}
+
+function setupServerMetaTags(serverId, channelId) {
+    console.log('[Server Layout] Setting up server meta tags:', { serverId, channelId });
+    
+    if (channelId) {
+        setOrUpdateMetaTag('chat-type', 'channel');
+        setOrUpdateMetaTag('channel-id', channelId);
+        setOrUpdateMetaTag('server-id', serverId);
+        
+        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        if (channelElement) {
+            const channelName = channelElement.textContent?.trim() || `Channel ${channelId}`;
+            const channelType = channelElement.getAttribute('data-channel-type') || 'text';
+            setOrUpdateMetaTag('chat-title', channelName);
+            setOrUpdateMetaTag('channel-type', channelType);
+        }
+        
+        console.log('[Server Layout] ✅ Server meta tags set up successfully');
+    } else {
+        console.warn('[Server Layout] ⚠️ No channel ID provided for meta tags setup');
+    }
+}
+
+function setOrUpdateMetaTag(name, content) {
+    let metaTag = document.querySelector(`meta[name="${name}"]`);
+    if (metaTag) {
+        metaTag.setAttribute('content', content);
+    } else {
+        metaTag = document.createElement('meta');
+        metaTag.setAttribute('name', name);
+        metaTag.setAttribute('content', content);
+        document.head.appendChild(metaTag);
+    }
+    console.log(`[Server Layout] Meta tag set: ${name} = ${content}`);
 }
 
 async function initializeServerSystems() {
@@ -1022,40 +1165,41 @@ function initializeChannelSwitchingSystems() {
 function initializeBotSystems() {
     console.log('[Bot Systems] Initializing bot systems for server');
     
-    // Initialize main bot component
+    if (window.botSystemsInitialized) {
+        console.log('[Bot Systems] ✅ Bot systems already initialized, skipping');
+        return;
+    }
+    
+    window.botSystemsInitialized = true;
+    
     if (window.BotComponent && typeof window.BotComponent.init === 'function') {
-        if (!window.BotComponent.isInitialized()) {
-            window.BotComponent.init();
-            console.log('[Bot Systems] ✅ Main bot component initialized');
-        } else {
-            console.log('[Bot Systems] ✅ Main bot component already initialized');
+        try {
+            if (!window.BotComponent.isInitialized()) {
+                window.BotComponent.init();
+                console.log('[Bot Systems] ✅ Main bot component initialized');
+            } else {
+                console.log('[Bot Systems] ✅ Main bot component already initialized');
+            }
+        } catch (error) {
+            console.error('[Bot Systems] ❌ Error initializing main bot component:', error);
         }
     } else {
         console.warn('[Bot Systems] ⚠️ Main bot component not available');
     }
     
-    // Check bot API availability
     if (window.botAPI) {
         console.log('[Bot Systems] ✅ Bot API available');
     } else {
         console.warn('[Bot Systems] ⚠️ Bot API not available');
     }
     
-    // Initialize server-specific bot systems if available
-    if (typeof window.initializeBotSystems === 'function') {
-        try {
-            window.initializeBotSystems();
-            console.log('[Bot Systems] ✅ Server-specific bot systems initialized');
-        } catch (error) {
-            console.error('[Bot Systems] ❌ Error initializing server-specific bot systems:', error);
+    try {
+        const serverId = getServerIdFromUrl();
+        if (serverId && window.globalSocketManager && typeof window.globalSocketManager.isReady === 'function' && window.globalSocketManager.isReady()) {
+            console.log('[Bot Systems] Ensuring bot active for server:', serverId);
         }
-    }
-    
-    // Ensure bot is active for current server
-    const serverId = getServerIdFromUrl();
-    if (serverId && window.globalSocketManager && window.globalSocketManager.isReady()) {
-        console.log('[Bot Systems] Ensuring bot active for server:', serverId);
-        // Bot activation happens automatically when socket is ready
+    } catch (error) {
+        console.error('[Bot Systems] ❌ Error getting server ID:', error);
     }
     
     console.log('[Bot Systems] Bot systems initialization completed');
@@ -1097,9 +1241,13 @@ function verifyBotFunctionality() {
 function initializeActivitySystems() {
     console.log('[Activity Systems] Initializing activity systems for server');
     
-    // Wait for all components to be loaded first
+    if (window.activitySystemsInitialized) {
+        console.log('[Activity Systems] ✅ Activity systems already initialized, skipping');
+        return;
+    }
+    
+    window.activitySystemsInitialized = true;
     setTimeout(() => {
-        // Initialize Activity Manager
         if (window.ActivityManager && typeof window.ActivityManager === 'function') {
             if (!window.activityManager) {
                 try {
@@ -1112,57 +1260,20 @@ function initializeActivitySystems() {
                 console.log('[Activity Systems] ✅ Activity Manager already initialized');
             }
         } else {
-            console.warn('[Activity Systems] ⚠️ Activity Manager class not available, checking script loading...');
-            
-            // Check if script is loaded
-            const activityScript = document.querySelector('script[src*="activity.js"]');
-            if (activityScript) {
-                console.log('[Activity Systems] 📜 Activity script found in DOM, retrying in 500ms...');
-                setTimeout(() => initializeActivitySystems(), 500);
-                return;
-            } else {
-                console.error('[Activity Systems] ❌ Activity script not found in DOM');
-            }
+            console.warn('[Activity Systems] ⚠️ Activity Manager class not available yet');
         }
         
-        // Initialize Tic Tac Toe Modal
         if (window.TicTacToeModal && typeof window.TicTacToeModal === 'function') {
             console.log('[Activity Systems] ✅ Tic Tac Toe Modal available');
         } else {
-            console.warn('[Activity Systems] ⚠️ Tic Tac Toe Modal not available, checking script loading...');
-            
-            // Check if script is loaded
-            const ticTacToeScript = document.querySelector('script[src*="tic-tac-toe.js"]');
-            if (ticTacToeScript) {
-                console.log('[Activity Systems] 📜 Tic Tac Toe script found in DOM, retrying in 500ms...');
-                setTimeout(() => initializeActivitySystems(), 500);
-                return;
-            } else {
-                console.error('[Activity Systems] ❌ Tic Tac Toe script not found in DOM');
-            }
+            console.warn('[Activity Systems] ⚠️ Tic Tac Toe Modal not available yet');
         }
         
-        // Check for existing activity manager
         const existingButton = document.getElementById('tic-tac-toe-button');
         if (existingButton) {
             console.log('[Activity Systems] ✅ Tic Tac Toe button already exists');
-        } else {
-            // Try to create activity manager if not exists
-            setTimeout(() => {
-                if (!window.activityManager && document.body.getAttribute('data-page') === 'server') {
-                    try {
-                        if (window.ActivityManager) {
-                            window.activityManager = new window.ActivityManager();
-                            console.log('[Activity Systems] ✅ Activity Manager created via timeout');
-                        }
-                    } catch (error) {
-                        console.error('[Activity Systems] ❌ Error creating Activity Manager via timeout:', error);
-                    }
-                }
-            }, 1000);
         }
         
-        // Setup tic-tac-toe CSS if not exists
         if (!document.getElementById('tic-tac-toe-styles')) {
             const style = document.createElement('style');
             style.id = 'tic-tac-toe-styles';
@@ -1197,17 +1308,7 @@ function initializeActivitySystems() {
         
         console.log('[Activity Systems] Activity systems initialization completed');
         
-        // Final verification after initialization
-        setTimeout(() => {
-            console.log('[Activity Systems] 🔍 Final component verification:', {
-                'ActivityManager available': !!window.ActivityManager,
-                'TicTacToeModal available': !!window.TicTacToeModal,
-                'activityManager instance': !!window.activityManager,
-                'tic-tac-toe button exists': !!document.getElementById('tic-tac-toe-button')
-            });
-        }, 2000);
-        
-    }, 100); // Initial delay to ensure DOM is ready
+    }, 100);
 }
 
 function verifyVoiceSystemsIntegration() {
@@ -1215,7 +1316,8 @@ function verifyVoiceSystemsIntegration() {
     
     const voiceStatus = {
         'VoiceManager Available': !!window.voiceManager,
-        'VoiceManager Ready': window.voiceManager ? window.voiceManager.isReady() : false,
+        'VoiceManager Initialized': window.voiceManager ? (window.voiceManager.initialized || false) : false,
+        'VoiceManager Connected': window.voiceManager ? (window.voiceManager.isConnected || false) : false,
         'Global Voice Indicator': !!window.globalVoiceIndicator,
         'Voice Section': typeof window.initializeVoiceSection === 'function',
         'Voice Dependency Loader': !!(window.VoiceDependencyLoader || typeof window.initializeVoiceDependencyLoader === 'function'),
@@ -1223,10 +1325,12 @@ function verifyVoiceSystemsIntegration() {
         'Voice Utils': !!(window.VoiceUtils || typeof window.initializeVoiceUtils === 'function'),
         'Voice State Manager': !!(window.VoiceStateManager || typeof window.initializeVoiceStateManager === 'function'),
         'Music Loader Static': !!(window.MusicLoaderStatic || typeof window.initializeMusicLoaderStatic === 'function'),
-        'VideoSDK': !!(window.VideoSDK || typeof window.initializeVideoSDK === 'function'),
+        'VideoSDK Available': typeof VideoSDK !== 'undefined',
+        'VideoSDK Manager': !!window.videoSDKManager,
+        'VideoSDK Manager Ready': window.videoSDKManager ? (window.videoSDKManager.isReady && typeof window.videoSDKManager.isReady === 'function' ? window.videoSDKManager.isReady() : window.videoSDKManager.initialized) : false,
         'Voice Connection Tracker': !!window.VoiceConnectionTracker,
         'User Profile Voice Controls': !!window.userProfileVoiceControls,
-        'Socket Ready': window.globalSocketManager ? window.globalSocketManager.isReady() : false,
+        'Socket Ready': window.globalSocketManager ? (typeof window.globalSocketManager.isReady === 'function' ? window.globalSocketManager.isReady() : !!window.globalSocketManager.io) : false,
         'WebRTC Supported': !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
     };
     

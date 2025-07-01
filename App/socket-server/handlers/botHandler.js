@@ -132,12 +132,12 @@ class BotHandler extends EventEmitter {
     static async checkVoiceConnection(userId, io, originalMessage, messageType, botId, username) {
         const isInVoice = VoiceConnectionTracker.isUserInVoice(userId);
         
-        if (!isInVoice) {
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            const responseContent = '😒Minimal masuk voice channel dulu bang';
-            await this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, null);
-            return false;
-        }
+        // if (!isInVoice) {
+        //     await new Promise(resolve => setTimeout(resolve, 3000));
+        //     const responseContent = '😒Minimal masuk voice channel dulu bang';
+        //     await this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, null);
+        //     return false;
+        // }
 
         const voiceConnection = VoiceConnectionTracker.getUserVoiceConnection(userId);
         if (voiceConnection) {

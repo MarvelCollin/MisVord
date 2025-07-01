@@ -74,11 +74,23 @@ class SimpleChannelSwitcher {
         const voiceSection = document.querySelector('.voice-section');
         
         if (channelType === 'voice') {
-            if (chatSection) chatSection.style.display = 'none';
-            if (voiceSection) voiceSection.style.display = 'flex';
+            if (chatSection) {
+                chatSection.classList.add('hidden');
+                chatSection.style.display = '';
+            }
+            if (voiceSection) {
+                voiceSection.classList.remove('hidden');
+                voiceSection.style.display = '';
+            }
         } else {
-            if (voiceSection) voiceSection.style.display = 'none';
-            if (chatSection) chatSection.style.display = 'flex';
+            if (voiceSection) {
+                voiceSection.classList.add('hidden');
+                voiceSection.style.display = '';
+            }
+            if (chatSection) {
+                chatSection.classList.remove('hidden');
+                chatSection.style.display = '';
+            }
         }
     }
     
