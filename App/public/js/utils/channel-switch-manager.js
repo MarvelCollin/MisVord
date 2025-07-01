@@ -15,6 +15,7 @@ class SimpleChannelSwitcher {
     init() {
         this.setupChannelClicks();
         this.initFromURL();
+        this.highlightInitialActiveChannel();
     }
     
     setupChannelClicks() {
@@ -41,6 +42,22 @@ class SimpleChannelSwitcher {
         
         if (channelId) {
             this.switchToChannel(channelId, channelType, true);
+        }
+    }
+    
+    highlightInitialActiveChannel() {
+        const activeChannelInput = document.getElementById('active-channel-id');
+        if (activeChannelInput && activeChannelInput.value) {
+            const activeChannelId = activeChannelInput.value;
+            console.log('🎯 [SWITCH-MANAGER] Highlighting initial active channel:', activeChannelId);
+            this.updateActiveChannel(activeChannelId);
+        } else {
+            const activeChannel = document.querySelector('.channel-item.active');
+            if (activeChannel) {
+                const channelId = activeChannel.getAttribute('data-channel-id');
+                console.log('🎯 [SWITCH-MANAGER] Highlighting channel from DOM:', channelId);
+                this.updateActiveChannel(channelId);
+            }
         }
     }
     
@@ -73,13 +90,44 @@ class SimpleChannelSwitcher {
         document.querySelectorAll('.channel-item').forEach(item => {
             item.classList.remove('active');
             item.removeAttribute('data-active');
+            
+            item.classList.remove('bg-[#5865f2]', 'text-white');
+            item.classList.add('text-gray-400', 'hover:text-gray-300', 'hover:bg-gray-700/30');
+            
+            const icon = item.querySelector('i');
+            if (icon) {
+                icon.classList.remove('text-white');
+                icon.classList.add('text-gray-500');
+            }
+            
+            const voiceCount = item.querySelector('.voice-user-count');
+            if (voiceCount) {
+                voiceCount.classList.remove('text-white/70');
+                voiceCount.classList.add('text-gray-500');
+            }
         });
         
         const targetChannel = document.querySelector(`[data-channel-id="${channelId}"]`);
         if (targetChannel) {
             targetChannel.classList.add('active');
             targetChannel.setAttribute('data-active', 'true');
-            console.log('✅ [SWITCH-MANAGER] Active channel set:', channelId, targetChannel);
+            
+            targetChannel.classList.remove('text-gray-400', 'hover:text-gray-300', 'hover:bg-gray-700/30');
+            targetChannel.classList.add('bg-[#5865f2]', 'text-white');
+            
+            const icon = targetChannel.querySelector('i');
+            if (icon) {
+                icon.classList.remove('text-gray-500');
+                icon.classList.add('text-white');
+            }
+            
+            const voiceCount = targetChannel.querySelector('.voice-user-count');
+            if (voiceCount) {
+                voiceCount.classList.remove('text-gray-500');
+                voiceCount.classList.add('text-white/70');
+            }
+            
+            console.log('✅ [SWITCH-MANAGER] Active channel set with styling:', channelId, targetChannel);
         } else {
             console.warn('⚠️ [SWITCH-MANAGER] Target channel not found for ID:', channelId);
         }

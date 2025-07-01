@@ -367,7 +367,7 @@ export class NitroManager {
         <div class="relative flex items-center w-full">
           ${overlayEffect}
           <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2 flex-shrink-0 ${avatarOpacity} relative">
-            <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="" class="w-full h-full object-cover" loading="lazy" onerror="this.src='/public/assets/common/default-profile-picture.png'">
+            <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="${user.username || 'User'}" class="w-full h-full object-cover user-avatar" loading="lazy">
             ${hasNitro ? '<div class="absolute inset-0 bg-yellow-400/20 rounded-full"></div>' : ''}
           </div>
           <div class="flex-1 min-w-0 ${textOpacity} relative z-10">

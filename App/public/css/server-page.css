@@ -151,11 +151,6 @@
   color: var(--discord-text-normal);
 }
 
-.channel-item.active {
-  background-color: #5865f2 !important;
-  color: #ffffff !important;
-}
-
 .channel-icon {
   opacity: 0.6;
   margin-right: 6px;
@@ -600,11 +595,6 @@
 
 .channel-item:hover {
   background-color: rgba(79, 84, 92, 0.3);
-}
-
-.channel-item.active {
-  background-color: #5865f2 !important;
-  color: #ffffff !important;
 }
 
 .category-container {

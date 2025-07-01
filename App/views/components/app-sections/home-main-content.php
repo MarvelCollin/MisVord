@@ -122,8 +122,8 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                             <div class="flex items-center">
                                 <div class="relative mr-3">
                                     <div class="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                        <img src="<?php echo htmlspecialchars($friend['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'); ?>" 
-                                             alt="Avatar" class="w-full h-full object-cover">
+                                                <img src="<?php echo htmlspecialchars($friend['avatar_url'] ?? ''); ?>" 
+                                               alt="<?php echo htmlspecialchars($friend['username'] ?? 'User'); ?>" class="w-full h-full object-cover user-avatar">
                                     </div>
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-gray-500 friend-status-indicator" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"></span>
                                 </div>
@@ -249,7 +249,104 @@ const friends = <?php echo json_encode($friends); ?>;
 window.initialFriendsData = friends;
 console.log('🔍 [HOME-FRIENDS] PHP friends data loaded:', friends.length, friends);
 
+function initFriendRequestInput() {
+    const friendInput = document.getElementById('friend-username-input');
+    const sendButton = document.getElementById('send-friend-request');
+    const errorDiv = document.getElementById('friend-request-error');
+    const successDiv = document.getElementById('friend-request-success');
+    
+    if (!friendInput || !sendButton) return;
+    
+    function updateButtonState() {
+        const username = friendInput.value.trim();
+        if (username.length > 0) {
+            sendButton.disabled = false;
+            sendButton.classList.remove('disabled:bg-gray-500', 'disabled:cursor-not-allowed');
+            sendButton.classList.add('hover:bg-discord-primary/90');
+        } else {
+            sendButton.disabled = true;
+            sendButton.classList.add('disabled:bg-gray-500', 'disabled:cursor-not-allowed');
+            sendButton.classList.remove('hover:bg-discord-primary/90');
+        }
+    }
+    
+    friendInput.addEventListener('input', updateButtonState);
+    friendInput.addEventListener('keyup', updateButtonState);
+    friendInput.addEventListener('paste', function() {
+        setTimeout(updateButtonState, 10);
+    });
+    
+    sendButton.addEventListener('click', async function(e) {
+        e.preventDefault();
+        
+        const username = friendInput.value.trim();
+        
+        if (!username) {
+            showError('Please enter a username');
+            return;
+        }
+        
+        sendButton.disabled = true;
+        sendButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Sending...';
+        
+        try {
+            const response = await fetch('/api/friends', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ username: username })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showSuccess(data.message || 'Friend request sent successfully!');
+                friendInput.value = '';
+                updateButtonState();
+            } else {
+                showError(data.message || 'Failed to send friend request');
+            }
+        } catch (error) {
+            console.error('Error sending friend request:', error);
+            showError('An error occurred while sending the friend request');
+        } finally {
+            sendButton.disabled = false;
+            sendButton.innerHTML = 'Send Friend Request';
+            updateButtonState();
+        }
+    });
+    
+    function showError(message) {
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+        if (successDiv) {
+            successDiv.classList.add('hidden');
+        }
+    }
+    
+    function showSuccess(message) {
+        if (successDiv) {
+            successDiv.textContent = message;
+            successDiv.classList.remove('hidden');
+            setTimeout(() => {
+                successDiv.classList.add('hidden');
+            }, 3000);
+        }
+        if (errorDiv) {
+            errorDiv.classList.add('hidden');
+        }
+    }
+    
+    updateButtonState();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    initFriendRequestInput();
     const onlineFriendsContainer = document.getElementById('online-friends-container');
     const onlineCount = document.getElementById('online-count');
     const allFriendsContainer = document.getElementById('all-friends-container');

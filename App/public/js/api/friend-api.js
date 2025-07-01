@@ -147,8 +147,8 @@ class FriendAPI {
             if (!/^\d{4}$/.test(discriminator)) {
                 return { valid: false, message: 'Discriminator must be exactly 4 digits' };
             }
-        } else if (username.length < 3) {
-            return { valid: false, message: 'Username must be at least 3 characters long' };
+        } else if (username.length < 2) {
+            return { valid: false, message: 'Username must be at least 2 characters long' };
         }
 
         return { valid: true };

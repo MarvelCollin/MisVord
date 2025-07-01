@@ -1004,7 +1004,12 @@ class MessageHandler {
         const avatarImg = document.createElement('img');
         avatarImg.src = formattedMessage.avatar_url || '/public/assets/common/default-profile-picture.png';
         avatarImg.alt = formattedMessage.username || 'User';
-        avatarImg.onerror = function() { this.src = '/public/assets/common/default-profile-picture.png'; };
+        avatarImg.className = 'user-avatar';
+        if (window.fallbackImageHandler) {
+            window.fallbackImageHandler.setImageSrc(avatarImg, formattedMessage.avatar_url, formattedMessage.username);
+        } else {
+            avatarImg.onerror = function() { this.src = '/public/assets/common/default-profile-picture.png'; };
+        }
         avatar.appendChild(avatarImg);
         
         const contentWrapper = document.createElement('div');

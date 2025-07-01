@@ -652,13 +652,23 @@ class EmojiReactions {
             const userItem = document.createElement('div');
             userItem.className = 'reaction-tooltip-user';
             
-            userItem.innerHTML = `
-                <img class="reaction-tooltip-avatar" 
-                     src="${user.avatar_url}" 
-                     alt="${user.username}"
-                     onerror="this.src='/public/assets/common/default-profile-picture.png'">
-                <span class="reaction-tooltip-username">${this.escapeHtml(user.username)}</span>
-            `;
+            const avatarImg = document.createElement('img');
+            avatarImg.className = 'reaction-tooltip-avatar user-avatar';
+            avatarImg.alt = user.username;
+            
+            if (window.fallbackImageHandler) {
+                window.fallbackImageHandler.setImageSrc(avatarImg, user.avatar_url, user.username);
+            } else {
+                avatarImg.src = user.avatar_url || '/public/assets/common/default-profile-picture.png';
+                avatarImg.onerror = function() { this.src = '/public/assets/common/default-profile-picture.png'; };
+            }
+            
+            const usernameSpan = document.createElement('span');
+            usernameSpan.className = 'reaction-tooltip-username';
+            usernameSpan.textContent = user.username;
+            
+            userItem.appendChild(avatarImg);
+            userItem.appendChild(usernameSpan);
             
             usersList.appendChild(userItem);
         });

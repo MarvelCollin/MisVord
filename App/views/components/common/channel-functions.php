@@ -16,20 +16,25 @@ if (!function_exists('renderChannel')) {
         $type = $channel['type'] ?? 'text';
         $icon = getChannelIcon($type);
         $isActive = $activeChannelId == $channel['id'];
+        
+        $textClass = $isActive ? 'text-white' : 'text-gray-400 hover:text-gray-300';
+        $bgClass = $isActive ? 'bg-[#5865f2]' : 'hover:bg-gray-700/30';
+        $iconClass = $isActive ? 'text-white' : 'text-gray-500';
         $activeClass = $isActive ? 'active' : '';
         
         $serverId = $GLOBALS['currentServer']->id ?? ($GLOBALS['server']->id ?? '');
         
-        echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-discord-lighten ' . $activeClass . ' group" 
+        echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer ' . $textClass . ' ' . $bgClass . ' ' . $activeClass . ' group" 
                   data-channel-id="' . $channel['id'] . '" 
                   data-channel-name="' . htmlspecialchars($channel['name']) . '"
                   data-channel-type="' . htmlspecialchars($type) . '"
                   data-server-id="' . htmlspecialchars($serverId) . '">';
-        echo '  <i class="fas fa-' . $icon . ' text-xs mr-3 text-gray-500"></i>';
+        echo '  <i class="fas fa-' . $icon . ' text-xs mr-3 ' . $iconClass . '"></i>';
         echo '  <span class="channel-name text-sm flex-1">' . htmlspecialchars($channel['name']) . '</span>';
         
         if ($type === 'voice') {
-            echo '  <span class="ml-auto text-xs text-gray-500 voice-user-count">0</span>';
+            $countClass = $isActive ? 'text-white/70' : 'text-gray-500';
+            echo '  <span class="ml-auto text-xs ' . $countClass . ' voice-user-count">0</span>';
         }
         
         echo '  <div class="channel-menu relative ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">';
