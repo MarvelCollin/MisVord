@@ -300,17 +300,24 @@ function initFriendRequestInput() {
                 body: JSON.stringify({ username: username })
             });
             
+            console.log('🔍 [FRIEND-REQUEST] Response status:', response.status);
+            console.log('🔍 [FRIEND-REQUEST] Response headers:', response.headers);
+            
             const data = await response.json();
+            console.log('🔍 [FRIEND-REQUEST] Response data:', data);
             
             if (data.success) {
                 showSuccess(data.message || 'Friend request sent successfully!');
                 friendInput.value = '';
                 updateButtonState();
+                
+                console.log('✅ [FRIEND-REQUEST] Success:', data);
             } else {
-                showError(data.message || 'Failed to send friend request');
+                showError(data.message || data.error?.message || 'Failed to send friend request');
+                console.error('❌ [FRIEND-REQUEST] Error:', data);
             }
         } catch (error) {
-            console.error('Error sending friend request:', error);
+            console.error('💥 [FRIEND-REQUEST] Network error:', error);
             showError('An error occurred while sending the friend request');
         } finally {
             sendButton.disabled = false;

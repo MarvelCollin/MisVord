@@ -3,7 +3,7 @@
 $messageId = $messageData['id'] ?? '';
 $userId = $messageData['user_id'] ?? 0;
 $username = $messageData['username'] ?? 'Unknown User';
-$avatarUrl = $messageData['avatar_url'] ?? '/public/assets/common/default-profile-picture.png';
+$avatarUrl = $messageData['avatar_url'] ?? '';
 $content = $messageData['content'] ?? '';
 $sentAt = $messageData['sent_at'] ?? '';
 $editedAt = $messageData['edited_at'] ?? null;

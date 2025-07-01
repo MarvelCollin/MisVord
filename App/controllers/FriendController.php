@@ -359,18 +359,18 @@ class FriendController extends BaseController
             $targetUsername = null;
             
             if (isset($input['user_id'])) {
-                $targetUserId = $input['user_id'];                $targetUser = $this->userRepository->find($targetUserId);
+                $targetUserId = $input['user_id'];
+                $targetUser = $this->userRepository->find($targetUserId);
                 if (!$targetUser) {
-                    $this->error('User not found', 404);
-                    return;
+                    return $this->error('User not found', 404);
                 }
                 
                 if ($targetUser->status === 'bot') {
-                    $this->error('Cannot send friend request to bot users', 400);
-                    return;
+                    return $this->error('Cannot send friend request to bot users', 400);
                 }
                 
-                $targetUsername = $targetUser->username;            } else {
+                $targetUsername = $targetUser->username;
+            } else {
                 $username = $input['username'];
                 
                 error_log("Debug: Searching for user: " . $username);
@@ -397,22 +397,31 @@ class FriendController extends BaseController
                 $targetUserId = $targetUser->id;
                 $targetUsername = $targetUser->username;
             }
-              if ($targetUserId == $userId) {
-                $this->error('You cannot send a friend request to yourself', 400);
-                return;
+            
+            if ($targetUserId == $userId) {
+                return $this->error('You cannot send a friend request to yourself', 400);
+            }
+            
+            $existingRelationship = $this->friendListRepository->findRelationship($userId, $targetUserId);
+            if ($existingRelationship) {
+                if ($existingRelationship->status === 'accepted') {
+                    return $this->error('You are already friends with this user', 400);
+                } elseif ($existingRelationship->status === 'pending') {
+                    return $this->error('Friend request already sent to this user', 400);
+                }
             }
             
             $result = $this->friendListRepository->sendFriendRequest($userId, $targetUserId);
             
-            if ($result === false) {
-                $this->error('Failed to send friend request, the user may have blocked you', 400);
-                return;
+            if (!$result) {
+                return $this->error('Failed to send friend request', 400);
             }
             
             $currentUser = $this->userRepository->find($userId);
             
-            $this->notifyViaSocket($targetUserId, 'friend-request-received', [
-                'friendship_id' => $result->id,
+            $this->notifyViaSocket('friend-request-received', [
+                'target_user_id' => $targetUserId,
+                'friendship_id' => $result->id ?? $result['id'] ?? null,
                 'sender_id' => $userId,
                 'sender_username' => $currentUser->username,
                 'timestamp' => date('Y-m-d H:i:s')
@@ -422,15 +431,16 @@ class FriendController extends BaseController
                 'target_user_id' => $targetUserId,
                 'target_username' => $targetUsername
             ]);
-              $this->success([
-                'friendship_id' => $result->id,
+            
+            return $this->success([
+                'friendship_id' => $result->id ?? $result['id'] ?? null,
                 'target_user' => [
                     'id' => $targetUserId,
                     'username' => $targetUsername
                 ]
             ], 'Friend request sent successfully');
         } catch (Exception $e) {
-            $this->serverError('An error occurred while sending friend request: ' . $e->getMessage());
+            return $this->serverError('An error occurred while sending friend request: ' . $e->getMessage());
         }
     }
       public function acceptFriendRequest($friendshipId)

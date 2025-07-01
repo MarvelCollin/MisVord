@@ -17,8 +17,8 @@ if (!function_exists('renderChannel')) {
         $icon = getChannelIcon($type);
         $isActive = $activeChannelId == $channel['id'];
         
-        $textClass = $isActive ? 'text-white' : 'text-gray-400 hover:text-gray-300';
-        $bgClass = $isActive ? 'bg-[#5865f2]' : 'hover:bg-gray-700/30';
+        $textClass = $isActive ? 'text-white hover:text-white' : 'text-gray-400 hover:text-gray-300';
+        $bgClass = $isActive ? 'bg-[#5865f2] hover:bg-[#4752c4]' : 'hover:bg-gray-700/30';
         $iconClass = $isActive ? 'text-white' : 'text-gray-500';
         $activeClass = $isActive ? 'active' : '';
         

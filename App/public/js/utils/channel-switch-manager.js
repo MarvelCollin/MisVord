@@ -91,7 +91,7 @@ class SimpleChannelSwitcher {
             item.classList.remove('active');
             item.removeAttribute('data-active');
             
-            item.classList.remove('bg-[#5865f2]', 'text-white');
+            item.classList.remove('bg-[#5865f2]', 'text-white', 'hover:bg-[#4752c4]', 'hover:text-white');
             item.classList.add('text-gray-400', 'hover:text-gray-300', 'hover:bg-gray-700/30');
             
             const icon = item.querySelector('i');
@@ -113,7 +113,7 @@ class SimpleChannelSwitcher {
             targetChannel.setAttribute('data-active', 'true');
             
             targetChannel.classList.remove('text-gray-400', 'hover:text-gray-300', 'hover:bg-gray-700/30');
-            targetChannel.classList.add('bg-[#5865f2]', 'text-white');
+            targetChannel.classList.add('bg-[#5865f2]', 'text-white', 'hover:bg-[#4752c4]', 'hover:text-white');
             
             const icon = targetChannel.querySelector('i');
             if (icon) {

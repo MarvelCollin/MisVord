@@ -36,8 +36,10 @@ class FriendListRepository extends Repository {
         $relationship = $this->findRelationship($fromUserId, $toUserId);
         
         if ($relationship) {
-            if ($relationship->status === 'pending' || $relationship->status === 'accepted') {
-                return true;
+            if ($relationship->status === 'pending') {
+                return $relationship;
+            } elseif ($relationship->status === 'accepted') {
+                return false;
             }
         }
         
@@ -152,7 +154,6 @@ class FriendListRepository extends Repository {
     {
         $query = new Query();
         
-        // First check if user1 is friends with user2
         $result1 = $query->table('friend_list')
             ->where('user_id', $userId1)
             ->where('user_id2', $userId2)
@@ -163,7 +164,6 @@ class FriendListRepository extends Repository {
             return true;
         }
         
-        // If not found, check if user2 is friends with user1
         $query2 = new Query();
         $result2 = $query2->table('friend_list')
             ->where('user_id', $userId2)
@@ -189,7 +189,6 @@ class FriendListRepository extends Repository {
 
     public function getMutualFriends($userId1, $userId2)
     {
-        // Get friends of user 1
         $query1 = new Query();
         $friends1 = $query1->table('friend_list')
             ->where('user_id', $userId1)
@@ -201,8 +200,7 @@ class FriendListRepository extends Repository {
             ->where('user_id2', $userId1)
             ->where('status', 'accepted')
             ->get();
-        
-        // Combine both sets of friends for user 1
+                
         $friendIds1 = [];
         foreach ($friends1 as $friend) {
             $friendIds1[] = $friend['user_id2'];
@@ -211,7 +209,6 @@ class FriendListRepository extends Repository {
             $friendIds1[] = $friend['user_id'];
         }
         
-        // Get friends of user 2
         $query3 = new Query();
         $friends3 = $query3->table('friend_list')
             ->where('user_id', $userId2)
@@ -224,7 +221,6 @@ class FriendListRepository extends Repository {
             ->where('status', 'accepted')
             ->get();
         
-        // Combine both sets of friends for user 2
         $friendIds2 = [];
         foreach ($friends3 as $friend) {
             $friendIds2[] = $friend['user_id2'];
@@ -233,21 +229,18 @@ class FriendListRepository extends Repository {
             $friendIds2[] = $friend['user_id'];
         }
         
-        // Find the intersection of friend IDs
         $mutualFriendIds = array_intersect($friendIds1, $friendIds2);
         
         if (empty($mutualFriendIds)) {
             return [];
         }
         
-        // Get the actual user records with complete information
         $query5 = new Query();
         $users = $query5->table('users')
             ->whereIn('id', $mutualFriendIds)
             ->where('status', '!=', 'bot')
             ->get();
             
-        // Convert to objects with proper field names
         $result = [];
         foreach ($users as $user) {
             $userObj = new \stdClass();

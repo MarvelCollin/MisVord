@@ -159,6 +159,28 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     background-color: rgba(79, 84, 92, 0.16) !important;
 }
 
+.channel-item.active:hover {
+    background-color: #4752c4 !important;
+    color: #ffffff !important;
+}
+
+.channel-item.active:hover i {
+    color: #ffffff !important;
+}
+
+.channel-item.active:hover .voice-user-count {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.channel-item.active {
+    background-color: #5865f2 !important;
+    color: #ffffff !important;
+}
+
+.channel-item.active i {
+    color: #ffffff !important;
+}
+
 .group:hover .opacity-0 {
     opacity: 1 !important;
 }

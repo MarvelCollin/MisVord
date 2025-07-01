@@ -187,12 +187,13 @@ function truncateText($text, $length = 100, $append = '...') {
 }
 
 function getDefaultAvatar($username = 'User') {
-    return '/public/assets/common/default-profile-picture.png';
+    return '';
 }
 
 function getUserAvatar($avatarUrl, $username = 'User') {
-    if (!empty($avatarUrl)) {
-        return htmlspecialchars($avatarUrl);
-    }
-    return getDefaultAvatar($username);
+    return htmlspecialchars($avatarUrl ?? '');
+}
+
+function getDefaultAvatarUrl() {
+    return '';
 }
