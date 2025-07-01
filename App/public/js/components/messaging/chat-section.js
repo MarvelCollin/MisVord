@@ -2060,10 +2060,13 @@ class ChatSection {
             connected: manager.connected,
             authenticated: manager.authenticated,
             hasIO: !!manager.io,
-            readyReason: ''
+            readyReason: '',
+            socketInitialized: !!window.__SOCKET_INITIALISED__
         };
         
-        if (!status.hasIO) {
+        if (!status.socketInitialized) {
+            status.readyReason = 'Socket not initialized';
+        } else if (!status.hasIO) {
             status.readyReason = 'Socket IO not initialized';
         } else if (!status.connected) {
             status.readyReason = 'Socket not connected';

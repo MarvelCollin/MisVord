@@ -1,5 +1,3 @@
-import { NavigationManager } from './navigation-manager.js';
-
 function loadCSS(cssFiles) {
     if (!cssFiles || !Array.isArray(cssFiles)) return Promise.resolve();
     
@@ -122,7 +120,6 @@ export function loadExplorePage() {
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
             if (shouldPreserveVoice) {
                 console.log('[Explore Loader] Preserving voice connection - navigating between allowed pages');
-                window.showToast?.('Voice connection preserved in standby mode', 'info');
             } else {
                 console.log('[Explore Loader] Cleaning up voice manager');
                 window.voiceManager.leaveVoice();

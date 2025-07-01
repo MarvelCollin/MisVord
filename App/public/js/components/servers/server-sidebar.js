@@ -1,6 +1,5 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
 import { playDiscordoSound, playCallSound } from '../../utils/music-loader-static.js';
-import { NavigationManager } from '../../utils/navigation-manager.js';
 import { loadServerPage } from '../../utils/load-server-page.js';
 
 let isRendering = false;
@@ -918,39 +917,17 @@ export async function handleHomeClick(event) {
             }
         }
 
-        let success = false;
-        
-        if (window.navigationManager) {
-            console.log('[Home Navigation] Trying navigation manager');
-            success = await window.navigationManager.navigateToHome('friends');
-        }
-        
-        if (!success && typeof window.loadHomePage === 'function') {
-            console.log('[Home Navigation] Navigation manager failed, trying loadHomePage');
+        if (typeof window.loadHomePage === 'function') {
+            console.log('[Home Navigation] Loading home page');
             await window.loadHomePage('friends');
-            success = true;
-        }
-        
-        if (!success) {
-            console.error('[Home Navigation] All navigation methods failed');
-            console.warn('[Home Navigation] Page reload fallbacks disabled - navigation failed');
+            console.log('[Home Navigation] SUCCESS - Home navigation completed');
+        } else {
+            console.error('[Home Navigation] loadHomePage function not available');
             return;
         }
 
-        console.log('[Home Navigation] SUCCESS - Home navigation completed');
-
     } catch (error) {
         console.error('[Home Navigation] ERROR in handleHomeClick:', error);
-        if (typeof window.loadHomePage === 'function') {
-            try {
-                await window.loadHomePage('friends');
-            } catch (fallbackError) {
-                console.error('[Home Navigation] Fallback also failed:', fallbackError);
-                console.warn('[Home Navigation] Page reload fallbacks disabled - navigation failed');
-            }
-        } else {
-            console.warn('[Home Navigation] Page reload fallbacks disabled - navigation failed');
-        }
     } finally {
         hideHomeLoadingIndicator();
     }
@@ -1000,48 +977,23 @@ export async function handleServerClick(serverId, event) {
         defaultChannelId = await getDefaultChannelForServer(serverId);
         console.log('[Server Navigation] Default channel ID:', defaultChannelId);
         
-        let success = false;
-        
-        if (window.navigationManager) {
-            console.log('[Server Navigation] Trying navigation manager with channel:', defaultChannelId);
-            success = await window.navigationManager.navigateToServer(serverId, defaultChannelId);
-        }
-        
-        if (!success && typeof window.loadServerPage === 'function') {
-            console.log('[Server Navigation] Navigation manager failed, trying loadServerPage with channel:', defaultChannelId);
+        if (typeof window.loadServerPage === 'function') {
+            console.log('[Server Navigation] Loading server page with channel:', defaultChannelId);
             await window.loadServerPage(serverId, defaultChannelId);
-            success = true;
-        }
-        
-        if (!success) {
-            console.log('[Server Navigation] All navigation methods failed, using direct AJAX fallback with channel:', defaultChannelId);
-            await handleServerClickFallback(serverId, defaultChannelId);
-            success = true;
-        }
-        
-        if (success) {
             console.log('[Server Navigation] SUCCESS - Server navigation completed with channel:', defaultChannelId);
+        } else {
+            console.error('[Server Navigation] loadServerPage function not available');
+            return;
         }
         
     } catch (error) {
         console.error('[Server Navigation] ERROR in handleServerClick:', error);
-        try {
-            console.log('[Server Navigation] Attempting fallback navigation');
-            await handleServerClickFallback(serverId);
-        } catch (fallbackError) {
-            console.error('[Server Navigation] Fallback also failed:', fallbackError);
-            console.warn('[Server Navigation] Page reload fallbacks disabled - server navigation failed');
-        }
     } finally {
         hideServerLoadingIndicator(serverId);
     }
 }
 
-async function handleServerClickFallback(serverId, channelId = null) {
-    console.warn('[Server Navigation] handleServerClickFallback disabled - routes were removed');
-    console.warn('[Server Navigation] Fallback AJAX navigation not available for server:', serverId);
-    throw new Error('Server fallback navigation disabled');
-}
+
 
 export async function handleExploreClick(event) {
     console.log('[Explore Navigation] Explore Click Flow Started');
@@ -1077,39 +1029,17 @@ export async function handleExploreClick(event) {
             }
         }
 
-        let success = false;
-        
-        if (window.navigationManager) {
-            console.log('[Explore Navigation] Trying navigation manager');
-            success = await window.navigationManager.navigateToExplore();
-        }
-        
-        if (!success && typeof window.loadExplorePage === 'function') {
-            console.log('[Explore Navigation] Navigation manager failed, trying loadExplorePage');
+        if (typeof window.loadExplorePage === 'function') {
+            console.log('[Explore Navigation] Loading explore page');
             await window.loadExplorePage();
-            success = true;
-        }
-        
-        if (!success) {
-            console.error('[Explore Navigation] All navigation methods failed');
-            console.warn('[Explore Navigation] Page reload fallbacks disabled - navigation failed');
+            console.log('[Explore Navigation] SUCCESS - Explore navigation completed');
+        } else {
+            console.error('[Explore Navigation] loadExplorePage function not available');
             return;
         }
 
-        console.log('[Explore Navigation] SUCCESS - Explore navigation completed');
-
     } catch (error) {
         console.error('[Explore Navigation] ERROR in handleExploreClick:', error);
-        if (typeof window.loadExplorePage === 'function') {
-            try {
-                await window.loadExplorePage();
-            } catch (fallbackError) {
-                console.error('[Explore Navigation] Fallback also failed:', fallbackError);
-                console.warn('[Explore Navigation] Page reload fallbacks disabled - navigation failed');
-            }
-        } else {
-            console.warn('[Explore Navigation] Page reload fallbacks disabled - navigation failed');
-        }
     } finally {
         hideExploreLoadingIndicator();
     }

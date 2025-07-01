@@ -1,5 +1,3 @@
-import { NavigationManager } from './navigation-manager.js';
-
 export function loadHomePage(pageType = 'friends') {
     console.log('[Home AJAX] Starting direct AJAX home page load');
     console.log('[Home AJAX] Page type:', pageType);
@@ -22,7 +20,6 @@ export function loadHomePage(pageType = 'friends') {
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
             if (shouldPreserveVoice) {
                 console.log('[Home Loader] Preserving voice connection - navigating between allowed pages');
-                window.showToast?.('Voice connection preserved in standby mode', 'info');
             } else {
                 console.log('[Home Loader] Cleaning up voice manager');
                 window.voiceManager.leaveVoice();

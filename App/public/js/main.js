@@ -159,15 +159,7 @@ function initGlobalSocketManager() {
     }
 
     if (typeof io === 'undefined') {
-        logger.error('socket', 'Socket.io library not loaded, attempting to load it');
-        const script = document.createElement('script');
-        script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
-        script.crossOrigin = 'anonymous';
-        script.onload = function() {
-            logger.info('socket', 'Socket.io library loaded, initializing socket');
-            initSocketAfterLoad();
-        };
-        document.head.appendChild(script);
+        logger.error('socket', 'Socket.io library not loaded');
         return;
     }
     
@@ -312,16 +304,6 @@ async function initializeNavigation() {
             console.log('[Main] Loading explore page navigation');
             await import('./utils/load-explore-page.js');
         }
-        
-        if (!window.navigationManager) {
-            console.log('[Main] Loading navigation manager');
-            const { NavigationManager } = await import('./utils/navigation-manager.js');
-            if (!window.navigationManager) {
-                window.navigationManager = new NavigationManager();
-            }
-        }
-        
-
         
         console.log('[Main] Navigation system initialized successfully');
         return true;

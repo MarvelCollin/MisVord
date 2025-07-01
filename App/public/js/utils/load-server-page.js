@@ -61,7 +61,6 @@ export async function loadServerPage(serverId, channelId = null) {
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
             if (shouldPreserveVoice) {
                 console.log('[Server Loader] Preserving voice connection - navigating between allowed pages');
-                window.showToast?.('Voice connection preserved in standby mode', 'info');
             } else {
                 console.log('[Server Loader] Cleaning up voice manager');
                 window.voiceManager.leaveVoice();
@@ -131,8 +130,7 @@ export async function loadServerPage(serverId, channelId = null) {
                 handleServerSkeletonLoading(false);
                 
                 if (window.simpleChannelSwitcher) {
-                    console.log('[Server AJAX] Cleaning up simple channel switcher due to error');
-                    window.simpleChannelSwitcher = null;
+                    console.log('[Server AJAX] Keeping simple channel switcher for reuse');
                 }
                 
                 console.error('[Server AJAX] Server loading failed');
@@ -160,26 +158,6 @@ function performServerLayoutUpdate(response, serverId, channelId, currentChannel
     
     cleanupForServerSwitch();
     initializeServerSystems();
-    
-    if (typeof window.initializeServerDropdown === 'function') {
-        console.log('[Server AJAX] Re-initializing server dropdown');
-        window.initializeServerDropdown();
-    }
-    
-    if (typeof window.updateActiveServer === 'function') {
-        window.updateActiveServer('server', serverId);
-        console.log('[Server AJAX] Active server state updated');
-    }
-    
-    const event = new CustomEvent('ServerChanged', { 
-        detail: { 
-            serverId,
-            channelId,
-            previousChannelId: currentChannelId 
-        } 
-    });
-    document.dispatchEvent(event);
-    console.log('[Server AJAX] ServerChanged event dispatched');
 }
 
 function initializeVoiceSystems() {
@@ -579,87 +557,7 @@ function getActiveChannelFromLayout(layoutContainer) {
     return null;
 }
 
-function initServerDropdownManual() {
-    console.log('[Server Loader] Manual server dropdown initialization');
-    
-    setTimeout(() => {
-        const dropdownBtn = document.getElementById('server-dropdown-btn');
-        const dropdown = document.getElementById('server-dropdown');
-        
-        console.log('[Server Loader] Dropdown elements:', { 
-            dropdownBtn: !!dropdownBtn, 
-            dropdown: !!dropdown 
-        });
-        
-        if (dropdownBtn && dropdown) {
-            const newBtn = dropdownBtn.cloneNode(true);
-            dropdownBtn.parentNode.replaceChild(newBtn, dropdownBtn);
-            
-            newBtn.addEventListener('click', function(e) {
-                console.log('[Server Loader] Dropdown button clicked');
-                e.preventDefault();
-                e.stopPropagation();
-                dropdown.classList.toggle('hidden');
-            });
-            
-            document.addEventListener('click', function(e) {
-                if (!dropdown.contains(e.target) && !newBtn.contains(e.target)) {
-                    dropdown.classList.add('hidden');
-                }
-            });
-            
-            const dropdownItems = document.querySelectorAll('.server-dropdown-item');
-            dropdownItems.forEach(item => {
-                const newItem = item.cloneNode(true);
-                item.parentNode.replaceChild(newItem, item);
-                
-                newItem.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const actionText = this.querySelector('span').textContent.trim();
-                    dropdown.classList.add('hidden');
-                    
-                    console.log('[Server Loader] Dropdown action:', actionText);
-                    
-                    switch(actionText) {
-                        case 'Invite People':
-                            if (typeof window.showInvitePeopleModal === 'function') {
-                                window.showInvitePeopleModal();
-                            }
-                            break;
-                        case 'Server Settings':
-                            if (typeof window.redirectToServerSettings === 'function') {
-                                window.redirectToServerSettings();
-                            }
-                            break;
-                        case 'Create Channel':
-                            if (typeof window.showCreateChannelModal === 'function') {
-                                window.showCreateChannelModal();
-                            } else if (typeof window.openCreateChannelModal === 'function') {
-                                window.openCreateChannelModal();
-                            }
-                            break;
-                        case 'Create Category':
-                            if (typeof window.showCreateCategoryModal === 'function') {
-                                window.showCreateCategoryModal();
-                            } else if (typeof window.openCreateCategoryModal === 'function') {
-                                window.openCreateCategoryModal();
-                            }
-                            break;
-                        case 'Leave Server':
-                            if (typeof window.showLeaveServerConfirmation === 'function') {
-                                window.showLeaveServerConfirmation();
-                            }
-                            break;
-                    }
-                });
-            });
-            
-            console.log('[Server Loader] Server dropdown initialized successfully');
-        } else {
-            console.error('[Server Loader] Server dropdown elements not found');
-        }
-    }, 150);
-}
+
 
 function cleanupForServerSwitch() {
     console.log('[Server AJAX] Cleaning up for server switch');
@@ -676,39 +574,38 @@ function cleanupForServerSwitch() {
     }
     
     if (window.simpleChannelSwitcher) {
-        console.log('[Server AJAX] Cleaning up existing simple channel switcher');
-        window.simpleChannelSwitcher = null;
+        console.log('[Server AJAX] Keeping existing simple channel switcher for reuse');
     }
     
     console.log('[Server AJAX] Cleanup completed');
 }
 
 function initializeServerSystems() {
-    console.log('[Server AJAX] Initializing server systems');
+    console.log('[Server Loader] Initializing components only');
     
     setTimeout(async () => {
-        let chatSection = null;
-        let channelSwitcher = null;
-        
+        if (window.SimpleChannelSwitcher && !window.simpleChannelSwitcher) {
+            new window.SimpleChannelSwitcher();
+        }
+
+        if (typeof window.initServerDropdown === 'function') {
+            window.initServerDropdown();
+        }
+
         if (typeof window.initializeChatSection === 'function') {
-            console.log('[Server AJAX] Initializing chat section');
             await window.initializeChatSection();
-            chatSection = window.chatSection;
-            console.log('[Server AJAX] Chat section ready:', !!chatSection);
         }
-        
-        if (window.SimpleChannelSwitcher) {
-            channelSwitcher = new window.SimpleChannelSwitcher();
-            console.log('[Server AJAX] SimpleChannelSwitcher created successfully');
-            
-            if (chatSection && channelSwitcher) {
-                chatSection.setChannelSwitchManager(channelSwitcher);
-                console.log('[Server AJAX] Systems linked successfully');
-            }
+
+        if (typeof window.initializeVoiceSection === 'function') {
+            window.initializeVoiceSection();
         }
-        
-        console.log('[Server AJAX] Server systems initialized');
-    }, 300);
+
+        if (typeof window.initChannelManager === 'function') {
+            window.initChannelManager();
+        }
+
+        console.log('[Server Loader] Components initialized');
+    }, 100);
 }
 
 window.loadServerPage = loadServerPage; 

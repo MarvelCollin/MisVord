@@ -30,7 +30,7 @@ $body_class = 'bg-discord-dark text-white';
 $page_css = ['explore-servers', 'server-detail'];
 $page_js = 'pages/explore-servers';
 $head_scripts = ['logger-init', 'components/servers/server-detail'];
-$additional_js = ['utils/navigation-manager', 'components/servers/server-dropdown'];
+$additional_js = ['components/servers/server-dropdown'];
 $contentType = 'explore';
 
 ob_start(); ?>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket Connection Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .log {
+            background: #000;
+            border: 1px solid #333;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+            white-space: pre-wrap;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #0088ff;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.connected {
+            background: #004400;
+            border: 1px solid #00ff00;
+        }
+        .status.disconnected {
+            background: #440000;
+            border: 1px solid #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Socket Connection Test</h1>
+        
+        <div id="status" class="status disconnected">
+            Status: Disconnected
+        </div>
+        
+        <div class="controls">
+            <button onclick="connectSocket()">Connect</button>
+            <button onclick="disconnectSocket()">Disconnect</button>
+            <button onclick="testAuthentication()">Test Auth</button>
+            <button onclick="sendPing()">Send Ping</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div id="log" class="log">Waiting for connection test...\n</div>
+    </div>
+
+    <script>
+        let testSocket = null;
+        let logElement = document.getElementById('log');
+        let statusElement = document.getElementById('status');
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateStatus(isConnected, message) {
+            statusElement.className = `status ${isConnected ? 'connected' : 'disconnected'}`;
+            statusElement.textContent = `Status: ${message}`;
+        }
+
+        function connectSocket() {
+            if (testSocket) {
+                log('Socket already exists, disconnecting first...');
+                testSocket.disconnect();
+            }
+
+            log('Attempting to connect to http://localhost:1002...');
+            updateStatus(false, 'Connecting...');
+
+            testSocket = io('http://localhost:1002', {
+                path: '/socket.io',
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                reconnectionAttempts: 5
+            });
+
+            testSocket.on('connect', () => {
+                log(`✅ Connected successfully! Socket ID: ${testSocket.id}`);
+                updateStatus(true, `Connected (${testSocket.id})`);
+            });
+
+            testSocket.on('connect_error', (error) => {
+                log(`❌ Connection error: ${error.message}`);
+                updateStatus(false, 'Connection Failed');
+            });
+
+            testSocket.on('disconnect', (reason) => {
+                log(`🔌 Disconnected: ${reason}`);
+                updateStatus(false, 'Disconnected');
+            });
+
+            testSocket.on('auth-success', (data) => {
+                log(`🔐 Authentication successful: ${JSON.stringify(data)}`);
+            });
+
+            testSocket.on('auth-error', (data) => {
+                log(`❌ Authentication failed: ${JSON.stringify(data)}`);
+            });
+
+            testSocket.on('debug-test-response', (data) => {
+                log(`🏓 Ping response: ${JSON.stringify(data)}`);
+            });
+        }
+
+        function disconnectSocket() {
+            if (testSocket) {
+                testSocket.disconnect();
+                testSocket = null;
+                log('Socket disconnected manually');
+                updateStatus(false, 'Disconnected');
+            } else {
+                log('No socket to disconnect');
+            }
+        }
+
+        function testAuthentication() {
+            if (!testSocket || !testSocket.connected) {
+                log('❌ Socket not connected. Connect first.');
+                return;
+            }
+
+            log('🔐 Testing authentication...');
+            testSocket.emit('authenticate', {
+                user_id: '1',
+                username: 'testuser'
+            });
+        }
+
+        function sendPing() {
+            if (!testSocket || !testSocket.connected) {
+                log('❌ Socket not connected. Connect first.');
+                return;
+            }
+
+            log('🏓 Sending ping...');
+            testSocket.emit('debug-test', 'testuser');
+        }
+
+        function clearLog() {
+            logElement.textContent = '';
+        }
+
+        log('Socket test page loaded. Click Connect to start.');
+        log('Socket.IO library available: ' + (typeof io !== 'undefined' ? 'Yes' : 'No'));
+    </script>
+</body>
+</html> 

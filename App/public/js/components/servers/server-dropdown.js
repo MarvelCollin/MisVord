@@ -14,12 +14,14 @@ document.addEventListener('DOMContentLoaded', function() {
         window.logger.debug('server', 'server-dropdown.js DOMContentLoaded triggered');
     }
     
-    const isServerPage = document.getElementById('server-dropdown-btn') !== null;
-    
-    if (isServerPage && !isInitialized) {
-        initServerDropdown();
-        isInitialized = true;
-    }
+    setTimeout(() => {
+        const isServerPage = document.getElementById('server-dropdown-btn') !== null;
+        
+        if (isServerPage && !isInitialized) {
+            initServerDropdown();
+            isInitialized = true;
+        }
+    }, 100);
 });
 
 function waitForServerAPI() {
@@ -136,28 +138,42 @@ function applyRoleBasedVisibility(userRole) {
 }
 
 async function initServerDropdown() {
+    if (isInitialized) {
+        console.log('Server dropdown already initialized');
+        return;
+    }
+    
     console.log('Initializing server dropdown...');
 
     const dropdownBtn = document.getElementById('server-dropdown-btn');
     const dropdown = document.getElementById('server-dropdown');
 
     if (!dropdownBtn || !dropdown) {
-        console.error('Dropdown elements not found!');
+        console.error('Dropdown elements not found!', {
+            dropdownBtn: !!dropdownBtn,
+            dropdown: !!dropdown
+        });
         return;
     }
 
-    dropdownBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        dropdown.classList.toggle('hidden');
-        console.log('Dropdown toggled');
-    });
+    if (!dropdownBtn.hasAttribute('data-initialized')) {
+        dropdownBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden');
+            console.log('Dropdown toggled, hidden:', dropdown.classList.contains('hidden'));
+        });
+        dropdownBtn.setAttribute('data-initialized', 'true');
+    }
 
-    document.addEventListener('click', function(e) {
-        if (!dropdown.contains(e.target) && !dropdownBtn.contains(e.target)) {
-            dropdown.classList.add('hidden');
-        }
-    });
+    if (!document.documentElement.hasAttribute('data-dropdown-outside-click')) {
+        document.addEventListener('click', function(e) {
+            if (!dropdown.contains(e.target) && !dropdownBtn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        document.documentElement.setAttribute('data-dropdown-outside-click', 'true');
+    }
 
     const serverId = getCurrentServerId();
     if (serverId) {
@@ -173,51 +189,54 @@ async function initServerDropdown() {
     }
 
     initServerActions();
+    isInitialized = true;
     console.log('Server dropdown initialization complete');
 }
 
 function initServerActions() {
-    const dropdownItems = document.querySelectorAll('.server-dropdown-item');
-    console.log('Initializing actions for', dropdownItems.length, 'dropdown items');
+    const dropdown = document.getElementById('server-dropdown');
+    if (!dropdown || dropdown.hasAttribute('data-actions-initialized')) {
+        return;
+    }
 
-    dropdownItems.forEach(item => {
-        const newItem = item.cloneNode(true);
-        item.parentNode.replaceChild(newItem, item);
+    dropdown.addEventListener('click', function(e) {
+        const item = e.target.closest('.server-dropdown-item');
+        if (!item) return;
         
-        newItem.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            const spanElement = this.querySelector('span');
-            if (!spanElement) return;
-            
-            const actionText = spanElement.textContent.trim();
-            console.log('Dropdown action clicked:', actionText);
+        e.preventDefault();
+        
+        const spanElement = item.querySelector('span');
+        if (!spanElement) return;
+        
+        const actionText = spanElement.textContent.trim();
+        console.log('Dropdown action clicked:', actionText);
 
-            const dropdown = document.getElementById('server-dropdown');
-            if (dropdown) dropdown.classList.add('hidden');
+        dropdown.classList.add('hidden');
 
-            if (currentUserRole === 'non-member') {
-                showToast('You are not a member of this server', 'error');
+        if (currentUserRole === 'non-member') {
+            showToast('You are not a member of this server', 'error');
+            return;
+        }
+
+        const adminOnlyActions = ['Invite People', 'Server Settings', 'Create Channel', 'Create Category'];
+        
+        if (adminOnlyActions.includes(actionText)) {
+            if (!isAdminOrOwner(currentUserRole)) {
+                showToast('You do not have permission to perform this action', 'error');
                 return;
             }
-
-            const adminOnlyActions = ['Invite People', 'Server Settings', 'Create Channel', 'Create Category'];
             
-            if (adminOnlyActions.includes(actionText)) {
-                if (!isAdminOrOwner(currentUserRole)) {
-                    showToast('You do not have permission to perform this action', 'error');
-                    return;
-                }
-                
-                if (this.getAttribute('data-role-restricted') === 'true') {
-                    showToast('Access denied: Insufficient permissions', 'error');
-                    return;
-                }
+            if (item.getAttribute('data-role-restricted') === 'true') {
+                showToast('Access denied: Insufficient permissions', 'error');
+                return;
             }
+        }
 
-            executeDropdownAction(actionText);
-        });
+        executeDropdownAction(actionText);
     });
+    
+    dropdown.setAttribute('data-actions-initialized', 'true');
+    console.log('Server dropdown actions initialized');
 }
 
 function executeDropdownAction(actionText) {
@@ -772,6 +791,7 @@ console.log('- testDropdownClick() - Test button click');
 console.log('- forceShowDropdown() - Force dropdown to show');
 
 window.initServerDropdown = initServerDropdown;
+window.initializeServerDropdown = initServerDropdown;
 window.showInvitePeopleModal = showInvitePeopleModal;
 window.redirectToServerSettings = redirectToServerSettings;
 window.showCreateChannelModal = showCreateChannelModal;

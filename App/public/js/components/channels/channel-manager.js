@@ -26,14 +26,14 @@ function loadServerChannels() {
 }
 
 function initUpdateChannelForms() {
-    const updateChannelForms = document.querySelectorAll('.update-channel-form');
-
-    updateChannelForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
+    document.addEventListener('submit', function(e) {
+        if (e.target.matches('.update-channel-form')) {
             e.preventDefault();
 
-            const channelId = this.getAttribute('data-channel-id');
-            const formData = new FormData(this);            const data = {};
+            const form = e.target;
+            const channelId = form.getAttribute('data-channel-id');
+            const formData = new FormData(form);
+            const data = {};
             for (const [key, value] of formData.entries()) {
                 data[key] = value;
             }
@@ -59,24 +59,65 @@ function initUpdateChannelForms() {
                     console.error('Error updating channel:', error);
                     showToast('Failed to update channel', 'error');
                 });
-        });
+        }
     });
 }
 
 function initDeleteChannelButtons() {
-    const deleteChannelButtons = document.querySelectorAll('.delete-channel-btn');
-
-    deleteChannelButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.delete-channel-btn')) {
             e.preventDefault();
+            
+            const button = e.target.closest('.delete-channel-btn');
+            const channelId = button.getAttribute('data-channel-id');
+            const channelName = button.getAttribute('data-channel-name') || 'this channel';
 
-            const channelId = this.getAttribute('data-channel-id');
-            const channelName = this.getAttribute('data-channel-name') || 'this channel';
-
-            if (confirm(`Are you sure you want to delete ${channelName}? This cannot be undone.`)) {
+            if (typeof window.openDeleteChannelModal === 'function') {
+                window.openDeleteChannelModal(channelId, channelName);
+            } else if (confirm(`Are you sure you want to delete ${channelName}? This cannot be undone.`)) {
                 deleteChannel(channelId);
             }
-        });
+        }
+        
+        if (e.target.closest('.edit-channel-btn')) {
+            e.preventDefault();
+            
+            const button = e.target.closest('.edit-channel-btn');
+            const channelId = button.getAttribute('data-channel-id');
+            const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
+            
+            if (channelItem) {
+                const channelData = {
+                    name: channelItem.getAttribute('data-channel-name'),
+                    type: channelItem.getAttribute('data-channel-type'),
+                    category_id: null
+                };
+                
+                if (typeof window.openEditChannelModal === 'function') {
+                    window.openEditChannelModal(channelId, channelData);
+                }
+            }
+        }
+        
+        if (e.target.closest('.channel-menu-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const button = e.target.closest('.channel-menu-btn');
+            const dropdown = button.parentElement.querySelector('.channel-dropdown');
+            
+            document.querySelectorAll('.channel-dropdown').forEach(d => d.classList.add('hidden'));
+            
+            if (dropdown && dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+            }
+        }
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.channel-menu')) {
+            document.querySelectorAll('.channel-dropdown').forEach(d => d.classList.add('hidden'));
+        }
     });
 }
 
@@ -155,26 +196,13 @@ function renderChannelList(rawData) {
 }
 
 function initChannelEventListeners() {
-    console.log('🎯 Setting up channel event listeners');
-
-    if (!window.simpleChannelSwitcher) {
-        console.warn('⚠️ SimpleChannelSwitcher not available, waiting for it...');
-        
-        setTimeout(() => {
-            if (window.simpleChannelSwitcher) {
-                console.log('✅ Simple channel switcher found (delayed)');
-            } else {
-                console.warn('⚠️ SimpleChannelSwitcher not available - channel navigation may not work');
-            }
-        }, 200);
-    } else {
-        console.log('✅ Simple channel switcher ready');
-    }
-
+    if (window.channelEventListenersInitialized) return;
+    
     initUpdateChannelForms();
     initDeleteChannelButtons();
     
-    console.log('✅ Event listeners setup complete');
+    window.channelEventListenersInitialized = true;
+    console.log('✅ Channel event listeners initialized');
 }
 
 function getServerId() {
@@ -337,4 +365,5 @@ if (typeof window !== 'undefined') {
     window.refreshChannelList = refreshChannelList;
     window.openCreateChannelModal = openCreateChannelModal;
     window.debugChannelState = debugChannelState;
+    window.initChannelManager = initChannelManager;
 }

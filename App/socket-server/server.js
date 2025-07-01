@@ -63,7 +63,7 @@ async function initializeTitiBot() {
 
 socketController.setup(io);
 
-const PORT = process.env.SOCKET_PORT || 3001;
+const PORT = process.env.SOCKET_PORT || 1002;
 
 server.listen(PORT, async () => {
     console.log(`🚀 Socket server running on port ${PORT}`);
