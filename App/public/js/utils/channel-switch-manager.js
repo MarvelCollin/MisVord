@@ -25,19 +25,23 @@ class SimpleChannelSwitcher {
             e.preventDefault();
             e.stopPropagation();
             
-            if (this.isLoading) return;
-            
             const channelId = channelItem.getAttribute('data-channel-id');
-            let channelType = channelItem.getAttribute('data-channel-type') || 'text';
-            
-            if (channelItem.querySelector('.fa-volume-up, .fa-volume-high, .fa-microphone')) {
-                channelType = 'voice';
-            }
+            const channelType = channelItem.getAttribute('data-channel-type') || 'text';
             
             if (channelId) {
                 this.switchToChannel(channelId, channelType, true);
             }
         });
+    }
+    
+    initFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const channelId = urlParams.get('channel');
+        const channelType = urlParams.get('type') || 'text';
+        
+        if (channelId) {
+            this.switchToChannel(channelId, channelType, true);
+        }
     }
     
     async switchToChannel(channelId, channelType = 'text', forceFresh = false) {
@@ -57,9 +61,9 @@ class SimpleChannelSwitcher {
             this.updateChannelHeader(channelId, channelType);
             
             if (channelType === 'text') {
-                await this.initializeTextChannel(channelId, forceFresh);
+                await this.initializeTextChannel(channelId, true);
             } else if (channelType === 'voice') {
-                await this.initializeVoiceChannel(channelId, forceFresh);
+                await this.initializeVoiceChannel(channelId, true);
             }
         } finally {
             this.hideChannelSwitchLoading(channelId);
@@ -67,85 +71,67 @@ class SimpleChannelSwitcher {
         }
     }
     
-    showChannelSwitchLoading(channelId) {
-        const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
-        if (channelItem) {
-            channelItem.classList.add('switching');
-            
-            let loadingIndicator = channelItem.querySelector('.channel-switch-indicator');
-            if (!loadingIndicator) {
-                loadingIndicator = document.createElement('span');
-                loadingIndicator.className = 'channel-switch-indicator';
-                channelItem.appendChild(loadingIndicator);
-            }
-        }
-    }
-    
-    hideChannelSwitchLoading(channelId) {
-        const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
-        if (channelItem) {
-            channelItem.classList.remove('switching');
-            const loadingIndicator = channelItem.querySelector('.channel-switch-indicator');
-            if (loadingIndicator) {
-                loadingIndicator.remove();
-            }
+    updateActiveChannel(channelId) {
+        document.querySelectorAll('.channel-item').forEach(item => {
+            item.classList.remove('active');
+            item.removeAttribute('data-active');
+        });
+        
+        const targetChannel = document.querySelector(`[data-channel-id="${channelId}"]`);
+        if (targetChannel) {
+            targetChannel.classList.add('active');
+            targetChannel.setAttribute('data-active', 'true');
         }
     }
     
     async initializeTextChannel(channelId, forceFresh = false) {
+        console.log('🔄 [SWITCH-MANAGER] Initializing text channel:', channelId);
+        
+        console.log('🔄 [SWITCH-MANAGER] Switching from voice to text - full reset needed');
+        
         if (window.chatSection) {
+            console.log('🔄 [SWITCH-MANAGER] Chat section exists, resetting and switching');
             await window.chatSection.resetForNewChannel();
-            await window.chatSection.switchToChannel(channelId, 'text', forceFresh);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await window.chatSection.switchToChannel(channelId, 'text', true);
         } else {
-            setTimeout(async () => {
-                if (window.chatSection) {
-                    await window.chatSection.resetForNewChannel();
-                    await window.chatSection.switchToChannel(channelId, 'text', forceFresh);
-                }
-            }, 100);
+            console.log('🔄 [SWITCH-MANAGER] Chat section not ready, waiting...');
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            while (!window.chatSection && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                attempts++;
+            }
+            
+            if (window.chatSection) {
+                console.log('🔄 [SWITCH-MANAGER] Chat section ready after wait, initializing');
+                await window.chatSection.resetForNewChannel();
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await window.chatSection.switchToChannel(channelId, 'text', true);
+            } else {
+                console.error('❌ [SWITCH-MANAGER] Chat section never became available');
+            }
         }
+        
+        console.log('✅ [SWITCH-MANAGER] Text channel initialization complete');
     }
     
     async initializeVoiceChannel(channelId, forceFresh = false) {
-        if (window.voiceSection) {
-            await window.voiceSection.updateChannelId(channelId, forceFresh);
-        }
+        console.log('🔄 [SWITCH-MANAGER] Initializing voice channel:', channelId);
         
         if (window.chatSection) {
+            console.log('🔄 [SWITCH-MANAGER] Ensuring chat section cleanup for voice channel');
             window.chatSection.leaveCurrentSocketRoom();
+            window.chatSection.forceStopAllOperations();
         }
         
-        await this.fetchVoiceChannelData(channelId);
-    }
-    
-    async fetchVoiceChannelData(channelId) {
-        try {
-            const response = await fetch(`/api/channels/${channelId}`, {
-                method: 'GET',
-                credentials: 'include',
-                headers: { 'Accept': 'application/json' }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.data) {
-                    window.currentChannelData = data.data.channel;
-                }
-            }
-        } catch (error) {
-            console.error('Failed to fetch voice channel data:', error);
+        if (window.voiceSection) {
+            await window.voiceSection.resetState();
+            await window.voiceSection.updateChannelId(channelId, true);
         }
-    }
-    
-    updateActiveChannel(channelId) {
-        document.querySelectorAll('.channel-item').forEach(item => {
-            item.classList.remove('active-channel');
-        });
         
-        const activeChannel = document.querySelector(`[data-channel-id="${channelId}"]`);
-        if (activeChannel) {
-            activeChannel.classList.add('active-channel');
-        }
+        console.log('✅ [SWITCH-MANAGER] Voice channel initialization complete');
     }
     
     showSection(channelType, channelId) {
@@ -167,94 +153,95 @@ class SimpleChannelSwitcher {
         }
     }
     
-    updateChannelHeader(channelId, channelType) {
-        const channelElement = document.querySelector(`[data-channel-id="${channelId}"].channel-item`);
-        if (!channelElement) return;
-        
-        const channelName = channelElement.querySelector('.channel-name')?.textContent || 
-                           channelElement.getAttribute('data-channel-name') || 
-                           `Channel ${channelId}`;
-        
-        const channelNameEl = document.querySelector('#channel-name');
-        const channelIconEl = document.querySelector('#channel-icon');
-        const messageInputEl = document.querySelector('#message-input');
-        
-        if (channelNameEl) {
-            channelNameEl.textContent = channelName;
-        }
-        
-        if (channelIconEl) {
-            channelIconEl.className = channelType === 'voice' 
-                ? 'fas fa-volume-up text-[#949ba4] mr-2' 
-                : 'fas fa-hashtag text-[#949ba4] mr-2';
-        }
-        
-        if (messageInputEl) {
-            messageInputEl.placeholder = channelType === 'voice' 
-                ? `Voice channel: ${channelName}` 
-                : `Message #${channelName}`;
-        }
+    updateURL(channelId, channelType) {
+        const url = new URL(window.location);
+        url.searchParams.set('channel', channelId);
+        url.searchParams.set('type', channelType);
+        window.history.pushState({}, '', url);
     }
     
     updateMetaTags(channelId, channelType) {
-        const metaTags = [
-            { name: 'channel-id', content: channelId },
-            { name: 'chat-type', content: 'channel' },
-            { name: 'chat-id', content: channelId }
-        ];
+        let metaChannelId = document.querySelector('meta[name="channel-id"]');
+        let metaChannelType = document.querySelector('meta[name="channel-type"]');
         
-        metaTags.forEach(({ name, content }) => {
-            let metaEl = document.querySelector(`meta[name="${name}"]`);
-            if (!metaEl) {
-                metaEl = document.createElement('meta');
-                metaEl.name = name;
-                document.head.appendChild(metaEl);
+        if (!metaChannelId) {
+            metaChannelId = document.createElement('meta');
+            metaChannelId.name = 'channel-id';
+            document.head.appendChild(metaChannelId);
+        }
+        
+        if (!metaChannelType) {
+            metaChannelType = document.createElement('meta');
+            metaChannelType.name = 'channel-type';
+            document.head.appendChild(metaChannelType);
+        }
+        
+        metaChannelId.content = channelId;
+        metaChannelType.content = channelType;
+    }
+    
+    updateChannelHeader(channelId, channelType) {
+        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
+                           channelElement?.getAttribute('data-channel-name') || 
+                           `Channel ${channelId}`;
+        
+        const headerTitle = document.querySelector('.channel-name-header, .chat-header-title, [data-channel-header]');
+        const headerIcon = document.querySelector('.channel-icon-header, .chat-header-icon, [data-channel-icon]');
+        
+        if (headerTitle) {
+            headerTitle.textContent = channelName;
+        }
+        
+        if (headerIcon) {
+            const iconClass = channelType === 'voice' ? 'fas fa-volume-high' : 'fas fa-hashtag';
+            headerIcon.className = `${iconClass} text-[#949ba4] mr-2`;
+        }
+        
+        window.currentChannelData = {
+            id: channelId,
+            name: channelName,
+            type: channelType
+        };
+    }
+    
+    showChannelSwitchLoading(channelId) {
+        const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
+        if (channelItem) {
+            channelItem.classList.add('switching');
+            
+            const existingIndicator = channelItem.querySelector('.channel-switch-indicator');
+            if (!existingIndicator) {
+                const indicator = document.createElement('div');
+                indicator.className = 'channel-switch-indicator';
+                channelItem.appendChild(indicator);
             }
-            metaEl.content = content;
-        });
-        
-        const activeChannelInput = document.getElementById('active-channel-id');
-        if (activeChannelInput) {
-            activeChannelInput.value = channelId;
         }
     }
     
-    updateURL(channelId, channelType) {
-        const serverId = this.getServerIdFromURL();
-        const newURL = `/server/${serverId}?channel=${channelId}${channelType === 'voice' ? '&type=voice' : ''}`;
-        window.history.pushState({ channelId, channelType }, '', newURL);
-    }
-    
-    getServerIdFromURL() {
-        const match = window.location.pathname.match(/\/server\/(\d+)/);
-        return match ? match[1] : null;
-    }
-    
-    initFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const channelId = urlParams.get('channel');
-        const channelType = urlParams.get('type') || 'text';
-        
-        if (channelId) {
-            setTimeout(() => {
-                this.switchToChannel(channelId, channelType, true);
-            }, 100);
+    hideChannelSwitchLoading(channelId) {
+        const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
+        if (channelItem) {
+            channelItem.classList.remove('switching');
+            
+            const indicator = channelItem.querySelector('.channel-switch-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
         }
     }
 }
 
-window.SimpleChannelSwitcher = SimpleChannelSwitcher;
-
-function initSimpleChannelSwitcher() {
-    if (window.location.pathname.includes('/server/') && !window.simpleChannelSwitcher) {
+if (typeof window !== 'undefined') {
+    window.SimpleChannelSwitcher = SimpleChannelSwitcher;
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            new SimpleChannelSwitcher();
+        });
+    } else {
         new SimpleChannelSwitcher();
     }
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSimpleChannelSwitcher);
-} else {
-    initSimpleChannelSwitcher();
-}
-
-window.ChannelSwitchManager = SimpleChannelSwitcher; 
+export default SimpleChannelSwitcher; 

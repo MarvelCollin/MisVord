@@ -185,6 +185,7 @@ class FriendsManager {
             });
             this.cache.onlineUsers = standardizedUsers;
             this.lastUpdated.online = Date.now();
+            console.log('📊 [FRIENDS-MANAGER] Updated online users cache:', Object.keys(standardizedUsers).length, Object.keys(standardizedUsers));
             this.notify('online-users-updated', standardizedUsers);
         }
     }

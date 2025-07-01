@@ -190,6 +190,12 @@ function initSocketAfterLoad() {
 
     const userData = getUserDataFromPage();
     
+    if (!userData.user_id || !userData.username) {
+        logger.warn('socket', 'No user data found, socket initialization skipped');
+        window.__MAIN_SOCKET_READY__ = true;
+        return;
+    }
+    
     try {
         const result = globalSocketManager.init(userData);
         window.globalSocketManager = globalSocketManager;
@@ -220,11 +226,17 @@ function initSocketAfterLoad() {
                 logger.warn('socket', 'Socket initialization taking longer than expected, marking ready anyway');
                 window.__MAIN_SOCKET_READY__ = true;
             }
-        }, 5000);
+        }, 8000);
         
     } catch (error) {
         logger.error('socket', 'Failed to initialize socket manager:', error);
         window.__MAIN_SOCKET_READY__ = true;
+        
+        setTimeout(() => {
+            logger.info('socket', 'Retrying socket initialization after error...');
+            window.__SOCKET_INITIALISED__ = false;
+            initSocketAfterLoad();
+        }, 3000);
     }
 }
 

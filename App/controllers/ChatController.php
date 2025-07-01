@@ -74,6 +74,12 @@ class ChatController extends BaseController
 
             $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int)$_GET['limit'] : 20;
             $offset = isset($_GET['offset']) && is_numeric($_GET['offset']) ? (int)$_GET['offset'] : 0;
+            $timestamp = $_GET['timestamp'] ?? null;
+            $cacheBust = $_GET['_cache_bust'] ?? null;
+            
+            if ($timestamp || $cacheBust) {
+                $offset = 0;
+            }
 
             $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
@@ -116,6 +122,12 @@ class ChatController extends BaseController
 
             $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int)$_GET['limit'] : 20;
             $offset = isset($_GET['offset']) && is_numeric($_GET['offset']) ? (int)$_GET['offset'] : 0;
+            $timestamp = $_GET['timestamp'] ?? null;
+            $cacheBust = $_GET['_cache_bust'] ?? null;
+            
+            if ($timestamp || $cacheBust) {
+                $offset = 0;
+            }
 
             $messages = $this->chatRoomMessageRepository->getMessagesByRoomId($chatRoomId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
@@ -869,16 +881,7 @@ class ChatController extends BaseController
             $GLOBALS['channel'] = $channel;
             error_log("[Voice Section] Set globals - channelId: $channelId, channel name: " . $channel['name']);
             
-            if ($this->isAjaxRequest()) {
-                error_log("[Voice Section] Rendering voice section view for Ajax request");
-                ob_start();
-                require __DIR__ . '/../views/components/app-sections/voice-section.php';
-                $html = ob_get_clean();
-                error_log("[Voice Section] Generated HTML length: " . strlen($html));
-                error_log("[Voice Section] HTML preview: " . substr($html, 0, 200));
-                echo $html;
-                exit;
-            }
+
             
             error_log("[Voice Section] Returning channel data for non-Ajax request");
             return $channel;
@@ -886,9 +889,7 @@ class ChatController extends BaseController
             error_log("[Voice Section] Error: " . $e->getMessage());
             error_log("[Voice Section] Stack trace: " . $e->getTraceAsString());
             
-            if ($this->isAjaxRequest()) {
-                return $this->error($e->getMessage());
-            }
+
             throw $e;
         }
     }

@@ -30,7 +30,58 @@ if (isset($_SERVER['REQUEST_URI']) && preg_match('/\/server\/(\d+)/', $_SERVER['
     }
 }
 
+$page_css = $page_css ?? 'app';
+$additional_css = $additional_css ?? [];
+$body_class = $body_class ?? 'bg-discord-dark text-white';
+$page_js = $page_js ?? 'pages/app';
+$additional_js = $additional_js ?? [];
+
+$currentPath = $_SERVER['REQUEST_URI'] ?? '';
+$isHomePage = strpos($currentPath, '/home') === 0;
+
+if ($isHomePage) {
+    if (!in_array('utils/friends-manager', $additional_js)) {
+        $additional_js[] = 'utils/friends-manager';
+    }
+    if (!in_array('components/home/friends-tabs', $additional_js)) {
+        $additional_js[] = 'components/home/friends-tabs';
+    }
+    if (!in_array('components/home/direct-message-nav', $additional_js)) {
+        $additional_js[] = 'components/home/direct-message-nav';
+    }
+}
+
 $additional_js[] = 'components/app-layout';
+
+$showVoiceIndicator = ($contentType === 'server' || $contentType === 'home' || $contentType === 'explore');
+
+$servers = $GLOBALS['servers'] ?? [];
+$userServers = $GLOBALS['userServers'] ?? [];
+$currentServer = $GLOBALS['server'] ?? $GLOBALS['currentServer'] ?? null;
+$currentChannel = $GLOBALS['channel'] ?? $GLOBALS['currentChannel'] ?? null;
+$featuredServers = $GLOBALS['featuredServers'] ?? [];
+$categories = $GLOBALS['categories'] ?? [];
+$friends = $GLOBALS['friends'] ?? [];
+$pendingRequests = $GLOBALS['pendingRequests'] ?? [];
+$sentRequests = $GLOBALS['sentRequests'] ?? [];
+$activeTab = $GLOBALS['activeTab'] ?? 'online';
+
+if ($contentType === 'explore') {
+    include dirname(__DIR__) . '/app-sections/explore-main-content.php';
+} elseif ($isHomePage) {
+    include dirname(__DIR__) . '/home-main-content.php';
+} else {
+    include dirname(__DIR__) . '/server-main-content.php';
+}
+
+include dirname(__DIR__) . '/voice/voice-call-section.php';
+
+if ($showVoiceIndicator) {
+    include dirname(__DIR__) . '/voice-indicator.php';
+}
+
+include dirname(__DIR__) . '/active-now-section.php';
+
 ?>
 
 <div class="flex h-screen" 
@@ -100,21 +151,31 @@ $additional_js[] = 'components/app-layout';
 </div>
 
 <style>
+.main-content-area {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
 .chat-section, .voice-section {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
     width: 100%;
     height: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .chat-section.hidden, .voice-section.hidden {
-    display: none;
+    display: none !important;
+}
+
+.chat-section:not(.hidden), .voice-section:not(.hidden) {
+    display: flex !important;
 }
 
 #main-content {
     position: relative;
+    height: 100vh;
+    overflow: hidden;
 }
 </style>

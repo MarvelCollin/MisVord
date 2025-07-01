@@ -13,9 +13,11 @@
             
             <div class="px-6 pt-16 pb-6 relative">
                 <div class="server-icon absolute -top-12 left-6">
-                    <div class="w-24 h-24 rounded-3xl bg-[#2f3136] p-1 shadow-2xl border-4 border-[#2f3136]">
-                        <img id="server-modal-icon" src="" alt="Server Icon" class="w-full h-full object-cover rounded-2xl">
-
+                    <div class="w-24 h-24 rounded-full bg-[#2f3136] p-1 shadow-2xl border-4 border-[#2f3136] relative overflow-hidden">
+                        <img id="server-modal-icon" src="" alt="Server Icon" class="w-full h-full object-cover rounded-full hidden">
+                        <div id="server-modal-icon-fallback" class="w-full h-full rounded-full bg-gradient-to-br from-[#5865f2] to-purple-600 flex items-center justify-center text-white font-bold text-2xl absolute inset-0">
+                            ?
+                        </div>
                     </div>
                 </div>
                 

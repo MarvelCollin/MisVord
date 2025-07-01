@@ -209,6 +209,48 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
         return true;
     };
     
+    window.shouldInitializeSocket = function() {
+        const isAuthPage = document.body?.getAttribute('data-page') === 'auth';
+        const isLandingPage = window.location.pathname === '/';
+        const hasUserData = document.querySelector('meta[name="user-id"]')?.content;
+        
+        return !isAuthPage && !isLandingPage && hasUserData;
+    };
+    
+    window.ensureSocketInitialized = function() {
+        if (!window.shouldInitializeSocket()) {
+            return false;
+        }
+        
+        if (window.globalSocketManager?.isReady()) {
+            return true;
+        }
+        
+        if (!window.globalSocketManager) {
+            console.warn('⚠️ [SOCKET] GlobalSocketManager not available');
+            return false;
+        }
+        
+        const userData = {
+            user_id: document.querySelector('meta[name="user-id"]')?.content,
+            username: document.querySelector('meta[name="username"]')?.content
+        };
+        
+        if (!userData.user_id || !userData.username) {
+            console.warn('⚠️ [SOCKET] No user data available for socket initialization');
+            return false;
+        }
+        
+        try {
+            window.__SOCKET_INITIALISED__ = false;
+            const result = window.globalSocketManager.init(userData);
+            return result;
+        } catch (error) {
+            console.error('❌ [SOCKET] Error ensuring socket initialization:', error);
+            return false;
+        }
+    };
+    
     window.addEventListener('error', function(event) {
         if (event.message && (event.message.includes('socket') || event.message.includes('Socket') || event.message.includes('io'))) {
         }

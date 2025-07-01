@@ -247,6 +247,7 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
 <script>
 const friends = <?php echo json_encode($friends); ?>;
 window.initialFriendsData = friends;
+console.log('🔍 [HOME-FRIENDS] PHP friends data loaded:', friends.length, friends);
 
 document.addEventListener('DOMContentLoaded', function() {
     const onlineFriendsContainer = document.getElementById('online-friends-container');
@@ -330,8 +331,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const userData = onlineUsers[friend.id];
             const isOnline = userData && userData.status !== 'offline';
             console.log(`🔍 [HOME-FRIENDS] Friend ${friend.username} (${friend.id}):`, {
-                userData,
-                isOnline
+                friendId: friend.id,
+                userDataExists: !!userData,
+                status: userData?.status,
+                isOnline: isOnline
             });
             return isOnline;
         });
@@ -346,6 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (onlineFriends.length > 0) {
+            console.log('✨ [HOME-FRIENDS] Rendering online friends UI with data:', onlineFriends);
             onlineFriends.sort((a, b) => {
                 const statusA = onlineUsers[a.id]?.status || 'offline';
                 const statusB = onlineUsers[b.id]?.status || 'offline';
@@ -362,6 +366,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const status = userData?.status || 'offline';
                 const statusClass = getStatusClass(status);
                 const statusText = getStatusText(status);
+                
+                console.log(`🎨 [HOME-FRIENDS] Rendering friend ${friend.username} with status ${status}`);
                 
                 friendsHtml += `
                     <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item transition-all duration-200 animate-fadeIn" 
@@ -392,9 +398,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
             });
             
+            console.log('🎨 [HOME-FRIENDS] Generated HTML for container:', friendsHtml);
             onlineFriendsContainer.innerHTML = friendsHtml;
             console.log(`✅ [HOME-FRIENDS] Updated online friends container with ${onlineFriends.length} friends`);
         } else {
+            console.log('📭 [HOME-FRIENDS] No online friends found, showing empty state');
+            console.log('📭 [HOME-FRIENDS] Debug - Total friends:', friends.length);
+            console.log('📭 [HOME-FRIENDS] Debug - Online users count:', Object.keys(onlineUsers).length);
+            console.log('📭 [HOME-FRIENDS] Debug - All friends vs online users:');
+            friends.forEach(friend => {
+                const userData = onlineUsers[friend.id];
+                console.log(`   ${friend.username} (${friend.id}): ${userData ? 'HAS DATA' : 'NO DATA'} - ${userData?.status || 'no status'}`);
+            });
+            
             onlineFriendsContainer.innerHTML = `
                 <div class="p-4 bg-discord-dark rounded text-center">
                     <div class="mb-2 text-gray-400">
@@ -404,7 +420,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p class="text-gray-500 text-sm">Friends will appear here when they come online</p>
                 </div>
             `;
-            console.log('📭 [HOME-FRIENDS] No online friends, showing empty state');
         }
     }
     
@@ -419,8 +434,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.FriendsManager) {
             const friendsManager = window.FriendsManager.getInstance();
             onlineUsers = friendsManager.cache.onlineUsers || {};
+            console.log('📊 [HOME-FRIENDS] Got initial online users from FriendsManager:', Object.keys(onlineUsers).length, Object.keys(onlineUsers));
             updateAllFriendsStatus();
             renderOnlineTab();
+        } else {
+            console.warn('⚠️ [HOME-FRIENDS] FriendsManager not available for initial load');
         }
     }
     
@@ -476,7 +494,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         socket.on('online-users-response', (data) => {
             console.log('📊 [HOME-FRIENDS] Received online users response:', data);
-            onlineUsers = data.users || {};
+            onlineUsers = data.users || data || {};
+            console.log('📊 [HOME-FRIENDS] Processed online users:', Object.keys(onlineUsers).length, Object.keys(onlineUsers));
             updateAllFriendsStatus();
             renderOnlineTab();
         });
@@ -500,8 +519,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     case 'online-users-updated':
                         console.log('📊 [HOME-FRIENDS] Before update - onlineUsers:', Object.keys(onlineUsers).length);
                         onlineUsers = friendsManager.cache.onlineUsers || {};
-                        console.log('📊 [HOME-FRIENDS] After update - onlineUsers:', Object.keys(onlineUsers).length, onlineUsers);
-                        console.log('👥 [HOME-FRIENDS] Friends list:', friends.length, friends.map(f => f.id));
+                        console.log('📊 [HOME-FRIENDS] After update - onlineUsers:', Object.keys(onlineUsers).length, Object.keys(onlineUsers));
+                        console.log('👥 [HOME-FRIENDS] Friends list:', friends.length, friends.map(f => ({ id: f.id, username: f.username })));
+                        
+                        console.log('🔍 [HOME-FRIENDS] Checking friend-user overlap:');
+                        friends.forEach(friend => {
+                            const userData = onlineUsers[friend.id];
+                            console.log(`   Friend ${friend.username} (${friend.id}): ${userData ? 'ONLINE' : 'OFFLINE'}`, userData);
+                        });
+                        
                         updateAllFriendsStatus();
                         renderOnlineTab();
                         break;
@@ -515,6 +541,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function initializeHomeFriends() {
         console.log('🚀 [HOME-FRIENDS] Initializing real-time home friends');
+        console.log('📊 [HOME-FRIENDS] Available friends data:', friends.length, friends);
+        console.log('📊 [HOME-FRIENDS] Initial online users:', Object.keys(onlineUsers).length, onlineUsers);
         
         setupFriendsManagerIntegration();
         

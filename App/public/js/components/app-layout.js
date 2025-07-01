@@ -69,6 +69,11 @@ function createDirectMessage(userId) {
 
 
 async function loadOnlineFriends(forceRefresh = false) {
+    const container = document.getElementById('online-friends-container');
+    if (!container) {
+        return;
+    }
+    
     console.log('🔄 [APP-LAYOUT] loadOnlineFriends called, forceRefresh:', forceRefresh);
     
     const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
@@ -81,12 +86,6 @@ async function loadOnlineFriends(forceRefresh = false) {
     
     if (mainLayoutContainer && skeletonAttribute === 'home') {
         console.log('⏸️ [APP-LAYOUT] Skeleton loading active, skipping online friends load');
-        return;
-    }
-    
-    const container = document.getElementById('online-friends-container');
-    if (!container) {
-        console.warn('⚠️ [APP-LAYOUT] Online friends container not found');
         return;
     }
     
@@ -148,8 +147,6 @@ async function loadOnlineFriends(forceRefresh = false) {
             
             if (statusA === 'online' && statusB !== 'online') return -1;
             if (statusB === 'online' && statusA !== 'online') return 1;
-            if (statusA === 'idle' && statusB === 'offline') return -1;
-            if (statusB === 'idle' && statusA === 'offline') return 1;
             
             return a.username.localeCompare(b.username);
         });
@@ -818,6 +815,7 @@ function initMobileMenu() {
 
 function initializeOnPageLoad() {
     const currentPath = window.location.pathname;
+    const isHomePage = currentPath === '/home' || currentPath === '/home/friends' || currentPath.startsWith('/home/');
     
     if (window.directMessageNavigation) {
         window.directMessageNavigation.init();
@@ -827,7 +825,7 @@ function initializeOnPageLoad() {
         window.initDirectMessageNavigation();
     }
     
-    if (window.initFriendsTabManager) {
+    if (isHomePage && window.initFriendsTabManager) {
         window.initFriendsTabManager();
     }
     
@@ -837,36 +835,7 @@ function initializeOnPageLoad() {
             return;
         }
         
-        if (window.FriendsManager) {
-            const friendsManager = window.FriendsManager.getInstance();
-            console.log('🔗 [APP-LAYOUT] Setting up FriendsManager listeners');
-            
-            friendsManager.subscribe((type, data) => {
-                console.log(`🔄 [APP-LAYOUT] FriendsManager event: ${type}`, data);
-                switch(type) {
-                    case 'user-online':
-                    case 'user-offline':
-                    case 'user-presence-update':
-                    case 'online-users-updated':
-                        console.log('🔄 [APP-LAYOUT] Refreshing online friends due to presence update');
-                        loadOnlineFriends(true);
-                        break;
-                    case 'friends-updated':
-                        console.log('🔄 [APP-LAYOUT] Refreshing all friends due to friends update');
-                        loadAllFriends(true);
-                        break;
-                    case 'pending-updated':
-                        console.log('🔄 [APP-LAYOUT] Refreshing pending requests due to pending update');
-                        loadPendingRequests(true);
-                        break;
-                }
-            });
-            
-            if (friendsManager && friendsManager.setupSocketListeners) {
-                friendsManager.setupSocketListeners();
-            }
-            console.log('✅ [APP-LAYOUT] FriendsManager integration complete');
-        }
+
     };
     
     if (window.globalSocketManager && window.globalSocketManager.isReady()) {
@@ -882,30 +851,11 @@ function initializeOnPageLoad() {
         });
     }
     
-    if (currentPath === '/home' || currentPath === '/home/friends' || currentPath.startsWith('/home/')) {
-        setTimeout(() => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const tab = urlParams.get('tab') || 'online';
-            
-            switch (tab) {
-                case 'online':
-                    loadOnlineFriends();
-                    break;
-                case 'all':
-                    loadAllFriends();
-                    break;
-                case 'pending':
-                    loadPendingRequests();
-                    break;
-            }
-        }, 200);
-    }
+
     
-    setInterval(() => {
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            window.globalSocketManager.io.emit('get-online-users');
-        }
-    }, 30000);
+
+    
+    setupCreateServerButton();
 }
 
 function setupCreateServerButton() {

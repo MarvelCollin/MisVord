@@ -297,6 +297,8 @@ class VoiceSection {
     }
 
     resetState() {
+        console.log('🔄 [VOICE-SECTION] Resetting voice section state');
+        
         if (this.durationInterval) {
             clearInterval(this.durationInterval);
             this.durationInterval = null;
@@ -304,25 +306,37 @@ class VoiceSection {
         
         this.connectionStartTime = null;
         this.initializationAttempts = 0;
-        this.initialized = false;
         this.isProcessing = false;
         this.autoJoinInProgress = false;
         
-        this.elements = {
-            joinBtn: null,
-            joinView: null,
-            connectingView: null,
-            voiceControls: null
-        };
+        if (this.elements.joinBtn) {
+            this.elements.joinBtn.removeAttribute('data-processing');
+            this.elements.joinBtn.style.pointerEvents = 'auto';
+            this.elements.joinBtn.style.cursor = 'pointer';
+            this.elements.joinBtn.textContent = 'Join Voice';
+        }
         
-        setTimeout(() => {
-            this.findElements();
-            this.init();
-        }, 300);
+        if (this.elements.connectingView) {
+            this.elements.connectingView.classList.add('hidden');
+        }
+        
+        if (this.elements.joinView) {
+            this.elements.joinView.classList.remove('hidden');
+        }
+        
+        if (this.elements.voiceControls) {
+            this.elements.voiceControls.classList.add('hidden');
+        }
+        
+        console.log('✅ [VOICE-SECTION] State reset completed');
     }
     
     updateChannelId(channelId, forceFresh = false) {
         console.log('🔄 [VOICE-SECTION] Updating channel ID:', channelId, 'forceFresh:', forceFresh);
+        
+        if (forceFresh) {
+            this.resetState();
+        }
         
         this.currentChannelId = channelId;
         
@@ -354,27 +368,21 @@ class VoiceSection {
         try {
             console.log('📡 [VOICE-SECTION] Fetching channel data for:', channelId);
             
-            const response = await fetch(`/api/channels/${channelId}`, {
-                method: 'GET',
-                credentials: 'include',
-                headers: { 'Accept': 'application/json' }
-            });
+            const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+            const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
+                               channelElement?.getAttribute('data-channel-name') || 
+                               'Voice Channel';
             
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.data) {
-                    window.currentChannelData = data.data.channel;
-                    console.log('✅ [VOICE-SECTION] Channel data fetched:', data.data.channel);
-                    
-                    if (data.data.channel.name) {
-                        this.updateChannelNames(data.data.channel.name);
-                    }
-                }
-            } else {
-                console.error('❌ [VOICE-SECTION] Failed to fetch channel data:', response.status);
-            }
+            window.currentChannelData = {
+                id: channelId,
+                name: channelName,
+                type: 'voice'
+            };
+            
+            this.updateChannelNames(channelName);
+            console.log('✅ [VOICE-SECTION] Channel data set from DOM:', window.currentChannelData);
         } catch (error) {
-            console.error('❌ [VOICE-SECTION] Error fetching channel data:', error);
+            console.error('❌ [VOICE-SECTION] Error setting channel data:', error);
         }
     }
 }
