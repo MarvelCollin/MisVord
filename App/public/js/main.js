@@ -341,15 +341,17 @@ function initializeComponents() {
             }
             
             if (typeof window.updateActiveServer === 'function') {
-                const currentPath = window.location.pathname;
-                if (currentPath.includes('/server/')) {
-                    const serverId = currentPath.split('/server/')[1].split('/')[0];
-                    window.updateActiveServer('server', serverId);
-                } else if (currentPath === '/home' || currentPath === '/') {
-                    window.updateActiveServer('home');
-                } else if (currentPath.includes('/explore')) {
-                    window.updateActiveServer('explore');
-                }
+                setTimeout(() => {
+                    const currentPath = window.location.pathname;
+                    if (currentPath.includes('/server/')) {
+                        const serverId = currentPath.split('/server/')[1].split('/')[0];
+                        window.updateActiveServer('server', serverId);
+                    } else if (currentPath === '/home' || currentPath === '/') {
+                        window.updateActiveServer('home');
+                    } else if (currentPath.includes('/explore')) {
+                        window.updateActiveServer('explore');
+                    }
+                }, 200);
             }
         }, 100);
     }

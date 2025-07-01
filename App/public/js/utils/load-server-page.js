@@ -415,6 +415,11 @@ function updateServerLayout(html, serverId, channelId) {
                 `misvord - Server`, 
                 url
             );
+            if (typeof window.updateActiveServer === 'function') {
+                window.updateActiveServer('server', serverId);
+                console.log('[Server Layout] Active server state updated for server:', serverId);
+            }
+            
             console.log('[Server Layout] SUCCESS - Server layout replacement completed');
         } else {
             console.error('[Server Layout] FAILED - Layout container not found');
@@ -589,7 +594,9 @@ function initializeServerSystems() {
         }
 
         if (typeof window.initServerDropdown === 'function') {
-            window.initServerDropdown();
+            setTimeout(() => {
+                window.initServerDropdown();
+            }, 150);
         }
 
         if (typeof window.initializeChatSection === 'function') {

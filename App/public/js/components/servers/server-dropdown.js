@@ -17,9 +17,8 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         const isServerPage = document.getElementById('server-dropdown-btn') !== null;
         
-        if (isServerPage && !isInitialized) {
+        if (isServerPage) {
             initServerDropdown();
-            isInitialized = true;
         }
     }, 100);
 });
@@ -138,15 +137,16 @@ function applyRoleBasedVisibility(userRole) {
 }
 
 async function initServerDropdown() {
-    if (isInitialized) {
-        console.log('Server dropdown already initialized');
-        return;
+    console.log('Initializing server dropdown...');
+    
+    const dropdown = document.getElementById('server-dropdown');
+    if (dropdown && dropdown.hasAttribute('data-actions-initialized')) {
+        dropdown.removeAttribute('data-actions-initialized');
     }
     
-    console.log('Initializing server dropdown...');
+    isInitialized = false;
 
     const dropdownBtn = document.getElementById('server-dropdown-btn');
-    const dropdown = document.getElementById('server-dropdown');
 
     if (!dropdownBtn || !dropdown) {
         console.error('Dropdown elements not found!', {
@@ -195,8 +195,12 @@ async function initServerDropdown() {
 
 function initServerActions() {
     const dropdown = document.getElementById('server-dropdown');
-    if (!dropdown || dropdown.hasAttribute('data-actions-initialized')) {
+    if (!dropdown) {
         return;
+    }
+    
+    if (dropdown.hasAttribute('data-actions-initialized')) {
+        dropdown.removeAttribute('data-actions-initialized');
     }
 
     dropdown.addEventListener('click', function(e) {

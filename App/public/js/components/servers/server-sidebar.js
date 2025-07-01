@@ -8,7 +8,7 @@ let cacheExpiry = 0;
 let isHandlingClick = false;
 
 let lastServerSwitchTime = 0;
-const SERVER_SWITCH_DELAY = 1300;
+const SERVER_SWITCH_DELAY = 600;
 
 let homeIconClickCount = 0;
 let lastClickTime = 0;
