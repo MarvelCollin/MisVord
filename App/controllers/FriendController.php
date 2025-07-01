@@ -274,18 +274,56 @@ class FriendController extends BaseController
         $userId = $this->getCurrentUserId();
         
         try {
-            $friends = $this->friendListRepository->getUserFriends($userId);
+            $allFriends = $this->friendListRepository->getUserFriends($userId);
+            
+            $onlineUsers = $this->getOnlineUsersFromSocket();
+            
+            $onlineFriends = array_filter($allFriends, function($friend) use ($onlineUsers) {
+                return isset($onlineUsers[$friend['id']]) && $onlineUsers[$friend['id']]['status'] !== 'offline';
+            });
             
             $this->logActivity('online_friends_viewed');
             
             $this->jsonResponse([
                 'success' => true,
-                'data' => ['friends' => $friends],
-                'message' => 'Friends retrieved successfully'
+                'data' => ['friends' => array_values($onlineFriends)],
+                'message' => 'Online friends retrieved successfully'
             ]);
             return;
         } catch (Exception $e) {
             return $this->serverError('An error occurred while retrieving online friends: ' . $e->getMessage());
+        }
+    }
+    
+    private function getOnlineUsersFromSocket()
+    {
+        try {
+            $socketHost = $_ENV['SOCKET_HOST'] ?? 'socket-server';
+            $socketPort = $_ENV['SOCKET_PORT'] ?? '3000';
+            $url = "http://{$socketHost}:{$socketPort}/api/online-users";
+            
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 2,
+                    'method' => 'GET',
+                    'header' => 'Content-Type: application/json'
+                ]
+            ]);
+            
+            $response = file_get_contents($url, false, $context);
+            if ($response === FALSE) {
+                return [];
+            }
+            
+            $data = json_decode($response, true);
+            if (!$data || !$data['success']) {
+                return [];
+            }
+            
+            return $data['users'] ?? [];
+        } catch (Exception $e) {
+            error_log("Failed to get online users from socket server: " . $e->getMessage());
+            return [];
         }
     }
     

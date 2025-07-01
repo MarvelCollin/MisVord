@@ -16,7 +16,7 @@ if (!function_exists('renderChannel')) {
         $type = $channel['type'] ?? 'text';
         $icon = getChannelIcon($type);
         $isActive = $activeChannelId == $channel['id'];
-        $activeClass = $isActive ? 'active-channel' : '';
+        $activeClass = $isActive ? 'active' : '';
         
         $serverId = $GLOBALS['currentServer']->id ?? ($GLOBALS['server']->id ?? '');
         

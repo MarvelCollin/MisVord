@@ -109,6 +109,16 @@
 .server-icon {
     z-index: 10;
     position: relative;
+    width: 96px !important;
+    height: 96px !important;
+    border-radius: 50% !important;
+}
+
+.server-icon > div {
+    width: 96px !important;
+    height: 96px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
 }
 
 .server-icon img, .server-icon div {
@@ -151,6 +161,21 @@
     width: 96px !important;
     height: 96px !important;
     aspect-ratio: 1/1 !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    flex-shrink: 0 !important;
+}
+
+.server-icon img {
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    flex-shrink: 0 !important;
+}
+
+.server-icon div {
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
 }
 
 .modal-container:hover .server-icon img,
@@ -377,9 +402,27 @@
         height: 140px;
     }
 
-    .server-icon .w-24 {
+    .server-icon {
         width: 64px !important;
         height: 64px !important;
+        border-radius: 50% !important;
+    }
+    
+    .server-icon > div {
+        width: 64px !important;
+        height: 64px !important;
+        border-radius: 50% !important;
+    }
+    
+    .server-icon .w-24,
+    .server-icon .w-24 img,
+    .server-icon .w-24 div,
+    #server-modal-icon,
+    #server-modal-icon-fallback {
+        width: 64px !important;
+        height: 64px !important;
+        border-radius: 50% !important;
+        aspect-ratio: 1/1 !important;
     }
 
     #server-modal-name {
@@ -413,9 +456,27 @@
         border-radius: 12px 12px 0 0;
     }
 
-    .server-icon .w-24 {
+    .server-icon {
         width: 56px !important;
         height: 56px !important;
+        border-radius: 50% !important;
+    }
+    
+    .server-icon > div {
+        width: 56px !important;
+        height: 56px !important;
+        border-radius: 50% !important;
+    }
+    
+    .server-icon .w-24,
+    .server-icon .w-24 img,
+    .server-icon .w-24 div,
+    #server-modal-icon,
+    #server-modal-icon-fallback {
+        width: 56px !important;
+        height: 56px !important;
+        border-radius: 50% !important;
+        aspect-ratio: 1/1 !important;
     }
 
     #server-modal-name {

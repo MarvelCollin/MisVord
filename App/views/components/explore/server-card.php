@@ -21,12 +21,9 @@ function renderServerCard($server, $userServerId, $isFeatured = false) {
                 <div class="explore-server-icon server-icon featured absolute -top-10 left-6">
                     <div class="w-full h-full rounded-2xl bg-discord-dark p-1 shadow-xl relative overflow-hidden">
                         <?php if (!empty($server['image_url'])): ?>
-                            <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-xl"
-                                 onerror="this.onerror=null; this.src='/public/assets/common/default-profile-picture.png';">
+                            <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-xl server-icon">
                         <?php else: ?>
-                            <div class="w-full h-full rounded-xl bg-gradient-to-br from-discord-primary to-purple-600 flex items-center justify-center text-white font-bold text-3xl">
-                                <?php echo strtoupper(substr($server['name'], 0, 1)); ?>
-                            </div>
+                            <img src="/public/assets/common/default-profile-picture.png" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-xl server-icon">
                         <?php endif; ?>
                         <div class="absolute inset-0 rounded-xl ring-2 ring-white/20"></div>
                     </div>
@@ -81,12 +78,9 @@ function renderServerCard($server, $userServerId, $isFeatured = false) {
                 <div class="explore-server-icon-small server-icon-small absolute -top-8 left-5">
                     <div class="w-full h-full rounded-xl bg-discord-dark p-1 shadow-xl relative overflow-hidden">
                         <?php if (!empty($server['image_url'])): ?>
-                            <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-lg"
-                                 onerror="this.onerror=null; this.src='/public/assets/common/default-profile-picture.png';">
+                            <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-lg server-icon">
                         <?php else: ?>
-                            <div class="w-full h-full rounded-lg bg-gradient-to-br from-discord-primary to-purple-600 flex items-center justify-center text-white font-bold text-xl">
-                                <?php echo strtoupper(substr($server['name'], 0, 1)); ?>
-                            </div>
+                            <img src="/public/assets/common/default-profile-picture.png" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-lg server-icon">
                         <?php endif; ?>
                         <div class="absolute inset-0 ring-2 ring-white/20 rounded-lg"></div>
                     </div>

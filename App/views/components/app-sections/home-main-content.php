@@ -255,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const allFriendsContainer = document.getElementById('all-friends-container');
     
     let onlineUsers = {};
-    let isSocketReady = false;
     
     function getStatusClass(status) {
         switch (status) {
@@ -277,26 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function updateUserStatus(userId, status, username) {
-        console.log(`🔄 [HOME-FRIENDS] Updating user ${username} (${userId}) status to ${status}`);
-        
-        if (status === 'offline' || status === 'invisible') {
-            if (onlineUsers[userId]) {
-                delete onlineUsers[userId];
-            }
-        } else {
-            onlineUsers[userId] = {
-                user_id: userId,
-                username: username,
-                status: status,
-                last_seen: Date.now(),
-                activity_details: null
-            };
-        }
-        
-        updateAllTabStatus(userId, status);
-        renderOnlineTab();
-    }
+
     
     function updateAllTabStatus(userId, status) {
         console.log(`🎯 [HOME-FRIENDS] Updating status for user ${userId} to ${status}`);
@@ -423,25 +403,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function loadInitialOnlineUsers() {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            setTimeout(loadInitialOnlineUsers, 500);
-            return;
-        }
-        
-        console.log('🔄 [HOME-FRIENDS] Loading initial online users...');
-        
-        if (window.FriendsManager) {
-            const friendsManager = window.FriendsManager.getInstance();
-            onlineUsers = friendsManager.cache.onlineUsers || {};
-            console.log('📊 [HOME-FRIENDS] Got initial online users from FriendsManager:', Object.keys(onlineUsers).length, Object.keys(onlineUsers));
-            updateAllFriendsStatus();
-            renderOnlineTab();
-        } else {
-            console.warn('⚠️ [HOME-FRIENDS] FriendsManager not available for initial load');
-        }
-    }
-    
     function updateAllFriendsStatus() {
         console.log('🔄 [HOME-FRIENDS] Updating all friends status');
         friends.forEach(friend => {
@@ -453,59 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('✅ [HOME-FRIENDS] Finished updating all friends status');
     }
     
-    function handleUserOnline(data) {
-        console.log('👥 [HOME-FRIENDS] User came online:', data);
-        if (data.user_id && data.username) {
-            updateUserStatus(data.user_id, data.status || 'online', data.username);
-        }
-    }
-    
-    function handleUserOffline(data) {
-        console.log('👥 [HOME-FRIENDS] User went offline:', data);
-        if (data.user_id && data.username) {
-            updateUserStatus(data.user_id, 'offline', data.username);
-        }
-    }
-    
-    function handlePresenceUpdate(data) {
-        console.log('👥 [HOME-FRIENDS] User presence updated:', data);
-        if (data.user_id && data.username) {
-            updateUserStatus(data.user_id, data.status, data.username);
-        }
-    }
-    
-    function setupSocketListeners() {
-        if (!window.globalSocketManager || !window.globalSocketManager.io) {
-            console.warn('⚠️ [HOME-FRIENDS] Socket manager not ready');
-            return false;
-        }
-        
-        console.log('🔌 [HOME-FRIENDS] Setting up real-time socket listeners');
-        
-        const socket = window.globalSocketManager.io;
-        
-        socket.off('user-online');
-        socket.off('user-offline');
-        socket.off('user-presence-update');
-        
-        socket.on('user-online', handleUserOnline);
-        socket.on('user-offline', handleUserOffline);
-        socket.on('user-presence-update', handlePresenceUpdate);
-        
-        socket.on('online-users-response', (data) => {
-            console.log('📊 [HOME-FRIENDS] Received online users response:', data);
-            onlineUsers = data.users || data || {};
-            console.log('📊 [HOME-FRIENDS] Processed online users:', Object.keys(onlineUsers).length, Object.keys(onlineUsers));
-            updateAllFriendsStatus();
-            renderOnlineTab();
-        });
-        
-        isSocketReady = true;
-        console.log('✅ [HOME-FRIENDS] Real-time socket listeners configured');
-        
-        loadInitialOnlineUsers();
-        return true;
-    }
+
     
     function setupFriendsManagerIntegration() {
         if (window.FriendsManager) {
@@ -533,53 +442,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         break;
                 }
             });
+            
+            onlineUsers = friendsManager.cache.onlineUsers || {};
+            console.log('📊 [HOME-FRIENDS] Initial onlineUsers from FriendsManager:', Object.keys(onlineUsers).length, Object.keys(onlineUsers));
             console.log('✅ [HOME-FRIENDS] FriendsManager integration setup complete');
         } else {
-            console.warn('⚠️ [HOME-FRIENDS] FriendsManager not available');
+            console.warn('⚠️ [HOME-FRIENDS] FriendsManager not available, retrying in 500ms');
+            setTimeout(setupFriendsManagerIntegration, 500);
         }
     }
     
     function initializeHomeFriends() {
-        console.log('🚀 [HOME-FRIENDS] Initializing real-time home friends');
+        console.log('🚀 [HOME-FRIENDS] Initializing home friends with FriendsManager');
         console.log('📊 [HOME-FRIENDS] Available friends data:', friends.length, friends);
-        console.log('📊 [HOME-FRIENDS] Initial online users:', Object.keys(onlineUsers).length, onlineUsers);
         
         setupFriendsManagerIntegration();
-        
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            setupSocketListeners();
-        } else {
-            console.log('⏳ [HOME-FRIENDS] Waiting for socket to be ready...');
-        }
-    }
-    
-    window.addEventListener('globalSocketReady', function(event) {
-        console.log('🔌 [HOME-FRIENDS] Socket ready event received');
-        setupSocketListeners();
-    });
-    
-    window.addEventListener('socketAuthenticated', function(event) {
-        console.log('🔐 [HOME-FRIENDS] Socket authenticated event received');
-        if (!isSocketReady) {
-            setupSocketListeners();
-        }
-    });
-    
-    window.addEventListener('globalSocketDisconnected', function() {
-        console.log('❌ [HOME-FRIENDS] Socket disconnected');
-        isSocketReady = false;
-        onlineUsers = {};
         updateAllFriendsStatus();
         renderOnlineTab();
-    });
+    }
     
     initializeHomeFriends();
-    
-    setInterval(() => {
-        if (isSocketReady && window.globalSocketManager && window.globalSocketManager.isReady()) {
-            window.globalSocketManager.io.emit('get-online-users');
-        }
-    }, 30000);
 });
 </script>
 

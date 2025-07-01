@@ -48,30 +48,28 @@ class SimpleChannelSwitcher {
         if (this.isLoading) return;
         
         this.isLoading = true;
-        this.showChannelSwitchLoading(channelId);
         
-        try {
-            this.currentChannelId = channelId;
-            this.currentChannelType = channelType;
-            
-            this.updateActiveChannel(channelId);
-            this.showSection(channelType, channelId);
-            this.updateURL(channelId, channelType);
-            this.updateMetaTags(channelId, channelType);
-            this.updateChannelHeader(channelId, channelType);
-            
-            if (channelType === 'text') {
-                await this.initializeTextChannel(channelId, true);
-            } else if (channelType === 'voice') {
-                await this.initializeVoiceChannel(channelId, true);
-            }
-        } finally {
-            this.hideChannelSwitchLoading(channelId);
-            this.isLoading = false;
+        this.currentChannelId = channelId;
+        this.currentChannelType = channelType;
+        
+        this.updateActiveChannel(channelId);
+        this.showSection(channelType, channelId);
+        this.updateURL(channelId, channelType);
+        this.updateMetaTags(channelId, channelType);
+        this.updateChannelHeader(channelId, channelType);
+        
+        if (channelType === 'text') {
+            await this.initializeTextChannel(channelId, true);
+        } else if (channelType === 'voice') {
+            await this.initializeVoiceChannel(channelId, true);
         }
+        
+        this.isLoading = false;
     }
     
     updateActiveChannel(channelId) {
+        console.log('🎯 [SWITCH-MANAGER] Updating active channel to:', channelId);
+        
         document.querySelectorAll('.channel-item').forEach(item => {
             item.classList.remove('active');
             item.removeAttribute('data-active');
@@ -81,6 +79,9 @@ class SimpleChannelSwitcher {
         if (targetChannel) {
             targetChannel.classList.add('active');
             targetChannel.setAttribute('data-active', 'true');
+            console.log('✅ [SWITCH-MANAGER] Active channel set:', channelId, targetChannel);
+        } else {
+            console.warn('⚠️ [SWITCH-MANAGER] Target channel not found for ID:', channelId);
         }
     }
     
@@ -205,31 +206,7 @@ class SimpleChannelSwitcher {
         };
     }
     
-    showChannelSwitchLoading(channelId) {
-        const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
-        if (channelItem) {
-            channelItem.classList.add('switching');
-            
-            const existingIndicator = channelItem.querySelector('.channel-switch-indicator');
-            if (!existingIndicator) {
-                const indicator = document.createElement('div');
-                indicator.className = 'channel-switch-indicator';
-                channelItem.appendChild(indicator);
-            }
-        }
-    }
-    
-    hideChannelSwitchLoading(channelId) {
-        const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
-        if (channelItem) {
-            channelItem.classList.remove('switching');
-            
-            const indicator = channelItem.querySelector('.channel-switch-indicator');
-            if (indicator) {
-                indicator.remove();
-            }
-        }
-    }
+
 }
 
 if (typeof window !== 'undefined') {

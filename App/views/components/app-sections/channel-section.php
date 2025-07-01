@@ -163,35 +163,9 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     opacity: 1 !important;
 }
 
-.channel-item.switching {
-    opacity: 0.6;
-    pointer-events: none;
-    background-color: rgba(88, 101, 242, 0.1) !important;
-}
 
-.channel-switch-indicator {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border: 2px solid #5865f2;
-    border-radius: 50%;
-    border-top-color: transparent;
-    animation: spin 1s linear infinite;
-    margin-left: 8px;
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-}
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
 
-.channel-item.active-channel {
-    background-color: rgba(79, 84, 92, 0.3) !important;
-    border-left: 3px solid #5865f2;
-}
 
 .category-header {
     transition: color 0.15s ease;

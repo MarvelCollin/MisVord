@@ -152,8 +152,8 @@
 }
 
 .channel-item.active {
-  background-color: var(--discord-background-modifier-selected);
-  color: var(--discord-text-normal);
+  background-color: #5865f2 !important;
+  color: #ffffff !important;
 }
 
 .channel-icon {
@@ -603,8 +603,8 @@
 }
 
 .channel-item.active {
-  background-color: #4f545c;
-  color: #fff;
+  background-color: #5865f2 !important;
+  color: #ffffff !important;
 }
 
 .category-container {

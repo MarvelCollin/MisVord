@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let onlineUsers = {};
     let updateTimer = null;
-    let isSocketReady = false;
     
     function getStatusClass(status) {
         switch (status) {
@@ -86,23 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function updateUserStatus(userId, status, username, activityDetails = null) {
-        if (status === 'offline' || status === 'invisible') {
-            if (onlineUsers[userId]) {
-                delete onlineUsers[userId];
-            }
-        } else {
-            onlineUsers[userId] = {
-                user_id: userId,
-                username: username,
-                status: status,
-                last_seen: Date.now(),
-                activity_details: activityDetails
-            };
-        }
-        
-        scheduleUpdate();
-    }
+
     
     function scheduleUpdate() {
         if (updateTimer) {
@@ -187,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const friendsManager = window.FriendsManager.getInstance();
             
             friendsManager.subscribe((type, data) => {
-    
+                console.log(`🔄 [ACTIVE-NOW] FriendsManager event: ${type}`, data);
                 
                 switch (type) {
                     case 'user-online':
@@ -195,122 +178,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     case 'user-presence-update':
                     case 'online-users-updated':
                         onlineUsers = friendsManager.cache.onlineUsers || {};
+                        console.log('📊 [ACTIVE-NOW] Updated onlineUsers from FriendsManager:', Object.keys(onlineUsers).length, Object.keys(onlineUsers));
                         updateActiveFriends();
                         break;
                 }
             });
             
-    
+            onlineUsers = friendsManager.cache.onlineUsers || {};
+            console.log('📊 [ACTIVE-NOW] Initial onlineUsers from FriendsManager:', Object.keys(onlineUsers).length, Object.keys(onlineUsers));
+        } else {
+            console.warn('⚠️ [ACTIVE-NOW] FriendsManager not available, retrying in 500ms');
+            setTimeout(setupFriendsManagerIntegration, 500);
         }
     }
     
     function initializeActiveNowSection() {
-
-        
+        console.log('🚀 [ACTIVE-NOW] Initializing Active Now section');
         setupFriendsManagerIntegration();
-        
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            setupSocketListeners();
-        } else {
-            console.log('⏳ [ACTIVE-NOW] Waiting for socket to be ready...');
-        }
-        
-        if (window.FriendsManager) {
-            const friendsManager = window.FriendsManager.getInstance();
-            onlineUsers = friendsManager.cache.onlineUsers || {};
-        }
-        
         updateActiveFriends();
     }
-    
-    function setupSocketListeners() {
-        console.log('🔌 [ACTIVE-NOW] Setting up socket listeners');
-        if (window.globalSocketManager && window.globalSocketManager.io) {
-            console.log('✅ [ACTIVE-NOW] Socket manager available, setting up listeners');
-            
-            window.globalSocketManager.io.on('user-online', (data) => {
-                console.log('👥 [ACTIVE-NOW] User came online:', data);
-                handleUserOnline(data);
-            });
-            
-            window.globalSocketManager.io.on('user-offline', (data) => {
-                console.log('👥 [ACTIVE-NOW] User went offline:', data);
-                handleUserOffline(data);
-            });
-            
-            window.globalSocketManager.io.on('user-presence-update', (data) => {
-                console.log('👥 [ACTIVE-NOW] User presence updated:', data);
-                handlePresenceUpdate(data);
-            });
-            
-            window.globalSocketManager.io.on('online-users-list', (data) => {
-                console.log('👥 [ACTIVE-NOW] Received online users list:', data);
-                onlineUsers = data || {};
-                updateActiveFriends();
-            });
-            
-            window.globalSocketManager.io.on('online-users-response', (data) => {
-                console.log('👥 [ACTIVE-NOW] Received online users response:', data);
-                onlineUsers = data.users || {};
-                updateActiveFriends();
-            });
-            
-            isSocketReady = true;
-            console.log('✅ [ACTIVE-NOW] Socket listeners setup complete');
-            
-            window.globalSocketManager.io.emit('get-online-users');
-        } else {
-            console.warn('⚠️ [ACTIVE-NOW] Socket manager not available');
-        }
-    }
-    
-    function handleUserOnline(data) {
-        console.log('👥 [ACTIVE-NOW] User came online:', data);
-        if (data.user_id && data.username) {
-            updateUserStatus(data.user_id, data.status || 'online', data.username, data.activity_details);
-        }
-    }
-    
-    function handleUserOffline(data) {
-        console.log('👥 [ACTIVE-NOW] User went offline:', data);
-        if (data.user_id && data.username) {
-            updateUserStatus(data.user_id, 'offline', data.username, null);
-        }
-    }
-    
-    function handlePresenceUpdate(data) {
-        console.log('👥 [ACTIVE-NOW] User presence updated:', data);
-        if (data.user_id && data.username) {
-            updateUserStatus(data.user_id, data.status, data.username, data.activity_details);
-        }
-    }
-    
-    window.addEventListener('globalSocketReady', function(event) {
-        console.log('🔌 [ACTIVE-NOW] Socket ready event received');
-        setupSocketListeners();
-    });
-    
-    window.addEventListener('socketAuthenticated', function(event) {
-        console.log('🔐 [ACTIVE-NOW] Socket authenticated event received');
-        if (!isSocketReady) {
-            setupSocketListeners();
-        }
-    });
-    
-    window.addEventListener('globalSocketDisconnected', function() {
-        console.log('❌ [ACTIVE-NOW] Socket disconnected');
-        isSocketReady = false;
-        onlineUsers = {};
-        updateActiveFriends();
-    });
     
     initializeActiveNowSection();
-    
-    setInterval(() => {
-        if (isSocketReady && window.globalSocketManager && window.globalSocketManager.isReady()) {
-            window.globalSocketManager.io.emit('get-online-users');
-        }
-    }, 30000);
 });
 </script>
 

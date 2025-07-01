@@ -440,7 +440,7 @@ if (!function_exists('isBubbleVideoFile')) {
     <div class="bubble-avatar">
         <img src="<?= htmlspecialchars($avatarUrl) ?>" 
              alt="<?= htmlspecialchars($username) ?>" 
-             onerror="this.src='/public/assets/common/default-profile-picture.png';">
+             class="user-avatar">
     </div>
     
     <!-- Content Wrapper -->
