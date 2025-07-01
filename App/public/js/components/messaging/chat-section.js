@@ -1927,8 +1927,11 @@ class ChatSection {
 
     async ensureInitialized() {
         if (!this.messageHandler) {
-            console.log('📋 [CHAT-SECTION] Initializing message handler');
+            console.log('📋 [CHAT-SECTION] Initializing fresh message handler');
             this.messageHandler = new MessageHandler(this);
+        } else {
+            console.log('📋 [CHAT-SECTION] Message handler exists, ensuring clean state');
+            this.messageHandler.clearProcessedMessages();
         }
         
         if (!this.sendReceiveHandler) {
@@ -1946,7 +1949,7 @@ class ChatSection {
         this.setupHandlers();
         
         this.isInitialized = true;
-        console.log('✅ [CHAT-SECTION] Full initialization completed');
+        console.log('✅ [CHAT-SECTION] Full initialization completed with clean message handler state');
     }
 
     async switchToChannel(channelId, channelType = 'text', forceFresh = false) {
@@ -1974,6 +1977,12 @@ class ChatSection {
         console.log('🔄 [CHAT-SECTION] Resetting for new channel');
         
         this.forceStopAllOperations();
+        
+        if (this.messageHandler) {
+            this.messageHandler.clearProcessedMessages();
+            console.log('🧹 [CHAT-SECTION] Message handler processed messages cleared for channel switch');
+        }
+        
         this.fullStateReset();
         
         console.log('✅ [CHAT-SECTION] Reset completed');
@@ -2009,6 +2018,10 @@ class ChatSection {
         this.clearChatMessages();
         this.hideEmptyState();
         
+        if (this.messageHandler) {
+            this.messageHandler.clearProcessedMessages();
+        }
+        
         this.hasMoreMessages = true;
         this.lastLoadedMessageId = null;
         this.replyingTo = null;
@@ -2020,6 +2033,8 @@ class ChatSection {
             messagesContainer.innerHTML = '';
             messagesContainer.scrollTop = 0;
         }
+        
+        console.log('✅ [CHAT-SECTION] Full state reset completed with message handler cleanup');
     }
 
     leaveCurrentSocketRoom() {

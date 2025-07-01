@@ -167,9 +167,9 @@ class ChatAPI {
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.ChatAPI = new ChatAPI();
-}
+const chatAPI = new ChatAPI();
+window.ChatAPI = chatAPI;
 
-export default ChatAPI;
+export { ChatAPI };
+export default chatAPI;
 

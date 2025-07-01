@@ -66,22 +66,6 @@ $pendingRequests = $GLOBALS['pendingRequests'] ?? [];
 $sentRequests = $GLOBALS['sentRequests'] ?? [];
 $activeTab = $GLOBALS['activeTab'] ?? 'online';
 
-if ($contentType === 'explore') {
-    include dirname(__DIR__) . '/app-sections/explore-main-content.php';
-} elseif ($isHomePage) {
-    include dirname(__DIR__) . '/home-main-content.php';
-} else {
-    include dirname(__DIR__) . '/server-main-content.php';
-}
-
-include dirname(__DIR__) . '/voice/voice-call-section.php';
-
-if ($showVoiceIndicator) {
-    include dirname(__DIR__) . '/voice-indicator.php';
-}
-
-include dirname(__DIR__) . '/active-now-section.php';
-
 ?>
 
 <div class="flex h-screen" 

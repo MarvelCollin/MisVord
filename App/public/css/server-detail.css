@@ -120,23 +120,37 @@
 .server-icon .w-24 {
     width: 96px !important;
     height: 96px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
 }
 
 .server-icon .w-24 img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover;
-    border-radius: 50%;
+    width: 96px !important;
+    height: 96px !important;
+    object-fit: cover !important;
+    border-radius: 50% !important;
+    aspect-ratio: 1/1 !important;
 }
 
 .server-icon .w-24 div {
-    width: 100% !important;
-    height: 100% !important;
-    border-radius: 50%;
+    width: 96px !important;
+    height: 96px !important;
+    border-radius: 50% !important;
+    aspect-ratio: 1/1 !important;
 }
 
 #server-modal-icon-fallback {
-    border-radius: 50%;
+    border-radius: 50% !important;
+    width: 96px !important;
+    height: 96px !important;
+    aspect-ratio: 1/1 !important;
+}
+
+#server-modal-icon {
+    border-radius: 50% !important;
+    width: 96px !important;
+    height: 96px !important;
+    aspect-ratio: 1/1 !important;
 }
 
 .modal-container:hover .server-icon img,
