@@ -229,8 +229,23 @@ async function renderFolders() {
     // Remove all existing server groups
     document.querySelectorAll('.server-sidebar-group').forEach(el => el.remove());
     
-    // Reset all servers to main list first to prevent duplicates
-    resetServersToMainList();
+    // Get all server IDs that should be in groups
+    const serversInGroups = new Set();
+    groups.forEach(group => {
+        group.servers.forEach(serverId => serversInGroups.add(serverId));
+    });
+    
+    // Hide servers that should be in groups to prevent duplication
+    document.querySelectorAll('#server-list > .server-sidebar-icon[data-server-id]').forEach(serverIcon => {
+        const serverId = serverIcon.getAttribute('data-server-id');
+        if (serversInGroups.has(serverId)) {
+            serverIcon.style.display = 'none';
+            serverIcon.classList.add('in-group');
+        } else {
+            serverIcon.style.display = '';
+            serverIcon.classList.remove('in-group');
+        }
+    });
     
     const serverImageData = await buildServerImageData();
     
@@ -260,10 +275,11 @@ async function renderFolders() {
         
         // Move servers from main list to group
         group.servers.forEach(serverId => {
-            // Find server in main list (not already in any group)
-            const serverElement = document.querySelector(`#server-list > .server-sidebar-icon[data-server-id="${serverId}"]`);
+            // Find the hidden server element
+            const serverElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
             if (serverElement && serversContainer) {
                 console.log(`[Server Groups] Moving server ${serverId} to group ${group.id}`);
+                serverElement.style.display = '';
                 serverElement.classList.add('in-group');
                 if (serverElement.parentNode) {
                     serverElement.parentNode.removeChild(serverElement);
@@ -292,6 +308,7 @@ function resetServersToMainList() {
     // Move them back to main list
     serversInGroups.forEach(serverIcon => {
         serverIcon.classList.remove('in-group');
+        serverIcon.style.display = '';
         
         // Insert before add server button to maintain correct order
         const addButton = mainList.querySelector('.discord-add-server-button')?.parentNode;
@@ -308,9 +325,10 @@ function resetServersToMainList() {
         }
     });
     
-    // Also clean up any servers that might have the in-group class but aren't in a group
+    // Show all hidden servers and clean up classes
     document.querySelectorAll('.server-sidebar-icon[data-server-id].in-group').forEach(serverIcon => {
         serverIcon.classList.remove('in-group');
+        serverIcon.style.display = '';
     });
 }
 

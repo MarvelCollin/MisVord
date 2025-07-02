@@ -95,7 +95,7 @@ function getToastClasses(type) {
         case 'warning':
             return 'bg-yellow-500 text-white';
         case 'mention':
-            return 'bg-orange-500 text-white border-2 border-orange-300';
+            return 'bg-orange-500 text-white border-2 border-orange-300 cursor-pointer hover:bg-orange-600';
         case 'info':
         default:
             return 'bg-blue-500 text-white';
