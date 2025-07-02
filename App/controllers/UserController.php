@@ -1210,4 +1210,26 @@ class UserController extends BaseController
             return $this->serverError('Failed to get bulk nitro status: ' . $e->getMessage());
         }
     }
+
+    public function getUserAvatar($userId)
+    {
+        try {
+            $user = $this->userRepository->find($userId);
+            
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
+
+            $avatarUrl = $user->avatar_url ?? '/public/assets/common/default-profile-picture.png';
+
+            return $this->success([
+                'avatar_url' => $avatarUrl
+            ]);
+
+        } catch (Exception $e) {
+            return $this->error('Failed to fetch user avatar', 500);
+        }
+    }
+
+
 } 

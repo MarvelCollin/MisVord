@@ -923,7 +923,7 @@ class UnifiedParticipantManager {
         const isLocal = source === 'local' || (window.voiceCallManager?.localParticipantId === participantId);
         const participantName = data.participantObj?.displayName || data.participantObj?.name || data.name || `User ${participantId.slice(-4)}`;
         
-        const participant = {
+        let participantData = {
             id: participantId,
             name: participantName,
             hasVideo: false,
@@ -935,13 +935,32 @@ class UnifiedParticipantManager {
             source: source
         };
 
-        this.participants.set(participantId, participant);
+        if (!isLocal && !data.participantObj?.isBot) {
+            try {
+                const response = await fetch(`/api/user/${participantId}/profile`, {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const userData = await response.json();
+                    if (userData.success && userData.user) {
+                        participantData.name = userData.user.display_name || userData.user.username || participantData.name;
+                        participantData.avatarUrl = userData.user.avatar_url;
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to fetch participant profile data:', error);
+            }
+        }
+
+        this.participants.set(participantId, participantData);
         this.participantSources.set(participantId, source);
         
-        console.log(`[PARTICIPANT-MANAGER] Added participant: ${participant.name} (${participantId}) from source: ${source}`);
+        console.log(`[PARTICIPANT-MANAGER] Added participant: ${participantData.name} (${participantId}) from source: ${source}`);
         
         if (window.voiceCallManager) {
-            window.voiceCallManager.createParticipantElement(participant);
+            await window.voiceCallManager.createParticipantElement(participantData);
             window.voiceCallManager.updateParticipantCount();
         }
         
@@ -999,7 +1018,7 @@ class UnifiedParticipantManager {
         console.log(`[PARTICIPANT-MANAGER] Added bot: ${participant.name} (${botId})`);
         
         if (window.voiceCallManager) {
-            window.voiceCallManager.createParticipantElement(participant);
+            await window.voiceCallManager.createParticipantElement(participant);
             window.voiceCallManager.updateParticipantCount();
         }
     }
@@ -1291,26 +1310,23 @@ class VoiceCallManager {
         if (!participantGrid) return;
         
         participantGrid.addEventListener('dblclick', (event) => {
-            const card = event.target.closest('[data-participant-id]');
+            const card = event.target.closest('.screen-share-card, .video-participant-card, .voice-participant-card');
             if (!card) return;
-            
-            let participantId = card.dataset.participantId;
-            const isScreenShare = card.classList.contains('screen-share-card');
-            
+
+            let participantIdAttr = card.dataset.participantId || '';
+            const isScreenShare = card.classList.contains('screen-share-card') || participantIdAttr.endsWith('-screenshare');
+
+            if (isScreenShare) {
+                participantIdAttr = participantIdAttr.replace('-screenshare', '');
+            }
+
             console.log('[FULLSCREEN] Double-click detected:', {
-                originalParticipantId: participantId,
-                isScreenShare: isScreenShare,
+                participantId: participantIdAttr,
+                isScreenShare,
                 cardClasses: card.className
             });
-            
-            if (isScreenShare) {
-                participantId = participantId.replace('-screenshare', '');
-                console.log('[FULLSCREEN] Screen share double-click, extracted participant ID:', participantId);
-                this.toggleParticipantFullscreen(participantId, 'screenshare');
-            } else {
-                console.log('[FULLSCREEN] Regular card double-click, participant ID:', participantId);
-                this.toggleParticipantFullscreen(participantId, 'video');
-            }
+
+            this.toggleParticipantFullscreen(participantIdAttr, isScreenShare ? 'screenshare' : 'video');
         });
     }
 
@@ -1451,7 +1467,7 @@ class VoiceCallManager {
 
 
 
-    createParticipantElement(participant) {
+    async createParticipantElement(participant) {
         const container = document.getElementById('participantGrid');
         if (!container) {
             console.error('[ERROR] participantGrid container not found');
@@ -1475,11 +1491,8 @@ class VoiceCallManager {
 
 
         const element = document.createElement('div');
-        element.className = 'voice-participant-card';
+        element.className = 'voice-participant-card participant-card';
         element.dataset.participantId = participant.id;
-
-        element.style.width = '100%';
-        element.style.height = '100%';
 
         const avatarColor = participant.isBot ? '#5865f2' : (participant.isLocal ? '#3ba55c' : this.getAvatarColor(participant.name));
         const initial = participant.name.charAt(0).toUpperCase();
@@ -1487,14 +1500,14 @@ class VoiceCallManager {
         const localIndicator = participant.isLocal ? '<i class="fas fa-user text-xs text-[#3ba55c] ml-1"></i>' : '';
         const borderColor = participant.isBot ? '#5865f2' : (participant.isLocal ? '#3ba55c' : 'transparent');
         
-        const avatarUrl = this.getParticipantAvatarUrl(participant);
+        const avatarUrl = await this.getParticipantAvatarUrl(participant);
         const avatarContent = avatarUrl ? 
             `<img src="${avatarUrl}" alt="${participant.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
              <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px;">${participant.isBot ? '<i class="fas fa-robot text-white"></i>' : initial}</div>` :
             `${participant.isBot ? '<i class="fas fa-robot text-white"></i>' : initial}`;
 
         element.innerHTML = `
-            <div class="voice-participant-avatar ${participant.isBot ? 'bot-participant' : ''} ${participant.isLocal ? 'local-participant' : ''}" style="background: ${avatarUrl ? 'transparent' : avatarColor}; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px; margin-bottom: 8px; border: 3px solid ${borderColor}; overflow: hidden;">
+            <div class="voice-participant-avatar participant-avatar ${participant.isBot ? 'bot-participant' : ''} ${participant.isLocal ? 'local-participant' : ''}" style="background: ${avatarUrl ? 'transparent' : avatarColor}; border: 3px solid ${borderColor};">
                 ${avatarContent}
             </div>
             <span style="color: white; font-size: 12px; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; justify-content: center;">${participant.name}${participant.isLocal ? ' (You)' : ''}${botIndicator}${localIndicator}</span>
@@ -1582,7 +1595,7 @@ class VoiceCallManager {
         return this.participantManager.participants;
     }
 
-    handleCameraStream(participantId, stream) {
+    async handleCameraStream(participantId, stream) {
         console.log(`[DEBUG] Handling camera stream for ${participantId}`, {
             stream: stream,
             streamType: typeof stream,
@@ -1607,13 +1620,13 @@ class VoiceCallManager {
         }
         
         this.createVideoParticipantCard(participantId, stream);
-        this.updateParticipantCards(participantId);
+        await this.updateParticipantCards(participantId);
         
         console.log('[DEBUG] Camera stream handled - SUCCESS');
         this.updateView();
     }
 
-    handleCameraDisabled(participantId) {
+    async handleCameraDisabled(participantId) {
         console.log(`[CAMERA] Handling camera disabled for ${participantId}`);
         
         const participant = this.participantManager.getParticipant(participantId);
@@ -1627,12 +1640,12 @@ class VoiceCallManager {
         }
         
         this.removeVideoParticipantCard(participantId);
-        this.updateParticipantCards(participantId);
+        await this.updateParticipantCards(participantId);
         
         this.updateView();
     }
 
-    handleScreenShare(participantId, stream) {
+    async handleScreenShare(participantId, stream) {
         console.log(`[SCREEN-SHARE] Handling screen share for ${participantId}`, stream);
         
         const participant = this.participantManager.getParticipant(participantId);
@@ -1645,13 +1658,13 @@ class VoiceCallManager {
         }
         
         this.createScreenShareParticipantCard(participantId, stream);
-        this.updateParticipantCards(participantId);
+        await this.updateParticipantCards(participantId);
         
         console.log('[SCREEN-SHARE] Screen share created as participant card');
         this.updateView();
     }
 
-    handleScreenShareStopped(participantId = null) {
+    async handleScreenShareStopped(participantId = null) {
         console.log(`[SCREEN-SHARE] Handling screen share stopped for ${participantId || 'unknown'}`);
         
         const screenShareId = `${participantId}-screenshare`;
@@ -1673,7 +1686,7 @@ class VoiceCallManager {
             this.exitFullscreen();
         }
         
-        this.updateParticipantCards(participantId);
+        await this.updateParticipantCards(participantId);
         
         console.log('[SCREEN-SHARE] Screen share stopped');
         this.updateView();
@@ -1837,7 +1850,7 @@ class VoiceCallManager {
         }
     }
 
-    updateParticipantCards(participantId) {
+    async updateParticipantCards(participantId) {
         const participant = this.participantManager.getParticipant(participantId);
         if (!participant) return;
         
@@ -1853,7 +1866,7 @@ class VoiceCallManager {
         
         if (!hasVideo && !hasScreenShare) {
             if (!hasVoiceCard) {
-                this.createParticipantElement(participant);
+                await this.createParticipantElement(participant);
             }
         } else {
             if (hasVoiceCard) {
@@ -2287,19 +2300,38 @@ class VoiceCallManager {
         }
     }
 
-    getParticipantAvatarUrl(participant) {
+    async getParticipantAvatarUrl(participant) {
         if (participant.isLocal) {
             return document.querySelector('meta[name="user-avatar"]')?.content || 
                    sessionStorage.getItem('user_avatar_url') ||
                    window.currentUserAvatar ||
-                   null;
+                   '/public/assets/common/default-profile-picture.png';
         }
         
         if (participant.avatarUrl) {
             return participant.avatarUrl;
         }
         
-        return null;
+        if (participant.id && !participant.isBot) {
+            try {
+                const response = await fetch(`/api/user/${participant.id}/avatar`, {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.avatar_url) {
+                        participant.avatarUrl = data.avatar_url;
+                        return data.avatar_url;
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to fetch participant avatar:', error);
+            }
+        }
+        
+        return '/public/assets/common/default-profile-picture.png';
     }
 
     getAvatarColor(username) {

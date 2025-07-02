@@ -347,18 +347,26 @@ class MentionHandler {
     
     applyMentionInputStyling(input, isTypingMention) {
         if (isTypingMention) {
-            input.style.setProperty('--discord-channeltextarea-background', 'rgba(88, 101, 242, 0.15)', 'important');
-            input.style.setProperty('background', 'rgba(88, 101, 242, 0.15)', 'important');
-            input.style.setProperty('box-shadow', '0 0 0 3px rgba(88, 101, 242, 0.4)', 'important');
-            input.style.setProperty('border', '1px solid rgba(88, 101, 242, 0.6)', 'important');
-            input.style.setProperty('border-radius', '6px', 'important');
+            if (!document.getElementById('mention-override-styles')) {
+                const style = document.createElement('style');
+                style.id = 'mention-override-styles';
+                style.textContent = `
+                    textarea#message-input[data-mention-typing="true"] {
+                        background: rgba(88, 101, 242, 0.15) !important;
+                        background-color: rgba(88, 101, 242, 0.15) !important;
+                        box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.4) !important;
+                        border: 1px solid rgba(88, 101, 242, 0.6) !important;
+                        border-radius: 6px !important;
+                        --discord-channeltextarea-background: rgba(88, 101, 242, 0.15) !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            input.setAttribute('data-mention-typing', 'true');
             input.classList.add('misvord-mention-typing');
         } else {
-            input.style.removeProperty('--discord-channeltextarea-background');
-            input.style.removeProperty('background');
-            input.style.removeProperty('box-shadow');
-            input.style.removeProperty('border');
-            input.style.removeProperty('border-radius');
+            input.removeAttribute('data-mention-typing');
             input.classList.remove('misvord-mention-typing');
         }
     }
@@ -1331,12 +1339,20 @@ window.testCompleteMentionSystem = function() {
     setTimeout(() => {
         const computedStyle = window.getComputedStyle(input);
         console.log('Background after typing @:', computedStyle.background);
-        console.log('CSS variable value:', computedStyle.getPropertyValue('--discord-channeltextarea-background'));
+        console.log('Background-color:', computedStyle.backgroundColor);
+        console.log('Data attribute set:', input.getAttribute('data-mention-typing'));
+        console.log('CSS override style injected:', !!document.getElementById('mention-override-styles'));
+        
+        if (computedStyle.backgroundColor.includes('88, 101, 242') || computedStyle.backgroundColor.includes('rgba(88, 101, 242')) {
+            console.log('✅ Blue styling applied successfully!');
+        } else {
+            console.log('❌ Blue styling failed, background is:', computedStyle.backgroundColor);
+        }
         
         console.log('2. Testing mention menu appears...');
         const menu = document.querySelector('.misvord-mention-menu');
         if (menu && !menu.classList.contains('hidden')) {
-            console.log('Mention menu is visible');
+            console.log('✅ Mention menu is visible');
             
             console.log('3. Testing click on first user...');
             const firstUser = menu.querySelector('.misvord-mention-item');
@@ -1344,11 +1360,12 @@ window.testCompleteMentionSystem = function() {
                 firstUser.click();
                 setTimeout(() => {
                     console.log('Final input value:', input.value);
-                    console.log('Blue styling removed:', !input.classList.contains('misvord-mention-typing'));
+                    console.log('Blue styling removed:', !input.hasAttribute('data-mention-typing'));
+                    console.log('✅ Complete mention system test finished');
                 }, 100);
             }
         } else {
-            console.log('Mention menu not visible');
+            console.log('❌ Mention menu not visible');
         }
     }, 500);
 };

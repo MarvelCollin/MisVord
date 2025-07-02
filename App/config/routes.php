@@ -431,6 +431,11 @@ Route::get('/api/users/([0-9]+)/profile', function($userId) {
     $controller->getUserProfile($userId);
 });
 
+Route::get('/api/user/([0-9]+)/avatar', function($userId) {
+    $controller = new UserController();
+    $controller->getUserAvatar($userId);
+});
+
 Route::post('/api/users/profile', function() {
     $controller = new UserController();
     $controller->updateUserProfile();
