@@ -49,6 +49,7 @@ function initUserSettingsPage() {
     
     initCloseButton();
     initPasswordFieldMasking();
+    initDeleteAccount();
 }
 
 /**
@@ -2017,6 +2018,120 @@ function removeUserImage(type) {
     .catch(error => {
         console.error(`Error removing ${type}:`, error);
         showToast(error.message || `Error removing ${type}`, 'error');
+    });
+}
+
+function initDeleteAccount() {
+    const deleteBtn = document.getElementById('delete-account-btn');
+    const modal = document.getElementById('delete-account-modal');
+    const closeBtn = document.getElementById('close-delete-modal');
+    const cancelBtn = document.getElementById('cancel-delete-account');
+    const confirmBtn = document.getElementById('confirm-delete-account');
+    const usernameInput = document.getElementById('username-confirmation-input');
+    const errorDiv = document.getElementById('delete-account-error');
+    
+    if (!deleteBtn || !modal) return;
+    
+    const username = document.querySelector('meta[name="username"]')?.getAttribute('content') || '';
+    
+    function openModal() {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        usernameInput.value = '';
+        confirmBtn.disabled = true;
+        confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        hideError();
+        usernameInput.focus();
+    }
+    
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        usernameInput.value = '';
+    }
+    
+    function hideError() {
+        errorDiv.classList.add('hidden');
+        errorDiv.textContent = '';
+    }
+    
+    function showError(message) {
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
+    }
+    
+    function validateUsername() {
+        const inputValue = usernameInput.value.trim();
+        const isValid = inputValue === username;
+        
+        if (isValid) {
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            confirmBtn.disabled = true;
+            confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        
+        return isValid;
+    }
+    
+    async function deleteAccount() {
+        const inputValue = usernameInput.value.trim();
+        
+        if (!validateUsername()) {
+            showError('Username does not match');
+            return;
+        }
+        
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
+        
+        try {
+            const result = await userAPI.deleteAccount(inputValue);
+            
+            if (result.success) {
+                showToast('Account deleted successfully. Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                showError(result.error || 'Failed to delete account');
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-trash-alt mr-2"></i>Delete Account';
+            }
+        } catch (error) {
+            showError('An error occurred while deleting account');
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fas fa-trash-alt mr-2"></i>Delete Account';
+        }
+    }
+    
+    deleteBtn.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    confirmBtn.addEventListener('click', deleteAccount);
+    
+    usernameInput.addEventListener('input', () => {
+        hideError();
+        validateUsername();
+    });
+    
+    usernameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !confirmBtn.disabled) {
+            deleteAccount();
+        }
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
     });
 }
 

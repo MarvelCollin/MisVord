@@ -91,6 +91,9 @@ class SimpleChannelSwitcher {
             console.log('🔄 [SWITCH-MANAGER] Updating emoji reactions context for channel switch');
             window.emojiReactions.updateChannelContext(channelId, 'channel');
         }
+
+        // Preserve voice participants when switching channels
+        this.preserveVoiceParticipants();
         
         if (channelType === 'text') {
             await this.initializeTextChannel(channelId, true);
@@ -103,6 +106,9 @@ class SimpleChannelSwitcher {
         } else if (channelType === 'voice') {
             await this.initializeVoiceChannel(channelId, true);
         }
+
+        // Update voice participants after channel switch
+        this.updateVoiceParticipantsAfterSwitch(channelId, channelType);
         
         this.isLoading = false;
     }
@@ -431,7 +437,106 @@ class SimpleChannelSwitcher {
         };
     }
     
+    preserveVoiceParticipants() {
+        console.log('🔄 [SWITCH-MANAGER] Preserving voice participants during channel switch');
+        
+        const isInVoice = window.videoSDKManager?.isReady() || window.voiceManager?.isConnected;
+        
+        if (!isInVoice) {
+            console.log('📭 [SWITCH-MANAGER] User not in voice, no participants to preserve');
+            return;
+        }
 
+        const voiceState = {
+            isConnected: isInVoice,
+            channelId: window.voiceManager?.currentChannelId,
+            meetingId: window.videoSDKManager?.meeting?.id,
+            preserveParticipants: true
+        };
+
+        window.dispatchEvent(new CustomEvent('preserveVoiceParticipants', {
+            detail: voiceState
+        }));
+
+        if (window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            if (instance.refreshAllChannelParticipants) {
+                instance.refreshAllChannelParticipants();
+            }
+        }
+    }
+
+    updateVoiceParticipantsAfterSwitch(channelId, channelType) {
+        console.log('🔄 [SWITCH-MANAGER] Updating voice participants after channel switch');
+        
+        setTimeout(() => {
+            if (window.ChannelVoiceParticipants) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                
+                if (instance.refreshAllChannelParticipants) {
+                    instance.refreshAllChannelParticipants();
+                } else {
+                    instance.syncWithVideoSDK();
+                    instance.updateAllParticipantContainers();
+                }
+            }
+
+            if (window.videoSDKManager?.isReady()) {
+                this.syncVideoSDKParticipants();
+            }
+
+            if (window.globalSocketManager?.isReady()) {
+                this.loadAllVoiceChannels();
+            }
+        }, 300);
+    }
+
+    syncVideoSDKParticipants() {
+        console.log('🔄 [SWITCH-MANAGER] Syncing VideoSDK participants with UI');
+        
+        const videoSDK = window.videoSDKManager;
+        if (!videoSDK?.meeting?.participants) return;
+
+        const currentVoiceChannelId = window.voiceManager?.currentChannelId;
+        if (!currentVoiceChannelId) return;
+
+        videoSDK.meeting.participants.forEach((participant, participantId) => {
+            const participantData = {
+                user_id: participantId,
+                username: participant.displayName || participant.name || 'Unknown',
+                channel_id: currentVoiceChannelId,
+                action: 'join'
+            };
+
+            window.dispatchEvent(new CustomEvent('videosdkParticipantUpdate', {
+                detail: participantData
+            }));
+        });
+
+        if (videoSDK.meeting.localParticipant) {
+            const localData = {
+                user_id: videoSDK.meeting.localParticipant.id,
+                username: videoSDK.meeting.localParticipant.displayName || videoSDK.meeting.localParticipant.name || 'You',
+                channel_id: currentVoiceChannelId,
+                action: 'join'
+            };
+
+            window.dispatchEvent(new CustomEvent('videosdkParticipantUpdate', {
+                detail: localData
+            }));
+        }
+    }
+
+    loadAllVoiceChannels() {
+        if (!window.globalSocketManager?.isReady()) return;
+
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId) {
+                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
+            }
+        });
+    }
 }
 
 if (typeof window !== 'undefined') {
@@ -446,4 +551,4 @@ if (typeof window !== 'undefined') {
     }
 }
 
-export default SimpleChannelSwitcher; 
+export default SimpleChannelSwitcher;

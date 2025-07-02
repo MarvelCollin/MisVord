@@ -164,7 +164,18 @@ class VideoSDKManager {
                 } else if (eventName === 'meeting-joined') {
                     console.log(`Event: ${eventName}`);
                     this.isMeetingJoined = true;
-                    window.dispatchEvent(new CustomEvent('videosdkMeetingFullyJoined'));
+                    setTimeout(() => {
+                        if (this.meeting?.localParticipant) {
+                            console.log(`👤 [VideoSDK] Emitting local participant joined: ${this.meeting.localParticipant.id}`);
+                            window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
+                                detail: { 
+                                    participant: this.meeting.localParticipant.id, 
+                                    participantObj: this.meeting.localParticipant 
+                                }
+                            }));
+                        }
+                        window.dispatchEvent(new CustomEvent('videosdkMeetingFullyJoined'));
+                    }, 100);
                 } else if (eventName === 'meeting-left') {
                     console.log(`Event: ${eventName}`);
                     this.isMeetingJoined = false;
@@ -201,7 +212,7 @@ class VideoSDKManager {
     }
     
     handleParticipantJoined(participant) {
-        console.log(`👤 [VideoSDK] Setting up handlers for joined participant: ${participant.id} (${participant.displayName || participant.name || 'Unknown'})`);
+        console.log(`👤 [VideoSDK] Participant joined: ${participant.id} (${participant.displayName || participant.name || 'Unknown'})`);
         
         if (this.processedParticipants.has(participant.id)) {
             console.log(`👤 [VideoSDK] Participant ${participant.id} already processed, skipping`);
@@ -215,10 +226,9 @@ class VideoSDKManager {
                 if (processedParticipant && 
                     (processedParticipant.displayName === existingParticipantName || 
                      processedParticipant.name === existingParticipantName)) {
-                    console.log(`⚠️ [VideoSDK] Found duplicate participant name '${existingParticipantName}' - existing ID: ${processedId}, new ID: ${participant.id}`);
+                    console.log(`⚠️ [VideoSDK] Found duplicate participant name '${existingParticipantName}' - replacing old ID: ${processedId} with new ID: ${participant.id}`);
                     
                     if (processedId !== participant.id) {
-                        console.log(`🔄 [VideoSDK] Replacing old participant ${processedId} with new ${participant.id}`);
                         this.processedParticipants.delete(processedId);
                         this.cleanupParticipantResourcesById(processedId);
                         
@@ -243,7 +253,7 @@ class VideoSDKManager {
     }
     
     handleParticipantLeft(participant) {
-        console.log(`👋 [VideoSDK] Cleaning up handlers for left participant: ${participant.id}`);
+        console.log(`👋 [VideoSDK] Participant left: ${participant.id}`);
         
         this.processedParticipants.delete(participant.id);
         this.cleanupParticipantResourcesById(participant.id);
@@ -256,9 +266,7 @@ class VideoSDKManager {
     setupExistingParticipants() {
         if (!this.meeting || !this.meeting.participants) return;
         
-        console.log(`👥 [VideoSDK] Setting up handlers for existing participants`);
-        console.log(`👥 [VideoSDK] Total participants in meeting: ${this.meeting.participants.size}`);
-        console.log(`👥 [VideoSDK] Local participant ID: ${this.meeting.localParticipant?.id}`);
+        console.log(`👥 [VideoSDK] Setting up existing participants - Total: ${this.meeting.participants.size}, Local: ${this.meeting.localParticipant?.id}`);
         
         try {
             setTimeout(() => {
@@ -270,7 +278,6 @@ class VideoSDKManager {
                         return;
                     }
                     
-                    console.log(`👤 [VideoSDK] Setting up participant: ${participant.id} (${participant.id === this.meeting.localParticipant?.id ? 'LOCAL' : 'REMOTE'})`);
                     this.processedParticipants.add(participant.id);
                     this.registerStreamEvents(participant);
                     this.startStreamMonitoring(participant);

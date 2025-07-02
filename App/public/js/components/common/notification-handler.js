@@ -57,28 +57,26 @@ class GlobalNotificationHandler {
     }
 
     showNotification(data, isAllMention) {
-        const mentionerUsername = data.username || 'Someone';
-        const title = `New Mention in ${data.context?.channel_name || 'a channel'}`;
+        const mentionerUsername = data.username;
+        const channelName = data.context.channel_name || 'Channel';
+        const serverName = data.context.server_name || 'Server';
+        const serverIcon = data.context.server_icon || '/public/assets/common/default-profile-picture.png';
+        const title = `New Mention in ${channelName}`;
     
         const toastHTML = `
             <div class="group flex flex-col w-full max-w-md bg-gray-900/40 backdrop-blur-md rounded-xl shadow-xl border border-white/5 overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:bg-gray-900/50">
                 <!-- Header -->
                 <div class="flex items-center justify-between p-4">
                     <div class="flex items-center space-x-3">
-                        ${data.context.server_icon ? 
-                            `<img src="${data.context.server_icon}" alt="Server Icon" class="w-8 h-8 rounded-lg object-cover border border-white/10">` :
-                            `<div class="w-8 h-8 rounded-lg bg-indigo-500/20 backdrop-blur-sm flex items-center justify-center border border-indigo-500/20">
-                                <i class="fas fa-bell text-indigo-400/90 text-sm"></i>
-                            </div>`
-                        }
+                        <img src="${serverIcon}" alt="Server Icon" class="w-8 h-8 rounded-lg object-cover border border-white/10">
                         <div class="flex flex-col">
                             <div class="flex items-center space-x-1">
                                 <span class="text-xs font-medium text-gray-400">in</span>
-                                <span class="text-sm font-medium text-gray-200">${data.context?.server_name || 'Server'}</span>
+                                <span class="text-sm font-medium text-gray-200">${serverName}</span>
                             </div>
                             <div class="flex items-center text-xs text-indigo-400/90">
                                 <i class="fas fa-hashtag text-xs mr-1"></i>
-                                <span>${data.context?.channel_name || 'channel'}</span>
+                                <span>${channelName}</span>
                             </div>
                         </div>
                     </div>
@@ -135,11 +133,11 @@ class GlobalNotificationHandler {
         }
 
         if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-            const bodyText = `${mentionerUsername} ${isAllMention ? 'mentioned @all' : 'mentioned you'} in #${data.context?.channel_name} (${data.context?.server_name})`;
+            const bodyText = `${mentionerUsername} ${isAllMention ? 'mentioned @all' : 'mentioned you'} in #${channelName} (${serverName})`;
             
             new Notification(title, {
                 body: bodyText,
-                icon: data.context?.server_icon || data.avatar_url || '/public/assets/common/default-profile-picture.png'
+                icon: serverIcon || data.avatar_url || '/public/assets/common/default-profile-picture.png'
             });
         }
     }

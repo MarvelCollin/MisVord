@@ -58,7 +58,7 @@ if (file_exists($tooltipPath)) {
                     $serverId = $server['id'] ?? $server->id;
                     ?>
                     
-                    <div class="server-sidebar-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>">
+                    <div class="server-sidebar-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>" data-server-id="<?php echo $serverId; ?>">
                         <a href="/server/<?php echo $serverId; ?>" class="block server-link" data-server-id="<?php echo $serverId; ?>">
                             <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">
                                 <?php if (!empty($serverImage)): ?>
@@ -165,4 +165,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 $additional_js = isset($additional_js) ? $additional_js : [];
 $additional_js[] = 'components/servers/server-sidebar';
+$additional_js[] = 'components/servers/server-drag';
+if (defined('DEBUG_MODE') && DEBUG_MODE) {
+    $additional_js[] = 'test-drag-system';
+}
 ?>

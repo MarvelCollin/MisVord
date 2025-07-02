@@ -1231,5 +1231,45 @@ class UserController extends BaseController
         }
     }
 
+    public function deleteAccount()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
+        
+        try {
+            if (!isset($input['username_confirmation']) || empty($input['username_confirmation'])) {
+                return $this->error('Username confirmation is required', 400);
+            }
+            
+            $user = $this->userRepository->find($userId);
+            
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
+            
+            if ($input['username_confirmation'] !== $user->username) {
+                return $this->error('Username confirmation does not match', 400);
+            }
+            
+            $result = $this->userRepository->deleteUser($userId);
+            
+            if (!$result) {
+                return $this->serverError('Failed to delete account');
+            }
+            
+            session_destroy();
+            
+            $this->logActivity('user_account_deleted', [
+                'user_id' => $userId,
+                'username' => $user->username
+            ]);
+            
+            return $this->success(null, 'Account deleted successfully');
+            
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while deleting account: ' . $e->getMessage());
+        }
+    }
 
 } 

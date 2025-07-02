@@ -6,6 +6,7 @@ require_once __DIR__ . '/../database/repositories/ChannelMessageRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
 require_once __DIR__ . '/../database/repositories/UserRepository.php';
+require_once __DIR__ . '/../database/repositories/ServerRepository.php';
 require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/BaseController.php';
 
@@ -99,7 +100,34 @@ class ChannelController extends BaseController
             [$channel, $error] = $this->validateChannelAccess($channelId);
             if ($error) return $error;
 
-            return $this->success(['channel' => $channel]);
+            $responseData = [
+                'channel' => [
+                    'id' => $channel->id,
+                    'name' => $channel->name,
+                    'type' => $channel->type,
+                    'description' => $channel->description,
+                    'server_id' => $channel->server_id,
+                    'category_id' => $channel->category_id,
+                    'position' => $channel->position,
+                    'is_private' => $channel->is_private,
+                    'created_at' => $channel->created_at,
+                    'updated_at' => $channel->updated_at
+                ]
+            ];
+            
+            if ($channel->server_id && $channel->server_id !== 0) {
+                $server = $this->serverRepository->find($channel->server_id);
+                if ($server) {
+                    $responseData['server'] = [
+                        'id' => $server->id,
+                        'name' => $server->name,
+                        'image_url' => $server->image_url,
+                        'description' => $server->description
+                    ];
+                }
+            }
+
+            return $this->success($responseData);
         } catch (Exception $e) {
             return $this->serverError('Failed to load channel');
         }
@@ -544,6 +572,61 @@ class ChannelController extends BaseController
             ]);
         } catch (Exception $e) {
             return $this->serverError('Failed to switch to channel: ' . $e->getMessage());
+        }
+    }
+
+    public function getChannelWithServerForSocket($channelId = null)
+    {
+        if (!$channelId) {
+            $input = $this->getInput();
+            $channelId = $input['channel_id'] ?? null;
+        }
+
+        if (!$channelId) {
+            return $this->validationError(['channel_id' => 'Channel ID is required']);
+        }
+
+        $socketToken = $_SERVER['HTTP_X_SOCKET_TOKEN'] ?? '';
+        if ($socketToken !== 'socket-server-internal-auth-2025') {
+            return $this->unauthorized('Invalid socket token');
+        }
+
+        try {
+            $channel = $this->channelRepository->find($channelId);
+            if (!$channel) {
+                return $this->notFound('Channel not found');
+            }
+
+            $responseData = [
+                'channel' => [
+                    'id' => $channel->id,
+                    'name' => $channel->name,
+                    'type' => $channel->type,
+                    'description' => $channel->description,
+                    'server_id' => $channel->server_id,
+                    'category_id' => $channel->category_id,
+                    'position' => $channel->position,
+                    'is_private' => $channel->is_private,
+                    'created_at' => $channel->created_at,
+                    'updated_at' => $channel->updated_at
+                ]
+            ];
+            
+            if ($channel->server_id && $channel->server_id !== 0) {
+                $server = $this->serverRepository->find($channel->server_id);
+                if ($server) {
+                    $responseData['server'] = [
+                        'id' => $server->id,
+                        'name' => $server->name,
+                        'image_url' => $server->image_url,
+                        'description' => $server->description
+                    ];
+                }
+            }
+
+            return $this->success($responseData);
+        } catch (Exception $e) {
+            return $this->serverError('Failed to load channel');
         }
     }
 }

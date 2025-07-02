@@ -458,10 +458,23 @@ class GlobalSocketManager {
         
         this.io.on('voice-meeting-status', (data) => {
             console.log('📡 [SOCKET] Voice meeting status received:', data);
+            
+            // Always process voice meeting status for cross-channel visibility
+            this.handleVoiceMeetingStatus(data);
         });
         
         this.io.on('voice-meeting-update', (data) => {
             console.log('📡 [SOCKET] Voice meeting update received:', data);
+            
+            // Always process voice meeting updates for cross-channel visibility
+            this.handleVoiceMeetingUpdate(data);
+            
+            // If this is about our own connection and VideoSDK is managing, let VideoSDK handle
+            const isOwnConnection = data.user_id === this.userId;
+            if (isOwnConnection && window.videoSDKManager?.isReady()) {
+                console.log('📡 [SOCKET] VideoSDK managing own connection, letting VideoSDK handle');
+                return;
+            }
         });
         
         this.io.on('stop-typing', this.handleStopTyping.bind(this));
@@ -1154,6 +1167,30 @@ class GlobalSocketManager {
             console.log('⏰ [SOCKET] Activity check stopped');
         }
     }
+    
+    handleVoiceMeetingStatus(data) {
+        // Forward to voice participants manager if available
+        if (window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            if (instance.handleVoiceMeetingUpdate) {
+                instance.handleVoiceMeetingUpdate({
+                    channel_id: data.channel_id,
+                    participant_count: data.participant_count,
+                    participants: data.participants || []
+                });
+            }
+        }
+    }
+
+    handleVoiceMeetingUpdate(data) {
+        // Forward to voice participants manager if available
+        if (window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            if (instance.handleVoiceMeetingUpdate) {
+                instance.handleVoiceMeetingUpdate(data);
+            }
+        }
+    }
 }
 
 const globalSocketManager = new GlobalSocketManager();
@@ -1188,4 +1225,4 @@ window.GlobalSocketManager = GlobalSocketManager;
 window.globalSocketManager = globalSocketManager;
 
 export { GlobalSocketManager, globalSocketManager };
-export default globalSocketManager; 
+export default globalSocketManager;

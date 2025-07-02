@@ -442,8 +442,6 @@ class ChatSection {
         if (!this.userId) {
             await this.waitForUserId();
         }
-
-        this.channelSwitchManager = manager;
     }
     
     handleChannelContentLoaded = (e) => {

@@ -403,9 +403,13 @@ class VoiceManager {
     }
 
     leaveVoice() {
-        if (!this.isConnected) return;
+        if (!this.isConnected) {
+            console.log('🚪 [VOICE-MANAGER] Not connected, ignoring leave request');
+            return;
+        }
         
         if (window.videoSDKJoiningInProgress) {
+            console.log('🚪 [VOICE-MANAGER] Join in progress, deferring leave');
             return;
         }
         
@@ -414,24 +418,41 @@ class VoiceManager {
             meetingId: this.currentMeetingId
         });
         
+        // Set flags first to prevent any new joins
+        this.isConnected = false;
+        window.voiceJoinInProgress = false;
+        
+        // Unregister from socket first
         if (this.currentChannelId && window.globalSocketManager?.io) {
             window.globalSocketManager.io.emit('unregister-voice-meeting', {
                 channel_id: this.currentChannelId
             });
         }
         
+        // Leave VideoSDK meeting
         if (this.videoSDKManager) {
             this.videoSDKManager.leaveMeeting();
         }
         
-        this.isConnected = false;
+        // Clear state
+        const previousChannelId = this.currentChannelId;
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;
-        window.voiceJoinInProgress = false;
         
+        // Update voice state manager
         if (window.unifiedVoiceStateManager) {
             window.unifiedVoiceStateManager.handleDisconnect();
+        }
+        
+        // Remove own participant from UI
+        if (previousChannelId && window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
+            if (currentUserId) {
+                instance.removeParticipant(previousChannelId, currentUserId);
+                instance.updateParticipantContainer(previousChannelId);
+            }
         }
         
         this.dispatchEvent(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect');
@@ -590,8 +611,7 @@ window.addEventListener(window.VOICE_EVENTS?.VOICE_UI_READY || 'voiceUIReady', f
 });
 
 window.addEventListener(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect', function() {
-    if (window.voiceManager) {
-        window.voiceManager.leaveVoice();
-    }
+    // Removed circular call to leaveVoice() to prevent auto-rejoin bugs
+    console.log('🔔 [VOICE-MANAGER] Voice disconnect event received');
 });
 

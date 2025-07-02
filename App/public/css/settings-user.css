@@ -720,8 +720,6 @@ button:active {
   background: transparent;
 }
 
-
-
 .close-button {
   position: fixed;
   top: 16px;
@@ -792,8 +790,6 @@ button:active {
   font-family: var(--discord-font-display);
   position: relative;
 }
-
-
 
 @media (max-width: 1200px) {
   .flex.min-h-screen {
@@ -1773,15 +1769,40 @@ button:active {
     .close-button {
         top: 8px;
         right: 8px;
-        padding: 3px 6px;
+        width: 32px;
+        height: 32px;
     }
     
     .close-button-text {
         display: none;
     }
     
+    .form-group .flex.justify-between.items-center {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--discord-spacing-xs);
+    }
+    
+    .form-group .flex.items-center.space-x-2 {
+        align-self: flex-end;
+    }
+    
     .text-lg.font-medium.mb-4 {
-        font-size: 16px;
+        font-size: 18px;
+    }
+    
+    .bg-discord-darker {
+        margin-bottom: var(--discord-spacing-sm);
+        padding: var(--discord-spacing-md);
+    }
+    
+    .w-60 .p-4 {
+        padding: var(--discord-spacing-sm) var(--discord-spacing-md);
+    }
+    
+    .sidebar-item {
+        padding: 10px var(--discord-spacing-md);
+        font-size: 14px;
     }
 }
 
@@ -2265,6 +2286,200 @@ button:hover::before {
   .sidebar-item {
     padding: 10px var(--discord-spacing-md);
     font-size: 14px;
+  }
+}
+
+#delete-account-modal {
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+  animation: modalFadeIn var(--discord-animation-default) ease-out;
+}
+
+#delete-account-modal.hidden {
+  display: none !important;
+}
+
+#delete-account-modal .bg-discord-darker {
+  background-color: var(--discord-bg-secondary);
+  border: 1px solid #f23f43;
+  box-shadow: var(--discord-elevation-high);
+  animation: slideIn var(--discord-animation-default) ease-out;
+  transform-origin: center center;
+}
+
+@keyframes slideIn {
+  from { transform: scale(0.9) translateY(-20px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+#delete-account-modal h2 {
+  color: #f23f43;
+  font-family: var(--discord-font-headline);
+  letter-spacing: 0.02em;
+}
+
+#delete-account-modal .w-16.h-16 {
+  background: linear-gradient(135deg, rgba(242, 63, 67, 0.2) 0%, rgba(242, 63, 67, 0.1) 100%);
+  border: 1px solid rgba(242, 63, 67, 0.3);
+}
+
+#delete-account-modal input[type="text"] {
+  background-color: var(--discord-bg-primary);
+  border: 1px solid #f23f43;
+  color: var(--discord-text-normal);
+  transition: all var(--discord-animation-default) ease;
+}
+
+#delete-account-modal input[type="text"]:focus {
+  border-color: #f23f43;
+  box-shadow: 0 0 0 2px rgba(242, 63, 67, 0.2);
+  outline: none;
+}
+
+#delete-account-modal input[type="text"]:hover {
+  border-color: rgba(242, 63, 67, 0.8);
+}
+
+#delete-account-modal button {
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--discord-animation-default) ease;
+}
+
+#delete-account-modal button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+#delete-account-modal button:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+#delete-account-modal .bg-red-600 {
+  background-color: #f23f43;
+  border: 1px solid transparent;
+}
+
+#delete-account-modal .bg-red-600:hover:not(:disabled) {
+  background-color: #d22d31;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(242, 63, 67, 0.3);
+}
+
+#delete-account-modal .bg-red-600:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+#delete-account-modal .bg-gray-600 {
+  background-color: var(--discord-interactive-muted);
+}
+
+#delete-account-modal .bg-gray-600:hover {
+  background-color: var(--discord-interactive-normal);
+}
+
+#delete-account-error {
+  background-color: rgba(242, 63, 67, 0.1);
+  border: 1px solid rgba(242, 63, 67, 0.3);
+  border-radius: var(--discord-border-radius-secondary);
+  padding: var(--discord-spacing-sm);
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.text-red-400 {
+  color: #f87171 !important;
+}
+
+.text-red-300 {
+  color: #fca5a5 !important;
+}
+
+.text-red-200 {
+  color: #fecaca !important;
+}
+
+.bg-red-900\/20 {
+  background-color: rgba(127, 29, 29, 0.2) !important;
+}
+
+.border-red-600\/50 {
+  border-color: rgba(220, 38, 38, 0.5) !important;
+}
+
+.border-red-600 {
+  border-color: #dc2626 !important;
+}
+
+#delete-account-btn {
+  background: linear-gradient(135deg, #f23f43 0%, #d22d31 100%);
+  border: 1px solid transparent;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--discord-animation-default) ease;
+}
+
+#delete-account-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+#delete-account-btn:hover::before {
+  left: 100%;
+}
+
+#delete-account-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(242, 63, 67, 0.4);
+  background: linear-gradient(135deg, #d22d31 0%, #b91c1c 100%);
+}
+
+#delete-account-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(242, 63, 67, 0.3);
+}
+
+@media (max-width: 768px) {
+  #delete-account-modal .w-full.max-w-md {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  #delete-account-modal .p-6 {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  #delete-account-modal .flex.space-x-3 {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  #delete-account-modal .flex.space-x-3 > * {
+    margin: 0;
   }
 }
 

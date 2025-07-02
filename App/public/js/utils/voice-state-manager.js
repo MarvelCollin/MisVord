@@ -50,6 +50,13 @@ class UnifiedVoiceStateManager {
         
         if (videoSDKConnected && window.videoSDKManager?.meeting?.id) {
             console.log('✅ [UNIFIED-VOICE] VideoSDK connection verified');
+            
+            // Also sync participants when verifying connection
+            if (window.ChannelVoiceParticipants) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.syncWithVideoSDK();
+            }
+            
             return true;
         }
         

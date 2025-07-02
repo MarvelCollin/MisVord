@@ -897,10 +897,13 @@ class MessageHandler {
         }
     }
     
-    static handleMentionNotifications(io, client, messageData, targetRoom) {
+    static async handleMentionNotifications(io, client, messageData, targetRoom) {
         if (!messageData.mentions || messageData.mentions.length === 0) {
             return;
         }
+    
+        // Fetch server and channel information for context
+        const context = await this.fetchNotificationContext(messageData, client);
     
         const notificationPayload = {
             message_id: messageData.id,
@@ -913,12 +916,24 @@ class MessageHandler {
             target_type: messageData.target_type,
             target_id: messageData.target_id,
             timestamp: Date.now(),
-            context: messageData.context || {}
+            context: context
         };
     
+        console.log('📧 [MENTION-NOTIFICATIONS] Sending notifications with context:', {
+            server_name: context.server_name,
+            server_icon: context.server_icon,
+            channel_name: context.channel_name
+        });
+
         messageData.mentions.forEach(mention => {
             if (mention.type === 'all') {
                 const allMentionPayload = { ...notificationPayload, type: 'all' };
+                
+                console.log('📧 [MENTION-NOTIFICATIONS] Sending @all notification:', {
+                    server_name: allMentionPayload.context.server_name,
+                    server_icon: allMentionPayload.context.server_icon,
+                    channel_name: allMentionPayload.context.channel_name
+                });
     
                 if (targetRoom) {
                     client.to(targetRoom).emit('mention_notification', allMentionPayload);
@@ -932,6 +947,13 @@ class MessageHandler {
                     mentioned_user_id: mention.user_id,
                     mentioned_username: mention.username
                 };
+                
+                console.log('📧 [MENTION-NOTIFICATIONS] Sending user mention notification:', {
+                    mentioned_user_id: mention.user_id,
+                    server_name: userMentionPayload.context.server_name,
+                    server_icon: userMentionPayload.context.server_icon,
+                    channel_name: userMentionPayload.context.channel_name
+                });
                 
                 let sent = false;
                 for (const socket of io.sockets.sockets.values()) {
@@ -994,6 +1016,88 @@ class MessageHandler {
         } catch (error) {
             console.error(`❌ [DELETION-HANDLER] Error broadcasting deletion:`, error);
         }
+    }
+
+    static async fetchNotificationContext(messageData, client) {
+        const context = {
+            server_name: null,
+            server_icon: null,
+            channel_name: null
+        };
+
+        try {
+            if (messageData.target_type === 'channel' && messageData.target_id) {
+                const channelId = messageData.target_id;
+                
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'SocketServer/1.0',
+                    'X-Socket-Token': 'socket-server-internal-auth-2025'
+                };
+                
+                if (client && client.data) {
+                    headers['X-Socket-User-ID'] = client.data.user_id.toString();
+                    headers['X-Socket-Username'] = client.data.username;
+                }
+                
+                console.log(`🔍 [MENTION-CONTEXT] Fetching channel ${channelId} details...`);
+                console.log(`🔧 [MENTION-CONTEXT] Request headers:`, headers);
+                
+                const channelResponse = await fetch(`http://app:1001/api/socket/channels/${channelId}`, {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                console.log(`📡 [MENTION-CONTEXT] Channel API response: ${channelResponse.status} ${channelResponse.statusText}`);
+                console.log(`📡 [MENTION-CONTEXT] Response headers:`, Object.fromEntries(channelResponse.headers.entries()));
+
+                if (channelResponse.ok) {
+                    const channelResult = await channelResponse.json();
+                    console.log(`📄 [MENTION-CONTEXT] Channel result:`, JSON.stringify(channelResult, null, 2));
+                    
+                    if (channelResult.success && channelResult.data) {
+                        const data = channelResult.data;
+                        const channel = data.channel;
+                        const server = data.server;
+                        
+                        if (channel && channel.name) {
+                            context.channel_name = channel.name;
+                            console.log(`📍 [MENTION-CONTEXT] Channel name: ${channel.name}`);
+                            
+                            if (server && server.name) {
+                                context.server_name = server.name;
+                                context.server_icon = server.image_url || '/public/assets/common/main-logo.png';
+                                console.log(`✅ [MENTION-CONTEXT] Server info: ${server.name}, Icon: ${context.server_icon}`);
+                            } else {
+                                console.log(`📍 [MENTION-CONTEXT] No server info (DM or system channel)`);
+                            }
+                        } else {
+                            console.warn(`⚠️ [MENTION-CONTEXT] No valid channel data found`);
+                        }
+                    } else {
+                        console.warn(`⚠️ [MENTION-CONTEXT] API response unsuccessful:`, channelResult);
+                    }
+                } else {
+                    const errorText = await channelResponse.text();
+                    console.error(`❌ [MENTION-CONTEXT] Channel API failed: ${channelResponse.status}`, errorText);
+                    console.error(`❌ [MENTION-CONTEXT] Full response details:`, {
+                        status: channelResponse.status,
+                        statusText: channelResponse.statusText,
+                        headers: Object.fromEntries(channelResponse.headers.entries()),
+                        body: errorText
+                    });
+                }
+            } else if (messageData.target_type === 'dm') {
+                context.channel_name = 'Direct Message';
+                console.log(`📍 [MENTION-CONTEXT] Set DM context`);
+            }
+        } catch (error) {
+            console.error('❌ [MENTION-CONTEXT] Error fetching notification context:', error);
+            context.channel_name = messageData.target_type === 'dm' ? 'Direct Message' : 'Channel';
+        }
+
+        console.log('📍 [MENTION-CONTEXT] Final context:', context);
+        return context;
     }
 }
 

@@ -122,17 +122,20 @@ function performCompleteRender() {
 
 function clearAllPreviousState() {
     console.log('[Server Sidebar] Clearing previous state');
-    document.querySelectorAll('.server-icon[data-setup]').forEach(icon => {
+    
+    // Reset all servers to main list before clearing
+    resetServersToMainList();
+    
+    // Clear drag setup from all server icons
+    document.querySelectorAll('.server-sidebar-icon[data-setup]').forEach(icon => {
         icon.removeAttribute('data-setup');
         icon.draggable = false;
-        const newIcon = icon.cloneNode(true);
-        icon.parentNode.replaceChild(newIcon, icon);
+        icon.classList.remove('in-group');
     });
     
-    document.querySelectorAll('.server-group[data-drop-setup]').forEach(folder => {
-        folder.removeAttribute('data-drop-setup');
-        const newFolder = folder.cloneNode(true);
-        folder.parentNode.replaceChild(newFolder, folder);
+    // Remove all server groups
+    document.querySelectorAll('.server-sidebar-group').forEach(folder => {
+        folder.remove();
     });
     
     const serverList = document.getElementById('server-list');
@@ -151,7 +154,7 @@ function clearAllPreviousState() {
 
 function setupServerIcons() {           
     console.log('[Server Sidebar] Setting up server icons drag and drop');
-    document.querySelectorAll('.server-icon[data-server-id]:not([data-setup])').forEach(icon => {
+    document.querySelectorAll('.server-sidebar-icon[data-server-id]:not([data-setup])').forEach(icon => {
         icon.setAttribute('data-setup', 'true');
         icon.draggable = true;
         
@@ -223,10 +226,14 @@ async function renderFolders() {
     
     const groups = LocalStorageManager.getServerGroups();
     
-    document.querySelectorAll('.server-group').forEach(el => el.remove());
+    // Remove all existing server groups
+    document.querySelectorAll('.server-sidebar-group').forEach(el => el.remove());
+    
+    // Reset all servers to main list first to prevent duplicates
+    resetServersToMainList();
     
     const serverImageData = await buildServerImageData();
-    const insertPoint = serverList.querySelector('.server-divider');
+    const insertPoint = serverList.querySelector('.server-sidebar-divider');
     
     for (const group of groups) {
         if (group.servers.length === 0) {
@@ -243,9 +250,11 @@ async function renderFolders() {
         
         const serversContainer = folderElement.querySelector('.group-servers');
         
+        // Move servers from main list to group
         group.servers.forEach(serverId => {
-            const serverElement = document.querySelector(`.server-icon[data-server-id="${serverId}"]`);
+            const serverElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]:not(.in-group)`);
             if (serverElement && serversContainer) {
+                serverElement.classList.add('in-group');
                 if (serverElement.parentNode) {
                     serverElement.parentNode.removeChild(serverElement);
                 }
@@ -263,12 +272,27 @@ async function renderFolders() {
     isRendering = false;
 }
 
+function resetServersToMainList() {
+    // Move all servers back to main list and remove group markers
+    document.querySelectorAll('.server-sidebar-icon[data-server-id].in-group').forEach(serverIcon => {
+        serverIcon.classList.remove('in-group');
+        const mainList = document.getElementById('server-list');
+        const insertPoint = mainList.querySelector('.server-sidebar-divider');
+        
+        if (insertPoint) {
+            mainList.insertBefore(serverIcon, insertPoint);
+        } else {
+            mainList.appendChild(serverIcon);
+        }
+    });
+}
+
 async function buildServerImageData() {
     const serverImageData = new Map();
     
     const serverData = await getServerData();
     
-    document.querySelectorAll('.server-icon[data-server-id]').forEach(icon => {
+    document.querySelectorAll('.server-sidebar-icon[data-server-id]').forEach(icon => {
         icon.removeAttribute('data-setup');
         const serverId = icon.getAttribute('data-server-id');
         
@@ -316,7 +340,7 @@ async function buildServerImageData() {
 
 function createFolderElement(group) {
     const folder = document.createElement('div');
-    folder.className = 'server-group';
+    folder.className = 'server-sidebar-group';
     folder.setAttribute('data-group-id', group.id);
     
     const header = document.createElement('div');
@@ -447,7 +471,7 @@ function setupFolderEvents(group, folderElement) {
 }
 
 function setupDropZones() {
-    document.querySelectorAll('.server-group:not([data-drop-setup])').forEach(folder => {
+    document.querySelectorAll('.server-sidebar-group:not([data-drop-setup])').forEach(folder => {
         folder.setAttribute('data-drop-setup', 'true');
         const header = folder.querySelector('.group-header');
         const serversContainer = folder.querySelector('.group-servers');
@@ -502,7 +526,7 @@ function setupDropZones() {
             });
         });
         
-        folder.querySelectorAll('.server-icon').forEach(serverIcon => {
+        folder.querySelectorAll('.server-sidebar-icon').forEach(serverIcon => {
             serverIcon.addEventListener('dragover', e => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -542,7 +566,7 @@ function setupDropZones() {
         serverList.setAttribute('data-drop-setup', 'true');
         
         serverList.addEventListener('dragover', e => {
-            if (e.target.closest('.server-group') || e.target.closest('.server-icon')) return;
+            if (e.target.closest('.server-sidebar-group') || e.target.closest('.server-sidebar-icon')) return;
             e.preventDefault();
             serverList.classList.add('drop-target');
         });
@@ -556,7 +580,7 @@ function setupDropZones() {
         });
         
         serverList.addEventListener('drop', e => {
-            if (e.target.closest('.server-group') || e.target.closest('.server-icon')) return;
+            if (e.target.closest('.server-sidebar-group') || e.target.closest('.server-sidebar-icon')) return;
             
             e.preventDefault();
             serverList.classList.remove('drop-target');
@@ -573,7 +597,7 @@ function setupDropZones() {
 async function handleServerAddToGroup(serverId, groupId, folderElement) {
     LocalStorageManager.addServerToGroup(groupId, serverId);
     
-    const serverElement = document.querySelector(`.server-icon[data-server-id="${serverId}"]`);
+    const serverElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
     if (!serverElement) {
         performCompleteRender();
         return;
@@ -710,7 +734,7 @@ async function getServerData() {
 export function updateActiveServer(pageType = null, serverId = null) {
     console.log('[Update Active Server] Called with:', { pageType, serverId });
     
-    document.querySelectorAll('.server-icon.active').forEach(icon => {
+    document.querySelectorAll('.server-sidebar-icon.active').forEach(icon => {
         icon.classList.remove('active');
     });
     
@@ -758,13 +782,13 @@ export function updateActiveServer(pageType = null, serverId = null) {
             break;
             
         case 'home':
-            const homeIcon = document.querySelector('.server-icon:first-child');
-            if (homeIcon) {
-                homeIcon.classList.add('active');
-                console.log('[Update Active Server] Activated home icon');
-            } else {
-                console.warn('[Update Active Server] Home icon not found');
-            }
+                            const homeIcon = document.querySelector('.server-sidebar-icon:first-child');
+                if (homeIcon) {
+                    homeIcon.classList.add('active');
+                    console.log('[Update Active Server] Activated home icon');
+                } else {
+                    console.warn('[Update Active Server] Home icon not found');
+                }
             break;
             
         case 'explore':

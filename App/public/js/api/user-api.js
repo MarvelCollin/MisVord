@@ -230,6 +230,24 @@ class UserAPI {
         const result = await this.makeRequest('/api/friends');
         return result;
     }
+
+    async deleteAccount(usernameConfirmation) {
+        if (!usernameConfirmation) {
+            return {
+                success: false,
+                error: 'Username confirmation is required'
+            };
+        }
+
+        const result = await this.makeRequest('/api/user/account', {
+            method: 'DELETE',
+            body: JSON.stringify({
+                username_confirmation: usernameConfirmation
+            })
+        });
+        
+        return result;
+    }
 }
 
 const userAPI = new UserAPI();

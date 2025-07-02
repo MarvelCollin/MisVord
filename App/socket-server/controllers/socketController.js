@@ -409,69 +409,66 @@ function setup(io) {
         });
         
         client.on('register-voice-meeting', async (data) => {
-            try {
-                const { channel_id, meeting_id } = data;
-                const userKey = client.data?.user_id || client.id;
-                const username = client.data?.username;
-                
-                console.log(`📝 [VOICE-REGISTER] User ${userKey} registering for meeting ${meeting_id} in channel ${channel_id}`);
-                
-                if (VoiceConnectionTracker.getUserVoiceStatus(userKey)) {
-                    console.log(`⚠️ [VOICE-REGISTER] User ${userKey} already registered in voice, preventing duplicate registration`);
-                    client.emit('voice-meeting-update', {
-                        action: 'already_registered',
-                        channel_id: channel_id,
-                        meeting_id: meeting_id,
-                        user_id: userKey,
-                        username: username
-                    });
-                    return;
-                }
-                
-                const currentPresence = userService.getPresence(userKey);
-                if (!currentPresence || currentPresence.activity_details?.type !== 'playing Tic Tac Toe') {
-                    userService.updatePresence(userKey, 'online', { type: 'In Voice Call' });
-                    io.emit('user-presence-update', {
-                        user_id: userKey,
-                        username: username,
-                        status: 'online',
-                        activity_details: { type: 'In Voice Call' }
-                    });
-                }
-                
-                VoiceConnectionTracker.addUserToVoice(userKey, channel_id, meeting_id, username);
-                roomManager.addVoiceMeeting(channel_id, meeting_id, client.id);
-                
-                await client.join(`voice-channel-${channel_id}`);
-                
-                const voiceChannelRoom = `voice-channel-${channel_id}`;
-                const meeting = roomManager.getVoiceMeeting(channel_id);
-                
-                console.log(`📡 [VOICE-REGISTER] Broadcasting join to room: ${voiceChannelRoom}`);
-                io.to(voiceChannelRoom).emit('voice-meeting-update', {
-                    action: 'join',
-                    channel_id: channel_id,
-                    meeting_id: meeting_id,
-                    user_id: userKey,
-                    username: username,
-                    participant_count: meeting?.participants?.size || 1
+            const { channel_id, meeting_id, username } = data;
+            const userId = client.data?.user_id;
+            
+            if (!userId || !channel_id || !meeting_id) {
+                client.emit('voice-meeting-error', {
+                    error: 'Missing required data for voice meeting registration',
+                    timestamp: Date.now()
                 });
+                return;
+            }
+
+            console.log(`🎤 [SOCKET] Registering voice meeting:`, {
+                userId,
+                username: username || client.data?.username,
+                channelId: channel_id,
+                meetingId: meeting_id
+            });
+
+            const voiceChannelRoom = `voice_channel_${channel_id}`;
+            
+            try {
+                await client.join(voiceChannelRoom);
+                
+                VoiceConnectionTracker.addConnection(userId, channel_id, meeting_id, username || client.data?.username);
+                
+                const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
+                const participantCount = participants.length;
+                
+                const updateData = {
+                    channel_id: channel_id,
+                    action: 'join',
+                    user_id: userId,
+                    username: username || client.data?.username,
+                    meeting_id: meeting_id,
+                    participant_count: participantCount,
+                    timestamp: Date.now()
+                };
+                
+                console.log(`📢 [SOCKET] Broadcasting voice participant join:`, {
+                    channelId: channel_id,
+                    userId,
+                    participantCount
+                });
+                
+                io.to(voiceChannelRoom).emit('voice-meeting-update', updateData);
+                
+                io.emit('voice-meeting-update', updateData);
                 
                 client.emit('voice-meeting-update', {
+                    ...updateData,
                     action: 'registered',
-                    channel_id: channel_id,
-                    meeting_id: meeting_id,
-                    user_id: userKey,
-                    username: username,
-                    participant_count: meeting?.participants?.size || 1
+                    message: 'Successfully registered to voice meeting'
                 });
                 
-                console.log(`✅ [VOICE-REGISTER] Successfully registered user ${userKey} in meeting ${meeting_id}`);
             } catch (error) {
-                console.error('[VOICE-REGISTER] Error:', error);
-                client.emit('voice-meeting-error', { 
-                    message: 'Failed to register for voice meeting',
-                    error: error.message 
+                console.error(`❌ [SOCKET] Error registering voice meeting:`, error);
+                client.emit('voice-meeting-error', {
+                    error: 'Failed to register voice meeting',
+                    details: error.message,
+                    timestamp: Date.now()
                 });
             }
         });
@@ -637,84 +634,57 @@ function handleGetOnlineUsers(io, client) {
 }
 
 function handleCheckVoiceMeeting(io, client, data) {
-    console.log(`🎤 [VOICE-CHECK-HANDLER] Processing voice meeting check:`, {
-        channelId: data.channel_id,
-        userId: client.data?.user_id
-    });
-    
     const { channel_id } = data;
+    
     if (!channel_id) {
-        console.warn(`⚠️ [VOICE-CHECK-HANDLER] Channel ID is required`);
-        client.emit('error', { message: 'Channel ID is required' });
+        client.emit('voice-meeting-error', { 
+            error: 'Missing channel_id',
+            timestamp: Date.now()
+        });
         return;
     }
 
-    const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
-    const voiceTrackerParticipants = VoiceConnectionTracker.getChannelParticipants(channel_id);
+    console.log(`🔍 [SOCKET] Checking voice meeting for channel: ${channel_id}`);
     
-    if (roomManagerMeeting || voiceTrackerParticipants.length > 0) {
-        console.log(`✅ [VOICE-CHECK-HANDLER] Voice meeting found for channel ${channel_id}:`, {
-            meetingId: roomManagerMeeting?.meeting_id,
-            participantCount: roomManagerMeeting?.participants.size || 0,
-            trackerParticipants: voiceTrackerParticipants.length
-        });
-        
-        const participants = [];
-        
-        if (roomManagerMeeting) {
-            roomManagerMeeting.participants.forEach(socketId => {
-                const socket = io.sockets.sockets.get(socketId);
-                if (socket && socket.data?.authenticated) {
-                    participants.push({
-                        user_id: socket.data.user_id,
-                        username: socket.data.username
-                    });
-                }
+    const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
+    const participantCount = participants.length;
+    const hasMeeting = participantCount > 0;
+    
+    const meetingId = hasMeeting ? participants[0]?.meetingId : null;
+    
+    const response = {
+        channel_id: channel_id,
+        has_meeting: hasMeeting,
+        meeting_id: meetingId,
+        participant_count: participantCount,
+        participants: participants.map(p => ({
+            user_id: p.userId,
+            username: p.username || 'Unknown',
+            meeting_id: p.meetingId,
+            joined_at: p.joinedAt
+        })),
+        timestamp: Date.now()
+    };
+
+    console.log(`📊 [SOCKET] Voice meeting status for channel ${channel_id}:`, {
+        hasMeeting,
+        participantCount,
+        meetingId
+    });
+
+    client.emit('voice-meeting-status', response);
+    
+    if (hasMeeting && participantCount > 0) {
+        participants.forEach(participant => {
+            client.emit('voice-meeting-update', {
+                channel_id: channel_id,
+                action: 'already_registered',
+                user_id: participant.userId,
+                username: participant.username,
+                meeting_id: participant.meetingId,
+                participant_count: participantCount,
+                timestamp: Date.now()
             });
-        }
-        
-        voiceTrackerParticipants.forEach(participant => {
-            const existingParticipant = participants.find(p => p.user_id.toString() === participant.userId.toString());
-            if (!existingParticipant) {
-                participants.push({
-                    user_id: participant.userId,
-                    username: participant.username || 'Unknown'
-                });
-            } else {
-                console.log(`🎤 [VOICE-CHECK-HANDLER] Skipping duplicate participant: ${participant.userId} (${participant.username})`);
-            }
-        });
-        
-        const participantCount = Math.max(roomManagerMeeting?.participants.size || 0, voiceTrackerParticipants.length);
-        const meetingId = roomManagerMeeting?.meeting_id || `voice_channel_${channel_id}`;
-        
-        client.emit('voice-meeting-status', {
-            channel_id,
-            has_meeting: true,
-            meeting_id: meetingId,
-            participant_count: participantCount,
-            participants: participants
-        });
-        
-        if (participants.length > 0) {
-            participants.forEach(participant => {
-                client.emit('voice-meeting-update', {
-                    action: 'join',
-                    channel_id: channel_id,
-                    meeting_id: meetingId,
-                    user_id: participant.user_id,
-                    username: participant.username,
-                    participant_count: participantCount
-                });
-            });
-        }
-    } else {
-        console.log(`📭 [VOICE-CHECK-HANDLER] No voice meeting found for channel ${channel_id}`);
-        client.emit('voice-meeting-status', {
-            channel_id,
-            has_meeting: false,
-            participant_count: 0,
-            participants: []
         });
     }
 }
@@ -773,6 +743,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
         
         console.log(`📡 [VOICE-UNREGISTER-HANDLER] Broadcasting voice meeting update for channel ${channel_id}, participants: ${result.participant_count}`);
         
+        // Broadcast to ALL users for cross-channel visibility
         io.emit('voice-meeting-update', {
             channel_id,
             meeting_id: roomManagerMeeting.meeting_id,

@@ -249,6 +249,11 @@ Route::get('/api/channels/([0-9]+)', function($channelId) {
     $controller->show($channelId);
 });
 
+Route::get('/api/socket/channels/([0-9]+)', function($channelId) {
+    $controller = new ChannelController();
+    $controller->getChannelWithServerForSocket($channelId);
+});
+
 Route::get('/api/channels/([0-9]+)/switch', function($channelId) {
     $controller = new ChannelController();
     $_GET['channel_id'] = $channelId;
@@ -691,6 +696,11 @@ Route::post('/api/user/set-security-question', function() {
 Route::post('/api/user/change-password-security', function() {
     $controller = new UserController();
     $controller->changePasswordWithSecurityAnswer();
+});
+
+Route::delete('/api/user/account', function() {
+    $controller = new UserController();
+    $controller->deleteAccount();
 });
 
 Route::get('/api/servers/invite/([a-zA-Z0-9]+)', function($code) {

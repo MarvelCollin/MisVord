@@ -619,4 +619,57 @@ class UserRepository extends Repository {
             ->offset($offset)
             ->get();
     }
+
+    public function deleteUser($userId)
+    {
+        try {
+            $query = new Query();
+            
+            $user = $this->find($userId);
+            if (!$user) {
+                return false;
+            }
+            
+            $query->table('message_reactions')->where('user_id', $userId)->delete();
+            
+            $query->table('pinned_messages')->where('user_id', $userId)->delete();
+            
+            $query->table('chat_room_messages')->where('user_id', $userId)->delete();
+            
+            $query->table('chat_participants')->where('user_id', $userId)->delete();
+            
+            $query->table('channel_messages')->where('user_id', $userId)->delete();
+            
+            $query->table('messages')->where('user_id', $userId)->delete();
+            
+            $query->table('friend_list')->where('user_id', $userId)->delete();
+            $query->table('friend_list')->where('user_id2', $userId)->delete();
+            
+            $query->table('nitro')->where('user_id', $userId)->delete();
+            
+            $query->table('user_server_memberships')->where('user_id', $userId)->delete();
+            
+            if (!empty($user->avatar_url) && strpos($user->avatar_url, '/public/storage/') === 0) {
+                $avatarPath = dirname(__DIR__, 2) . $user->avatar_url;
+                if (file_exists($avatarPath) && is_file($avatarPath)) {
+                    unlink($avatarPath);
+                }
+            }
+            
+            if (!empty($user->banner_url) && strpos($user->banner_url, '/public/storage/') === 0) {
+                $bannerPath = dirname(__DIR__, 2) . $user->banner_url;
+                if (file_exists($bannerPath) && is_file($bannerPath)) {
+                    unlink($bannerPath);
+                }
+            }
+            
+            $result = $query->table(User::getTable())->where('id', $userId)->delete();
+            
+            return $result > 0;
+            
+        } catch (Exception $e) {
+            error_log("UserRepository deleteUser error: " . $e->getMessage());
+            return false;
+        }
+    }
 }

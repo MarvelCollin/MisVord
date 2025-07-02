@@ -89,6 +89,10 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="sidebar-category">
                 <span>USER ACTIONS</span>
             </div>
+            <a href="?section=delete-account" class="sidebar-item text-red-500 hover:text-red-400 <?php echo $section === 'delete-account' ? 'active' : ''; ?>">
+                <i class="fas fa-trash-alt mr-2"></i>
+                Delete Account
+            </a>
             <a href="#" id="logout-btn" class="sidebar-item text-red-500 hover:text-red-400">
                 <i class="fas fa-sign-out-alt mr-2"></i>
                 Log Out
@@ -429,6 +433,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 </div>
             </div>
+        <?php elseif ($section === 'delete-account'): ?>
+            <div class="p-10">
+                <div class="max-w-[740px]">
+                    <div class="mb-8">
+                        <h1 class="text-red-400">Delete Account</h1>
+                        <p>Permanently delete your account and all associated data</p>
+                    </div>
+                    
+                    <div class="bg-red-900/20 border border-red-600/50 rounded-lg p-6 mb-6">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-red-400 text-xl mr-4 mt-1"></i>
+                            <div>
+                                <h3 class="text-red-300 font-semibold mb-2">Warning: This action cannot be undone</h3>
+                                <p class="text-red-200 text-sm mb-3">Deleting your account will permanently remove:</p>
+                                <ul class="text-red-200 text-sm space-y-1 list-disc list-inside ml-4">
+                                    <li>Your profile, username, and personal information</li>
+                                    <li>All your messages and chat history</li>
+                                    <li>Your server memberships and roles</li>
+                                    <li>Friend connections and direct messages</li>
+                                    <li>Any uploaded files or media</li>
+                                    <li>Nitro subscription and benefits</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-discord-darker rounded-lg p-6">
+                        <h3 class="text-lg font-medium mb-4">Delete My Account</h3>
+                        <p class="text-discord-lighter mb-6">
+                            If you're sure you want to delete your account, click the button below. 
+                            You'll be asked to confirm your username before the deletion process begins.
+                        </p>
+                        
+                        <button type="button" id="delete-account-btn" class="bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-md transition-colors">
+                            <i class="fas fa-trash-alt mr-2"></i>
+                            Delete My Account
+                        </button>
+                    </div>
+                </div>
+            </div>
         <?php else: ?>
             <div class="p-10">
                 <div class="max-w-[740px]">
@@ -577,6 +621,53 @@ document.addEventListener('DOMContentLoaded', function() {
                             Change Password
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div id="delete-account-modal" class="fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-70 hidden">
+    <div class="w-full max-w-md mx-4">
+        <div class="bg-discord-darker rounded-lg shadow-xl overflow-hidden border border-red-600">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold text-red-400">Delete Account</h2>
+                    <button id="close-delete-modal" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+                
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-red-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-white mb-2">Are you absolutely sure?</h3>
+                    <p class="text-gray-400 text-sm">This action cannot be undone. This will permanently delete your account and remove all your data from our servers.</p>
+                </div>
+                
+                <div class="space-y-3 mb-6">
+                    <label class="block text-sm font-medium text-gray-300">
+                        Please type <strong class="text-white"><?php echo htmlspecialchars($user->username ?? ''); ?></strong> to confirm
+                    </label>
+                    <input type="text" id="username-confirmation-input" 
+                           class="w-full bg-discord-dark border border-red-600 rounded-md px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                           placeholder="Enter your username">
+                    <div id="delete-account-error" class="text-red-400 text-sm mt-1 hidden"></div>
+                </div>
+                
+                <div class="pt-4 flex space-x-3">
+                    <button type="button" id="cancel-delete-account" 
+                            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-md transition-colors">
+                        Cancel
+                    </button>
+                    <button type="button" id="confirm-delete-account" 
+                            class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-md transition-colors opacity-50 cursor-not-allowed"
+                            disabled>
+                        <i class="fas fa-trash-alt mr-2"></i>
+                        Delete Account
+                    </button>
                 </div>
             </div>
         </div>
