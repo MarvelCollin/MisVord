@@ -56,7 +56,6 @@ class ChatController extends BaseController
                 return $this->validationError(['target_type' => 'Invalid target type. Must be "channel" or "dm"']);
             }
         } catch (Exception $e) {
-            error_log("Error in getMessages: " . $e->getMessage());
             return $this->serverError('An error occurred while fetching messages: ' . $e->getMessage());
         }
     }
@@ -100,7 +99,6 @@ class ChatController extends BaseController
 
             return $this->respondMessages('channel', $channelId, $formattedMessages, $hasMore);
         } catch (Exception $e) {
-            error_log("Error getting channel messages: " . $e->getMessage());
             return $this->serverError('Failed to load channel messages: ' . $e->getMessage());
         }
     }
@@ -149,7 +147,6 @@ class ChatController extends BaseController
                 'has_more' => $hasMore
             ], 'Messages retrieved successfully');
         } catch (Exception $e) {
-            error_log("Error getting channel messages: " . $e->getMessage());
             return $this->internalServerError('Failed to load channel messages: ' . $e->getMessage());
         }
     }
@@ -200,7 +197,6 @@ class ChatController extends BaseController
 
             return $this->respondMessages('dm', $chatRoomId, $formattedMessages, $hasMore);
         } catch (Exception $e) {
-            error_log("Error getting DM messages: " . $e->getMessage());
             return $this->serverError('Failed to load direct messages: ' . $e->getMessage());
         }
     }
@@ -246,7 +242,6 @@ class ChatController extends BaseController
                 'has_more' => $hasMore
             ], 'Messages retrieved successfully');
         } catch (Exception $e) {
-            error_log("Error getting DM messages: " . $e->getMessage());
             return $this->internalServerError('Failed to load direct messages: ' . $e->getMessage());
         }
     }
@@ -289,7 +284,6 @@ class ChatController extends BaseController
         }
 
         if (!empty($validationErrors)) {
-            error_log("Message validation failed: " . json_encode($validationErrors));
             return $this->validationError($validationErrors);
         }
 
@@ -540,7 +534,6 @@ class ChatController extends BaseController
                         'type' => 'direct'
                     ], 'Direct message created');
                 } catch (Exception $e) {
-                    error_log("ChatController::create - DM Error: " . $e->getMessage());
                     return $this->serverError('Failed to create direct message: ' . $e->getMessage());
                 }
             }
@@ -599,15 +592,12 @@ class ChatController extends BaseController
                         if ($groupImage) {
                             try {
                                 $processedGroupImage = $this->processGroupImage($groupImage);
-                                error_log("ChatController::create - Group image processed successfully");
                             } catch (Exception $e) {
-                                error_log("ChatController::create - Group image processing error: " . $e->getMessage());
                                 return $this->validationError(['group_image' => 'Failed to process group image: ' . $e->getMessage()]);
                             }
                         }
 
                         $allParticipants = array_merge([$userId], $userIds);
-                        error_log("ChatController::create - Creating group chat with participants: " . json_encode($allParticipants));
                         
                         $chatRoom = $this->chatRoomRepository->createGroupChatRoom($allParticipants, $groupName, $processedGroupImage);
                         $type = 'group';
@@ -618,24 +608,18 @@ class ChatController extends BaseController
                         return $this->serverError('Failed to create chat room');
                     }
 
-                    error_log("ChatController::create - Chat room created successfully with ID: " . $chatRoom->id);
-
                     return $this->success([
                         'channel_id' => $chatRoom->id,
                         'room_id' => $chatRoom->id,
                         'type' => $type
                     ], $message);
                 } catch (Exception $e) {
-                    error_log("ChatController::create - Chat creation error: " . $e->getMessage());
-                    error_log("ChatController::create - Error trace: " . $e->getTraceAsString());
                     return $this->serverError('Failed to create chat: ' . $e->getMessage());
                 }
             }
 
             return $this->validationError(['input' => 'Either user_id or user_ids array is required']);
         } catch (Exception $e) {
-            error_log("ChatController::create - General error: " . $e->getMessage());
-            error_log("ChatController::create - General error trace: " . $e->getTraceAsString());
             return $this->serverError('An unexpected error occurred: ' . $e->getMessage());
         }
     }
@@ -910,7 +894,6 @@ class ChatController extends BaseController
                 }
             }
         } catch (Exception $e) {
-            error_log('Error loading reactions for message ' . $messageId . ': ' . $e->getMessage());
         }
         
         return $formatted;
@@ -932,15 +915,11 @@ class ChatController extends BaseController
         $this->requireAuth();
         
         try {
-            error_log("[Chat Section] Starting renderChatSection - Type: $chatType, ID: $chatId");
             
             $userId = $this->getCurrentUserId();
-            error_log("[Chat Section] Current user ID: $userId");
             
             if ($chatType === 'channel') {
-                error_log("[Chat Section] Fetching channel messages");
                 $messages = $this->getChannelMessagesInternal($chatId, $userId);
-                error_log("[Chat Section] Found " . count($messages['data']['messages']) . " messages");
                 
                 $channel = $this->channelRepository->find($chatId);
                 if (!$channel) {
@@ -964,9 +943,7 @@ class ChatController extends BaseController
                     ]
                 ]);
             } else {
-                error_log("[Chat Section] Fetching DM messages");
                 $messages = $this->getDirectMessagesInternal($chatId, $userId);
-                error_log("[Chat Section] Found " . count($messages['data']['messages']) . " messages");
                 
                 return $this->success([
                     'data' => [
@@ -977,8 +954,6 @@ class ChatController extends BaseController
                 ]);
             }
         } catch (Exception $e) {
-            error_log("[Chat Section] Error: " . $e->getMessage());
-            error_log("[Chat Section] Stack trace: " . $e->getTraceAsString());
             return $this->error($e->getMessage());
         }
     }
@@ -988,31 +963,23 @@ class ChatController extends BaseController
         $this->requireAuth();
         
         try {
-            error_log("[Voice Section] Starting renderVoiceSection - Channel ID: $channelId");
             
             $userId = $this->getCurrentUserId();
-            error_log("[Voice Section] Current user ID: $userId");
             
             $channelRepo = new ChannelRepository();
             $channel = $channelRepo->find($channelId);
-            error_log("[Voice Section] Channel data: " . json_encode($channel));
             
             if (!$channel || $channel['type'] !== 'voice') {
-                error_log("[Voice Section] Invalid channel - exists: " . ($channel ? 'true' : 'false') . ", type: " . ($channel ? $channel['type'] : 'N/A'));
                 return $this->notFound('Voice channel not found');
             }
             
             $GLOBALS['channelId'] = $channelId;
             $GLOBALS['channel'] = $channel;
-            error_log("[Voice Section] Set globals - channelId: $channelId, channel name: " . $channel['name']);
             
 
             
-            error_log("[Voice Section] Returning channel data for non-Ajax request");
             return $channel;
         } catch (Exception $e) {
-            error_log("[Voice Section] Error: " . $e->getMessage());
-            error_log("[Voice Section] Stack trace: " . $e->getTraceAsString());
             
 
             throw $e;
@@ -1406,7 +1373,6 @@ class ChatController extends BaseController
                 'total' => count($formattedMessages)
             ]);
         } catch (Exception $e) {
-            error_log("Error in searchServerMessages: " . $e->getMessage());
             return $this->serverError('Failed to search server messages');
         }
     }
@@ -1592,23 +1558,31 @@ class ChatController extends BaseController
     {
         header('Content-Type: application/json');
         
-        error_log("Bot message save - Request received");
+        $botApiKey = $_SERVER['HTTP_X_BOT_API_KEY'] ?? null;
+        if (!$botApiKey) {
+            return $this->unauthorized('Missing bot API key');
+        }
+        
+        $query = new Query();
+        $botUser = $query->table('users')
+            ->where('bot_api_key', $botApiKey)
+            ->where('status', 'bot')
+            ->first();
+        
+        if (!$botUser) {
+            return $this->unauthorized('Invalid bot API key');
+        }
+        
+        $userId = $botUser['id'];
         
         $input = $this->getInput();
+        if (!$input) {
+            return $this->error('No input provided or failed to decode JSON', 400);
+        }
+
         $input = $this->sanitize($input);
 
-        error_log("Bot message save request: " . json_encode($input));
-
         $validationErrors = [];
-        
-        if (empty($input['user_id'])) {
-            $validationErrors['user_id'] = 'Bot user_id is required';
-        }
-        
-        if (empty($input['username'])) {
-            $validationErrors['username'] = 'Bot username is required';
-        }
-        
         if (empty($input['target_type'])) {
             $validationErrors['target_type'] = 'Target type is required (channel or dm)';
         } elseif (!in_array($input['target_type'], ['channel', 'dm'])) {
@@ -1625,60 +1599,67 @@ class ChatController extends BaseController
         $mentions = $input['mentions'] ?? [];
         $replyMessageId = $input['reply_message_id'] ?? null;
 
+        if (is_array($attachments)) {
+            $attachments = array_filter($attachments, function($attachment) {
+                return is_string($attachment) && !empty($attachment);
+            });
+        } else {
+            $attachments = [];
+        }
+
         if (empty($content) && empty($attachments)) {
             $validationErrors['content'] = 'Message must have either content or an attachment';
         }
 
         if (!empty($validationErrors)) {
-            error_log("Bot message validation failed: " . json_encode($validationErrors));
             return $this->validationError($validationErrors);
         }
-
-        $userId = $input['user_id'];
-        $username = $input['username'];
         
-        $user = $this->userRepository->find($userId);
-        if (!$user) {
-            error_log("Bot message save failed: Bot user not found in database - ID: $userId");
-            return $this->notFound('Bot user not found');
-        }
-        
-        error_log("Bot message save: Bot $userId ($username) validated");
+        $targetType = $input['target_type'];
+        $targetId = $input['target_id'];
 
         try {
-            if ($input['target_type'] === 'channel') {
-                $result = $this->sendChannelMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+            if ($targetType === 'channel') {
+                $channel = $this->channelRepository->find($targetId);
+                if (!$channel) {
+                    return $this->notFound("Channel not found with ID $targetId");
+                }
+                
+                if ($channel->server_id != 0) {
+                    $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
+                    if (!$membership) {
+                        return $this->forbidden('Bot is not a member of this server');
+                    }
+                }
+                
+                $result = $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
             } else {
-                $result = $this->sendDirectMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+                $chatRoom = $this->chatRoomRepository->find($targetId);
+                if (!$chatRoom) {
+                    return $this->notFound("Chat room not found with ID $targetId");
+                }
+                
+                if (!$this->chatRoomRepository->isParticipant($targetId, $userId)) {
+                    return $this->forbidden('Bot is not a participant in this chat');
+                }
+                
+                $result = $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
             }
 
-            error_log("Bot message save result: " . json_encode($result));
-
             if ($result['success']) {
-                $message = $result['data']['message'];
+                $messageData = $result['data']['message'];
+                
+                if (isset($input['nonce'])) {
+                    $messageData['nonce'] = $input['nonce'];
+                }
+                
                 return $this->success([
-                    'message_id' => $message['id'],
-                    'user_id' => $message['user_id'],
-                    'username' => $message['username'],
-                    'avatar_url' => $message['avatar_url'] ?? '/public/assets/common/default-profile-picture.png',
-                    'target_type' => $input['target_type'],
-                    'target_id' => $input['target_id'],
-                    'content' => $message['content'],
-                    'message_type' => $message['message_type'],
-                    'attachments' => $message['attachments'],
-                    'mentions' => $message['mentions'],
-                    'reply_message_id' => $message['reply_message_id'],
-                    'reply_data' => $message['reply_data'],
-                    'sent_at' => $message['sent_at'],
-                    'timestamp' => $message['timestamp']
-                ], 'Bot message saved successfully');
+                    'message' => $messageData
+                ], 'Message saved successfully');
             } else {
-                error_log("Failed to save bot message: " . json_encode($result));
                 return $result;
             }
         } catch (Exception $e) {
-            error_log("Error saving bot message: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
             return $this->serverError('Failed to save bot message: ' . $e->getMessage());
         }
     }
@@ -1736,59 +1717,36 @@ class ChatController extends BaseController
 
     private function processGroupImage($imageData)
     {
-        if (empty($imageData)) {
-            return null;
+        if (strpos($imageData, ';base64,') === false) {
+            throw new Exception("Invalid image data format. Expected base64 string.");
         }
 
-        if (strpos($imageData, 'data:image/') !== 0) {
-            return $imageData;
+        list($type, $data) = explode(';', $imageData);
+        list(, $data)      = explode(',', $data);
+        $data = base64_decode($data);
+
+        $finfo = finfo_open();
+        $mime_type = finfo_buffer($finfo, $data, FILEINFO_MIME_TYPE);
+        finfo_close($finfo);
+
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!in_array($mime_type, $allowedMimes)) {
+            throw new Exception("Invalid image type. Allowed types: " . implode(', ', $allowedMimes));
         }
 
-        try {
-            $parts = explode(',', $imageData, 2);
-            if (count($parts) !== 2) {
-                throw new Exception('Invalid base64 image format');
-            }
+        $ext = str_replace('image/', '', $mime_type);
+        $filename = uniqid('group_img_') . '.' . $ext;
+        $uploadDir = dirname(__DIR__) . '/public/storage/group_images/';
 
-            $header = $parts[0];
-            $data = $parts[1];
-            
-            if (!preg_match('/data:image\/([a-zA-Z]+);base64/', $header, $matches)) {
-                throw new Exception('Invalid image header format');
-            }
-            
-            $extension = $matches[1];
-            if (!in_array($extension, ['jpeg', 'jpg', 'png', 'gif', 'webp'])) {
-                throw new Exception('Unsupported image format: ' . $extension);
-            }
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
 
-            $imageContent = base64_decode($data);
-            if ($imageContent === false) {
-                throw new Exception('Failed to decode base64 image data');
-            }
-
-            if (strlen($imageContent) > 5 * 1024 * 1024) {
-                throw new Exception('Image size exceeds 5MB limit');
-            }
-
-            $uploadPath = dirname(__DIR__) . '/public/storage/';
-            if (!is_dir($uploadPath)) {
-                if (!mkdir($uploadPath, 0777, true)) {
-                    throw new Exception('Failed to create storage directory');
-                }
-            }
-
-            $fileName = 'group_' . uniqid() . '_' . time() . '.' . $extension;
-            $filePath = $uploadPath . $fileName;
-            
-            if (file_put_contents($filePath, $imageContent) === false) {
-                throw new Exception('Failed to save image file');
-            }
-
-            return '/public/storage/' . $fileName;
-        } catch (Exception $e) {
-            error_log('Group image processing error: ' . $e->getMessage());
-            throw new Exception('Failed to process group image: ' . $e->getMessage());
+        $filePath = $uploadDir . $filename;
+        if (file_put_contents($filePath, $data)) {
+            return '/public/storage/group_images/' . $filename;
+        } else {
+            throw new Exception("Failed to save image to disk.");
         }
     }
 

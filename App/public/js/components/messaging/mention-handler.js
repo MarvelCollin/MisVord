@@ -336,28 +336,29 @@ class MentionHandler {
     
     applyMentionInputStyling(input, isTypingMention) {
         if (isTypingMention) {
-            // Ensure override style tag exists with very high specificity
-            if (!document.getElementById('misvord-mention-input-style')) {
-                const style = document.createElement('style');
-                style.id = 'misvord-mention-input-style';
-                style.textContent = `
-                    body #chat-root #message-input[data-mention-typing="true"],
-                    body #message-input[data-mention-typing="true"] {
-                        background: rgba(88, 101, 242, 0.15) !important;
-                        background-color: rgba(88, 101, 242, 0.15) !important;
-                        box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.4) !important;
-                        border: 1px solid rgba(88, 101, 242, 0.6) !important;
-                        border-radius: 6px !important;
-                        transform: translateY(-1px) !important;
-                        transition: all 0.2s ease !important;
-                    }
-                `;
-                document.head.appendChild(style);
-            }
+            // Apply styles directly inline with !important (highest specificity)
+            input.style.setProperty('background', 'rgba(88, 101, 242, 0.15)', 'important');
+            input.style.setProperty('background-color', 'rgba(88, 101, 242, 0.15)', 'important');
+            input.style.setProperty('box-shadow', '0 0 0 3px rgba(88, 101, 242, 0.4)', 'important');
+            input.style.setProperty('border', '1px solid rgba(88, 101, 242, 0.6)', 'important');
+            input.style.setProperty('border-radius', '6px', 'important');
+            input.style.setProperty('transform', 'translateY(-1px)', 'important');
+            input.style.setProperty('transition', 'all 0.2s ease', 'important');
             
             input.setAttribute('data-mention-typing', 'true');
+            input.classList.add('misvord-mention-typing');
         } else {
+            // Remove inline styles
+            input.style.removeProperty('background');
+            input.style.removeProperty('background-color');
+            input.style.removeProperty('box-shadow');
+            input.style.removeProperty('border');
+            input.style.removeProperty('border-radius');
+            input.style.removeProperty('transform');
+            input.style.removeProperty('transition');
+            
             input.removeAttribute('data-mention-typing');
+            input.classList.remove('misvord-mention-typing');
         }
     }
     
