@@ -198,6 +198,10 @@ class ChatSection {
             this.channelSwitchManager = null;
             this.lastJoinedRoom = null;
             
+            this.currentServerName = options.serverName || null;
+            this.currentServerIcon = options.serverIcon || null;
+            this.currentChannelName = options.channelName || null;
+            
             this.chatContainer = null;
             this.chatMessages = null;
             this.messageForm = null;
@@ -364,8 +368,14 @@ class ChatSection {
     }
     
     async init() {
-        try {
-            this.initializeChatSkeleton();
+        if (this.isInitialized) {
+            return;
+        }
+
+        document.addEventListener('channelContentLoaded', this.handleChannelContentLoaded);
+
+        if (!this.chatType || !this.targetId) {
+            this.chatType = this.detectChatType();
             
             await this.waitForRequiredElements();
         
@@ -417,12 +427,35 @@ class ChatSection {
             
             this.chatBot.init();
             
-        } catch (error) {
-            if (!isExcludedPage()) {
-            }
         }
+
+        this.userId = document.querySelector('meta[name="user-id"]')?.getAttribute('content');
+        this.username = document.querySelector('meta[name="username"]')?.getAttribute('content');
+
+        const eventDetail = this.initialEventDetail;
+        if(eventDetail) {
+            this.currentServerName = eventDetail.serverName;
+            this.currentServerIcon = eventDetail.serverIcon;
+            this.currentChannelName = eventDetail.channelName;
+        }
+
+        if (!this.userId) {
+            await this.waitForUserId();
+        }
+
+        this.channelSwitchManager = manager;
     }
     
+    handleChannelContentLoaded = (e) => {
+        const { detail } = e;
+        if (detail.type === 'chat') {
+            this.currentServerName = detail.serverName;
+            this.currentServerIcon = detail.serverIcon;
+            this.currentChannelName = detail.channelName;
+            this.initialEventDetail = detail;
+        }
+    }
+
     joinSocketRoom() {
         if (!this.targetId) {
             return;

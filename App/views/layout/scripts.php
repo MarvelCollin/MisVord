@@ -121,8 +121,10 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '';
 $isHomePage = strpos($currentPath, '/home') === 0;
 ?>
 <script src="<?php echo js('components/app-layout'); ?>?v=<?php echo time(); ?>" type="module"></script>
-<script src="<?php echo js('debug-deletion-test'); ?>?v=<?php echo time(); ?>"></script>
-<script src="<?php echo js('utils/dm-switch-manager'); ?>?v=<?php echo time(); ?>" type="module"></script>
+<script type="module" src="<?php echo js('debug-deletion-test'); ?>?v=<?php echo time(); ?>"></script>
+<script type="module" src="<?php echo js('utils/dm-switch-manager'); ?>?v=<?php echo time(); ?>"></script>
+
+<script type="module" src="<?php echo js('components/common/notification-handler'); ?>"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

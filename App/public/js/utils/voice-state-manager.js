@@ -166,11 +166,9 @@ class UnifiedVoiceStateManager {
         window.addEventListener('popstate', (event) => {
             console.log('🔄 [UNIFIED-VOICE] Navigation detected:', event.state);
             
-            // Check if voice should be preserved during navigation
             if (event.state?.preserveVoice) {
                 console.log('🔄 [UNIFIED-VOICE] Voice preservation requested during navigation');
                 
-                // Validate connection is still active after navigation
                 setTimeout(() => {
                     this.validateStoredConnection();
                 }, 1000);

@@ -843,12 +843,16 @@ if (!function_exists('renderMessage')) {
 <script src="<?php echo js('test/mention-overlay-test'); ?>?v=<?php echo time(); ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Chat Section] DOM loaded, chat section should be handled by main component');
+    const serverData = <?php echo json_encode($GLOBALS['currentServer'] ?? null); ?>;
     
     document.dispatchEvent(new CustomEvent('channelContentLoaded', {
         detail: {
             type: 'chat',
-            channelId: document.querySelector('meta[name="channel-id"]')?.getAttribute('content')
+            chatType: '<?php echo $chatType; ?>',
+            targetId: '<?php echo $targetId; ?>',
+            serverName: serverData ? serverData.name : null,
+            serverIcon: serverData ? serverData.image_url : null,
+            channelName: '<?php echo addslashes($chatTitle); ?>'
         }
     }));
 });

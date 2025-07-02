@@ -147,13 +147,9 @@ class VoiceManager {
         
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && this.isConnected) {
-                console.log('🚨 [VOICE-MANAGER] Page became hidden, monitoring for cleanup');
-                setTimeout(() => {
-                    if (document.visibilityState === 'hidden' && this.isConnected) {
-                        console.log('🚨 [VOICE-MANAGER] Page still hidden after timeout, cleaning up');
-                        this.cleanup();
-                    }
-                }, 5000);
+                console.log('📱 [VOICE-MANAGER] Page became hidden, voice connection maintained');
+            } else if (document.visibilityState === 'visible' && this.isConnected) {
+                console.log('📱 [VOICE-MANAGER] Page became visible, voice connection active');
             }
         });
     }

@@ -75,6 +75,9 @@ class SendReceiveHandler {
                 } else {
                     this.chatSection.messageInput.value = '';
                 }
+                if (this.chatSection.mentionHandler) {
+                    this.chatSection.mentionHandler.updateOverlayContent();
+                }
             }
             
             if (this.chatSection.fileUploadHandler.hasFiles()) {
@@ -152,7 +155,12 @@ class SendReceiveHandler {
             attachments: options.attachments || [],
             mentions: options.mentions || [],
             reply_message_id: options.reply_message_id,
-            temp_message_id: tempId
+            temp_message_id: tempId,
+            context: {
+                server_name: this.chatSection.currentServerName || null,
+                channel_name: this.chatSection.currentChannelName || null,
+                server_icon: this.chatSection.currentServerIcon || null
+            }
         };
         
         const isTitiBotCommand = content && content.toLowerCase().includes('/titibot');

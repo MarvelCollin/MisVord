@@ -448,6 +448,10 @@ class MessageHandler {
                 broadcastData.target_id = data.target_id;
             }
 
+            if (data.context) {
+                broadcastData.context = data.context;
+            }
+
             // Step 2: Fetch reply data if needed (for temporary broadcast)
             if (data.reply_message_id) {
                 console.log(`📝 [SAVE-AND-SEND] Fetching reply data for temporary broadcast: ${data.reply_message_id}`);
@@ -897,57 +901,45 @@ class MessageHandler {
         if (!messageData.mentions || messageData.mentions.length === 0) {
             return;
         }
-        
-        console.log(`💬 [MENTION-HANDLER] Processing mentions for message ${messageData.id}:`, messageData.mentions);
-        
+    
+        const notificationPayload = {
+            message_id: messageData.id,
+            content: messageData.content,
+            user_id: messageData.user_id,
+            username: messageData.username,
+            avatar_url: messageData.avatar_url,
+            channel_id: messageData.channel_id,
+            room_id: messageData.room_id,
+            target_type: messageData.target_type,
+            target_id: messageData.target_id,
+            timestamp: Date.now(),
+            context: messageData.context || {}
+        };
+    
         messageData.mentions.forEach(mention => {
             if (mention.type === 'all') {
-                console.log(`📢 [MENTION-HANDLER] Broadcasting @all mention to room ${targetRoom || 'global'}`);
-                
+                const allMentionPayload = { ...notificationPayload, type: 'all' };
+    
                 if (targetRoom) {
-                    client.to(targetRoom).emit('mention_notification', {
-                        type: 'all',
-                        message_id: messageData.id,
-                        content: messageData.content,
-                        user_id: messageData.user_id,
-                        username: messageData.username,
-                        channel_id: messageData.channel_id,
-                        room_id: messageData.room_id,
-                        target_type: messageData.target_type,
-                        target_id: messageData.target_id,
-                        timestamp: Date.now()
-                    });
+                    client.to(targetRoom).emit('mention_notification', allMentionPayload);
                 } else {
-                    io.emit('mention_notification', {
-                        type: 'all',
-                        message_id: messageData.id,
-                        content: messageData.content,
-                        user_id: messageData.user_id,
-                        username: messageData.username,
-                        channel_id: messageData.channel_id,
-                        room_id: messageData.room_id,
-                        target_type: messageData.target_type,
-                        target_id: messageData.target_id,
-                        timestamp: Date.now()
-                    });
+                    io.emit('mention_notification', allMentionPayload);
                 }
-            } else if (mention.type === 'user' && mention.user_id && mention.user_id !== messageData.user_id) {
-                console.log(`👤 [MENTION-HANDLER] Sending user mention to user ${mention.user_id} (${mention.username})`);
-                
-                io.emit('mention_notification', {
+            } else if (mention.type === 'user' && mention.user_id && mention.user_id.toString() !== messageData.user_id.toString()) {
+                const userMentionPayload = {
+                    ...notificationPayload,
                     type: 'user',
                     mentioned_user_id: mention.user_id,
-                    mentioned_username: mention.username,
-                    message_id: messageData.id,
-                    content: messageData.content,
-                    user_id: messageData.user_id,
-                    username: messageData.username,
-                    channel_id: messageData.channel_id,
-                    room_id: messageData.room_id,
-                    target_type: messageData.target_type,
-                    target_id: messageData.target_id,
-                    timestamp: Date.now()
-                });
+                    mentioned_username: mention.username
+                };
+                
+                let sent = false;
+                for (const socket of io.sockets.sockets.values()) {
+                    if (socket.data?.user_id?.toString() === mention.user_id.toString()) {
+                        socket.emit('mention_notification', userMentionPayload);
+                        sent = true;
+                    }
+                }
             }
         });
     }
