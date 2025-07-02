@@ -351,7 +351,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setTimeout(() => {
         if (window.nitroCrownManager) {
-            window.nitroCrownManager.removeExistingCrownsFromDirectMessages();
+            document.querySelectorAll('.dm-username[data-user-id]').forEach(el => {
+                const userId = el.getAttribute('data-user-id');
+                if (userId && userId !== 'null') {
+                    window.nitroCrownManager.updateUserElement(el, userId);
+                }
+            });
         }
     }, 2000);
     

@@ -24,7 +24,6 @@ const FormValidator = {
         const hasUppercase = /[A-Z]/.test(password);
         const hasLowercase = /[a-z]/.test(password);
         const hasNumber = /[0-9]/.test(password);
-        const hasSpecial = /[^A-Za-z0-9]/.test(password);
 
         if (!hasUppercase) {
             return {
@@ -116,25 +115,17 @@ const FormValidator = {
     showFieldError(field, message) {
         if (!field) return;
         
+        this.clearFieldError(field);
+        
         field.classList.add('border-red-500');
 
+        const formGroup = field.closest('.form-group') || field.parentNode;
+        
         const errorDiv = document.createElement('div');
-        errorDiv.className = 'text-red-500 text-sm mt-1 validation-error';
+        errorDiv.className = 'field-error text-red-500 text-sm mt-1';
         errorDiv.textContent = message;
 
-        const parent = field.parentNode;
-        
-        const existingError = parent.querySelector('.validation-error');
-        if (existingError) {
-            existingError.textContent = message;
-            return;
-        }
-        
-        if (parent.classList.contains('relative')) {
-            parent.parentNode.appendChild(errorDiv);
-        } else {
-            parent.appendChild(errorDiv);
-        }
+        formGroup.appendChild(errorDiv);
 
         field.classList.add('animate-shake');
         setTimeout(() => {
@@ -142,12 +133,105 @@ const FormValidator = {
         }, 500);
     },
 
+    clearFieldError(field) {
+        if (!field) return;
+        
+        field.classList.remove('border-red-500');
+        
+        const formGroup = field.closest('.form-group') || field.parentNode;
+        const existingError = formGroup.querySelector('.field-error');
+        if (existingError) {
+            existingError.remove();
+        }
+    },
+
     clearErrors(form) {
-        const errors = form.querySelectorAll('.validation-error');
-        errors.forEach(error => error.remove());
+        if (!form) return;
+        
+        const fieldErrors = form.querySelectorAll('.field-error');
+        fieldErrors.forEach(error => error.remove());
 
         const errorFields = form.querySelectorAll('.border-red-500');
         errorFields.forEach(field => field.classList.remove('border-red-500'));
+
+        const formErrors = form.querySelectorAll('.form-error-container');
+        formErrors.forEach(error => error.remove());
+
+        const serverErrors = document.getElementById('serverErrors');
+        if (serverErrors) {
+            serverErrors.classList.add('hidden');
+        }
+    },
+
+    showFormError(form, message) {
+        this.clearFormErrors(form);
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'form-error-container bg-red-500 text-white p-3 rounded-md mb-4 text-center';
+        errorDiv.textContent = message;
+        
+        form.prepend(errorDiv);
+        
+        setTimeout(() => {
+            errorDiv.remove();
+        }, 5000);
+    },
+
+    clearFormErrors(form) {
+        const formErrors = form.querySelectorAll('.form-error-container');
+        formErrors.forEach(error => error.remove());
+    },
+
+    displayServerErrors() {
+        if (typeof window.serverErrors === 'undefined') return;
+        
+        const errors = window.serverErrors;
+        const oldInput = window.serverOldInput || {};
+        
+        if (errors.banned) {
+            const serverErrorsDiv = document.getElementById('serverErrors');
+            if (serverErrorsDiv) {
+                serverErrorsDiv.classList.remove('hidden');
+            }
+            return;
+        }
+
+        if (errors.auth) {
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm && !loginForm.classList.contains('hidden')) {
+                this.showFormError(loginForm, errors.auth);
+            }
+        }
+
+        if (errors.general) {
+            const registerForm = document.getElementById('registerForm');
+            if (registerForm && !registerForm.classList.contains('hidden')) {
+                this.showFormError(registerForm, errors.general);
+            }
+        }
+
+        Object.keys(errors).forEach(fieldName => {
+            if (['banned', 'auth', 'general'].includes(fieldName)) return;
+            
+            const field = document.getElementById(fieldName) || 
+                         document.getElementById(`reg_${fieldName}`) ||
+                         document.getElementById(`${fieldName}_captcha`) ||
+                         document.querySelector(`[name="${fieldName}"]`);
+            
+            if (field && errors[fieldName]) {
+                this.showFieldError(field, errors[fieldName]);
+            }
+        });
+
+        Object.keys(oldInput).forEach(fieldName => {
+            const field = document.getElementById(fieldName) || 
+                         document.getElementById(`reg_${fieldName}`) ||
+                         document.querySelector(`[name="${fieldName}"]`);
+            
+            if (field && oldInput[fieldName]) {
+                field.value = oldInput[fieldName];
+            }
+        });
     },
 
     validateLoginForm(form) {
@@ -158,7 +242,7 @@ const FormValidator = {
         const password = form.querySelector('#password');
         const captcha = form.querySelector('#login_captcha');
 
-        if (!email || !email.value) {
+        if (!email || !email.value.trim()) {
             this.showFieldError(email, 'Email is required');
             isValid = false;
         } else if (!this.validateEmail(email.value)) {
@@ -166,12 +250,12 @@ const FormValidator = {
             isValid = false;
         }
 
-        if (!password || !password.value || password.value.trim() === '') {
+        if (!password || !password.value.trim()) {
             this.showFieldError(password, 'Password is required');
             isValid = false;
         }
 
-        if (captcha && !captcha.value) {
+        if (captcha && !captcha.value.trim()) {
             this.showFieldError(captcha, 'Please complete the captcha');
             isValid = false;
         }
@@ -191,47 +275,59 @@ const FormValidator = {
         const securityAnswer = form.querySelector('#security_answer');
         const captcha = form.querySelector('#register_captcha');
 
-        const usernameValidation = this.validateUsername(username.value);
-        if (!usernameValidation.valid) {
-            this.showFieldError(username, usernameValidation.message);
-            isValid = false;
+        if (username) {
+            const usernameValidation = this.validateUsername(username.value);
+            if (!usernameValidation.valid) {
+                this.showFieldError(username, usernameValidation.message);
+                isValid = false;
+            }
         }
 
-        if (!email.value) {
-            this.showFieldError(email, 'Email is required');
-            isValid = false;
-        } else if (!this.validateEmail(email.value)) {
-            this.showFieldError(email, 'Please enter a valid email address');
-            isValid = false;
+        if (email) {
+            if (!email.value.trim()) {
+                this.showFieldError(email, 'Email is required');
+                isValid = false;
+            } else if (!this.validateEmail(email.value)) {
+                this.showFieldError(email, 'Please enter a valid email address');
+                isValid = false;
+            }
         }
 
-        const passwordValidation = this.validatePassword(password.value);
-        if (!passwordValidation.valid) {
-            this.showFieldError(password, passwordValidation.message);
-            isValid = false;
+        if (password) {
+            const passwordValidation = this.validatePassword(password.value);
+            if (!passwordValidation.valid) {
+                this.showFieldError(password, passwordValidation.message);
+                isValid = false;
+            }
         }
 
-        const passwordMatchValidation = this.validatePasswordMatch(
-            password.value, confirmPassword.value
-        );
-        if (!passwordMatchValidation.valid) {
-            this.showFieldError(confirmPassword, passwordMatchValidation.message);
-            isValid = false;
+        if (confirmPassword && password) {
+            const passwordMatchValidation = this.validatePasswordMatch(
+                password.value, confirmPassword.value
+            );
+            if (!passwordMatchValidation.valid) {
+                this.showFieldError(confirmPassword, passwordMatchValidation.message);
+                isValid = false;
+            }
         }
 
-        const questionValidation = this.validateSecurityQuestion(securityQuestion.value);
-        if (!questionValidation.valid) {
-            this.showFieldError(securityQuestion, questionValidation.message);
-            isValid = false;
+        if (securityQuestion) {
+            const questionValidation = this.validateSecurityQuestion(securityQuestion.value);
+            if (!questionValidation.valid) {
+                this.showFieldError(securityQuestion, questionValidation.message);
+                isValid = false;
+            }
         }
 
-        const answerValidation = this.validateSecurityAnswer(securityAnswer.value);
-        if (!answerValidation.valid) {
-            this.showFieldError(securityAnswer, answerValidation.message);
-            isValid = false;
+        if (securityAnswer) {
+            const answerValidation = this.validateSecurityAnswer(securityAnswer.value);
+            if (!answerValidation.valid) {
+                this.showFieldError(securityAnswer, answerValidation.message);
+                isValid = false;
+            }
         }
 
-        if (captcha && !captcha.value) {
+        if (captcha && !captcha.value.trim()) {
             this.showFieldError(captcha, 'Please complete the captcha');
             isValid = false;
         }
@@ -246,7 +342,7 @@ const FormValidator = {
         const email = form.querySelector('#forgot_email');
         const securityAnswer = form.querySelector('#security_answer');
         
-        if (email && !email.value) {
+        if (email && !email.value.trim()) {
             this.showFieldError(email, 'Email is required');
             isValid = false;
         } else if (email && !this.validateEmail(email.value)) {
@@ -254,7 +350,7 @@ const FormValidator = {
             isValid = false;
         }
         
-        if (securityAnswer && !securityAnswer.value) {
+        if (securityAnswer && !securityAnswer.value.trim()) {
             this.showFieldError(securityAnswer, 'Security answer is required');
             isValid = false;
         }
@@ -269,18 +365,22 @@ const FormValidator = {
         const password = form.querySelector('#new_password');
         const confirmPassword = form.querySelector('#confirm_new_password');
 
-        const passwordValidation = this.validatePassword(password.value);
-        if (!passwordValidation.valid) {
-            this.showFieldError(password, passwordValidation.message);
-            isValid = false;
+        if (password) {
+            const passwordValidation = this.validatePassword(password.value);
+            if (!passwordValidation.valid) {
+                this.showFieldError(password, passwordValidation.message);
+                isValid = false;
+            }
         }
 
-        const passwordMatchValidation = this.validatePasswordMatch(
-            password.value, confirmPassword.value
-        );
-        if (!passwordMatchValidation.valid) {
-            this.showFieldError(confirmPassword, passwordMatchValidation.message);
-            isValid = false;
+        if (confirmPassword && password) {
+            const passwordMatchValidation = this.validatePasswordMatch(
+                password.value, confirmPassword.value
+            );
+            if (!passwordMatchValidation.valid) {
+                this.showFieldError(confirmPassword, passwordMatchValidation.message);
+                isValid = false;
+            }
         }
 
         return isValid;
@@ -293,16 +393,20 @@ const FormValidator = {
         const question = form.querySelector('#google_security_question');
         const answer = form.querySelector('#google_security_answer');
 
-        const questionValidation = this.validateSecurityQuestion(question.value);
-        if (!questionValidation.valid) {
-            this.showFieldError(question, questionValidation.message);
-            isValid = false;
+        if (question) {
+            const questionValidation = this.validateSecurityQuestion(question.value);
+            if (!questionValidation.valid) {
+                this.showFieldError(question, questionValidation.message);
+                isValid = false;
+            }
         }
 
-        const answerValidation = this.validateSecurityAnswer(answer.value);
-        if (!answerValidation.valid) {
-            this.showFieldError(answer, answerValidation.message);
-            isValid = false;
+        if (answer) {
+            const answerValidation = this.validateSecurityAnswer(answer.value);
+            if (!answerValidation.valid) {
+                this.showFieldError(answer, answerValidation.message);
+                isValid = false;
+            }
         }
 
         return isValid;

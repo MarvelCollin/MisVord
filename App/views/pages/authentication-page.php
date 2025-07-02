@@ -157,37 +157,50 @@ try {
             </div>
         <?php endif; ?>
 
+        <div id="serverErrors" class="hidden">
+            <?php if (isset($errors['banned']) && $errors['banned']): ?>
+                <div class="bg-red-600 border-2 border-red-500 text-white p-4 rounded-lg mb-6 text-center shadow-lg" id="banned-account-message">
+                    <div class="flex items-center justify-center mb-2">
+                        <i class="fas fa-ban text-2xl mr-3"></i>
+                        <h3 class="text-lg font-bold">Account Banned</h3>
+                    </div>
+                    <p class="text-sm mb-3"><?php echo $errors['auth']; ?></p>
+                    <div class="bg-red-700/50 rounded p-2 text-xs mb-3">
+                        <p><strong>What this means:</strong></p>
+                        <p>• Your account access has been restricted</p>
+                        <p>• You cannot log in or use our services</p>
+                        <p>• Contact support if you believe this is an error</p>
+                    </div>
+                    <div class="flex gap-2 justify-center">
+                        <button onclick="window.location.href='/contact'" class="bg-white text-red-600 px-4 py-2 rounded text-sm font-medium hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-envelope mr-1"></i>Contact Support
+                        </button>
+                        <button onclick="window.location.href='/register'" class="bg-red-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-400 transition-colors">
+                            <i class="fas fa-user-plus mr-1"></i>Create New Account
+                        </button>
+                    </div>
+                </div>
+            <?php elseif (isset($errors['auth'])): ?>
+                <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse" data-error-type="auth">
+                    <?php echo $errors['auth']; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($errors['general'])): ?>
+                <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse" data-error-type="general">
+                    <?php echo $errors['general']; ?>
+                </div>
+            <?php endif; ?>
+
+            <script>
+            window.serverErrors = <?php echo json_encode($errors); ?>;
+            window.serverOldInput = <?php echo json_encode($oldInput); ?>;
+            </script>
+        </div>
+
         <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 200px;">
 
             <form action="/login" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
-                <?php if (isset($errors['banned']) && $errors['banned']): ?>
-                    <div class="bg-red-600 border-2 border-red-500 text-white p-4 rounded-lg mb-6 text-center shadow-lg" id="banned-account-message">
-                        <div class="flex items-center justify-center mb-2">
-                            <i class="fas fa-ban text-2xl mr-3"></i>
-                            <h3 class="text-lg font-bold">Account Banned</h3>
-                        </div>
-                        <p class="text-sm mb-3"><?php echo $errors['auth']; ?></p>
-                        <div class="bg-red-700/50 rounded p-2 text-xs mb-3">
-                            <p><strong>What this means:</strong></p>
-                            <p>• Your account access has been restricted</p>
-                            <p>• You cannot log in or use our services</p>
-                            <p>• Contact support if you believe this is an error</p>
-                        </div>
-                        <div class="flex gap-2 justify-center">
-                            <button onclick="window.location.href='/contact'" class="bg-white text-red-600 px-4 py-2 rounded text-sm font-medium hover:bg-gray-100 transition-colors">
-                                <i class="fas fa-envelope mr-1"></i>Contact Support
-                            </button>
-                            <button onclick="window.location.href='/register'" class="bg-red-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-400 transition-colors">
-                                <i class="fas fa-user-plus mr-1"></i>Create New Account
-                            </button>
-                        </div>
-                    </div>
-                <?php elseif (isset($errors['auth'])): ?>
-                    <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse" id="form-error-message">
-                        <?php echo $errors['auth']; ?>
-                    </div>
-                <?php endif; ?>
-
                 <div class="form-group">
                     <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
@@ -196,9 +209,6 @@ try {
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
                         value="<?php echo $oldInput['email'] ?? ''; ?>" 
                     >
-                    <?php if (isset($errors['email'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
-                    <?php endif; ?>
                 </div>
 
                 <div class="form-group">
@@ -214,9 +224,6 @@ try {
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
-                    <?php if (isset($errors['password'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password']; ?></p>
-                    <?php endif; ?>
                 </div>
 
                 <div class="text-right">
@@ -258,11 +265,6 @@ try {
             </form>
 
             <form action="/register" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm">
-                <?php if (isset($errors['general'])): ?>
-                    <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse" id="form-error-message">
-                        <?php echo $errors['general']; ?>
-                    </div>
-                <?php endif; ?>
                 <div class="flex items-center justify-center mb-4">
                     <div class="flex items-center">
                         <div class="step-indicator active" id="step-1-indicator">
@@ -276,11 +278,6 @@ try {
                 </div>
 
                 <div id="register-step-1" class="register-step active">
-                    <?php if (isset($errors['username']) || isset($errors['email']) || isset($errors['password']) || isset($errors['password_confirm'])): ?>
-                        <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse">
-                            Please correct the errors below.
-                        </div>
-                    <?php endif; ?>
                     <div class="form-group">
                         <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
                         <input 
@@ -289,9 +286,6 @@ try {
                             class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
                             value="<?php echo $oldInput['username'] ?? ''; ?>" 
                         >
-                        <?php if (isset($errors['username'])): ?>
-                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['username']; ?></p>
-                        <?php endif; ?>
                     </div>
 
                     <div class="form-group">
@@ -302,9 +296,6 @@ try {
                             class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                             value="<?php echo $oldInput['email'] ?? ''; ?>" 
                         >
-                        <?php if (isset($errors['email'])): ?>
-                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
-                        <?php endif; ?>
                     </div>
 
                     <div class="form-group">
@@ -320,9 +311,6 @@ try {
                                 <i class="fa-solid fa-eye"></i>
                             </button>
                         </div>
-                        <?php if (isset($errors['password'])): ?>
-                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['password']; ?></p>
-                        <?php endif; ?>
                         <div class="mt-1 h-1 bg-gray-700 rounded hidden" id="passwordStrength">
                             <div class="h-full bg-discord-blue rounded" style="width: 0%"></div>
                         </div>
@@ -341,9 +329,6 @@ try {
                                 <i class="fa-solid fa-eye"></i>
                             </button>
                         </div>
-                        <?php if (isset($errors['password_confirm'])): ?>
-                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['password_confirm']; ?></p>
-                        <?php endif; ?>
                         <div class="text-green-500 text-xs mt-1 hidden" id="passwordsMatch">Passwords match <i class="fa-solid fa-check"></i></div>
                     </div>
 
@@ -353,11 +338,6 @@ try {
                 </div>
 
                 <div id="register-step-2" class="register-step hidden">
-                    <?php if (isset($errors['security_question']) || isset($errors['security_answer']) || isset($errors['captcha'])): ?>
-                        <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse">
-                            Please correct the errors below.
-                        </div>
-                    <?php endif; ?>
                     <div class="form-group">
                         <label for="security_question" class="block text-sm font-medium text-gray-300 mb-1">Security Question</label>
                         <select 
@@ -373,9 +353,6 @@ try {
                             <option value="What was your childhood nickname?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was your childhood nickname?') ? 'selected' : ''; ?>>What was your childhood nickname?</option>
                         </select>
                         <p class="text-gray-400 text-xs mt-1">Used for account recovery if you forget your password</p>
-                        <?php if (isset($errors['security_question'])): ?>
-                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_question']; ?></p>
-                        <?php endif; ?>
                     </div>
 
                     <div class="form-group">
@@ -387,9 +364,6 @@ try {
                             placeholder="Answer to your security question"
                             value="<?php echo $oldInput['security_answer'] ?? ''; ?>"
                         >
-                        <?php if (isset($errors['security_answer'])): ?>
-                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_answer']; ?></p>
-                        <?php endif; ?>
                     </div>
 
                     <div class="form-group">
@@ -450,9 +424,6 @@ try {
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         value="<?php echo $oldInput['email'] ?? ''; ?>" 
                     >
-                    <?php if (isset($errors['email'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
-                    <?php endif; ?>
                 </div>
                 
                 <input type="hidden" name="step" value="get_question">
@@ -467,9 +438,6 @@ try {
                         name="security_answer" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                     >
-                    <?php if (isset($errors['security_answer'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_answer']; ?></p>
-                    <?php endif; ?>
                 </div>
                 
                 <input type="hidden" name="step" value="verify_answer">
@@ -484,8 +452,6 @@ try {
                     <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="login">Back to Login</a>
                 </div>
             </form>
-            
-
             
             <form action="/reset-password" method="POST" class="space-y-5 <?php echo $mode === 'reset-password' ? 'block' : 'hidden'; ?>" id="resetPasswordForm">
                 <p class="text-gray-300 text-sm mb-6">
@@ -507,9 +473,6 @@ try {
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
-                    <?php if (isset($errors['password'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password']; ?></p>
-                    <?php endif; ?>
                     <div class="mt-1 h-1 bg-gray-700 rounded hidden" id="resetPasswordStrength">
                         <div class="h-full bg-discord-blue rounded" style="width: 0%"></div>
                     </div>
@@ -527,9 +490,6 @@ try {
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
-                    <?php if (isset($errors['password_confirm'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password_confirm']; ?></p>
-                    <?php endif; ?>
                     <div class="text-green-500 text-xs mt-1 hidden" id="resetPasswordsMatch">Passwords match <i class="fa-solid fa-check"></i></div>
                 </div>
 
@@ -560,9 +520,6 @@ try {
                         <option value="What is your mother's maiden name?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What is your mother\'s maiden name?') ? 'selected' : ''; ?>>What is your mother's maiden name?</option>
                         <option value="What was your childhood nickname?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was your childhood nickname?') ? 'selected' : ''; ?>>What was your childhood nickname?</option>
                     </select>
-                    <?php if (isset($errors['security_question'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_question']; ?></p>
-                    <?php endif; ?>
                 </div>
 
                 <div class="form-group">
@@ -574,9 +531,6 @@ try {
                         placeholder="Answer to your security question"
                         required
                     >
-                    <?php if (isset($errors['security_answer'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_answer']; ?></p>
-                    <?php endif; ?>
                 </div>
 
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
@@ -586,7 +540,6 @@ try {
         </div>
     </div>
 </div>
-
 
     <?php if ($registerFailedStep === 2): ?>
     <script>

@@ -124,7 +124,7 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                                     <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-gray-500 friend-status-indicator transition-colors duration-300" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"></div>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="font-medium text-white friend-name truncate"><?php echo htmlspecialchars($friend['display_name'] ?? $friend['username']); ?></div>
+                                    <div class="font-medium text-white friend-name truncate" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"><?php echo htmlspecialchars($friend['display_name'] ?? $friend['username']); ?></div>
                                     <div class="text-xs text-gray-400 friend-username"><?php echo htmlspecialchars($friend['username']); ?><?php if (isset($friend['discriminator'])): ?>#<?php echo htmlspecialchars($friend['discriminator']); ?><?php endif; ?></div>
                                     <div class="text-xs text-gray-400 friend-status-text" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>">Offline</div>
                                 </div>
@@ -703,7 +703,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-discord-green"></div>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="font-medium text-white truncate">${displayName}</div>
+                            <div class="font-medium text-white truncate friend-name" data-user-id="${friend.id}">${displayName}</div>
                             <div class="text-xs text-gray-400">${userTag}</div>
                             <div class="text-xs text-gray-400">Online</div>
                         </div>
@@ -711,6 +711,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 
                 onlineFriendsContainer.appendChild(friendEl);
+                
+                if (window.nitroCrownManager) {
+                    const usernameEl = friendEl.querySelector('.friend-name');
+                    if (usernameEl) {
+                        window.nitroCrownManager.updateUserElement(usernameEl, friend.id);
+                    }
+                }
                 
                 if (window.fallbackImageHandler) {
                     const img = friendEl.querySelector('img.user-avatar');
@@ -891,6 +898,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.fallbackImageHandler) {
             document.querySelectorAll('img.user-avatar').forEach(img => {
                 window.fallbackImageHandler.processImage(img);
+            });
+        }
+        
+        if (window.nitroCrownManager) {
+            document.querySelectorAll('.friend-name[data-user-id]').forEach(el => {
+                const userId = el.getAttribute('data-user-id');
+                if (userId && userId !== 'null') {
+                    window.nitroCrownManager.updateUserElement(el, userId);
+                }
             });
         }
     }, 200);

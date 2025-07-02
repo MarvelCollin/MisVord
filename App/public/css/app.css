@@ -170,6 +170,62 @@ body {
     background-color: #232428;
 }
 
+/* Nitro crown in friends lists */
+.friend-name .nitro-crown-wrapper {
+    display: inline-block;
+    margin-left: 2px;
+}
+
+.dm-username .nitro-crown-wrapper {
+    display: inline-block;
+    margin-left: 2px;
+}
+
+.friend-item .nitro-crown {
+    width: 14px;
+    height: 14px;
+    margin-left: 3px;
+}
+
+.user-detail-name .nitro-crown-wrapper {
+    display: inline-block;
+    margin-left: 4px;
+}
+
+.mutual-detail-name .nitro-crown-wrapper {
+    display: inline-block;
+    margin-left: 3px;
+}
+
+.user-detail-name .nitro-crown {
+    width: 18px;
+    height: 18px;
+    margin-left: 0;
+}
+
+.mutual-detail-name .nitro-crown {
+    width: 14px;
+    height: 14px;
+    margin-left: 0;
+}
+
+.user-detail-name .nitro-crown-tooltip {
+    bottom: auto;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.user-detail-name .nitro-crown-tooltip::after {
+    top: auto;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-bottom-color: #18191c;
+    border-top: none;
+}
+
 /* Responsive styles for tabs */
 @media (max-width: 768px) {
     .tab-content {

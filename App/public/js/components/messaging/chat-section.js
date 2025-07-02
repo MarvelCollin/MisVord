@@ -590,6 +590,25 @@ class ChatSection {
         }
         
         console.log('✅ [CHAT-SECTION] Event listeners setup complete');
+        
+        if (this.contextMenu) {
+            this.contextMenu.addEventListener('click', (e) => {
+                if (e.target.closest('button[data-action]')) {
+                    const button = e.target.closest('button[data-action]');
+                    const action = button.dataset.action;
+                    const messageId = this.contextMenu.dataset.messageId;
+                    
+                    if (action && messageId) {
+                        console.log('🎯 [CHAT-SECTION] Context menu action:', { action, messageId });
+                        this.handleMessageActions({
+                            target: button,
+                            stopPropagation: () => {},
+                            preventDefault: () => {}
+                        });
+                    }
+                }
+            });
+        }
     }
     
     handleMessageActions(e) {
@@ -598,14 +617,15 @@ class ChatSection {
             targetClasses: Array.from(e.target.classList),
             targetTagName: e.target.tagName,
             targetDataAction: e.target.dataset?.action,
-            targetDataMessageId: e.target.dataset?.messageId
+            targetDataMessageId: e.target.dataset?.messageId,
+            isI: e.target.tagName === 'I',
+            parentButton: e.target.closest('.bubble-action-button')
         });
         
         let actionButton = null;
         let messageId = null;
         let action = null;
         
-        // Check for bubble action buttons
         if (e.target.classList.contains('bubble-action-button') || e.target.closest('.bubble-action-button')) {
             actionButton = e.target.classList.contains('bubble-action-button') ? e.target : e.target.closest('.bubble-action-button');
             action = actionButton.dataset.action;
@@ -614,10 +634,11 @@ class ChatSection {
             console.log('✅ [CHAT-SECTION] Detected bubble action button:', {
                 button: actionButton,
                 action: action,
-                messageId: messageId
+                messageId: messageId,
+                buttonClasses: Array.from(actionButton.classList),
+                buttonTitle: actionButton.title
             });
         }
-        // Check for regular message action buttons
         else if (e.target.classList.contains('message-action-reply') || e.target.closest('.message-action-reply')) {
             actionButton = e.target.classList.contains('message-action-reply') ? e.target : e.target.closest('.message-action-reply');
             action = 'reply';
@@ -630,19 +651,29 @@ class ChatSection {
                 messageId: messageId
             });
         }
-        // Check for any element with data-action attribute
         else if (e.target.dataset?.action || e.target.closest('[data-action]')) {
             actionButton = e.target.dataset?.action ? e.target : e.target.closest('[data-action]');
             action = actionButton.dataset.action;
-            messageId = actionButton.dataset.messageId;
             
-            console.log('✅ [CHAT-SECTION] Detected data-action element:', {
-                button: actionButton,
-                action: action,
-                messageId: messageId
-            });
+            const contextMenu = actionButton.closest('#message-context-menu');
+            if (contextMenu && contextMenu.dataset.messageId) {
+                messageId = contextMenu.dataset.messageId;
+                console.log('✅ [CHAT-SECTION] Detected context menu action:', {
+                    button: actionButton,
+                    action: action,
+                    messageId: messageId,
+                    fromContextMenu: true
+                });
+            } else {
+                messageId = actionButton.dataset.messageId;
+                console.log('✅ [CHAT-SECTION] Detected data-action element:', {
+                    button: actionButton,
+                    action: action,
+                    messageId: messageId,
+                    fromContextMenu: false
+                });
+            }
         }
-        // Check for context menu actions
         else if (e.target.closest('[data-action="reply"]')) {
             actionButton = e.target.closest('[data-action="reply"]');
             action = 'reply';
@@ -672,6 +703,22 @@ class ChatSection {
                 case 'delete':
                     this.confirmDeleteMessage(messageId);
                     break;
+                case 'more':
+                    console.log('🎯 [CHAT-SECTION] MORE ACTION TRIGGERED!', { messageId, button: actionButton });
+                    this.showMessageContextMenu(messageId, actionButton);
+                    break;
+                case 'copy-text':
+                    console.log('📋 [CHAT-SECTION] COPY-TEXT ACTION TRIGGERED!', { messageId });
+                    this.copyMessageText(messageId);
+                    break;
+                case 'pin':
+                    console.log('📌 [CHAT-SECTION] PIN ACTION TRIGGERED!', { messageId });
+                    this.pinMessage(messageId);
+                    break;
+                case 'text-to-speech':
+                    console.log('🔊 [CHAT-SECTION] TEXT-TO-SPEECH ACTION TRIGGERED!', { messageId, button: actionButton });
+                    this.speakMessageText(messageId);
+                    break;
                 default:
                     console.log('🔄 [CHAT-SECTION] Unhandled action:', action);
                     break;
@@ -680,7 +727,10 @@ class ChatSection {
             console.log('⚠️ [CHAT-SECTION] No valid action detected:', {
                 action: action,
                 messageId: messageId,
-                targetElement: e.target
+                targetElement: e.target,
+                hasDataAction: !!e.target.dataset?.action,
+                closestDataAction: e.target.closest('[data-action]'),
+                closestBubbleButton: e.target.closest('.bubble-action-button')
             });
         }
     }
@@ -2732,6 +2782,430 @@ class ChatSection {
             realContent.style.display = 'none';
         }
     }
+
+
+    
+    showMessageContextMenu(messageId, triggerElement) {
+        console.log('📋 [CHAT-SECTION] Showing context menu for message:', messageId, 'trigger:', triggerElement);
+        
+        const contextMenu = document.getElementById('message-context-menu');
+        if (!contextMenu) {
+            console.error('❌ [CHAT-SECTION] Context menu not found in DOM');
+            return;
+        }
+        
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!messageElement) {
+            console.error('❌ [CHAT-SECTION] Message element not found for ID:', messageId);
+            return;
+        }
+        
+        contextMenu.dataset.messageId = messageId;
+        
+        console.log('🎯 [CHAT-SECTION] Context menu before showing:', {
+            isHidden: contextMenu.classList.contains('hidden'),
+            display: contextMenu.style.display,
+            visibility: contextMenu.style.visibility,
+            position: contextMenu.style.position
+        });
+        
+        contextMenu.classList.remove('hidden');
+        contextMenu.style.display = 'block';
+        contextMenu.style.visibility = 'visible';
+        contextMenu.style.position = 'fixed';
+        contextMenu.style.zIndex = '9999';
+        
+        const rect = triggerElement.getBoundingClientRect();
+        console.log('🎯 [CHAT-SECTION] Trigger element rect:', rect);
+        
+        const menuWidth = 200;
+        const menuHeight = 350;
+        
+        let left = rect.right + 10;
+        let top = rect.top;
+        
+        if (left + menuWidth > window.innerWidth) {
+            left = rect.left - menuWidth - 10;
+        }
+        
+        if (top + menuHeight > window.innerHeight) {
+            top = window.innerHeight - menuHeight - 20;
+        }
+        
+        if (left < 10) left = 10;
+        if (top < 10) top = 10;
+        
+        contextMenu.style.left = `${left}px`;
+        contextMenu.style.top = `${top}px`;
+        
+        console.log('✅ [CHAT-SECTION] Context menu positioned at:', {
+            left: left + 'px',
+            top: top + 'px',
+            isVisible: !contextMenu.classList.contains('hidden'),
+            computedStyle: window.getComputedStyle(contextMenu).display
+        });
+        
+        if (this.activeContextMenuCloseHandler) {
+            document.removeEventListener('click', this.activeContextMenuCloseHandler);
+        }
+        
+        this.activeContextMenuCloseHandler = (e) => {
+            if (!contextMenu.contains(e.target) && !triggerElement.contains(e.target)) {
+                console.log('🔒 [CHAT-SECTION] Closing context menu - clicked outside');
+                contextMenu.classList.add('hidden');
+                contextMenu.style.display = 'none';
+                document.removeEventListener('click', this.activeContextMenuCloseHandler);
+                this.activeContextMenuCloseHandler = null;
+            }
+        };
+        
+        setTimeout(() => {
+            document.addEventListener('click', this.activeContextMenuCloseHandler);
+        }, 50);
+        
+        console.log('✅ [CHAT-SECTION] Context menu setup complete');
+    }
+    
+    copyMessageText(messageId) {
+        console.log('📋 [CHAT-SECTION] Copying message text:', messageId);
+        
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!messageElement) {
+            console.error('❌ [CHAT-SECTION] Message element not found');
+            return;
+        }
+        
+        const textElement = messageElement.querySelector('.bubble-message-text, .message-main-text');
+        if (!textElement) {
+            console.error('❌ [CHAT-SECTION] Message text element not found');
+            return;
+        }
+        
+        let messageText = textElement.textContent || textElement.innerText || '';
+        messageText = messageText.replace(/\s*\(edited\)\s*$/, '').trim();
+        
+        if (!messageText) {
+            console.warn('⚠️ [CHAT-SECTION] No text content to copy');
+            this.showNotification('No text to copy', 'warning');
+            return;
+        }
+        
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(messageText).then(() => {
+                console.log('✅ [CHAT-SECTION] Text copied to clipboard using Clipboard API');
+                this.showNotification('Message text copied to clipboard', 'success');
+            }).catch(error => {
+                console.error('❌ [CHAT-SECTION] Failed to copy using Clipboard API:', error);
+                this.fallbackCopyText(messageText);
+            });
+        } else {
+            this.fallbackCopyText(messageText);
+        }
+        
+        const contextMenu = document.getElementById('message-context-menu');
+        if (contextMenu) {
+            contextMenu.classList.add('hidden');
+        }
+    }
+    
+    fallbackCopyText(text) {
+        try {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            if (successful) {
+                console.log('✅ [CHAT-SECTION] Text copied using fallback method');
+                this.showNotification('Message text copied to clipboard', 'success');
+            } else {
+                throw new Error('Copy command failed');
+            }
+        } catch (error) {
+            console.error('❌ [CHAT-SECTION] Fallback copy failed:', error);
+            this.showNotification('Failed to copy text to clipboard', 'error');
+        }
+    }
+    
+    pinMessage(messageId) {
+        console.log('📌 [CHAT-SECTION] Pinning message:', messageId);
+        
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!messageElement) {
+            console.error('❌ [CHAT-SECTION] Message element not found');
+            return;
+        }
+        
+        const existingPin = messageElement.querySelector('.pin-icon, .pinned-indicator');
+        if (existingPin) {
+            console.log('📌 [CHAT-SECTION] Message already pinned, unpinning...');
+            this.unpinMessage(messageId);
+            return;
+        }
+        
+        const targetType = this.chatType === 'channel' ? 'channel' : 'dm';
+        const targetId = this.targetId;
+        
+        console.log('📡 [CHAT-SECTION] Sending pin request to server...');
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            const pinData = {
+                message_id: messageId,
+                user_id: window.globalSocketManager.userId,
+                username: window.globalSocketManager.username,
+                target_type: targetType,
+                target_id: targetId,
+                action: 'pin'
+            };
+            
+            window.globalSocketManager.io.emit('message-pinned', pinData);
+            console.log('✅ [CHAT-SECTION] Pin event emitted');
+        }
+        
+        const pinIcon = document.createElement('span');
+        pinIcon.className = 'pin-icon ml-2';
+        pinIcon.innerHTML = '<i class="fas fa-thumbtack text-xs text-[#faa61a]"></i>';
+        pinIcon.title = 'Pinned message';
+        
+        const messageHeader = messageElement.querySelector('.bubble-header, .message-header');
+        if (messageHeader && !messageHeader.querySelector('.pin-icon')) {
+            messageHeader.appendChild(pinIcon);
+        }
+        
+        const contextMenu = document.getElementById('message-context-menu');
+        if (contextMenu) {
+            contextMenu.classList.add('hidden');
+        }
+        
+        this.showNotification('Message pinned', 'success');
+        console.log('✅ [CHAT-SECTION] Message pinned locally');
+    }
+    
+    unpinMessage(messageId) {
+        console.log('📌 [CHAT-SECTION] Unpinning message:', messageId);
+        
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!messageElement) {
+            console.error('❌ [CHAT-SECTION] Message element not found');
+            return;
+        }
+        
+        const targetType = this.chatType === 'channel' ? 'channel' : 'dm';
+        const targetId = this.targetId;
+        
+        console.log('📡 [CHAT-SECTION] Sending unpin request to server...');
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            const unpinData = {
+                message_id: messageId,
+                user_id: window.globalSocketManager.userId,
+                username: window.globalSocketManager.username,
+                target_type: targetType,
+                target_id: targetId,
+                action: 'unpin'
+            };
+            
+            window.globalSocketManager.io.emit('message-unpinned', unpinData);
+            console.log('✅ [CHAT-SECTION] Unpin event emitted');
+        }
+        
+        const pinIcon = messageElement.querySelector('.pin-icon, .pinned-indicator');
+        if (pinIcon) {
+            pinIcon.remove();
+        }
+        
+        this.showNotification('Message unpinned', 'success');
+        console.log('✅ [CHAT-SECTION] Message unpinned locally');
+    }
+    
+    speakMessageText(messageId) {
+        console.log('🔊 [CHAT-SECTION] Speaking message text:', messageId);
+        
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!messageElement) {
+            console.error('❌ [CHAT-SECTION] Message element not found');
+            return;
+        }
+        
+        const textElement = messageElement.querySelector('.bubble-message-text, .message-main-text');
+        if (!textElement) {
+            console.error('❌ [CHAT-SECTION] Message text element not found');
+            return;
+        }
+        
+        let messageText = textElement.textContent || textElement.innerText || '';
+        messageText = messageText.replace(/\s*\(edited\)\s*$/, '').trim();
+        
+        if (!messageText) {
+            console.warn('⚠️ [CHAT-SECTION] No text content to speak');
+            return;
+        }
+        
+        if (!('speechSynthesis' in window)) {
+            console.error('❌ [CHAT-SECTION] Speech synthesis not supported');
+            return;
+        }
+        
+        if (window.speechSynthesis.speaking || this.isSpeaking) {
+            console.log('🔇 [CHAT-SECTION] Already speaking, stopping current speech');
+            this.stopAllSpeech();
+            return;
+        }
+        
+        if (this.currentSpeakingMessageId === messageId) {
+            console.log('🔇 [CHAT-SECTION] Same message already spoken, ignoring');
+            return;
+        }
+        
+        this.isSpeaking = true;
+        this.currentSpeakingMessageId = messageId;
+        this.initializeSpeechSynthesis(messageText, messageId);
+        
+        const contextMenu = document.getElementById('message-context-menu');
+        if (contextMenu) {
+            contextMenu.classList.add('hidden');
+        }
+    }
+    
+    initializeSpeechSynthesis(text, messageId) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+        utterance.lang = 'en-US';
+        
+        this.currentUtterance = utterance;
+        this.loadVoicesAndSpeak(utterance, messageId);
+    }
+    
+    loadVoicesAndSpeak(utterance, messageId) {
+        const voices = window.speechSynthesis.getVoices();
+        
+        if (voices.length === 0) {
+            console.log('🔄 [CHAT-SECTION] Voices not loaded yet, waiting...');
+            window.speechSynthesis.addEventListener('voiceschanged', () => {
+                this.loadVoicesAndSpeak(utterance, messageId);
+            }, { once: true });
+            return;
+        }
+        
+        const preferredVoices = [
+            voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google')),
+            voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Microsoft')),
+            voices.find(voice => voice.lang === 'en-US'),
+            voices.find(voice => voice.lang.startsWith('en')),
+            voices[0]
+        ].filter(Boolean);
+        
+        if (preferredVoices.length > 0) {
+            utterance.voice = preferredVoices[0];
+            console.log('🎤 [CHAT-SECTION] Selected voice:', utterance.voice.name, utterance.voice.lang);
+        }
+        
+        this.setupSpeechEvents(utterance, messageId);
+        this.startSpeech(utterance, messageId);
+    }
+    
+    setupSpeechEvents(utterance, messageId) {
+        utterance.onstart = () => {
+            console.log('🔊 [CHAT-SECTION] Speech started');
+            this.showSpeechIndicator(messageId);
+        };
+        
+        utterance.onend = () => {
+            console.log('✅ [CHAT-SECTION] Speech completed');
+            this.cleanupSpeech();
+        };
+        
+        utterance.onerror = (error) => {
+            if (error.error === 'interrupted') {
+                console.log('🔇 [CHAT-SECTION] Speech was interrupted (normal when stopping)');
+            } else {
+                console.error('❌ [CHAT-SECTION] Speech error:', error);
+            }
+            this.cleanupSpeech();
+        };
+        
+        utterance.onpause = () => {
+            console.log('⏸️ [CHAT-SECTION] Speech paused');
+        };
+        
+        utterance.onresume = () => {
+            console.log('▶️ [CHAT-SECTION] Speech resumed');
+        };
+    }
+    
+    startSpeech(utterance, messageId) {
+        try {
+            window.speechSynthesis.speak(utterance);
+            console.log('✅ [CHAT-SECTION] Text-to-speech initiated successfully');
+        } catch (error) {
+            console.error('❌ [CHAT-SECTION] Failed to start speech:', error);
+            this.cleanupSpeech();
+        }
+    }
+    
+    cleanupSpeech() {
+        this.isSpeaking = false;
+        this.currentSpeakingMessageId = null;
+        this.currentUtterance = null;
+        this.removeSpeechIndicator();
+    }
+    
+    showSpeechIndicator(messageId) {
+        this.removeSpeechIndicator();
+        
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!messageElement) return;
+        
+        const speechIndicator = document.createElement('span');
+        speechIndicator.className = 'speech-indicator';
+        speechIndicator.innerHTML = `
+            <i class="fas fa-volume-up text-[#5865f2] animate-pulse"></i>
+            <span class="ml-1 text-xs text-[#5865f2]">Speaking...</span>
+        `;
+        speechIndicator.style.cssText = `
+            display: inline-flex;
+            align-items: center;
+            margin-left: 8px;
+            padding: 2px 6px;
+            background: rgba(88, 101, 242, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(88, 101, 242, 0.3);
+        `;
+        
+        const messageHeader = messageElement.querySelector('.bubble-header, .message-header');
+        if (messageHeader) {
+            messageHeader.appendChild(speechIndicator);
+        }
+        
+        this.currentSpeechIndicator = speechIndicator;
+    }
+    
+    removeSpeechIndicator() {
+        if (this.currentSpeechIndicator) {
+            this.currentSpeechIndicator.remove();
+            this.currentSpeechIndicator = null;
+        }
+        
+        document.querySelectorAll('.speech-indicator').forEach(indicator => {
+            indicator.remove();
+        });
+    }
+    
+    stopAllSpeech() {
+        if (window.speechSynthesis.speaking || this.isSpeaking) {
+            window.speechSynthesis.cancel();
+            console.log('🔇 [CHAT-SECTION] All speech stopped');
+        }
+        this.cleanupSpeech();
+    }
 }
 
 // Make functions and classes globally available for dynamic initialization
@@ -2929,3 +3403,409 @@ window.testDeleteSystemIntegration = function() {
   export default ChatSection;
 
 export { initializeChatSection };
+
+window.debugThreeDotsMenu = function() {
+    console.log('🧪 [DEBUG-MENU] Testing three dots menu functionality...');
+    
+    const threeDotsButtons = document.querySelectorAll('[data-action="more"]');
+    console.log('🔍 [DEBUG-MENU] Found three dots buttons:', threeDotsButtons.length);
+    
+    threeDotsButtons.forEach((button, index) => {
+        console.log(`🔍 [DEBUG-MENU] Button ${index + 1}:`, {
+            messageId: button.dataset.messageId,
+            hasEventListener: button.onclick !== null,
+            isVisible: button.offsetWidth > 0 && button.offsetHeight > 0,
+            buttonElement: button,
+            parentActions: button.closest('.bubble-message-actions')
+        });
+    });
+    
+    const contextMenu = document.getElementById('message-context-menu');
+    console.log('🔍 [DEBUG-MENU] Context menu element:', {
+        exists: !!contextMenu,
+        isVisible: contextMenu ? !contextMenu.classList.contains('hidden') : false,
+        position: contextMenu ? {
+            left: contextMenu.style.left,
+            top: contextMenu.style.top
+        } : null
+    });
+    
+    if (window.chatSection) {
+        console.log('✅ [DEBUG-MENU] Chat section available for testing');
+        
+        const firstButton = threeDotsButtons[0];
+        if (firstButton) {
+            console.log('🧪 [DEBUG-MENU] Testing first three dots button click...');
+            try {
+                firstButton.click();
+                console.log('✅ [DEBUG-MENU] Three dots button clicked successfully');
+                
+                setTimeout(() => {
+                    const contextMenuAfterClick = document.getElementById('message-context-menu');
+                    console.log('🧪 [DEBUG-MENU] Context menu after click:', {
+                        isVisible: contextMenuAfterClick ? !contextMenuAfterClick.classList.contains('hidden') : false,
+                        display: contextMenuAfterClick ? contextMenuAfterClick.style.display : 'N/A',
+                        position: contextMenuAfterClick ? {
+                            left: contextMenuAfterClick.style.left,
+                            top: contextMenuAfterClick.style.top
+                        } : null
+                    });
+                }, 100);
+            } catch (error) {
+                console.error('❌ [DEBUG-MENU] Three dots button test failed:', error);
+            }
+        }
+        
+        if (firstButton && window.chatSection.showMessageContextMenu) {
+            console.log('🧪 [DEBUG-MENU] Testing direct showMessageContextMenu call...');
+            try {
+                const messageId = firstButton.dataset.messageId;
+                window.chatSection.showMessageContextMenu(messageId, firstButton);
+                console.log('✅ [DEBUG-MENU] Direct context menu call completed');
+            } catch (error) {
+                console.error('❌ [DEBUG-MENU] Direct context menu call failed:', error);
+            }
+        }
+    } else {
+        console.warn('⚠️ [DEBUG-MENU] Chat section not available');
+    }
+};
+
+window.debugContextMenuActions = function() {
+    console.log('🧪 [DEBUG-MENU] Testing context menu actions...');
+    
+    const testMessageId = 'test-message-123';
+    
+    if (window.chatSection) {
+        console.log('🧪 [DEBUG-MENU] Testing copy text...');
+        try {
+            if (typeof window.chatSection.copyMessageText === 'function') {
+                console.log('✅ [DEBUG-MENU] Copy text method available');
+            } else {
+                console.error('❌ [DEBUG-MENU] Copy text method not found');
+            }
+        } catch (error) {
+            console.error('❌ [DEBUG-MENU] Copy text test failed:', error);
+        }
+        
+        console.log('🧪 [DEBUG-MENU] Testing pin message...');
+        try {
+            if (typeof window.chatSection.pinMessage === 'function') {
+                console.log('✅ [DEBUG-MENU] Pin message method available');
+            } else {
+                console.error('❌ [DEBUG-MENU] Pin message method not found');
+            }
+        } catch (error) {
+            console.error('❌ [DEBUG-MENU] Pin message test failed:', error);
+        }
+        
+        console.log('🧪 [DEBUG-MENU] Testing text-to-speech...');
+        try {
+            if (typeof window.chatSection.speakMessageText === 'function') {
+                console.log('✅ [DEBUG-MENU] Text-to-speech method available');
+                console.log('🔊 [DEBUG-MENU] Speech synthesis support:', 'speechSynthesis' in window);
+            } else {
+                console.error('❌ [DEBUG-MENU] Text-to-speech method not found');
+            }
+        } catch (error) {
+            console.error('❌ [DEBUG-MENU] Text-to-speech test failed:', error);
+        }
+    } else {
+        console.warn('⚠️ [DEBUG-MENU] Chat section not available for testing');
+    }
+};
+
+window.testThreeDotsMenuNow = function() {
+    console.log('🧪 [TEST-MENU] Running comprehensive three dots menu test...');
+    
+    const threeDotsButtons = document.querySelectorAll('[data-action="more"]');
+    if (threeDotsButtons.length === 0) {
+        console.error('❌ [TEST-MENU] No three dots buttons found. Make sure you are on a chat page with messages.');
+        return false;
+    }
+    
+    const contextMenu = document.getElementById('message-context-menu');
+    if (!contextMenu) {
+        console.error('❌ [TEST-MENU] Context menu element not found in DOM.');
+        return false;
+    }
+    
+    const firstButton = threeDotsButtons[0];
+    const messageId = firstButton.dataset.messageId;
+    
+    console.log('✅ [TEST-MENU] Found elements:', {
+        threeDotsButtons: threeDotsButtons.length,
+        contextMenu: !!contextMenu,
+        firstButtonMessageId: messageId
+    });
+    
+    if (!window.chatSection) {
+        console.error('❌ [TEST-MENU] Chat section not available. Wait for page to fully load.');
+        return false;
+    }
+    
+    console.log('🧪 [TEST-MENU] Testing direct context menu call...');
+    try {
+        window.chatSection.showMessageContextMenu(messageId, firstButton);
+        
+        setTimeout(() => {
+            const isMenuVisible = !contextMenu.classList.contains('hidden');
+            const menuDisplay = window.getComputedStyle(contextMenu).display;
+            
+            console.log('📊 [TEST-MENU] Context menu status after call:', {
+                hasHiddenClass: contextMenu.classList.contains('hidden'),
+                isVisible: isMenuVisible,
+                computedDisplay: menuDisplay,
+                position: {
+                    left: contextMenu.style.left,
+                    top: contextMenu.style.top
+                },
+                zIndex: contextMenu.style.zIndex
+            });
+            
+            if (isMenuVisible && menuDisplay !== 'none') {
+                console.log('🎉 [TEST-MENU] SUCCESS! Context menu is now visible.');
+                console.log('💡 [TEST-MENU] Try clicking on a menu item to test functionality.');
+                
+                console.log('🧪 [TEST-MENU] Testing context menu actions...');
+                const copyButton = contextMenu.querySelector('[data-action="copy-text"]');
+                const pinButton = contextMenu.querySelector('[data-action="pin"]');
+                const ttsButton = contextMenu.querySelector('[data-action="text-to-speech"]');
+                
+                console.log('✅ [TEST-MENU] Available actions (simplified menu):', {
+                    copyText: !!copyButton,
+                    pinMessage: !!pinButton,
+                    textToSpeech: !!ttsButton,
+                    totalButtons: contextMenu.querySelectorAll('button').length
+                });
+                
+                setTimeout(() => {
+                    contextMenu.classList.add('hidden');
+                    console.log('🔒 [TEST-MENU] Context menu auto-hidden after test.');
+                }, 3000);
+                
+                return true;
+            } else {
+                console.error('❌ [TEST-MENU] Context menu is still not visible after call.');
+                return false;
+            }
+        }, 100);
+        
+    } catch (error) {
+        console.error('❌ [TEST-MENU] Error calling showMessageContextMenu:', error);
+        return false;
+    }
+};
+
+console.log('✅ [TEST-MENU] Test function loaded. Run testThreeDotsMenuNow() in console to test the three dots menu.');
+
+window.testTextToSpeech = function() {
+    console.log('🔊 [TEST-TTS] Testing enhanced Text-to-Speech functionality...');
+    
+    if (!('speechSynthesis' in window)) {
+        console.error('❌ [TEST-TTS] SpeechSynthesis not supported in this browser');
+        return false;
+    }
+    
+    console.log('✅ [TEST-TTS] SpeechSynthesis API available');
+    
+    const voices = window.speechSynthesis.getVoices();
+    console.log('🎤 [TEST-TTS] Available voices:', voices.length);
+    
+    if (voices.length > 0) {
+        console.log('🎤 [TEST-TTS] Voice samples:');
+        voices.slice(0, 5).forEach((voice, index) => {
+            console.log(`  ${index + 1}. ${voice.name} (${voice.lang}) - ${voice.localService ? 'Local' : 'Network'}`);
+        });
+    } else {
+        console.log('⏳ [TEST-TTS] Voices not loaded yet, waiting...');
+        window.speechSynthesis.addEventListener('voiceschanged', () => {
+            window.testTextToSpeech();
+        }, { once: true });
+        return;
+    }
+    
+    const messageElements = document.querySelectorAll('[data-message-id]');
+    if (messageElements.length === 0) {
+        console.error('❌ [TEST-TTS] No messages found to test TTS');
+        return false;
+    }
+    
+    const firstMessage = messageElements[0];
+    const messageId = firstMessage.dataset.messageId;
+    const textElement = firstMessage.querySelector('.bubble-message-text, .message-main-text');
+    
+    if (!textElement) {
+        console.error('❌ [TEST-TTS] No text content found in first message');
+        return false;
+    }
+    
+    const messageText = textElement.textContent.trim();
+    console.log('📝 [TEST-TTS] Found message text:', messageText.substring(0, 50) + '...');
+    
+    if (!window.chatSection) {
+        console.error('❌ [TEST-TTS] Chat section not available');
+        return false;
+    }
+    
+    console.log('🧪 [TEST-TTS] Testing TTS with first message...');
+    try {
+        window.chatSection.speakMessageText(messageId);
+        console.log('✅ [TEST-TTS] TTS initiated successfully!');
+        console.log('💡 [TEST-TTS] You should hear the message being read aloud.');
+        console.log('💡 [TEST-TTS] Click TTS again to stop, or try another message.');
+        
+        setTimeout(() => {
+            const isCurrentlySpeaking = window.speechSynthesis.speaking;
+            console.log('📊 [TEST-TTS] Speech status after 1 second:', {
+                speaking: isCurrentlySpeaking,
+                pending: window.speechSynthesis.pending,
+                paused: window.speechSynthesis.paused,
+                chatSectionSpeaking: window.chatSection.isSpeaking,
+                currentMessageId: window.chatSection.currentSpeakingMessageId
+            });
+        }, 1000);
+        
+        return true;
+    } catch (error) {
+        console.error('❌ [TEST-TTS] TTS test failed:', error);
+        return false;
+    }
+};
+
+window.stopAllSpeech = function() {
+    if (window.chatSection && typeof window.chatSection.stopAllSpeech === 'function') {
+        window.chatSection.stopAllSpeech();
+        console.log('🔇 [TTS-CONTROL] All speech stopped via chat section');
+    } else if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        console.log('🔇 [TTS-CONTROL] All speech stopped via direct API');
+    }
+};
+
+window.getSpeechInfo = function() {
+    console.log('📊 [TTS-INFO] Current speech synthesis status:');
+    console.log('  API Available:', 'speechSynthesis' in window);
+    console.log('  Currently Speaking:', window.speechSynthesis?.speaking || false);
+    console.log('  Speech Pending:', window.speechSynthesis?.pending || false);
+    console.log('  Speech Paused:', window.speechSynthesis?.paused || false);
+    
+    const voices = window.speechSynthesis?.getVoices() || [];
+    console.log('  Available Voices:', voices.length);
+    
+    if (voices.length > 0) {
+        const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+        console.log('  English Voices:', englishVoices.length);
+        
+        const preferredVoice = englishVoices.find(v => v.name.includes('Google')) || 
+                               englishVoices.find(v => v.name.includes('Microsoft')) || 
+                               englishVoices[0];
+        
+        if (preferredVoice) {
+            console.log('  Preferred Voice:', preferredVoice.name, '(' + preferredVoice.lang + ')');
+        }
+    }
+};
+
+console.log('🔊 [TTS] Enhanced Text-to-Speech functions loaded:');
+console.log('  - testTextToSpeech() - Test TTS with first message');
+console.log('  - stopAllSpeech() - Stop any current speech');  
+console.log('  - getSpeechInfo() - Get speech synthesis info');
+
+window.debugTTSMenuFlow = function() {
+    console.log('🔍 [DEBUG-TTS-MENU] Testing complete TTS menu flow...');
+    
+    const contextMenu = document.getElementById('message-context-menu');
+    if (!contextMenu) {
+        console.error('❌ [DEBUG-TTS-MENU] Context menu not found');
+        return false;
+    }
+    
+    const ttsButton = contextMenu.querySelector('[data-action="text-to-speech"]');
+    if (!ttsButton) {
+        console.error('❌ [DEBUG-TTS-MENU] TTS button not found in context menu');
+        console.log('🔍 [DEBUG-TTS-MENU] Available buttons in menu:');
+        contextMenu.querySelectorAll('button').forEach((btn, index) => {
+            console.log(`  ${index + 1}. ${btn.dataset.action} - "${btn.textContent.trim()}"`);
+        });
+        return false;
+    }
+    
+    console.log('✅ [DEBUG-TTS-MENU] TTS button found:', ttsButton);
+    
+    const messageElements = document.querySelectorAll('[data-message-id]');
+    if (messageElements.length === 0) {
+        console.error('❌ [DEBUG-TTS-MENU] No messages found to test');
+        return false;
+    }
+    
+    const firstMessage = messageElements[0];
+    const messageId = firstMessage.dataset.messageId;
+    
+    if (!window.chatSection) {
+        console.error('❌ [DEBUG-TTS-MENU] Chat section not available');
+        return false;
+    }
+    
+    console.log('🧪 [DEBUG-TTS-MENU] Testing complete flow...');
+    
+    console.log('1️⃣ [DEBUG-TTS-MENU] Step 1: Show context menu');
+    const threeDotsButton = firstMessage.querySelector('[data-action="more"]');
+    if (!threeDotsButton) {
+        console.error('❌ [DEBUG-TTS-MENU] Three dots button not found on first message');
+        return false;
+    }
+    
+    try {
+        window.chatSection.showMessageContextMenu(messageId, threeDotsButton);
+        console.log('✅ [DEBUG-TTS-MENU] Context menu shown');
+        
+        setTimeout(() => {
+            console.log('2️⃣ [DEBUG-TTS-MENU] Step 2: Set message ID on context menu');
+            contextMenu.dataset.messageId = messageId;
+            
+            console.log('3️⃣ [DEBUG-TTS-MENU] Step 3: Click TTS button');
+            
+            const mockEvent = {
+                target: ttsButton,
+                stopPropagation: () => {},
+                preventDefault: () => {}
+            };
+            
+            console.log('🔍 [DEBUG-TTS-MENU] About to trigger handleMessageActions with:', {
+                target: ttsButton,
+                action: ttsButton.dataset.action,
+                messageId: contextMenu.dataset.messageId
+            });
+            
+            window.chatSection.handleMessageActions(mockEvent);
+            
+            setTimeout(() => {
+                console.log('4️⃣ [DEBUG-TTS-MENU] Checking if TTS started...');
+                const isSpeaking = window.speechSynthesis.speaking;
+                const speechIndicator = document.querySelector('.speech-indicator');
+                
+                console.log('📊 [DEBUG-TTS-MENU] Results:', {
+                    speechSynthesisSpeaking: isSpeaking,
+                    speechIndicatorVisible: !!speechIndicator,
+                    contextMenuHidden: contextMenu.classList.contains('hidden')
+                });
+                
+                if (isSpeaking || speechIndicator) {
+                    console.log('🎉 [DEBUG-TTS-MENU] SUCCESS! TTS is working through menu flow');
+                } else {
+                    console.error('❌ [DEBUG-TTS-MENU] TTS did not start through menu flow');
+                }
+                
+                contextMenu.classList.add('hidden');
+            }, 500);
+            
+        }, 100);
+        
+    } catch (error) {
+        console.error('❌ [DEBUG-TTS-MENU] Error in flow test:', error);
+        return false;
+    }
+};
+
+console.log('  - debugTTSMenuFlow() - Debug complete three dots to TTS flow');

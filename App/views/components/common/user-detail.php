@@ -11,7 +11,7 @@
         
         <div class="user-detail-info">
             <div class="user-detail-name-container">
-                <h2 class="user-detail-name" id="user-detail-name"></h2>
+                <h2 class="user-detail-name" id="user-detail-name" data-user-id=""></h2>
                 <div class="user-detail-username" id="user-detail-username"></div>
                 <div class="user-detail-discriminator" id="user-detail-discriminator"></div>
             </div>

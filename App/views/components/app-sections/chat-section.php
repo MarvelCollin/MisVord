@@ -473,6 +473,121 @@ if (!function_exists('renderMessage')) {
         height: 28px;
     }
 }
+
+#message-context-menu {
+    background: rgba(24, 25, 28, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(79, 84, 92, 0.6);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    animation: contextMenuFadeIn 0.15s cubic-bezier(0.2, 0, 0.13, 1.5);
+    border-radius: 8px;
+    z-index: 99999 !important;
+}
+
+#message-context-menu.hidden {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+#message-context-menu:not(.hidden) {
+    display: block !important;
+    visibility: visible !important;
+}
+
+@keyframes contextMenuFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9) translateY(-8px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+#message-context-menu button {
+    transition: all 0.1s ease;
+    border-radius: 4px;
+    margin: 2px 4px;
+}
+
+#message-context-menu button:hover {
+    background-color: rgba(79, 84, 92, 0.3) !important;
+    transform: translateX(2px);
+}
+
+#message-context-menu button[data-action="delete"]:hover {
+    background-color: rgba(237, 66, 69, 0.8) !important;
+    color: white !important;
+}
+
+.pin-icon {
+    display: inline-flex;
+    align-items: center;
+    animation: pinBounce 0.3s ease-out;
+}
+
+@keyframes pinBounce {
+    0% { transform: scale(0) rotate(-45deg); }
+    50% { transform: scale(1.2) rotate(0deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+.notification {
+    z-index: 9999;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: notificationSlideIn 0.3s ease-out;
+}
+
+.notification.success {
+    background: linear-gradient(45deg, #43b581, #5dbf72);
+}
+
+.notification.error {
+    background: linear-gradient(45deg, #f04747, #ed4245);
+}
+
+.notification.info {
+    background: linear-gradient(45deg, #5865f2, #4752c4);
+}
+
+.notification.warning {
+    background: linear-gradient(45deg, #faa61a, #f39c12);
+}
+
+@keyframes notificationSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .bubble-message-group {
+        padding: 2px 8px;
+    }
+    
+    .bubble-message-actions {
+        right: 8px;
+        gap: 2px;
+        padding: 2px;
+    }
+    
+    .bubble-action-button {
+        width: 28px;
+        height: 28px;
+    }
+    
+    #message-context-menu {
+        min-width: 160px;
+        font-size: 14px;
+    }
+}
 </style>
 
 <meta name="chat-type" content="<?php echo htmlspecialchars($chatType ?? 'channel'); ?>">
@@ -708,31 +823,15 @@ if (!function_exists('renderMessage')) {
     </div>
 </div>
 
-<div id="message-context-menu" class="fixed hidden bg-[#18191c] rounded shadow-lg z-50 min-w-[180px] py-2 text-[#b5bac1]">
-    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="add-reaction">
-        <i class="far fa-smile mr-2"></i> Add Reaction
-    </button>
-    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="reply">
-        <i class="fas fa-reply mr-2"></i> Reply
-    </button>
-    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="edit">
-        <i class="fas fa-edit mr-2"></i> Edit Message
-    </button>
+<div id="message-context-menu" class="fixed hidden bg-[#18191c] rounded shadow-lg z-50 min-w-[180px] py-2 text-[#b5bac1]" style="z-index: 99999;">
     <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="copy-text">
         <i class="fas fa-copy mr-2"></i> Copy Text
     </button>
-    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="copy-link">
-        <i class="fas fa-link mr-2"></i> Copy Message Link
-    </button>
-    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="mark-unread">
-        <i class="fas fa-circle mr-2"></i> Mark as Unread
+    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="text-to-speech">
+        <i class="fas fa-volume-up mr-2"></i> Text to Speech
     </button>
     <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="pin">
         <i class="fas fa-thumbtack mr-2"></i> Pin Message
-    </button>
-    <div class="border-t border-[#2f3136] my-1"></div>
-    <button class="w-full px-3 py-2 text-left hover:bg-[#ed4245] hover:text-white transition-colors" data-action="delete">
-        <i class="fas fa-trash-alt mr-2"></i> Delete Message
     </button>
 </div>
 

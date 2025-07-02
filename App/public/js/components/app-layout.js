@@ -194,6 +194,18 @@ async function loadOnlineFriends(forceRefresh = false) {
             }, 100);
         }
         
+        if (window.nitroCrownManager) {
+            setTimeout(() => {
+                container.querySelectorAll('.friend-item').forEach(friendEl => {
+                    const userId = friendEl.onclick?.toString().match(/createDirectMessage\('([^']+)'\)/)?.[1];
+                    const nameEl = friendEl.querySelector('.font-medium.text-white');
+                    if (userId && nameEl && userId !== 'null') {
+                        window.nitroCrownManager.updateUserElement(nameEl, userId);
+                    }
+                });
+            }, 150);
+        }
+        
     } catch (error) {
         console.error('Error loading online friends:', error);
         container.innerHTML = '<div class="text-gray-400 p-4">Error loading online friends</div>';
@@ -299,6 +311,18 @@ async function loadAllFriends(forceRefresh = false) {
             }, 100);
         }
         
+        if (window.nitroCrownManager) {
+            setTimeout(() => {
+                container.querySelectorAll('.friend-item').forEach(friendEl => {
+                    const userId = friendEl.onclick?.toString().match(/createDirectMessage\('([^']+)'\)/)?.[1];
+                    const nameEl = friendEl.querySelector('.font-medium.text-white');
+                    if (userId && nameEl && userId !== 'null') {
+                        window.nitroCrownManager.updateUserElement(nameEl, userId);
+                    }
+                });
+            }, 150);
+        }
+        
     } catch (error) {
         console.error('Error loading all friends:', error);
         container.innerHTML = '<div class="text-gray-400 p-4">Error loading friends</div>';
@@ -354,7 +378,7 @@ async function loadPendingRequests(forceRefresh = false) {
                                     </div>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="font-medium text-white truncate">${friendsManager.escapeHtml(user.username)}</div>
+                                    <div class="font-medium text-white truncate friend-name" data-user-id="${user.id}">${friendsManager.escapeHtml(user.username)}</div>
                                     <div class="text-xs text-gray-400">Incoming Friend Request</div>
                                 </div>
                             </div>
@@ -385,7 +409,7 @@ async function loadPendingRequests(forceRefresh = false) {
                                     </div>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="font-medium text-white truncate">${friendsManager.escapeHtml(user.username)}</div>
+                                    <div class="font-medium text-white truncate friend-name" data-user-id="${user.id}">${friendsManager.escapeHtml(user.username)}</div>
                                     <div class="text-xs text-gray-400">Outgoing Friend Request</div>
                                 </div>
                             </div>
@@ -408,6 +432,17 @@ async function loadPendingRequests(forceRefresh = false) {
                     window.fallbackImageHandler.processImage(img);
                 });
             }, 100);
+        }
+        
+        if (window.nitroCrownManager) {
+            setTimeout(() => {
+                container.querySelectorAll('.friend-name[data-user-id]').forEach(nameEl => {
+                    const userId = nameEl.getAttribute('data-user-id');
+                    if (userId && userId !== 'null') {
+                        window.nitroCrownManager.updateUserElement(nameEl, userId);
+                    }
+                });
+            }, 150);
         }
         
     } catch (error) {

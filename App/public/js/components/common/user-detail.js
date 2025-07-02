@@ -438,7 +438,14 @@ class UserDetailModal {
                 this.nameElement.innerHTML = '';
                 const displayName = user.display_name || user.username || 'Unknown User';
                 this.nameElement.textContent = displayName;
+                this.nameElement.setAttribute('data-user-id', user.id || '');
                 this.nameElement.classList.add('fade-in');
+                
+                if (window.nitroCrownManager && user.id) {
+                    setTimeout(() => {
+                        window.nitroCrownManager.updateUserElement(this.nameElement, user.id);
+                    }, 100);
+                }
             }
 
             if (this.usernameElement) {
@@ -834,6 +841,7 @@ class UserDetailModal {
             const friendName = document.createElement('div');
             friendName.className = 'mutual-detail-name';
             friendName.textContent = friend.display_name || friend.username || 'Unknown User';
+            friendName.setAttribute('data-user-id', friend.id || '');
             
             friendInfo.appendChild(friendName);
             
@@ -872,6 +880,17 @@ class UserDetailModal {
             
             this.mutualDetailContent.appendChild(friendItem);
         });
+        
+        if (window.nitroCrownManager) {
+            setTimeout(() => {
+                this.mutualDetailContent.querySelectorAll('.mutual-detail-name[data-user-id]').forEach(nameEl => {
+                    const userId = nameEl.getAttribute('data-user-id');
+                    if (userId && userId !== 'null') {
+                        window.nitroCrownManager.updateUserElement(nameEl, userId);
+                    }
+                });
+            }, 100);
+        }
         
         this.mutualDetailModal.classList.add('active');
     }

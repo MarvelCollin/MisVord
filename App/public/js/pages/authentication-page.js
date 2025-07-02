@@ -7,13 +7,11 @@ function initAuth() {
     }
     window.authPageInitialized = true;
 
-    const hasServerError = document.querySelector('#form-error-message') || 
-                          document.querySelector('.bg-red-500') ||
-                          document.querySelector('.text-red-500');
+    clearStoredAuthData();
     
-    if (!hasServerError) {
-        clearStoredAuthData();
-    }
+    setTimeout(() => {
+        FormValidator.displayServerErrors();
+    }, 100);
 
     const elements = {
         logo: document.getElementById('logo'),
@@ -389,40 +387,28 @@ function initAuth() {
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
-                let isValid = true;
-                
                 FormValidator.clearErrors(this);
+                
+                let isValid = true;
                 
                 if (this.id === 'loginForm') {
                     isValid = FormValidator.validateLoginForm(this);
                     
-                    const email = this.querySelector('#email');
-                    const password = this.querySelector('#password');
-                    
-                    if (!email.value.trim()) {
-                        FormValidator.showFieldError(email, 'Email is required');
-                        isValid = false;
-                        email.classList.add('error-shake');
-                        setTimeout(() => email.classList.remove('error-shake'), 500);
-                    }
-                    
-                    if (!password.value.trim()) {
-                        FormValidator.showFieldError(password, 'Password is required');
-                        isValid = false;
-                        password.classList.add('error-shake');
-                        setTimeout(() => password.classList.remove('error-shake'), 500);
-                    }
-                    
                     const captcha = this.querySelector('#login_captcha');
-                    if (captcha) {
-                        if (!captcha.value.trim()) {
-                        FormValidator.showFieldError(captcha, 'Verification code is required');
+                    if (captcha && window.loginCaptchaInstance && !window.loginCaptchaInstance.isValid(captcha.value)) {
+                        FormValidator.showFieldError(captcha, 'Invalid verification code');
                         isValid = false;
-                        } else if (window.loginCaptchaInstance && !window.loginCaptchaInstance.isValid(captcha.value)) {
-                            FormValidator.showFieldError(captcha, 'Invalid verification code');
-                            isValid = false;
-                            refreshCaptcha();
-                        }
+                        refreshCaptcha();
+                    }
+                    
+                } else if (this.id === 'registerForm') {
+                    isValid = FormValidator.validateRegisterForm(this);
+                    
+                    const captcha = this.querySelector('#register_captcha');
+                    if (captcha && window.registerCaptchaInstance && !window.registerCaptchaInstance.isValid(captcha.value)) {
+                        FormValidator.showFieldError(captcha, 'Invalid verification code');
+                        isValid = false;
+                        refreshCaptcha();
                     }
                     
                 } else if (this.id === 'forgotForm') {
@@ -434,35 +420,13 @@ function initAuth() {
                 }
                 
                 if (!isValid) {
-                    const formErrorContainer = document.createElement('div');
-                    formErrorContainer.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse form-error-container';
-                    formErrorContainer.textContent = 'Please correct the errors below.';
-                    
-                    const existingError = form.querySelector('.form-error-container');
-                    if (existingError) {
-                        existingError.remove();
-                    }
-                    
-                    form.prepend(formErrorContainer);
-                    
+                    FormValidator.showFormError(this, 'Please correct the errors below.');
                     refreshCaptcha();
                     
-                    setTimeout(() => {
-                        formErrorContainer.remove();
-                    }, 5000);
-                    
-                    const firstInvalidField = document.querySelector('.border-red-500');
+                    const firstInvalidField = this.querySelector('.border-red-500');
                     if (firstInvalidField) {
-                        if (firstInvalidField.id !== 'password_confirm') {
-                            firstInvalidField.classList.add('error-shake');
-                            setTimeout(() => firstInvalidField.classList.remove('error-shake'), 500);
-                        }
                         firstInvalidField.focus();
                     }
-                    
-                    setTimeout(() => {
-                        checkForErrors();
-                    }, 100);
                     
                     return false;
                 }
@@ -532,22 +496,14 @@ function initAuth() {
             window.loginCaptchaInstance.refresh();
             const loginInput = document.getElementById('login_captcha');
             if (loginInput) {
-                loginInput.classList.remove('border-red-500');
-                const errorElement = loginInput.parentElement.querySelector('.text-red-500');
-                if (errorElement) {
-                    errorElement.remove();
-                }
+                FormValidator.clearFieldError(loginInput);
             }
         }
         if (window.registerCaptchaInstance) {
             window.registerCaptchaInstance.refresh();
             const registerInput = document.getElementById('register_captcha');
             if (registerInput) {
-                registerInput.classList.remove('border-red-500');
-                const errorElement = registerInput.parentElement.querySelector('.text-red-500');
-                if (errorElement) {
-                    errorElement.remove();
-                }
+                FormValidator.clearFieldError(registerInput);
             }
         }
     }
@@ -620,39 +576,6 @@ function initAuth() {
                     bannedAccountMessage.style.animation = 'pulse 2s infinite';
                 }
             }, 3000);
-        }
-        
-        const authError = document.getElementById('auth-error');
-        if (authError) {
-            authError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        
-        const formErrorMessage = document.getElementById('form-error-message');
-        if (formErrorMessage) {
-            refreshCaptcha();
-        }
-        
-        const captchaErrors = document.querySelectorAll('.text-red-500');
-        captchaErrors.forEach(error => {
-            if (error.textContent.includes('verification') || error.textContent.includes('captcha')) {
-                refreshCaptcha();
-            }
-        });
-        
-        const allErrorElements = document.querySelectorAll('[class*="text-red-500"], [class*="bg-red-500"]');
-        let foundCaptchaError = false;
-        allErrorElements.forEach(error => {
-            if (error.textContent && (error.textContent.includes('verification') || 
-                error.textContent.includes('captcha') || 
-                error.textContent.includes('Invalid verification'))) {
-                foundCaptchaError = true;
-            }
-        });
-        
-        if (foundCaptchaError) {
-            setTimeout(() => {
-                refreshCaptcha();
-            }, 500);
         }
     }
 
@@ -845,56 +768,35 @@ function initAuth() {
             
             let isValid = true;
             
-            if (!username.value.trim()) {
-                FormValidator.showFieldError(username, 'Username is required');
-                isValid = false;
-            } else if (username.value.length < 3 || username.value.length > 32) {
-                FormValidator.showFieldError(username, 'Username must be between 3 and 32 characters');
-                isValid = false;
-            } else if (!/^[a-zA-Z0-9_]+$/.test(username.value)) {
-                FormValidator.showFieldError(username, 'Username can only contain letters, numbers, and underscores');
+            const usernameValidation = FormValidator.validateUsername(username.value);
+            if (!usernameValidation.valid) {
+                FormValidator.showFieldError(username, usernameValidation.message);
                 isValid = false;
             }
             
             if (!email.value.trim()) {
                 FormValidator.showFieldError(email, 'Email is required');
                 isValid = false;
-            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+            } else if (!FormValidator.validateEmail(email.value)) {
                 FormValidator.showFieldError(email, 'Please enter a valid email address');
                 isValid = false;
             }
             
-            if (!password.value) {
-                FormValidator.showFieldError(password, 'Password is required');
-                isValid = false;
-            } else if (password.value.length < 8) {
-                FormValidator.showFieldError(password, 'Password must be at least 8 characters');
-                isValid = false;
-            } else if (!/[A-Z]/.test(password.value)) {
-                FormValidator.showFieldError(password, 'Password must contain at least one uppercase letter');
-                isValid = false;
-            } else if (!/[0-9]/.test(password.value)) {
-                FormValidator.showFieldError(password, 'Password must contain at least one number');
+            const passwordValidation = FormValidator.validatePassword(password.value);
+            if (!passwordValidation.valid) {
+                FormValidator.showFieldError(password, passwordValidation.message);
                 isValid = false;
             }
             
-            if (!confirmPassword.value) {
-                FormValidator.showFieldError(confirmPassword, 'Please confirm your password');
+            const passwordMatchValidation = FormValidator.validatePasswordMatch(password.value, confirmPassword.value);
+            if (!passwordMatchValidation.valid) {
+                FormValidator.showFieldError(confirmPassword, passwordMatchValidation.message);
                 isValid = false;
-            } else if (password.value !== confirmPassword.value) {
-                FormValidator.showFieldError(confirmPassword, 'Passwords do not match');
-                isValid = false;
-                
-                confirmPassword.classList.remove('error-shake');
             }
             
             if (!isValid) {
-                const firstInvalidField = document.querySelector('.border-red-500');
+                const firstInvalidField = registerForm.querySelector('.border-red-500');
                 if (firstInvalidField) {
-                    if (firstInvalidField.id !== 'password_confirm') {
-                        firstInvalidField.classList.add('error-shake');
-                        setTimeout(() => firstInvalidField.classList.remove('error-shake'), 500);
-                    }
                     firstInvalidField.focus();
                 }
             }

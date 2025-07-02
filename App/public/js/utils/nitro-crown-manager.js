@@ -283,9 +283,7 @@ class NitroCrownManager {
     }
 
     shouldExcludeElement(element) {
-        return element.classList.contains('dm-username') ||
-               element.closest('.dm-friend-item') ||
-               element.closest('#dm-list-container');
+        return false;
     }
 
     scanAndUpdateExistingElements(containerSelector = 'body') {
@@ -314,11 +312,7 @@ class NitroCrownManager {
     }
 
     removeExistingCrownsFromDirectMessages() {
-        const dmUsernames = document.querySelectorAll('.dm-username[data-user-id]');
-        dmUsernames.forEach(element => {
-            this.removeCrownFromElement(element);
-        });
-        console.log(`🎯 [NITRO-CROWN] Removed crowns from ${dmUsernames.length} DM usernames`);
+        console.log('🎯 [NITRO-CROWN] removeExistingCrownsFromDirectMessages method is deprecated');
     }
 
     getCacheStats() {
