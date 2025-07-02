@@ -1085,9 +1085,16 @@ class GlobalSocketManager {
             this.lastActivityTime = Date.now();
             if (!this.isUserActive || this.currentPresenceStatus === 'afk') {
                 this.isUserActive = true;
-                console.log('🎯 [SOCKET] User activity detected, setting status to online');
-                this.currentPresenceStatus = 'online';
-                this.updatePresence('online', { type: 'active' });
+                
+                if (this.currentActivityDetails?.type === 'In Voice Call') {
+                    console.log('🎯 [SOCKET] User activity detected but keeping voice call status');
+                    this.currentPresenceStatus = 'online';
+                    this.updatePresence('online', { type: 'In Voice Call' });
+                } else {
+                    console.log('🎯 [SOCKET] User activity detected, setting status to online');
+                    this.currentPresenceStatus = 'online';
+                    this.updatePresence('online', { type: 'active' });
+                }
             }
         };
         
@@ -1115,6 +1122,11 @@ class GlobalSocketManager {
             const timeSinceActivity = Date.now() - this.lastActivityTime;
             
             if (timeSinceActivity >= this.afkTimeout && this.isUserActive) {
+                if (this.currentActivityDetails?.type === 'In Voice Call') {
+                    console.log('🎤 [SOCKET] User inactive but in voice call, keeping voice status');
+                    return;
+                }
+                
                 this.isUserActive = false;
                 console.log('😴 [SOCKET] User inactive for 20 seconds, setting status to afk');
                 this.currentPresenceStatus = 'afk';

@@ -157,7 +157,6 @@ class GlobalVoiceIndicator {
         });
 
         window.addEventListener('voiceStateChanged', (event) => {
-            console.log('[GlobalVoiceIndicator] Voice state changed:', event.detail);
             this.updateControls();
             this.updateVisibility();
         });
@@ -165,7 +164,6 @@ class GlobalVoiceIndicator {
         window.addEventListener('popstate', (event) => {
             console.log('[GlobalVoiceIndicator] Navigation detected:', event.state);
             
-            // If voice should be preserved, don't disconnect
             if (event.state?.preserveVoice) {
                 console.log('[GlobalVoiceIndicator] Voice preservation requested, maintaining connection');
                 setTimeout(() => this.updateVisibility(), 100);

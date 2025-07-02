@@ -420,7 +420,8 @@ function setup(io) {
                         action: 'already_registered',
                         channel_id: channel_id,
                         meeting_id: meeting_id,
-                        user_id: userKey
+                        user_id: userKey,
+                        username: username
                     });
                     return;
                 }
@@ -436,7 +437,7 @@ function setup(io) {
                     });
                 }
                 
-                VoiceConnectionTracker.addUserToVoice(userKey, channel_id, meeting_id);
+                VoiceConnectionTracker.addUserToVoice(userKey, channel_id, meeting_id, username);
                 roomManager.addUserToVoiceMeeting(channel_id, client.id, userKey);
                 
                 await client.join(`voice_channel_${channel_id}`);
@@ -450,6 +451,7 @@ function setup(io) {
                     channel_id: channel_id,
                     meeting_id: meeting_id,
                     user_id: userKey,
+                    username: username,
                     participant_count: meeting?.participants?.size || 1
                 });
                 
@@ -458,6 +460,7 @@ function setup(io) {
                     channel_id: channel_id,
                     meeting_id: meeting_id,
                     user_id: userKey,
+                    username: username,
                     participant_count: meeting?.participants?.size || 1
                 });
                 
@@ -641,23 +644,68 @@ function handleCheckVoiceMeeting(io, client, data) {
     }
 
     const meeting = voiceMeetings.get(channel_id);
-    if (meeting) {
+    const voiceTrackerParticipants = VoiceConnectionTracker.getChannelParticipants(channel_id);
+    
+    if (meeting || voiceTrackerParticipants.length > 0) {
         console.log(`✅ [VOICE-CHECK-HANDLER] Voice meeting found for channel ${channel_id}:`, {
-            meetingId: meeting.meeting_id,
-            participantCount: meeting.participants.size
+            meetingId: meeting?.meeting_id,
+            participantCount: meeting?.participants.size || 0,
+            trackerParticipants: voiceTrackerParticipants.length
         });
+        
+        const participants = [];
+        
+        if (meeting) {
+            meeting.participants.forEach(socketId => {
+                const socket = io.sockets.sockets.get(socketId);
+                if (socket && socket.data?.authenticated) {
+                    participants.push({
+                        user_id: socket.data.user_id,
+                        username: socket.data.username
+                    });
+                }
+            });
+        }
+        
+        voiceTrackerParticipants.forEach(participant => {
+            const existingParticipant = participants.find(p => p.user_id === participant.userId);
+            if (!existingParticipant) {
+                participants.push({
+                    user_id: participant.userId,
+                    username: participant.username || 'Unknown'
+                });
+            }
+        });
+        
+        const participantCount = Math.max(meeting?.participants.size || 0, voiceTrackerParticipants.length);
+        
         client.emit('voice-meeting-status', {
             channel_id,
             has_meeting: true,
-            meeting_id: meeting.meeting_id,
-            participant_count: meeting.participants.size
+            meeting_id: meeting?.meeting_id || 'unknown',
+            participant_count: participantCount,
+            participants: participants
         });
+        
+        if (participants.length > 0) {
+            participants.forEach(participant => {
+                client.emit('voice-meeting-update', {
+                    action: 'join',
+                    channel_id: channel_id,
+                    meeting_id: meeting?.meeting_id || 'unknown',
+                    user_id: participant.user_id,
+                    username: participant.username,
+                    participant_count: participantCount
+                });
+            });
+        }
     } else {
         console.log(`📭 [VOICE-CHECK-HANDLER] No voice meeting found for channel ${channel_id}`);
         client.emit('voice-meeting-status', {
             channel_id,
             has_meeting: false,
-            participant_count: 0
+            participant_count: 0,
+            participants: []
         });
     }
 }
@@ -729,7 +777,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             participant_count: participantCount,
             action: 'leave',
             user_id: user_id,
-            username: client.data?.username
+            username: username
         });
     } else {
         console.warn(`⚠️ [VOICE-UNREGISTER-HANDLER] No voice meeting found for channel ${channel_id}`);

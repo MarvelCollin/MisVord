@@ -2,7 +2,7 @@ class VoiceConnectionTracker {
     static connections = new Map();
     static userVoiceStatus = new Map();
 
-    static addUserToVoice(userId, channelId, meetingId) {
+    static addUserToVoice(userId, channelId, meetingId, username = null) {
         const userKey = userId.toString();
         console.log(`🎤 [VOICE-TRACKER] User ${userKey} joined voice channel ${channelId} (meeting: ${meetingId})`);
         
@@ -10,6 +10,7 @@ class VoiceConnectionTracker {
             userId: userKey,
             channelId: channelId,
             meetingId: meetingId,
+            username: username,
             joinedAt: Date.now(),
             isConnected: true
         });
@@ -79,7 +80,14 @@ class VoiceConnectionTracker {
 
     static getChannelParticipants(channelId) {
         const participants = Array.from(this.connections.values())
-            .filter(conn => conn.channelId === channelId && conn.isConnected);
+            .filter(conn => conn.channelId === channelId && conn.isConnected)
+            .map(conn => ({
+                userId: conn.userId,
+                channelId: conn.channelId,
+                meetingId: conn.meetingId,
+                joinedAt: conn.joinedAt,
+                username: conn.username || 'Unknown'
+            }));
         
         console.log(`👥 [VOICE-TRACKER] Channel ${channelId} has ${participants.length} participants`);
         return participants;

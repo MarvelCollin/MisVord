@@ -321,6 +321,7 @@ class MentionHandler {
         const beforeCursor = value.substring(0, cursorPosition);
         
         const mentionMatch = beforeCursor.match(/@(\w*)$/);
+        const hasMentionInText = value.includes('@');
         
         if (mentionMatch) {
             const searchTerm = mentionMatch[1].toLowerCase();
@@ -328,6 +329,9 @@ class MentionHandler {
             
             this.applyMentionInputStyling(input, true);
             this.showAutocomplete(searchTerm, mentionStartIndex);
+        } else if (hasMentionInText) {
+            this.applyMentionInputStyling(input, true);
+            this.hideAutocomplete();
         } else {
             this.applyMentionInputStyling(input, false);
             this.hideAutocomplete();
@@ -336,29 +340,11 @@ class MentionHandler {
     
     applyMentionInputStyling(input, isTypingMention) {
         if (isTypingMention) {
-            // Apply styles directly inline with !important (highest specificity)
-            input.style.setProperty('background', 'rgba(88, 101, 242, 0.15)', 'important');
-            input.style.setProperty('background-color', 'rgba(88, 101, 242, 0.15)', 'important');
-            input.style.setProperty('box-shadow', '0 0 0 3px rgba(88, 101, 242, 0.4)', 'important');
-            input.style.setProperty('border', '1px solid rgba(88, 101, 242, 0.6)', 'important');
-            input.style.setProperty('border-radius', '6px', 'important');
-            input.style.setProperty('transform', 'translateY(-1px)', 'important');
-            input.style.setProperty('transition', 'all 0.2s ease', 'important');
-            
-            input.setAttribute('data-mention-typing', 'true');
             input.classList.add('misvord-mention-typing');
+            input.setAttribute('data-mention-typing', 'true');
         } else {
-            // Remove inline styles
-            input.style.removeProperty('background');
-            input.style.removeProperty('background-color');
-            input.style.removeProperty('box-shadow');
-            input.style.removeProperty('border');
-            input.style.removeProperty('border-radius');
-            input.style.removeProperty('transform');
-            input.style.removeProperty('transition');
-            
-            input.removeAttribute('data-mention-typing');
             input.classList.remove('misvord-mention-typing');
+            input.removeAttribute('data-mention-typing');
         }
     }
     
@@ -684,7 +670,7 @@ class MentionHandler {
             newCursorPosition: newCursorPosition
         });
         
-        this.applyMentionInputStyling(input, false);
+        this.applyMentionInputStyling(input, true);
         this.applyInputHighlight(input);
         
         if (this.chatSection.updateSendButton) {
@@ -693,11 +679,10 @@ class MentionHandler {
     }
     
     applyInputHighlight(input) {
-        input.style.transition = 'box-shadow 0.1s ease';
-        input.style.boxShadow = '0 0 0 1px rgba(88, 101, 242, 0.3)';
+        input.classList.add('misvord-mention-highlight');
         
         setTimeout(() => {
-            input.style.boxShadow = '';
+            input.classList.remove('misvord-mention-highlight');
         }, 300);
     }
     
@@ -710,10 +695,6 @@ class MentionHandler {
         
         this.autocompleteContainer.classList.remove('misvord-visible');
         this.autocompleteContainer.classList.add('misvord-hidden');
-        
-        if (this.chatSection.messageInput) {
-            this.applyMentionInputStyling(this.chatSection.messageInput, false);
-        }
     }
     
     parseMentions(content) {
@@ -1447,5 +1428,331 @@ window.testMentionBlueInput = function() {
 };
 
 console.log('🧪 Simple test function available: testMentionBlueInput()');
+
+window.testMentionStylingSimple = function() {
+    console.log('🔵 [SIMPLE-TEST] Testing mention styling...');
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ Message input not found');
+        return false;
+    }
+    
+    console.log('✅ Testing @ mention styling...');
+    messageInput.focus();
+    messageInput.value = '@';
+    messageInput.setSelectionRange(1, 1);
+    
+    const inputEvent = new Event('input', { bubbles: true });
+    messageInput.dispatchEvent(inputEvent);
+    
+    setTimeout(() => {
+        const hasClass = messageInput.classList.contains('misvord-mention-typing');
+        const hasAttribute = messageInput.hasAttribute('data-mention-typing');
+        const computedStyles = window.getComputedStyle(messageInput);
+        
+        console.log('📊 Mention styling check:', {
+            hasClass: hasClass,
+            hasAttribute: hasAttribute,
+            backgroundColor: computedStyles.backgroundColor,
+            boxShadow: computedStyles.boxShadow,
+            border: computedStyles.border
+        });
+        
+        if (hasClass && hasAttribute) {
+            console.log('🎉 SUCCESS! Mention styling is working correctly!');
+            
+            setTimeout(() => {
+                messageInput.value = 'hello';
+                messageInput.dispatchEvent(inputEvent);
+                
+                setTimeout(() => {
+                    const classRemoved = !messageInput.classList.contains('misvord-mention-typing');
+                    const attributeRemoved = !messageInput.hasAttribute('data-mention-typing');
+                    
+                    console.log('📊 Style clearing check:', {
+                        classRemoved: classRemoved,
+                        attributeRemoved: attributeRemoved
+                    });
+                    
+                    if (classRemoved && attributeRemoved) {
+                        console.log('✅ Style clearing also works! Mention system is complete! 🎉');
+                    } else {
+                        console.log('⚠️ Style clearing may need attention');
+                    }
+                }, 100);
+            }, 2000);
+        } else {
+            console.log('❌ Mention styling not working properly');
+        }
+    }, 200);
+    
+    return true;
+};
+
+console.log('🧪 Simple test function available: testMentionStylingSimple()');
+
+window.testRedTextColor = function() {
+    console.log('⚪ [TEST-WHITE] Testing normal white text color for message input...');
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ Message input not found');
+        return false;
+    }
+    
+    const computedStyle = window.getComputedStyle(messageInput);
+    const textColor = computedStyle.color;
+    
+    console.log('📊 Current text color:', textColor);
+    
+    if (textColor.includes('220, 221, 222') || textColor.includes('#dcddde') || textColor.includes('rgb(220, 221, 222)')) {
+        console.log('✅ Normal white text color is working correctly!');
+        return true;
+    } else {
+        console.log('❌ Normal white text color not applied. Current color:', textColor);
+        return false;
+    }
+};
+
+console.log('⚪ Test function available: testRedTextColor() (now tests white color)');
+
+window.testMentionBlueOverride = function() {
+    console.log('🔵 [TEST-BLUE-OVERRIDE] Testing blue color override for @ mentions...');
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ Message input not found');
+        return false;
+    }
+    
+    const chatSection = window.chatSection;
+    if (!chatSection?.mentionHandler) {
+        console.error('❌ No mention handler available');
+        return false;
+    }
+    
+    console.log('✅ Testing @ mention blue color override...');
+    messageInput.focus();
+    messageInput.value = '@test';
+    messageInput.setSelectionRange(5, 5);
+    
+    const inputEvent = new Event('input', { bubbles: true });
+    messageInput.dispatchEvent(inputEvent);
+    
+    setTimeout(() => {
+        const hasClass = messageInput.classList.contains('misvord-mention-typing');
+        const hasAttribute = messageInput.hasAttribute('data-mention-typing');
+        const computedStyles = window.getComputedStyle(messageInput);
+        
+        console.log('📊 Blue override check:', {
+            hasClass: hasClass,
+            hasAttribute: hasAttribute,
+            textColor: computedStyles.color,
+            backgroundColor: computedStyles.backgroundColor,
+            boxShadow: computedStyles.boxShadow,
+            border: computedStyles.border
+        });
+        
+        if (hasClass && hasAttribute && computedStyles.color.includes('88, 101, 242')) {
+            console.log('✅ Blue color override is working correctly!');
+            return true;
+        } else {
+            console.log('❌ Blue color override not working properly');
+            return false;
+        }
+    }, 100);
+};
+
+console.log('🔵 Test function available: testMentionBlueOverride()');
+
+window.testCompleteColorSystem = function() {
+    console.log('🎨 [TEST-COMPLETE] Testing complete color system...');
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ Message input not found');
+        return false;
+    }
+    
+    console.log('⚪ Step 1: Testing default white color...');
+    messageInput.value = 'normal text';
+    messageInput.dispatchEvent(new Event('input', { bubbles: true }));
+    
+    setTimeout(() => {
+        const defaultColor = window.getComputedStyle(messageInput).color;
+        console.log('📊 Default color:', defaultColor);
+        
+        if (defaultColor.includes('220, 221, 222') || defaultColor.includes('#dcddde')) {
+            console.log('✅ Default white color is working!');
+            
+            console.log('🔵 Step 2: Testing blue mention override...');
+            messageInput.value = '@test';
+            messageInput.setSelectionRange(5, 5);
+            messageInput.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            setTimeout(() => {
+                const mentionColor = window.getComputedStyle(messageInput).color;
+                const hasClass = messageInput.classList.contains('misvord-mention-typing');
+                const hasAttribute = messageInput.hasAttribute('data-mention-typing');
+                
+                console.log('📊 Mention color:', mentionColor);
+                console.log('📊 Has class:', hasClass);
+                console.log('📊 Has attribute:', hasAttribute);
+                
+                if (mentionColor.includes('88, 101, 242') && hasClass && hasAttribute) {
+                    console.log('✅ Blue mention override is working!');
+                    console.log('🎉 Complete color system is working perfectly!');
+                    return true;
+                } else {
+                    console.log('❌ Blue mention override not working');
+                    return false;
+                }
+            }, 100);
+        } else {
+            console.log('❌ Default white color not working');
+            return false;
+        }
+    }, 100);
+};
+
+console.log('🎨 Test function available: testCompleteColorSystem()');
+
+window.testFinalColorSystem = function() {
+    console.log('🎯 [TEST-FINAL] Testing final color system with normal white and blue mention...');
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ Message input not found');
+        return false;
+    }
+    
+    console.log('⚪ Testing normal white color...');
+    messageInput.value = 'Hello world';
+    messageInput.dispatchEvent(new Event('input', { bubbles: true }));
+    
+    setTimeout(() => {
+        const normalColor = window.getComputedStyle(messageInput).color;
+        console.log('📊 Normal text color:', normalColor);
+        
+        if (normalColor.includes('220, 221, 222') || normalColor.includes('#dcddde')) {
+            console.log('✅ Normal white color working!');
+            
+            console.log('🔵 Testing @ mention blue override...');
+            messageInput.value = '@user';
+            messageInput.setSelectionRange(5, 5);
+            messageInput.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            setTimeout(() => {
+                const mentionColor = window.getComputedStyle(messageInput).color;
+                const hasClass = messageInput.classList.contains('misvord-mention-typing');
+                
+                console.log('📊 Mention text color:', mentionColor);
+                console.log('📊 Has mention class:', hasClass);
+                
+                if (mentionColor.includes('88, 101, 242') && hasClass) {
+                    console.log('✅ Blue mention override working!');
+                    console.log('🎉 Perfect! Normal white + Blue mention system is complete!');
+                    return true;
+                } else {
+                    console.log('❌ Blue mention override not working');
+                    return false;
+                }
+            }, 100);
+        } else {
+            console.log('❌ Normal white color not working');
+            return false;
+        }
+    }, 100);
+};
+
+console.log('🎯 Final test function available: testFinalColorSystem()');
+
+window.testPermanentBlueColor = function() {
+    console.log('🔵 [TEST-PERMANENT] Testing permanent blue color after mention selection...');
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ Message input not found');
+        return false;
+    }
+    
+    const chatSection = window.chatSection;
+    if (!chatSection?.mentionHandler) {
+        console.error('❌ No mention handler available');
+        return false;
+    }
+    
+    console.log('🔵 Step 1: Simulating @ mention typing...');
+    messageInput.focus();
+    messageInput.value = '@test';
+    messageInput.setSelectionRange(5, 5);
+    messageInput.dispatchEvent(new Event('input', { bubbles: true }));
+    
+    setTimeout(() => {
+        const typingColor = window.getComputedStyle(messageInput).color;
+        const hasTypingClass = messageInput.classList.contains('misvord-mention-typing');
+        
+        console.log('📊 While typing @ mention:', {
+            color: typingColor,
+            hasClass: hasTypingClass
+        });
+        
+        if (typingColor.includes('88, 101, 242') && hasTypingClass) {
+            console.log('✅ Blue color active while typing!');
+            
+            console.log('🔵 Step 2: Simulating mention selection...');
+            messageInput.value = '@username Hello world';
+            messageInput.setSelectionRange(10, 10);
+            messageInput.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            setTimeout(() => {
+                const afterSelectionColor = window.getComputedStyle(messageInput).color;
+                const hasClassAfter = messageInput.classList.contains('misvord-mention-typing');
+                
+                console.log('📊 After mention selection:', {
+                    color: afterSelectionColor,
+                    hasClass: hasClassAfter,
+                    text: messageInput.value
+                });
+                
+                if (afterSelectionColor.includes('88, 101, 242') && hasClassAfter) {
+                    console.log('✅ Blue color stays active after selection!');
+                    
+                    console.log('🔵 Step 3: Testing normal text without mentions...');
+                    messageInput.value = 'Hello world without mentions';
+                    messageInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    
+                    setTimeout(() => {
+                        const normalColor = window.getComputedStyle(messageInput).color;
+                        const hasClassNormal = messageInput.classList.contains('misvord-mention-typing');
+                        
+                        console.log('📊 Normal text without mentions:', {
+                            color: normalColor,
+                            hasClass: hasClassNormal
+                        });
+                        
+                        if (!hasClassNormal && normalColor.includes('220, 221, 222')) {
+                            console.log('✅ Blue color removed for normal text!');
+                            console.log('🎉 Permanent blue color system working perfectly!');
+                            return true;
+                        } else {
+                            console.log('❌ Blue color not removed for normal text');
+                            return false;
+                        }
+                    }, 100);
+                } else {
+                    console.log('❌ Blue color not staying active after selection');
+                    return false;
+                }
+            }, 100);
+        } else {
+            console.log('❌ Blue color not active while typing');
+            return false;
+        }
+    }, 100);
+};
+
+console.log('🔵 Test function available: testPermanentBlueColor()');
 
 export default MentionHandler; 

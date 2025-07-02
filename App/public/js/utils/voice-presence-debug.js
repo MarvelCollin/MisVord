@@ -104,14 +104,59 @@ class VoicePresenceDebug {
             
             window.globalSocketManager.updatePresence('online', { type: 'In Voice Call' });
             console.log('📡 [VOICE-PRESENCE-TEST] Sent test presence update: In Voice Call');
+            console.log('🔒 [VOICE-PRESENCE-TEST] Voice call status should now be protected from AFK changes');
             
             setTimeout(() => {
                 window.globalSocketManager.updatePresence('online', { type: 'idle' });
                 console.log('📡 [VOICE-PRESENCE-TEST] Sent test presence update: idle');
+                console.log('🔓 [VOICE-PRESENCE-TEST] Now can go AFK if inactive');
             }, 3000);
         } else {
             console.error('❌ [VOICE-PRESENCE-TEST] Socket not ready');
         }
+    }
+
+    testVoiceCallProtection() {
+        console.log('🛡️ [VOICE-PROTECTION-TEST] Testing voice call AFK protection...');
+        
+        if (!window.globalSocketManager?.isReady()) {
+            console.error('❌ [VOICE-PROTECTION-TEST] Socket not ready');
+            return;
+        }
+
+        console.log('📡 [VOICE-PROTECTION-TEST] Setting to voice call status...');
+        window.globalSocketManager.updatePresence('online', { type: 'In Voice Call' });
+        
+        console.log('⏰ [VOICE-PROTECTION-TEST] Simulating inactivity...');
+        window.globalSocketManager.lastActivityTime = Date.now() - 25000;
+        window.globalSocketManager.isUserActive = true;
+        
+        console.log('🔍 [VOICE-PROTECTION-TEST] Triggering activity check manually...');
+        const timeSinceActivity = Date.now() - window.globalSocketManager.lastActivityTime;
+        
+        if (timeSinceActivity >= window.globalSocketManager.afkTimeout && window.globalSocketManager.isUserActive) {
+            if (window.globalSocketManager.currentActivityDetails?.type === 'In Voice Call') {
+                console.log('✅ [VOICE-PROTECTION-TEST] SUCCESS - Voice call status protected from AFK');
+            } else {
+                console.log('❌ [VOICE-PROTECTION-TEST] FAIL - Voice call protection not working');
+            }
+        }
+        
+        setTimeout(() => {
+            console.log('📡 [VOICE-PROTECTION-TEST] Now testing with idle status...');
+            window.globalSocketManager.updatePresence('online', { type: 'idle' });
+            
+            setTimeout(() => {
+                const timeSinceActivity2 = Date.now() - window.globalSocketManager.lastActivityTime;
+                if (timeSinceActivity2 >= window.globalSocketManager.afkTimeout && window.globalSocketManager.isUserActive) {
+                    if (window.globalSocketManager.currentActivityDetails?.type !== 'In Voice Call') {
+                        console.log('✅ [VOICE-PROTECTION-TEST] SUCCESS - Idle status can go AFK as expected');
+                    } else {
+                        console.log('❌ [VOICE-PROTECTION-TEST] UNEXPECTED - Still showing voice call');
+                    }
+                }
+            }, 1000);
+        }, 2000);
     }
 
     checkActiveNowDisplay() {

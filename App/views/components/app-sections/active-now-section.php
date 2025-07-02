@@ -407,7 +407,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 6000);
     };
     
-    console.log('✅ [ACTIVE-NOW] Test function available: window.testVoicePresence()');
+    console.log('✅ [ACTIVE-NOW] Test functions available:');
+    console.log('  - window.testVoicePresence() - Test basic voice presence');
+    console.log('  - window.voicePresenceDebug.testVoiceCallProtection() - Test AFK protection');
 });
 </script>
 

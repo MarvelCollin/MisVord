@@ -338,8 +338,9 @@ class VoiceManager {
             }
             
             const handleUpdate = (data) => {
-                if (data.channel_id === channelId && data.action === 'join') {
+                if (data.channel_id === channelId && (data.action === 'join' || data.action === 'already_registered')) {
                     window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
+                    console.log(`[VOICE-MANAGER] Socket registration response:`, data);
                     resolve(data);
                 }
             };

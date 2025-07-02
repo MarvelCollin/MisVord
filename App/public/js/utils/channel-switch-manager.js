@@ -329,6 +329,11 @@ class SimpleChannelSwitcher {
             }
         }
         
+        if (window.ChannelVoiceParticipants && window.globalSocketManager?.isReady()) {
+            console.log('[SWITCH-MANAGER] Checking voice participants for channel:', channelId);
+            window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
+        }
+        
         console.log('✅ [SWITCH-MANAGER] Voice channel initialization complete');
     }
     

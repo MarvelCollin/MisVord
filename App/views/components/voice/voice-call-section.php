@@ -936,21 +936,35 @@ class UnifiedParticipantManager {
         };
 
         if (!isLocal && !data.participantObj?.isBot) {
-            try {
-                const response = await fetch(`/api/user/${participantId}/profile`, {
-                    method: 'GET',
-                    credentials: 'same-origin'
-                });
-                
-                if (response.ok) {
-                    const userData = await response.json();
-                    if (userData.success && userData.user) {
-                        participantData.name = userData.user.display_name || userData.user.username || participantData.name;
-                        participantData.avatarUrl = userData.user.avatar_url;
+            const isValidUserId = /^\d+$/.test(participantId);
+            
+            if (isValidUserId) {
+                try {
+                    if (window.userAPI) {
+                        const userData = await window.userAPI.getUserProfile(participantId);
+                        if (userData && userData.success && userData.data && userData.data.user) {
+                            participantData.name = userData.data.user.display_name || userData.data.user.username || participantData.name;
+                            participantData.avatarUrl = userData.data.user.avatar_url;
+                        }
+                    } else {
+                        const response = await fetch(`/api/users/${participantId}/profile`, {
+                            method: 'GET',
+                            credentials: 'same-origin'
+                        });
+                        
+                        if (response.ok) {
+                            const userData = await response.json();
+                            if (userData.success && userData.data && userData.data.user) {
+                                participantData.name = userData.data.user.display_name || userData.data.user.username || participantData.name;
+                                participantData.avatarUrl = userData.data.user.avatar_url;
+                            }
+                        }
                     }
+                } catch (error) {
+                    console.warn('Failed to fetch participant profile data:', error);
                 }
-            } catch (error) {
-                console.warn('Failed to fetch participant profile data:', error);
+            } else {
+                console.log('[VOICE-CALL] Using session ID for participant:', participantId, 'name:', participantData.name);
             }
         }
 
@@ -2313,21 +2327,35 @@ class VoiceCallManager {
         }
         
         if (participant.id && !participant.isBot) {
-            try {
-                const response = await fetch(`/api/user/${participant.id}/avatar`, {
-                    method: 'GET',
-                    credentials: 'same-origin'
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.avatar_url) {
-                        participant.avatarUrl = data.avatar_url;
-                        return data.avatar_url;
+            const isValidUserId = /^\d+$/.test(participant.id);
+            
+            if (isValidUserId) {
+                try {
+                    if (window.userAPI) {
+                        const userData = await window.userAPI.getUserProfile(participant.id);
+                        if (userData && userData.success && userData.data && userData.data.user && userData.data.user.avatar_url) {
+                            participant.avatarUrl = userData.data.user.avatar_url;
+                            return userData.data.user.avatar_url;
+                        }
+                    } else {
+                        const response = await fetch(`/api/users/${participant.id}/profile`, {
+                            method: 'GET',
+                            credentials: 'same-origin'
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.data && data.data.user && data.data.user.avatar_url) {
+                                participant.avatarUrl = data.data.user.avatar_url;
+                                return data.data.user.avatar_url;
+                            }
+                        }
                     }
+                } catch (error) {
+                    console.warn('Failed to fetch participant avatar:', error);
                 }
-            } catch (error) {
-                console.warn('Failed to fetch participant avatar:', error);
+            } else {
+                console.log('[VOICE-CALL] Using session ID for avatar lookup:', participant.id);
             }
         }
         

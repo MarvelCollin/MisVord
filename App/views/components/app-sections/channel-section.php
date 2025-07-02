@@ -255,8 +255,58 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 .channel-dropdown {
     z-index: 1001;
 }
+
+.voice-participants {
+    margin-left: 1.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.375rem;
+    background-color: rgba(79, 84, 92, 0.12);
+    padding: 0.25rem;
+    transition: all 0.2s ease;
+    min-height: 20px;
+    border: 1px solid rgba(79, 84, 92, 0.2);
+}
+
+.voice-participants:hover {
+    background-color: rgba(79, 84, 92, 0.20);
+}
+
+.voice-participants .user-avatar {
+    transition: transform 0.2s ease;
+}
+
+.voice-participants .user-avatar:hover {
+    transform: scale(1.1);
+}
+
+.voice-participants > div:hover {
+    background-color: rgba(79, 84, 92, 0.3);
+    border-radius: 0.25rem;
+}
+
+.voice-participants .text-sm {
+    font-weight: 500;
+    max-width: 8rem;
+}
+
+.voice-participants .relative::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 8px;
+    height: 8px;
+    background-color: #313338;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+.voice-participants .bg-discord-green {
+    z-index: 2;
+}
 </style>
 
+<script src="/public/js/utils/channel-voice-participants.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     function initializeChannelSkeleton() {
@@ -298,6 +348,96 @@ document.addEventListener('DOMContentLoaded', function() {
         hide: hideChannelSkeleton,
         initialized: true
     };
+    
+    window.testVoiceParticipants = function() {
+        console.log('[VOICE-PARTICIPANT] Testing voice participants display...');
+        
+        if (!window.ChannelVoiceParticipants) {
+            console.error('[VOICE-PARTICIPANT] ChannelVoiceParticipants not loaded');
+            return;
+        }
+        
+        const manager = window.ChannelVoiceParticipants.getInstance();
+        if (!manager) {
+            console.error('[VOICE-PARTICIPANT] Failed to get manager instance');
+            return;
+        }
+        
+        const voiceChannels = document.querySelectorAll('[data-channel-type="voice"]');
+        console.log('[VOICE-PARTICIPANT] Found voice channels:', voiceChannels.length);
+        
+        voiceChannels.forEach((channel, index) => {
+            const channelId = channel.getAttribute('data-channel-id');
+            const channelName = channel.getAttribute('data-channel-name');
+            console.log(`[VOICE-PARTICIPANT] Channel ${index + 1}: ${channelName} (ID: ${channelId})`);
+            
+            const participantContainer = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+            console.log(`[VOICE-PARTICIPANT] Participant container exists: ${!!participantContainer}`);
+            
+            if (participantContainer) {
+                console.log(`[VOICE-PARTICIPANT] Container classes:`, participantContainer.className);
+                console.log(`[VOICE-PARTICIPANT] Container hidden:`, participantContainer.classList.contains('hidden'));
+            }
+        });
+        
+        if (window.globalSocketManager?.isReady()) {
+            console.log('[VOICE-PARTICIPANT] Socket is ready, requesting voice meeting status...');
+            voiceChannels.forEach(channel => {
+                const channelId = channel.getAttribute('data-channel-id');
+                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
+            });
+        } else {
+            console.warn('[VOICE-PARTICIPANT] Socket not ready');
+        }
+        
+        console.log('[VOICE-PARTICIPANT] Test complete. Check console for voice meeting updates.');
+    };
+    
+    window.addTestVoiceParticipant = function(channelId, userId, username) {
+        console.log('[VOICE-PARTICIPANT] Adding test participant...');
+        
+        if (!window.ChannelVoiceParticipants) {
+            console.error('[VOICE-PARTICIPANT] ChannelVoiceParticipants not loaded');
+            return;
+        }
+        
+        const manager = window.ChannelVoiceParticipants.getInstance();
+        if (!manager) {
+            console.error('[VOICE-PARTICIPANT] Failed to get manager instance');
+            return;
+        }
+        
+        manager.addParticipant(channelId, userId, username);
+        manager.updateParticipantContainer(channelId);
+        
+        console.log('[VOICE-PARTICIPANT] Test participant added. Check channel list.');
+    };
+    
+    window.listVoiceParticipantContainers = function() {
+        console.log('[VOICE-PARTICIPANT] Listing all voice participant containers...');
+        
+        const containers = document.querySelectorAll('.voice-participants');
+        console.log('[VOICE-PARTICIPANT] Found containers:', containers.length);
+        
+        containers.forEach((container, index) => {
+            const channelId = container.getAttribute('data-channel-id');
+            const isHidden = container.classList.contains('hidden');
+            const displayStyle = container.style.display;
+            
+            console.log(`[VOICE-PARTICIPANT] Container ${index + 1}:`, {
+                channelId: channelId,
+                hidden: isHidden,
+                display: displayStyle,
+                classes: container.className,
+                children: container.children.length
+            });
+        });
+    };
+    
+    console.log('[CHANNEL-SECTION] Test functions available:');
+    console.log('  - window.testVoiceParticipants()');
+    console.log('  - window.addTestVoiceParticipant(channelId, userId, username)');
+    console.log('  - window.listVoiceParticipantContainers()');
 });
 </script>
 

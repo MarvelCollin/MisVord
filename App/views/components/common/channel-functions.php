@@ -53,6 +53,11 @@ if (!function_exists('renderChannel')) {
         echo '    </div>';
         echo '  </div>';
         echo '</div>';
+        
+        if ($type === 'voice') {
+            echo '<div class="voice-participants ml-6" data-channel-id="' . $channel['id'] . '">';
+            echo '</div>';
+        }
     }
 }
 
