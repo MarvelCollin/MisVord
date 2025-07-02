@@ -2055,9 +2055,15 @@ class ChatSection {
         }
     }
     
-    scrollToMessage(messageId) {
+    scrollToMessage(messageId, fromNotification = false) {
         if (!messageId) return;
         
+        if (window.messageHighlighter) {
+            console.log('🎯 [CHAT-SECTION] Using message highlighter for message:', messageId);
+            return window.messageHighlighter.highlightMessage(messageId, fromNotification);
+        }
+        
+        console.log('⚠️ [CHAT-SECTION] Message highlighter not available, using fallback');
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (messageElement) {
             messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2065,7 +2071,9 @@ class ChatSection {
             setTimeout(() => {
                 messageElement.classList.remove('highlight-message');
             }, 2000);
+            return true;
         }
+        return false;
     }
     
     playMessageSound() {

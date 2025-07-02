@@ -131,12 +131,7 @@ class VoiceSection {
             
             if (window.globalSocketManager?.isReady()) {
                 console.log('🎤 [VOICE-SECTION] Updating presence to In Voice Call');
-                const channelName = details.channelName || 'Voice Channel';
-                window.globalSocketManager.updatePresence('online', { 
-                    type: 'In Voice Call',
-                    channel: channelName,
-                    channel_id: details.channelId || this.currentChannelId
-                });
+                window.globalSocketManager.updatePresence('online', { type: 'In Voice Call' });
             }
         });
         

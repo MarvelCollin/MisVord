@@ -10,6 +10,8 @@ let lastClickTime = 0;
 const CLICK_TIMEOUT = 3000;
 const CLICKS_NEEDED = 16; 
 
+let sidebarInitialized = false;
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[Server Sidebar] DOMContentLoaded: Initializing server sidebar');
     initServerSidebar();
@@ -110,6 +112,11 @@ function initializeHomeIconEasterEgg() {
 }
 
 function initServerSidebar() {
+    if (sidebarInitialized) {
+        console.log('[Server Sidebar] Already initialized, skipping');
+        return;
+    }
+    sidebarInitialized = true;
     console.log('[Server Sidebar] Initializing server sidebar');
     performCompleteRender();
 }

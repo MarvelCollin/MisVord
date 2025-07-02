@@ -733,16 +733,175 @@
 }
 
 /* Highlight effect for replied messages */
-@keyframes highlight-pulse {
-    0% { background-color: rgba(88, 101, 242, 0.2); }
-    50% { background-color: rgba(88, 101, 242, 0.3); }
-    100% { background-color: rgba(88, 101, 242, 0.2); }
+@keyframes message-highlight-flash {
+    0% { 
+        background: linear-gradient(90deg, 
+            rgba(88, 101, 242, 0.0) 0%, 
+            rgba(88, 101, 242, 0.3) 50%, 
+            rgba(88, 101, 242, 0.0) 100%);
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.4);
+    }
+    25% {
+        background: linear-gradient(90deg, 
+            rgba(88, 101, 242, 0.1) 0%, 
+            rgba(88, 101, 242, 0.4) 50%, 
+            rgba(88, 101, 242, 0.1) 100%);
+        transform: scale(1.02);
+        box-shadow: 0 0 20px 0 rgba(88, 101, 242, 0.3);
+    }
+    50% {
+        background: linear-gradient(90deg, 
+            rgba(88, 101, 242, 0.15) 0%, 
+            rgba(88, 101, 242, 0.35) 50%, 
+            rgba(88, 101, 242, 0.15) 100%);
+        transform: scale(1.01);
+        box-shadow: 0 0 30px 0 rgba(88, 101, 242, 0.2);
+    }
+    75% {
+        background: linear-gradient(90deg, 
+            rgba(88, 101, 242, 0.1) 0%, 
+            rgba(88, 101, 242, 0.25) 50%, 
+            rgba(88, 101, 242, 0.1) 100%);
+        transform: scale(1.005);
+        box-shadow: 0 0 15px 0 rgba(88, 101, 242, 0.15);
+    }
+    100% { 
+        background: linear-gradient(90deg, 
+            rgba(88, 101, 242, 0.05) 0%, 
+            rgba(88, 101, 242, 0.15) 50%, 
+            rgba(88, 101, 242, 0.05) 100%);
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.1);
+    }
+}
+
+@keyframes message-glow-border {
+    0% { border-color: transparent; }
+    50% { border-color: rgba(88, 101, 242, 0.6); }
+    100% { border-color: rgba(88, 101, 242, 0.2); }
 }
 
 .highlight-message {
-    animation: highlight-pulse 1s ease-in-out;
-    background-color: rgba(88, 101, 242, 0.2);
-    border-radius: 4px;
+    animation: message-highlight-flash 2s ease-out forwards;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.highlight-message::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(88, 101, 242, 0.3) 50%, 
+        transparent 100%);
+    animation: highlight-shimmer 3s ease-out forwards;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.highlight-message::after {
+    content: '🎯';
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 14px;
+    opacity: 0;
+    animation: highlight-icon-appear 0.5s ease-out 0.5s forwards;
+    z-index: 2;
+    pointer-events: none;
+}
+
+@keyframes highlight-shimmer {
+    0% { left: -100%; }
+    50% { left: 0%; }
+    100% { left: 100%; }
+}
+
+@keyframes highlight-icon-appear {
+    0% { 
+        opacity: 0; 
+        transform: scale(0.5) rotate(-180deg); 
+    }
+    50% { 
+        opacity: 1; 
+        transform: scale(1.2) rotate(0deg); 
+    }
+    100% { 
+        opacity: 0.8; 
+        transform: scale(1) rotate(0deg); 
+    }
+}
+
+/* Enhanced bubble message highlighting */
+.bubble-message-group.highlight-message {
+    animation: message-highlight-flash 2.5s ease-out forwards;
+    border: 2px solid transparent;
+    border-radius: 16px;
+    margin: 4px 0;
+    position: relative;
+    overflow: visible;
+}
+
+.bubble-message-group.highlight-message::before {
+    border-radius: 14px;
+}
+
+/* Notification target highlighting - special style for navigation */
+.message-notification-target {
+    animation: message-highlight-flash 3s ease-out forwards, 
+               message-glow-border 2s ease-out forwards;
+    background: linear-gradient(135deg, 
+        rgba(88, 101, 242, 0.1) 0%, 
+        rgba(88, 101, 242, 0.05) 50%, 
+        rgba(88, 101, 242, 0.1) 100%);
+    border: 2px solid rgba(88, 101, 242, 0.3);
+    border-radius: 16px;
+    margin: 8px 4px;
+    position: relative;
+    transform: scale(1.01);
+    box-shadow: 0 8px 32px rgba(88, 101, 242, 0.2);
+    transition: all 0.5s ease;
+}
+
+.message-notification-target::after {
+    content: '📬 From notification';
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    background: linear-gradient(45deg, #5865f2, #7289da);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0;
+    animation: notification-badge-appear 0.8s ease-out 1s forwards;
+    z-index: 3;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
+
+@keyframes notification-badge-appear {
+    0% { 
+        opacity: 0; 
+        transform: translateY(10px) scale(0.8); 
+    }
+    70% { 
+        opacity: 1; 
+        transform: translateY(-2px) scale(1.1); 
+    }
+    100% { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
 }
 
 @keyframes replyInputSlideIn {

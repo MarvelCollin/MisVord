@@ -385,18 +385,6 @@ class VoiceManager {
                     clearTimeout(timeout);
                     window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
                     console.log('✅ Socket registration confirmed:', data);
-                    
-                    if (window.ChannelVoiceParticipants) {
-                        const manager = window.ChannelVoiceParticipants.getInstance();
-                        const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
-                        const currentUsername = document.querySelector('meta[name="username"]')?.content || 'You';
-                        
-                        if (currentUserId) {
-                            manager.addParticipant(channelId, currentUserId, currentUsername);
-                            manager.updateParticipantContainer(channelId);
-                        }
-                    }
-                    
                     resolve(data);
                 } else if (data.channel_id === channelId && data.error) {
                     clearTimeout(timeout);

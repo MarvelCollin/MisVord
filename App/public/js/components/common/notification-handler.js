@@ -2,7 +2,9 @@ class GlobalNotificationHandler {
     constructor() {
         this.socket = null;
         this.currentUserId = null;
+        this.currentNotification = null;
         this.init();
+        this.addNotificationStyles();
     }
 
     init() {
@@ -58,36 +60,57 @@ class GlobalNotificationHandler {
     }
 
     showNotification(data, isAllMention, isRoleMention) {
+        this.clearExistingNotifications();
+        
         const mentionerUsername = data.username;
         const channelName = data.context.channel_name || 'Channel';
         const serverName = data.context.server_name || 'Server';
         const serverIcon = data.context.server_icon || '/public/assets/common/default-profile-picture.png';
         const title = `New Mention in ${channelName}`;
+        
+        let mentionColor = 'from-blue-500 to-indigo-600';
+        let mentionText = 'mention';
+        let mentionIcon = '👤';
+        
+        if (isAllMention) {
+            mentionColor = 'from-orange-500 to-red-500';
+            mentionText = 'all';
+            mentionIcon = '📢';
+        } else if (isRoleMention) {
+            mentionColor = 'from-purple-500 to-pink-500';
+            mentionText = data.role;
+            mentionIcon = '👑';
+        }
     
         const toastHTML = `
-            <div class="group flex flex-col w-full max-w-md bg-gray-900/40 backdrop-blur-md rounded-xl shadow-xl border border-white/5 overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:bg-gray-900/50 cursor-pointer">
+            <div class="notification-card group relative w-96 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden transform transition-all duration-500 hover:scale-[1.02] hover:shadow-3xl cursor-pointer animate-slide-in">
+                <!-- Glow Effect -->
+                <div class="absolute inset-0 bg-gradient-to-r ${mentionColor} opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${mentionColor}"></div>
+                
                 <!-- Header -->
-                <div class="flex items-center justify-between p-4">
-                    <div class="flex items-center space-x-3">
-                        <img src="${serverIcon}" alt="Server Icon" class="w-8 h-8 rounded-lg object-cover border border-white/10">
-                        <div class="flex flex-col">
-                            <div class="flex items-center space-x-1">
-                                <span class="text-xs font-medium text-gray-400">in</span>
-                                <span class="text-sm font-medium text-gray-200">${serverName}</span>
+                <div class="relative p-5 pb-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="relative">
+                                <img src="${serverIcon}" alt="Server" class="w-10 h-10 rounded-xl object-cover ring-2 ring-white/20 shadow-lg">
+                                <div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r ${mentionColor} rounded-full flex items-center justify-center text-xs shadow-lg">
+                                    ${mentionIcon}
+                                </div>
                             </div>
-                            <div class="flex items-center text-xs text-indigo-400/90">
-                                <i class="fas fa-hashtag text-xs mr-1"></i>
-                                <span>${channelName}</span>
+                            <div class="flex flex-col">
+                                <div class="flex items-center space-x-1.5">
+                                    <span class="text-xs font-medium text-gray-400">in</span>
+                                    <span class="text-sm font-bold text-white">${serverName}</span>
+                                </div>
+                                <div class="flex items-center text-xs text-gray-300/80">
+                                    <span class="w-1 h-1 bg-gray-400 rounded-full mr-2"></span>
+                                    <span>#${channelName}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <div class="flex items-center text-xs text-gray-400">
-                            <i class="far fa-clock mr-1.5"></i>
-                            now
-                        </div>
-                        <button class="close-btn text-gray-400 hover:text-white transition-colors duration-200 p-1 rounded-md hover:bg-gray-700/50">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <button class="close-btn group/close p-2 rounded-xl hover:bg-white/10 transition-all duration-200">
+                            <svg class="w-4 h-4 text-gray-400 group-hover/close:text-white group-hover/close:rotate-90 transition-all duration-200" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
                             </svg>
                         </button>
@@ -95,43 +118,47 @@ class GlobalNotificationHandler {
                 </div>
 
                 <!-- Content -->
-                <div class="px-4 pb-4">
-                    <div class="flex items-start space-x-3">
+                <div class="relative px-5 pb-5">
+                    <div class="flex items-start space-x-4">
                         <div class="relative flex-shrink-0">
-                            <div class="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-white/10">
+                            <div class="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-white/20 shadow-lg">
                                 <img class="w-full h-full object-cover" 
                                     src="${data.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                                     alt="${mentionerUsername}">
-                                <div class="absolute inset-0 ring-1 ring-inset ring-black/10"></div>
                             </div>
-                            <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></div>
+                            <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-900 shadow-lg"></div>
                         </div>
                         
-                        <div class="flex-1 min-w-0 space-y-1">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-semibold text-white">${mentionerUsername}</span>
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-medium ${
-                                    isAllMention ? 'bg-amber-400/10 text-amber-300' : 
-                                    isRoleMention ? 'bg-purple-400/10 text-purple-300' : 'bg-indigo-400/10 text-indigo-300'
-                                }">
-                                    <i class="fas fa-at mr-1 text-xs opacity-75"></i>
-                                    ${isAllMention ? 'all' : isRoleMention ? data.role : 'mention'}
+                        <div class="flex-1 min-w-0 space-y-2">
+                            <div class="flex items-center space-x-2 flex-wrap">
+                                <span class="text-base font-bold text-white">${mentionerUsername}</span>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gradient-to-r ${mentionColor} text-white shadow-lg">
+                                    <span class="mr-1">${mentionIcon}</span>
+                                    @${mentionText}
                                 </span>
                             </div>
 
-                            <div class="relative group/message">
-                                <div class="absolute -left-2 top-0 bottom-0 w-0.5 bg-gray-700/30 group-hover/message:bg-indigo-500/30 transition-colors duration-150"></div>
-                                <p class="text-sm text-gray-300/90 leading-relaxed break-words pl-2">
-                                    ${(data.content || '').substring(0, 120)}${data.content.length > 120 ? '...' : ''}
+                            <div class="relative bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                                <div class="absolute top-2 left-2 w-1 h-4 bg-gradient-to-b ${mentionColor} rounded-full"></div>
+                                <p class="text-sm text-gray-200 leading-relaxed pl-4">
+                                    ${(data.content || '').substring(0, 100)}${data.content && data.content.length > 100 ? '...' : ''}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Action Hint -->
-                    <div class="mt-3 flex items-center justify-end text-xs text-gray-400/75">
-                        <i class="fas fa-arrow-right mr-1.5 group-hover:translate-x-0.5 transition-transform duration-150"></i>
-                        View message
+                    <!-- Action -->
+                    <div class="mt-4 flex items-center justify-center">
+                        <div class="flex items-center space-x-2 text-xs text-gray-300 bg-white/5 rounded-full px-4 py-2 group-hover:bg-white/10 transition-all duration-300">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gradient-to-r ${mentionColor} opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-gradient-to-r ${mentionColor}"></span>
+                            </span>
+                            <span class="font-medium">Click to view message</span>
+                            <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -142,7 +169,7 @@ class GlobalNotificationHandler {
         };
 
         if (window.showToast) {
-            window.showToast(toastHTML, 'custom', 8000, title, onClick);
+            this.currentNotification = window.showToast(toastHTML, 'custom', 10000, title, onClick);
         }
 
         if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
@@ -170,6 +197,78 @@ class GlobalNotificationHandler {
             
             setTimeout(() => notification.close(), 10000);
         }
+    }
+
+    clearExistingNotifications() {
+        if (this.currentNotification && typeof this.currentNotification.close === 'function') {
+            this.currentNotification.close();
+            this.currentNotification = null;
+        }
+        
+        const existingToasts = document.querySelectorAll('.notification-card');
+        existingToasts.forEach(toast => {
+            const parent = toast.closest('.toast-item');
+            if (parent) {
+                parent.style.animation = 'slide-out-right 0.3s ease-in forwards';
+                setTimeout(() => {
+                    if (parent.parentNode) {
+                        parent.parentNode.removeChild(parent);
+                    }
+                }, 300);
+            }
+        });
+    }
+
+    addNotificationStyles() {
+        if (document.getElementById('notification-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            @keyframes slide-in {
+                from {
+                    transform: translateX(100%) scale(0.9);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0) scale(1);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slide-out-right {
+                from {
+                    transform: translateX(0) scale(1);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%) scale(0.9);
+                    opacity: 0;
+                }
+            }
+            
+            .animate-slide-in {
+                animation: slide-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            }
+            
+            .notification-card {
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+            }
+            
+            .notification-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                border-radius: inherit;
+                background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+                pointer-events: none;
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     playNotificationSound() {
@@ -226,6 +325,13 @@ class GlobalNotificationHandler {
                 
                 console.log('🔗 [NOTIFICATION] Navigating to:', targetUrl);
                 window.location.href = targetUrl;
+                
+                setTimeout(() => {
+                    if (window.messageHighlighter && data.message_id) {
+                        console.log('✨ [NOTIFICATION] Triggering message highlight after navigation');
+                        window.messageHighlighter.highlightMessage(data.message_id, true);
+                    }
+                }, 1000);
             } else {
                 console.warn('⚠️ [NOTIFICATION] Could not determine navigation URL for mention');
                 if (window.showToast) {

@@ -257,61 +257,56 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 }
 
 .voice-participants {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    max-width: 100px;
-    overflow: hidden;
+    margin-left: 1.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.375rem;
+    background-color: rgba(79, 84, 92, 0.12);
+    padding: 0.25rem;
+    transition: all 0.2s ease;
+    min-height: 20px;
+    border: 1px solid rgba(79, 84, 92, 0.2);
 }
 
 .voice-participants:hover {
-    z-index: 10;
+    background-color: rgba(79, 84, 92, 0.20);
 }
 
-.voice-participants .relative {
+.voice-participants .user-avatar {
     transition: transform 0.2s ease;
 }
 
-.voice-participants .relative:hover {
+.voice-participants .user-avatar:hover {
     transform: scale(1.1);
-    z-index: 20;
+}
+
+.voice-participants > div:hover {
+    background-color: rgba(79, 84, 92, 0.3);
+    border-radius: 0.25rem;
 }
 
 .voice-participants .text-sm {
-    display: none;
+    font-weight: 500;
+    max-width: 8rem;
 }
 
 .voice-participants .relative::after {
-    content: attr(title);
+    content: '';
     position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #2f3136;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-    z-index: 1000;
+    bottom: -1px;
+    right: -1px;
+    width: 8px;
+    height: 8px;
+    background-color: #313338;
+    border-radius: 50%;
+    z-index: 1;
 }
 
-.voice-participants .relative:hover::after {
-    opacity: 1;
-}
-
-.voice-participant-count {
-    color: #b9bbbe;
-    font-size: 11px;
-    font-weight: 500;
+.voice-participants .bg-discord-green {
+    z-index: 2;
 }
 </style>
 
 <script src="/public/js/utils/channel-voice-participants.js"></script>
-<script src="/public/js/utils/presence-voice-sync.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     function initializeChannelSkeleton() {
