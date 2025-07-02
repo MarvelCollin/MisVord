@@ -89,7 +89,6 @@ class FriendsManager {
                 });
                 
                 socket.on('user-presence-update', (data) => {
-                    console.log('👥 [FRIENDS-MANAGER] User presence updated:', data);
                     this.handlePresenceUpdate(data);
                 });
                 

@@ -236,7 +236,7 @@ class NitroCrownManager {
                 }
             });
             
-            console.log(`🎯 [NITRO-CROWN] Updated ${elements.length} user elements`);
+
         } catch (error) {
             console.error('🎯 [NITRO-CROWN] Error updating bulk user elements:', error);
         }
@@ -268,7 +268,6 @@ class NitroCrownManager {
             });
             
             if (newUserElements.length > 0) {
-                console.log(`🎯 [NITRO-CROWN] Detected ${newUserElements.length} new user elements`);
                 this.updateBulkUserElements(newUserElements);
             }
         });

@@ -123,6 +123,39 @@ class VoiceManager {
         if (leaveBtn) {
             leaveBtn.addEventListener('click', () => this.leaveVoice());
         }
+        
+        window.addEventListener('beforeunload', () => {
+            if (this.isConnected) {
+                console.log('🚨 [VOICE-MANAGER] Page unloading, cleaning up voice connection');
+                this.cleanup();
+            }
+        });
+        
+        window.addEventListener('unload', () => {
+            if (this.isConnected) {
+                console.log('🚨 [VOICE-MANAGER] Page unloaded, cleaning up voice connection');
+                this.cleanup();
+            }
+        });
+        
+        window.addEventListener('pagehide', () => {
+            if (this.isConnected) {
+                console.log('🚨 [VOICE-MANAGER] Page hidden, cleaning up voice connection');
+                this.cleanup();
+            }
+        });
+        
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden' && this.isConnected) {
+                console.log('🚨 [VOICE-MANAGER] Page became hidden, monitoring for cleanup');
+                setTimeout(() => {
+                    if (document.visibilityState === 'hidden' && this.isConnected) {
+                        console.log('🚨 [VOICE-MANAGER] Page still hidden after timeout, cleaning up');
+                        this.cleanup();
+                    }
+                }, 5000);
+            }
+        });
     }
     
     setupErrorHandling() {
@@ -214,20 +247,19 @@ class VoiceManager {
             const existingMeeting = await this.checkExistingMeeting(targetChannelId);
             
             let meetingId;
-            if (existingMeeting) {
-                // 🎯 STEP 2: Join existing meeting
+            if (existingMeeting && existingMeeting.meeting_id) {
                 console.log(`✅ [VOICE-MANAGER] Found existing meeting: ${existingMeeting.meeting_id}`);
                 meetingId = existingMeeting.meeting_id;
             } else {
-                // 🎯 STEP 3: Create new meeting
                 console.log(`🆕 [VOICE-MANAGER] No existing meeting, creating new one...`);
                 const customMeetingId = `voice_channel_${targetChannelId}`;
                 meetingId = await this.videoSDKManager.createMeetingRoom(customMeetingId);
-                
                 if (!meetingId) {
                     throw new Error('Failed to create meeting room');
                 }
+                console.log(`🆕 [VOICE-MANAGER] Created new meeting with ID: ${meetingId}`);
             }
+            console.log(`🎯 [VOICE-MANAGER] Final meeting ID for joining: ${meetingId}`);
             
             // 🎯 STEP 3b: Join the VideoSDK meeting first (existing or new)
             console.log(`🚪 [VOICE-MANAGER] Joining VideoSDK meeting: ${meetingId}`);
@@ -306,6 +338,7 @@ class VoiceManager {
     async checkExistingMeeting(channelId) {
         return new Promise((resolve) => {
             if (!window.globalSocketManager?.io) {
+                console.log(`⚠️ [VOICE-MANAGER] Socket not available for channel ${channelId}`);
                 resolve(null);
                 return;
             }
@@ -313,18 +346,33 @@ class VoiceManager {
             const handleResponse = (data) => {
                 if (data.channel_id === channelId) {
                     window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
-                    resolve(data.has_meeting ? {
+                    console.log(`📡 [VOICE-MANAGER] Voice meeting status received for channel ${channelId}:`, {
+                        has_meeting: data.has_meeting,
+                        meeting_id: data.meeting_id,
+                        participant_count: data.participant_count,
+                        full_data: data
+                    });
+                    
+                    if (data.has_meeting && data.meeting_id) {
+                        console.log(`✅ [VOICE-MANAGER] Found existing meeting with ID: ${data.meeting_id}`);
+                        resolve({
                         meeting_id: data.meeting_id,
                         participant_count: data.participant_count
-                    } : null);
+                        });
+                    } else {
+                        console.log(`📭 [VOICE-MANAGER] No existing meeting found for channel ${channelId}`);
+                        resolve(null);
+                    }
                 }
             };
             
             window.globalSocketManager.io.on('voice-meeting-status', handleResponse);
+            console.log(`🔍 [VOICE-MANAGER] Checking for existing meeting in channel ${channelId}...`);
             window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
             
             setTimeout(() => {
                 window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
+                console.log(`⏰ [VOICE-MANAGER] Timeout waiting for meeting status for channel ${channelId}`);
                 resolve(null);
             }, 3000);
         });
@@ -396,6 +444,47 @@ class VoiceManager {
         if (window.MusicLoaderStatic?.playDisconnectVoiceSound) {
             window.MusicLoaderStatic.playDisconnectVoiceSound();
         }
+    }
+    
+    cleanup() {
+        console.log('🧹 [VOICE-MANAGER] Emergency cleanup initiated');
+        
+        if (this.currentChannelId && window.globalSocketManager?.io && window.globalSocketManager.isReady()) {
+            try {
+                window.globalSocketManager.io.emit('unregister-voice-meeting', {
+                    channel_id: this.currentChannelId
+                });
+                console.log('🧹 [VOICE-MANAGER] Sent unregister to socket server');
+            } catch (error) {
+                console.warn('🧹 [VOICE-MANAGER] Failed to send unregister to socket:', error);
+            }
+        }
+        
+        if (this.videoSDKManager) {
+            try {
+                this.videoSDKManager.leaveMeeting();
+                console.log('🧹 [VOICE-MANAGER] Left VideoSDK meeting');
+            } catch (error) {
+                console.warn('🧹 [VOICE-MANAGER] Failed to leave VideoSDK meeting:', error);
+            }
+        }
+        
+        this.isConnected = false;
+        this.currentChannelId = null;
+        this.currentChannelName = null;
+        this.currentMeetingId = null;
+        window.voiceJoinInProgress = false;
+        
+        if (window.unifiedVoiceStateManager) {
+            try {
+                window.unifiedVoiceStateManager.handleDisconnect();
+                console.log('🧹 [VOICE-MANAGER] Reset unified voice state');
+            } catch (error) {
+                console.warn('🧹 [VOICE-MANAGER] Failed to reset unified voice state:', error);
+            }
+        }
+        
+        console.log('🧹 [VOICE-MANAGER] Emergency cleanup completed');
     }
     
 

@@ -273,52 +273,72 @@
   color: #6d6f78;
 }
 
-#message-input.misvord-mention-typing {
-  background-color: rgba(88, 101, 242, 0.02) !important;
-  box-shadow: 0 0 0 1px rgba(88, 101, 242, 0.1) !important;
-  border: 1px solid rgba(88, 101, 242, 0.15) !important;
-  border-radius: 6px !important;
-  transition: all 0.2s ease !important;
+.input-container-wrapper {
+  position: relative !important;
 }
 
-#message-input[data-mention-typing="true"] {
-  background-color: rgba(88, 101, 242, 0.02) !important;
-  box-shadow: 0 0 0 1px rgba(88, 101, 242, 0.15) !important;
-  border: 1px solid rgba(88, 101, 242, 0.2) !important;
-  border-radius: 6px !important;
-  transition: all 0.2s ease !important;
+.mention-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 11px 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: #dcddde;
+  font-size: 16px;
+  line-height: 22px;
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow-y: auto;
+  overflow-x: hidden;
+  pointer-events: none;
+  z-index: 1;
+  min-height: 22px;
+  max-height: 50vh;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-#message-input[contenteditable="true"] {
-  background-color: rgba(88, 101, 242, 0.02) !important;
-  box-shadow: 0 0 0 1px rgba(88, 101, 242, 0.15) !important;
-  border: 1px solid rgba(88, 101, 242, 0.2) !important;
-  border-radius: 6px !important;
-  transition: all 0.2s ease !important;
-  outline: none !important;
-  white-space: pre-wrap !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  min-height: 44px !important;
-  max-height: 144px !important;
-  resize: none !important;
+.mention-overlay::-webkit-scrollbar {
+  display: none;
 }
 
-.mention-highlight {
+.mention-overlay .mention {
   color: #5865f2 !important;
-  font-weight: 500 !important;
   background-color: rgba(88, 101, 242, 0.15) !important;
   border-radius: 3px !important;
   padding: 1px 2px !important;
-  display: inline-block !important;
+  font-weight: 500 !important;
 }
 
+.mention-overlay .mention-all {
+  color: #faa61a !important;
+  background-color: rgba(250, 166, 26, 0.15) !important;
+}
 
+.input-container-wrapper #message-input {
+  position: relative;
+  z-index: 2;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: #dcddde !important;
+}
 
-#message-input.misvord-mention-highlight {
-  box-shadow: 0 0 0 1px rgba(88, 101, 242, 0.3) !important;
-  transition: box-shadow 0.1s ease !important;
-  color: #5865f2 !important;
+.input-container-wrapper #message-input::selection {
+  background: rgba(88, 101, 242, 0.3) !important;
+}
+
+.input-container-wrapper #message-input::-moz-selection {
+  background: rgba(88, 101, 242, 0.3) !important;
+}
+
+.input-container-wrapper #message-input::placeholder {
+  color: #6d6f78 !important;
 }
 
 /* Scrollbar styling */

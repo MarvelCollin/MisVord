@@ -17,6 +17,8 @@ const voiceMeetings = new Map();
 function setup(io) {
     eventController.setIO(io);
     userService.setIO(io);
+    
+    setupStaleConnectionChecker(io);
     io.on('connection', (client) => {
         console.log(`🔌 [CONNECTION] Client connected: ${client.id}`);
         
@@ -438,11 +440,11 @@ function setup(io) {
                 }
                 
                 VoiceConnectionTracker.addUserToVoice(userKey, channel_id, meeting_id, username);
-                roomManager.addUserToVoiceMeeting(channel_id, client.id, userKey);
+                roomManager.addVoiceMeeting(channel_id, meeting_id, client.id);
                 
-                await client.join(`voice_channel_${channel_id}`);
+                await client.join(`voice-channel-${channel_id}`);
                 
-                const voiceChannelRoom = `voice_channel_${channel_id}`;
+                const voiceChannelRoom = `voice-channel-${channel_id}`;
                 const meeting = roomManager.getVoiceMeeting(channel_id);
                 
                 console.log(`📡 [VOICE-REGISTER] Broadcasting join to room: ${voiceChannelRoom}`);
@@ -500,6 +502,10 @@ function setup(io) {
         client.on('heartbeat', () => {
             console.log(`💓 [HEARTBEAT] Heartbeat from ${client.id}`);
             client.emit('heartbeat-response', { time: Date.now() });
+            
+            if (client.data?.user_id) {
+                client.data.lastHeartbeat = Date.now();
+            }
         });
         
         client.on('diagnostic-ping', (data) => {
@@ -805,14 +811,14 @@ function handleDisconnect(io, client) {
         const user_id = client.data.user_id;
         const username = client.data.username;
         
+        console.log(`🔌 [DISCONNECT] User ${username} (${user_id}) disconnected, socket: ${client.id}`);
+        
         userSockets.delete(client.id);
         
         const roomManager = require('../services/roomManager');
         const userService = require('../services/userService');
         
         const userOffline = roomManager.removeUserSocket(user_id, client.id);
-        
-        console.log(`🔌 [DISCONNECT] User ${username} (${user_id}) disconnected, socket: ${client.id}`);
         
         if (userOffline) {
             console.log(`⏳ [DISCONNECT] User ${username} has no more active sockets, starting grace period`);
@@ -826,29 +832,64 @@ function handleDisconnect(io, client) {
         
         for (const meeting of allVoiceMeetings) {
             if (meeting.participants.has(client.id)) {
+                console.log(`🎤 [DISCONNECT] Removing user ${username} from voice meeting in channel ${meeting.channel_id}`);
+                
                 const result = roomManager.removeVoiceMeeting(meeting.channel_id, client.id);
                 
                 VoiceConnectionTracker.removeUserFromVoice(user_id);
                 
+                const currentPresence = userService.getPresence(user_id);
+                if (currentPresence && currentPresence.activity_details?.type === 'In Voice Call') {
+                    userService.updatePresence(user_id, 'online', { type: 'idle' });
+                    io.emit('user-presence-update', {
+                        user_id: user_id,
+                        username: username,
+                        status: 'online',
+                        activity_details: { type: 'idle' }
+                    });
+                    console.log(`👤 [DISCONNECT] Updated presence for ${username} from 'In Voice Call' to 'idle'`);
+                }
+                
+                client.leave(`voice-channel-${meeting.channel_id}`);
+                console.log(`🚪 [DISCONNECT] User ${username} left voice channel room: voice-channel-${meeting.channel_id}`);
+                
                 const titiBotId = BotHandler.getTitiBotId();
                 if (titiBotId && result.participant_count === 0) {
                     BotHandler.removeBotFromVoiceChannel(io, titiBotId, meeting.channel_id);
+                    console.log(`🤖 [DISCONNECT] Removed bot from empty voice channel ${meeting.channel_id}`);
                 }
                 
                 voiceMeetingsUpdated.push({
                     channel_id: meeting.channel_id,
                     meeting_id: meeting.meeting_id,
-                    participant_count: result.participant_count
+                    participant_count: result.participant_count,
+                    user_id: user_id,
+                    username: username
                 });
+                
+                console.log(`✅ [DISCONNECT] Successfully removed ${username} from voice meeting in channel ${meeting.channel_id}`);
             }
         }
         
         voiceMeetingsUpdated.forEach(update => {
+            console.log(`📡 [DISCONNECT] Broadcasting voice meeting leave for ${update.username} in channel ${update.channel_id}`);
             io.emit('voice-meeting-update', {
                 ...update,
                 action: 'leave'
             });
+            
+            const voiceChannelRoom = `voice-channel-${update.channel_id}`;
+            io.to(voiceChannelRoom).emit('voice-meeting-update', {
+                ...update,
+                action: 'leave'
+            });
         });
+        
+        if (voiceMeetingsUpdated.length > 0) {
+            console.log(`🎤 [DISCONNECT] Completed voice cleanup for user ${username} - removed from ${voiceMeetingsUpdated.length} meeting(s)`);
+        }
+    } else {
+        console.log(`🔌 [DISCONNECT] Anonymous client disconnected: ${client.id}`);
     }
 }
 
@@ -952,6 +993,82 @@ function handleTitiBotCommand(io, client, data) {
         console.error(`❌ [TITIBOT-CMD-HANDLER] Error processing command:`, error);
         client.emit('titibot-command-error', { message: 'Failed to process command' });
     }
+}
+
+function setupStaleConnectionChecker(io) {
+    setInterval(() => {
+        const roomManager = require('../services/roomManager');
+        const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
+        const userService = require('../services/userService');
+        
+        const staleTimeout = 60000;
+        const now = Date.now();
+        
+        console.log(`🔍 [STALE-CHECK] Checking for stale voice connections...`);
+        
+        const allVoiceMeetings = roomManager.getAllVoiceMeetings();
+        let cleanedConnections = 0;
+        
+        for (const meeting of allVoiceMeetings) {
+            const staleParticipants = [];
+            
+            meeting.participants.forEach(socketId => {
+                const socket = io.sockets.sockets.get(socketId);
+                
+                if (!socket) {
+                    console.log(`🧹 [STALE-CHECK] Socket ${socketId} no longer exists, marking for cleanup`);
+                    staleParticipants.push(socketId);
+                } else if (socket.data?.lastHeartbeat && (now - socket.data.lastHeartbeat) > staleTimeout) {
+                    console.log(`🧹 [STALE-CHECK] Socket ${socketId} has stale heartbeat, marking for cleanup`);
+                    staleParticipants.push(socketId);
+                } else if (!socket.data?.lastHeartbeat && socket.data?.user_id) {
+                    console.log(`🧹 [STALE-CHECK] Socket ${socketId} missing heartbeat data, marking for cleanup`);
+                    staleParticipants.push(socketId);
+                }
+            });
+            
+            staleParticipants.forEach(socketId => {
+                console.log(`🧹 [STALE-CHECK] Removing stale participant ${socketId} from voice meeting in channel ${meeting.channel_id}`);
+                
+                const result = roomManager.removeVoiceMeeting(meeting.channel_id, socketId);
+                
+                const socket = io.sockets.sockets.get(socketId);
+                const user_id = socket?.data?.user_id;
+                const username = socket?.data?.username;
+                
+                if (user_id) {
+                    VoiceConnectionTracker.removeUserFromVoice(user_id);
+                    
+                    const currentPresence = userService.getPresence(user_id);
+                    if (currentPresence && currentPresence.activity_details?.type === 'In Voice Call') {
+                        userService.updatePresence(user_id, 'online', { type: 'idle' });
+                        
+                        io.emit('user-presence-update', {
+                            user_id: user_id,
+                            username: username,
+                            status: 'online',
+                            activity_details: { type: 'idle' }
+                        });
+                    }
+                    
+                    io.emit('voice-meeting-update', {
+                        channel_id: meeting.channel_id,
+                        meeting_id: meeting.meeting_id,
+                        participant_count: result.participant_count,
+                        action: 'leave',
+                        user_id: user_id,
+                        username: username || 'Unknown'
+                    });
+                    
+                    cleanedConnections++;
+                }
+            });
+        }
+        
+        if (cleanedConnections > 0) {
+            console.log(`🧹 [STALE-CHECK] Cleaned up ${cleanedConnections} stale voice connections`);
+        }
+    }, 30000);
 }
 
 module.exports = { setup };

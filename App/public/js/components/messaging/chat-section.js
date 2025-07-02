@@ -410,7 +410,7 @@ class ChatSection {
             
             if (this.mentionHandler && this.targetId) {
                 setTimeout(() => {
-                    this.mentionHandler.loadAvailableUsers();
+                    this.mentionHandler.init();
                 }, 500);
             } else {
             }

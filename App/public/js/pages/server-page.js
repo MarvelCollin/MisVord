@@ -402,7 +402,7 @@ function coordinateSystemInitialization() {
         }
         
         if (window.chatSection && window.chatSection.targetId && window.chatSection.mentionHandler) {
-            window.chatSection.mentionHandler.loadAvailableUsers();
+            window.chatSection.mentionHandler.init();
         }
     }, 1000);
 }

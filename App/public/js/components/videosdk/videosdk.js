@@ -562,11 +562,7 @@ class VideoSDKManager {
             }));
             
             if (window.globalSocketManager?.isReady() && channelId && this.meeting.id) {
-                console.log('📝 [VideoSDK] Ensuring socket registration for voice meeting');
-                window.globalSocketManager.io.emit('register-voice-meeting', {
-                    channel_id: channelId,
-                    meeting_id: this.meeting.id
-                });
+                console.log('📝 [VideoSDK] Voice meeting socket registration handled by voice-manager.js');
             }
             
             window.videoSDKJoiningInProgress = false;
