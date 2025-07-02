@@ -629,4 +629,61 @@ class ChannelController extends BaseController
             return $this->serverError('Failed to load channel');
         }
     }
+
+    public function getUsersByRole($channelId = null)
+    {
+        if (!$channelId) {
+            $input = $this->getInput();
+            $channelId = $input['channel_id'] ?? null;
+        }
+
+        if (!$channelId) {
+            return $this->validationError(['channel_id' => 'Channel ID is required']);
+        }
+
+        $socketToken = $_SERVER['HTTP_X_SOCKET_TOKEN'] ?? '';
+        if ($socketToken !== 'socket-server-internal-auth-2025') {
+            return $this->unauthorized('Invalid socket token');
+        }
+
+        try {
+            $channel = $this->channelRepository->find($channelId);
+            if (!$channel) {
+                return $this->notFound('Channel not found');
+            }
+
+            if (!$channel->server_id || $channel->server_id === 0) {
+                return $this->success(['users_by_role' => []]);
+            }
+
+            $allMembers = $this->membershipRepository->getServerMembers($channel->server_id);
+            
+            $usersByRole = [
+                'admin' => [],
+                'members' => [],
+                'owner' => []
+            ];
+
+            foreach ($allMembers as $member) {
+                $role = $member['role'] ?? 'member';
+                $userData = [
+                    'id' => $member['id'],
+                    'username' => $member['username'],
+                    'avatar_url' => $member['avatar_url']
+                ];
+
+                if ($role === 'owner') {
+                    $usersByRole['owner'][] = $userData;
+                } elseif ($role === 'admin') {
+                    $usersByRole['admin'][] = $userData;
+                } else {
+                    $usersByRole['members'][] = $userData;
+                }
+            }
+
+            return $this->success(['users_by_role' => $usersByRole]);
+        } catch (Exception $e) {
+            return $this->serverError('Failed to load users by role');
+        }
+    }
 }

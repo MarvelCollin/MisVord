@@ -457,23 +457,29 @@ class GlobalSocketManager {
         });
         
         this.io.on('voice-meeting-status', (data) => {
-            console.log('📡 [SOCKET] Voice meeting status received:', data);
+            console.log('📊 [SOCKET] Voice meeting status received:', data);
             
-            // Always process voice meeting status for cross-channel visibility
-            this.handleVoiceMeetingStatus(data);
+            if (window.ChannelVoiceParticipants) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                if (instance.handleVoiceMeetingUpdate) {
+                    instance.handleVoiceMeetingUpdate({
+                        channel_id: data.channel_id,
+                        participant_count: data.participant_count,
+                        participants: data.participants || [],
+                        action: 'status_update'
+                    });
+                }
+            }
         });
         
         this.io.on('voice-meeting-update', (data) => {
-            console.log('📡 [SOCKET] Voice meeting update received:', data);
+            console.log('🔄 [SOCKET] Voice meeting update received:', data);
             
-            // Always process voice meeting updates for cross-channel visibility
-            this.handleVoiceMeetingUpdate(data);
-            
-            // If this is about our own connection and VideoSDK is managing, let VideoSDK handle
-            const isOwnConnection = data.user_id === this.userId;
-            if (isOwnConnection && window.videoSDKManager?.isReady()) {
-                console.log('📡 [SOCKET] VideoSDK managing own connection, letting VideoSDK handle');
-                return;
+            if (window.ChannelVoiceParticipants) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                if (instance.handleVoiceMeetingUpdate) {
+                    instance.handleVoiceMeetingUpdate(data);
+                }
             }
         });
         
@@ -960,6 +966,10 @@ class GlobalSocketManager {
                 shouldNotify = true;
                 mentionType = '@all';
                 console.log('📢 [GLOBAL-SOCKET] @all mention detected globally');
+            } else if (data.type === 'role' && data.mentioned_user_id === currentUserId) {
+                shouldNotify = true;
+                mentionType = `@${data.role}`;
+                console.log(`👥 [GLOBAL-SOCKET] Role mention detected globally: @${data.role} for current user`);
             } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
                 shouldNotify = true;
                 mentionType = `@${this.username}`;
@@ -1169,21 +1179,24 @@ class GlobalSocketManager {
     }
     
     handleVoiceMeetingStatus(data) {
-        // Forward to voice participants manager if available
+        console.log('📊 [SOCKET] Voice meeting status received:', data);
+        
         if (window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             if (instance.handleVoiceMeetingUpdate) {
                 instance.handleVoiceMeetingUpdate({
                     channel_id: data.channel_id,
                     participant_count: data.participant_count,
-                    participants: data.participants || []
+                    participants: data.participants || [],
+                    action: 'status_update'
                 });
             }
         }
     }
 
     handleVoiceMeetingUpdate(data) {
-        // Forward to voice participants manager if available
+        console.log('🔄 [SOCKET] Voice meeting update received:', data);
+        
         if (window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             if (instance.handleVoiceMeetingUpdate) {

@@ -374,7 +374,14 @@ class GlobalPresenceManager {
         
         switch (activityDetails.type) {
             case 'playing Tic Tac Toe': return 'Playing Tic Tac Toe';
-            case 'In Voice Call': return 'In Voice Call';
+            case 'In Voice Call': 
+                if (activityDetails.channel) {
+                    const channelName = activityDetails.channel.length > 15 
+                        ? activityDetails.channel.substring(0, 12) + '...' 
+                        : activityDetails.channel;
+                    return `In Voice - ${channelName}`;
+                }
+                return 'In Voice Call';
             case 'afk': return 'Away';
             case 'idle':
             default: return 'Online';

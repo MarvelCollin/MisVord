@@ -11,36 +11,57 @@ function createToastContainer() {
     return toastContainer;
 }
 
-export function showToast(message, type = 'info', duration = 5000) {
+export function showToast(message, type = 'info', duration = 5000, title = null, onClick = null) {
     const container = createToastContainer();
     
     const toast = document.createElement('div');
-    toast.className = `
-        px-4 py-3 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 ease-out
-        ${getToastClasses(type)}
-    `;
     
-    toast.innerHTML = `
-        <div class="flex items-center">
-            <div class="flex-shrink-0">
-                ${getToastIcon(type)}
+    if (type === 'custom') {
+        toast.innerHTML = message;
+        toast.className = 'transform transition-all duration-300 ease-out';
+        
+        if (onClick) {
+            toast.style.cursor = 'pointer';
+            toast.addEventListener('click', (e) => {
+                if (!e.target.closest('.toast-close, .close-btn')) {
+                    onClick();
+                    removeToast(toast);
+                }
+            });
+        }
+    } else {
+        toast.className = `
+            px-4 py-3 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 ease-out
+            ${getToastClasses(type)}
+        `;
+        
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    ${getToastIcon(type)}
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium">${message}</p>
+                </div>
+                <div class="ml-4 flex-shrink-0 flex">
+                    <button class="toast-close inline-flex text-gray-400 hover:text-gray-600 focus:outline-none">
+                        <span class="sr-only">Close</span>
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
-            <div class="ml-3">
-                <p class="text-sm font-medium">${message}</p>
-            </div>
-            <div class="ml-4 flex-shrink-0 flex">
-                <button class="toast-close inline-flex text-gray-400 hover:text-gray-600 focus:outline-none">
-                    <span class="sr-only">Close</span>
-                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    `;
+        `;
+    }
     
-    const closeBtn = toast.querySelector('.toast-close');
-    closeBtn.addEventListener('click', () => removeToast(toast));
+    const closeBtn = toast.querySelector('.toast-close, .close-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeToast(toast);
+        });
+    }
     
     container.appendChild(toast);
     

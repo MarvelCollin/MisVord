@@ -815,6 +815,14 @@ class SocketHandler {
                         mentions: [{ type: 'all', username: 'all', user_id: 'all' }]
                     });
                 }
+            } else if (data.type === 'role' && data.mentioned_user_id === currentUserId) {
+                console.log(`👥 [SOCKET-HANDLER] Role mention detected locally: @${data.role} for current user`);
+                if (isCurrentChat && this.chatSection.mentionHandler) {
+                    this.chatSection.mentionHandler.handleMentionNotification({
+                        ...data,
+                        mentions: [{ type: 'role', username: data.role, user_id: data.role }]
+                    });
+                }
             } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
                 console.log('👤 [SOCKET-HANDLER] User mention detected locally for current user');
                 if (isCurrentChat && this.chatSection.mentionHandler) {

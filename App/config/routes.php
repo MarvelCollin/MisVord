@@ -254,6 +254,11 @@ Route::get('/api/socket/channels/([0-9]+)', function($channelId) {
     $controller->getChannelWithServerForSocket($channelId);
 });
 
+Route::get('/api/socket/channels/([0-9]+)/users-by-role', function($channelId) {
+    $controller = new ChannelController();
+    $controller->getUsersByRole($channelId);
+});
+
 Route::get('/api/channels/([0-9]+)/switch', function($channelId) {
     $controller = new ChannelController();
     $_GET['channel_id'] = $channelId;

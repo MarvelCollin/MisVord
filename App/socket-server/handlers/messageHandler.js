@@ -902,9 +902,8 @@ class MessageHandler {
             return;
         }
     
-        // Fetch server and channel information for context
         const context = await this.fetchNotificationContext(messageData, client);
-    
+        
         const notificationPayload = {
             message_id: messageData.id,
             content: messageData.content,
@@ -919,27 +918,25 @@ class MessageHandler {
             context: context
         };
     
-        console.log('📧 [MENTION-NOTIFICATIONS] Sending notifications with context:', {
+        console.log('📧 [MENTION-NOTIFICATIONS] Processing mentions with context:', {
             server_name: context.server_name,
             server_icon: context.server_icon,
-            channel_name: context.channel_name
+            channel_name: context.channel_name,
+            mentions: messageData.mentions.map(m => ({ type: m.type, username: m.username }))
         });
 
-        messageData.mentions.forEach(mention => {
+        for (const mention of messageData.mentions) {
             if (mention.type === 'all') {
                 const allMentionPayload = { ...notificationPayload, type: 'all' };
-                
-                console.log('📧 [MENTION-NOTIFICATIONS] Sending @all notification:', {
-                    server_name: allMentionPayload.context.server_name,
-                    server_icon: allMentionPayload.context.server_icon,
-                    channel_name: allMentionPayload.context.channel_name
-                });
+                console.log('📧 [MENTION-NOTIFICATIONS] Sending @all notification');
     
                 if (targetRoom) {
                     client.to(targetRoom).emit('mention_notification', allMentionPayload);
                 } else {
                     io.emit('mention_notification', allMentionPayload);
                 }
+            } else if (mention.type === 'role') {
+                await this.handleRoleMention(io, client, notificationPayload, mention, targetRoom);
             } else if (mention.type === 'user' && mention.user_id && mention.user_id.toString() !== messageData.user_id.toString()) {
                 const userMentionPayload = {
                     ...notificationPayload,
@@ -949,21 +946,65 @@ class MessageHandler {
                 };
                 
                 console.log('📧 [MENTION-NOTIFICATIONS] Sending user mention notification:', {
-                    mentioned_user_id: mention.user_id,
-                    server_name: userMentionPayload.context.server_name,
-                    server_icon: userMentionPayload.context.server_icon,
-                    channel_name: userMentionPayload.context.channel_name
+                    mentioned_user_id: mention.user_id
                 });
                 
-                let sent = false;
                 for (const socket of io.sockets.sockets.values()) {
                     if (socket.data?.user_id?.toString() === mention.user_id.toString()) {
                         socket.emit('mention_notification', userMentionPayload);
-                        sent = true;
                     }
                 }
             }
-        });
+        }
+    }
+
+    static async handleRoleMention(io, client, notificationPayload, mention, targetRoom) {
+        const role = mention.username;
+        console.log(`👥 [ROLE-MENTION] Processing role mention: @${role}`);
+
+        try {
+            if (notificationPayload.target_type === 'channel' && notificationPayload.target_id) {
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'SocketServer/1.0',
+                    'X-Socket-Token': 'socket-server-internal-auth-2025'
+                };
+
+                const response = await fetch(`http://app:1001/api/socket/channels/${notificationPayload.target_id}/users-by-role`, {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data.users_by_role) {
+                        const users = result.data.users_by_role[role] || [];
+                        console.log(`👥 [ROLE-MENTION] Found ${users.length} users with role: ${role}`);
+
+                        users.forEach(user => {
+                            const roleMentionPayload = {
+                                ...notificationPayload,
+                                type: 'role',
+                                role: role,
+                                mentioned_user_id: user.id,
+                                mentioned_username: user.username
+                            };
+
+                            for (const socket of io.sockets.sockets.values()) {
+                                if (socket.data?.user_id?.toString() === user.id.toString()) {
+                                    socket.emit('mention_notification', roleMentionPayload);
+                                    console.log(`📧 [ROLE-MENTION] Sent @${role} notification to user ${user.username}`);
+                                }
+                            }
+                        });
+                    }
+                } else {
+                    console.error(`❌ [ROLE-MENTION] API failed: ${response.status}`);
+                }
+            }
+        } catch (error) {
+            console.error('❌ [ROLE-MENTION] Error processing role mention:', error);
+        }
     }
 
     static handleDeletion(io, client, eventName, data) {

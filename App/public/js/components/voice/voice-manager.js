@@ -375,17 +375,33 @@ class VoiceManager {
     }
 
     async registerMeetingWithSocket(channelId, meetingId) {
-        return new Promise((resolve) => {
-            if (!window.globalSocketManager?.io || !window.globalSocketManager.isReady()) {
-                resolve({ meeting_id: meetingId, channel_id: channelId });
-                return;
-            }
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error('Socket registration timeout'));
+            }, 10000);
             
             const handleUpdate = (data) => {
-                if (data.channel_id === channelId && (data.action === 'join' || data.action === 'already_registered')) {
+                if (data.channel_id === channelId && data.action === 'registered') {
+                    clearTimeout(timeout);
                     window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
-                    console.log(`[VOICE-MANAGER] Socket registration response:`, data);
+                    console.log('✅ Socket registration confirmed:', data);
+                    
+                    if (window.ChannelVoiceParticipants) {
+                        const manager = window.ChannelVoiceParticipants.getInstance();
+                        const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
+                        const currentUsername = document.querySelector('meta[name="username"]')?.content || 'You';
+                        
+                        if (currentUserId) {
+                            manager.addParticipant(channelId, currentUserId, currentUsername);
+                            manager.updateParticipantContainer(channelId);
+                        }
+                    }
+                    
                     resolve(data);
+                } else if (data.channel_id === channelId && data.error) {
+                    clearTimeout(timeout);
+                    window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
+                    reject(new Error(data.error));
                 }
             };
             
@@ -394,11 +410,6 @@ class VoiceManager {
                 channel_id: channelId,
                 meeting_id: meetingId
             });
-            
-            setTimeout(() => {
-                window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
-                resolve({ meeting_id: meetingId, channel_id: channelId });
-            }, 2000);
         });
     }
 
@@ -418,34 +429,28 @@ class VoiceManager {
             meetingId: this.currentMeetingId
         });
         
-        // Set flags first to prevent any new joins
         this.isConnected = false;
         window.voiceJoinInProgress = false;
         
-        // Unregister from socket first
         if (this.currentChannelId && window.globalSocketManager?.io) {
             window.globalSocketManager.io.emit('unregister-voice-meeting', {
                 channel_id: this.currentChannelId
             });
         }
         
-        // Leave VideoSDK meeting
         if (this.videoSDKManager) {
             this.videoSDKManager.leaveMeeting();
         }
         
-        // Clear state
         const previousChannelId = this.currentChannelId;
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;
         
-        // Update voice state manager
         if (window.unifiedVoiceStateManager) {
             window.unifiedVoiceStateManager.handleDisconnect();
         }
         
-        // Remove own participant from UI
         if (previousChannelId && window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
@@ -455,12 +460,12 @@ class VoiceManager {
             }
         }
         
-        this.dispatchEvent(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect');
-        this.showToast('Disconnected from voice', 'info');
-
-        if (window.MusicLoaderStatic?.playDisconnectVoiceSound) {
-            window.MusicLoaderStatic.playDisconnectVoiceSound();
+        if (window.globalSocketManager?.isReady()) {
+            console.log('👤 [VOICE-MANAGER] Updating presence to idle after leaving voice');
+            window.globalSocketManager.updatePresence('online', { type: 'idle' });
         }
+        
+        console.log('✅ [VOICE-MANAGER] Successfully left voice channel');
     }
     
     cleanup() {

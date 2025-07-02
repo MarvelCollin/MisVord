@@ -134,7 +134,52 @@ function clearAllGroups() {
     console.log('✅ All server groups cleared');
 }
 
+function debugServerLocations() {
+    console.log('=== SERVER LOCATION DEBUG ===');
+    
+    // Check servers in main list
+    const mainServers = document.querySelectorAll('#server-list > .server-sidebar-icon[data-server-id]');
+    console.log('Servers in main list:', mainServers.length);
+    mainServers.forEach(server => {
+        const id = server.getAttribute('data-server-id');
+        const hasInGroup = server.classList.contains('in-group');
+        console.log(`  - Server ${id} (in-group: ${hasInGroup})`);
+    });
+    
+    // Check servers in groups
+    const groupServers = document.querySelectorAll('.server-sidebar-group .group-servers .server-sidebar-icon[data-server-id]');
+    console.log('Servers in groups:', groupServers.length);
+    groupServers.forEach(server => {
+        const id = server.getAttribute('data-server-id');
+        const groupId = server.closest('.server-sidebar-group')?.getAttribute('data-group-id');
+        const hasInGroup = server.classList.contains('in-group');
+        console.log(`  - Server ${id} in group ${groupId} (in-group: ${hasInGroup})`);
+    });
+    
+    // Check total servers
+    const allServers = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
+    console.log('Total servers found:', allServers.length);
+    
+    // Check for duplicates
+    const serverIds = Array.from(allServers).map(s => s.getAttribute('data-server-id'));
+    const duplicates = serverIds.filter((id, index) => serverIds.indexOf(id) !== index);
+    if (duplicates.length > 0) {
+        console.warn('DUPLICATE SERVERS FOUND:', [...new Set(duplicates)]);
+    } else {
+        console.log('No duplicate servers detected');
+    }
+    
+    return {
+        mainCount: mainServers.length,
+        groupCount: groupServers.length,
+        totalCount: allServers.length,
+        duplicates: [...new Set(duplicates)]
+    };
+}
+
+// Export all functions to global scope
 window.testDragSystem = testDragSystem;
 window.testCollapseExpand = testCollapseExpand;
 window.createTestGroup = createTestGroup;
-window.clearAllGroups = clearAllGroups; 
+window.clearAllGroups = clearAllGroups;
+window.debugServerLocations = debugServerLocations; 

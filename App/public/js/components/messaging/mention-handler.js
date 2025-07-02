@@ -3,6 +3,7 @@ class MentionHandler {
         this.chatSection = chatSection;
         this.mentionRegex = /@(\w+)/g;
         this.allMentionRegex = /@all/g;
+        this.roleMentionRegex = /@(admin|members|owner)/g;
         this.autocompleteContainer = null;
         this.currentMentions = [];
         this.availableUsers = new Map();
@@ -139,7 +140,12 @@ class MentionHandler {
         
         content = content.replace(this.allMentionRegex, '<span class="mention mention-all">@all</span>');
         
+        content = content.replace(this.roleMentionRegex, '<span class="mention mention-role">@$1</span>');
+        
         content = content.replace(this.mentionRegex, (match, username) => {
+            if (['all', 'admin', 'members', 'owner'].includes(username.toLowerCase())) {
+                return match;
+            }
             const user = this.availableUsers.get(username.toLowerCase());
             if (user) {
                 return `<span class="mention mention-user" data-username="${user.username}">@${user.username}</span>`;
@@ -521,6 +527,24 @@ class MentionHandler {
             });
         }
         
+        const roles = [
+            { id: 'admin', name: 'admin', display: '@admin - Mention all administrators', priority: 0 },
+            { id: 'members', name: 'members', display: '@members - Mention all members', priority: 0 },
+            { id: 'owner', name: 'owner', display: '@owner - Mention server owner', priority: 0 }
+        ];
+        
+        roles.forEach(role => {
+            if (searchTerm === '' || role.name.startsWith(searchTerm)) {
+                matches.push({
+                    id: role.id,
+                    username: role.name,
+                    display: role.display,
+                    isSpecial: true,
+                    priority: role.priority
+                });
+            }
+        });
+        
         const userMatches = [];
         
         for (const [username, user] of this.availableUsers) {
@@ -728,10 +752,24 @@ class MentionHandler {
             });
         }
         
+        let roleMatch;
+        this.roleMentionRegex.lastIndex = 0;
+        while ((roleMatch = this.roleMentionRegex.exec(content)) !== null) {
+            const role = roleMatch[1];
+            mentions.push({
+                type: 'role',
+                username: role,
+                user_id: role
+            });
+        }
+        
         let match;
         this.mentionRegex.lastIndex = 0;
         while ((match = this.mentionRegex.exec(content)) !== null) {
             const username = match[1];
+            if (['all', 'admin', 'members', 'owner'].includes(username.toLowerCase())) {
+                continue;
+            }
             const user = this.availableUsers.get(username.toLowerCase());
             
             if (user) {
@@ -755,7 +793,12 @@ class MentionHandler {
         
         formattedContent = formattedContent.replace(this.allMentionRegex, '<span class="mention mention-all bubble-mention bubble-mention-all user-profile-trigger text-orange-400 bg-orange-900/30 px-1 rounded font-medium" data-mention-type="all" title="Mention everyone">@all</span>');
         
+        formattedContent = formattedContent.replace(this.roleMentionRegex, '<span class="mention mention-role bubble-mention bubble-mention-role text-purple-400 bg-purple-900/30 px-1 rounded font-medium" data-mention-type="role" title="Mention role">@$1</span>');
+        
         formattedContent = formattedContent.replace(this.mentionRegex, (match, username) => {
+            if (['all', 'admin', 'members', 'owner'].includes(username.toLowerCase())) {
+                return match;
+            }
             const user = this.availableUsers.get(username.toLowerCase());
             if (user) {
                 return `<span class="mention mention-user bubble-mention bubble-mention-user user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="user" data-user-id="${user.id}" data-username="${user.username}" title="@${user.username}">@${user.username}</span>`;
@@ -772,27 +815,47 @@ class MentionHandler {
         
         const mentions = data.mentions || [];
         const isAllMention = mentions.some(m => m.type === 'all');
+        const isRoleMention = mentions.some(m => m.type === 'role');
         const isUserMention = mentions.some(m => m.type === 'user' && m.user_id === currentUserId);
         
-        if (isAllMention || isUserMention) {
-            this.showMentionNotification(data, isAllMention);
+        if (isAllMention || isRoleMention || isUserMention) {
+            this.showMentionNotification(data, isAllMention, isRoleMention);
             this.playMentionSound();
         }
     }
     
-    showMentionNotification(data, isAllMention) {
-        const mentionType = isAllMention ? '@all' : `@${window.globalSocketManager?.username}`;
+    showMentionNotification(data, isAllMention, isRoleMention) {
+        let mentionType;
+        if (isAllMention) {
+            mentionType = '@all';
+        } else if (isRoleMention) {
+            mentionType = `@${data.role || 'role'}`;
+        } else {
+            mentionType = `@${window.globalSocketManager?.username}`;
+        }
+        
         const notificationText = `${data.username} mentioned you with ${mentionType}`;
         
         if (window.showToast) {
-            window.showToast(notificationText, 'info', 5000);
+            window.showToast(notificationText, 'mention', 5000);
         }
         
         if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-            new Notification('New Mention', {
+            const notification = new Notification('New Mention', {
                 body: notificationText,
-                icon: '/public/assets/common/default-profile-picture.png'
+                icon: '/public/assets/common/default-profile-picture.png',
+                tag: `mention-${data.message_id || Date.now()}`
             });
+            
+            notification.onclick = () => {
+                window.focus();
+                if (window.globalSocketManager && window.globalSocketManager.navigateToMention) {
+                    window.globalSocketManager.navigateToMention(data);
+                }
+                notification.close();
+            };
+            
+            setTimeout(() => notification.close(), 10000);
         }
     }
     

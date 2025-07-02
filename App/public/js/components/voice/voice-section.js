@@ -131,7 +131,12 @@ class VoiceSection {
             
             if (window.globalSocketManager?.isReady()) {
                 console.log('🎤 [VOICE-SECTION] Updating presence to In Voice Call');
-                window.globalSocketManager.updatePresence('online', { type: 'In Voice Call' });
+                const channelName = details.channelName || 'Voice Channel';
+                window.globalSocketManager.updatePresence('online', { 
+                    type: 'In Voice Call',
+                    channel: channelName,
+                    channel_id: details.channelId || this.currentChannelId
+                });
             }
         });
         
@@ -318,6 +323,7 @@ class VoiceSection {
         this.initializationAttempts = 0;
         this.isProcessing = false;
         this.autoJoinInProgress = false;
+        window.voiceJoinInProgress = false;
         
         if (this.elements.joinBtn) {
             this.elements.joinBtn.removeAttribute('data-processing');
@@ -346,6 +352,10 @@ class VoiceSection {
         
         if (forceFresh) {
             this.resetState();
+            
+            if (window.voiceCallManager) {
+                window.voiceCallManager.cleanup();
+            }
         }
         
         this.currentChannelId = channelId;

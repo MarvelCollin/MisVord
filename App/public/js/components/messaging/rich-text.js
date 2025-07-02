@@ -2,6 +2,7 @@ class RichTextHandler {
     constructor() {
         this.mentionRegex = /@(\w+)/g;
         this.allMentionRegex = /@all/g;
+        this.roleMentionRegex = /@(admin|members|owner)/g;
         this.urlRegex = /(https?:\/\/[^\s]+)/g;
         this.emojiRegex = /:([a-zA-Z0-9_]+):/g;
         this.boldRegex = /\*\*(.*?)\*\*/g;
@@ -32,7 +33,14 @@ class RichTextHandler {
             '<span class="mention mention-all bubble-mention bubble-mention-all user-profile-trigger text-orange-400 bg-orange-900/30 px-1 rounded font-medium" data-mention-type="all" title="Mention everyone">@all</span>'
         );
 
+        content = content.replace(this.roleMentionRegex, 
+            '<span class="mention mention-role bubble-mention bubble-mention-role text-purple-400 bg-purple-900/30 px-1 rounded font-medium" data-mention-type="role" title="Mention role">@$1</span>'
+        );
+
         content = content.replace(this.mentionRegex, (match, username) => {
+            if (['all', 'admin', 'members', 'owner'].includes(username.toLowerCase())) {
+                return match;
+            }
             const user = availableUsers.get(username.toLowerCase());
             if (user) {
                 return `<span class="mention mention-user bubble-mention bubble-mention-user user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="user" data-user-id="${user.id}" data-username="${user.username}" title="@${user.username}">@${user.username}</span>`;
@@ -102,13 +110,26 @@ class RichTextHandler {
             });
         }
 
+        let roleMatch;
+        this.roleMentionRegex.lastIndex = 0;
+        while ((roleMatch = this.roleMentionRegex.exec(content)) !== null) {
+            mentions.push({
+                type: 'role',
+                username: roleMatch[1],
+                user_id: roleMatch[1]
+            });
+        }
+
         let match;
         this.mentionRegex.lastIndex = 0;
         while ((match = this.mentionRegex.exec(content)) !== null) {
+            if (['all', 'admin', 'members', 'owner'].includes(match[1].toLowerCase())) {
+                continue;
+            }
             mentions.push({
                 type: 'user',
                 username: match[1],
-                user_id: null // Will be filled by the mention handler
+                user_id: null
             });
         }
 

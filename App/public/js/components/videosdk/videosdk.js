@@ -245,6 +245,7 @@ class VideoSDKManager {
         this.registerStreamEvents(participant);
         this.startStreamMonitoring(participant);
         
+        console.log(`✅ [VideoSDK] Dispatching participant joined event for: ${participant.id}`);
         setTimeout(() => {
             window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
                 detail: { participant: participant.id, participantObj: participant }
@@ -258,6 +259,7 @@ class VideoSDKManager {
         this.processedParticipants.delete(participant.id);
         this.cleanupParticipantResourcesById(participant.id);
         
+        console.log(`✅ [VideoSDK] Dispatching participant left event for: ${participant.id}`);
         window.dispatchEvent(new CustomEvent('videosdkParticipantLeft', {
             detail: { participant: participant.id }
         }));

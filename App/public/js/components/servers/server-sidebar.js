@@ -233,7 +233,9 @@ async function renderFolders() {
     resetServersToMainList();
     
     const serverImageData = await buildServerImageData();
-    const insertPoint = serverList.querySelector('.server-sidebar-divider');
+    
+    // Find the correct insertion point - before the add server button
+    const addServerButton = serverList.querySelector('.discord-add-server-button')?.parentNode;
     
     for (const group of groups) {
         if (group.servers.length === 0) {
@@ -242,18 +244,26 @@ async function renderFolders() {
         }
         
         const folderElement = createFolderElement(group);
-        if (insertPoint) {
-            serverList.insertBefore(folderElement, insertPoint);
+        if (addServerButton) {
+            serverList.insertBefore(folderElement, addServerButton);
         } else {
-            serverList.appendChild(folderElement);
+            // Fallback: insert after the last individual server
+            const lastServer = serverList.querySelector('.server-sidebar-icon[data-server-id]:last-of-type');
+            if (lastServer) {
+                lastServer.insertAdjacentElement('afterend', folderElement);
+            } else {
+                serverList.appendChild(folderElement);
+            }
         }
         
         const serversContainer = folderElement.querySelector('.group-servers');
         
         // Move servers from main list to group
         group.servers.forEach(serverId => {
-            const serverElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]:not(.in-group)`);
+            // Find server in main list (not already in any group)
+            const serverElement = document.querySelector(`#server-list > .server-sidebar-icon[data-server-id="${serverId}"]`);
             if (serverElement && serversContainer) {
+                console.log(`[Server Groups] Moving server ${serverId} to group ${group.id}`);
                 serverElement.classList.add('in-group');
                 if (serverElement.parentNode) {
                     serverElement.parentNode.removeChild(serverElement);
@@ -273,17 +283,34 @@ async function renderFolders() {
 }
 
 function resetServersToMainList() {
-    // Move all servers back to main list and remove group markers
+    const mainList = document.getElementById('server-list');
+    if (!mainList) return;
+    
+    // Get all servers that are currently in groups (inside .group-servers containers)
+    const serversInGroups = document.querySelectorAll('.server-sidebar-group .group-servers .server-sidebar-icon[data-server-id]');
+    
+    // Move them back to main list
+    serversInGroups.forEach(serverIcon => {
+        serverIcon.classList.remove('in-group');
+        
+        // Insert before add server button to maintain correct order
+        const addButton = mainList.querySelector('.discord-add-server-button')?.parentNode;
+        if (addButton) {
+            mainList.insertBefore(serverIcon, addButton);
+        } else {
+            // Fallback: append after divider if exists
+            const divider = mainList.querySelector('.server-sidebar-divider');
+            if (divider) {
+                divider.insertAdjacentElement('afterend', serverIcon);
+            } else {
+                mainList.appendChild(serverIcon);
+            }
+        }
+    });
+    
+    // Also clean up any servers that might have the in-group class but aren't in a group
     document.querySelectorAll('.server-sidebar-icon[data-server-id].in-group').forEach(serverIcon => {
         serverIcon.classList.remove('in-group');
-        const mainList = document.getElementById('server-list');
-        const insertPoint = mainList.querySelector('.server-sidebar-divider');
-        
-        if (insertPoint) {
-            mainList.insertBefore(serverIcon, insertPoint);
-        } else {
-            mainList.appendChild(serverIcon);
-        }
     });
 }
 

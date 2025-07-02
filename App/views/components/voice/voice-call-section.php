@@ -900,11 +900,12 @@ class VoiceCallManager {
         this.eventListenersRegistered = true;
         window.voiceEventListenersRegistered = true;
         
-        console.log('[VOICE-CALL-MANAGER] Setting up event listeners for participant management');
+        console.log('[VOICE-CALL-MANAGER] Setting up event listeners for voice call UI only');
 
         window.addEventListener('videosdkParticipantJoined', (event) => {
             const { participant, participantObj } = event.detail;
             const isLocal = participantObj?.id === window.videoSDKManager?.meeting?.localParticipant?.id;
+            console.log(`[VOICE-CALL-MANAGER] VideoSDK participant joined: ${participant} (local: ${isLocal})`);
             this.handleParticipantJoined({
                 participantId: participant,
                 participantObj: participantObj,
@@ -914,38 +915,14 @@ class VoiceCallManager {
 
         window.addEventListener('videosdkParticipantLeft', (event) => {
             const { participant } = event.detail;
+            console.log(`[VOICE-CALL-MANAGER] VideoSDK participant left: ${participant}`);
             this.handleParticipantLeft(participant);
-        });
-
-        window.addEventListener('videosdkMeetingFullyJoined', (event) => {
-            console.log('[VOICE-CALL-MANAGER] VideoSDK meeting fully joined, ensuring local participant');
-            setTimeout(() => {
-                if (window.videoSDKManager?.meeting?.localParticipant && !this._participants.has(window.videoSDKManager.meeting.localParticipant.id)) {
-                    console.log('[VOICE-CALL-MANAGER] Fallback: Adding local participant after meeting joined');
-                    this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
-                    this.handleParticipantJoined({
-                        participantId: this.localParticipantId,
-                        participantObj: window.videoSDKManager.meeting.localParticipant,
-                        source: 'local'
-                    });
-                }
-            }, 200);
         });
 
         window.addEventListener('voiceConnect', (event) => {
             console.log('[VOICE-CALL-MANAGER] Voice connect event received', event.detail);
             
             this.isConnected = true;
-            
-            if (window.unifiedVoiceStateManager) {
-                window.unifiedVoiceStateManager.setState({
-                    isConnected: true,
-                    channelId: event.detail?.channelId || null,
-                    channelName: event.detail?.channelName || null,
-                    meetingId: event.detail?.meetingId || null,
-                    connectionTime: Date.now()
-                });
-            }
             
             if (window.videoSDKManager?.meeting?.localParticipant) {
                 this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
@@ -978,16 +955,6 @@ class VoiceCallManager {
             console.log('🔌 [VOICE-CALL-MANAGER] Voice disconnect event received');
             
             this.isConnected = false;
-            
-            if (window.unifiedVoiceStateManager) {
-                window.unifiedVoiceStateManager.setState({
-                    isConnected: false,
-                    channelId: null,
-                    channelName: null,
-                    meetingId: null,
-                    connectionTime: null
-                });
-            }
             
             const meetingIdDisplay = document.getElementById('meetingIdDisplay');
             if (meetingIdDisplay) {
@@ -1023,77 +990,43 @@ class VoiceCallManager {
             const { kind, participant } = event.detail;
             
             if (kind === 'video') {
-                this.handleCameraDisabled(participant);
+                this.removeVideoParticipantCard(participant);
+                this.updateParticipantCards(participant);
             } else if (kind === 'share') {
-                this.handleScreenShareStopped(participant);
+                this.removeScreenShareCard(participant);
             }
         });
 
         window.addEventListener('voiceStateChanged', (event) => {
             const { type, state } = event.detail;
             
-            if (type === 'mic') {
-                this.isMuted = !state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isMuted: this.isMuted });
-                }
-            } else if (type === 'video') {
-                this.isVideoOn = state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isVideoOn: this.isVideoOn });
-                }
-            } else if (type === 'screenShare') {
-                this.isScreenSharing = state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isScreenSharing: this.isScreenSharing });
-                }
-            } else if (type === 'deafen') {
-                this.isDeafened = state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isDeafened: this.isDeafened });
-                }
+            switch (type) {
+                case 'mic':
+                    this.isMuted = !state;
+                    break;
+                case 'video':
+                    this.isVideoOn = state;
+                    break;
+                case 'deafen':
+                    this.isDeafened = state;
+                    break;
+                case 'screenShare':
+                    this.isScreenSharing = state;
+                    break;
             }
-        });
-
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            const io = window.globalSocketManager.io;
             
-            io.on('bot-voice-participant-joined', (data) => {
-                console.log('[VOICE-CALL-MANAGER] Bot joined voice channel:', data);
-                this.handleBotJoined(data);
-                
-                if (window.showToast) {
-                    const botName = data.participant?.username || 'Bot';
-                    window.showToast(`${botName} joined the voice channel`, 'info');
-                }
-            });
-
-            io.on('bot-voice-participant-left', (data) => {
-                console.log('[VOICE-CALL-MANAGER] Bot left voice channel:', data);
-                this.handleBotLeft(data);
-                
-                if (window.showToast) {
-                    const botName = data.participant?.username || 'Bot';
-                    window.showToast(`${botName} left the voice channel`, 'info');
-                }
-            });
-        }
+            this.updateButtonStates();
+        });
     }
 
-    async handleParticipantJoined(data) {
+    handleParticipantJoined(data) {
         const participantId = data.participantId || data.participant;
         const source = data.source || 'videosdk';
         
         if (this._participants.has(participantId)) {
-            console.log(`[VOICE-CALL-MANAGER] Participant ${participantId} already exists, skipping`);
+            console.log(`[VOICE-CALL-MANAGER] Participant ${participantId} already exists, updating source to ${source}`);
+            const existingParticipant = this._participants.get(participantId);
+            existingParticipant.source = source;
             return;
         }
 
@@ -1231,9 +1164,7 @@ class VoiceCallManager {
         return this._participants.size;
     }
 
-    clear() {
-        this.participants.clear();
-    }
+
 
     async createParticipantElement(participant) {
         const container = document.getElementById('participantGrid');
@@ -1342,6 +1273,11 @@ class VoiceCallManager {
     cleanup() {
         console.log('[VOICE-CALL-MANAGER] Cleaning up participants and UI');
         
+        const participantIds = Array.from(this._participants.keys());
+        participantIds.forEach(id => {
+            this.removeParticipantElement(id);
+        });
+        
         this._participants.clear();
         
         const container = document.getElementById('participantGrid');
@@ -1357,6 +1293,8 @@ class VoiceCallManager {
         this.localParticipantId = null;
         this.isVideoOn = false;
         this.isScreenSharing = false;
+        
+        console.log('✅ [VOICE-CALL-MANAGER] Cleanup completed');
     }
 
     get participants() {
@@ -1376,6 +1314,7 @@ class VoiceCallManager {
             participantInMap: this._participants.has(participantId),
             totalParticipants: this._participants.size
         });
+        
         
         if (participantId === this.localParticipantId) {
             console.log(`[DEBUG] Handling local participant camera stream`);
@@ -1956,7 +1895,7 @@ class VoiceCallManager {
     }
 
     removeBotParticipant(participantId) {
-        this.participants.delete(participantId);
+        this._participants.delete(participantId);
         this.updateParticipantCount();
     }
 

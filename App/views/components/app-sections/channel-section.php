@@ -257,52 +257,56 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 }
 
 .voice-participants {
-    margin-left: 1.5rem;
-    margin-bottom: 0.5rem;
-    border-radius: 0.375rem;
-    background-color: rgba(79, 84, 92, 0.12);
-    padding: 0.25rem;
-    transition: all 0.2s ease;
-    min-height: 20px;
-    border: 1px solid rgba(79, 84, 92, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    max-width: 100px;
+    overflow: hidden;
 }
 
 .voice-participants:hover {
-    background-color: rgba(79, 84, 92, 0.20);
+    z-index: 10;
 }
 
-.voice-participants .user-avatar {
+.voice-participants .relative {
     transition: transform 0.2s ease;
 }
 
-.voice-participants .user-avatar:hover {
+.voice-participants .relative:hover {
     transform: scale(1.1);
-}
-
-.voice-participants > div:hover {
-    background-color: rgba(79, 84, 92, 0.3);
-    border-radius: 0.25rem;
+    z-index: 20;
 }
 
 .voice-participants .text-sm {
-    font-weight: 500;
-    max-width: 8rem;
+    display: none;
 }
 
 .voice-participants .relative::after {
-    content: '';
+    content: attr(title);
     position: absolute;
-    bottom: -1px;
-    right: -1px;
-    width: 8px;
-    height: 8px;
-    background-color: #313338;
-    border-radius: 50%;
-    z-index: 1;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2f3136;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 1000;
 }
 
-.voice-participants .bg-discord-green {
-    z-index: 2;
+.voice-participants .relative:hover::after {
+    opacity: 1;
+}
+
+.voice-participant-count {
+    color: #b9bbbe;
+    font-size: 11px;
+    font-weight: 500;
 }
 </style>
 
