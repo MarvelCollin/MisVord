@@ -542,9 +542,8 @@ class SocketHandler {
         try {
             if (!data || !data.message_id) return;
             
-            console.log('✏️ [SOCKET-HANDLER] Temp edit received:', {
+            console.log('✏️ [SOCKET-HANDLER] Edit received:', {
                 messageId: data.message_id,
-                tempEditId: data.temp_edit_id,
                 userId: data.user_id,
                 username: data.username,
                 content: data.content?.substring(0, 50) + (data.content?.length > 50 ? '...' : '')
@@ -552,29 +551,31 @@ class SocketHandler {
             
             const isSender = data.user_id === window.globalSocketManager?.userId;
             if (isSender) {
-                console.log('🔄 [SOCKET-HANDLER] Ignoring own temp edit');
+                console.log('🔄 [SOCKET-HANDLER] Ignoring own edit');
                 return;
             }
             
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
             if (messageElement) {
-                const messageTextElement = messageElement.querySelector('.bubble-message-text');
+                const messageTextElement = messageElement.querySelector('.bubble-message-text, .message-main-text');
                 if (messageTextElement && data.content) {
                     messageTextElement.innerHTML = this.chatSection.formatMessageContent(data.content);
                     
-                    let editedBadge = messageElement.querySelector('.bubble-edited-badge');
+                    let editedBadge = messageElement.querySelector('.bubble-edited-badge, .edited-badge');
                     if (!editedBadge) {
                         editedBadge = document.createElement('span');
-                        editedBadge.className = 'bubble-edited-badge text-xs text-[#a3a6aa] ml-1';
+                        editedBadge.className = messageElement.querySelector('.bubble-message-text') 
+                            ? 'bubble-edited-badge text-xs text-[#a3a6aa] ml-1'
+                            : 'edited-badge text-xs text-[#a3a6aa] ml-1';
                         editedBadge.textContent = '(edited)';
                         messageTextElement.appendChild(editedBadge);
                     }
                     
-                    this.chatSection.markMessageAsTempEdit(messageElement, data.temp_edit_id);
+                    console.log('✅ [SOCKET-HANDLER] Message updated from edit');
                 }
             }
         } catch (error) {
-            console.error('❌ Error handling temp edit:', error);
+            console.error('❌ Error handling edit:', error);
         }
     }
     
@@ -582,15 +583,10 @@ class SocketHandler {
         try {
             if (!data || !data.message_id) return;
             
-            console.log('✅ [SOCKET-HANDLER] Edit confirmed:', {
-                messageId: data.message_id,
-                tempEditId: data.temp_edit_id
-            });
+            console.log('✅ [SOCKET-HANDLER] Edit confirmed:', data.message_id);
             
-            // Find the message element
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
             if (messageElement) {
-                // Remove temp edit styling
                 this.chatSection.markEditAsConfirmed(messageElement);
             }
         } catch (error) {
@@ -602,20 +598,13 @@ class SocketHandler {
         try {
             if (!data || !data.message_id) return;
             
-            console.log('❌ [SOCKET-HANDLER] Edit failed:', {
-                messageId: data.message_id,
-                tempEditId: data.temp_edit_id,
-                error: data.error
-            });
+            console.log('❌ [SOCKET-HANDLER] Edit failed:', data.message_id, data.error);
             
-            // Find the message element
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
             if (messageElement) {
-                // Mark as failed
                 this.chatSection.markEditAsFailed(messageElement, data.error);
             }
             
-            // Show notification
             if (this.chatSection && this.chatSection.showNotification) {
                 this.chatSection.showNotification('Failed to edit message: ' + (data.error || 'Unknown error'), 'error');
             }

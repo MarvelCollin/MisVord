@@ -200,6 +200,10 @@ class ChatRoomRepository extends Repository {
         $query = new Query();
         
         try {
+            error_log("ChatRoomRepository::createGroupChatRoom - Starting creation with " . count($participantIds) . " participants");
+            error_log("ChatRoomRepository::createGroupChatRoom - Group name: " . $groupName);
+            error_log("ChatRoomRepository::createGroupChatRoom - Has image: " . ($groupImage ? 'yes' : 'no'));
+            
             $query->beginTransaction();
             
             $roomId = $query->table('chat_rooms')->insert([
@@ -209,6 +213,8 @@ class ChatRoomRepository extends Repository {
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
+            
+            error_log("ChatRoomRepository::createGroupChatRoom - Room created with ID: " . $roomId);
             
             if ($roomId) {
                 foreach ($participantIds as $userId) {
@@ -221,22 +227,32 @@ class ChatRoomRepository extends Repository {
                         throw new Exception("Cannot add user {$user['username']} to group");
                     }
                     
-                    $query->table('chat_participants')->insert([
+                    $participantId = $query->table('chat_participants')->insert([
                         'chat_room_id' => $roomId,
                         'user_id' => $userId,
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
+                    
+                    error_log("ChatRoomRepository::createGroupChatRoom - Added participant: User ID $userId (Participant ID: $participantId)");
                 }
                 
                 $query->commit();
-                return $this->find($roomId);
+                error_log("ChatRoomRepository::createGroupChatRoom - Transaction committed successfully");
+                
+                $createdRoom = $this->find($roomId);
+                error_log("ChatRoomRepository::createGroupChatRoom - Room found after creation: " . ($createdRoom ? 'yes' : 'no'));
+                
+                return $createdRoom;
             } else {
                 $query->rollback();
+                error_log("ChatRoomRepository::createGroupChatRoom - Failed to create room, rolling back");
                 return null;
             }
         } catch (Exception $e) {
             $query->rollback();
+            error_log("ChatRoomRepository::createGroupChatRoom - Exception caught: " . $e->getMessage());
+            error_log("ChatRoomRepository::createGroupChatRoom - Exception trace: " . $e->getTraceAsString());
             throw $e;
         }
     }

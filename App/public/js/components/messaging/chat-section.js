@@ -1,7 +1,6 @@
 import { showToast } from '../../core/ui/toast.js';
 import MessageHandler from './message-handler.js';
 import SocketHandler from './socket-handler.js';
-import ChatUIHandler from './chat-ui-handler.js';
 import FileUploadHandler from './file-upload-handler.js';
 import SendReceiveHandler from './send-receive-handler.js';
 import ChatBot from './chat-bot.js';
@@ -215,7 +214,6 @@ class ChatSection {
             console.log('🔧 [CHAT-SECTION] Creating handlers...');
             this.messageHandler = new MessageHandler(this);
             this.socketHandler = new SocketHandler(this);
-            this.uiHandler = new ChatUIHandler(this);
             this.fileUploadHandler = new FileUploadHandler(this);
             this.sendReceiveHandler = new SendReceiveHandler(this);
             this.chatBot = new ChatBot(this);
@@ -569,10 +567,10 @@ class ChatSection {
             this.handleMessageActions(e);
         });
         
-        // Close context menu on outside click
         document.addEventListener('click', () => {
-            if (this.uiHandler) {
-                this.uiHandler.hideContextMenu();
+            const contextMenu = document.getElementById('message-context-menu') || document.getElementById('context-menu');
+            if (contextMenu) {
+                contextMenu.style.display = 'none';
             }
         });
         
@@ -1291,9 +1289,6 @@ class ChatSection {
             return;
         }
         
-        console.log('✅ [CHAT-SECTION] Found message element:', messageElement);
-        
-        // Support both bubble messages and regular messages
         let messageTextElement = messageElement.querySelector('.bubble-message-text');
         let isBubbleMessage = true;
         
@@ -1303,37 +1298,26 @@ class ChatSection {
         }
         
         if (!messageTextElement) {
-            console.error('❌ [CHAT-SECTION] Message text element not found in:', messageElement);
-            console.log('Available elements:', {
-                bubbleText: messageElement.querySelector('.bubble-message-text'),
-                mainText: messageElement.querySelector('.message-main-text'),
-                allTextElements: messageElement.querySelectorAll('[class*="text"]'),
-                innerHTML: messageElement.innerHTML.substring(0, 200)
-            });
+            console.error('❌ [CHAT-SECTION] Message text element not found');
             return;
         }
         
-        console.log('✅ [CHAT-SECTION] Found text element:', { 
-            element: messageTextElement, 
-            isBubble: isBubbleMessage,
-            content: messageTextElement.textContent?.substring(0, 50)
-        });
-        
-        // Store the original content (clean up any existing edit badges)
-        const originalContent = messageTextElement.textContent.replace(/\s*\(edited\)\s*$/, '').trim();
+        let originalContent = messageTextElement.textContent || messageTextElement.innerText || '';
+        originalContent = originalContent
+            .replace(/\s*\(edited\)\s*$/, '')
+            .replace(/\s*ESC to cancel.*$/, '')
+            .replace(/\s*press ESC to cancel.*$/, '')
+            .replace(/\s*enter to save.*$/, '')
+            .trim();
         
         if (!originalContent) {
             console.warn('⚠️ [CHAT-SECTION] No content to edit');
             return;
         }
         
-        console.log('📝 [CHAT-SECTION] Original content:', originalContent);
-        
-        // Create edit form container
         const editContainer = document.createElement('div');
         editContainer.className = 'edit-message-container w-full';
         
-        // Create edit input
         const editInput = document.createElement('textarea');
         editInput.className = isBubbleMessage 
             ? 'w-full bg-[#2b2d31] text-[#dcddde] rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#5865f2] border border-[#40444b]'
@@ -1341,14 +1325,12 @@ class ChatSection {
         editInput.value = originalContent;
         editInput.placeholder = 'Edit your message...';
         
-        // Auto-resize textarea
         const adjustHeight = () => {
             editInput.style.height = 'auto';
             editInput.style.height = Math.min(editInput.scrollHeight, 200) + 'px';
         };
         editInput.addEventListener('input', adjustHeight);
         
-        // Create edit controls
         const editControls = document.createElement('div');
         editControls.className = 'flex items-center justify-between mt-2 text-xs';
         
@@ -1356,6 +1338,7 @@ class ChatSection {
         leftControls.className = 'flex items-center gap-2 text-[#b9bbbe]';
         
         const escapeHint = document.createElement('span');
+        escapeHint.className = 'edit-hint-text';
         escapeHint.innerHTML = '<i class="fas fa-info-circle mr-1"></i>ESC to cancel • Enter to save';
         leftControls.appendChild(escapeHint);
         
@@ -1379,7 +1362,6 @@ class ChatSection {
             }
         });
         
-        // Enable/disable save button based on content
         const updateSaveButton = () => {
             const hasContent = editInput.value.trim().length > 0;
             const hasChanges = editInput.value.trim() !== originalContent;
@@ -1394,18 +1376,14 @@ class ChatSection {
         editControls.appendChild(leftControls);
         editControls.appendChild(rightControls);
         
-        // Build edit form
         editContainer.appendChild(editInput);
         editContainer.appendChild(editControls);
         
-        // Store original content before replacing
         const originalHTML = messageTextElement.innerHTML;
         
-        // Replace message text with edit form
         messageTextElement.innerHTML = '';
         messageTextElement.appendChild(editContainer);
         
-        // Store editing state
         this.currentEditingMessage = {
             messageId,
             originalContent: originalContent,
@@ -1414,14 +1392,12 @@ class ChatSection {
             isBubbleMessage: isBubbleMessage
         };
         
-        // Focus and setup input
         setTimeout(() => {
             editInput.focus();
             editInput.setSelectionRange(editInput.value.length, editInput.value.length);
             adjustHeight();
         }, 0);
         
-        // Add keyboard event listeners
         editInput.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
@@ -1435,7 +1411,6 @@ class ChatSection {
             }
         });
         
-        // Add visual feedback that we're in edit mode
         messageElement.classList.add('message-editing');
         
         console.log('✅ [CHAT-SECTION] Edit UI created and displayed');
@@ -1494,46 +1469,90 @@ class ChatSection {
         }
         
         try {
-            console.log('📝 [CHAT-SECTION] Starting temp edit system for message:', messageId);
+            console.log('📝 [CHAT-SECTION] Starting edit save for message:', messageId);
             
-            // Step 1: Show temp edit immediately (like reactions/replies)
-            const tempEditId = `temp-edit-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            this.cancelEditing();
             
-            console.log('📝 [CHAT-SECTION] Step 1: Applying temporary edit to UI');
-            this.applyTempEdit(messageId, newContent, tempEditId);
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                const messageTextElement = messageElement.querySelector('.message-main-text, .bubble-message-text');
+                if (messageTextElement) {
+                    messageTextElement.innerHTML = this.formatMessageContent(newContent);
+                    
+                    let editedBadge = messageElement.querySelector('.edited-badge, .bubble-edited-badge');
+                    if (!editedBadge) {
+                        editedBadge = document.createElement('span');
+                        editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                        editedBadge.textContent = '(edited)';
+                        messageTextElement.appendChild(editedBadge);
+                    }
+                    
+                    messageElement.classList.add('message-editing-pending');
+                }
+            }
             
-            // Step 2: Determine target info for socket broadcast
             const targetType = this.chatType === 'channel' ? 'channel' : 'dm';
             const targetId = this.targetId;
             
-            // Step 3: Emit to socket for temp broadcast and database save
-            const tempEditData = {
+            const editData = {
                 message_id: messageId,
                 content: newContent,
                 user_id: window.globalSocketManager?.userId || null,
                 username: window.globalSocketManager?.username || 'Unknown',
                 target_type: targetType,
                 target_id: targetId,
-                temp_edit_id: tempEditId,
-                is_temporary: true,
-                source: 'websocket-temp-edit'
+                source: 'edit-update'
             };
             
-            console.log('📡 [CHAT-SECTION] Step 2: Broadcasting temp edit to socket:', tempEditData);
+            console.log('📡 [CHAT-SECTION] Broadcasting edit to socket:', editData);
             if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-                window.globalSocketManager.io.emit('message-edit-temp', tempEditData);
+                window.globalSocketManager.io.emit('message-edit-temp', editData);
+            }
+            
+            console.log('💾 [CHAT-SECTION] Saving edit to database via HTTP...');
+            const response = await fetch(`/api/messages/${messageId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: newContent })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                if (messageElement) {
+                    messageElement.classList.remove('message-editing-pending');
+                    messageElement.classList.add('message-edit-success');
+                    setTimeout(() => {
+                        messageElement.classList.remove('message-edit-success');
+                    }, 2000);
+                }
+                console.log('✅ [CHAT-SECTION] Edit saved successfully');
             } else {
-                throw new Error('Socket not ready for temp edit broadcast');
+                throw new Error(result.message || 'Database edit failed');
             }
             
         } catch (error) {
-            console.error('❌ [CHAT-SECTION] Error in temp edit system:', error);
+            console.error('❌ [CHAT-SECTION] Error saving edit:', error);
             
-            // Restore original content on error
             if (this.currentEditingMessage) {
                 const { element, originalContent } = this.currentEditingMessage;
                 element.innerHTML = this.formatMessageContent(originalContent);
                 this.currentEditingMessage = null;
+            }
+            
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                messageElement.classList.remove('message-editing-pending');
+                messageElement.classList.add('message-edit-failed');
+                setTimeout(() => {
+                    messageElement.classList.remove('message-edit-failed');
+                }, 5000);
             }
             
             this.showNotification('Failed to update message. Please try again.', 'error');
@@ -1577,11 +1596,10 @@ class ChatSection {
     }
     
     markEditAsConfirmed(messageElement) {
-        messageElement.classList.remove('message-temp-edit');
+        messageElement.classList.remove('message-temp-edit', 'message-editing-pending');
         messageElement.style.opacity = '1';
         delete messageElement.dataset.tempEditId;
         
-        // Remove temp indicator
         const tempIndicator = messageElement.querySelector('.temp-edit-indicator');
         if (tempIndicator) {
             tempIndicator.remove();
@@ -1591,12 +1609,11 @@ class ChatSection {
     }
     
     markEditAsFailed(messageElement, error) {
-        messageElement.classList.remove('message-temp-edit');
+        messageElement.classList.remove('message-temp-edit', 'message-editing-pending');
         messageElement.classList.add('message-edit-failed');
         messageElement.style.opacity = '0.6';
         messageElement.style.borderLeft = '3px solid #ed4245';
         
-        // Replace temp indicator with error indicator
         const tempIndicator = messageElement.querySelector('.temp-edit-indicator');
         if (tempIndicator) {
             tempIndicator.className = 'edit-error-indicator text-xs text-red-400 ml-2';
