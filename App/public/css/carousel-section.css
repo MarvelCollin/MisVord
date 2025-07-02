@@ -124,8 +124,10 @@
     position: relative;
     width: 500px;
     height: 350px;
+    perspective: 1200px;
     margin: 0 auto;
     filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.3));
+    transform-style: preserve-3d;
 }
 
 .book-content {
@@ -139,6 +141,8 @@
     z-index: 50;
     opacity: 1;
     visibility: visible;
+    perspective: 1200px;
+    transform-style: preserve-3d;
 }
 
 .page {
@@ -163,7 +167,10 @@
     text-align: center;
     padding: 3rem;
     box-sizing: border-box;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    z-index: 10;
     overflow: hidden;
     backface-visibility: visible;
     opacity: 1;
@@ -225,8 +232,9 @@
 }
 
 .page.behind {
+    z-index: 5;
     transform: rotateY(-180deg);
-    opacity: 0.8;
+    opacity: 1;
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
@@ -238,6 +246,7 @@
 }
 
 .page.active {
+    z-index: 10;
     transform: rotateY(0deg);
 }
 
@@ -247,6 +256,7 @@
 }
 
 .page:not(.active):not(.behind) {
+    z-index: 3;
     transform: rotateY(0deg);
 }
 

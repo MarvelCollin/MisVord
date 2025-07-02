@@ -90,53 +90,38 @@ class CarouselSection {
     
     flipPageTo(targetPage) {
         if (this.isAnimating || targetPage < -1 || targetPage > this.totalPages - 1 || targetPage === this.currentPage) return;
-        
         this.isAnimating = true;
         const currentPageEl = this.getPageByNumber(this.currentPage);
         const targetPageEl = this.getPageByNumber(targetPage);
         const direction = targetPage > this.currentPage ? 'forward' : 'backward';
-        
-        if (direction === 'forward') {
+        if (direction === 'forward' && currentPageEl) {
             currentPageEl.style.zIndex = '25';
             currentPageEl.classList.add('flipping-forward');
-            
-            setTimeout(() => {
-                this.currentPage = targetPage;
-                this.finishFlipAnimation();
-            }, 800);
-        } else {
+        } else if (direction === 'backward' && targetPageEl) {
             targetPageEl.style.zIndex = '25';
             targetPageEl.classList.add('flipping-backward');
-            
-            setTimeout(() => {
-                this.currentPage = targetPage;
-                this.finishFlipAnimation();
-            }, 800);
         }
-    }
-    
-    finishFlipAnimation() {
-        this.pages.forEach((page) => {
-            page.classList.remove('flipping-forward', 'flipping-backward');
-        });
-        
-        this.updatePageStates();
-        this.isAnimating = false;
+        setTimeout(() => {
+            this.currentPage = targetPage;
+            this.updatePageStates();
+            this.isAnimating = false;
+        }, 800);
     }
     
     updatePageStates() {
         this.pages.forEach((page) => {
             const pageNumber = this.getPageNumber(page);
             page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
+            page.style.zIndex = '';
             
             if (pageNumber === this.currentPage) {
                 page.classList.add('active');
-                page.style.zIndex = '20';
+                page.style.zIndex = '10';
             } else if (pageNumber < this.currentPage) {
                 page.classList.add('behind');
-                page.style.zIndex = String(15 - (this.currentPage - pageNumber));
+                page.style.zIndex = '5';
             } else {
-                page.style.zIndex = String(10 - (pageNumber - this.currentPage));
+                page.style.zIndex = '3';
             }
         });
     }

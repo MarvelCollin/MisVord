@@ -26,6 +26,11 @@ class MentionHandler {
     init() {
         this.setupMessageInputListeners();
         this.createAutocompleteContainer();
+        
+        if (this.autocompleteContainer) {
+            this.autocompleteContainer.classList.add('misvord-hidden');
+            console.log('✅ [MENTION] Initialized with hidden state');
+        }
     }
     
     setupMessageInputListeners() {
@@ -46,80 +51,57 @@ class MentionHandler {
                 }
             }, 200);
         });
+        
+        console.log('✅ [MENTION] Event listeners setup complete');
     }
     
     createAutocompleteContainer() {
         this.autocompleteContainer = document.createElement('div');
-        this.autocompleteContainer.className = 'mention-autocomplete absolute z-50 bg-[#2f3136] border border-[#40444b] rounded-md shadow-lg max-h-60 overflow-y-auto hidden';
+        this.autocompleteContainer.className = 'misvord-mention-menu absolute z-50 bg-[#2f3136] border border-[#40444b] rounded-md shadow-lg max-h-60 overflow-y-auto';
         this.autocompleteContainer.style.cssText = `
             bottom: 100%;
             left: 0;
             min-width: 200px;
             max-width: 300px;
-            will-change: transform, opacity;
-            transform: translateY(8px) scale(0.95);
+            transition: opacity 0.2s ease;
             opacity: 0;
+            visibility: hidden;
             scrollbar-width: thin;
             scrollbar-color: #4f545c #2f3136;
         `;
         
         const style = document.createElement('style');
         style.textContent = `
-            .mention-autocomplete::-webkit-scrollbar {
+            .misvord-mention-menu::-webkit-scrollbar {
                 width: 8px;
             }
-            .mention-autocomplete::-webkit-scrollbar-track {
+            .misvord-mention-menu::-webkit-scrollbar-track {
                 background: #2f3136;
             }
-            .mention-autocomplete::-webkit-scrollbar-thumb {
+            .misvord-mention-menu::-webkit-scrollbar-thumb {
                 background: #4f545c;
                 border-radius: 4px;
             }
-            .mention-autocomplete::-webkit-scrollbar-thumb:hover {
+            .misvord-mention-menu::-webkit-scrollbar-thumb:hover {
                 background: #5865f2;
             }
-            .mention-autocomplete-item {
+            .misvord-mention-item {
                 transition: background-color 0.15s ease;
-                transform: translateX(0);
             }
-            .mention-autocomplete-item:hover {
-                transform: translateX(2px);
+            .misvord-mention-menu.misvord-hidden {
+                opacity: 0 !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
             }
-            .mention-autocomplete.hidden {
-                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                transform: translateY(8px) scale(0.95);
-                opacity: 0;
-                visibility: hidden;
-                pointer-events: none;
-            }
-            .mention-autocomplete.show {
-                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                transform: translateY(0) scale(1);
-                opacity: 1;
-                visibility: visible;
-                pointer-events: auto;
-            }
-            .mention-autocomplete-enter {
-                animation: mentionSlideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-            }
-            @keyframes mentionSlideIn {
-                from {
-                    transform: translateY(8px) scale(0.95);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateY(0) scale(1);
-                    opacity: 1;
-                }
-            }
-            .mention-input-overlay {
-                font-weight: 500;
-                text-shadow: 0 0 3px rgba(88, 101, 242, 0.5);
+            .misvord-mention-menu.misvord-visible {
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
             }
         `;
         
-        if (!document.querySelector('style[data-mention-styles]')) {
-            style.setAttribute('data-mention-styles', 'true');
+        if (!document.querySelector('style[data-misvord-mention-styles]')) {
+            style.setAttribute('data-misvord-mention-styles', 'true');
             document.head.appendChild(style);
         }
         
@@ -328,7 +310,7 @@ class MentionHandler {
         
         this.debounceTimer = setTimeout(() => {
             this.handleInputChange(e);
-        }, 50);
+        }, 30);
     }
     
     handleInputChange(e) {
@@ -343,13 +325,6 @@ class MentionHandler {
         if (mentionMatch) {
             const searchTerm = mentionMatch[1].toLowerCase();
             const mentionStartIndex = beforeCursor.lastIndexOf('@');
-            
-            console.log('🎯 [MENTION] Input change detected:', {
-                searchTerm: `"${searchTerm}"`,
-                mentionStartIndex: mentionStartIndex,
-                beforeCursor: beforeCursor,
-                cursorPosition: cursorPosition
-            });
             
             this.showAutocomplete(searchTerm, mentionStartIndex);
         } else {
@@ -438,6 +413,7 @@ class MentionHandler {
         
         if (!this.usersLoaded && !this.isLoading) {
             console.log('🔄 [MENTION-HANDLER] Users not loaded, loading now...');
+            this.renderLoadingState();
             await this.loadAvailableUsers();
         }
         
@@ -527,28 +503,6 @@ class MentionHandler {
         return matches.slice(0, 10);
     }
     
-    renderLoadingState() {
-        this.autocompleteContainer.innerHTML = `
-            <div class="mention-autocomplete-item flex items-center p-2">
-                <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center mr-2 animate-pulse">
-                    <i class="fas fa-spinner fa-spin text-white text-sm"></i>
-                </div>
-                <span class="text-gray-400">Loading users...</span>
-            </div>
-        `;
-        
-        this.isAutocompleteVisible = true;
-        this.autocompleteContainer.classList.remove('hidden');
-        
-        requestAnimationFrame(() => {
-            this.autocompleteContainer.classList.add('show', 'mention-autocomplete-enter');
-            
-            setTimeout(() => {
-                this.autocompleteContainer.classList.remove('mention-autocomplete-enter');
-            }, 200);
-        });
-    }
-    
     renderAutocomplete(matches) {
         if (matches.length === 0) {
             this.hideAutocomplete();
@@ -559,7 +513,7 @@ class MentionHandler {
         
         matches.forEach((match, index) => {
             const item = document.createElement('div');
-            item.className = 'mention-autocomplete-item flex items-center p-2 cursor-pointer hover:bg-[#36393f] transition-colors';
+            item.className = 'misvord-mention-item flex items-center p-2 cursor-pointer hover:bg-[#36393f] transition-colors';
             item.dataset.index = index;
             item.dataset.mentionType = match.isSpecial ? 'special' : 'user';
             item.dataset.mentionValue = match.isSpecial ? match.username : match.username;
@@ -593,19 +547,27 @@ class MentionHandler {
         this.autocompleteContainer.appendChild(fragment);
         
         this.isAutocompleteVisible = true;
-        this.autocompleteContainer.classList.remove('hidden');
+        this.autocompleteContainer.classList.remove('misvord-hidden');
+        this.autocompleteContainer.classList.add('misvord-visible');
+    }
+    
+    renderLoadingState() {
+        this.autocompleteContainer.innerHTML = `
+            <div class="misvord-mention-item flex items-center p-2">
+                <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center mr-2 animate-pulse">
+                    <i class="fas fa-spinner fa-spin text-white text-sm"></i>
+                </div>
+                <span class="text-gray-400">Loading users...</span>
+            </div>
+        `;
         
-        requestAnimationFrame(() => {
-            this.autocompleteContainer.classList.add('show', 'mention-autocomplete-enter');
-            
-            setTimeout(() => {
-                this.autocompleteContainer.classList.remove('mention-autocomplete-enter');
-            }, 200);
-        });
+        this.isAutocompleteVisible = true;
+        this.autocompleteContainer.classList.remove('misvord-hidden');
+        this.autocompleteContainer.classList.add('misvord-visible');
     }
     
     navigateAutocomplete(direction) {
-        const items = this.autocompleteContainer.querySelectorAll('.mention-autocomplete-item');
+        const items = this.autocompleteContainer.querySelectorAll('.misvord-mention-item');
         if (items.length === 0) return;
         
         this.selectedIndex += direction;
@@ -620,7 +582,7 @@ class MentionHandler {
     }
     
     updateAutocompleteSelection() {
-        const items = this.autocompleteContainer.querySelectorAll('.mention-autocomplete-item');
+        const items = this.autocompleteContainer.querySelectorAll('.misvord-mention-item');
         items.forEach((item, index) => {
             if (index === this.selectedIndex) {
                 item.classList.add('bg-[#36393f]');
@@ -631,7 +593,7 @@ class MentionHandler {
     }
     
     selectCurrentMention() {
-        const items = this.autocompleteContainer.querySelectorAll('.mention-autocomplete-item');
+        const items = this.autocompleteContainer.querySelectorAll('.misvord-mention-item');
         if (this.selectedIndex < 0 || this.selectedIndex >= items.length) return;
         
         const selectedItem = items[this.selectedIndex];
@@ -766,11 +728,12 @@ class MentionHandler {
     hideAutocomplete() {
         if (!this.isAutocompleteVisible) return;
         
+        console.log('🔒 [MENTION] Hiding autocomplete');
         this.isAutocompleteVisible = false;
         this.selectedIndex = -1;
         
-        this.autocompleteContainer.classList.remove('show', 'mention-autocomplete-enter');
-        this.autocompleteContainer.classList.add('hidden');
+        this.autocompleteContainer.classList.remove('misvord-visible');
+        this.autocompleteContainer.classList.add('misvord-hidden');
     }
     
     parseMentions(content) {
@@ -1107,7 +1070,7 @@ window.debugMentionAutocomplete = function() {
         if (mentionHandler.isAutocompleteVisible) {
             console.log('✅ [DEBUG-MENTION] Autocomplete is visible! Test clicking on first item...');
             
-            const firstItem = mentionHandler.autocompleteContainer.querySelector('.mention-autocomplete-item');
+            const firstItem = mentionHandler.autocompleteContainer.querySelector('.misvord-mention-item');
             if (firstItem) {
                 console.log('🧪 [DEBUG-MENTION] Clicking first item...');
                 firstItem.click();
@@ -1134,7 +1097,7 @@ window.debugMentionAutocomplete = function() {
 };
 
 window.testMentionMenuAnimation = function() {
-    console.log('🧪 [TEST-ANIMATION] Testing mention menu animation...');
+    console.log('🧪 [TEST-MENTION] Testing mention menu with unique classes...');
     
     const chatSection = window.chatSection;
     if (!chatSection?.mentionHandler) {
@@ -1148,30 +1111,57 @@ window.testMentionMenuAnimation = function() {
         return false;
     }
     
-    console.log('✅ Starting animation test...');
+    const mentionHandler = chatSection.mentionHandler;
     
-    messageInput.value = '@';
+    console.log('📊 Initial state check:', {
+        targetId: chatSection.targetId,
+        chatType: chatSection.chatType,
+        usersLoaded: mentionHandler.usersLoaded,
+        availableUsers: mentionHandler.availableUsers.size,
+        containerExists: !!mentionHandler.autocompleteContainer,
+        containerClasses: mentionHandler.autocompleteContainer ? Array.from(mentionHandler.autocompleteContainer.classList) : 'N/A'
+    });
+    
+    console.log('✅ Testing @ input...');
+    
     messageInput.focus();
-    messageInput.setSelectionRange(1, 1);
+    messageInput.value = '@te';
+    messageInput.setSelectionRange(3, 3);
     
     const inputEvent = new Event('input', { bubbles: true });
     messageInput.dispatchEvent(inputEvent);
     
     setTimeout(() => {
-        const isVisible = chatSection.mentionHandler.isAutocompleteVisible;
-        const hasShowClass = chatSection.mentionHandler.autocompleteContainer.classList.contains('show');
+        const container = mentionHandler.autocompleteContainer;
+        const isVisible = mentionHandler.isAutocompleteVisible;
+        const hasVisibleClass = container.classList.contains('misvord-visible');
+        const hasHiddenClass = container.classList.contains('misvord-hidden');
+        const computedStyles = window.getComputedStyle(container);
         
-        console.log('📊 Animation test results:', {
+        console.log('📊 After @ input:', {
             isVisible: isVisible,
-            hasShowClass: hasShowClass,
-            containerClasses: Array.from(chatSection.mentionHandler.autocompleteContainer.classList),
-            availableUsers: chatSection.mentionHandler.availableUsers.size
+            hasVisibleClass: hasVisibleClass,
+            hasHiddenClass: hasHiddenClass,
+            opacity: computedStyles.opacity,
+            visibility: computedStyles.visibility,
+            pointerEvents: computedStyles.pointerEvents,
+            containerHTML: container.innerHTML.substring(0, 100) + '...',
+            availableUsers: mentionHandler.availableUsers.size
         });
         
-        if (isVisible && hasShowClass) {
-            console.log('🎉 SUCCESS! Menu is visible with animation');
+        if (isVisible && hasVisibleClass && !hasHiddenClass) {
+            console.log('🎉 SUCCESS! Mention menu is working with unique classes');
         } else {
-            console.log('❌ FAILED! Menu not properly displayed');
+            console.log('❌ Still not working. Let me force show it...');
+            
+            mentionHandler.isAutocompleteVisible = true;
+            container.classList.remove('misvord-hidden');
+            container.classList.add('misvord-visible');
+            
+            console.log('🔧 Forced visibility state:', {
+                opacity: window.getComputedStyle(container).opacity,
+                visibility: window.getComputedStyle(container).visibility
+            });
         }
     }, 1000);
     

@@ -930,7 +930,7 @@ class UnifiedParticipantManager {
         
         const participant = {
             id: participantId,
-            name: isLocal ? `${participantName} (You)` : participantName,
+            name: participantName,
             hasVideo: false,
             hasScreenShare: false,
             isMuted: false,
@@ -950,9 +950,7 @@ class UnifiedParticipantManager {
             window.voiceCallManager.updateParticipantCount();
         }
         
-        if (!isLocal && window.MusicLoaderStatic?.playJoinVoiceSound) {
-            window.MusicLoaderStatic.playJoinVoiceSound();
-        }
+
     }
 
     async handleParticipantLeft(data) {
@@ -1143,8 +1141,8 @@ class VoiceCallManager {
             const channelName = event.detail?.channelName || 'Voice Channel';
             this.showToast(`Successfully joined ${channelName}`, 'success');
             
-            if (window.MusicLoaderStatic?.playJoinVoiceSound) {
-                window.MusicLoaderStatic.playJoinVoiceSound();
+            if (window.MusicLoaderStatic?.stopJoinVoiceSound) {
+                window.MusicLoaderStatic.stopJoinVoiceSound();
             }
             
             this.updateGrid();
@@ -1499,12 +1497,18 @@ class VoiceCallManager {
         const botIndicator = participant.isBot ? '<i class="fas fa-robot text-xs text-[#5865f2] ml-1"></i>' : '';
         const localIndicator = participant.isLocal ? '<i class="fas fa-user text-xs text-[#3ba55c] ml-1"></i>' : '';
         const borderColor = participant.isBot ? '#5865f2' : (participant.isLocal ? '#3ba55c' : 'transparent');
+        
+        const avatarUrl = this.getParticipantAvatarUrl(participant);
+        const avatarContent = avatarUrl ? 
+            `<img src="${avatarUrl}" alt="${participant.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+             <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px;">${participant.isBot ? '<i class="fas fa-robot text-white"></i>' : initial}</div>` :
+            `${participant.isBot ? '<i class="fas fa-robot text-white"></i>' : initial}`;
 
         element.innerHTML = `
-            <div class="voice-participant-avatar ${participant.isBot ? 'bot-participant' : ''} ${participant.isLocal ? 'local-participant' : ''}" style="background: ${avatarColor}; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px; margin-bottom: 8px; border: 3px solid ${borderColor};">
-                ${participant.isBot ? '<i class="fas fa-robot text-white"></i>' : initial}
+            <div class="voice-participant-avatar ${participant.isBot ? 'bot-participant' : ''} ${participant.isLocal ? 'local-participant' : ''}" style="background: ${avatarUrl ? 'transparent' : avatarColor}; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px; margin-bottom: 8px; border: 3px solid ${borderColor}; overflow: hidden;">
+                ${avatarContent}
             </div>
-            <span style="color: white; font-size: 12px; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; justify-content: center;">${participant.name}${botIndicator}${localIndicator}</span>
+            <span style="color: white; font-size: 12px; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; justify-content: center;">${participant.name}${participant.isLocal ? ' (You)' : ''}${botIndicator}${localIndicator}</span>
         `;
 
         container.appendChild(element);
@@ -1730,14 +1734,13 @@ class VoiceCallManager {
         card.style.border = '2px solid #5865f2';
 
         const isLocal = participantId === this.localParticipantId;
-        const localIndicator = isLocal ? ' (You)' : '';
 
         card.innerHTML = `
             <video autoplay playsinline ${isLocal ? '' : 'muted'} style="width: 100%; height: 100%; object-fit: contain; background: #000;" data-participant-id="${screenShareId}"></video>
             <div class="video-participant-overlay">
                 <div class="flex items-center space-x-2">
                     <i class="fas fa-desktop text-[#5865f2]"></i>
-                    <span>${participant.name}${localIndicator} - Screen</span>
+                    <span>${participant.name}${isLocal ? ' (You)' : ''} - Screen</span>
                 </div>
                 ${participant.isMuted ? '<i class="fas fa-microphone-slash ml-2"></i>' : ''}
             </div>
@@ -1799,12 +1802,11 @@ class VoiceCallManager {
         card.style.maxHeight = '400px';
 
         const isLocal = participantId === this.localParticipantId;
-        const localIndicator = isLocal ? ' (You)' : '';
 
         card.innerHTML = `
             <video autoplay playsinline ${isLocal ? '' : 'muted'} style="width: 100%; height: 100%; object-fit: contain; background: #000;" data-participant-id="${participantId}"></video>
             <div class="video-participant-overlay">
-                <span>${participant.name}${localIndicator}</span>
+                <span>${participant.name}${isLocal ? ' (You)' : ''}</span>
                 ${participant.isMuted ? '<i class="fas fa-microphone-slash ml-2"></i>' : ''}
             </div>
         `;
@@ -1865,8 +1867,7 @@ class VoiceCallManager {
         });
         
         if (!hasVideo && !hasScreenShare) {
-            if (!hasVoiceCard && (hasVideoCard || hasScreenShareCard)) {
-                this.removeVoiceParticipantCard(participantId);
+            if (!hasVoiceCard) {
                 this.createParticipantElement(participant);
             }
         } else {
@@ -2299,6 +2300,21 @@ class VoiceCallManager {
                 });
             };
         }
+    }
+
+    getParticipantAvatarUrl(participant) {
+        if (participant.isLocal) {
+            return document.querySelector('meta[name="user-avatar"]')?.content || 
+                   sessionStorage.getItem('user_avatar_url') ||
+                   window.currentUserAvatar ||
+                   null;
+        }
+        
+        if (participant.avatarUrl) {
+            return participant.avatarUrl;
+        }
+        
+        return null;
     }
 
     getAvatarColor(username) {
