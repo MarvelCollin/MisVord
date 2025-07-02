@@ -156,27 +156,44 @@ class VoiceManager {
     }
     
     async joinVoice() {
+        const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+        const targetChannelId = this.currentChannelId || metaChannelId;
+
+        // If already connected, check whether it is the same channel
         if (this.isConnected) {
-            console.log('🎉 [VOICE-MANAGER] Already connected, skipping duplicate join');
-            return Promise.resolve();
+            if (this.currentChannelId === targetChannelId) {
+                console.log('🎉 [VOICE-MANAGER] Already connected to the desired channel, skipping join');
+                return Promise.resolve();
+            }
+            console.log(`🔄 [VOICE-MANAGER] Switching voice from channel ${this.currentChannelId} to ${targetChannelId}`);
+            this.leaveVoice();
         }
         
         if (window.voiceJoinInProgress) {
-            console.log('🎉 [VOICE-MANAGER] Join already in progress, skipping duplicate');
+            // leaveVoice might set this flag indirectly; ensure it's reset
+            window.voiceJoinInProgress = false;
+        }
+        
+        if (window.videoSDKJoiningInProgress) {
+            console.log('[VOICE-MANAGER] VideoSDK join in progress, waiting before switching');
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        if (window.voiceJoinInProgress) {
+            // Another join started while waiting
             return Promise.resolve();
         }
         
         window.voiceJoinInProgress = true;
         
-        const channelId = this.currentChannelId || document.querySelector('meta[name="channel-id"]')?.content;
-        if (!channelId) {
+        if (!targetChannelId) {
             window.voiceJoinInProgress = false;
             this.showToast('Channel not available', 'error');
             return Promise.reject(new Error('Channel not available'));
         }
 
         try {
-            this.setupVoice(channelId);
+            this.setupVoice(targetChannelId);
 
             if (!this.preloadComplete) {
                 await this.init();
@@ -193,8 +210,8 @@ class VoiceManager {
             window.videoSDKJoiningInProgress = true;
 
             // 🎯 STEP 1: Check if meeting already exists for this channel
-            console.log(`🔍 [VOICE-MANAGER] Checking for existing meeting in channel ${channelId}...`);
-            const existingMeeting = await this.checkExistingMeeting(channelId);
+            console.log(`🔍 [VOICE-MANAGER] Checking for existing meeting in channel ${targetChannelId}...`);
+            const existingMeeting = await this.checkExistingMeeting(targetChannelId);
             
             let meetingId;
             if (existingMeeting) {
@@ -204,7 +221,7 @@ class VoiceManager {
             } else {
                 // 🎯 STEP 3: Create new meeting
                 console.log(`🆕 [VOICE-MANAGER] No existing meeting, creating new one...`);
-                const customMeetingId = `voice_channel_${channelId}`;
+                const customMeetingId = `voice_channel_${targetChannelId}`;
                 meetingId = await this.videoSDKManager.createMeetingRoom(customMeetingId);
                 
                 if (!meetingId) {
@@ -229,7 +246,7 @@ class VoiceManager {
             
             // 🎯 STEP 4: Register with socket after VideoSDK join to avoid race conditions
             console.log(`📝 [VOICE-MANAGER] Registering with socket for meeting: ${meetingId}...`);
-            await this.registerMeetingWithSocket(channelId, meetingId);
+            await this.registerMeetingWithSocket(targetChannelId, meetingId);
             
             await new Promise((resolve) => {
                 const checkReady = () => {
@@ -264,7 +281,7 @@ class VoiceManager {
             
             console.log(`🎉 [VOICE-MANAGER] Successfully joined voice!`, {
                 meetingId: meetingId,
-                channelId: channelId,
+                channelId: targetChannelId,
                 wasExistingMeeting: !!existingMeeting,
                 action: existingMeeting ? 'JOINED_EXISTING' : 'CREATED_NEW'
             });

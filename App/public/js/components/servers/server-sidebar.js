@@ -796,6 +796,31 @@ export async function handleHomeClick(event) {
     }
 
     try {
+        // Check if user is connected to voice and if navigation should be protected
+        const isVoiceConnected = window.unifiedVoiceStateManager?.getState()?.isConnected || 
+                                window.voiceManager?.isConnected || 
+                                window.videoSDKManager?.isConnected;
+        
+        const currentPath = window.location.pathname;
+        const isOnAllowedPage = currentPath === '/home' || currentPath === '/home/' || currentPath === '/' || 
+                               currentPath.includes('/server/') || currentPath.includes('/explore');
+        
+        if (isVoiceConnected && isOnAllowedPage) {
+            console.log('[Home Navigation] Voice connected on protected page, preserving connection during navigation');
+            
+            // Store voice state before navigation
+            if (window.unifiedVoiceStateManager) {
+                const voiceState = window.unifiedVoiceStateManager.getState();
+                console.log('[Home Navigation] Preserving voice state:', voiceState);
+            }
+            
+            // Use history API for smooth navigation
+            history.pushState({ 
+                pageType: 'home',
+                preserveVoice: true 
+            }, 'Home', '/home');
+        }
+        
         console.log('[Home Navigation] Redirecting to home page');
         window.location.href = '/home';
 
@@ -831,6 +856,25 @@ export async function handleServerClick(serverId, event) {
     }
 
     try {
+        // Check if user is connected to voice and if navigation should be protected
+        const isVoiceConnected = window.unifiedVoiceStateManager?.getState()?.isConnected || 
+                                window.voiceManager?.isConnected || 
+                                window.videoSDKManager?.isConnected;
+        
+        const currentPath = window.location.pathname;
+        const isOnAllowedPage = currentPath === '/home' || currentPath === '/home/' || currentPath === '/' || 
+                               currentPath.includes('/server/') || currentPath.includes('/explore');
+        
+        if (isVoiceConnected && isOnAllowedPage) {
+            console.log('[Server Navigation] Voice connected on protected page, preserving connection during navigation');
+            
+            // Store voice state before navigation
+            if (window.unifiedVoiceStateManager) {
+                const voiceState = window.unifiedVoiceStateManager.getState();
+                console.log('[Server Navigation] Preserving voice state:', voiceState);
+            }
+        }
+        
         let defaultChannelId = null;
         
         console.log('[Server Navigation] Getting default channel for server:', serverId);
@@ -843,6 +887,17 @@ export async function handleServerClick(serverId, event) {
         }
         
         console.log('[Server Navigation] Redirecting to:', redirectUrl);
+        
+        // Use history API for allowed pages to preserve voice connection
+        if (isVoiceConnected && isOnAllowedPage) {
+            console.log('[Server Navigation] Using smooth navigation to preserve voice connection');
+            history.pushState({ 
+                serverId: serverId, 
+                channelId: defaultChannelId,
+                preserveVoice: true 
+            }, `Server ${serverId}`, redirectUrl);
+        }
+        
         window.location.href = redirectUrl;
         
     } catch (error) {
@@ -921,6 +976,8 @@ export function refreshServerGroups() {
 
 // Make functions globally available
 window.updateActiveServer = updateActiveServer;
+window.handleServerClick = handleServerClick;
+window.handleHomeClick = handleHomeClick;
 
 export const ServerSidebar = {
     updateActiveServer,

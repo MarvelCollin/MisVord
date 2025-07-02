@@ -314,6 +314,21 @@ class SimpleChannelSwitcher {
             await window.voiceSection.updateChannelId(channelId, true);
         }
         
+        // Sync voice manager to the new channel
+        if (window.voiceManager) {
+            if (window.voiceManager.isConnected) {
+                if (window.voiceManager.currentChannelId !== channelId) {
+                    window.voiceManager.leaveVoice();
+                }
+            }
+            window.voiceManager.currentChannelId = channelId;
+            try {
+                window.voiceManager.setupVoice(channelId);
+            } catch (e) {
+                console.warn('[SWITCH-MANAGER] Could not setup voiceManager for new channel:', e);
+            }
+        }
+        
         console.log('✅ [SWITCH-MANAGER] Voice channel initialization complete');
     }
     

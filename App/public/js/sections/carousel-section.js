@@ -127,20 +127,7 @@ class CarouselSection {
     }
     
     onSectionVisible() {
-        const title = document.querySelector('.carousel-title');
-        const subtitle = document.querySelector('.carousel-subtitle');
         
-        if (title) {
-            setTimeout(() => {
-                title.classList.add('revealed');
-            }, 200);
-        }
-        
-        if (subtitle) {
-            setTimeout(() => {
-                subtitle.classList.add('revealed');
-            }, 600);
-        }
     }
 }
 

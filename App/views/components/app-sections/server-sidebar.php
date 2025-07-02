@@ -141,6 +141,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log('[Server Sidebar] Server clicked, navigating to:', serverId);
             
+            // Check if voice is connected and we should preserve it
+            const isVoiceConnected = window.unifiedVoiceStateManager?.getState()?.isConnected || 
+                                    window.voiceManager?.isConnected || 
+                                    window.videoSDKManager?.isConnected;
+            
+            if (isVoiceConnected) {
+                console.log('[Server Sidebar] Voice connected, using server sidebar JS handler for smooth navigation');
+                // Use the enhanced server sidebar JS handler instead of direct navigation
+                if (window.handleServerClick) {
+                    window.handleServerClick(serverId, e);
+                    return;
+                }
+            }
+            
             window.location.href = `/server/${serverId}`;
         });
     });

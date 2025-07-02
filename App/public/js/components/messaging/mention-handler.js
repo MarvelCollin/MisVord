@@ -98,17 +98,6 @@ class MentionHandler {
                 visibility: visible !important;
                 pointer-events: auto !important;
             }
-            textarea#message-input.misvord-typing-mention {
-                background: rgba(88, 101, 242, 0.15) !important;
-                box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.4) !important;
-                border: 1px solid rgba(88, 101, 242, 0.6) !important;
-                border-radius: 6px !important;
-                transform: translateY(-1px) !important;
-                transition: all 0.2s ease !important;
-            }
-            body textarea#message-input.misvord-typing-mention {
-                background: rgba(88, 101, 242, 0.15) !important;
-            }
         `;
         
         if (!document.querySelector('style[data-misvord-mention-styles]')) {
@@ -347,27 +336,28 @@ class MentionHandler {
     
     applyMentionInputStyling(input, isTypingMention) {
         if (isTypingMention) {
-            if (!document.getElementById('mention-override-styles')) {
+            // Ensure override style tag exists with very high specificity
+            if (!document.getElementById('misvord-mention-input-style')) {
                 const style = document.createElement('style');
-                style.id = 'mention-override-styles';
+                style.id = 'misvord-mention-input-style';
                 style.textContent = `
-                    textarea#message-input[data-mention-typing="true"] {
+                    body #chat-root #message-input[data-mention-typing="true"],
+                    body #message-input[data-mention-typing="true"] {
                         background: rgba(88, 101, 242, 0.15) !important;
                         background-color: rgba(88, 101, 242, 0.15) !important;
                         box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.4) !important;
                         border: 1px solid rgba(88, 101, 242, 0.6) !important;
                         border-radius: 6px !important;
-                        --discord-channeltextarea-background: rgba(88, 101, 242, 0.15) !important;
+                        transform: translateY(-1px) !important;
+                        transition: all 0.2s ease !important;
                     }
                 `;
                 document.head.appendChild(style);
             }
             
             input.setAttribute('data-mention-typing', 'true');
-            input.classList.add('misvord-mention-typing');
         } else {
             input.removeAttribute('data-mention-typing');
-            input.classList.remove('misvord-mention-typing');
         }
     }
     
@@ -1341,7 +1331,7 @@ window.testCompleteMentionSystem = function() {
         console.log('Background after typing @:', computedStyle.background);
         console.log('Background-color:', computedStyle.backgroundColor);
         console.log('Data attribute set:', input.getAttribute('data-mention-typing'));
-        console.log('CSS override style injected:', !!document.getElementById('mention-override-styles'));
+        console.log('Inline styles applied:', input.style.background || 'none');
         
         if (computedStyle.backgroundColor.includes('88, 101, 242') || computedStyle.backgroundColor.includes('rgba(88, 101, 242')) {
             console.log('✅ Blue styling applied successfully!');
@@ -1371,5 +1361,90 @@ window.testCompleteMentionSystem = function() {
 };
 
 console.log('Complete mention test function available: testCompleteMentionSystem()');
+
+window.testMentionBlueInput = function() {
+    console.log('🔵 [SIMPLE-TEST] Testing mention blue input styling...');
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ Message input not found');
+        return false;
+    }
+    
+    const chatSection = window.chatSection;
+    if (!chatSection?.mentionHandler) {
+        console.error('❌ No mention handler available');
+        return false;
+    }
+    
+    console.log('✅ Starting blue input test...');
+    messageInput.focus();
+    messageInput.value = '@test';
+    messageInput.setSelectionRange(5, 5);
+    
+    // Trigger the input change event
+    const inputEvent = new Event('input', { bubbles: true });
+    messageInput.dispatchEvent(inputEvent);
+    
+    setTimeout(() => {
+        // Check computed styles (what the user actually sees)
+        const computedStyles = window.getComputedStyle(messageInput);
+        const hasBlueBackground = computedStyles.backgroundColor.includes('88, 101, 242') || 
+                                  computedStyles.backgroundColor.includes('rgba(88, 101, 242');
+        const hasBlueBoxShadow = computedStyles.boxShadow.includes('88, 101, 242');
+        const hasBlueBorder = computedStyles.borderColor.includes('88, 101, 242') || 
+                              computedStyles.border.includes('88, 101, 242');
+        
+        console.log('📊 Blue styling check:', {
+            inputValue: messageInput.value,
+            hasAttribute: messageInput.hasAttribute('data-mention-typing'),
+            computedStyles: {
+                backgroundColor: computedStyles.backgroundColor,
+                boxShadow: computedStyles.boxShadow,
+                border: computedStyles.border,
+                borderColor: computedStyles.borderColor
+            },
+            blueDetected: {
+                background: hasBlueBackground,
+                boxShadow: hasBlueBoxShadow,
+                border: hasBlueBorder
+            }
+        });
+        
+        if (hasBlueBackground) {
+            console.log('🎉 SUCCESS! Blue background is visible! The fix is working!');
+            
+            // Test clearing the styling
+            messageInput.value = 'hello';
+            messageInput.dispatchEvent(inputEvent);
+            
+            setTimeout(() => {
+                const clearedStyles = window.getComputedStyle(messageInput);
+                const backgroundCleared = !clearedStyles.backgroundColor.includes('88, 101, 242');
+                console.log('📊 Style clearing check:', {
+                    inputValue: messageInput.value,
+                    hasAttribute: messageInput.hasAttribute('data-mention-typing'),
+                    backgroundCleared: backgroundCleared,
+                    newBackground: clearedStyles.backgroundColor
+                });
+                
+                if (backgroundCleared) {
+                    console.log('✅ Style clearing also works! Mention system is completely fixed! 🎉');
+                } else {
+                    console.log('⚠️ Style clearing may need attention');
+                }
+            }, 100);
+            
+        } else {
+            console.log('❌ Blue styling still not working. There might be another CSS conflict.');
+            console.log('🔍 Current computed background:', computedStyles.backgroundColor);
+            console.log('🔍 Expected: rgba(88, 101, 242, 0.15) or similar blue color');
+        }
+    }, 200);
+    
+    return true;
+};
+
+console.log('🧪 Simple test function available: testMentionBlueInput()');
 
 export default MentionHandler; 

@@ -1312,20 +1312,20 @@ class VoiceCallManager {
         participantGrid.addEventListener('dblclick', (event) => {
             const card = event.target.closest('.screen-share-card, .video-participant-card, .voice-participant-card');
             if (!card) return;
-
+            
             let participantIdAttr = card.dataset.participantId || '';
             const isScreenShare = card.classList.contains('screen-share-card') || participantIdAttr.endsWith('-screenshare');
 
             if (isScreenShare) {
                 participantIdAttr = participantIdAttr.replace('-screenshare', '');
             }
-
+            
             console.log('[FULLSCREEN] Double-click detected:', {
                 participantId: participantIdAttr,
                 isScreenShare,
                 cardClasses: card.className
             });
-
+            
             this.toggleParticipantFullscreen(participantIdAttr, isScreenShare ? 'screenshare' : 'video');
         });
     }

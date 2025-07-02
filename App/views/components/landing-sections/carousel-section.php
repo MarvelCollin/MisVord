@@ -18,11 +18,6 @@ if (!function_exists('asset')) {
     </div>
 
     <div class="container mx-auto px-4 relative z-10">
-        <div class="text-center mb-16">
-            <h2 class="text-5xl md:text-6xl font-bold text-white mb-6 carousel-title" data-animate="title">Success Stories</h2>
-            <p class="text-xl text-gray-300 max-w-2xl mx-auto carousel-subtitle" data-animate="subtitle">See how communities thrive on MisVord platform</p>
-        </div>
-
         <div class="simple-book">
             <div class="book-content" id="bookContent">
                 <div class="page book-cover active" data-page="cover">
