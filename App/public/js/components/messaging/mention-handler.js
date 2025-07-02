@@ -98,6 +98,17 @@ class MentionHandler {
                 visibility: visible !important;
                 pointer-events: auto !important;
             }
+            textarea#message-input.misvord-typing-mention {
+                background: rgba(88, 101, 242, 0.15) !important;
+                box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.4) !important;
+                border: 1px solid rgba(88, 101, 242, 0.6) !important;
+                border-radius: 6px !important;
+                transform: translateY(-1px) !important;
+                transition: all 0.2s ease !important;
+            }
+            body textarea#message-input.misvord-typing-mention {
+                background: rgba(88, 101, 242, 0.15) !important;
+            }
         `;
         
         if (!document.querySelector('style[data-misvord-mention-styles]')) {
@@ -326,9 +337,29 @@ class MentionHandler {
             const searchTerm = mentionMatch[1].toLowerCase();
             const mentionStartIndex = beforeCursor.lastIndexOf('@');
             
+            this.applyMentionInputStyling(input, true);
             this.showAutocomplete(searchTerm, mentionStartIndex);
         } else {
+            this.applyMentionInputStyling(input, false);
             this.hideAutocomplete();
+        }
+    }
+    
+    applyMentionInputStyling(input, isTypingMention) {
+        if (isTypingMention) {
+            input.style.setProperty('--discord-channeltextarea-background', 'rgba(88, 101, 242, 0.15)', 'important');
+            input.style.setProperty('background', 'rgba(88, 101, 242, 0.15)', 'important');
+            input.style.setProperty('box-shadow', '0 0 0 3px rgba(88, 101, 242, 0.4)', 'important');
+            input.style.setProperty('border', '1px solid rgba(88, 101, 242, 0.6)', 'important');
+            input.style.setProperty('border-radius', '6px', 'important');
+            input.classList.add('misvord-mention-typing');
+        } else {
+            input.style.removeProperty('--discord-channeltextarea-background');
+            input.style.removeProperty('background');
+            input.style.removeProperty('box-shadow');
+            input.style.removeProperty('border');
+            input.style.removeProperty('border-radius');
+            input.classList.remove('misvord-mention-typing');
         }
     }
     
@@ -654,75 +685,21 @@ class MentionHandler {
             newCursorPosition: newCursorPosition
         });
         
-        this.applyInstantMentionStyling(input, this.mentionStartIndex, mentionText.length);
+        this.applyMentionInputStyling(input, false);
+        this.applyInputHighlight(input);
         
         if (this.chatSection.updateSendButton) {
             this.chatSection.updateSendButton();
         }
     }
     
-    applyInstantMentionStyling(input, startIndex, length) {
-        const inputRect = input.getBoundingClientRect();
-        const inputStyle = window.getComputedStyle(input);
-        
-        // Calculate text position
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.font = `${inputStyle.fontSize} ${inputStyle.fontFamily}`;
-        
-        const beforeText = input.value.substring(0, startIndex);
-        const beforeWidth = ctx.measureText(beforeText).width;
-        const mentionWidth = ctx.measureText(input.value.substring(startIndex, startIndex + length)).width;
-        
-        // Create styling overlay
-        const overlay = document.createElement('div');
-        overlay.className = 'mention-input-overlay';
-        overlay.style.cssText = `
-            position: absolute;
-            left: ${inputRect.left + beforeWidth + 8}px;
-            top: ${inputRect.top + 8}px;
-            width: ${mentionWidth}px;
-            height: ${inputRect.height - 16}px;
-            background: rgba(88, 101, 242, 0.2);
-            color: #5865f2;
-            border-radius: 3px;
-            pointer-events: none;
-            z-index: 1000;
-            font-family: ${inputStyle.fontFamily};
-            font-size: ${inputStyle.fontSize};
-            line-height: ${inputRect.height - 16}px;
-            text-align: center;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        `;
-        
-        overlay.textContent = input.value.substring(startIndex, startIndex + length);
-        document.body.appendChild(overlay);
-        
-        // Animate in
-        requestAnimationFrame(() => {
-            overlay.style.opacity = '1';
-        });
-        
-        // Remove after animation
-        setTimeout(() => {
-            if (overlay.parentNode) {
-                overlay.style.opacity = '0';
-                setTimeout(() => {
-                    if (overlay.parentNode) {
-                        overlay.parentNode.removeChild(overlay);
-                    }
-                }, 200);
-            }
-        }, 1500);
-        
-        // Apply visual feedback to input
-        input.style.transition = 'box-shadow 0.2s ease';
-        input.style.boxShadow = '0 0 0 2px rgba(88, 101, 242, 0.3)';
+    applyInputHighlight(input) {
+        input.style.transition = 'box-shadow 0.1s ease';
+        input.style.boxShadow = '0 0 0 1px rgba(88, 101, 242, 0.3)';
         
         setTimeout(() => {
             input.style.boxShadow = '';
-        }, 800);
+        }, 300);
     }
     
     hideAutocomplete() {
@@ -734,6 +711,10 @@ class MentionHandler {
         
         this.autocompleteContainer.classList.remove('misvord-visible');
         this.autocompleteContainer.classList.add('misvord-hidden');
+        
+        if (this.chatSection.messageInput) {
+            this.applyMentionInputStyling(this.chatSection.messageInput, false);
+        }
     }
     
     parseMentions(content) {
@@ -1167,5 +1148,211 @@ window.testMentionMenuAnimation = function() {
     
     return true;
 };
+
+window.testMentionStyling = function() {
+    console.log('🎨 [TEST-STYLING] Testing mention input styling...');
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ No message input found');
+        return false;
+    }
+    
+    const chatSection = window.chatSection;
+    if (!chatSection?.mentionHandler) {
+        console.error('❌ No mention handler available');
+        return false;
+    }
+    
+    console.log('✅ Testing mention styling...');
+    
+    messageInput.focus();
+    messageInput.value = '';
+    
+    console.log('1️⃣ Testing @ typing...');
+    messageInput.value = '@';
+    messageInput.setSelectionRange(1, 1);
+    
+    const inputEvent = new Event('input', { bubbles: true });
+    messageInput.dispatchEvent(inputEvent);
+    
+    setTimeout(() => {
+        const hasTypingClass = messageInput.classList.contains('misvord-typing-mention');
+        const computedStyles = window.getComputedStyle(messageInput);
+        
+        console.log('📊 After typing @:', {
+            hasTypingClass: hasTypingClass,
+            borderColor: computedStyles.borderColor,
+            boxShadow: computedStyles.boxShadow,
+            inputValue: messageInput.value
+        });
+        
+        console.log('2️⃣ Testing mention completion...');
+        
+        setTimeout(() => {
+            if (chatSection.mentionHandler.isAutocompleteVisible) {
+                const firstItem = chatSection.mentionHandler.autocompleteContainer.querySelector('.misvord-mention-item');
+                if (firstItem) {
+                    firstItem.click();
+                    
+                    setTimeout(() => {
+                        const hasTypingClassAfter = messageInput.classList.contains('misvord-typing-mention');
+                        console.log('📊 After mention selection:', {
+                            hasTypingClass: hasTypingClassAfter,
+                            inputValue: messageInput.value,
+                            selectionStart: messageInput.selectionStart
+                        });
+                        
+                        if (!hasTypingClassAfter) {
+                            console.log('🎉 SUCCESS! Mention styling works correctly');
+                        } else {
+                            console.log('❌ Styling not cleared after selection');
+                        }
+                    }, 200);
+                }
+            } else {
+                console.log('ℹ️ Autocomplete not visible, testing style clearing...');
+                messageInput.value = 'hello world';
+                messageInput.dispatchEvent(inputEvent);
+                
+                setTimeout(() => {
+                    const hasTypingClassAfter = messageInput.classList.contains('misvord-typing-mention');
+                    console.log('📊 After typing normal text:', {
+                        hasTypingClass: hasTypingClassAfter,
+                        inputValue: messageInput.value
+                    });
+                }, 100);
+            }
+        }, 1000);
+        
+    }, 500);
+    
+    return true;
+};
+
+window.testInputBlue = function() {
+    console.log('🔵 [TEST-BLUE] Testing blue input styling with CSS specificity...');
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ No message input found');
+        return false;
+    }
+    
+    console.log('📊 Input element details:', {
+        id: messageInput.id,
+        tagName: messageInput.tagName,
+        classes: Array.from(messageInput.classList),
+        currentBackground: window.getComputedStyle(messageInput).background,
+        currentBoxShadow: window.getComputedStyle(messageInput).boxShadow,
+        currentBorder: window.getComputedStyle(messageInput).border
+    });
+    
+    console.log('🔍 Checking existing CSS conflicts...');
+    const existingStyles = window.getComputedStyle(messageInput);
+    console.log('Existing styles that might conflict:', {
+        background: existingStyles.background,
+        backgroundColor: existingStyles.backgroundColor,
+        border: existingStyles.border,
+        boxShadow: existingStyles.boxShadow,
+        transform: existingStyles.transform
+    });
+    
+    console.log('🔵 Adding blue styling class...');
+    messageInput.classList.add('misvord-typing-mention');
+    
+    setTimeout(() => {
+        const computedStyles = window.getComputedStyle(messageInput);
+        console.log('📊 After adding blue class:', {
+            hasClass: messageInput.classList.contains('misvord-typing-mention'),
+            background: computedStyles.background,
+            backgroundColor: computedStyles.backgroundColor,
+            boxShadow: computedStyles.boxShadow,
+            border: computedStyles.border,
+            borderRadius: computedStyles.borderRadius,
+            transform: computedStyles.transform
+        });
+        
+        const isBlue = computedStyles.background.includes('242') || 
+                       computedStyles.backgroundColor.includes('242') ||
+                       computedStyles.boxShadow.includes('242');
+        
+        if (isBlue) {
+            console.log('🎉 SUCCESS! Blue styling is applied and visible');
+        } else {
+            console.log('❌ Blue styling still not visible - CSS specificity issue');
+            
+            console.log('🔧 Trying manual style application...');
+            messageInput.style.background = 'rgba(88, 101, 242, 0.15)';
+            messageInput.style.boxShadow = '0 0 0 3px rgba(88, 101, 242, 0.4)';
+            messageInput.style.border = '1px solid rgba(88, 101, 242, 0.6)';
+            messageInput.style.borderRadius = '6px';
+            
+            console.log('📊 After manual styling:', {
+                background: messageInput.style.background,
+                boxShadow: messageInput.style.boxShadow,
+                border: messageInput.style.border
+            });
+        }
+        
+        console.log('🔄 Removing blue styling in 3 seconds...');
+        setTimeout(() => {
+            messageInput.classList.remove('misvord-typing-mention');
+            messageInput.style.background = '';
+            messageInput.style.boxShadow = '';
+            messageInput.style.border = '';
+            messageInput.style.borderRadius = '';
+            
+            console.log('📊 After cleanup:', {
+                hasClass: messageInput.classList.contains('misvord-typing-mention'),
+                background: window.getComputedStyle(messageInput).background
+            });
+        }, 3000);
+        
+    }, 100);
+    
+    return true;
+};
+
+window.testCompleteMentionSystem = function() {
+    console.log('Testing complete mention system...');
+    
+    const input = document.getElementById('message-input');
+    if (!input) {
+        console.log('Message input not found');
+        return;
+    }
+
+    console.log('1. Testing blue styling when typing @...');
+    input.focus();
+    input.value = '@';
+    input.dispatchEvent(new Event('input'));
+    
+    setTimeout(() => {
+        const computedStyle = window.getComputedStyle(input);
+        console.log('Background after typing @:', computedStyle.background);
+        console.log('CSS variable value:', computedStyle.getPropertyValue('--discord-channeltextarea-background'));
+        
+        console.log('2. Testing mention menu appears...');
+        const menu = document.querySelector('.misvord-mention-menu');
+        if (menu && !menu.classList.contains('hidden')) {
+            console.log('Mention menu is visible');
+            
+            console.log('3. Testing click on first user...');
+            const firstUser = menu.querySelector('.misvord-mention-item');
+            if (firstUser) {
+                firstUser.click();
+                setTimeout(() => {
+                    console.log('Final input value:', input.value);
+                    console.log('Blue styling removed:', !input.classList.contains('misvord-mention-typing'));
+                }, 100);
+            }
+        } else {
+            console.log('Mention menu not visible');
+        }
+    }, 500);
+};
+
+console.log('Complete mention test function available: testCompleteMentionSystem()');
 
 export default MentionHandler; 

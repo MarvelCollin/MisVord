@@ -271,8 +271,8 @@ class VoiceManager {
 
             window.voiceJoinInProgress = false;
 
-            if (window.MusicLoaderStatic?.playJoinVoiceSound) {
-                window.MusicLoaderStatic.playJoinVoiceSound();
+            if (window.MusicLoaderStatic?.stopCallSound) {
+                window.MusicLoaderStatic.stopCallSound();
             }
             return Promise.resolve();
         } catch (error) {

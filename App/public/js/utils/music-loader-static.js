@@ -5,22 +5,36 @@ export function playDiscordoSound() {
         .catch(err => console.error('Error playing Discordo sound:', err));
 }
 
+let currentCallSound = null;
+
 export function playCallSound() {
-    const sound = new Audio('/public/assets/sound/call_sound.mp3');
-    sound.volume = 0.4;
-    sound.play()
-        .catch(err => console.error('Error playing Call sound:', err));
+    if (currentCallSound) {
+        currentCallSound.currentTime = 0;
+        return;
+    }
+
+    currentCallSound = new Audio('/public/assets/sound/call_sound.mp3');
+    currentCallSound.volume = 0.4;
+    currentCallSound.play().catch(err => console.error('Error playing Call sound:', err));
+
+    currentCallSound.addEventListener('ended', () => {
+        currentCallSound = null;
+    });
+}
+
+export function stopCallSound() {
+    if (currentCallSound) {
+        currentCallSound.pause();
+        currentCallSound.currentTime = 0;
+        currentCallSound = null;
+    }
 }
 
 let currentJoinSound = null;
 
 export function playJoinVoiceSound() {
-    if (currentJoinSound) {
-        currentJoinSound.pause();
-        currentJoinSound.currentTime = 0;
-        currentJoinSound = null;
-    }
-    
+    if (currentJoinSound) return;
+
     currentJoinSound = new Audio('/public/assets/sound/join_voice_sound.mp3');
     currentJoinSound.volume = 0.3;
     currentJoinSound.play()
@@ -63,6 +77,7 @@ export function playDiscordUnmuteSound() {
 const MusicLoaderStatic = {
     playDiscordoSound,
     playCallSound,
+    stopCallSound,
     playJoinVoiceSound,
     stopJoinVoiceSound,
     playDisconnectVoiceSound,

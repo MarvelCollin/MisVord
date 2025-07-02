@@ -522,3 +522,11 @@
         transform: translateX(-50%) scale(1.05);
     }
 }
+
+.page.flipping-forward {
+    animation: pageFlipForward 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.page.flipping-backward {
+    animation: pageFlipBackward 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}

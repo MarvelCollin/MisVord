@@ -111,14 +111,11 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 .video-participant-card {
     background: #1e1f22 !important;
-    border-radius: 8px !important;
+    border-radius: 12px !important;
     overflow: hidden !important;
     border: 2px solid #40444b !important;
     transition: all 0.2s ease !important;
     position: relative !important;
-    aspect-ratio: 16/9 !important;
-    min-height: 180px !important;
-    max-height: 400px !important;
     width: 100% !important;
     height: 100% !important;
     box-sizing: border-box !important;
@@ -168,7 +165,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     overflow-x: hidden !important;
     scrollbar-width: thin !important;
     scrollbar-color: #5865f2 #2f3136 !important;
-    grid-template-rows: repeat(auto-fit, minmax(250px, 1fr)) !important;
+    place-items: stretch !important;
 }
 
 #participantGrid::-webkit-scrollbar {
@@ -289,11 +286,11 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     transition: all 0.2s ease !important;
     cursor: pointer !important;
     border: 2px solid transparent !important;
-    min-height: 200px !important;
-    aspect-ratio: 16/9 !important;
     position: relative !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 .participant-card:hover {
@@ -387,12 +384,15 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 @media (max-width: 768px) {
     #participantGrid {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+        grid-auto-rows: minmax(150px, 1fr) !important;
         gap: 8px !important;
         padding: 8px !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
         max-height: calc(100vh - 200px) !important;
     }
+    
+
     
     #participantGrid::-webkit-scrollbar {
         width: 6px !important;
@@ -437,17 +437,11 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     }
     
     .participant-card {
-        min-height: 140px !important;
-        aspect-ratio: 16/9 !important;
+        width: 100% !important;
+        height: 100% !important;
     }
     
-    #participantGrid[data-count="2"] .participant-card,
-    #participantGrid[data-count="2"] .video-participant-card,
-    #participantGrid[data-count="2"] .screen-share-card {
-        min-width: 45% !important;
-        max-width: 48% !important;
-        height: auto !important;
-    }
+
     
     .participant-avatar {
         width: 60px !important;
@@ -744,12 +738,13 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     background: #000 !important;
 }
 
-#participantGrid[data-count="2"] .participant-card,
-#participantGrid[data-count="2"] .video-participant-card,
-#participantGrid[data-count="2"] .screen-share-card {
-    min-width: 45% !important;
-    max-width: 50% !important;
-    height: auto !important;
+.participant-card,
+.video-participant-card,
+.screen-share-card {
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 .screen-share-card .video-participant-overlay {
@@ -1141,8 +1136,16 @@ class VoiceCallManager {
             const channelName = event.detail?.channelName || 'Voice Channel';
             this.showToast(`Successfully joined ${channelName}`, 'success');
             
+            if (window.MusicLoaderStatic?.stopCallSound) {
+                window.MusicLoaderStatic.stopCallSound();
+            }
+            
             if (window.MusicLoaderStatic?.stopJoinVoiceSound) {
                 window.MusicLoaderStatic.stopJoinVoiceSound();
+            }
+            
+            if (window.MusicLoaderStatic?.playJoinVoiceSound) {
+                window.MusicLoaderStatic.playJoinVoiceSound();
             }
             
             this.updateGrid();
@@ -1469,28 +1472,14 @@ class VoiceCallManager {
 
         console.log(`[DEBUG] Creating voice participant element for: ${participant.name}`);
 
-        container.style.display = 'grid';
-        container.style.gridTemplateColumns = 'repeat(auto-fit, minmax(140px, 1fr))';
-        container.style.gap = '16px';
-        container.style.width = '100%';
-        container.style.maxWidth = '800px';
-        container.style.margin = '0 auto';
+
 
         const element = document.createElement('div');
         element.className = 'voice-participant-card';
         element.dataset.participantId = participant.id;
 
-        element.style.display = 'flex';
-        element.style.flexDirection = 'column';
-        element.style.alignItems = 'center';
-        element.style.justifyContent = 'center';
-        element.style.padding = '16px';
-        element.style.background = '#2f3136';
-        element.style.borderRadius = '8px';
-        element.style.minHeight = '120px';
-        element.style.border = '2px solid transparent';
-        element.style.cursor = 'pointer';
-        element.style.transition = 'all 0.2s ease';
+        element.style.width = '100%';
+        element.style.height = '100%';
 
         const avatarColor = participant.isBot ? '#5865f2' : (participant.isLocal ? '#3ba55c' : this.getAvatarColor(participant.name));
         const initial = participant.name.charAt(0).toUpperCase();
@@ -1729,8 +1718,6 @@ class VoiceCallManager {
         card.dataset.participantId = screenShareId;
         card.style.width = '100%';
         card.style.height = '100%';
-        card.style.minHeight = '180px';
-        card.style.maxHeight = '400px';
         card.style.border = '2px solid #5865f2';
 
         const isLocal = participantId === this.localParticipantId;
@@ -1798,8 +1785,6 @@ class VoiceCallManager {
         card.dataset.participantId = participantId;
         card.style.width = '100%';
         card.style.height = '100%';
-        card.style.minHeight = '180px';
-        card.style.maxHeight = '400px';
 
         const isLocal = participantId === this.localParticipantId;
 
