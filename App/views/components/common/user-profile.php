@@ -118,50 +118,33 @@ class UserProfileVoiceControls {
         this.maxRetries = 50;
         this.eventListenersAttached = false;
         
-        console.log('[USER-PROFILE] 🎯 UserProfileVoiceControls constructor called');
         this.init();
     }
     
     async init() {
-        console.log('[USER-PROFILE] 🚀 Starting initialization...');
-        
         try {
             await this.waitForDependencies();
             await this.setupElements();
             this.setupEventListeners();
             this.updateControls();
             this.initialized = true;
-            console.log('✅ [USER-PROFILE] Voice controls fully initialized');
         } catch (error) {
-            console.error('❌ [USER-PROFILE] Initialization failed:', error);
+            console.error('Failed to initialize user profile voice controls:', error);
         }
     }
     
     async waitForDependencies() {
-        console.log('[USER-PROFILE] ⏳ Waiting for dependencies...');
-        
         return new Promise((resolve, reject) => {
             const checkDependencies = () => {
                 const hasLocalStorage = !!window.localStorageManager;
                 const hasMusicLoader = !!window.MusicLoaderStatic;
                 
-                console.log('[USER-PROFILE] 🔍 Dependency check:', {
-                    localStorageManager: hasLocalStorage,
-                    MusicLoaderStatic: hasMusicLoader,
-                    retryCount: this.retryCount,
-                    maxRetries: this.maxRetries
-                });
-                
                 if (hasLocalStorage && hasMusicLoader) {
-                    console.log('✅ [USER-PROFILE] All dependencies ready');
                     resolve();
                 } else if (this.retryCount >= this.maxRetries) {
                     const missingDeps = [];
                     if (!hasLocalStorage) missingDeps.push('localStorageManager');
                     if (!hasMusicLoader) missingDeps.push('MusicLoaderStatic');
-                    
-                    console.error('❌ [USER-PROFILE] CRITICAL: Missing dependencies after max retries:', missingDeps);
-                    console.error('❌ [USER-PROFILE] Available window objects:', Object.keys(window).filter(key => key.includes('local') || key.includes('Music') || key.includes('voice')));
                     
                     reject(new Error(`Missing dependencies: ${missingDeps.join(', ')}`));
                 } else {
@@ -174,38 +157,14 @@ class UserProfileVoiceControls {
     }
     
     async setupElements() {
-        console.log('[USER-PROFILE] 🔍 Setting up DOM elements...');
-        
         return new Promise((resolve) => {
             const findElements = () => {
                 this.micBtn = document.querySelector('.user-profile-section .mic-btn');
                 this.deafenBtn = document.querySelector('.user-profile-section .deafen-btn');
                 
-                console.log('[USER-PROFILE] 🎯 Element search results:', {
-                    micBtn: !!this.micBtn,
-                    deafenBtn: !!this.deafenBtn,
-                    micBtnElement: this.micBtn,
-                    deafenBtnElement: this.deafenBtn
-                });
-                
                 if (this.micBtn && this.deafenBtn) {
-                    console.log('✅ [USER-PROFILE] All voice control buttons found');
                     resolve();
                 } else {
-                    const userProfileSection = document.querySelector('.user-profile-section');
-                    const allMicBtns = document.querySelectorAll('.mic-btn');
-                    const allDeafenBtns = document.querySelectorAll('.deafen-btn');
-                    
-                    console.error('❌ [USER-PROFILE] CRITICAL: Voice control buttons not found!');
-                    console.error('❌ [USER-PROFILE] Debug info:', {
-                        userProfileSection: !!userProfileSection,
-                        userProfileSectionHTML: userProfileSection?.outerHTML.substring(0, 200) + '...',
-                        allMicBtnsCount: allMicBtns.length,
-                        allDeafenBtnsCount: allDeafenBtns.length,
-                        micBtns: Array.from(allMicBtns).map(btn => btn.outerHTML.substring(0, 100)),
-                        deafenBtns: Array.from(allDeafenBtns).map(btn => btn.outerHTML.substring(0, 100))
-                    });
-                    
                     setTimeout(findElements, 200);
                 }
             };
@@ -220,87 +179,65 @@ class UserProfileVoiceControls {
     
     setupEventListeners() {
         if (this.eventListenersAttached) {
-            console.log('[USER-PROFILE] ⚠️ Event listeners already attached, skipping');
             return;
         }
-        
-        console.log('[USER-PROFILE] 🎧 Setting up event listeners...');
         
         if (this.micBtn) {
             this.micBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('[USER-PROFILE] 🎤 Mic button clicked');
                 this.handleMicClick();
             });
-            console.log('✅ [USER-PROFILE] Mic button event listener attached');
-        } else {
-            console.error('❌ [USER-PROFILE] Cannot attach mic button listener - button not found');
         }
         
         if (this.deafenBtn) {
             this.deafenBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('[USER-PROFILE] 🔇 Deafen button clicked');
                 this.handleDeafenClick();
             });
-            console.log('✅ [USER-PROFILE] Deafen button event listener attached');
-        } else {
-            console.error('❌ [USER-PROFILE] Cannot attach deafen button listener - button not found');
         }
         
         window.addEventListener('voiceStateChanged', () => {
-            console.log('[USER-PROFILE] 🔄 Voice state changed event received');
             this.updateControls();
         });
         
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener(() => {
-                console.log('[USER-PROFILE] 🔄 LocalStorage voice state listener triggered');
                 this.updateControls();
             });
         }
         
         if (window.unifiedVoiceStateManager) {
             window.unifiedVoiceStateManager.storageManager.addVoiceStateListener(() => {
-                console.log('[USER-PROFILE] 🔄 Unified voice state listener triggered');
                 this.updateControls();
             });
         }
         
         this.eventListenersAttached = true;
-        console.log('✅ [USER-PROFILE] All event listeners attached');
     }
     
     updateControls() {
         if (!window.localStorageManager) {
-            console.error('❌ [USER-PROFILE] Cannot update controls - localStorageManager not available');
             return;
         }
         
         try {
             const state = window.localStorageManager.getVoiceState();
-            console.log('[USER-PROFILE] 🔄 Updating controls with state:', state);
-            
             this.updateMicButton(state);
             this.updateDeafenButton(state);
-            
-            console.log('✅ [USER-PROFILE] Controls updated successfully');
         } catch (error) {
-            console.error('❌ [USER-PROFILE] Error updating controls:', error);
+            console.error('Error updating user profile controls:', error);
         }
     }
     
     updateMicButton(state) {
         if (!this.micBtn) {
-            console.error('❌ [USER-PROFILE] Cannot update mic button - element not found');
             return;
         }
         
         const micIcon = this.micBtn.querySelector('i');
         if (!micIcon) {
-            console.error('❌ [USER-PROFILE] Cannot update mic button - icon not found');
             return;
         }
         
@@ -308,24 +245,20 @@ class UserProfileVoiceControls {
             micIcon.className = 'fas fa-microphone-slash text-lg';
             this.micBtn.classList.add('text-[#ed4245]');
             this.micBtn.classList.remove('text-discord-lighter');
-            console.log('[USER-PROFILE] 🎤 Mic button set to MUTED state');
         } else {
             micIcon.className = 'fas fa-microphone text-lg';
             this.micBtn.classList.remove('text-[#ed4245]');
             this.micBtn.classList.add('text-discord-lighter');
-            console.log('[USER-PROFILE] 🎤 Mic button set to UNMUTED state');
         }
     }
     
     updateDeafenButton(state) {
         if (!this.deafenBtn) {
-            console.error('❌ [USER-PROFILE] Cannot update deafen button - element not found');
             return;
         }
         
         const deafenIcon = this.deafenBtn.querySelector('i');
         if (!deafenIcon) {
-            console.error('❌ [USER-PROFILE] Cannot update deafen button - icon not found');
             return;
         }
         
@@ -333,65 +266,49 @@ class UserProfileVoiceControls {
             deafenIcon.className = 'fas fa-volume-xmark text-lg';
             this.deafenBtn.classList.add('text-[#ed4245]');
             this.deafenBtn.classList.remove('text-discord-lighter');
-            console.log('[USER-PROFILE] 🔇 Deafen button set to DEAFENED state');
         } else {
             deafenIcon.className = 'fas fa-headphones text-lg';
             this.deafenBtn.classList.remove('text-[#ed4245]');
             this.deafenBtn.classList.add('text-discord-lighter');
-            console.log('[USER-PROFILE] 🔇 Deafen button set to NORMAL state');
         }
     }
     
     handleMicClick() {
-        console.log('[USER-PROFILE] 🎤 Processing mic click...');
-        
         if (!window.localStorageManager) {
-            console.error('❌ [USER-PROFILE] CRITICAL: LocalStorageManager not available for mic toggle');
             return;
         }
         
         try {
             const wasToggled = window.localStorageManager.toggleVoiceMute();
-            console.log('[USER-PROFILE] 🎤 Mic toggle result:', wasToggled ? 'MUTED' : 'UNMUTED');
             
             if (window.MusicLoaderStatic) {
                 if (wasToggled) {
                     window.MusicLoaderStatic.playDiscordMuteSound();
-                    console.log('[USER-PROFILE] 🔊 Playing mute sound');
                 } else {
                     window.MusicLoaderStatic.playDiscordUnmuteSound();
-                    console.log('[USER-PROFILE] 🔊 Playing unmute sound');
                 }
-            } else {
-                console.error('❌ [USER-PROFILE] MusicLoaderStatic not available - no sound feedback');
             }
             
             setTimeout(() => this.updateControls(), 50);
         } catch (error) {
-            console.error('❌ [USER-PROFILE] Error in mic click handler:', error);
+            console.error('Error in user profile mic click handler:', error);
         }
     }
     
     handleDeafenClick() {
-        console.log('[USER-PROFILE] 🔇 Processing deafen click...');
-        
         if (!window.localStorageManager) {
-            console.error('❌ [USER-PROFILE] CRITICAL: LocalStorageManager not available for deafen toggle');
             return;
         }
         
         try {
             window.localStorageManager.toggleVoiceDeafen();
-            console.log('[USER-PROFILE] 🔇 Deafen toggle completed');
-            
             setTimeout(() => this.updateControls(), 50);
         } catch (error) {
-            console.error('❌ [USER-PROFILE] Error in deafen click handler:', error);
+            console.error('Error in user profile deafen click handler:', error);
         }
     }
     
     reinitialize() {
-        console.log('[USER-PROFILE] 🔄 Reinitializing user profile voice controls...');
         this.initialized = false;
         this.eventListenersAttached = false;
         this.retryCount = 0;
@@ -400,10 +317,7 @@ class UserProfileVoiceControls {
 }
 
 function initializeUserProfileVoiceControls() {
-    console.log('[USER-PROFILE] 🚀 Initializing user profile voice controls...');
-    
     if (window.userProfileVoiceControls && window.userProfileVoiceControls.initialized) {
-        console.log('[USER-PROFILE] ✅ Voice controls already initialized');
         return window.userProfileVoiceControls;
     }
     
@@ -411,7 +325,7 @@ function initializeUserProfileVoiceControls() {
         window.userProfileVoiceControls = new UserProfileVoiceControls();
         return window.userProfileVoiceControls;
     } catch (error) {
-        console.error('❌ [USER-PROFILE] Failed to initialize voice controls:', error);
+        console.error('Failed to initialize user profile voice controls:', error);
         return null;
     }
 }
@@ -423,12 +337,10 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('pageLoaded', () => {
-    console.log('[USER-PROFILE] 📄 Page loaded event - reinitializing voice controls');
     setTimeout(initializeUserProfileVoiceControls, 100);
 });
 
 window.addEventListener('layoutChanged', () => {
-    console.log('[USER-PROFILE] 🔄 Layout changed event - reinitializing voice controls');
     setTimeout(initializeUserProfileVoiceControls, 200);
 });
 

@@ -104,8 +104,8 @@ ob_start();
     </div>
 
     <div class="text-center">
-        <h1 class="hero-title floating scramble-text text-7xl md:text-9xl font-bold mb-4" data-text="MisVord">
-            MisVord
+        <h1 class="hero-title floating scramble-text text-7xl md:text-9xl font-bold mb-4" data-text="MisVoard">
+            MisVordasd
         </h1>
         <p class="hero-tagline opacity-0 text-xl md:text-2xl text-white font-bold tracking-wide mb-8">
             <span class="tagline-text animated-text"></span>

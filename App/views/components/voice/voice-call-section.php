@@ -845,7 +845,7 @@ class UnifiedParticipantManager {
         
         if (this.participants.has(participantId)) {
             const existingSource = this.participantSources.get(participantId);
-            console.log(`⚠️ [PARTICIPANT-MANAGER] Participant ${participantId} already exists from source: ${existingSource}, ignoring duplicate from: ${source}`);
+            console.log(`[PARTICIPANT-MANAGER] Participant ${participantId} already exists from source: ${existingSource}, ignoring duplicate from: ${source}`);
             return;
         }
 
@@ -867,7 +867,7 @@ class UnifiedParticipantManager {
         this.participants.set(participantId, participant);
         this.participantSources.set(participantId, source);
         
-        console.log(`✅ [PARTICIPANT-MANAGER] Added participant: ${participant.name} (${participantId}) from source: ${source}`);
+        console.log(`[PARTICIPANT-MANAGER] Added participant: ${participant.name} (${participantId}) from source: ${source}`);
         
         if (window.voiceCallManager) {
             window.voiceCallManager.createParticipantElement(participant);
@@ -883,7 +883,7 @@ class UnifiedParticipantManager {
         const participantId = data.participantId || data.participant;
         
         if (!this.participants.has(participantId)) {
-            console.log(`⚠️ [PARTICIPANT-MANAGER] Participant ${participantId} not found for removal`);
+            console.log(`[PARTICIPANT-MANAGER] Participant ${participantId} not found for removal`);
             return;
         }
 
@@ -891,7 +891,7 @@ class UnifiedParticipantManager {
         this.participants.delete(participantId);
         this.participantSources.delete(participantId);
         
-        console.log(`🗑️ [PARTICIPANT-MANAGER] Removed participant: ${participant.name} (${participantId})`);
+        console.log(`[PARTICIPANT-MANAGER] Removed participant: ${participant.name} (${participantId})`);
         
         if (window.voiceCallManager) {
             window.voiceCallManager.removeParticipantElement(participantId);
@@ -909,7 +909,7 @@ class UnifiedParticipantManager {
         const source = 'bot';
         
         if (this.participants.has(botId)) {
-            console.log(`⚠️ [PARTICIPANT-MANAGER] Bot ${botId} already exists, ignoring duplicate`);
+            console.log(`[PARTICIPANT-MANAGER] Bot ${botId} already exists, ignoring duplicate`);
             return;
         }
 
@@ -927,7 +927,7 @@ class UnifiedParticipantManager {
         this.participants.set(botId, participant);
         this.participantSources.set(botId, source);
         
-        console.log(`🤖 [PARTICIPANT-MANAGER] Added bot: ${participant.name} (${botId})`);
+        console.log(`[PARTICIPANT-MANAGER] Added bot: ${participant.name} (${botId})`);
         
         if (window.voiceCallManager) {
             window.voiceCallManager.createParticipantElement(participant);
@@ -939,7 +939,7 @@ class UnifiedParticipantManager {
         const botId = data.participant?.id || data.id;
         
         if (!this.participants.has(botId)) {
-            console.log(`⚠️ [PARTICIPANT-MANAGER] Bot ${botId} not found for removal`);
+            console.log(`[PARTICIPANT-MANAGER] Bot ${botId} not found for removal`);
             return;
         }
 
@@ -947,7 +947,7 @@ class UnifiedParticipantManager {
         this.participants.delete(botId);
         this.participantSources.delete(botId);
         
-        console.log(`🤖🗑️ [PARTICIPANT-MANAGER] Removed bot: ${participant.name} (${botId})`);
+        console.log(`[PARTICIPANT-MANAGER] Removed bot: ${participant.name} (${botId})`);
         
         if (window.voiceCallManager) {
             window.voiceCallManager.removeParticipantElement(botId);
@@ -998,14 +998,14 @@ class VoiceCallManager {
 
     setupEventListeners() {
         if (this.eventListenersRegistered || window.voiceEventListenersRegistered) {
-            console.log('⚠️ [VOICE-CALL-MANAGER] Event listeners already registered, skipping');
+            console.log('[VOICE-CALL-MANAGER] Event listeners already registered, skipping');
             return;
         }
         
         this.eventListenersRegistered = true;
         window.voiceEventListenersRegistered = true;
         
-        console.log('🎧 [VOICE-CALL-MANAGER] Setting up event listeners for participant management');
+        console.log('[VOICE-CALL-MANAGER] Setting up event listeners for participant management');
 
         window.addEventListener('videosdkParticipantJoined', (event) => {
             this.participantManager.processEvent({
@@ -1029,7 +1029,7 @@ class VoiceCallManager {
         });
 
         window.addEventListener('voiceConnect', (event) => {
-            console.log('🔗 [VOICE-CALL-MANAGER] Voice connect event received', event.detail);
+            console.log('[VOICE-CALL-MANAGER] Voice connect event received', event.detail);
             
             this.isConnected = true;
             
@@ -1045,10 +1045,10 @@ class VoiceCallManager {
             
             if (window.videoSDKManager?.meeting?.localParticipant) {
                 this.localParticipantId = window.videoSDKManager.meeting.localParticipant.id;
-                console.log('👤 [VOICE-CALL-MANAGER] Set local participant ID:', this.localParticipantId);
+                console.log('[VOICE-CALL-MANAGER] Set local participant ID:', this.localParticipantId);
                 
                 setTimeout(() => {
-                    console.log('👤 [VOICE-CALL-MANAGER] Adding local participant to UI');
+                    console.log('[VOICE-CALL-MANAGER] Adding local participant to UI');
                     this.participantManager.processEvent({
                         type: 'participant_joined',
                         data: {
@@ -1098,7 +1098,7 @@ class VoiceCallManager {
             }
             
             if (this.localParticipantId) {
-                console.log('🗑️ [VOICE-CALL-MANAGER] Removing local participant on disconnect');
+                console.log('[VOICE-CALL-MANAGER] Removing local participant on disconnect');
                 this.participantManager.processEvent({
                     type: 'participant_left',
                     data: {
@@ -1173,7 +1173,7 @@ class VoiceCallManager {
             const io = window.globalSocketManager.io;
             
             io.on('bot-voice-participant-joined', (data) => {
-                console.log('🤖🎵 [VOICE-CALL-MANAGER] Bot joined voice channel:', data);
+                console.log('[VOICE-CALL-MANAGER] Bot joined voice channel:', data);
                 this.participantManager.processEvent({
                     type: 'bot_joined',
                     data: data
@@ -1181,12 +1181,12 @@ class VoiceCallManager {
                 
                 if (window.showToast) {
                     const botName = data.participant?.username || 'Bot';
-                    window.showToast(`🤖 ${botName} joined the voice channel`, 'info');
+                    window.showToast(`${botName} joined the voice channel`, 'info');
                 }
             });
 
             io.on('bot-voice-participant-left', (data) => {
-                console.log('🤖👋 [VOICE-CALL-MANAGER] Bot left voice channel:', data);
+                console.log('[VOICE-CALL-MANAGER] Bot left voice channel:', data);
                 this.participantManager.processEvent({
                     type: 'bot_left',
                     data: data
@@ -1194,7 +1194,7 @@ class VoiceCallManager {
                 
                 if (window.showToast) {
                     const botName = data.participant?.username || 'Bot';
-                    window.showToast(`🤖 ${botName} left the voice channel`, 'info');
+                    window.showToast(`${botName} left the voice channel`, 'info');
                 }
             });
         }
@@ -1217,30 +1217,72 @@ class VoiceCallManager {
             const card = event.target.closest('[data-participant-id]');
             if (!card) return;
             
-            const participantId = card.dataset.participantId;
-            this.toggleParticipantFullscreen(participantId);
+            let participantId = card.dataset.participantId;
+            const isScreenShare = card.classList.contains('screen-share-card');
+            
+            console.log('[FULLSCREEN] Double-click detected:', {
+                originalParticipantId: participantId,
+                isScreenShare: isScreenShare,
+                cardClasses: card.className
+            });
+            
+            if (isScreenShare) {
+                participantId = participantId.replace('-screenshare', '');
+                console.log('[FULLSCREEN] Screen share double-click, extracted participant ID:', participantId);
+                this.toggleParticipantFullscreen(participantId, 'screenshare');
+            } else {
+                console.log('[FULLSCREEN] Regular card double-click, participant ID:', participantId);
+                this.toggleParticipantFullscreen(participantId, 'video');
+            }
         });
     }
 
-    toggleParticipantFullscreen(participantId) {
-        if (this.fullscreenParticipant === participantId) {
+    toggleParticipantFullscreen(participantId, cardType = 'video') {
+        const fullscreenId = cardType === 'screenshare' ? `${participantId}-screenshare` : participantId;
+        
+        if (this.fullscreenParticipant === fullscreenId) {
             this.exitFullscreen();
         } else {
-            this.enterFullscreen(participantId);
+            this.enterFullscreen(participantId, cardType);
         }
     }
 
-    enterFullscreen(participantId) {
+    enterFullscreen(participantId, cardType = 'video') {
         this.exitFullscreen();
         
-        this.fullscreenParticipant = participantId;
+        const fullscreenId = cardType === 'screenshare' ? `${participantId}-screenshare` : participantId;
+        this.fullscreenParticipant = fullscreenId;
         this.isFullscreenMode = true;
         
-        const targetCard = document.querySelector(`[data-participant-id="${participantId}"]`);
-        if (!targetCard) return;
+        let targetCard;
+        let cardSelector;
+        if (cardType === 'screenshare') {
+            cardSelector = `[data-participant-id="${participantId}-screenshare"].screen-share-card`;
+            targetCard = document.querySelector(cardSelector);
+        } else {
+            cardSelector = `[data-participant-id="${participantId}"].video-participant-card:not(.screen-share-card), [data-participant-id="${participantId}"].voice-participant-card`;
+            targetCard = document.querySelector(cardSelector);
+        }
+        
+        console.log('[FULLSCREEN] Looking for target card:', {
+            participantId,
+            cardType,
+            cardSelector,
+            foundCard: !!targetCard
+        });
+        
+        if (!targetCard) {
+            console.log('[FULLSCREEN] Target card not found, aborting fullscreen');
+            return;
+        }
         
         const participant = this.participantManager.getParticipant(participantId);
-        if (!participant) return;
+        if (!participant) {
+            console.log('[FULLSCREEN] Participant not found in manager:', participantId);
+            return;
+        }
+        
+        console.log('[FULLSCREEN] Found participant:', participant.name);
         
         const overlay = document.createElement('div');
         overlay.className = 'fullscreen-overlay';
@@ -1252,32 +1294,33 @@ class VoiceCallManager {
         const originalVideo = targetCard.querySelector('video');
         const clonedVideo = clonedCard.querySelector('video');
         
-        console.log('🔍 [FULLSCREEN] Debug info:', {
+        console.log('[FULLSCREEN] Debug info:', {
             participantId,
+            cardType,
             hasOriginalVideo: !!originalVideo,
             hasClonedVideo: !!clonedVideo,
             hasVideoStream: !!(originalVideo?.srcObject),
             originalVideoSrc: originalVideo?.src,
             cardClasses: targetCard.className,
-            cardType: targetCard.classList.contains('video-participant-card') ? 'video' : 'voice'
+            isScreenShare: cardType === 'screenshare'
         });
         
         if (originalVideo && clonedVideo && originalVideo.srcObject) {
-            console.log('🔍 [FULLSCREEN] Copying video stream to fullscreen');
+            console.log('[FULLSCREEN] Copying video stream to fullscreen');
             clonedVideo.srcObject = originalVideo.srcObject;
             clonedVideo.autoplay = true;
             clonedVideo.playsInline = true;
             clonedVideo.muted = originalVideo.muted;
             
             clonedVideo.play().then(() => {
-                console.log('🔍 [FULLSCREEN] Video playing successfully in fullscreen');
+                console.log('[FULLSCREEN] Video playing successfully in fullscreen');
             }).catch(error => {
-                console.warn('🔍 [FULLSCREEN] Video play failed:', error);
+                console.warn('[FULLSCREEN] Video play failed:', error);
             });
         } else if (originalVideo && !originalVideo.srcObject) {
-            console.log('🔍 [FULLSCREEN] Original video has no srcObject, might be voice-only participant');
+            console.log('[FULLSCREEN] Original video has no srcObject, might be voice-only participant');
         } else {
-            console.log('🔍 [FULLSCREEN] No video element found, this is likely a voice-only participant');
+            console.log('[FULLSCREEN] No video element found, this is likely a voice-only participant');
         }
         
         const minimizeBtn = document.createElement('button');
@@ -1288,7 +1331,8 @@ class VoiceCallManager {
         const participantInfo = document.createElement('div');
         participantInfo.className = 'fullscreen-participant-info';
         const isLocal = participantId === this.localParticipantId ? ' (You)' : '';
-        participantInfo.textContent = `${participant.name}${isLocal}`;
+        const shareType = cardType === 'screenshare' ? ' - Screen' : '';
+        participantInfo.textContent = `${participant.name}${isLocal}${shareType}`;
         
         clonedCard.appendChild(minimizeBtn);
         clonedCard.appendChild(participantInfo);
@@ -1303,7 +1347,7 @@ class VoiceCallManager {
         
         document.addEventListener('keydown', this.handleFullscreenKeydown.bind(this));
         
-        console.log(`🔍 [FULLSCREEN] Participant ${participantId} entered fullscreen mode`);
+        console.log(`[FULLSCREEN] Participant ${participantId} entered fullscreen mode (${cardType})`);
     }
 
     exitFullscreen() {
@@ -1319,7 +1363,7 @@ class VoiceCallManager {
         
         document.removeEventListener('keydown', this.handleFullscreenKeydown.bind(this));
         
-        console.log(`🔍 [FULLSCREEN] Fullscreen mode exited`);
+        console.log(`[FULLSCREEN] Fullscreen mode exited`);
     }
 
     handleFullscreenKeydown(event) {
@@ -1333,23 +1377,23 @@ class VoiceCallManager {
     createParticipantElement(participant) {
         const container = document.getElementById('participantGrid');
         if (!container) {
-            console.error('🔊 [ERROR] participantGrid container not found');
+            console.error('[ERROR] participantGrid container not found');
             return;
         }
 
         const existingVideoCard = document.querySelector(`[data-participant-id="${participant.id}"].video-participant-card`);
         if (existingVideoCard) {
-            console.log(`⚠️ [VOICE-MANAGER] Video card exists for ${participant.id}, skipping voice card creation`);
+            console.log(`[VOICE-MANAGER] Video card exists for ${participant.id}, skipping voice card creation`);
             return;
         }
 
         const existingElement = document.querySelector(`[data-participant-id="${participant.id}"].voice-participant-card`);
         if (existingElement) {
-            console.log(`⚠️ [VOICE-MANAGER] Voice card for participant ${participant.id} already exists`);
+            console.log(`[VOICE-MANAGER] Voice card for participant ${participant.id} already exists`);
             return;
         }
 
-        console.log(`🔊 [DEBUG] Creating voice participant element for: ${participant.name}`);
+        console.log(`[DEBUG] Creating voice participant element for: ${participant.name}`);
 
         container.style.display = 'grid';
         container.style.gridTemplateColumns = 'repeat(auto-fit, minmax(140px, 1fr))';
@@ -1416,12 +1460,14 @@ class VoiceCallManager {
 
     removeParticipantElement(participantId) {
         const voiceCard = document.querySelector(`[data-participant-id="${participantId}"].voice-participant-card`);
-        const videoCard = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card`);
+        const videoCard = document.querySelector(`[data-participant-id="${participantId}"].video-participant-card:not(.screen-share-card)`);
+        const screenShareCard = document.querySelector(`[data-participant-id="${participantId}-screenshare"].screen-share-card`);
         
         if (voiceCard) voiceCard.remove();
         if (videoCard) videoCard.remove();
+        if (screenShareCard) screenShareCard.remove();
         
-        if (this.fullscreenParticipant === participantId) {
+        if (this.fullscreenParticipant === participantId || this.fullscreenParticipant === `${participantId}-screenshare`) {
             this.exitFullscreen();
         }
     }
@@ -1444,7 +1490,7 @@ class VoiceCallManager {
     }
 
     cleanup() {
-        console.log('🧹 [VOICE-CALL-MANAGER] Cleaning up participants and UI');
+        console.log('[VOICE-CALL-MANAGER] Cleaning up participants and UI');
         
         this.participantManager.clear();
         
@@ -1468,7 +1514,7 @@ class VoiceCallManager {
     }
 
     handleCameraStream(participantId, stream) {
-        console.log(`🎥 [DEBUG] Handling camera stream for ${participantId}`, {
+        console.log(`[DEBUG] Handling camera stream for ${participantId}`, {
             stream: stream,
             streamType: typeof stream,
             isMediaStream: stream instanceof MediaStream,
@@ -1482,7 +1528,7 @@ class VoiceCallManager {
         });
         
         if (participantId === this.localParticipantId) {
-            console.log(`🎥 [DEBUG] Handling local participant camera stream`);
+            console.log(`[DEBUG] Handling local participant camera stream`);
             this.isVideoOn = true;
         }
         
@@ -1494,12 +1540,12 @@ class VoiceCallManager {
         this.createVideoParticipantCard(participantId, stream);
         this.updateParticipantCards(participantId);
         
-        console.log('✅ [DEBUG] Camera stream handled - SUCCESS');
+        console.log('[DEBUG] Camera stream handled - SUCCESS');
         this.updateView();
     }
 
     handleCameraDisabled(participantId) {
-        console.log(`🎥❌ Handling camera disabled for ${participantId}`);
+        console.log(`[CAMERA] Handling camera disabled for ${participantId}`);
         
         const participant = this.participantManager.getParticipant(participantId);
         if (participant) {
@@ -1508,7 +1554,7 @@ class VoiceCallManager {
         
         if (participantId === this.localParticipantId) {
             this.isVideoOn = false;
-            console.log('✅ Local camera disabled');
+            console.log('[CAMERA] Local camera disabled');
         }
         
         this.removeVideoParticipantCard(participantId);
@@ -1518,7 +1564,7 @@ class VoiceCallManager {
     }
 
     handleScreenShare(participantId, stream) {
-        console.log(`🖥️ Handling screen share for ${participantId}`, stream);
+        console.log(`[SCREEN-SHARE] Handling screen share for ${participantId}`, stream);
         
         const participant = this.participantManager.getParticipant(participantId);
         if (participant) {
@@ -1532,14 +1578,15 @@ class VoiceCallManager {
         this.createScreenShareParticipantCard(participantId, stream);
         this.updateParticipantCards(participantId);
         
-        console.log('✅ Screen share created as participant card');
+        console.log('[SCREEN-SHARE] Screen share created as participant card');
         this.updateView();
     }
 
     handleScreenShareStopped(participantId = null) {
-        console.log(`🖥️❌ Handling screen share stopped for ${participantId || 'unknown'}`);
+        console.log(`[SCREEN-SHARE] Handling screen share stopped for ${participantId || 'unknown'}`);
         
-        const screenCard = document.querySelector(`[data-participant-id="${participantId}"].screen-share-card`);
+        const screenShareId = `${participantId}-screenshare`;
+        const screenCard = document.querySelector(`[data-participant-id="${screenShareId}"].screen-share-card`);
         if (screenCard) {
             screenCard.remove();
         }
@@ -1553,9 +1600,13 @@ class VoiceCallManager {
             this.isScreenSharing = false;
         }
         
+        if (this.fullscreenParticipant === screenShareId) {
+            this.exitFullscreen();
+        }
+        
         this.updateParticipantCards(participantId);
         
-        console.log('✅ Screen share stopped');
+        console.log('[SCREEN-SHARE] Screen share stopped');
         this.updateView();
     }
 
@@ -1565,7 +1616,8 @@ class VoiceCallManager {
             return;
         }
 
-        let existingCard = document.querySelector(`[data-participant-id="${participantId}"].screen-share-card`);
+        const screenShareId = `${participantId}-screenshare`;
+        let existingCard = document.querySelector(`[data-participant-id="${screenShareId}"].screen-share-card`);
         if (existingCard) {
             const video = existingCard.querySelector('video');
             if (video && stream) {
@@ -1586,9 +1638,15 @@ class VoiceCallManager {
             };
         }
 
+        console.log('[SCREEN-SHARE] Creating screen share card:', {
+            participantId,
+            screenShareId,
+            participantName: participant.name
+        });
+
         const card = document.createElement('div');
         card.className = 'screen-share-card video-participant-card';
-        card.dataset.participantId = participantId;
+        card.dataset.participantId = screenShareId;
         card.style.width = '100%';
         card.style.height = '100%';
         card.style.minHeight = '180px';
@@ -1599,7 +1657,7 @@ class VoiceCallManager {
         const localIndicator = isLocal ? ' (You)' : '';
 
         card.innerHTML = `
-            <video autoplay playsinline ${isLocal ? '' : 'muted'} style="width: 100%; height: 100%; object-fit: contain; background: #000;" data-participant-id="${participantId}"></video>
+            <video autoplay playsinline ${isLocal ? '' : 'muted'} style="width: 100%; height: 100%; object-fit: contain; background: #000;" data-participant-id="${screenShareId}"></video>
             <div class="video-participant-overlay">
                 <div class="flex items-center space-x-2">
                     <i class="fas fa-desktop text-[#5865f2]"></i>
@@ -1615,6 +1673,12 @@ class VoiceCallManager {
         }
 
         container.appendChild(card);
+        
+        console.log('[SCREEN-SHARE] Screen share card added to DOM:', {
+            cardId: screenShareId,
+            cardClasses: card.className,
+            hasVideo: !!card.querySelector('video')
+        });
         
         if (!participant.isLocal) {
             this.scrollToNewParticipant(card);
@@ -1717,10 +1781,10 @@ class VoiceCallManager {
         const hasVideo = participant.hasVideo || false;
         const hasScreenShare = participant.hasScreenShare || false;
         const hasVideoCard = !!document.querySelector(`[data-participant-id="${participantId}"].video-participant-card:not(.screen-share-card)`);
-        const hasScreenShareCard = !!document.querySelector(`[data-participant-id="${participantId}"].screen-share-card`);
+        const hasScreenShareCard = !!document.querySelector(`[data-participant-id="${participantId}-screenshare"].screen-share-card`);
         const hasVoiceCard = !!document.querySelector(`[data-participant-id="${participantId}"].voice-participant-card`);
         
-        console.log(`🔄 Updating participant cards for ${participantId}:`, {
+        console.log(`[UPDATE] Updating participant cards for ${participantId}:`, {
             hasVideo, hasScreenShare, hasVideoCard, hasScreenShareCard, hasVoiceCard
         });
         
@@ -1755,7 +1819,7 @@ class VoiceCallManager {
 
     attachStreamToVideo(videoElement, stream) {
         try {
-            console.log(`🔧 [DEBUG] attachStreamToVideo called with:`, {
+            console.log(`[DEBUG] attachStreamToVideo called with:`, {
                 videoElement: !!videoElement,
                 videoElementId: videoElement?.id,
                 stream: stream,
@@ -1766,47 +1830,47 @@ class VoiceCallManager {
             });
 
             if (videoElement.srcObject) {
-                console.log(`🔧 [DEBUG] Cleaning up existing srcObject...`);
+                console.log(`[DEBUG] Cleaning up existing srcObject...`);
                 const tracks = videoElement.srcObject.getTracks();
                 tracks.forEach(track => track.stop());
             }
 
             let mediaStream = null;
             if (stream instanceof MediaStream) {
-                console.log(`🔧 [DEBUG] Stream is MediaStream directly`);
+                console.log(`[DEBUG] Stream is MediaStream directly`);
                 mediaStream = stream;
             } else if (stream.stream instanceof MediaStream) {
-                console.log(`🔧 [DEBUG] Stream has .stream property with MediaStream`);
+                console.log(`[DEBUG] Stream has .stream property with MediaStream`);
                 mediaStream = stream.stream;
             } else if (stream.track) {
-                console.log(`🔧 [DEBUG] Stream has .track property, creating MediaStream`);
+                console.log(`[DEBUG] Stream has .track property, creating MediaStream`);
                 mediaStream = new MediaStream([stream.track]);
             } else {
-                console.error(`🔧 [ERROR] Unknown stream format:`, stream);
+                console.error(`[ERROR] Unknown stream format:`, stream);
             }
 
             if (mediaStream) {
-                console.log(`🔧 [DEBUG] Setting srcObject and playing...`, {
+                console.log(`[DEBUG] Setting srcObject and playing...`, {
                     mediaStreamTracks: mediaStream.getTracks().length,
                     trackTypes: mediaStream.getTracks().map(t => t.kind)
                 });
                 videoElement.srcObject = mediaStream;
                 videoElement.play().then(() => {
-                    console.log(`🔧 [SUCCESS] Video element is now playing`);
+                    console.log(`[SUCCESS] Video element is now playing`);
                 }).catch(error => {
-                    console.warn(`🔧 [WARN] Video play failed:`, error);
+                    console.warn(`[WARN] Video play failed:`, error);
                 });
             } else {
-                console.error(`🔧 [ERROR] No valid MediaStream found`);
+                console.error(`[ERROR] No valid MediaStream found`);
             }
         } catch (error) {
-            console.error('🔧 [ERROR] Error attaching stream:', error);
+            console.error('[ERROR] Error attaching stream:', error);
         }
     }
 
     hasOtherVideo() {
         const result = Array.from(this.participantManager.participants.values()).some(p => p.hasVideo && p.id !== this.localParticipantId);
-        console.log(`🔍 [DEBUG] hasOtherVideo() check:`, {
+        console.log(`[DEBUG] hasOtherVideo() check:`, {
             participants: Array.from(this.participantManager.participants.values()).map(p => ({
                 id: p.id,
                 hasVideo: p.hasVideo,
@@ -1903,7 +1967,7 @@ class VoiceCallManager {
         const unifiedGridView = document.getElementById('unifiedGridView');
         const screenShareView = document.getElementById('screenShareView');
 
-        console.log(`🔄 [DEBUG] updateView() called with state:`, {
+        console.log(`[DEBUG] updateView() called with state:`, {
             isVideoOn: this.isVideoOn,
             isScreenSharing: this.isScreenSharing,
             hasOtherVideo: this.hasOtherVideo(),
@@ -1918,7 +1982,7 @@ class VoiceCallManager {
         screenShareView?.classList.add('hidden');
         unifiedGridView?.classList.remove('hidden');
         this.updateGrid();
-        console.log('🎤 [DEBUG] Showing unified grid view');
+        console.log('[DEBUG] Showing unified grid view');
 
         this.updateButtonStates();
         this.updateParticipantCount();
@@ -2208,7 +2272,7 @@ function toggleVideoLayout() {
 
 const initializeVoiceCallSystem = () => {
     if (window.voiceCallManager) {
-        console.log('⚠️ [VOICE-CALL] VoiceCallManager already exists, skipping duplicate creation');
+        console.log('[VOICE-CALL] VoiceCallManager already exists, skipping duplicate creation');
         return;
     }
     
@@ -2222,7 +2286,7 @@ const initializeVoiceCallSystem = () => {
         return;
     }
     
-    console.log('🚀 [VOICE-CALL] Creating single VoiceCallManager instance');
+    console.log('[VOICE-CALL] Creating single VoiceCallManager instance');
     window.voiceCallManager = new VoiceCallManager();
     
     const gridViewBtn = document.getElementById('gridViewBtn');
@@ -2237,12 +2301,12 @@ const initializeVoiceCallSystem = () => {
     }
     
     if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-        console.log('✅ [VOICE-CALL] Socket manager ready, voice call system operational');
+        console.log('[VOICE-CALL] Socket manager ready, voice call system operational');
     } else {
-        console.log('⏳ [VOICE-CALL] Waiting for socket manager...');
+        console.log('[VOICE-CALL] Waiting for socket manager...');
         const checkSocket = () => {
             if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-                console.log('✅ [VOICE-CALL] Socket manager ready, voice call system now operational');
+                console.log('[VOICE-CALL] Socket manager ready, voice call system now operational');
             } else {
                 setTimeout(checkSocket, 500);
             }

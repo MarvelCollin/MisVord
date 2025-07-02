@@ -5,6 +5,7 @@ import FileUploadHandler from './file-upload-handler.js';
 import SendReceiveHandler from './send-receive-handler.js';
 import ChatBot from './chat-bot.js';
 import MentionHandler from './mention-handler.js';
+import TextToSpeech from './text-to-speech.js';
 
 
 
@@ -218,6 +219,7 @@ class ChatSection {
             this.sendReceiveHandler = new SendReceiveHandler(this);
             this.chatBot = new ChatBot(this);
             this.mentionHandler = null;
+            this.tts = new TextToSpeech();
             
             console.log('🔧 [CHAT-SECTION] Setting window.chatSection and starting init...');
             window.chatSection = this;
@@ -716,8 +718,8 @@ class ChatSection {
                     this.pinMessage(messageId);
                     break;
                 case 'text-to-speech':
-                    console.log('🔊 [CHAT-SECTION] TEXT-TO-SPEECH ACTION TRIGGERED!', { messageId, button: actionButton });
-                    this.speakMessageText(messageId);
+                    console.log('[CHAT-SECTION] TEXT-TO-SPEECH ACTION TRIGGERED', { messageId, button: actionButton });
+                    this.tts.speakMessageText(messageId);
                     break;
                 default:
                     console.log('🔄 [CHAT-SECTION] Unhandled action:', action);
@@ -3023,189 +3025,7 @@ class ChatSection {
         console.log('✅ [CHAT-SECTION] Message unpinned locally');
     }
     
-    speakMessageText(messageId) {
-        console.log('🔊 [CHAT-SECTION] Speaking message text:', messageId);
-        
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (!messageElement) {
-            console.error('❌ [CHAT-SECTION] Message element not found');
-            return;
-        }
-        
-        const textElement = messageElement.querySelector('.bubble-message-text, .message-main-text');
-        if (!textElement) {
-            console.error('❌ [CHAT-SECTION] Message text element not found');
-            return;
-        }
-        
-        let messageText = textElement.textContent || textElement.innerText || '';
-        messageText = messageText.replace(/\s*\(edited\)\s*$/, '').trim();
-        
-        if (!messageText) {
-            console.warn('⚠️ [CHAT-SECTION] No text content to speak');
-            return;
-        }
-        
-        if (!('speechSynthesis' in window)) {
-            console.error('❌ [CHAT-SECTION] Speech synthesis not supported');
-            return;
-        }
-        
-        if (window.speechSynthesis.speaking || this.isSpeaking) {
-            console.log('🔇 [CHAT-SECTION] Already speaking, stopping current speech');
-            this.stopAllSpeech();
-            return;
-        }
-        
-        if (this.currentSpeakingMessageId === messageId) {
-            console.log('🔇 [CHAT-SECTION] Same message already spoken, ignoring');
-            return;
-        }
-        
-        this.isSpeaking = true;
-        this.currentSpeakingMessageId = messageId;
-        this.initializeSpeechSynthesis(messageText, messageId);
-        
-        const contextMenu = document.getElementById('message-context-menu');
-        if (contextMenu) {
-            contextMenu.classList.add('hidden');
-        }
-    }
-    
-    initializeSpeechSynthesis(text, messageId) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
-        utterance.volume = 0.8;
-        utterance.lang = 'en-US';
-        
-        this.currentUtterance = utterance;
-        this.loadVoicesAndSpeak(utterance, messageId);
-    }
-    
-    loadVoicesAndSpeak(utterance, messageId) {
-        const voices = window.speechSynthesis.getVoices();
-        
-        if (voices.length === 0) {
-            console.log('🔄 [CHAT-SECTION] Voices not loaded yet, waiting...');
-            window.speechSynthesis.addEventListener('voiceschanged', () => {
-                this.loadVoicesAndSpeak(utterance, messageId);
-            }, { once: true });
-            return;
-        }
-        
-        const preferredVoices = [
-            voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google')),
-            voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Microsoft')),
-            voices.find(voice => voice.lang === 'en-US'),
-            voices.find(voice => voice.lang.startsWith('en')),
-            voices[0]
-        ].filter(Boolean);
-        
-        if (preferredVoices.length > 0) {
-            utterance.voice = preferredVoices[0];
-            console.log('🎤 [CHAT-SECTION] Selected voice:', utterance.voice.name, utterance.voice.lang);
-        }
-        
-        this.setupSpeechEvents(utterance, messageId);
-        this.startSpeech(utterance, messageId);
-    }
-    
-    setupSpeechEvents(utterance, messageId) {
-        utterance.onstart = () => {
-            console.log('🔊 [CHAT-SECTION] Speech started');
-            this.showSpeechIndicator(messageId);
-        };
-        
-        utterance.onend = () => {
-            console.log('✅ [CHAT-SECTION] Speech completed');
-            this.cleanupSpeech();
-        };
-        
-        utterance.onerror = (error) => {
-            if (error.error === 'interrupted') {
-                console.log('🔇 [CHAT-SECTION] Speech was interrupted (normal when stopping)');
-            } else {
-                console.error('❌ [CHAT-SECTION] Speech error:', error);
-            }
-            this.cleanupSpeech();
-        };
-        
-        utterance.onpause = () => {
-            console.log('⏸️ [CHAT-SECTION] Speech paused');
-        };
-        
-        utterance.onresume = () => {
-            console.log('▶️ [CHAT-SECTION] Speech resumed');
-        };
-    }
-    
-    startSpeech(utterance, messageId) {
-        try {
-            window.speechSynthesis.speak(utterance);
-            console.log('✅ [CHAT-SECTION] Text-to-speech initiated successfully');
-        } catch (error) {
-            console.error('❌ [CHAT-SECTION] Failed to start speech:', error);
-            this.cleanupSpeech();
-        }
-    }
-    
-    cleanupSpeech() {
-        this.isSpeaking = false;
-        this.currentSpeakingMessageId = null;
-        this.currentUtterance = null;
-        this.removeSpeechIndicator();
-    }
-    
-    showSpeechIndicator(messageId) {
-        this.removeSpeechIndicator();
-        
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (!messageElement) return;
-        
-        const speechIndicator = document.createElement('span');
-        speechIndicator.className = 'speech-indicator';
-        speechIndicator.innerHTML = `
-            <i class="fas fa-volume-up text-[#5865f2] animate-pulse"></i>
-            <span class="ml-1 text-xs text-[#5865f2]">Speaking...</span>
-        `;
-        speechIndicator.style.cssText = `
-            display: inline-flex;
-            align-items: center;
-            margin-left: 8px;
-            padding: 2px 6px;
-            background: rgba(88, 101, 242, 0.1);
-            border-radius: 12px;
-            border: 1px solid rgba(88, 101, 242, 0.3);
-        `;
-        
-        const messageHeader = messageElement.querySelector('.bubble-header, .message-header');
-        if (messageHeader) {
-            messageHeader.appendChild(speechIndicator);
-        }
-        
-        this.currentSpeechIndicator = speechIndicator;
-    }
-    
-    removeSpeechIndicator() {
-        if (this.currentSpeechIndicator) {
-            this.currentSpeechIndicator.remove();
-            this.currentSpeechIndicator = null;
-        }
-        
-        document.querySelectorAll('.speech-indicator').forEach(indicator => {
-            indicator.remove();
-        });
-    }
-    
-    stopAllSpeech() {
-        if (window.speechSynthesis.speaking || this.isSpeaking) {
-            window.speechSynthesis.cancel();
-            console.log('🔇 [CHAT-SECTION] All speech stopped');
-        }
-        this.cleanupSpeech();
-    }
+
 }
 
 // Make functions and classes globally available for dynamic initialization
@@ -3501,14 +3321,14 @@ window.debugContextMenuActions = function() {
         
         console.log('🧪 [DEBUG-MENU] Testing text-to-speech...');
         try {
-            if (typeof window.chatSection.speakMessageText === 'function') {
-                console.log('✅ [DEBUG-MENU] Text-to-speech method available');
-                console.log('🔊 [DEBUG-MENU] Speech synthesis support:', 'speechSynthesis' in window);
+            if (window.chatSection.tts && typeof window.chatSection.tts.speakMessageText === 'function') {
+                console.log('[DEBUG-MENU] Text-to-speech method available');
+                console.log('[DEBUG-MENU] Speech synthesis support:', 'speechSynthesis' in window);
             } else {
-                console.error('❌ [DEBUG-MENU] Text-to-speech method not found');
+                console.error('[DEBUG-MENU] Text-to-speech method not found');
             }
         } catch (error) {
-            console.error('❌ [DEBUG-MENU] Text-to-speech test failed:', error);
+            console.error('[DEBUG-MENU] Text-to-speech test failed:', error);
         }
     } else {
         console.warn('⚠️ [DEBUG-MENU] Chat section not available for testing');
@@ -3648,21 +3468,21 @@ window.testTextToSpeech = function() {
         return false;
     }
     
-    console.log('🧪 [TEST-TTS] Testing TTS with first message...');
+    console.log('[TEST-TTS] Testing TTS with first message...');
     try {
-        window.chatSection.speakMessageText(messageId);
-        console.log('✅ [TEST-TTS] TTS initiated successfully!');
-        console.log('💡 [TEST-TTS] You should hear the message being read aloud.');
-        console.log('💡 [TEST-TTS] Click TTS again to stop, or try another message.');
+        window.chatSection.tts.speakMessageText(messageId);
+        console.log('[TEST-TTS] TTS initiated successfully');
+        console.log('[TEST-TTS] You should hear the message being read aloud');
+        console.log('[TEST-TTS] Click TTS again to stop, or try another message');
         
         setTimeout(() => {
             const isCurrentlySpeaking = window.speechSynthesis.speaking;
-            console.log('📊 [TEST-TTS] Speech status after 1 second:', {
+            console.log('[TEST-TTS] Speech status after 1 second:', {
                 speaking: isCurrentlySpeaking,
                 pending: window.speechSynthesis.pending,
                 paused: window.speechSynthesis.paused,
-                chatSectionSpeaking: window.chatSection.isSpeaking,
-                currentMessageId: window.chatSection.currentSpeakingMessageId
+                chatSectionSpeaking: window.chatSection.tts.isSpeaking,
+                currentMessageId: window.chatSection.tts.currentSpeakingMessageId
             });
         }, 1000);
         
@@ -3674,12 +3494,12 @@ window.testTextToSpeech = function() {
 };
 
 window.stopAllSpeech = function() {
-    if (window.chatSection && typeof window.chatSection.stopAllSpeech === 'function') {
-        window.chatSection.stopAllSpeech();
-        console.log('🔇 [TTS-CONTROL] All speech stopped via chat section');
+    if (window.chatSection && window.chatSection.tts && typeof window.chatSection.tts.stopAllSpeech === 'function') {
+        window.chatSection.tts.stopAllSpeech();
+        console.log('[TTS-CONTROL] All speech stopped via TTS instance');
     } else if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
-        console.log('🔇 [TTS-CONTROL] All speech stopped via direct API');
+        console.log('[TTS-CONTROL] All speech stopped via direct API');
     }
 };
 

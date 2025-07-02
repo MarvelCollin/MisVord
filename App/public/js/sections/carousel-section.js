@@ -1,7 +1,7 @@
 class CarouselSection {
     constructor() {
         this.currentPage = -1;
-        this.totalPages = 4;
+        this.totalPages = 3;
         this.isAnimating = false;
         
         this.init();
@@ -56,7 +56,7 @@ class CarouselSection {
                 
                 if (leftSide && this.currentPage > -1) {
                     this.flipPageTo(this.currentPage - 1);
-                } else if (!leftSide && this.currentPage < 2) {
+                } else if (!leftSide && this.currentPage < this.totalPages - 1) {
                     this.flipPageTo(this.currentPage + 1);
                 }
             });
@@ -84,12 +84,12 @@ class CarouselSection {
     }
     
     nextPage() {
-        if (this.isAnimating || this.currentPage >= 2) return;
+        if (this.isAnimating || this.currentPage >= this.totalPages - 1) return;
         this.flipPageTo(this.currentPage + 1);
     }
     
     flipPageTo(targetPage) {
-        if (this.isAnimating || targetPage < -1 || targetPage > 2 || targetPage === this.currentPage) return;
+        if (this.isAnimating || targetPage < -1 || targetPage > this.totalPages - 1 || targetPage === this.currentPage) return;
         
         this.isAnimating = true;
         const currentPageEl = this.getPageByNumber(this.currentPage);
@@ -144,8 +144,6 @@ class CarouselSection {
             }
         });
     }
-    
-
     
     onSectionVisible() {
         const title = document.querySelector('.carousel-title');
