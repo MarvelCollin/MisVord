@@ -35,10 +35,10 @@ class MessageHandler {
         } else if (data.target_type && data.target_id) {
             if (data.target_type === 'channel') {
                 targetRoom = roomManager.getChannelRoom(data.target_id);
-                console.log(`🏠 [MESSAGE-FORWARD] Using channel room: ${targetRoom} for update/delete in channel ${data.target_id}`);
+                console.log(`🏠 [MESSAGE-FORWARD] Using channel room: ${targetRoom} for ${eventName} in channel ${data.target_id}`);
             } else if (data.target_type === 'dm') {
                 targetRoom = roomManager.getDMRoom(data.target_id);
-                console.log(`🏠 [MESSAGE-FORWARD] Using DM room: ${targetRoom} for update/delete in DM ${data.target_id}`);
+                console.log(`🏠 [MESSAGE-FORWARD] Using DM room: ${targetRoom} for ${eventName} in DM ${data.target_id}`);
             }
         }
         
@@ -47,6 +47,7 @@ class MessageHandler {
             
             const broadcastData = {
                 id: data.id || data.message_id,
+                message_id: data.message_id || data.id,
                 content: data.content,
                 user_id: data.user_id,
                 username: data.username,
@@ -66,7 +67,7 @@ class MessageHandler {
             console.log(`📤 [MESSAGE-FORWARD] Broadcast data prepared:`, {
                 event: eventName,
                 room: targetRoom,
-                messageId: broadcastData.id,
+                messageId: broadcastData.message_id,
                 userId: broadcastData.user_id,
                 content: broadcastData.content,
                 timestamp: broadcastData.timestamp,
@@ -77,11 +78,11 @@ class MessageHandler {
                     
             if (!client.rooms.has(targetRoom)) {
                 console.log(`🔄 [MESSAGE-FORWARD] Client not in room, joining: ${targetRoom}`);
-                            client.join(targetRoom);
-        }
+                client.join(targetRoom);
+            }
         
             io.to(targetRoom).emit(eventName, broadcastData);
-                    console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to room ${targetRoom}`);
+            console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to room ${targetRoom}`);
         
             const roomClients = io.sockets.adapter.rooms.get(targetRoom);
             if (roomClients) {
@@ -103,6 +104,7 @@ class MessageHandler {
             console.log(`🔄 [MESSAGE-FORWARD] Fallback: Broadcasting to all clients`);
             const fallbackData = {
                 id: data.id || data.message_id,
+                message_id: data.message_id || data.id,
                 content: data.content,
                 user_id: data.user_id,
                 username: data.username,

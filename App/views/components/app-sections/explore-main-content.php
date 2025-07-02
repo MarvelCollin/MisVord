@@ -9,11 +9,16 @@ require_once dirname(__DIR__) . '/explore/server-card.php';
 
 <div class="flex-1 bg-discord-background overflow-y-auto">
     <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        <div class="mb-8 slide-up">
-            <h1 class="text-3xl lg:text-4xl font-bold mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                Explore Servers
-            </h1>
-            <p class="text-discord-lighter text-lg">Find and join amazing communities on misvord</p>
+        <div class="explore-header mb-8 slide-up">
+            <div class="explore-title-container">
+                <h1 class="explore-title">
+                    <span class="title-main">Explore Servers</span>
+                    <div class="title-accent"></div>
+                </h1>
+                <p class="explore-description">
+                    Discover amazing communities, connect with like-minded people, and find your perfect server
+                </p>
+            </div>
         </div>
 
         <div class="filter-section mb-8 slide-up">

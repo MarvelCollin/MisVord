@@ -218,15 +218,6 @@ class ChatRoomRepository extends Repository {
             
             if ($roomId) {
                 foreach ($participantIds as $userId) {
-                    $user = $query->table('users')->where('id', $userId)->first();
-                    if (!$user) {
-                        throw new Exception("User with ID $userId not found");
-                    }
-                    
-                    if ($user['status'] === 'banned' || $user['status'] === 'deleted') {
-                        throw new Exception("Cannot add user {$user['username']} to group");
-                    }
-                    
                     $participantId = $query->table('chat_participants')->insert([
                         'chat_room_id' => $roomId,
                         'user_id' => $userId,

@@ -114,10 +114,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="flex items-center space-x-4">
                                     <div id="user-avatar-container" class="relative">
                                         <?php if ($user->avatar_url): ?>
-                                            <img id="user-avatar-preview" src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar">
+                                            <img id="user-avatar-preview" src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="<?php echo htmlspecialchars($user->username ?? 'User'); ?>">
                                         <?php else: ?>
                                             <div id="user-avatar-placeholder">
-                                                <img src="<?php echo asset('/common/default-profile-picture.png'); ?>" alt="Default Avatar">
+                                                <img src="<?php echo asset('/common/default-profile-picture.png'); ?>" alt="<?php echo htmlspecialchars($user->username ?? 'User'); ?>">
                                             </div>
                                         <?php endif; ?>
                                         

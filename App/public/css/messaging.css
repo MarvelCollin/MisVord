@@ -839,6 +839,124 @@
     padding-left: 8px;
 }
 
+.message-deleting-pending {
+    opacity: 0.5;
+    background: rgba(255, 165, 0, 0.1);
+    border-left: 3px solid #ffa500;
+    padding-left: 8px;
+    transition: all 0.2s ease;
+}
+
+.message-delete-success {
+    background: rgba(35, 165, 90, 0.1);
+    border-left: 3px solid #23a55a;
+    padding-left: 8px;
+    transition: all 0.3s ease;
+    transform: scale(0.95);
+}
+
+.message-delete-failed {
+    opacity: 0.6;
+    background: rgba(237, 66, 69, 0.1);
+    border-left: 3px solid #ed4245;
+    padding-left: 8px;
+}
+
+.message-being-deleted {
+    pointer-events: none;
+}
+
+.delete-indicator {
+    font-size: 12px;
+    color: #ffa500;
+    user-select: none;
+    pointer-events: none;
+}
+
+.delete-error-indicator {
+    font-size: 12px;
+    color: #ed4245;
+    cursor: help;
+    animation: shake 0.5s ease-in-out;
+}
+
+#delete-message-modal {
+    backdrop-filter: blur(4px);
+    animation: modalFadeIn 0.3s ease-out;
+    z-index: 9999;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+#delete-message-modal.closing {
+    animation: modalFadeOut 0.3s ease-in forwards;
+}
+
+#delete-message-modal .bg-\[\#313338\] {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    border: 1px solid #40444b;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+#delete-message-modal.closing .bg-\[\#313338\] {
+    animation: modalSlideOut 0.3s ease-in forwards;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalFadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes modalSlideOut {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
 .edit-hint-text {
     font-size: 12px;
     color: #b9bbbe;

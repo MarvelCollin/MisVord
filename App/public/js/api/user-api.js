@@ -225,6 +225,11 @@ class UserAPI {
         
         return result;
     }
+
+    async getFriends() {
+        const result = await this.makeRequest('/api/friends');
+        return result;
+    }
 }
 
 const userAPI = new UserAPI();

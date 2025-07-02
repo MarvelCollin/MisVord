@@ -104,14 +104,14 @@ async function initializeChatSection() {
             if (typeof window.initializeEmojiReactions === 'function') {
                 window.initializeEmojiReactions();
                 
-                if (window.emojiReactions && this.targetId) {
+                if (window.emojiReactions && chatSection.targetId) {
                     console.log('🔄 [CHAT-SECTION] Updating emoji reactions context after initialization');
-                    window.emojiReactions.updateChannelContext(this.targetId, this.chatType);
+                    window.emojiReactions.updateChannelContext(chatSection.targetId, chatSection.chatType);
                 }
             }
-        } else if (window.emojiReactions && this.targetId) {
+        } else if (window.emojiReactions && chatSection.targetId) {
             console.log('🔄 [CHAT-SECTION] Emoji reactions already initialized, updating context');
-            window.emojiReactions.updateChannelContext(this.targetId, this.chatType);
+            window.emojiReactions.updateChannelContext(chatSection.targetId, chatSection.chatType);
         }
         
         return chatSection;
@@ -838,7 +838,10 @@ class ChatSection {
                 this.hideChatSkeleton();
                 
                 if (!isLoadMore) {
+                    console.log('📭 [CHAT-SECTION] No messages found, showing empty state...');
                     this.showEmptyState();
+                } else {
+                    console.log('📭 [CHAT-SECTION] No more messages to load');
                 }
                 console.log('📭 [CHAT-SECTION] No messages to display');
             }
@@ -994,16 +997,26 @@ class ChatSection {
     }
     
     showEmptyState(message = null) {
+        console.log('🎯 [CHAT-SECTION] showEmptyState called with message:', message);
+        
         const messagesContainer = this.getMessagesContainer();
         if (!messagesContainer) {
             console.error('❌ [CHAT-SECTION] Cannot show empty state: messages container not found');
+            console.log('🔍 [CHAT-SECTION] Available elements:', {
+                chatMessages: !!this.chatMessages,
+                chatMessagesId: document.getElementById('chat-messages'),
+                messagesContainerQuery: document.querySelector('.messages-container')
+            });
             return;
         }
+        
+        console.log('✅ [CHAT-SECTION] Found messages container for empty state:', messagesContainer);
         
         if (!this.emptyStateContainer) {
             this.emptyStateContainer = document.createElement('div');
             this.emptyStateContainer.id = 'empty-state-container';
-            this.emptyStateContainer.className = 'flex flex-col items-center justify-center h-full text-[#dcddde] p-4';
+            this.emptyStateContainer.className = 'flex flex-col items-center justify-center min-h-[400px] text-[#dcddde] p-8';
+            this.emptyStateContainer.style.cssText = 'display: flex !important; visibility: visible !important;';
             
             try {
                 messagesContainer.appendChild(this.emptyStateContainer);
@@ -1019,11 +1032,19 @@ class ChatSection {
         
         this.emptyStateContainer.innerHTML = `
             <i class="fas fa-comments text-6xl mb-4 text-[#4f545c]"></i>
-            <p class="text-lg">${displayMessage}</p>
+            <p class="text-lg text-center">${displayMessage}</p>
         `;
         
         this.emptyStateContainer.classList.remove('hidden');
+        this.emptyStateContainer.style.display = 'flex';
+        
         console.log('✅ [CHAT-SECTION] Empty state displayed with message:', displayMessage);
+        console.log('🎨 [CHAT-SECTION] Empty state element:', {
+            container: this.emptyStateContainer,
+            isVisible: this.emptyStateContainer.offsetWidth > 0 && this.emptyStateContainer.offsetHeight > 0,
+            computedDisplay: window.getComputedStyle(this.emptyStateContainer).display,
+            computedVisibility: window.getComputedStyle(this.emptyStateContainer).visibility
+        });
     }
     
     hideEmptyState() {
@@ -1627,51 +1648,262 @@ class ChatSection {
     confirmDeleteMessage(messageId) {
         if (!messageId) return;
         
-        if (confirm('Are you sure you want to delete this message? This cannot be undone.')) {
-            this.deleteMessage(messageId);
+        this.cleanupDeleteModals();
+        this.showDeleteConfirmModal(messageId);
+    }
+
+    cleanupDeleteModals() {
+        const existingModals = document.querySelectorAll('#delete-message-modal');
+        existingModals.forEach(modal => {
+            if (modal && modal.parentNode) {
+                modal.classList.add('closing');
+                setTimeout(() => {
+                    if (modal && modal.parentNode) {
+                        modal.remove();
+                    }
+                }, 300);
+            }
+        });
+        
+        const keydownHandlers = document._deleteModalHandlers || [];
+        keydownHandlers.forEach(handler => {
+            document.removeEventListener('keydown', handler);
+        });
+        document._deleteModalHandlers = [];
+        
+        console.log('🧹 [CHAT-SECTION] Cleaned up any existing delete modals');
+    }
+    
+    showDeleteConfirmModal(messageId) {
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!messageElement) {
+            console.error('❌ [CHAT-SECTION] Message element not found for deletion');
+            return;
         }
+
+        const existingModal = document.getElementById('delete-message-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        let messageText = 'this message';
+        const messageTextElement = messageElement.querySelector('.bubble-message-text, .message-main-text');
+        if (messageTextElement) {
+            const content = messageTextElement.textContent || '';
+            messageText = content.length > 50 ? content.substring(0, 50) + '...' : content;
+        }
+        
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+        modal.id = 'delete-message-modal';
+        
+        modal.innerHTML = `
+            <div class="bg-[#313338] rounded-lg p-6 max-w-md mx-4 text-center">
+                <div class="mb-4">
+                    <i class="fas fa-trash text-4xl text-red-500 mb-3"></i>
+                    <h3 class="text-xl font-bold text-white mb-2">Delete Message</h3>
+                    <p class="text-[#b9bbbe] text-sm mb-4">
+                        Are you sure you want to delete <span class="text-white font-medium">"${messageText}"</span>?
+                    </p>
+                    <p class="text-red-400 text-xs">This action cannot be undone.</p>
+                </div>
+                <div class="flex gap-3 justify-center">
+                    <button id="cancel-delete" class="px-4 py-2 bg-[#4f545c] text-white rounded hover:bg-[#5c6169] transition-colors">
+                        Cancel
+                    </button>
+                    <button id="confirm-delete" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
+                        <i class="fas fa-trash mr-2"></i>Delete
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        const cancelBtn = modal.querySelector('#cancel-delete');
+        const confirmBtn = modal.querySelector('#confirm-delete');
+        
+        const closeModal = () => {
+            if (modal && modal.parentNode) {
+                modal.classList.add('closing');
+                setTimeout(() => {
+                    if (modal && modal.parentNode) {
+                        modal.remove();
+                    }
+                }, 300);
+            }
+            document.removeEventListener('keydown', escapeHandler);
+            
+            const handlerIndex = document._deleteModalHandlers?.indexOf(escapeHandler);
+            if (handlerIndex !== -1) {
+                document._deleteModalHandlers.splice(handlerIndex, 1);
+            }
+        };
+
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        };
+        
+        if (!document._deleteModalHandlers) {
+            document._deleteModalHandlers = [];
+        }
+        document._deleteModalHandlers.push(escapeHandler);
+        
+        cancelBtn.addEventListener('click', closeModal);
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+        
+        confirmBtn.addEventListener('click', async () => {
+            closeModal();
+            await this.deleteMessage(messageId);
+        });
+        
+        document.addEventListener('keydown', escapeHandler);
+        
+        modal.addEventListener('animationend', (e) => {
+            if (e.animationName === 'modalFadeOut') {
+                closeModal();
+            }
+        });
     }
     
     async deleteMessage(messageId) {
         if (!messageId) return;
         
         try {
+            console.log('🗑️ [CHAT-SECTION] Starting delete for message:', messageId);
+            
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (!messageElement) {
+                console.warn('⚠️ [CHAT-SECTION] Message element not found in DOM for ID:', messageId);
+                this.showNotification('Message not found in current view', 'error');
+                return;
+            }
+            
+            messageElement.classList.add('message-deleting-pending');
+            messageElement.style.opacity = '0.5';
+            
+            const deleteIndicator = document.createElement('span');
+            deleteIndicator.className = 'delete-indicator text-xs text-orange-400 ml-2';
+            deleteIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            
+            const messageTextElement = messageElement.querySelector('.bubble-message-text, .message-main-text');
+            if (messageTextElement && !messageTextElement.querySelector('.delete-indicator')) {
+                messageTextElement.appendChild(deleteIndicator);
+            }
+            
+            const targetType = this.chatType === 'channel' ? 'channel' : 'dm';
+            const targetId = this.targetId;
+            
+            const deleteData = {
+                message_id: messageId,
+                user_id: window.globalSocketManager?.userId || null,
+                username: window.globalSocketManager?.username || 'Unknown',
+                target_type: targetType,
+                target_id: targetId,
+                source: 'delete-action'
+            };
+            
+            console.log('📡 [CHAT-SECTION] Broadcasting delete to socket:', deleteData);
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                window.globalSocketManager.io.emit('message-deleted', deleteData);
+            }
+            
             if (!window.ChatAPI) {
                 throw new Error('ChatAPI not initialized');
             }
             
+            console.log('💾 [CHAT-SECTION] Deleting message via HTTP...');
             const response = await window.ChatAPI.deleteMessage(messageId);
             
             if (response.success) {
-                console.log(`✅ [CHAT-SECTION] Message ${messageId} deleted successfully`);
+                console.log('✅ [CHAT-SECTION] Message deleted successfully');
                 
-                // Update UI immediately
-            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-            if (messageElement) {
-                const messageGroup = messageElement.closest('.message-group');
-                
-                if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
-                    messageGroup.remove();
-                } else {
-                    messageElement.remove();
+                if (messageElement) {
+                    messageElement.classList.remove('message-deleting-pending');
+                    messageElement.classList.add('message-delete-success');
+                    
+                    setTimeout(() => {
+                        const messageGroup = messageElement.closest('.bubble-message-group, .message-group');
+                        
+                        if (messageGroup && messageGroup.querySelectorAll('.bubble-message-content, .message-content').length === 1) {
+                            messageGroup.remove();
+                        } else {
+                            messageElement.remove();
+                        }
+                        
+                        this.messageHandler.processedMessageIds.delete(messageId);
+                        
+                        const remainingMessages = this.getMessagesContainer().querySelectorAll('.bubble-message-group, .message-group');
+                        if (remainingMessages.length === 0) {
+                            this.showEmptyState();
+                        }
+                    }, 500);
                 }
-                
-                    // Remove from processed messages
-                    this.messageHandler.processedMessageIds.delete(messageId);
-                
-                    // Show empty state if no messages left
-                const remainingMessages = this.getMessagesContainer().querySelectorAll('.message-group');
-                if (remainingMessages.length === 0) {
-                    this.showEmptyState();
-                }
-            }
             } else {
-                console.error('❌ [CHAT-SECTION] Failed to delete message:', response.message);
-                this.showNotification('Failed to delete message. Please try again.', 'error');
+                throw new Error(response.message || 'Delete failed');
             }
+            
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Error deleting message:', error);
-            this.showNotification('Failed to delete message. Please try again.', 'error');
+            
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            
+            if (error.message && error.message.includes('404')) {
+                console.warn('🔄 [CHAT-SECTION] Message already deleted by someone else');
+                
+                if (messageElement) {
+                    messageElement.classList.remove('message-deleting-pending');
+                    messageElement.style.opacity = '0.3';
+                    
+                    const deleteIndicator = messageElement.querySelector('.delete-indicator');
+                    if (deleteIndicator) {
+                        deleteIndicator.className = 'delete-success-indicator text-xs text-green-400 ml-2';
+                        deleteIndicator.innerHTML = '<i class="fas fa-check"></i> Already deleted';
+                    }
+                    
+                    setTimeout(() => {
+                        const messageGroup = messageElement.closest('.bubble-message-group, .message-group');
+                        if (messageGroup && messageGroup.querySelectorAll('.bubble-message-content, .message-content').length === 1) {
+                            messageGroup.remove();
+                        } else {
+                            messageElement.remove();
+                        }
+                        this.messageHandler.processedMessageIds.delete(messageId);
+                    }, 1000);
+                }
+                
+                this.showNotification('Message was already deleted', 'info');
+            } else {
+                if (messageElement) {
+                    messageElement.classList.remove('message-deleting-pending');
+                    messageElement.classList.add('message-delete-failed');
+                    messageElement.style.opacity = '0.6';
+                    
+                    const deleteIndicator = messageElement.querySelector('.delete-indicator');
+                    if (deleteIndicator) {
+                        deleteIndicator.className = 'delete-error-indicator text-xs text-red-400 ml-2';
+                        deleteIndicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Delete failed';
+                        deleteIndicator.title = `Delete failed: ${error.message}`;
+                    }
+                    
+                    setTimeout(() => {
+                        messageElement.classList.remove('message-delete-failed');
+                        messageElement.style.opacity = '1';
+                        if (deleteIndicator) {
+                            deleteIndicator.remove();
+                        }
+                    }, 5000);
+                }
+                
+                this.showNotification('Failed to delete message. Please try again.', 'error');
+            }
         }
     }
     
@@ -2134,18 +2366,26 @@ class ChatSection {
     }
 
     resetForNewChannel() {
-        console.log('🔄 [CHAT-SECTION] Resetting for new channel');
+        console.log('🔄 [CHAT-SECTION] Resetting for new channel...');
+        
+        this.cleanupDeleteModals();
         
         this.forceStopAllOperations();
+        this.clearChatMessages();
+        this.hideEmptyState();
+        this.hideLoadingIndicator();
+        
+        this.lastLoadedMessageId = null;
+        this.hasMoreMessages = true;
+        this.userHasScrolled = false;
+        this.lastScrollPosition = 0;
         
         if (this.messageHandler) {
-            this.messageHandler.clearProcessedMessages();
-            console.log('🧹 [CHAT-SECTION] Message handler processed messages cleared for channel switch');
+            this.messageHandler.processedMessageIds.clear();
+            this.messageHandler.temporaryMessages.clear();
         }
         
-        this.fullStateReset();
-        
-        console.log('✅ [CHAT-SECTION] Reset completed');
+        console.log('✅ [CHAT-SECTION] Channel reset completed');
     }
     
     forceStopAllOperations() {
@@ -2180,6 +2420,7 @@ class ChatSection {
     }
     
     fullStateReset() {
+        this.cleanupDeleteModals();
         this.clearChatMessages();
         this.hideEmptyState();
         
@@ -2535,6 +2776,37 @@ window.debugChatSection = function() {
         console.log('🧪 [DEBUG] Socket authenticated:', window.globalSocketManager.authenticated);
         console.log('🧪 [DEBUG] Socket IO exists:', !!window.globalSocketManager.io);
         console.log('🧪 [DEBUG] Socket isReady():', window.globalSocketManager.isReady());
+    }
+};
+
+window.debugDeleteModal = function() {
+    console.log('🧪 [DEBUG-MODAL] Testing delete modal functionality...');
+    
+    const existingModals = document.querySelectorAll('#delete-message-modal');
+    console.log('🧪 [DEBUG-MODAL] Found existing modals:', existingModals.length);
+    
+    const deleteHandlers = document._deleteModalHandlers || [];
+    console.log('🧪 [DEBUG-MODAL] Active delete handlers:', deleteHandlers.length);
+    
+    if (window.chatSection && typeof window.chatSection.cleanupDeleteModals === 'function') {
+        console.log('🧪 [DEBUG-MODAL] Running cleanup...');
+        window.chatSection.cleanupDeleteModals();
+        console.log('🧪 [DEBUG-MODAL] Cleanup completed');
+    } else {
+        console.log('❌ [DEBUG-MODAL] Chat section or cleanup method not available');
+    }
+    
+    const messageElements = document.querySelectorAll('[data-message-id]');
+    console.log('🧪 [DEBUG-MODAL] Found message elements:', messageElements.length);
+    
+    if (messageElements.length > 0) {
+        const testMessageId = messageElements[0].dataset.messageId;
+        console.log('🧪 [DEBUG-MODAL] Test message ID:', testMessageId);
+        
+        if (window.chatSection && typeof window.chatSection.showDeleteConfirmModal === 'function') {
+            console.log('🧪 [DEBUG-MODAL] Testing modal creation for message:', testMessageId);
+            window.chatSection.showDeleteConfirmModal(testMessageId);
+        }
     }
 };
   

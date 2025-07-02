@@ -520,16 +520,14 @@ class ChatController extends BaseController
 
                 try {
                     $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
-                    if ($existingRoom) {
-                        return $this->success([
-                            'data' => [
+                                            if ($existingRoom) {
+                            return $this->success([
                                 'room_id' => $existingRoom->id,
                                 'channel_id' => $existingRoom->id,
                                 'type' => 'direct',
                                 'message' => 'Conversation already exists'
-                            ]
-                        ], 'Direct message room found');
-                    }
+                            ], 'Direct message room found');
+                        }
 
                     $chatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
                     if (!$chatRoom || !$chatRoom->id) {
@@ -537,11 +535,9 @@ class ChatController extends BaseController
                     }
 
                     return $this->success([
-                        'data' => [
-                            'channel_id' => $chatRoom->id,
-                            'room_id' => $chatRoom->id,
-                            'type' => 'direct'
-                        ]
+                        'channel_id' => $chatRoom->id,
+                        'room_id' => $chatRoom->id,
+                        'type' => 'direct'
                     ], 'Direct message created');
                 } catch (Exception $e) {
                     error_log("ChatController::create - DM Error: " . $e->getMessage());
@@ -574,19 +570,17 @@ class ChatController extends BaseController
                     }
                 }
 
-                if (count($userIds) === 1) {
-                    $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $userIds[0]);
-                    if ($existingRoom) {
-                        return $this->success([
-                            'data' => [
+                                    if (count($userIds) === 1) {
+                        $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $userIds[0]);
+                        if ($existingRoom) {
+                            return $this->success([
                                 'room_id' => $existingRoom->id,
                                 'channel_id' => $existingRoom->id,
                                 'type' => 'direct',
                                 'message' => 'Conversation already exists'
-                            ]
-                        ], 'Direct message room found');
+                            ], 'Direct message room found');
+                        }
                     }
-                }
 
                 try {
                     if (count($userIds) === 1) {
@@ -627,11 +621,9 @@ class ChatController extends BaseController
                     error_log("ChatController::create - Chat room created successfully with ID: " . $chatRoom->id);
 
                     return $this->success([
-                        'data' => [
-                            'channel_id' => $chatRoom->id,
-                            'room_id' => $chatRoom->id,
-                            'type' => $type
-                        ]
+                        'channel_id' => $chatRoom->id,
+                        'room_id' => $chatRoom->id,
+                        'type' => $type
                     ], $message);
                 } catch (Exception $e) {
                     error_log("ChatController::create - Chat creation error: " . $e->getMessage());
@@ -1099,12 +1091,16 @@ class ChatController extends BaseController
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
 
+        error_log("[CHAT-CONTROLLER] Delete attempt - Message ID: $messageId, User ID: $userId");
+
         $message = $this->messageRepository->find($messageId);
         if (!$message) {
-            return $this->notFound('Message not found');
+            error_log("[CHAT-CONTROLLER] Message not found for deletion - ID: $messageId");
+            return $this->notFound('Message not found or may have been already deleted');
         }
 
         if ($message->user_id != $userId) {
+            error_log("[CHAT-CONTROLLER] Unauthorized delete attempt - Message owner: {$message->user_id}, Requester: $userId");
             return $this->forbidden('You can only delete your own messages');
         }
 
@@ -1120,6 +1116,7 @@ class ChatController extends BaseController
                 $targetId = $channelMessage->channel_id;
                 $targetType = 'channel';
                 ChannelMessage::deleteByMessageId($messageId);
+                error_log("[CHAT-CONTROLLER] Deleted channel message - Channel ID: $targetId");
             } else {
                 $query = new Query();
                 $chatRoomMessage = $query->table('chat_room_messages')
@@ -1131,10 +1128,12 @@ class ChatController extends BaseController
                     $query->table('chat_room_messages')
                         ->where('message_id', $messageId)
                         ->delete();
+                    error_log("[CHAT-CONTROLLER] Deleted DM message - Room ID: $targetId");
                 }
             }
             
             if ($this->messageRepository->delete($messageId)) {
+                error_log("[CHAT-CONTROLLER] Message deleted successfully - ID: $messageId");
                 return $this->success([
                     'data' => [
                         'message_id' => $messageId,
@@ -1143,10 +1142,12 @@ class ChatController extends BaseController
                     ]
                 ], 'Message deleted successfully');
             } else {
-                throw new Exception('Failed to delete message');
+                error_log("[CHAT-CONTROLLER] Failed to delete message from repository - ID: $messageId");
+                throw new Exception('Failed to delete message from database');
             }
         } catch (Exception $e) {
-            return $this->serverError('Failed to delete message');
+            error_log("[CHAT-CONTROLLER] Exception during delete - Message ID: $messageId, Error: " . $e->getMessage());
+            return $this->serverError('Failed to delete message: ' . $e->getMessage());
         }
     }
 

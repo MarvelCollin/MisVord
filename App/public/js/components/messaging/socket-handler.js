@@ -246,23 +246,53 @@ class SocketHandler {
         try {
             if (!data || !data.message_id) return;
             
-            const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
-            if (!messageElement) return;
+            console.log('🗑️ [SOCKET-HANDLER] Message deletion received:', {
+                messageId: data.message_id,
+                userId: data.user_id,
+                username: data.username,
+                targetType: data.target_type,
+                targetId: data.target_id
+            });
             
-            console.log('🗑️ Deleting message:', data.message_id);
-            
-            // Remove the message from the UI
-            const messageGroup = messageElement.closest('.message-group');
-            if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
-                messageGroup.remove(); // Remove the whole group if it's the only message
-            } else {
-                messageElement.remove(); // Otherwise just remove this message
+            const isSender = data.user_id === window.globalSocketManager?.userId;
+            if (isSender) {
+                console.log('🔄 [SOCKET-HANDLER] Ignoring own deletion');
+                return;
             }
             
-            // Clean up tracking
-            this.chatSection.messageHandler.processedMessageIds.delete(data.message_id);
+            const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+            if (!messageElement) {
+                console.log('⚠️ [SOCKET-HANDLER] Message element not found for deletion:', data.message_id);
+                return;
+            }
+            
+            console.log('🗑️ [SOCKET-HANDLER] Removing message from UI:', data.message_id);
+            
+            messageElement.classList.add('message-being-deleted');
+            messageElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            messageElement.style.opacity = '0';
+            messageElement.style.transform = 'translateX(-20px)';
+            
+            setTimeout(() => {
+                const messageGroup = messageElement.closest('.bubble-message-group, .message-group');
+                if (messageGroup && messageGroup.querySelectorAll('.bubble-message-content, .message-content').length === 1) {
+                    messageGroup.remove();
+                } else {
+                    messageElement.remove();
+                }
+                
+                this.chatSection.messageHandler.processedMessageIds.delete(data.message_id);
+                
+                const remainingMessages = this.chatSection.getMessagesContainer().querySelectorAll('.bubble-message-group, .message-group');
+                if (remainingMessages.length === 0) {
+                    this.chatSection.showEmptyState();
+                }
+                
+                console.log('✅ [SOCKET-HANDLER] Message successfully removed from UI');
+            }, 300);
+            
         } catch (error) {
-            console.error('❌ Error handling message deletion:', error);
+            console.error('❌ [SOCKET-HANDLER] Error handling message deletion:', error);
         }
     }
     

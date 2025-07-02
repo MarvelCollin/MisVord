@@ -144,7 +144,7 @@ foreach ($members as $member) {
                                         $username = $member['display_name'] ?? $member['username'] ?? 'User';
                                         
                                         if (!empty($avatarUrl)) {
-                                            echo '<img src="' . htmlspecialchars($avatarUrl) . '" alt="Avatar" class="w-full h-full object-cover ' . $imgOpacityClass . '">';
+                                            echo '<img src="' . htmlspecialchars($avatarUrl) . '" alt="' . htmlspecialchars($username) . '" class="w-full h-full object-cover ' . $imgOpacityClass . '">';
                                         } else {
                                             echo '<div class="w-full h-full flex items-center justify-center bg-discord-dark text-white font-bold">' . strtoupper(substr($username, 0, 1)) . '</div>';
                                         }

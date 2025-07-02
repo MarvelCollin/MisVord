@@ -607,7 +607,7 @@ if (!function_exists('renderMessage')) {
             </div>
         </div>
         
-        <div class="messages-container flex flex-col <?php echo empty($messages) ? 'min-h-full items-center justify-center' : ''; ?>" id="chat-real-content" style="display: none;">
+        <div class="messages-container flex flex-col min-h-full" id="chat-real-content" style="display: block;">
             <?php if (!empty($messages)): ?>
                 <?php
                 $i = 0;
@@ -616,12 +616,6 @@ if (!function_exists('renderMessage')) {
                     $i++;
                 }
                 ?>
-            <?php else: ?>
-                <div class="flex flex-col items-center justify-center text-[#dcddde]">
-                    <i class="fas fa-comments text-6xl mb-4 text-[#4f545c]"></i>
-                    <p class="text-lg">No messages yet</p>
-                    <p class="text-sm text-[#a3a6aa]">Be the first to send a message!</p>
-                </div>
             <?php endif; ?>
         </div>
     </div>

@@ -10,11 +10,11 @@ class EventValidator {
                 optional: ['message_type', 'attachments', 'attachment_url', 'timestamp', 'message', 'reply_message_id']
             },
             'message-updated': {
-                required: ['message_id', 'user_id', 'username', 'source'],
+                required: ['message_id', 'user_id', 'username', 'target_type', 'target_id', 'source'],
                 optional: ['content', 'message', 'timestamp']
             },
             'message-deleted': {
-                required: ['message_id', 'user_id', 'username', 'source'],
+                required: ['message_id', 'user_id', 'username', 'target_type', 'target_id', 'source'],
                 optional: ['timestamp']
             },
             'reaction-added': {

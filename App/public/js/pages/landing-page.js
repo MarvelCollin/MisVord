@@ -334,6 +334,7 @@ function initAuthIcon() {
     const userIcon = document.getElementById('userIcon');
     const userDropdown = document.getElementById('userDropdown');
     const userDropdownContainer = document.querySelector('.user-dropdown-container');
+    const homeItem = document.getElementById('homeItem');
     const logoutItem = document.getElementById('logoutItem');
     
     if (loginIcon) {
@@ -362,6 +363,13 @@ function initAuthIcon() {
             }, 100);
         });
         
+        if (homeItem) {
+            homeItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                handleHomeNavigation();
+            });
+        }
+        
         if (logoutItem) {
             logoutItem.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -369,6 +377,24 @@ function initAuthIcon() {
             });
         }
     }
+}
+
+function handleHomeNavigation() {
+    const homeItem = document.getElementById('homeItem');
+    
+    if (homeItem) {
+        homeItem.style.opacity = '0.5';
+        homeItem.style.pointerEvents = 'none';
+    }
+    
+    const userDropdown = document.getElementById('userDropdown');
+    if (userDropdown) {
+        userDropdown.classList.remove('show');
+    }
+    
+    setTimeout(() => {
+        window.location.href = '/home';
+    }, 150);
 }
 
 function handleLogout() {
@@ -473,6 +499,7 @@ window.landingPageAPI = {
     debounce,
     triggerFeaturedCardsEnhancements,
     initAuthIcon,
+    handleHomeNavigation,
     handleLogout,
     initHeroAssets,
     addRandomSparkle

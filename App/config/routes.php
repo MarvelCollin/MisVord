@@ -1533,6 +1533,21 @@ Route::post('/api/servers/transfer-ownership', function() {
     $controller->transferOwnershipAndLeave();
 });
 
+Route::delete('/api/messages/([0-9]+)', function($messageId) {
+    $controller = new ChatController();
+    $controller->deleteMessage($messageId);
+});
+
+Route::delete('/api/chat/messages/([0-9]+)', function($messageId) {
+    $controller = new ChatController();
+    $controller->deleteMessage($messageId);
+});
+
+Route::put('/api/chat/messages/([0-9]+)', function($messageId) {
+    $controller = new ChatController();
+    $controller->updateMessage($messageId);
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

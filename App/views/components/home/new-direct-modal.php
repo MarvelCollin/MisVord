@@ -12,7 +12,7 @@
             <div class="mb-4">
                 <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Select Users</label>
                 <div class="relative">
-                    <input type="text" placeholder="Search by username" class="w-full bg-[#1e1f22] text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-[#404249]" id="dm-search-input">
+                    <input type="text" placeholder="Search friends..." class="w-full bg-[#1e1f22] text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-[#404249]" id="dm-search-input">
                     <i class="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
                 </div>
             </div>
@@ -51,8 +51,9 @@
             <div class="relative">
                 <div id="dm-users-list" class="max-h-60 overflow-y-auto py-2 space-y-1 custom-scrollbar scroll-smooth">
                     <div class="text-gray-400 text-center py-4 hidden" id="no-dm-users">
-                        <i class="fas fa-users text-2xl mb-2"></i>
-                        <p>No users found</p>
+                        <i class="fas fa-user-friends text-2xl mb-2"></i>
+                        <p>No friends found</p>
+                        <p class="text-xs text-gray-500 mt-1">Add friends first to start conversations</p>
                     </div>
                 </div>
                 <div class="absolute top-0 right-0 h-full w-2 pointer-events-none">
@@ -274,13 +275,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function loadAllUsers() {
+    function loadFriends() {
         const usersList = document.getElementById('dm-users-list');
         const noUsersMsg = document.getElementById('no-dm-users');
         
         if (!usersList) return;
         
-        console.log('🔍 loadAllUsers called');
+        console.log('🔍 loadFriends called (for new message modal)');
         usersList.innerHTML = generateSkeletonItems(5);
         
         if (!window.userAPI) {
@@ -289,32 +290,29 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        if (!window.userAPI.getAllUsers) {
-            console.error('❌ window.userAPI.getAllUsers method not available');
-            usersList.innerHTML = '<div class="text-gray-400 text-center py-2">getAllUsers method not found</div>';
+        if (!window.userAPI.getFriends) {
+            console.error('❌ window.userAPI.getFriends method not available');
+            usersList.innerHTML = '<div class="text-gray-400 text-center py-2">getFriends method not found</div>';
             return;
         }
         
-        console.log('🔗 Calling userAPI.getAllUsers()');
-        window.userAPI.getAllUsers()
+        console.log('🔗 Calling userAPI.getFriends()');
+        window.userAPI.getFriends()
             .then(response => {
-                console.log('📥 getAllUsers response:', response);
+                console.log('📥 getFriends response:', response);
                 usersList.innerHTML = '';
                 
                 if (response && response.success) {
                     let users = null;
-                    let total = 0;
                     
-                    if (response.data && response.data.users && Array.isArray(response.data.users)) {
-                        users = response.data.users;
-                        total = response.data.total || users.length;
-                    } else if (response.users && Array.isArray(response.users)) {
-                        users = response.users;
-                        total = response.total || users.length;
+                    if (response.data && response.data.friends && Array.isArray(response.data.friends)) {
+                        users = response.data.friends;
+                    } else if (response.friends && Array.isArray(response.friends)) {
+                        users = response.friends;
                     }
                     
                     if (users && users.length > 0) {
-                        console.log(`✅ Found ${users.length} users`);
+                        console.log(`✅ Found ${users.length} friends`);
                         allUsers = users;
                         filteredUsers = [...allUsers];
                         renderUsers(filteredUsers);
@@ -323,21 +321,21 @@ document.addEventListener('DOMContentLoaded', function() {
                             noUsersMsg.classList.add('hidden');
                         }
                     } else {
-                        console.warn('⚠️ No users found in response');
+                        console.warn('⚠️ No friends found in response');
                         if (noUsersMsg) {
                             noUsersMsg.classList.remove('hidden');
                         }
                         
-                        usersList.innerHTML = '<div class="text-gray-400 text-center py-2">No users found</div>';
+                        usersList.innerHTML = '<div class="text-gray-400 text-center py-2">No friends found. Add friends first!</div>';
                     }
                 } else {
                     console.error('❌ Invalid response format:', response);
-                    usersList.innerHTML = '<div class="text-gray-400 text-center py-2">Invalid response format</div>';
+                    usersList.innerHTML = '<div class="text-gray-400 text-center py-2">Failed to load friends</div>';
                 }
             })
             .catch(error => {
-                console.error('❌ Error loading users:', error);
-                usersList.innerHTML = `<div class="text-gray-400 text-center py-2">Failed to load users: ${error.message}</div>`;
+                console.error('❌ Error loading friends:', error);
+                usersList.innerHTML = `<div class="text-gray-400 text-center py-2">Failed to load friends: ${error.message}</div>`;
             });
     }
 
@@ -346,7 +344,7 @@ document.addEventListener('DOMContentLoaded', function() {
         usersList.innerHTML = '';
 
         if (!users || users.length === 0) {
-            usersList.innerHTML = '<div class="text-gray-400 text-center py-2">No users found</div>';
+            usersList.innerHTML = '<div class="text-gray-400 text-center py-2">No friends found</div>';
             updateScrollIndicator();
             return;
         }
@@ -584,9 +582,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.classList.add('hidden');
             }
             
-            if (data.success && data.data && data.data.room_id) {
-                console.log('✅ Chat created successfully, redirecting to:', `/home/channels/dm/${data.data.room_id}`);
-                window.location.href = `/home/channels/dm/${data.data.room_id}`;
+            if (data.success && data.data) {
+                const roomId = data.data.room_id || data.data.channel_id;
+                
+                if (roomId) {
+                    console.log('✅ Chat created successfully, redirecting to:', `/home/channels/dm/${roomId}`);
+                    window.location.href = `/home/channels/dm/${roomId}`;
+                } else {
+                    console.error('❌ No room ID found in response:', data);
+                    if (window.showToast) {
+                        window.showToast('Chat created but could not redirect', 'warning');
+                    }
+                }
             } else if (data.error && data.error.includes('already exists')) {
                 if (window.showToast) {
                     window.showToast('Conversation already exists', 'info');
@@ -621,7 +628,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 weights: { username: 1.0, display_name: 0.8 }
             });
             
-            console.log(`✅ JaroWinkler found ${searchResults.length} results`);
+            console.log(`✅ JaroWinkler found ${searchResults.length} friends`);
             filteredUsers = searchResults;
             renderUsers(filteredUsers);
         } catch (error) {
@@ -634,9 +641,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔍 Performing basic search for:', searchTerm);
         
         const searchTermLower = searchTerm.toLowerCase();
-        filteredUsers = allUsers.filter(user => {
-            const username = (user.username || '').toLowerCase();
-            const displayName = (user.display_name || '').toLowerCase();
+        filteredUsers = allUsers.filter(friend => {
+            const username = (friend.username || '').toLowerCase();
+            const displayName = (friend.display_name || '').toLowerCase();
             
             return username.includes(searchTermLower) || 
                    displayName.includes(searchTermLower) ||
@@ -644,7 +651,7 @@ document.addEventListener('DOMContentLoaded', function() {
                    displayName.startsWith(searchTermLower);
         });
         
-        console.log(`✅ Basic search found ${filteredUsers.length} results`);
+        console.log(`✅ Basic search found ${filteredUsers.length} friends`);
         renderUsers(filteredUsers);
     }
 
@@ -686,7 +693,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateModalTitle();
             updateGroupOptions();
             resetGroupImage();
-            loadAllUsers();
+            loadFriends();
         });
     }
 

@@ -24,3 +24,13 @@
 [2025-07-02 09:21:53] INFO [1053e3] Database connected successfully - Context: {"database":"misvord"}
 [2025-07-02 09:21:53] DEBUG [1053e3] DB Query: SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1 - Duration: 49.55ms - Context: {"bindings":["10"],"found":true,"db_query":"SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1","db_duration":0.049546003341674805}
 [2025-07-02 09:21:53] WARNING [1053e3] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\config\session.php:10) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\BaseController.php","line":251,"severity":2}
+[2025-07-02 04:54:59] DEBUG [32fdc0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 04:54:59] INFO [32fdc0] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 04:54:59] DEBUG [32fdc0] DB Query: SELECT * FROM messages ORDER BY id DESC LIMIT 5 - Duration: 49.31ms - Context: {"bindings":[],"result_count":5,"db_query":"SELECT * FROM messages ORDER BY id DESC LIMIT 5","db_duration":0.04930877685546875}
+[2025-07-02 04:54:59] DEBUG [32fdc0] DB Query: SELECT * FROM messages WHERE  id = ? ORDER BY id DESC LIMIT 1 - Duration: 47.02ms - Context: {"bindings":[799],"found":false,"db_query":"SELECT * FROM messages WHERE  id = ? ORDER BY id DESC LIMIT 1","db_duration":0.04702496528625488}
+[2025-07-02 04:54:59] DEBUG [32fdc0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 04:54:59] INFO [32fdc0] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 04:54:59] DEBUG [32fdc0] DB Query: SELECT * FROM messages WHERE  id = ? LIMIT 1 - Duration: 50.51ms - Context: {"bindings":[799],"found":false,"db_query":"SELECT * FROM messages WHERE  id = ? LIMIT 1","db_duration":0.0505068302154541}
+[2025-07-02 04:54:59] DEBUG [32fdc0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 04:54:59] INFO [32fdc0] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 04:54:59] DEBUG [32fdc0] DB Query: SELECT * FROM messages WHERE  id = ? LIMIT 1 - Duration: 52.20ms - Context: {"bindings":[799],"found":false,"db_query":"SELECT * FROM messages WHERE  id = ? LIMIT 1","db_duration":0.052195072174072266}

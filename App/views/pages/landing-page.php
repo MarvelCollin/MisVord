@@ -307,17 +307,35 @@ $content = ob_get_clean();
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
 
         .user-avatar img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: opacity 0.3s ease;
         }
 
         .user-avatar i {
             font-size: 1.5rem;
             color: #5865F2;
+        }
+
+        .user-avatar .fallback-initial {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #5865f2, #7289da);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            border-radius: 50%;
+            z-index: 1;
+            text-transform: uppercase;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         .username-text {
@@ -911,7 +929,7 @@ $content = ob_get_clean();
                 <div class="user-icon" id="userIcon">
                     <div class="user-avatar">
                         <?php if ($avatarUrl): ?>
-                            <img src="<?php echo htmlspecialchars($avatarUrl); ?>" alt="Avatar">
+                            <img src="<?php echo htmlspecialchars($avatarUrl); ?>" alt="<?php echo htmlspecialchars($username); ?>" class="user-avatar-img">
                         <?php else: ?>
                             <i class="fas fa-user-circle"></i>
                         <?php endif; ?>
@@ -926,6 +944,10 @@ $content = ob_get_clean();
                         </div>
                     </div>
                     <div class="dropdown-divider"></div>
+                    <div class="dropdown-item" id="homeItem">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </div>
                     <div class="dropdown-item" id="logoutItem">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
@@ -935,7 +957,7 @@ $content = ob_get_clean();
         <?php else: ?>
             <div class="login-icon" id="loginIcon">
                 <i class="fas fa-user-circle"></i>
-                <span class="login-text">Home / Login</span>
+                <span class="login-text">Login to MisVord</span>
             </div>
         <?php endif; ?>
     </div>
@@ -958,6 +980,7 @@ $content = ob_get_clean();
         <i class="fas fa-chevron-left"></i> Scroll to navigate <i class="fas fa-chevron-right"></i>
     </div>
 
+    <script src="<?php echo js('utils/fallback-image'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/scramble-text'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/parallax-scroll'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/horizontal-navigation'); ?>?v=<?php echo time(); ?>"></script>
