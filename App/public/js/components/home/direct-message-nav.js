@@ -160,18 +160,65 @@ class DirectMessageNavigation {
                 <div class="flex-1 flex flex-col overflow-hidden" id="chat-container-${dmId}">
                     <div class="flex-1 flex flex-col justify-end p-4 overflow-y-auto" id="messages-container-${dmId}">
                     </div>
-                    <div class="p-4 border-t border-[#2d2f32]">
-                        <div class="flex items-center space-x-3">
-                            <div class="flex-1 relative">
-                                <input type="text" 
-                                       class="w-full bg-[#383a40] text-white rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-discord-primary"
-                                       placeholder="Message ${headerPrefix}${chatName}"
-                                       id="message-input-${dmId}">
+                    <div class="px-4 py-[10px] bg-[#313338] border-t border-[#3f4147]">
+                        <div id="reply-container" class="hidden"></div>
+
+                        <div id="file-upload-area" class="hidden mb-3 p-3 bg-[#2b2d31] rounded-lg">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[#f2f3f5] text-sm font-medium">
+                                    <i class="fas fa-paperclip mr-2"></i>
+                                    Files (<span id="file-count">0</span>)
+                                </span>
+                                <button id="clear-all-files" class="text-[#ed4245] hover:text-[#dc2626] text-sm transition-colors">
+                                    <i class="fas fa-times mr-1"></i>Clear All
+                                </button>
                             </div>
-                            <button class="text-[#949ba4] hover:text-white p-2 rounded-md hover:bg-[#404249] transition-colors">
-                                <i class="fas fa-smile text-xl"></i>
-                            </button>
+                            <div id="file-upload-list" class="flex flex-wrap gap-3"></div>
                         </div>
+
+                        <form id="message-form" class="flex items-center bg-[#383a40] rounded-lg h-11 relative">
+                            <input 
+                                type="file" 
+                                id="file-upload" 
+                                class="hidden" 
+                                multiple 
+                                accept="image/*,video/*,audio/*,text/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z"
+                            >
+                            
+                            <div class="flex items-center pr-[2px] gap-1">
+                                <button
+                                    id="file-upload-button"
+                                    type="button"
+                                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-1 text-lg font-bold active:scale-95"
+                                    title="Upload files"
+                                >
+                                +
+                            </button>
+                                
+                            </div>
+
+                            <div class="flex-1 flex items-center">
+                                <textarea
+                                    id="message-input"
+                                    class="block w-full bg-transparent text-[#dcddde] placeholder-[#6d6f78] border-none resize-none py-[11px] px-0 focus:outline-none min-h-[22px] max-h-[50vh] text-[16px] leading-[22px]"
+                                    rows="1"
+                                    placeholder="Message ${headerPrefix}${chatName}"
+                                    maxlength="2000"
+                                ></textarea>
+                            </div>
+
+                            <div class="flex items-center pr-[2px] gap-1">
+                                <button
+                                    id="send-button"
+                                    type="submit"
+                                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1 opacity-50 cursor-not-allowed"
+                                    disabled
+                                    title="Send message"
+                                >
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             `;

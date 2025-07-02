@@ -41,12 +41,6 @@ if (!function_exists('asset')) {
                     <p>A vibrant community of 25,000+ artists sharing their musical masterpieces and collaborating in real-time.</p>
                 </div>
             </div>
-            
-            <div class="book-nav" id="bookNav">
-                <button id="prevPage">←</button>
-                <span id="pageIndicator">1 / 3</span>
-                <button id="nextPage">→</button>
-            </div>
         </div>
     </div>
 

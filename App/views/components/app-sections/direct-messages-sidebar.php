@@ -154,8 +154,11 @@ if (file_exists($tooltipPath)) {
                     <span class="font-medium truncate dm-username block" data-user-id="<?php echo htmlspecialchars($otherUserId ?? ''); ?>">
                         <?php echo htmlspecialchars($roomName); ?>
                     </span>
-                    <?php if ($roomType === 'group' && isset($participantCount)): ?>
-                        <span class="text-xs text-gray-400"><?php echo $participantCount; ?> members</span>
+                    <?php if ($roomType === 'group'): ?>
+                        <span class="text-xs text-gray-400 font-medium">Group</span>
+                        <?php if (isset($participantCount)): ?>
+                            <span class="text-xs text-gray-400"><?php echo $participantCount; ?> members</span>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>

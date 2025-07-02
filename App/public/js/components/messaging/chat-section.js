@@ -1801,20 +1801,6 @@ class ChatSection {
             const targetType = this.chatType === 'channel' ? 'channel' : 'dm';
             const targetId = this.targetId;
             
-            const deleteData = {
-                message_id: messageId,
-                user_id: window.globalSocketManager?.userId || null,
-                username: window.globalSocketManager?.username || 'Unknown',
-                target_type: targetType,
-                target_id: targetId,
-                source: 'delete-action'
-            };
-            
-            console.log('📡 [CHAT-SECTION] Broadcasting delete to socket:', deleteData);
-            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-                window.globalSocketManager.io.emit('message-deleted', deleteData);
-            }
-            
             if (!window.ChatAPI) {
                 throw new Error('ChatAPI not initialized');
             }
@@ -1823,7 +1809,23 @@ class ChatSection {
             const response = await window.ChatAPI.deleteMessage(messageId);
             
             if (response.success) {
-                console.log('✅ [CHAT-SECTION] Message deleted successfully');
+                console.log('✅ [CHAT-SECTION] Message deleted successfully from database');
+                
+                const deleteData = {
+                    message_id: messageId,
+                    user_id: window.globalSocketManager?.userId || null,
+                    username: window.globalSocketManager?.username || 'Unknown',
+                    target_type: targetType,
+                    target_id: targetId,
+                    source: 'delete-action'
+                };
+                
+                console.log('📡 [CHAT-SECTION] Broadcasting delete to socket AFTER successful HTTP delete:', deleteData);
+                if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                    window.globalSocketManager.io.emit('message-deleted', deleteData);
+                } else {
+                    console.warn('⚠️ [CHAT-SECTION] Socket not ready, message deleted but no real-time sync');
+                }
                 
                 if (messageElement) {
                     messageElement.classList.remove('message-deleting-pending');
