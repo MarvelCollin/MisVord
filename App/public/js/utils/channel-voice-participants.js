@@ -9,10 +9,6 @@ class ChannelVoiceParticipants {
         this.loadExistingMeetings();
         this.attachVoiceEvents();
         console.log('[VOICE-PARTICIPANT] Voice participants manager initialized');
-        
-        setTimeout(() => {
-            this.testVoiceParticipantsDisplay();
-        }, 2000);
     }
 
     setupSocketListeners() {
@@ -55,13 +51,20 @@ class ChannelVoiceParticipants {
     }
 
     attachVoiceEvents() {
+        let voiceConnectHandled = false;
+        
         window.addEventListener('voiceConnect', (event) => {
             const channelId = event.detail?.channelId;
-            if (channelId) {
+            if (channelId && !voiceConnectHandled) {
                 console.log('[VOICE-PARTICIPANT] Voice connect event received, adding current user to channel:', channelId);
+                voiceConnectHandled = true;
+                
                 setTimeout(() => {
                     this.addCurrentUserToChannel(channelId);
+                    voiceConnectHandled = false;
                 }, 1000);
+            } else if (voiceConnectHandled) {
+                console.log('[VOICE-PARTICIPANT] Voice connect event already handled, skipping');
             }
         });
     }
@@ -71,13 +74,7 @@ class ChannelVoiceParticipants {
         
         if (!channel_id) return;
 
-        console.log('[VOICE-PARTICIPANT] Processing voice meeting update:', {
-            action,
-            user_id,
-            username,
-            current_user_id: window.currentUserId,
-            current_username: window.currentUsername
-        });
+        console.log('[VOICE-PARTICIPANT] Voice meeting update:', action, user_id, username);
 
         this.updateChannelCount(channel_id, participant_count || 0);
 
@@ -116,24 +113,28 @@ class ChannelVoiceParticipants {
 
         const channelParticipants = this.participants.get(channelId);
         
-        if (channelParticipants.has(userId)) {
-            console.log('[VOICE-PARTICIPANT] Participant already exists:', userId);
+        const normalizedUserId = userId.toString();
+        
+        if (channelParticipants.has(normalizedUserId)) {
+            console.log('[VOICE-PARTICIPANT] Participant already exists:', normalizedUserId, 'username:', username);
             return;
         }
 
+        console.log('[VOICE-PARTICIPANT] Adding participant:', normalizedUserId, username);
+
         let participantData = {
-            id: userId,
+            id: normalizedUserId,
             username: username || 'Unknown',
             display_name: username || 'Unknown',
             avatar_url: '/public/assets/common/default-profile-picture.png'
         };
 
-        const isValidUserId = /^\d+$/.test(userId);
+        const isValidUserId = /^\d+$/.test(normalizedUserId);
         
         if (isValidUserId) {
             try {
                 if (window.userAPI) {
-                    const userData = await window.userAPI.getUserProfile(userId);
+                    const userData = await window.userAPI.getUserProfile(normalizedUserId);
                     if (userData && userData.success && userData.data && userData.data.user) {
                         participantData.display_name = userData.data.user.display_name || userData.data.user.username || participantData.username;
                         participantData.avatar_url = userData.data.user.avatar_url || participantData.avatar_url;
@@ -141,13 +142,13 @@ class ChannelVoiceParticipants {
                 } else {
                     await this.waitForUserAPI();
                     if (window.userAPI) {
-                        const userData = await window.userAPI.getUserProfile(userId);
+                        const userData = await window.userAPI.getUserProfile(normalizedUserId);
                         if (userData && userData.success && userData.data && userData.data.user) {
                             participantData.display_name = userData.data.user.display_name || userData.data.user.username || participantData.username;
                             participantData.avatar_url = userData.data.user.avatar_url || participantData.avatar_url;
                         }
                     } else {
-                        const response = await fetch(`/api/users/${userId}/profile`, {
+                        const response = await fetch(`/api/users/${normalizedUserId}/profile`, {
                             method: 'GET',
                             credentials: 'same-origin'
                         });
@@ -161,25 +162,26 @@ class ChannelVoiceParticipants {
                         }
                     }
                 }
-                    } catch (error) {
-            console.warn('[VOICE-PARTICIPANT] Failed to fetch user profile:', error);
+            } catch (error) {
+                console.warn('[VOICE-PARTICIPANT] Failed to fetch user profile:', error);
+            }
+        } else {
+            console.log('[VOICE-PARTICIPANT] Using session ID for participant:', normalizedUserId, 'username:', username);
         }
-    } else {
-        console.log('[VOICE-PARTICIPANT] Using session ID for participant:', userId, 'username:', username);
-    }
 
-    channelParticipants.set(userId, participantData);
-    console.log('[VOICE-PARTICIPANT] Added participant:', participantData.display_name, 'to channel', channelId);
+        channelParticipants.set(normalizedUserId, participantData);
+        console.log('[VOICE-PARTICIPANT] Successfully added participant:', participantData.display_name, 'to channel', channelId);
     }
 
     removeParticipant(channelId, userId) {
         if (!this.participants.has(channelId)) return;
 
         const channelParticipants = this.participants.get(channelId);
-        const participant = channelParticipants.get(userId);
+        const normalizedUserId = userId.toString();
+        const participant = channelParticipants.get(normalizedUserId);
         
         if (participant) {
-            channelParticipants.delete(userId);
+            channelParticipants.delete(normalizedUserId);
             console.log('[VOICE-PARTICIPANT] Removed participant:', participant.display_name, 'from channel', channelId);
         }
 
@@ -199,6 +201,8 @@ class ChannelVoiceParticipants {
 
         const channelParticipants = this.participants.get(channelId);
         console.log('[VOICE-PARTICIPANT] Channel participants:', channelParticipants ? channelParticipants.size : 0);
+        
+
         
         if (!channelParticipants || channelParticipants.size === 0) {
             console.log('[VOICE-PARTICIPANT] No participants, hiding container');
@@ -257,8 +261,9 @@ class ChannelVoiceParticipants {
 
     updateParticipantPresence(data) {
         for (const [channelId, channelParticipants] of this.participants.entries()) {
-            if (channelParticipants.has(data.user_id)) {
-                const participant = channelParticipants.get(data.user_id);
+            const normalizedUserId = data.user_id.toString();
+            if (channelParticipants.has(normalizedUserId)) {
+                const participant = channelParticipants.get(normalizedUserId);
                 participant.status = data.status;
                 participant.activity_details = data.activity_details;
                 this.updateParticipantContainer(channelId);
@@ -294,6 +299,8 @@ class ChannelVoiceParticipants {
         return this.participants.get(channelId) || new Map();
     }
 
+
+
     async waitForUserAPI(maxWaitTime = 5000) {
         if (window.userAPI) return;
         
@@ -307,33 +314,7 @@ class ChannelVoiceParticipants {
         }
     }
 
-    testVoiceParticipantsDisplay() {
-        console.log('[VOICE-PARTICIPANT] Testing voice participants display...');
-        
-        const voiceChannels = document.querySelectorAll('[data-channel-type="voice"]');
-        if (voiceChannels.length === 0) {
-            console.log('[VOICE-PARTICIPANT] No voice channels found for testing');
-            return;
-        }
-        
-        const firstVoiceChannel = voiceChannels[0];
-        const channelId = firstVoiceChannel.getAttribute('data-channel-id');
-        const channelName = firstVoiceChannel.getAttribute('data-channel-name');
-        
-        console.log('[VOICE-PARTICIPANT] Testing with channel:', channelName, 'ID:', channelId);
-        
-        this.addParticipant(channelId, 'test-user-1', 'Test User 1');
-        this.addParticipant(channelId, 'test-user-2', 'Test User 2');
-        
-        if (window.currentUserId && window.currentUsername) {
-            console.log('[VOICE-PARTICIPANT] Adding current user to test:', window.currentUserId, window.currentUsername);
-            this.addParticipant(channelId, window.currentUserId, window.currentUsername);
-        }
-        
-        this.updateParticipantContainer(channelId);
-        
-        console.log('[VOICE-PARTICIPANT] Test participants added. Check channel list.');
-    }
+
 
     static getInstance() {
         if (!window._channelVoiceParticipants) {

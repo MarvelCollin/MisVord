@@ -1111,7 +1111,7 @@ class ChatSection {
             return;
         }
         
-        const hasContent = this.messageInput && this.messageInput.value.trim().length > 0;
+        const hasContent = this.messageInput && (this.messageInput.value ? this.messageInput.value.trim().length > 0 : this.messageInput.textContent.trim().length > 0);
         const hasFiles = this.fileUploadHandler && this.fileUploadHandler.hasFiles();
         const canSend = hasContent || hasFiles;
         

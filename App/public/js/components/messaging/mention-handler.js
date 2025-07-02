@@ -342,11 +342,210 @@ class MentionHandler {
         if (isTypingMention) {
             input.classList.add('misvord-mention-typing');
             input.setAttribute('data-mention-typing', 'true');
+            this.convertToContentEditable(input);
         } else {
             input.classList.remove('misvord-mention-typing');
             input.removeAttribute('data-mention-typing');
+            this.convertBackToTextarea(input);
         }
     }
+
+    convertToContentEditable(input) {
+        if (input.getAttribute('contenteditable') === 'true') return;
+        
+        const wrapper = input.parentNode;
+        const contentEditableDiv = document.createElement('div');
+        contentEditableDiv.id = input.id;
+        contentEditableDiv.className = input.className;
+        contentEditableDiv.setAttribute('contenteditable', 'true');
+        contentEditableDiv.setAttribute('data-mention-typing', 'true');
+        contentEditableDiv.style.cssText = input.style.cssText;
+        contentEditableDiv.textContent = input.value;
+        
+        input.style.display = 'none';
+        wrapper.insertBefore(contentEditableDiv, input);
+        
+        this.setupContentEditableEvents(contentEditableDiv, input);
+        this.highlightMentionsInContentEditable(contentEditableDiv);
+        
+        if (this.autocompleteContainer && this.autocompleteContainer.parentNode !== wrapper) {
+            wrapper.appendChild(this.autocompleteContainer);
+        }
+        
+        contentEditableDiv.focus();
+    }
+
+    convertBackToTextarea(contentEditableDiv) {
+        const originalInput = document.getElementById(contentEditableDiv.id);
+        if (!originalInput || originalInput.style.display !== 'none') return;
+        
+        originalInput.value = this.extractTextFromContentEditable(contentEditableDiv);
+        originalInput.style.display = '';
+        contentEditableDiv.remove();
+        originalInput.focus();
+    }
+
+    setupContentEditableEvents(contentEditableDiv, originalInput) {
+        const handleInput = () => {
+            const text = this.extractTextFromContentEditable(contentEditableDiv);
+            originalInput.value = text;
+            this.highlightMentionsInContentEditable(contentEditableDiv);
+            
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const cursorOffset = this.getCursorOffset(contentEditableDiv, range);
+                this.handleContentEditableMentionDetection(contentEditableDiv, cursorOffset);
+            }
+        };
+
+        const handleKeyDown = (e) => {
+            if (this.isAutocompleteVisible) {
+                switch (e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        this.navigateAutocomplete(1);
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        this.navigateAutocomplete(-1);
+                        break;
+                    case 'Enter':
+                    case 'Tab':
+                        e.preventDefault();
+                        this.selectCurrentMention();
+                        return;
+                    case 'Escape':
+                        e.preventDefault();
+                        this.hideAutocomplete();
+                        break;
+                }
+            } else if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (this.chatSection.sendReceiveHandler) {
+                    this.chatSection.sendReceiveHandler.sendMessage();
+                }
+            }
+        };
+
+        contentEditableDiv.addEventListener('input', handleInput);
+        contentEditableDiv.addEventListener('keydown', handleKeyDown);
+        contentEditableDiv.addEventListener('blur', () => {
+            setTimeout(() => this.convertBackToTextarea(contentEditableDiv), 100);
+        });
+    }
+
+    extractTextFromContentEditable(element) {
+        return element.textContent || element.innerText || '';
+    }
+
+    highlightMentionsInContentEditable(element) {
+        const text = this.extractTextFromContentEditable(element);
+        const mentionRegex = /@(\w+)/g;
+        
+        if (!text.includes('@')) {
+            element.textContent = text;
+            return;
+        }
+
+        let highlightedText = text;
+        highlightedText = highlightedText.replace(mentionRegex, (match, username) => {
+            return `<span class="mention-highlight">${match}</span>`;
+        });
+
+        if (highlightedText !== text) {
+            const selection = window.getSelection();
+            let cursorOffset = 0;
+            
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                cursorOffset = this.getCursorOffset(element, range);
+            }
+            
+            element.innerHTML = highlightedText;
+            
+            this.restoreCursorPosition(element, cursorOffset);
+        }
+    }
+
+    getCursorOffset(element, range) {
+        let offset = 0;
+        const walker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        let node;
+        while (node = walker.nextNode()) {
+            if (node === range.startContainer) {
+                offset += range.startOffset;
+                break;
+            }
+            offset += node.textContent.length;
+        }
+        
+        return offset;
+    }
+
+    restoreCursorPosition(element, offset) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        
+        let currentOffset = 0;
+        let targetNode = null;
+        let targetOffset = 0;
+        
+        const walker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        let node;
+        while (node = walker.nextNode()) {
+            const nodeLength = node.textContent.length;
+            if (currentOffset + nodeLength >= offset) {
+                targetNode = node;
+                targetOffset = offset - currentOffset;
+                break;
+            }
+            currentOffset += nodeLength;
+        }
+        
+        if (targetNode) {
+            range.setStart(targetNode, targetOffset);
+            range.setEnd(targetNode, targetOffset);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    }
+
+    handleContentEditableMentionDetection(element, cursorOffset) {
+        const text = this.extractTextFromContentEditable(element);
+        const beforeCursor = text.substring(0, cursorOffset);
+        
+        const mentionMatch = beforeCursor.match(/@(\w*)$/);
+        const hasMentionInText = text.includes('@');
+        
+        if (mentionMatch) {
+            const searchTerm = mentionMatch[1].toLowerCase();
+            const mentionStartIndex = beforeCursor.lastIndexOf('@');
+            
+            this.applyMentionInputStyling(element, true);
+            this.showAutocomplete(searchTerm, mentionStartIndex);
+        } else if (hasMentionInText) {
+            this.applyMentionInputStyling(element, true);
+            this.hideAutocomplete();
+        } else {
+            this.applyMentionInputStyling(element, false);
+            this.hideAutocomplete();
+        }
+    }
+
+
     
     handleKeyDown(e) {
         if (this.isAutocompleteVisible) {
@@ -640,8 +839,23 @@ class MentionHandler {
         const input = this.chatSection.messageInput;
         if (!input) return;
         
-        const value = input.value;
-        const cursorPosition = input.selectionStart;
+        let targetElement = input;
+        let value, cursorPosition;
+        
+        if (input.getAttribute('contenteditable') === 'true') {
+            targetElement = input;
+            value = this.extractTextFromContentEditable(input);
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                cursorPosition = this.getCursorOffset(input, range);
+            } else {
+                cursorPosition = value.length;
+            }
+        } else {
+            value = input.value;
+            cursorPosition = input.selectionStart;
+        }
         
         console.log('📝 [MENTION] Insert mention:', {
             mentionText: mentionText,
@@ -659,19 +873,27 @@ class MentionHandler {
         const afterCursor = value.substring(cursorPosition);
         
         const newValue = beforeMention + mentionText + ' ' + afterCursor;
-        input.value = newValue;
         
-        const newCursorPosition = this.mentionStartIndex + mentionText.length + 1;
-        input.setSelectionRange(newCursorPosition, newCursorPosition);
-        input.focus();
+        if (targetElement.getAttribute('contenteditable') === 'true') {
+            targetElement.textContent = newValue;
+            const newCursorPosition = this.mentionStartIndex + mentionText.length + 1;
+            this.restoreCursorPosition(targetElement, newCursorPosition);
+            this.highlightMentionsInContentEditable(targetElement);
+        } else {
+            input.value = newValue;
+            const newCursorPosition = this.mentionStartIndex + mentionText.length + 1;
+            input.setSelectionRange(newCursorPosition, newCursorPosition);
+        }
+        
+        targetElement.focus();
         
         console.log('✅ [MENTION] Mention inserted:', {
             newValue: newValue,
-            newCursorPosition: newCursorPosition
+            newCursorPosition: this.mentionStartIndex + mentionText.length + 1
         });
         
-        this.applyMentionInputStyling(input, true);
-        this.applyInputHighlight(input);
+        this.applyMentionInputStyling(targetElement, true);
+        this.applyInputHighlight(targetElement);
         
         if (this.chatSection.updateSendButton) {
             this.chatSection.updateSendButton();
@@ -1754,5 +1976,91 @@ window.testPermanentBlueColor = function() {
 };
 
 console.log('🔵 Test function available: testPermanentBlueColor()');
+
+window.testMentionBlueInput = function() {
+    console.log('🔵 [TEST] Testing mention blue input styling...');
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ Message input not found');
+        return false;
+    }
+    
+    console.log('🔵 Step 1: Testing @ mention typing...');
+    messageInput.focus();
+    messageInput.value = '@username Hello world';
+    messageInput.setSelectionRange(9, 9);
+    
+    const inputEvent = new Event('input', { bubbles: true });
+    messageInput.dispatchEvent(inputEvent);
+    
+    setTimeout(() => {
+        const hasClass = messageInput.classList.contains('misvord-mention-typing');
+        const hasAttribute = messageInput.hasAttribute('data-mention-typing');
+        const isContentEditable = messageInput.getAttribute('contenteditable') === 'true';
+        
+        console.log('📊 Mention styling check:', {
+            hasClass: hasClass,
+            hasAttribute: hasAttribute,
+            isContentEditable: isContentEditable
+        });
+        
+        if (hasClass && hasAttribute && isContentEditable) {
+            console.log('✅ Contenteditable mention styling is working!');
+            console.log('🎉 The input now shows blue @ mentions inline!');
+            return true;
+        } else {
+            console.log('❌ Contenteditable mention styling not working');
+            return false;
+        }
+    }, 100);
+};
+
+console.log('🔵 Test function available: testMentionBlueInput()');
+
+window.testMentionMenu = function() {
+    console.log('🔵 [TEST] Testing mention menu functionality...');
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ Message input not found');
+        return false;
+    }
+    
+    console.log('🔵 Step 1: Testing @ mention typing to trigger menu...');
+    messageInput.focus();
+    messageInput.value = '@';
+    messageInput.setSelectionRange(1, 1);
+    
+    const inputEvent = new Event('input', { bubbles: true });
+    messageInput.dispatchEvent(inputEvent);
+    
+    setTimeout(() => {
+        const hasClass = messageInput.classList.contains('misvord-mention-typing');
+        const hasAttribute = messageInput.hasAttribute('data-mention-typing');
+        const isContentEditable = messageInput.getAttribute('contenteditable') === 'true';
+        const hasAutocomplete = document.querySelector('.misvord-mention-menu');
+        const isAutocompleteVisible = hasAutocomplete && !hasAutocomplete.classList.contains('misvord-hidden');
+        
+        console.log('📊 Mention menu check:', {
+            hasClass: hasClass,
+            hasAttribute: hasAttribute,
+            isContentEditable: isContentEditable,
+            hasAutocomplete: !!hasAutocomplete,
+            isAutocompleteVisible: isAutocompleteVisible
+        });
+        
+        if (hasClass && hasAttribute && isContentEditable && hasAutocomplete && isAutocompleteVisible) {
+            console.log('✅ Mention menu is working!');
+            console.log('🎉 The autocomplete menu is visible and functional!');
+            return true;
+        } else {
+            console.log('❌ Mention menu not working properly');
+            return false;
+        }
+    }, 200);
+};
+
+console.log('🔵 Test function available: testMentionMenu()');
 
 export default MentionHandler; 

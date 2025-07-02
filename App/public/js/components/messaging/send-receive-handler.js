@@ -4,11 +4,23 @@ class SendReceiveHandler {
     }
 
     async sendMessage() {
-        if (!this.chatSection.messageInput || !this.chatSection.messageInput.value.trim()) {
+        const messageInput = this.chatSection.messageInput;
+        if (!messageInput) {
             return;
         }
         
-        const content = this.chatSection.messageInput.value.trim();
+        let content;
+        if (messageInput.getAttribute('contenteditable') === 'true') {
+            content = messageInput.textContent || messageInput.innerText || '';
+        } else {
+            content = messageInput.value || '';
+        }
+        
+        if (!content.trim()) {
+            return;
+        }
+        
+        content = content.trim();
         console.log('📤 Sending message via WebSocket:', content.substring(0, 50) + (content.length > 50 ? '...' : ''));
         
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
@@ -57,7 +69,12 @@ class SendReceiveHandler {
             await this.sendDirectOrChannelMessage(content, options);
             
             if (this.chatSection.messageInput) {
-                this.chatSection.messageInput.value = '';
+                if (this.chatSection.messageInput.getAttribute('contenteditable') === 'true') {
+                    this.chatSection.messageInput.textContent = '';
+                    this.chatSection.messageInput.innerHTML = '';
+                } else {
+                    this.chatSection.messageInput.value = '';
+                }
             }
             
             if (this.chatSection.fileUploadHandler.hasFiles()) {

@@ -275,8 +275,8 @@
 
 #message-input.misvord-mention-typing {
   background-color: rgba(88, 101, 242, 0.02) !important;
-  box-shadow: 0 0 0 1px rgba(88, 101, 242, 0.15) !important;
-  border: 1px solid rgba(88, 101, 242, 0.2) !important;
+  box-shadow: 0 0 0 1px rgba(88, 101, 242, 0.1) !important;
+  border: 1px solid rgba(88, 101, 242, 0.15) !important;
   border-radius: 6px !important;
   transition: all 0.2s ease !important;
 }
@@ -287,15 +287,30 @@
   border: 1px solid rgba(88, 101, 242, 0.2) !important;
   border-radius: 6px !important;
   transition: all 0.2s ease !important;
-  color: #5865f2 !important;
+}
+
+#message-input[contenteditable="true"] {
+  background-color: rgba(88, 101, 242, 0.02) !important;
+  box-shadow: 0 0 0 1px rgba(88, 101, 242, 0.15) !important;
+  border: 1px solid rgba(88, 101, 242, 0.2) !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  min-height: 44px !important;
+  max-height: 144px !important;
+  resize: none !important;
 }
 
 .mention-highlight {
   color: #5865f2 !important;
   font-weight: 500 !important;
-  background-color: rgba(88, 101, 242, 0.1) !important;
+  background-color: rgba(88, 101, 242, 0.15) !important;
   border-radius: 3px !important;
   padding: 1px 2px !important;
+  display: inline-block !important;
 }
 
 

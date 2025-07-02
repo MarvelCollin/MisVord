@@ -643,20 +643,20 @@ function handleCheckVoiceMeeting(io, client, data) {
         return;
     }
 
-    const meeting = voiceMeetings.get(channel_id);
+    const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
     const voiceTrackerParticipants = VoiceConnectionTracker.getChannelParticipants(channel_id);
     
-    if (meeting || voiceTrackerParticipants.length > 0) {
+    if (roomManagerMeeting || voiceTrackerParticipants.length > 0) {
         console.log(`✅ [VOICE-CHECK-HANDLER] Voice meeting found for channel ${channel_id}:`, {
-            meetingId: meeting?.meeting_id,
-            participantCount: meeting?.participants.size || 0,
+            meetingId: roomManagerMeeting?.meeting_id,
+            participantCount: roomManagerMeeting?.participants.size || 0,
             trackerParticipants: voiceTrackerParticipants.length
         });
         
         const participants = [];
         
-        if (meeting) {
-            meeting.participants.forEach(socketId => {
+        if (roomManagerMeeting) {
+            roomManagerMeeting.participants.forEach(socketId => {
                 const socket = io.sockets.sockets.get(socketId);
                 if (socket && socket.data?.authenticated) {
                     participants.push({
@@ -668,21 +668,24 @@ function handleCheckVoiceMeeting(io, client, data) {
         }
         
         voiceTrackerParticipants.forEach(participant => {
-            const existingParticipant = participants.find(p => p.user_id === participant.userId);
+            const existingParticipant = participants.find(p => p.user_id.toString() === participant.userId.toString());
             if (!existingParticipant) {
                 participants.push({
                     user_id: participant.userId,
                     username: participant.username || 'Unknown'
                 });
+            } else {
+                console.log(`🎤 [VOICE-CHECK-HANDLER] Skipping duplicate participant: ${participant.userId} (${participant.username})`);
             }
         });
         
-        const participantCount = Math.max(meeting?.participants.size || 0, voiceTrackerParticipants.length);
+        const participantCount = Math.max(roomManagerMeeting?.participants.size || 0, voiceTrackerParticipants.length);
+        const meetingId = roomManagerMeeting?.meeting_id || `voice_channel_${channel_id}`;
         
         client.emit('voice-meeting-status', {
             channel_id,
             has_meeting: true,
-            meeting_id: meeting?.meeting_id || 'unknown',
+            meeting_id: meetingId,
             participant_count: participantCount,
             participants: participants
         });
@@ -692,7 +695,7 @@ function handleCheckVoiceMeeting(io, client, data) {
                 client.emit('voice-meeting-update', {
                     action: 'join',
                     channel_id: channel_id,
-                    meeting_id: meeting?.meeting_id || 'unknown',
+                    meeting_id: meetingId,
                     user_id: participant.user_id,
                     username: participant.username,
                     participant_count: participantCount
@@ -727,14 +730,14 @@ function handleUnregisterVoiceMeeting(io, client, data) {
         return;
     }
 
-    const meeting = voiceMeetings.get(channel_id);
-    if (meeting) {
-        if (!meeting.participants.has(client.id)) {
+    const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
+    if (roomManagerMeeting) {
+        if (!roomManagerMeeting.participants.has(client.id)) {
             console.log(`⚠️ [VOICE-UNREGISTER-HANDLER] Client ${client.id} not found in voice meeting for channel ${channel_id}`);
             return;
         }
         
-        meeting.participants.delete(client.id);
+        const result = roomManager.removeVoiceMeeting(channel_id, client.id);
         console.log(`👤 [VOICE-UNREGISTER-HANDLER] Removed participant ${client.id} from voice meeting in channel ${channel_id}`);
         
         if (user_id) {
@@ -756,25 +759,18 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             console.log(`🚪 [VOICE-UNREGISTER-HANDLER] User ${user_id} left voice channel room: voice-channel-${channel_id}`);
             
             const titiBotId = BotHandler.getTitiBotId();
-            if (titiBotId && meeting.participants.size === 0) {
+            if (titiBotId && result.participant_count === 0) {
                 BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
                 console.log(`🤖 [VOICE-UNREGISTER-HANDLER] Removed bot from voice channel ${channel_id}`);
             }
         }
         
-        const participantCount = meeting.participants.size;
-        
-        if (participantCount === 0) {
-            voiceMeetings.delete(channel_id);
-            console.log(`🗑️ [VOICE-UNREGISTER-HANDLER] Removed empty voice meeting for channel ${channel_id}`);
-        }
-        
-        console.log(`📡 [VOICE-UNREGISTER-HANDLER] Broadcasting voice meeting update for channel ${channel_id}, participants: ${participantCount}`);
+        console.log(`📡 [VOICE-UNREGISTER-HANDLER] Broadcasting voice meeting update for channel ${channel_id}, participants: ${result.participant_count}`);
         
         io.emit('voice-meeting-update', {
             channel_id,
-            meeting_id: meeting.meeting_id,
-            participant_count: participantCount,
+            meeting_id: roomManagerMeeting.meeting_id,
+            participant_count: result.participant_count,
             action: 'leave',
             user_id: user_id,
             username: username
@@ -787,6 +783,9 @@ function handleUnregisterVoiceMeeting(io, client, data) {
 function handleDebugRooms(io, client) {
     console.log(`🔍 [DEBUG-ROOMS-HANDLER] Processing debug rooms request from ${client.id}`);
     
+    const allVoiceMeetings = roomManager.getAllVoiceMeetings();
+    const voiceMeetingKeys = allVoiceMeetings.map(meeting => meeting.channel_id);
+    
     const roomInfo = {
         clientId: client.id,
         userId: client.data?.user_id,
@@ -794,7 +793,7 @@ function handleDebugRooms(io, client) {
         authenticated: client.data?.authenticated,
         rooms: Array.from(client.rooms),
         totalSockets: io.sockets.sockets.size,
-        voiceMeetings: Array.from(voiceMeetings.keys())
+        voiceMeetings: voiceMeetingKeys
     };
     
     console.log(`📊 [DEBUG-ROOMS-HANDLER] Room info for client ${client.id}:`, roomInfo);
@@ -822,26 +821,24 @@ function handleDisconnect(io, client) {
             console.log(`🔌 [DISCONNECT] User ${username} still has other active sockets, keeping online`);
         }
         
+        const allVoiceMeetings = roomManager.getAllVoiceMeetings();
         let voiceMeetingsUpdated = [];
-        for (const [channel_id, meeting] of voiceMeetings.entries()) {
+        
+        for (const meeting of allVoiceMeetings) {
             if (meeting.participants.has(client.id)) {
-                meeting.participants.delete(client.id);
+                const result = roomManager.removeVoiceMeeting(meeting.channel_id, client.id);
                 
                 VoiceConnectionTracker.removeUserFromVoice(user_id);
                 
                 const titiBotId = BotHandler.getTitiBotId();
-                if (titiBotId) {
-                    BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
-                }
-                
-                if (meeting.participants.size === 0) {
-                    voiceMeetings.delete(channel_id);
+                if (titiBotId && result.participant_count === 0) {
+                    BotHandler.removeBotFromVoiceChannel(io, titiBotId, meeting.channel_id);
                 }
                 
                 voiceMeetingsUpdated.push({
-                    channel_id,
+                    channel_id: meeting.channel_id,
                     meeting_id: meeting.meeting_id,
-                    participant_count: meeting.participants.size
+                    participant_count: result.participant_count
                 });
             }
         }

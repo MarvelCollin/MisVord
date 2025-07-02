@@ -96,8 +96,8 @@ class GlobalSocketManager {
 
         this.loadConnectionDetails();
 
-        if (!this.socketHost || !this.socketPort) {
-            this.error('Socket connection details not found');
+        if (!this.socketHost || !this.socketPort || this.socketHost === 'null' || this.socketHost === 'undefined') {
+            this.log('Socket connection details not found or invalid, skipping initialization');
             return false;
         }
 
@@ -140,7 +140,7 @@ class GlobalSocketManager {
         const currentPort = window.location.port;
         const currentProtocol = window.location.protocol;
         
-        if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+        if (currentHost && currentHost !== 'localhost' && currentHost !== '127.0.0.1' && currentHost !== 'null') {
             socketHost = currentHost;
             socketSecure = currentProtocol === 'https:';
         }
@@ -210,6 +210,11 @@ class GlobalSocketManager {
         if (this.io && this.isConnected) {
             this.log('Socket already connected');
             return true;
+        }
+        
+        if (!this.socketHost || this.socketHost === 'null' || this.socketHost === 'undefined') {
+            this.log('Invalid socket host detected, skipping connection');
+            return false;
         }
         
         const socketUrl = `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}`;
@@ -371,6 +376,11 @@ class GlobalSocketManager {
         });
         
         this.io.on('connect_error', (error) => {
+            if (!this.socketHost || this.socketHost === 'null' || this.socketHost === 'undefined') {
+                this.log('Socket host is invalid, skipping connection attempts');
+                return;
+            }
+            
             this.error('Socket connection error', error);
             this.lastError = error;
             this.reconnectAttempts++;
@@ -912,7 +922,7 @@ class GlobalSocketManager {
         if (typeof window !== 'undefined' && window.logger) {
             window.logger.error('socket', ...args);
         } else {
-            console.error(`%c[SOCKET ERROR ${timestamp}]`, 'color: #F44336; font-weight: bold;', ...args);
+            console.warn(`%c[SOCKET]`, 'color: #FF9800; font-weight: bold;', ...args);
         }
     }
     
