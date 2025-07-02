@@ -35,7 +35,7 @@ if (file_exists($tooltipPath)) {
 
         <a href="/home/friends?tab=online" class="block w-full">
             <div class="flex items-center p-2 rounded hover:bg-discord-light text-white cursor-pointer">
-                <div class="w-8 h-8 rounded-full bg-discord-background flex items-center justify-center mr-3">
+                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center mr-3">
                     <i class="fas fa-user-friends"></i>
                 </div>
                 <span class="font-medium">Friends</span>
@@ -44,7 +44,7 @@ if (file_exists($tooltipPath)) {
 
         <a href="/nitro" class="block w-full">
             <div class="flex items-center p-2 rounded hover:bg-discord-light text-discord-lighter hover:text-white cursor-pointer mt-1 relative">
-                <div class="w-8 h-8 rounded-full bg-discord-background flex items-center justify-center mr-3">
+                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center mr-3">
                     <i class="fas fa-gift"></i>
                 </div>
                 <span class="font-medium">Nitro</span>

@@ -171,12 +171,6 @@ $additional_js = [
 $head_scripts = ['logger-init'];
 ?>
 
-<?php 
-if (!ob_get_level()) {
-    ob_start();
-}
-?>
-
 <?php if (isset($_GET['debug'])): ?>
 <div style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 1000; color: white; max-width: 500px; overflow: auto; max-height: 80%;">
     <h3>Debug Info</h3>
@@ -207,10 +201,12 @@ window.currentUsername = <?php echo json_encode($_SESSION['username'] ?? $GLOBAL
 <?php 
 $content = ob_get_clean();
 
-$isAjaxRequest = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-                 strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+$isExplicitAjaxRequest = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                         strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest' &&
+                         isset($_SERVER['HTTP_ACCEPT']) && 
+                         strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
 
-if ($isAjaxRequest) {
+if ($isExplicitAjaxRequest) {
     echo $content;
 } else {
     include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';

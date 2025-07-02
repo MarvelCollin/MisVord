@@ -56,10 +56,7 @@ Route::get('/app', function() {
     exit;
 });
 Route::get('/home/friends', 'pages/home.php');
-Route::get('/home/channels/dm/([0-9]+)', function($dmId) {
-    $_SESSION['active_dm'] = $dmId;
-    require_once __DIR__ . '/../views/pages/home.php';
-});
+Route::get('/home/channels/dm/([0-9]+)', 'pages/home.php');
 
 Route::get('/home/content', function() {
     require_once __DIR__ . '/../controllers/HomeController.php';

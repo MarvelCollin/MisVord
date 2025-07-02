@@ -34,3 +34,381 @@
 [2025-07-02 04:54:59] DEBUG [32fdc0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
 [2025-07-02 04:54:59] INFO [32fdc0] Database connected successfully - Context: {"database":"misvord"}
 [2025-07-02 04:54:59] DEBUG [32fdc0] DB Query: SELECT * FROM messages WHERE  id = ? LIMIT 1 - Duration: 52.20ms - Context: {"bindings":[799],"found":false,"db_query":"SELECT * FROM messages WHERE  id = ? LIMIT 1","db_duration":0.052195072174072266}
+[2025-07-02 07:38:47] DEBUG [757f63] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/home/channels/dm/13","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:38:47] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:47] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:47] DEBUG [757f63] HomeController index called - Context: {"session_status":1,"user_id":1,"is_authenticated":true,"request_uri":"/home/channels/dm/13"}
+[2025-07-02 07:38:47] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:47] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:47] WARNING [757f63] Activity logs table does not exist, skipping activity logging
+[2025-07-02 07:38:47] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:47] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:47] DEBUG [757f63] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 47.59ms - Context: {"bindings":[1],"result_count":5,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04758596420288086}
+[2025-07-02 07:38:47] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:47] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:47] WARNING [757f63] Activity logs table does not exist, skipping activity logging
+[2025-07-02 07:38:47] INFO [757f63] Home page data prepared successfully - Context: {"user_id":1,"servers_count":5}
+[2025-07-02 07:38:47] DEBUG [757f63] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/home/channels/dm/13","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:38:47] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:47] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:47] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:47] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:47] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:47] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:47] DEBUG [757f63] DB Query: SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1 - Duration: 50.87ms - Context: {"bindings":["13"],"found":true,"db_query":"SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1","db_duration":0.05086684226989746}
+[2025-07-02 07:38:47] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:47] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:47] DEBUG [757f63] DB Query: SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u O... - Duration: 52.28ms - Context: {"bindings":["13"],"result_count":3,"db_query":"SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u ON cp.user_id = u.id WHERE  cp.chat_room_id = ?","db_duration":0.0522770881652832}
+[2025-07-02 07:38:47] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:47] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:47] DEBUG [757f63] DB Query: SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1 - Duration: 48.56ms - Context: {"bindings":["13"],"found":true,"db_query":"SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1","db_duration":0.048560142517089844}
+[2025-07-02 07:38:48] DEBUG [757f63] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/home/channels/dm/13","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 47.12ms - Context: {"bindings":[1],"result_count":5,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.047116994857788086}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] DB Query: SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.se... - Duration: 60.54ms - Context: {"bindings":[1],"result_count":5,"db_query":"SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.server_id = s.id WHERE  usm.user_id = ?","db_duration":0.060537099838256836}
+[2025-07-02 07:38:48] DEBUG [757f63] User servers loaded for sidebar - Context: {"user_id":1,"server_count":5,"membership_count":5}
+[2025-07-02 07:38:48] DEBUG [757f63] Server sidebar debug - Context: {"contentType":"dm","currentServer":"not set","currentServer_type":"N/A"}
+[2025-07-02 07:38:48] DEBUG [757f63] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/home/channels/dm/13","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/home/channels/dm/13","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 55.80ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.05579805374145508}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 47.00ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHERE  fl.user_id = ? AND fl.status = ? AND u.status != ?","db_duration":0.04700112342834473}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 49.84ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE  fl.user_id2 = ? AND fl.status = ? AND u.status != ?","db_duration":0.04984092712402344}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] WARNING [757f63] Activity logs table does not exist, skipping activity logging
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] DB Query: SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at, u.username as other_user... - Duration: 50.10ms - Context: {"bindings":["direct",1,1],"result_count":3,"db_query":"SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at, u.username as other_username, u.display_name as other_display_name, u.avatar_url as other_avatar, u.id as other_user_id FROM chat_rooms cr INNER JOIN chat_participants cp ON cr.id = cp.chat_room_id INNER JOIN chat_participants cp2 ON cr.id = cp2.chat_room_id INNER JOIN users u ON cp2.user_id = u.id WHERE  cr.type = ? AND cp.user_id = ? AND cp2.user_id != ?","db_duration":0.05010414123535156}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] DB Query: SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at FROM chat_rooms cr INNER ... - Duration: 49.52ms - Context: {"bindings":["group",1],"result_count":1,"db_query":"SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at FROM chat_rooms cr INNER JOIN chat_participants cp ON cr.id = cp.chat_room_id WHERE  cr.type = ? AND cp.user_id = ?","db_duration":0.04951882362365723}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] DB Query: SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u O... - Duration: 48.40ms - Context: {"bindings":[13],"result_count":3,"db_query":"SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u ON cp.user_id = u.id WHERE  cp.chat_room_id = ?","db_duration":0.04839801788330078}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:48] DEBUG [757f63] DB Query: SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1 - Duration: 51.83ms - Context: {"bindings":["13"],"found":true,"db_query":"SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1","db_duration":0.05182790756225586}
+[2025-07-02 07:38:48] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:48] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:49] DEBUG [757f63] DB Query: SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1 - Duration: 50.99ms - Context: {"bindings":["13"],"found":true,"db_query":"SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1","db_duration":0.05098605155944824}
+[2025-07-02 07:38:49] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:49] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:49] DEBUG [757f63] DB Query: SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u O... - Duration: 52.87ms - Context: {"bindings":["13"],"result_count":3,"db_query":"SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u ON cp.user_id = u.id WHERE  cp.chat_room_id = ?","db_duration":0.052865028381347656}
+[2025-07-02 07:38:49] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:49] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:49] DEBUG [757f63] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 47.81ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.047811031341552734}
+[2025-07-02 07:38:49] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:49] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:49] DEBUG [757f63] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 41.91ms - Context: {"bindings":[2],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04190802574157715}
+[2025-07-02 07:38:49] DEBUG [757f63] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:38:49] INFO [757f63] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:38:49] DEBUG [757f63] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 53.74ms - Context: {"bindings":[6],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.05374288558959961}
+[2025-07-02 07:47:37] DEBUG [961a29] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/home/channels/dm/13","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:37] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:37] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:37] DEBUG [961a29] HomeController index called - Context: {"session_status":1,"user_id":1,"is_authenticated":true,"request_uri":"/home/channels/dm/13"}
+[2025-07-02 07:47:37] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:37] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:37] WARNING [961a29] Activity logs table does not exist, skipping activity logging
+[2025-07-02 07:47:37] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:37] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:37] DEBUG [961a29] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 42.80ms - Context: {"bindings":[1],"result_count":5,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04280495643615723}
+[2025-07-02 07:47:37] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:37] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:37] WARNING [961a29] Activity logs table does not exist, skipping activity logging
+[2025-07-02 07:47:37] INFO [961a29] Home page data prepared successfully - Context: {"user_id":1,"servers_count":5}
+[2025-07-02 07:47:37] DEBUG [961a29] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/home/channels/dm/13","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:37] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:37] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:37] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:37] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:37] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:37] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:37] DEBUG [961a29] DB Query: SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1 - Duration: 48.32ms - Context: {"bindings":["13"],"found":true,"db_query":"SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1","db_duration":0.048319101333618164}
+[2025-07-02 07:47:37] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:37] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:37] DEBUG [961a29] DB Query: SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u O... - Duration: 57.53ms - Context: {"bindings":["13"],"result_count":3,"db_query":"SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u ON cp.user_id = u.id WHERE  cp.chat_room_id = ?","db_duration":0.057527780532836914}
+[2025-07-02 07:47:37] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:37] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:37] DEBUG [961a29] DB Query: SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1 - Duration: 48.67ms - Context: {"bindings":["13"],"found":true,"db_query":"SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1","db_duration":0.048674821853637695}
+[2025-07-02 07:47:37] DEBUG [961a29] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/home/channels/dm/13","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:37] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:37] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:37] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 47.23ms - Context: {"bindings":[1],"result_count":5,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04722785949707031}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.se... - Duration: 42.73ms - Context: {"bindings":[1],"result_count":5,"db_query":"SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.server_id = s.id WHERE  usm.user_id = ?","db_duration":0.04273414611816406}
+[2025-07-02 07:47:38] DEBUG [961a29] User servers loaded for sidebar - Context: {"user_id":1,"server_count":5,"membership_count":5}
+[2025-07-02 07:47:38] DEBUG [961a29] Server sidebar debug - Context: {"contentType":"dm","currentServer":"not set","currentServer_type":"N/A"}
+[2025-07-02 07:47:38] DEBUG [961a29] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/home/channels/dm/13","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/home/channels/dm/13","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 45.74ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.045739173889160156}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 45.96ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHERE  fl.user_id = ? AND fl.status = ? AND u.status != ?","db_duration":0.04596400260925293}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 45.00ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE  fl.user_id2 = ? AND fl.status = ? AND u.status != ?","db_duration":0.04500102996826172}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] WARNING [961a29] Activity logs table does not exist, skipping activity logging
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at, u.username as other_user... - Duration: 45.83ms - Context: {"bindings":["direct",1,1],"result_count":3,"db_query":"SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at, u.username as other_username, u.display_name as other_display_name, u.avatar_url as other_avatar, u.id as other_user_id FROM chat_rooms cr INNER JOIN chat_participants cp ON cr.id = cp.chat_room_id INNER JOIN chat_participants cp2 ON cr.id = cp2.chat_room_id INNER JOIN users u ON cp2.user_id = u.id WHERE  cr.type = ? AND cp.user_id = ? AND cp2.user_id != ?","db_duration":0.04583096504211426}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at FROM chat_rooms cr INNER ... - Duration: 43.37ms - Context: {"bindings":["group",1],"result_count":1,"db_query":"SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at FROM chat_rooms cr INNER JOIN chat_participants cp ON cr.id = cp.chat_room_id WHERE  cr.type = ? AND cp.user_id = ?","db_duration":0.043370962142944336}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u O... - Duration: 50.60ms - Context: {"bindings":[13],"result_count":3,"db_query":"SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u ON cp.user_id = u.id WHERE  cp.chat_room_id = ?","db_duration":0.050595998764038086}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1 - Duration: 46.51ms - Context: {"bindings":["13"],"found":true,"db_query":"SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1","db_duration":0.04650998115539551}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1 - Duration: 42.32ms - Context: {"bindings":["13"],"found":true,"db_query":"SELECT * FROM chat_rooms WHERE  id = ? LIMIT 1","db_duration":0.042324066162109375}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u O... - Duration: 51.72ms - Context: {"bindings":["13"],"result_count":3,"db_query":"SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u ON cp.user_id = u.id WHERE  cp.chat_room_id = ?","db_duration":0.05172395706176758}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 51.92ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.05192303657531738}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 45.34ms - Context: {"bindings":[2],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04533791542053223}
+[2025-07-02 07:47:38] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:38] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:38] DEBUG [961a29] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 43.13ms - Context: {"bindings":[6],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04313397407531738}
+[2025-07-02 07:47:39] DEBUG [961a29] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/home/friends","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] HomeController index called - Context: {"session_status":1,"user_id":1,"is_authenticated":true,"request_uri":"/home/friends"}
+[2025-07-02 07:47:39] DEBUG [961a29] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/home/friends","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 51.51ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.051509857177734375}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 44.64ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHERE  fl.user_id = ? AND fl.status = ? AND u.status != ?","db_duration":0.04463696479797363}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 43.58ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE  fl.user_id2 = ? AND fl.status = ? AND u.status != ?","db_duration":0.04358100891113281}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] WARNING [961a29] Activity logs table does not exist, skipping activity logging
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] WARNING [961a29] Activity logs table does not exist, skipping activity logging
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 56.94ms - Context: {"bindings":[1],"result_count":5,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.056936025619506836}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] WARNING [961a29] Activity logs table does not exist, skipping activity logging
+[2025-07-02 07:47:39] INFO [961a29] Home page data prepared successfully - Context: {"user_id":1,"servers_count":5}
+[2025-07-02 07:47:39] DEBUG [961a29] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/home/friends","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 51.61ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.05160999298095703}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 50.42ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHERE  fl.user_id = ? AND fl.status = ? AND u.status != ?","db_duration":0.0504150390625}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 50.34ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE  fl.user_id2 = ? AND fl.status = ? AND u.status != ?","db_duration":0.05034208297729492}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] WARNING [961a29] Activity logs table does not exist, skipping activity logging
+[2025-07-02 07:47:39] DEBUG [961a29] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/home/friends","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 42.63ms - Context: {"bindings":[1],"result_count":5,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.0426328182220459}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] DB Query: SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.se... - Duration: 42.55ms - Context: {"bindings":[1],"result_count":5,"db_query":"SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.server_id = s.id WHERE  usm.user_id = ?","db_duration":0.04254794120788574}
+[2025-07-02 07:47:39] DEBUG [961a29] User servers loaded for sidebar - Context: {"user_id":1,"server_count":5,"membership_count":5}
+[2025-07-02 07:47:39] DEBUG [961a29] Server sidebar debug - Context: {"contentType":"home","currentServer":"set","currentServer_type":"array"}
+[2025-07-02 07:47:39] DEBUG [961a29] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/home/friends","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/home/friends","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:39] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:39] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] DEBUG [961a29] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 47.91ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04791092872619629}
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] DEBUG [961a29] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 49.82ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHERE  fl.user_id = ? AND fl.status = ? AND u.status != ?","db_duration":0.049818992614746094}
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] DEBUG [961a29] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 46.03ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE  fl.user_id2 = ? AND fl.status = ? AND u.status != ?","db_duration":0.04602503776550293}
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] WARNING [961a29] Activity logs table does not exist, skipping activity logging
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] DEBUG [961a29] DB Query: SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at, u.username as other_user... - Duration: 52.43ms - Context: {"bindings":["direct",1,1],"result_count":3,"db_query":"SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at, u.username as other_username, u.display_name as other_display_name, u.avatar_url as other_avatar, u.id as other_user_id FROM chat_rooms cr INNER JOIN chat_participants cp ON cr.id = cp.chat_room_id INNER JOIN chat_participants cp2 ON cr.id = cp2.chat_room_id INNER JOIN users u ON cp2.user_id = u.id WHERE  cr.type = ? AND cp.user_id = ? AND cp2.user_id != ?","db_duration":0.0524289608001709}
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] DEBUG [961a29] DB Query: SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at FROM chat_rooms cr INNER ... - Duration: 45.07ms - Context: {"bindings":["group",1],"result_count":1,"db_query":"SELECT cr.id, cr.name, cr.type, cr.image_url, cr.created_at, cr.updated_at FROM chat_rooms cr INNER JOIN chat_participants cp ON cr.id = cp.chat_room_id WHERE  cr.type = ? AND cp.user_id = ?","db_duration":0.045065879821777344}
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] DEBUG [961a29] DB Query: SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u O... - Duration: 44.10ms - Context: {"bindings":[13],"result_count":3,"db_query":"SELECT cp.*, u.username, u.display_name, u.avatar_url FROM chat_participants cp INNER JOIN users u ON cp.user_id = u.id WHERE  cp.chat_room_id = ?","db_duration":0.04410386085510254}
+[2025-07-02 07:47:40] DEBUG [961a29] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/home/friends","request_method":"GET","is_ajax":"no"}
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] DEBUG [961a29] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 51.03ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.051026105880737305}
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] DEBUG [961a29] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 48.36ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHERE  fl.user_id = ? AND fl.status = ? AND u.status != ?","db_duration":0.04835796356201172}
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] DEBUG [961a29] DB Query: SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend... - Duration: 51.33ms - Context: {"bindings":[1,"accepted","bot"],"result_count":1,"db_query":"SELECT u.*, fl.id as friendship_id, COALESCE(u.display_name, u.username) as display_name FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE  fl.user_id2 = ? AND fl.status = ? AND u.status != ?","db_duration":0.05132889747619629}
+[2025-07-02 07:47:40] DEBUG [961a29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 07:47:40] INFO [961a29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 07:47:40] WARNING [961a29] Activity logs table does not exist, skipping activity logging
+[2025-07-02 13:35:38] INFO [a83b6e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:38"}
+[2025-07-02 13:35:38] DEBUG [a83b6e] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/13?channel=13&type=text","request_method":"GET","is_ajax":"no"}
+[2025-07-02 13:35:38] DEBUG [a83b6e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 13:35:38] INFO [a83b6e] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 13:35:38] INFO [a98e39] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:38"}
+[2025-07-02 13:35:38] DEBUG [a98e39] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login?redirect=%2Fserver%2F13%3Fchannel%3D13%26type%3Dtext","request_method":"GET","is_ajax":"no"}
+[2025-07-02 13:35:38] DEBUG [a98e39] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 13:35:38] INFO [a98e39] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 13:35:38] INFO [ad82c7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:38"}
+[2025-07-02 13:35:38] INFO [adb4af] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:38"}
+[2025-07-02 13:35:38] INFO [add907] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:38"}
+[2025-07-02 13:35:38] INFO [af3676] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:38"}
+[2025-07-02 13:35:39] WARNING [af3676] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:39] INFO [b10ee6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b28b60] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b2ace7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b2cb15] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b2ea8b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b305e1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b32081] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b340da] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b35e97] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b37e8e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b3994d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] WARNING [b3994d] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:39] INFO [b4f9d7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] WARNING [b4f9d7] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:39] INFO [b611bf] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] WARNING [b611bf] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:39] INFO [b74b50] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b89427] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b8b67a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b8d429] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b8ef77] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [b90c63] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [ba1a86] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] DEBUG [ba1a86] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/13?channel=13&type=text","request_method":"GET","is_ajax":"no"}
+[2025-07-02 13:35:39] DEBUG [ba1a86] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 13:35:39] INFO [ba1a86] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 13:35:39] INFO [bb1d65] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] WARNING [bb1d65] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:39] INFO [bc6110] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] INFO [be050f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:39] WARNING [be050f] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:39] INFO [bf2629] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:39"}
+[2025-07-02 13:35:40] WARNING [bf2629] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:40] INFO [c11aec] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] WARNING [c11aec] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:40] INFO [c29059] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] WARNING [c29059] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:40] INFO [c3b395] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] DEBUG [c3b395] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login?redirect=%2Fserver%2F13%3Fchannel%3D13%26type%3Dtext","request_method":"GET","is_ajax":"no"}
+[2025-07-02 13:35:40] DEBUG [c3b395] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-02 13:35:40] INFO [c3b395] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-02 13:35:40] INFO [c63368] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] WARNING [c63368] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:40] INFO [c86d3e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] WARNING [c86d3e] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:40] INFO [c9ac7f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] INFO [c9c76a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] INFO [cad09c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] INFO [caeb0a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] INFO [cb086e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] INFO [cc73aa] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] WARNING [cc73aa] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:40] INFO [cd9c00] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] INFO [ce9df0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:40] INFO [ceb713] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:40"}
+[2025-07-02 13:35:41] WARNING [ceb713] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:41] WARNING [ceb713] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":85,"severity":2}
+[2025-07-02 13:35:41] INFO [d0b0c2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d1005e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d119e5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d13a83] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d15278] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d16a20] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d184a9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d1a52f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d1c9de] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] WARNING [d1c9de] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:41] INFO [d30f1e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] WARNING [d30f1e] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:41] INFO [d50893] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] WARNING [d50893] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:41] INFO [d6b82d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] WARNING [d6b82d] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:41] INFO [d8e0f5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d8ff62] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d919b8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d93f19] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [d96585] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] WARNING [d96585] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:41] INFO [daeede] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] WARNING [daeede] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:41] INFO [dce201] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:41] INFO [de771d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:41"}
+[2025-07-02 13:35:42] INFO [e0a218] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:42"}
+[2025-07-02 13:35:42] WARNING [e0a218] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:42] INFO [e279ec] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:42"}
+[2025-07-02 13:35:42] WARNING [e279ec] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:42] INFO [e39cd4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:42"}
+[2025-07-02 13:35:42] WARNING [e39cd4] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:42] INFO [e4d4c3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:42"}
+[2025-07-02 13:35:42] INFO [e5e19d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:42"}
+[2025-07-02 13:35:42] INFO [e64167] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-02 13:35:42"}
+[2025-07-02 13:35:42] WARNING [e64167] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-02 13:35:42] WARNING [e64167] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":85,"severity":2}

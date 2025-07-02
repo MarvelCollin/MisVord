@@ -1,7 +1,7 @@
 class CarouselSection {
     constructor() {
-        this.currentPage = 0;
-        this.totalPages = 3;
+        this.currentPage = -1;
+        this.totalPages = 4;
         this.isAnimating = false;
         
         this.init();
@@ -9,31 +9,15 @@ class CarouselSection {
     
     init() {
         this.bookContent = document.getElementById('bookContent');
-        this.bookNav = document.getElementById('bookNav');
         this.pages = document.querySelectorAll('.page');
-        this.prevBtn = document.getElementById('prevPage');
-        this.nextBtn = document.getElementById('nextPage');
-        this.pageIndicator = document.getElementById('pageIndicator');
         
         if (!this.bookContent) return;
         
         this.setupEventListeners();
         this.updatePageStates();
-        this.updatePageIndicator();
-        this.showNavigation();
     }
     
     setupEventListeners() {
-        this.prevBtn?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.prevPage();
-        });
-        
-        this.nextBtn?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.nextPage();
-        });
-        
         document.addEventListener('carouselVisible', () => {
             this.onSectionVisible();
         });
@@ -54,11 +38,12 @@ class CarouselSection {
             page.addEventListener('click', (e) => {
                 if (this.isAnimating) return;
                 
+                const pageNumber = this.getPageNumber(page);
                 const isBehind = page.classList.contains('behind');
                 const isActive = page.classList.contains('active');
                 
                 if (isBehind) {
-                    this.flipPageTo(index);
+                    this.flipPageTo(pageNumber);
                     return;
                 }
                 
@@ -69,13 +54,23 @@ class CarouselSection {
                 const pageWidth = rect.width;
                 const leftSide = clickX < pageWidth / 2;
                 
-                if (leftSide && this.currentPage > 0) {
+                if (leftSide && this.currentPage > -1) {
                     this.flipPageTo(this.currentPage - 1);
-                } else if (!leftSide && this.currentPage < this.totalPages - 1) {
+                } else if (!leftSide && this.currentPage < 2) {
                     this.flipPageTo(this.currentPage + 1);
                 }
             });
         });
+    }
+    
+    getPageNumber(page) {
+        const dataPage = page.getAttribute('data-page');
+        if (dataPage === 'cover') return -1;
+        return parseInt(dataPage);
+    }
+    
+    getPageByNumber(pageNumber) {
+        return Array.from(this.pages).find(page => this.getPageNumber(page) === pageNumber);
     }
     
     isBookActive() {
@@ -83,29 +78,22 @@ class CarouselSection {
         return carouselSection && carouselSection.classList.contains('is-active');
     }
     
-    showNavigation() {
-        this.bookNav.style.opacity = '1';
-        this.bookNav.style.visibility = 'visible';
-    }
-    
     prevPage() {
-        if (this.isAnimating || this.currentPage <= 0) return;
+        if (this.isAnimating || this.currentPage <= -1) return;
         this.flipPageTo(this.currentPage - 1);
     }
     
     nextPage() {
-        if (this.isAnimating || this.currentPage >= this.totalPages - 1) return;
+        if (this.isAnimating || this.currentPage >= 2) return;
         this.flipPageTo(this.currentPage + 1);
     }
     
     flipPageTo(targetPage) {
-        if (this.isAnimating || targetPage < 0 || targetPage >= this.totalPages || targetPage === this.currentPage) return;
-        
-        console.log(`Flipping from page ${this.currentPage} to page ${targetPage}`);
+        if (this.isAnimating || targetPage < -1 || targetPage > 2 || targetPage === this.currentPage) return;
         
         this.isAnimating = true;
-        const currentPageEl = this.pages[this.currentPage];
-        const targetPageEl = this.pages[targetPage];
+        const currentPageEl = this.getPageByNumber(this.currentPage);
+        const targetPageEl = this.getPageByNumber(targetPage);
         const direction = targetPage > this.currentPage ? 'forward' : 'backward';
         
         if (direction === 'forward') {
@@ -114,7 +102,6 @@ class CarouselSection {
             
             setTimeout(() => {
                 this.currentPage = targetPage;
-                console.log(`Animation finished, now on page ${this.currentPage}`);
                 this.finishFlipAnimation();
             }, 800);
         } else {
@@ -123,58 +110,42 @@ class CarouselSection {
             
             setTimeout(() => {
                 this.currentPage = targetPage;
-                console.log(`Animation finished, now on page ${this.currentPage}`);
                 this.finishFlipAnimation();
             }, 800);
         }
     }
     
     finishFlipAnimation() {
-        this.pages.forEach((page, index) => {
+        this.pages.forEach((page) => {
+            const pageNumber = this.getPageNumber(page);
             page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
             page.style.zIndex = '';
             
-            if (index === this.currentPage) {
+            if (pageNumber === this.currentPage) {
                 page.classList.add('active');
-                console.log(`Setting page ${index} as ACTIVE`);
-            } else if (index < this.currentPage) {
+            } else if (pageNumber < this.currentPage) {
                 page.classList.add('behind');
-                console.log(`Setting page ${index} as BEHIND`);
-            } else {
-                console.log(`Page ${index} is NEUTRAL`);
             }
         });
         
-        this.updatePageIndicator();
         this.isAnimating = false;
     }
     
     updatePageStates() {
-        this.pages.forEach((page, index) => {
+        this.pages.forEach((page) => {
+            const pageNumber = this.getPageNumber(page);
             page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
             page.style.zIndex = '';
             
-            if (index === this.currentPage) {
+            if (pageNumber === this.currentPage) {
                 page.classList.add('active');
-            } else if (index < this.currentPage) {
+            } else if (pageNumber < this.currentPage) {
                 page.classList.add('behind');
             }
         });
     }
     
-    updatePageIndicator() {
-        if (this.pageIndicator) {
-            this.pageIndicator.textContent = `${this.currentPage + 1} / ${this.totalPages}`;
-        }
-        
-        if (this.prevBtn) {
-            this.prevBtn.disabled = this.currentPage <= 0;
-        }
-        
-        if (this.nextBtn) {
-            this.nextBtn.disabled = this.currentPage >= this.totalPages - 1;
-        }
-    }
+
     
     onSectionVisible() {
         const title = document.querySelector('.carousel-title');
@@ -208,10 +179,6 @@ class CarouselSection {
                 this.bookContent.style.opacity = '1';
             }, 100);
         }
-    }
-    
-    destroy() {
-        
     }
 }
 

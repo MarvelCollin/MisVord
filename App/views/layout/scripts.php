@@ -121,3 +121,33 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '';
 $isHomePage = strpos($currentPath, '/home') === 0;
 ?>
 <script src="<?php echo js('components/app-layout'); ?>?v=<?php echo time(); ?>" type="module"></script>
+<script src="<?php echo js('debug-deletion-test'); ?>?v=<?php echo time(); ?>"></script>
+<script src="<?php echo js('utils/dm-switch-manager'); ?>?v=<?php echo time(); ?>" type="module"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 [SCRIPTS] All scripts loaded and DOM ready');
+    
+    if (window.globalPresenceManager) {
+        window.globalPresenceManager.startActivityTracking();
+    }
+    
+    if (window.globalSocketManager) {
+        window.globalSocketManager.initialize();
+    }
+    
+    if (window.nitroIconManager) {
+        window.nitroIconManager.initializeIcons();
+    }
+});
+
+window.addEventListener('beforeunload', function() {
+    if (window.globalPresenceManager) {
+        window.globalPresenceManager.stopActivityTracking();
+    }
+    
+    if (window.globalSocketManager && window.globalSocketManager.disconnect) {
+        window.globalSocketManager.disconnect();
+    }
+});
+</script>

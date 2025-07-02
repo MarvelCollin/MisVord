@@ -33,7 +33,7 @@ if (file_exists($tooltipPath)) {
             <div class="server-sidebar-icon mb-2 <?php echo $isHomePage ? 'active' : ''; ?>">
                 <a href="/home" class="block">
                     <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">
-                        <img src="<?php echo asset('/common/main-logo.png'); ?>" alt="Home" class="discord-home-logo">
+                        <img src="<?php echo asset('/common/default-profile-picture.png'); ?>" alt="Home" class="discord-home-logo">
                     </div>
                 </a>
                 <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">

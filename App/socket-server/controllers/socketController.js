@@ -279,14 +279,20 @@ function setup(io) {
                 targetId: data.target_id
             });
             
-            if (!data.message_id) {
-                console.warn('⚠️ [MESSAGE-DELETE] Message deletion missing message_id:', data);
+            if (!client.data?.authenticated || !client.data?.user_id) {
+                console.error(`❌ [MESSAGE-DELETE] Unauthenticated deletion attempt`);
                 return;
             }
+            
+            if (!data.message_id) {
+                console.warn('⚠️ [MESSAGE-DELETE] Missing message_id');
+                return;
+            }
+            
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
-            console.log(`✅ [MESSAGE-DELETE] Processing message deletion for message ${data.message_id}`);
-            MessageHandler.forwardMessage(io, client, 'message-deleted', data);
+            
+            MessageHandler.handleDeletion(io, client, 'message-deleted', data);
         });
         
         client.on('reaction-added', (data) => {

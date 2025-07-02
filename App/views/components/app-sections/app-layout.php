@@ -131,7 +131,24 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
         <?php elseif ($contentType === 'server'): ?>
             <?php include dirname(__DIR__) . '/app-sections/participant-section.php'; ?>
         <?php elseif ($contentType === 'dm'): ?>
-            <?php include dirname(__DIR__) . '/app-sections/participant-section.php'; ?>
+            <?php 
+            $chatType = $GLOBALS['chatType'] ?? 'direct';
+            $targetId = $GLOBALS['targetId'] ?? 0;
+            $isGroupChat = false;
+            
+            if ($chatType === 'direct' && $targetId) {
+                require_once dirname(dirname(dirname(__DIR__))) . '/database/repositories/ChatRoomRepository.php';
+                $chatRoomRepo = new ChatRoomRepository();
+                $chatRoom = $chatRoomRepo->find($targetId);
+                $isGroupChat = ($chatRoom && $chatRoom->type === 'group');
+            }
+            
+            if ($isGroupChat):
+            ?>
+                <?php include dirname(__DIR__) . '/app-sections/group-chat-participant-section.php'; ?>
+            <?php else: ?>
+                <?php include dirname(__DIR__) . '/app-sections/participant-section.php'; ?>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 </div>

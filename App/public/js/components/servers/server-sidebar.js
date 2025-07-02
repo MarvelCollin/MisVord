@@ -292,7 +292,7 @@ async function buildServerImageData() {
         const existingImg = icon.querySelector('.server-button img');
         const existingText = icon.querySelector('.server-button span');
         
-        if (existingImg && existingImg.src && !existingImg.src.includes('main-logo')) {
+        if (existingImg && existingImg.src && !existingImg.src.includes('default-profile-picture')) {
             serverImageData.set(serverId, {
                 type: 'image',
                 src: existingImg.src,

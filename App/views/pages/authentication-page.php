@@ -131,7 +131,7 @@ try {
     <div class="w-full max-w-md mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10 p-6 sm:p-8" id="authContainer">
 
         <div class="flex justify-center mb-6 sm:mb-8 relative">
-            <img src="<?php echo asset('/common/main-logo.png'); ?>" alt="misvord Logo" class="h-8 sm:h-10 md:h-12 transition-all" id="logo">
+            <img src="<?php echo asset('/common/default-profile-picture.png'); ?>" alt="misvord Logo" class="h-8 sm:h-10 md:h-12 transition-all" id="logo">
             <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-gradient-to-r from-discord-blue to-discord-pink w-0" id="logoUnderline"></div>
         </div>
 

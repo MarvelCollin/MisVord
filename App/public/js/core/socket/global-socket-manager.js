@@ -49,10 +49,9 @@ class GlobalSocketManager {
                 avatarUrl: this.avatarUrl
             });
             
-            await this.connect();
+            this.connect();
             
             if (this.io) {
-                this.setupEventListeners();
                 this.setupActivityTracking();
                 return true;
             }
@@ -967,7 +966,7 @@ class GlobalSocketManager {
                 if (Notification.permission === 'granted') {
                     const notification = new Notification('New Mention', {
                         body: notificationText,
-                        icon: '/public/assets/common/main-logo.png',
+                        icon: '/public/assets/common/default-profile-picture.png',
                         tag: `mention-${data.message_id || Date.now()}`,
                         requireInteraction: false
                     });

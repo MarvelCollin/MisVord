@@ -244,19 +244,35 @@ class SocketHandler {
     
     handleMessageDeleted(data) {
         try {
-            if (!data || !data.message_id) return;
+            if (!data || !data.message_id) {
+                console.warn('⚠️ [SOCKET-HANDLER] Invalid message deletion data received:', data);
+                return;
+            }
             
             console.log('🗑️ [SOCKET-HANDLER] Message deletion received:', {
                 messageId: data.message_id,
                 userId: data.user_id,
                 username: data.username,
                 targetType: data.target_type,
-                targetId: data.target_id
+                targetId: data.target_id,
+                source: data.source
             });
             
             const isSender = data.user_id === window.globalSocketManager?.userId;
+            const isForThisChat = this.isCurrentChat(data);
+            
+            if (!isForThisChat) {
+                console.log('🔄 [SOCKET-HANDLER] Deletion not for this chat, ignoring:', {
+                    messageTargetType: data.target_type,
+                    messageTargetId: data.target_id,
+                    currentChatType: this.chatSection.chatType,
+                    currentTargetId: this.chatSection.targetId
+                });
+                return;
+            }
+            
             if (isSender) {
-                console.log('🔄 [SOCKET-HANDLER] Ignoring own deletion');
+                console.log('🔄 [SOCKET-HANDLER] Skipping own deletion event:', data.message_id);
                 return;
             }
             
@@ -266,22 +282,24 @@ class SocketHandler {
                 return;
             }
             
-            console.log('🗑️ [SOCKET-HANDLER] Removing message from UI:', data.message_id);
+            console.log('🗑️ [SOCKET-HANDLER] Removing message from UI for other user deletion:', data.message_id);
             
-            messageElement.classList.add('message-being-deleted');
-            messageElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            messageElement.style.transition = 'opacity 0.3s ease';
             messageElement.style.opacity = '0';
-            messageElement.style.transform = 'translateX(-20px)';
             
             setTimeout(() => {
                 const messageGroup = messageElement.closest('.bubble-message-group, .message-group');
                 if (messageGroup && messageGroup.querySelectorAll('.bubble-message-content, .message-content').length === 1) {
+                    console.log('🗑️ [SOCKET-HANDLER] Removing entire message group');
                     messageGroup.remove();
                 } else {
+                    console.log('🗑️ [SOCKET-HANDLER] Removing individual message');
                     messageElement.remove();
                 }
                 
-                this.chatSection.messageHandler.processedMessageIds.delete(data.message_id);
+                if (this.chatSection.messageHandler && this.chatSection.messageHandler.processedMessageIds) {
+                    this.chatSection.messageHandler.processedMessageIds.delete(data.message_id);
+                }
                 
                 const remainingMessages = this.chatSection.getMessagesContainer().querySelectorAll('.bubble-message-group, .message-group');
                 if (remainingMessages.length === 0) {
@@ -824,6 +842,12 @@ class SocketHandler {
                 return currentChatType === 'channel' && currentTargetId === String(data.channel_id);
             } else if (data.room_id) {
                 return (currentChatType === 'dm' || currentChatType === 'direct') && currentTargetId === String(data.room_id);
+            } else if (data.target_type && data.target_id) {
+                if (data.target_type === 'channel') {
+                    return currentChatType === 'channel' && currentTargetId === String(data.target_id);
+                } else if (data.target_type === 'dm') {
+                    return (currentChatType === 'dm' || currentChatType === 'direct') && currentTargetId === String(data.target_id);
+                }
             }
             
             return false;

@@ -1801,6 +1801,23 @@ class ChatSection {
             const targetType = this.chatType === 'channel' ? 'channel' : 'dm';
             const targetId = this.targetId;
             
+            const deleteData = {
+                message_id: messageId,
+                user_id: window.globalSocketManager?.userId || null,
+                username: window.globalSocketManager?.username || 'Unknown',
+                target_type: targetType,
+                target_id: targetId,
+                source: 'delete-action'
+            };
+            
+            console.log('📡 [CHAT-SECTION] Broadcasting delete to socket first:', deleteData);
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                window.globalSocketManager.io.emit('message-deleted', deleteData);
+                console.log('✅ [CHAT-SECTION] Delete event emitted successfully');
+            } else {
+                console.warn('⚠️ [CHAT-SECTION] Socket not ready for deletion broadcast');
+            }
+            
             if (!window.ChatAPI) {
                 throw new Error('ChatAPI not initialized');
             }
@@ -1810,22 +1827,6 @@ class ChatSection {
             
             if (response.success) {
                 console.log('✅ [CHAT-SECTION] Message deleted successfully from database');
-                
-                const deleteData = {
-                    message_id: messageId,
-                    user_id: window.globalSocketManager?.userId || null,
-                    username: window.globalSocketManager?.username || 'Unknown',
-                    target_type: targetType,
-                    target_id: targetId,
-                    source: 'delete-action'
-                };
-                
-                console.log('📡 [CHAT-SECTION] Broadcasting delete to socket AFTER successful HTTP delete:', deleteData);
-                if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-                    window.globalSocketManager.io.emit('message-deleted', deleteData);
-                } else {
-                    console.warn('⚠️ [CHAT-SECTION] Socket not ready, message deleted but no real-time sync');
-                }
                 
                 if (messageElement) {
                     messageElement.classList.remove('message-deleting-pending');
@@ -2810,6 +2811,119 @@ window.debugDeleteModal = function() {
             window.chatSection.showDeleteConfirmModal(testMessageId);
         }
     }
+};
+
+window.debugDeleteFlow = function() {
+    console.log('🗑️ [DEBUG-DELETE] Testing complete delete flow...');
+    
+    if (!window.chatSection) {
+        console.error('❌ [DEBUG-DELETE] No chat section available');
+        return;
+    }
+    
+    const messages = document.querySelectorAll('[data-message-id]');
+    if (messages.length === 0) {
+        console.error('❌ [DEBUG-DELETE] No messages found to test delete');
+        return;
+    }
+    
+    const testMessage = messages[0];
+    const messageId = testMessage.dataset.messageId;
+    
+    console.log('🧪 [DEBUG-DELETE] Testing delete flow for message:', messageId);
+    console.log('🧪 [DEBUG-DELETE] Current chat:', {
+        type: window.chatSection.chatType,
+        targetId: window.chatSection.targetId,
+        socketReady: window.globalSocketManager?.isReady(),
+        socketRoomJoined: window.chatSection.socketRoomJoined
+    });
+    
+    const deleteData = {
+        message_id: messageId,
+        user_id: 'other-test-user',
+        username: 'OtherTestUser',
+        target_type: window.chatSection.chatType === 'channel' ? 'channel' : 'dm',
+        target_id: window.chatSection.targetId,
+        source: 'debug-test'
+    };
+    
+    console.log('📡 [DEBUG-DELETE] Simulating delete event from another user:', deleteData);
+    
+    if (window.chatSection.socketHandler) {
+        window.chatSection.socketHandler.handleMessageDeleted(deleteData);
+        console.log('✅ [DEBUG-DELETE] Delete event processed via socket handler');
+    } else {
+        console.error('❌ [DEBUG-DELETE] Socket handler not available');
+    }
+};
+
+window.testDeleteSystemIntegration = function() {
+    console.log('🧪 [TEST-DELETE] Running complete delete system integration test...');
+    
+    const testResults = {
+        socketConnection: false,
+        chatSectionReady: false,
+        messageHandlerReady: false,
+        socketHandlerReady: false,
+        roomJoined: false,
+        deleteEventSending: false,
+        deleteEventReceiving: false
+    };
+    
+    testResults.socketConnection = window.globalSocketManager?.isReady() || false;
+    testResults.chatSectionReady = !!window.chatSection;
+    testResults.messageHandlerReady = !!window.chatSection?.messageHandler;
+    testResults.socketHandlerReady = !!window.chatSection?.socketHandler;
+    testResults.roomJoined = window.chatSection?.socketRoomJoined || false;
+    
+    if (window.globalSocketManager?.io) {
+        try {
+            const testData = {
+                message_id: 'test-123',
+                user_id: 'test-user',
+                username: 'TestUser',
+                target_type: 'channel',
+                target_id: '1',
+                source: 'integration-test'
+            };
+            
+            window.globalSocketManager.io.emit('message-deleted', testData);
+            testResults.deleteEventSending = true;
+            console.log('✅ [TEST-DELETE] Delete event sending works');
+        } catch (error) {
+            console.error('❌ [TEST-DELETE] Delete event sending failed:', error);
+        }
+        
+        if (window.chatSection?.socketHandler?.handleMessageDeleted) {
+            try {
+                const testReceiveData = {
+                    message_id: 'test-receive-456',
+                    user_id: 'other-user',
+                    username: 'OtherUser',
+                    target_type: window.chatSection.chatType,
+                    target_id: window.chatSection.targetId,
+                    source: 'integration-test'
+                };
+                
+                window.chatSection.socketHandler.handleMessageDeleted(testReceiveData);
+                testResults.deleteEventReceiving = true;
+                console.log('✅ [TEST-DELETE] Delete event receiving works');
+            } catch (error) {
+                console.error('❌ [TEST-DELETE] Delete event receiving failed:', error);
+            }
+        }
+    }
+    
+    console.log('📊 [TEST-DELETE] Integration test results:', testResults);
+    
+    const allPassed = Object.values(testResults).every(result => result === true);
+    if (allPassed) {
+        console.log('🎉 [TEST-DELETE] All integration tests passed! Delete system should work.');
+    } else {
+        console.log('⚠️ [TEST-DELETE] Some tests failed. Check the failing components above.');
+    }
+    
+    return testResults;
 };
   
   export default ChatSection;

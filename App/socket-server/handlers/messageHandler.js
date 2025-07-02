@@ -42,40 +42,42 @@ class MessageHandler {
             }
         }
         
+        const broadcastData = {
+            id: data.id || data.message_id,
+            message_id: data.message_id || data.id,
+            content: data.content,
+            user_id: data.user_id,
+            username: data.username,
+            avatar_url: data.avatar_url,
+            channel_id: data.channel_id,
+            room_id: data.room_id,
+            target_type: data.target_type,
+            target_id: data.target_id,
+            message_type: data.message_type || 'text',
+            attachments: data.attachments || [],
+            reply_message_id: data.reply_message_id,
+            reply_data: data.reply_data,
+            timestamp: data.timestamp || Date.now(),
+            source: data.source || 'server-originated'
+        };
+        
+        console.log(`📤 [MESSAGE-FORWARD] Broadcast data prepared:`, {
+            event: eventName,
+            room: targetRoom,
+            messageId: broadcastData.message_id,
+            userId: broadcastData.user_id,
+            content: broadcastData.content,
+            timestamp: broadcastData.timestamp,
+            source: broadcastData.source
+        });
+        
+        console.log(`📦 [MESSAGE-FORWARD] Complete broadcast data:`, JSON.stringify(broadcastData, null, 2));
+        
+        let broadcastSuccess = false;
+        
         if (targetRoom) {
             console.log(`📡 [MESSAGE-FORWARD] Broadcasting ${eventName} to room: ${targetRoom}`);
             
-            const broadcastData = {
-                id: data.id || data.message_id,
-                message_id: data.message_id || data.id,
-                content: data.content,
-                user_id: data.user_id,
-                username: data.username,
-                avatar_url: data.avatar_url,
-                channel_id: data.channel_id,
-                room_id: data.room_id,
-                target_type: data.target_type,
-                target_id: data.target_id,
-                message_type: data.message_type || 'text',
-                attachments: data.attachments || [],
-                reply_message_id: data.reply_message_id,
-                reply_data: data.reply_data,
-                timestamp: data.timestamp || Date.now(),
-                source: data.source || 'server-originated'
-            };
-            
-            console.log(`📤 [MESSAGE-FORWARD] Broadcast data prepared:`, {
-                event: eventName,
-                room: targetRoom,
-                messageId: broadcastData.message_id,
-                userId: broadcastData.user_id,
-                content: broadcastData.content,
-                timestamp: broadcastData.timestamp,
-                source: broadcastData.source
-            });
-            
-            console.log(`📦 [MESSAGE-FORWARD] Complete broadcast data:`, JSON.stringify(broadcastData, null, 2));
-                    
             if (!client.rooms.has(targetRoom)) {
                 console.log(`🔄 [MESSAGE-FORWARD] Client not in room, joining: ${targetRoom}`);
                 client.join(targetRoom);
@@ -87,11 +89,10 @@ class MessageHandler {
             const roomClients = io.sockets.adapter.rooms.get(targetRoom);
             if (roomClients) {
                 console.log(`👥 [MESSAGE-FORWARD] Message delivered to ${roomClients.size} clients in room ${targetRoom}`);
+                broadcastSuccess = roomClients.size > 0;
             } else {
                 console.warn(`⚠️ [MESSAGE-FORWARD] No clients found in room ${targetRoom}`);
-                
-                console.log(`🔄 [MESSAGE-FORWARD] Fallback: Broadcasting to all authenticated clients`);
-                io.emit(eventName, broadcastData);
+                broadcastSuccess = false;
             }
         } else {
             console.warn(`⚠️ [MESSAGE-FORWARD] No target room found for ${eventName}:`, {
@@ -100,27 +101,23 @@ class MessageHandler {
                 targetType: data.target_type,
                 targetId: data.target_id
             });
+            broadcastSuccess = false;
+        }
+        
+        if (!broadcastSuccess) {
+            console.log(`🔄 [MESSAGE-FORWARD] Room broadcast failed, using global fallback for ${eventName}`);
+            const authenticatedClients = Array.from(io.sockets.sockets.values())
+                .filter(socket => socket.data?.authenticated && socket.data?.user_id);
             
-            console.log(`🔄 [MESSAGE-FORWARD] Fallback: Broadcasting to all clients`);
-            const fallbackData = {
-                id: data.id || data.message_id,
-                message_id: data.message_id || data.id,
-                content: data.content,
-                user_id: data.user_id,
-                username: data.username,
-                avatar_url: data.avatar_url,
-                channel_id: data.channel_id,
-                room_id: data.room_id,
-                target_type: data.target_type,
-                target_id: data.target_id,
-                message_type: data.message_type || 'text',
-                attachments: data.attachments || [],
-                reply_message_id: data.reply_message_id,
-                reply_data: data.reply_data,
-                timestamp: data.timestamp || Date.now(),
-                source: data.source || 'server-originated'
-            };
-            io.emit(eventName, fallbackData);
+            console.log(`📡 [MESSAGE-FORWARD] Broadcasting ${eventName} to ${authenticatedClients.length} authenticated clients globally`);
+            
+            authenticatedClients.forEach(socket => {
+                if (socket.id !== client.id) {
+                    socket.emit(eventName, broadcastData);
+                }
+            });
+            
+            console.log(`✅ [MESSAGE-FORWARD] Global fallback broadcast completed for ${eventName}`);
         }
     }
 
@@ -953,6 +950,58 @@ class MessageHandler {
                 });
             }
         });
+    }
+
+    static handleDeletion(io, client, eventName, data) {
+        console.log(`🗑️ [DELETION-HANDLER] Starting deletion handling for ${eventName} from client ${client.id}`);
+        
+        if (!client.data?.authenticated || !client.data?.user_id) {
+            console.error(`❌ [DELETION-HANDLER] Unauthenticated deletion attempt`);
+            return;
+        }
+        
+        if (!data.message_id || !data.target_type || !data.target_id) {
+            console.error(`❌ [DELETION-HANDLER] Missing required fields:`, data);
+            return;
+        }
+        
+        console.log(`🗑️ [DELETION-HANDLER] Processing deletion:`, {
+            messageId: data.message_id,
+            userId: client.data.user_id,
+            username: client.data.username,
+            targetType: data.target_type,
+            targetId: data.target_id
+        });
+        
+        try {
+            const targetRoom = data.target_type === 'channel' 
+                ? roomManager.getChannelRoom(data.target_id)
+                : roomManager.getDMRoom(data.target_id);
+            
+            const deletionData = {
+                message_id: data.message_id,
+                user_id: client.data.user_id,
+                username: client.data.username,
+                avatar_url: client.data.avatar_url || '/public/assets/common/default-profile-picture.png',
+                target_type: data.target_type,
+                target_id: data.target_id,
+                timestamp: Date.now(),
+                source: data.source || 'server-originated'
+            };
+            
+            if (targetRoom) {
+                console.log(`📡 [DELETION-HANDLER] Broadcasting deletion to room: ${targetRoom}`);
+                client.to(targetRoom).emit('message-deleted', deletionData);
+                console.log(`✅ [DELETION-HANDLER] Successfully broadcasted message-deleted to ${targetRoom} (excluding sender)`);
+            } else {
+                console.log(`📡 [DELETION-HANDLER] Broadcasting deletion to all clients`);
+                client.broadcast.emit('message-deleted', deletionData);
+                console.log(`✅ [DELETION-HANDLER] Successfully broadcasted message-deleted to all clients`);
+            }
+            
+        } catch (error) {
+            console.error(`❌ [DELETION-HANDLER] Error broadcasting deletion:`, error);
+        }
     }
 }
 

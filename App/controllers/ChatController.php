@@ -1709,13 +1709,16 @@ class ChatController extends BaseController
 
             $participants = $this->chatRoomRepository->getParticipants($roomId);
 
-            // Format participants for mention handler compatibility
             $formattedParticipants = array_map(function($participant) {
+                $user = $this->userRepository->find($participant['user_id']);
+                $status = $user ? ($user->status ?? 'offline') : 'offline';
+                
                 return [
                     'user_id' => $participant['user_id'],
                     'username' => $participant['username'],
                     'display_name' => $participant['display_name'] ?? $participant['username'],
-                    'avatar_url' => $participant['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'
+                    'avatar_url' => $participant['avatar_url'] ?? '/public/assets/common/default-profile-picture.png',
+                    'status' => $status
                 ];
             }, $participants);
 
