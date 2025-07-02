@@ -410,9 +410,25 @@ class GlobalSocketManager {
         });
         
         this.io.on('user-presence-update', (data) => {
+            console.log('📡 [SOCKET] User presence update received:', data);
+            
+            if (data.user_id === this.userId) {
+                console.log('👤 [SOCKET] Own presence updated:', data);
+                this.currentPresenceStatus = data.status;
+                this.currentActivityDetails = data.activity_details;
+                
+                window.dispatchEvent(new CustomEvent('ownPresenceUpdate', {
+                    detail: data
+                }));
+            }
+            
             if (window.FriendsManager) {
                 const friendsManager = window.FriendsManager.getInstance();
                 friendsManager.handlePresenceUpdate(data);
+            }
+            
+            if (window.globalPresenceManager) {
+                window.globalPresenceManager.handlePresenceUpdate(data);
             }
         });
         

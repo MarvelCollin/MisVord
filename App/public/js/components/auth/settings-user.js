@@ -6,18 +6,6 @@ import ImageCutter from '../common/image-cutter.js';
 document.addEventListener('DOMContentLoaded', function() {
     initUserSettingsPage();
     
-    if (!document.getElementById('chat-messages') && 
-        document.body.classList.contains('settings-user')) {
-        const hiddenElements = document.createElement('div');
-        hiddenElements.style.display = 'none';
-        hiddenElements.innerHTML = `
-            <div id="chat-messages"></div>
-            <form id="message-form"></form>
-            <textarea id="message-input"></textarea>
-        `;
-        document.body.appendChild(hiddenElements);
-    }
-    
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.removeAttribute('onclick');

@@ -128,6 +128,11 @@ class VoiceSection {
                     connectionTime: Date.now()
                 });
             }
+            
+            if (window.globalSocketManager?.isReady()) {
+                console.log('🎤 [VOICE-SECTION] Updating presence to In Voice Call');
+                window.globalSocketManager.updatePresence('online', { type: 'In Voice Call' });
+            }
         });
         
         window.addEventListener(window.VOICE_EVENTS.VOICE_DISCONNECT, () => {
@@ -164,6 +169,11 @@ class VoiceSection {
                     meetingId: null,
                     connectionTime: null
                 });
+            }
+            
+            if (window.globalSocketManager?.isReady()) {
+                console.log('🎤 [VOICE-SECTION] Updating presence to idle after voice disconnect');
+                window.globalSocketManager.updatePresence('online', { type: 'idle' });
             }
         });
     }

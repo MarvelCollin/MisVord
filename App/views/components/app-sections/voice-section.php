@@ -16,6 +16,7 @@ echo '<div id="voice-call-container" class="hidden flex-1 h-full w-full">';
 include __DIR__ . '/../voice/voice-call-section.php';
 echo '</div>';
 echo '</div>';
+echo '<script src="/public/js/utils/voice-presence-debug.js"></script>';
 echo '<script>
     document.addEventListener("DOMContentLoaded", function() {
         console.log("[Voice Section] DOM loaded, setting up voice section");

@@ -395,6 +395,16 @@ class GlobalPresenceManager {
         }
     }
 
+    handlePresenceUpdate(data) {
+        console.log('🔄 [GLOBAL-PRESENCE] Handling presence update:', data);
+        
+        if (this.friendsManager) {
+            this.friendsManager.handlePresenceUpdate(data);
+        }
+        
+        this.updateActiveNow();
+    }
+
     static getInstance() {
         if (!window.globalPresenceManager) {
             window.globalPresenceManager = new GlobalPresenceManager();

@@ -225,6 +225,20 @@ document.addEventListener('DOMContentLoaded', function() {
             return userData && (userData.status === 'online' || userData.status === 'afk');
         });
 
+        const currentUserId = window.globalSocketManager?.userId;
+        if (currentUserId && window.globalSocketManager?.currentActivityDetails?.type === 'In Voice Call') {
+            const currentUserData = onlineUsers[currentUserId];
+            if (currentUserData && !activeFriends.find(f => f.id === currentUserId)) {
+                const currentUser = {
+                    id: currentUserId,
+                    username: window.globalSocketManager.username || currentUserData.username,
+                    avatar_url: window.globalSocketManager.avatarUrl || '/public/assets/common/default-profile-picture.png'
+                };
+                console.log('👤 [ACTIVE-NOW] Adding current user to active friends (in voice):', currentUser);
+                activeFriends.push(currentUser);
+            }
+        }
+
         const newState = createFriendStateSignature(activeFriends);
         
         if (statesAreEqual(lastRenderedState, newState)) {
@@ -312,20 +326,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     case 'user-online':
                     case 'user-offline':
                     case 'user-presence-update':
+                        if (data && data.activity_details && data.activity_details.type === 'In Voice Call') {
+                            console.log('🎤 [ACTIVE-NOW] Voice call activity detected:', data);
+                        }
+                        break;
                     case 'online-users-updated':
-                        onlineUsers = friendsManager.cache.onlineUsers || {};
-                        console.log('📊 [ACTIVE-NOW] Updated onlineUsers from FriendsManager:', Object.keys(onlineUsers).length, Object.keys(onlineUsers));
-                        updateActiveFriends();
                         break;
                 }
+                
+                onlineUsers = friendsManager.cache.onlineUsers || {};
+                console.log('📊 [ACTIVE-NOW] Updated onlineUsers from FriendsManager:', Object.keys(onlineUsers).length);
+                scheduleUpdate();
             });
             
             onlineUsers = friendsManager.cache.onlineUsers || {};
-            console.log('📊 [ACTIVE-NOW] Initial onlineUsers from FriendsManager:', Object.keys(onlineUsers).length, Object.keys(onlineUsers));
+            console.log('📊 [ACTIVE-NOW] Initial onlineUsers from FriendsManager:', Object.keys(onlineUsers).length);
         } else {
             console.warn('⚠️ [ACTIVE-NOW] FriendsManager not available, retrying in 500ms');
             setTimeout(setupFriendsManagerIntegration, 500);
         }
+        
+        if (window.globalSocketManager && window.globalSocketManager.io) {
+            window.globalSocketManager.io.on('user-presence-update', (data) => {
+                console.log('📡 [ACTIVE-NOW] Direct socket presence update:', data);
+                if (data && data.activity_details && data.activity_details.type === 'In Voice Call') {
+                    console.log('🎤 [ACTIVE-NOW] Voice call activity detected via socket:', data);
+                }
+                scheduleUpdate();
+            });
+        }
+        
+        window.addEventListener('ownPresenceUpdate', (event) => {
+            console.log('👤 [ACTIVE-NOW] Own presence update detected:', event.detail);
+            scheduleUpdate();
+        });
     }
     
     function initializeActiveNowSection() {
@@ -341,6 +375,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     initializeActiveNowSection();
+    
+    window.testVoicePresence = function() {
+        console.log('🧪 Testing voice call presence system...');
+        
+        if (!window.globalSocketManager?.isReady()) {
+            console.error('❌ Socket not ready');
+            return;
+        }
+        
+        console.log('📡 Setting presence to "In Voice Call"...');
+        window.globalSocketManager.updatePresence('online', { type: 'In Voice Call' });
+        
+        setTimeout(() => {
+            console.log('🔍 Checking Active Now display...');
+            if (window.voicePresenceDebug) {
+                window.voicePresenceDebug.checkActiveNowDisplay();
+            }
+        }, 1000);
+        
+        setTimeout(() => {
+            console.log('📡 Resetting presence to "idle"...');
+            window.globalSocketManager.updatePresence('online', { type: 'idle' });
+        }, 5000);
+        
+        setTimeout(() => {
+            console.log('🔍 Final check of Active Now display...');
+            if (window.voicePresenceDebug) {
+                window.voicePresenceDebug.checkActiveNowDisplay();
+            }
+        }, 6000);
+    };
+    
+    console.log('✅ [ACTIVE-NOW] Test function available: window.testVoicePresence()');
 });
 </script>
 
