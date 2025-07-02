@@ -157,7 +157,8 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 /* Voice Participants Grid - Enhanced with Scrollable */
 #participantGrid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+    grid-auto-rows: minmax(250px, 1fr) !important;
     gap: 12px !important;
     width: 100% !important;
     height: 100% !important;
@@ -167,6 +168,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     overflow-x: hidden !important;
     scrollbar-width: thin !important;
     scrollbar-color: #5865f2 #2f3136 !important;
+    grid-template-rows: repeat(auto-fit, minmax(250px, 1fr)) !important;
 }
 
 #participantGrid::-webkit-scrollbar {
@@ -194,36 +196,62 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 #participantGrid[data-count="1"] {
     grid-template-columns: 1fr !important;
-    justify-items: center !important;
+    justify-items: stretch !important;
+    align-items: stretch !important;
+}
+
+#participantGrid[data-count="1"] .participant-card,
+#participantGrid[data-count="1"] .video-participant-card,
+#participantGrid[data-count="1"] .screen-share-card {
+    width: 100% !important;
+    max-width: 800px !important;
+    min-height: 450px !important;
+    height: auto !important;
+    margin: 0 auto !important;
+    aspect-ratio: 16/9 !important;
 }
 
 #participantGrid[data-count="2"] {
     grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr !important;
 }
 
 #participantGrid[data-count="3"] {
     grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr !important;
 }
 
 #participantGrid[data-count="4"] {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1fr 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr !important;
 }
 
-#participantGrid[data-count="5"], 
+#participantGrid[data-count="5"] {
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr !important;
+}
+
 #participantGrid[data-count="6"] {
     grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
 }
 
 #participantGrid[data-count="7"], 
-#participantGrid[data-count="8"], 
+#participantGrid[data-count="8"] {
+    grid-template-columns: 1fr 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+}
+
 #participantGrid[data-count="9"] {
     grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr 1fr !important;
 }
 
 #participantGrid[data-count="10"],
 #participantGrid[data-count="11"],
 #participantGrid[data-count="12"] {
     grid-template-columns: 1fr 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr 1fr !important;
 }
 
 #unifiedGridView {
@@ -261,7 +289,8 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     transition: all 0.2s ease !important;
     cursor: pointer !important;
     border: 2px solid transparent !important;
-    min-height: 150px !important;
+    min-height: 200px !important;
+    aspect-ratio: 16/9 !important;
     position: relative !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
@@ -300,7 +329,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    object-fit: cover !important;
+    object-fit: contain !important;
     border-radius: 12px !important;
     background: #000 !important;
 }
@@ -357,7 +386,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 @media (max-width: 768px) {
     #participantGrid {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
         gap: 8px !important;
         padding: 8px !important;
         overflow-y: auto !important;
@@ -371,22 +400,53 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     
     #participantGrid[data-count="1"] {
         grid-template-columns: 1fr !important;
-        justify-items: center !important;
+        justify-items: stretch !important;
+        align-items: stretch !important;
+    }
+    
+    #participantGrid[data-count="1"] .participant-card,
+    #participantGrid[data-count="1"] .video-participant-card,
+    #participantGrid[data-count="1"] .screen-share-card {
+        width: 100% !important;
+        max-width: 95vw !important;
+        min-height: 300px !important;
+        height: auto !important;
+        margin: 0 auto !important;
+        aspect-ratio: 16/9 !important;
     }
     
     #participantGrid[data-count="2"] {
         grid-template-columns: 1fr 1fr !important;
+        grid-template-rows: 1fr !important;
     }
     
-    #participantGrid[data-count="3"], 
-    #participantGrid[data-count="4"],
+    #participantGrid[data-count="3"] {
+        grid-template-columns: 1fr 1fr 1fr !important;
+        grid-template-rows: 1fr !important;
+    }
+    
+    #participantGrid[data-count="4"] {
+        grid-template-columns: 1fr 1fr !important;
+        grid-template-rows: 1fr 1fr !important;
+    }
+    
     #participantGrid[data-count="5"],
     #participantGrid[data-count="6"] {
-        grid-template-columns: 1fr 1fr !important;
+        grid-template-columns: 1fr 1fr 1fr !important;
+        grid-template-rows: 1fr 1fr !important;
     }
     
     .participant-card {
-        min-height: 120px !important;
+        min-height: 140px !important;
+        aspect-ratio: 16/9 !important;
+    }
+    
+    #participantGrid[data-count="2"] .participant-card,
+    #participantGrid[data-count="2"] .video-participant-card,
+    #participantGrid[data-count="2"] .screen-share-card {
+        min-width: 45% !important;
+        max-width: 48% !important;
+        height: auto !important;
     }
     
     .participant-avatar {
@@ -674,6 +734,22 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 .screen-share-card video {
     object-fit: contain !important;
+}
+
+.video-participant-card video,
+.screen-share-card video {
+    object-fit: contain !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: #000 !important;
+}
+
+#participantGrid[data-count="2"] .participant-card,
+#participantGrid[data-count="2"] .video-participant-card,
+#participantGrid[data-count="2"] .screen-share-card {
+    min-width: 45% !important;
+    max-width: 50% !important;
+    height: auto !important;
 }
 
 .screen-share-card .video-participant-overlay {
@@ -1726,7 +1802,7 @@ class VoiceCallManager {
         const localIndicator = isLocal ? ' (You)' : '';
 
         card.innerHTML = `
-            <video autoplay playsinline ${isLocal ? '' : 'muted'} style="width: 100%; height: 100%; object-fit: cover; background: #000;" data-participant-id="${participantId}"></video>
+            <video autoplay playsinline ${isLocal ? '' : 'muted'} style="width: 100%; height: 100%; object-fit: contain; background: #000;" data-participant-id="${participantId}"></video>
             <div class="video-participant-overlay">
                 <span>${participant.name}${localIndicator}</span>
                 ${participant.isMuted ? '<i class="fas fa-microphone-slash ml-2"></i>' : ''}

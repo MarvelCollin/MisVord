@@ -39,10 +39,12 @@ class MentionHandler {
             this.handleKeyDown(e);
         });
         
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.mention-autocomplete')) {
-                this.hideAutocomplete();
-            }
+        this.chatSection.messageInput.addEventListener('blur', (e) => {
+            setTimeout(() => {
+                if (!this.autocompleteContainer.matches(':hover')) {
+                    this.hideAutocomplete();
+                }
+            }, 200);
         });
     }
     
@@ -54,8 +56,9 @@ class MentionHandler {
             left: 0;
             min-width: 200px;
             max-width: 300px;
-            will-change: transform;
-            transform: translateZ(0);
+            will-change: transform, opacity;
+            transform: translateY(8px) scale(0.95);
+            opacity: 0;
             scrollbar-width: thin;
             scrollbar-color: #4f545c #2f3136;
         `;
@@ -76,17 +79,38 @@ class MentionHandler {
                 background: #5865f2;
             }
             .mention-autocomplete-item {
-                transition: background-color 0.1s ease;
+                transition: background-color 0.15s ease;
+                transform: translateX(0);
+            }
+            .mention-autocomplete-item:hover {
+                transform: translateX(2px);
             }
             .mention-autocomplete.hidden {
-                transition: opacity 0.1s ease, visibility 0s linear 0.1s;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                transform: translateY(8px) scale(0.95);
                 opacity: 0;
                 visibility: hidden;
+                pointer-events: none;
             }
-            .mention-autocomplete:not(.hidden) {
-                transition: opacity 0.1s ease;
+            .mention-autocomplete.show {
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                transform: translateY(0) scale(1);
                 opacity: 1;
                 visibility: visible;
+                pointer-events: auto;
+            }
+            .mention-autocomplete-enter {
+                animation: mentionSlideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            }
+            @keyframes mentionSlideIn {
+                from {
+                    transform: translateY(8px) scale(0.95);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0) scale(1);
+                    opacity: 1;
+                }
             }
             .mention-input-overlay {
                 font-weight: 500;
@@ -304,7 +328,7 @@ class MentionHandler {
         
         this.debounceTimer = setTimeout(() => {
             this.handleInputChange(e);
-        }, 100);
+        }, 50);
     }
     
     handleInputChange(e) {
@@ -318,7 +342,16 @@ class MentionHandler {
         
         if (mentionMatch) {
             const searchTerm = mentionMatch[1].toLowerCase();
-            this.showAutocomplete(searchTerm, mentionMatch.index);
+            const mentionStartIndex = beforeCursor.lastIndexOf('@');
+            
+            console.log('🎯 [MENTION] Input change detected:', {
+                searchTerm: `"${searchTerm}"`,
+                mentionStartIndex: mentionStartIndex,
+                beforeCursor: beforeCursor,
+                cursorPosition: cursorPosition
+            });
+            
+            this.showAutocomplete(searchTerm, mentionStartIndex);
         } else {
             this.hideAutocomplete();
         }
@@ -389,7 +422,13 @@ class MentionHandler {
             availableUsersCount: this.availableUsers.size
         });
         
-        this.mentionStartIndex = mentionStartIndex;
+        if (typeof mentionStartIndex === 'number') {
+            this.mentionStartIndex = mentionStartIndex;
+        } else {
+            console.warn('⚠️ [MENTION-HANDLER] Invalid mentionStartIndex provided:', mentionStartIndex);
+            this.hideAutocomplete();
+            return;
+        }
         
         if (!this.chatSection.targetId) {
             console.warn('⚠️ [MENTION-HANDLER] No target ID, hiding autocomplete');
@@ -405,7 +444,6 @@ class MentionHandler {
         if (this.isLoading) {
             console.log('⏳ [MENTION-HANDLER] Still loading, showing loading state');
             this.renderLoadingState();
-            this.isAutocompleteVisible = true;
             return;
         }
         
@@ -419,7 +457,6 @@ class MentionHandler {
         
         console.log('✅ [MENTION-HANDLER] Showing autocomplete with', matches.length, 'matches');
         this.renderAutocomplete(matches);
-        this.isAutocompleteVisible = true;
         this.selectedIndex = 0;
         this.updateAutocompleteSelection();
     }
@@ -499,7 +536,17 @@ class MentionHandler {
                 <span class="text-gray-400">Loading users...</span>
             </div>
         `;
+        
+        this.isAutocompleteVisible = true;
         this.autocompleteContainer.classList.remove('hidden');
+        
+        requestAnimationFrame(() => {
+            this.autocompleteContainer.classList.add('show', 'mention-autocomplete-enter');
+            
+            setTimeout(() => {
+                this.autocompleteContainer.classList.remove('mention-autocomplete-enter');
+            }, 200);
+        });
     }
     
     renderAutocomplete(matches) {
@@ -514,6 +561,9 @@ class MentionHandler {
             const item = document.createElement('div');
             item.className = 'mention-autocomplete-item flex items-center p-2 cursor-pointer hover:bg-[#36393f] transition-colors';
             item.dataset.index = index;
+            item.dataset.mentionType = match.isSpecial ? 'special' : 'user';
+            item.dataset.mentionValue = match.isSpecial ? match.username : match.username;
+            item.dataset.mentionId = match.id;
             
             if (match.isSpecial) {
                 item.innerHTML = `
@@ -529,7 +579,9 @@ class MentionHandler {
                 `;
             }
             
-            item.addEventListener('click', () => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 this.selectedIndex = index;
                 this.selectCurrentMention();
             });
@@ -539,7 +591,17 @@ class MentionHandler {
         
         this.autocompleteContainer.innerHTML = '';
         this.autocompleteContainer.appendChild(fragment);
+        
+        this.isAutocompleteVisible = true;
         this.autocompleteContainer.classList.remove('hidden');
+        
+        requestAnimationFrame(() => {
+            this.autocompleteContainer.classList.add('show', 'mention-autocomplete-enter');
+            
+            setTimeout(() => {
+                this.autocompleteContainer.classList.remove('mention-autocomplete-enter');
+            }, 200);
+        });
     }
     
     navigateAutocomplete(direction) {
@@ -569,21 +631,51 @@ class MentionHandler {
     }
     
     selectCurrentMention() {
-        this.hideAutocomplete();
-        
         const items = this.autocompleteContainer.querySelectorAll('.mention-autocomplete-item');
         if (this.selectedIndex < 0 || this.selectedIndex >= items.length) return;
         
         const selectedItem = items[this.selectedIndex];
-        const mentionText = selectedItem.querySelector('span').textContent;
+        const mentionType = selectedItem.dataset.mentionType;
+        const mentionValue = selectedItem.dataset.mentionValue;
+        const mentionId = selectedItem.dataset.mentionId;
         
+        let mentionText;
+        if (mentionType === 'special') {
+            mentionText = '@' + mentionValue;
+        } else {
+            mentionText = '@' + mentionValue;
+        }
+        
+        console.log('📝 [MENTION] Selecting mention:', {
+            type: mentionType,
+            value: mentionValue,
+            id: mentionId,
+            text: mentionText,
+            selectedIndex: this.selectedIndex
+        });
+        
+        this.hideAutocomplete();
         this.insertMention(mentionText);
     }
     
     insertMention(mentionText) {
         const input = this.chatSection.messageInput;
+        if (!input) return;
+        
         const value = input.value;
         const cursorPosition = input.selectionStart;
+        
+        console.log('📝 [MENTION] Insert mention:', {
+            mentionText: mentionText,
+            currentValue: value,
+            cursorPosition: cursorPosition,
+            mentionStartIndex: this.mentionStartIndex
+        });
+        
+        if (typeof this.mentionStartIndex !== 'number' || this.mentionStartIndex < 0) {
+            console.error('❌ [MENTION] Invalid mentionStartIndex:', this.mentionStartIndex);
+            return;
+        }
         
         const beforeMention = value.substring(0, this.mentionStartIndex);
         const afterCursor = value.substring(cursorPosition);
@@ -595,7 +687,16 @@ class MentionHandler {
         input.setSelectionRange(newCursorPosition, newCursorPosition);
         input.focus();
         
+        console.log('✅ [MENTION] Mention inserted:', {
+            newValue: newValue,
+            newCursorPosition: newCursorPosition
+        });
+        
         this.applyInstantMentionStyling(input, this.mentionStartIndex, mentionText.length);
+        
+        if (this.chatSection.updateSendButton) {
+            this.chatSection.updateSendButton();
+        }
     }
     
     applyInstantMentionStyling(input, startIndex, length) {
@@ -663,9 +764,13 @@ class MentionHandler {
     }
     
     hideAutocomplete() {
-        this.autocompleteContainer.classList.add('hidden');
+        if (!this.isAutocompleteVisible) return;
+        
         this.isAutocompleteVisible = false;
         this.selectedIndex = -1;
+        
+        this.autocompleteContainer.classList.remove('show', 'mention-autocomplete-enter');
+        this.autocompleteContainer.classList.add('hidden');
     }
     
     parseMentions(content) {
@@ -759,7 +864,7 @@ class MentionHandler {
         if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
             new Notification('New Mention', {
                 body: notificationText,
-                icon: '/public/assets/common/main-logo.png'
+                icon: '/public/assets/common/default-profile-picture.png'
             });
         }
     }
@@ -805,6 +910,7 @@ class MentionHandler {
         if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
         }
+        
         this.hideAutocomplete();
         this.userCache.clear();
         this.availableUsers.clear();
@@ -952,6 +1058,122 @@ window.testMentionNotificationFlow = function() {
             timestamp: Date.now()
         });
     }
+    
+    return true;
+};
+
+window.debugMentionAutocomplete = function() {
+    console.log('🧪 [DEBUG-MENTION] Testing mention autocomplete system...');
+    
+    const chatSection = window.chatSection;
+    if (!chatSection || !chatSection.mentionHandler) {
+        console.error('❌ [DEBUG-MENTION] Chat section or mention handler not available');
+        return false;
+    }
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ [DEBUG-MENTION] Message input not found');
+        return false;
+    }
+    
+    const mentionHandler = chatSection.mentionHandler;
+    
+    console.log('📊 [DEBUG-MENTION] Current state:', {
+        targetId: chatSection.targetId,
+        chatType: chatSection.chatType,
+        usersLoaded: mentionHandler.usersLoaded,
+        availableUsers: mentionHandler.availableUsers.size,
+        isAutocompleteVisible: mentionHandler.isAutocompleteVisible
+    });
+    
+    console.log('🧪 [DEBUG-MENTION] Testing @ trigger...');
+    
+    messageInput.value = '@';
+    messageInput.focus();
+    messageInput.setSelectionRange(1, 1);
+    
+    const inputEvent = new Event('input', { bubbles: true });
+    messageInput.dispatchEvent(inputEvent);
+    
+    setTimeout(() => {
+        console.log('📊 [DEBUG-MENTION] After @ trigger:', {
+            inputValue: messageInput.value,
+            isVisible: mentionHandler.isAutocompleteVisible,
+            mentionStartIndex: mentionHandler.mentionStartIndex,
+            containerClasses: Array.from(mentionHandler.autocompleteContainer.classList)
+        });
+        
+        if (mentionHandler.isAutocompleteVisible) {
+            console.log('✅ [DEBUG-MENTION] Autocomplete is visible! Test clicking on first item...');
+            
+            const firstItem = mentionHandler.autocompleteContainer.querySelector('.mention-autocomplete-item');
+            if (firstItem) {
+                console.log('🧪 [DEBUG-MENTION] Clicking first item...');
+                firstItem.click();
+                
+                setTimeout(() => {
+                    console.log('📊 [DEBUG-MENTION] After click:', {
+                        inputValue: messageInput.value,
+                        isVisible: mentionHandler.isAutocompleteVisible,
+                        cursorPosition: messageInput.selectionStart
+                    });
+                }, 100);
+            }
+        } else {
+            console.error('❌ [DEBUG-MENTION] Autocomplete not visible after @ trigger');
+            
+            if (mentionHandler.availableUsers.size === 0) {
+                console.log('🔄 [DEBUG-MENTION] No users loaded, trying to load...');
+                mentionHandler.loadAvailableUsers(true);
+            }
+        }
+    }, 500);
+    
+    return true;
+};
+
+window.testMentionMenuAnimation = function() {
+    console.log('🧪 [TEST-ANIMATION] Testing mention menu animation...');
+    
+    const chatSection = window.chatSection;
+    if (!chatSection?.mentionHandler) {
+        console.error('❌ No mention handler available');
+        return false;
+    }
+    
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        console.error('❌ No message input found');
+        return false;
+    }
+    
+    console.log('✅ Starting animation test...');
+    
+    messageInput.value = '@';
+    messageInput.focus();
+    messageInput.setSelectionRange(1, 1);
+    
+    const inputEvent = new Event('input', { bubbles: true });
+    messageInput.dispatchEvent(inputEvent);
+    
+    setTimeout(() => {
+        const isVisible = chatSection.mentionHandler.isAutocompleteVisible;
+        const hasShowClass = chatSection.mentionHandler.autocompleteContainer.classList.contains('show');
+        
+        console.log('📊 Animation test results:', {
+            isVisible: isVisible,
+            hasShowClass: hasShowClass,
+            containerClasses: Array.from(chatSection.mentionHandler.autocompleteContainer.classList),
+            availableUsers: chatSection.mentionHandler.availableUsers.size
+        });
+        
+        if (isVisible && hasShowClass) {
+            console.log('🎉 SUCCESS! Menu is visible with animation');
+        } else {
+            console.log('❌ FAILED! Menu not properly displayed');
+        }
+    }, 1000);
     
     return true;
 };

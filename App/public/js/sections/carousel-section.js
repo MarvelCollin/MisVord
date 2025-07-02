@@ -117,17 +117,10 @@ class CarouselSection {
     
     finishFlipAnimation() {
         this.pages.forEach((page) => {
-            const pageNumber = this.getPageNumber(page);
-            page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
-            page.style.zIndex = '';
-            
-            if (pageNumber === this.currentPage) {
-                page.classList.add('active');
-            } else if (pageNumber < this.currentPage) {
-                page.classList.add('behind');
-            }
+            page.classList.remove('flipping-forward', 'flipping-backward');
         });
         
+        this.updatePageStates();
         this.isAnimating = false;
     }
     
@@ -135,12 +128,15 @@ class CarouselSection {
         this.pages.forEach((page) => {
             const pageNumber = this.getPageNumber(page);
             page.classList.remove('active', 'behind', 'flipping-forward', 'flipping-backward');
-            page.style.zIndex = '';
             
             if (pageNumber === this.currentPage) {
                 page.classList.add('active');
+                page.style.zIndex = '20';
             } else if (pageNumber < this.currentPage) {
                 page.classList.add('behind');
+                page.style.zIndex = String(15 - (this.currentPage - pageNumber));
+            } else {
+                page.style.zIndex = String(10 - (pageNumber - this.currentPage));
             }
         });
     }
@@ -159,23 +155,6 @@ class CarouselSection {
             setTimeout(() => {
                 subtitle.classList.add('revealed');
             }, 600);
-        }
-        
-        setTimeout(() => {
-            this.animateBookAppearance();
-        }, 800);
-    }
-    
-    animateBookAppearance() {
-        if (this.bookContent) {
-            this.bookContent.style.transform = 'scale(0.8) rotateX(20deg)';
-            this.bookContent.style.opacity = '0';
-            
-            setTimeout(() => {
-                this.bookContent.style.transition = 'all 1s cubic-bezier(0.23, 1, 0.32, 1)';
-                this.bookContent.style.transform = 'scale(1) rotateX(0deg)';
-                this.bookContent.style.opacity = '1';
-            }, 100);
         }
     }
 }

@@ -124,10 +124,8 @@
     position: relative;
     width: 500px;
     height: 350px;
-    perspective: 1200px;
     margin: 0 auto;
     filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.3));
-    transform-style: preserve-3d;
 }
 
 .book-content {
@@ -141,9 +139,6 @@
     z-index: 50;
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.5s ease 0.8s, visibility 0.5s ease 0.8s;
-    perspective: 1200px;
-    transform-style: preserve-3d;
 }
 
 .page {
@@ -168,10 +163,7 @@
     text-align: center;
     padding: 3rem;
     box-sizing: border-box;
-    transform-origin: left center;
-    transform-style: preserve-3d;
-    transition: transform 0.8s ease, box-shadow 0.3s ease;
-    z-index: 10;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
     overflow: hidden;
     backface-visibility: visible;
     opacity: 1;
@@ -232,50 +224,7 @@
         0 0 20px rgba(102, 126, 234, 0.2);
 }
 
-.page.flipping-forward {
-    transform: rotateY(-180deg);
-    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
-    animation: pageFlipForward 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
-
-.page.flipping-backward {
-    transform: rotateY(0deg);
-    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
-    animation: pageFlipBackward 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
-
-@keyframes pageFlipForward {
-    0% {
-        transform: rotateY(0deg) scale(1);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-    }
-    50% {
-        transform: rotateY(-90deg) scale(1.05);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-    }
-    100% {
-        transform: rotateY(-180deg) scale(1);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-    }
-}
-
-@keyframes pageFlipBackward {
-    0% {
-        transform: rotateY(-180deg) scale(1);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-    }
-    50% {
-        transform: rotateY(-90deg) scale(1.05);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-    }
-    100% {
-        transform: rotateY(0deg) scale(1);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-    }
-}
-
 .page.behind {
-    z-index: 5;
     transform: rotateY(-180deg);
     opacity: 0.8;
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -289,7 +238,6 @@
 }
 
 .page.active {
-    z-index: 10;
     transform: rotateY(0deg);
 }
 
@@ -298,8 +246,7 @@
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
-.page:not(.active):not(.behind):not(.flipping-forward):not(.flipping-backward) {
-    z-index: 3;
+.page:not(.active):not(.behind) {
     transform: rotateY(0deg);
 }
 
