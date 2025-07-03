@@ -891,7 +891,7 @@ class VoiceCallSection {
         `;
 
     screenShareCard.addEventListener("dblclick", () => {
-      this.toggleParticipantFullscreen(participantId);
+      this.toggleScreenShareFullscreen(participantId);
     });
 
     const videoContainer = screenShareCard.querySelector(
@@ -1147,6 +1147,10 @@ class VoiceCallSection {
       .join("");
   }
 
+  /**
+   * Handles fullscreen for participant video cameras (not screen shares).
+   * For screen share fullscreen, use toggleScreenShareFullscreen() instead.
+   */
   toggleParticipantFullscreen(participantId) {
     const element = document.querySelector(
       `[data-participant-id="${participantId}"]`
@@ -1263,6 +1267,116 @@ class VoiceCallSection {
         instructions.style.opacity = "0";
       }
     }, 5000);
+  }
+
+  toggleScreenShareFullscreen(participantId) {
+    // Find the screen share card directly
+    const screenShareCard = document.querySelector(
+      `[data-screen-share-id="${participantId}"]`
+    );
+    if (!screenShareCard) {
+      console.log("Screen share card not found for participant:", participantId);
+      return;
+    }
+
+    const video = screenShareCard.querySelector(".screen-share-video");
+    if (!video || !video.srcObject) {
+      console.log("Screen share video not found or no source for participant:", participantId);
+      return;
+    }
+
+    // Get the participant name from the screen share header
+    const headerText = screenShareCard.querySelector(".screen-share-header span")?.textContent || "Unknown";
+    const participantName = headerText.replace(" - Screen Share", "").trim();
+
+    const overlay = document.createElement("div");
+    overlay.className =
+      "fullscreen-overlay fixed inset-0 bg-black/95 flex items-center justify-center z-[9999] backdrop-blur-sm";
+
+    const fullscreenContainer = document.createElement("div");
+    fullscreenContainer.className =
+      "fullscreen-participant relative max-w-[95vw] max-h-[95vh] min-w-[400px] min-h-[300px] bg-[#1e1f22] rounded-lg overflow-hidden border-2 border-[#5865f2] shadow-2xl";
+
+    const fullscreenVideo = document.createElement("video");
+    fullscreenVideo.className = "w-full h-full object-contain bg-black";
+    fullscreenVideo.srcObject = video.srcObject;
+    fullscreenVideo.autoplay = true;
+    fullscreenVideo.muted = true;
+    fullscreenVideo.playsInline = true;
+
+    const header = document.createElement("div");
+    header.className =
+      "absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent p-4 z-10";
+    header.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-desktop text-[#5865f2] text-lg"></i>
+                    <span class="text-white font-semibold text-lg">${participantName}</span>
+                    <span class="text-gray-300 text-sm">Screen Share</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button class="minimize-btn w-10 h-10 bg-[#ed4245] hover:bg-[#da373c] rounded-full flex items-center justify-center transition-colors">
+                        <i class="fas fa-times text-white"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+
+    const minimizeBtn = header.querySelector(".minimize-btn");
+    minimizeBtn.onclick = () => {
+      overlay.style.opacity = "0";
+      overlay.style.transform = "scale(0.95)";
+      setTimeout(() => overlay.remove(), 200);
+    };
+
+    const instructions = document.createElement("div");
+    instructions.className =
+      "absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 backdrop-blur-sm px-4 py-2 rounded-lg text-white text-sm text-center opacity-80";
+    instructions.innerHTML =
+      "Press <strong>ESC</strong> to exit fullscreen • Click outside to close";
+
+    fullscreenContainer.appendChild(fullscreenVideo);
+    fullscreenContainer.appendChild(header);
+    fullscreenContainer.appendChild(instructions);
+    overlay.appendChild(fullscreenContainer);
+
+    overlay.style.opacity = "0";
+    overlay.style.transform = "scale(0.95)";
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+      overlay.style.transition = "all 0.2s ease-out";
+      overlay.style.opacity = "1";
+      overlay.style.transform = "scale(1)";
+    });
+
+    const closeFullscreen = () => {
+      overlay.style.opacity = "0";
+      overlay.style.transform = "scale(0.95)";
+      setTimeout(() => overlay.remove(), 200);
+      document.removeEventListener("keydown", escHandler);
+    };
+
+    const escHandler = (e) => {
+      if (e.key === "Escape") {
+        closeFullscreen();
+      }
+    };
+    document.addEventListener("keydown", escHandler);
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        closeFullscreen();
+      }
+    });
+
+    setTimeout(() => {
+      if (instructions) {
+        instructions.style.opacity = "0";
+      }
+    }, 5000);
+
+    console.log(`🖥️ [VideoSDK-UI] Screen share fullscreen opened for: ${participantName}`);
   }
 
   updateActivityStatus() {

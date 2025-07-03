@@ -5,6 +5,36 @@ import '../core/ui/toast.js';
 
 const friendAPI = window.FriendAPI;
 
+// Global cache to track voice users and prevent blinking
+const voiceUserCache = {
+    users: new Set(), // Users currently in voice
+    addVoiceUser: function(userId) {
+        this.users.add(userId);
+        console.log(`🎤 [VOICE-CACHE] Added ${userId} to voice cache`);
+    },
+    removeVoiceUser: function(userId) {
+        this.users.delete(userId);
+        console.log(`🎤 [VOICE-CACHE] Removed ${userId} from voice cache`);
+    },
+    isVoiceUser: function(userId) {
+        return this.users.has(userId);
+    },
+    updateFromActivity: function(userId, activityDetails) {
+        const isInVoice = activityDetails && (
+            activityDetails.type === 'In Voice Call' || 
+            (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
+        );
+        
+        if (isInVoice) {
+            this.addVoiceUser(userId);
+        } else {
+            this.removeVoiceUser(userId);
+        }
+        
+        return isInVoice;
+    }
+};
+
 function getStatusClass(status) {
     switch (status) {
         case 'online': return 'bg-discord-green';
@@ -166,17 +196,17 @@ async function loadOnlineFriends(forceRefresh = false) {
             const status = userData?.status || 'offline';
             const activityDetails = userData?.activity_details;
             
-            // Include users who are in voice regardless of their status (NEVER OFFLINE if in voice)
+            // HARDCODED: If presence is "In Voice", always put in Online tab regardless of actual status
             const isInVoice = activityDetails && (
                 activityDetails.type === 'In Voice Call' || 
                 (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
             );
             
-            // Show if they're online, afk, OR in voice (voice users can NEVER be filtered out)
             if (isInVoice) {
-                return true; // Always include voice users
+                return true; // Always include in Online tab
             }
             
+            // For non-voice users, use normal logic
             return (status === 'online' || status === 'afk');
         });
 
@@ -224,29 +254,19 @@ async function loadOnlineFriends(forceRefresh = false) {
             let status = userData?.status || 'offline';
             const activityDetails = userData?.activity_details;
             
-            // If user is in voice, force status to online and never let them go offline
-            if (activityDetails && (
+            // HARDCODED: If presence is "In Voice", force green active indicator
+            const isInVoice = activityDetails && (
                 activityDetails.type === 'In Voice Call' || 
                 (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
-            )) {
-                status = 'online';
+            );
+            
+            if (isInVoice) {
+                status = 'online'; // Force green active indicator
             }
             
             const statusClass = getStatusClass(status);
-            
-            // For offline users (who are NOT in voice), show "Offline"
-            let activityText, activityIcon;
-            if (status === 'offline' && (!activityDetails || (
-                activityDetails.type !== 'In Voice Call' && 
-                !activityDetails.type?.startsWith('In Voice - ')
-            ))) {
-                activityText = 'Offline';
-                activityIcon = 'fa-solid fa-circle';
-            } else {
-                activityText = getActivityText(activityDetails);
-                activityIcon = getActivityIcon(activityDetails);
-            }
-            
+            const activityText = getActivityText(activityDetails);
+            const activityIcon = getActivityIcon(activityDetails);
             const displayName = friend.display_name || friend.username;
             const userTag = friend.discriminator ? `${friend.username}#${friend.discriminator}` : friend.username;
             
@@ -386,22 +406,21 @@ async function loadAllFriends(forceRefresh = false) {
             let status = userData?.status || 'offline';
             const activityDetails = userData?.activity_details;
             
-            // If user is in voice, force status to online and never let them go offline
-            if (activityDetails && (
+            // HARDCODED: If presence is "In Voice", force green active indicator
+            const isInVoice = activityDetails && (
                 activityDetails.type === 'In Voice Call' || 
                 (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
-            )) {
-                status = 'online';
+            );
+            
+            if (isInVoice) {
+                status = 'online'; // Force green active indicator
             }
             
             const statusClass = getStatusClass(status);
             
-            // For offline users (who are NOT in voice), show "Offline"
+            // Show appropriate text based on status
             let activityText, activityIcon;
-            if (status === 'offline' && (!activityDetails || (
-                activityDetails.type !== 'In Voice Call' && 
-                !activityDetails.type?.startsWith('In Voice - ')
-            ))) {
+            if (status === 'offline') {
                 activityText = 'Offline';
                 activityIcon = 'fa-solid fa-circle';
             } else {
@@ -1165,22 +1184,21 @@ function updateFriendPresenceInDOM(presenceData) {
     let status = presenceData.status || 'offline';
     const activityDetails = presenceData.activity_details;
     
-    // If user is in voice, force status to online and never let them go offline
-    if (activityDetails && (
+    // HARDCODED: If presence is "In Voice", force green active indicator
+    const isInVoice = activityDetails && (
         activityDetails.type === 'In Voice Call' || 
         (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
-    )) {
-        status = 'online';
+    );
+    
+    if (isInVoice) {
+        status = 'online'; // Force green active indicator
     }
     
     const statusClass = getStatusClass(status);
     
-    // For offline users (who are NOT in voice), show "Offline"
+    // Show appropriate text based on status
     let activityText, activityIcon;
-    if (status === 'offline' && (!activityDetails || (
-        activityDetails.type !== 'In Voice Call' && 
-        !activityDetails.type?.startsWith('In Voice - ')
-    ))) {
+    if (status === 'offline') {
         activityText = 'Offline';
         activityIcon = 'fa-solid fa-circle';
     } else {
