@@ -405,6 +405,13 @@ class VoiceCallSection {
     }
   }
 
+  /**
+   * Updates participant stream handling. This method properly separates screen share
+   * streams from regular video streams to prevent duplication where screen shares
+   * would both overlay participant cards AND create separate screen share cards.
+   * 
+   * Screen shares should ONLY create separate cards, never overlay participant avatars.
+   */
   updateParticipantStream(participantId, stream, kind) {
     if (
       stream &&
@@ -417,6 +424,7 @@ class VoiceCallSection {
       return;
     }
 
+    // First, check if this is a screen share stream regardless of the kind parameter
     let isScreenShare = false;
     if (kind === "share") {
       isScreenShare = true;
@@ -424,6 +432,7 @@ class VoiceCallSection {
       isScreenShare = true;
     }
 
+    // If it's a screen share, ONLY create/remove screen share card, don't process as video
     if (isScreenShare) {
       if (stream) {
         this.createScreenShareCard(participantId, stream);
@@ -434,6 +443,7 @@ class VoiceCallSection {
       return;
     }
 
+    // Only process regular video streams (not screen shares) for participant card overlay
     if (kind === "video") {
       const participantCard = document.querySelector(
         `[data-participant-id="${participantId}"]`
@@ -451,7 +461,9 @@ class VoiceCallSection {
       );
 
       if (stream) {
+        // Double-check that this is NOT a screen share before processing as video overlay
         if (this.isScreenShareStream(stream)) {
+          // If it's actually a screen share, handle it properly
           this.updateParticipantStream(participantId, stream, "share");
           return;
         }
@@ -625,7 +637,11 @@ class VoiceCallSection {
     const eventType = e.type;
     const isEnabled = eventType === "videosdkStreamEnabled";
 
-    if (kind === "share" || (stream && this.isScreenShareStream(stream))) {
+    // Detect if this is a screen share stream
+    const isScreenShare = kind === "share" || (stream && this.isScreenShareStream(stream));
+
+    if (isScreenShare) {
+      // Handle screen share streams - only create/remove screen share cards
       if (isEnabled && stream) {
         this.createScreenShareCard(participant, stream);
       } else {
@@ -635,39 +651,7 @@ class VoiceCallSection {
       return;
     }
 
-    if (kind === "video" && stream && isEnabled) {
-      const label = stream.track?.label?.toLowerCase() || "";
-      if (
-        label.includes("screen") ||
-        label.includes("display") ||
-        label.includes("web-contents-media-stream") ||
-        label.includes("browser-capture") ||
-        label.includes("screencapture")
-      ) {
-        this.createScreenShareCard(participant, stream);
-        this.updateGridLayout();
-        return;
-      }
-
-      if (stream instanceof MediaStream) {
-        const videoTracks = stream.getVideoTracks();
-        for (const track of videoTracks) {
-          const trackLabel = track.label?.toLowerCase() || "";
-          if (
-            trackLabel.includes("screen") ||
-            trackLabel.includes("display") ||
-            trackLabel.includes("web-contents-media-stream") ||
-            trackLabel.includes("browser-capture") ||
-            trackLabel.includes("screencapture")
-          ) {
-            this.createScreenShareCard(participant, stream);
-            this.updateGridLayout();
-            return;
-          }
-        }
-      }
-    }
-
+    // Handle regular video streams for participant card overlays
     if (kind === "video") {
       this.updateParticipantStream(
         participant,
@@ -1336,48 +1320,67 @@ class VoiceCallSection {
       return false;
     }
 
+    // Console debug for screen share detection
+    let isScreen = false;
+    let detectionMethod = "none";
+
     if (stream instanceof MediaStream) {
       const videoTracks = stream.getVideoTracks();
       if (videoTracks.length > 0) {
         const track = videoTracks[0];
         const label = track.label?.toLowerCase() || "";
-        const isScreen =
+        isScreen =
           label.includes("screen") ||
           label.includes("display") ||
           label.includes("web-contents-media-stream") ||
           label.includes("browser-capture") ||
-          label.includes("screencapture");
-        return isScreen;
+          label.includes("screencapture") ||
+          label.includes("share");
+        
+        if (isScreen) detectionMethod = "MediaStream-track-label";
       }
     }
 
-    if (stream.stream instanceof MediaStream) {
+    if (!isScreen && stream.stream instanceof MediaStream) {
       const videoTracks = stream.stream.getVideoTracks();
       if (videoTracks.length > 0) {
         const track = videoTracks[0];
         const label = track.label?.toLowerCase() || "";
-        const isScreen =
+        isScreen =
           label.includes("screen") ||
           label.includes("display") ||
           label.includes("web-contents-media-stream") ||
           label.includes("browser-capture") ||
-          label.includes("screencapture");
-        return isScreen;
+          label.includes("screencapture") ||
+          label.includes("share");
+        
+        if (isScreen) detectionMethod = "stream.stream-track-label";
       }
     }
 
-    if (stream.track && stream.track.kind === "video") {
+    if (!isScreen && stream.track && stream.track.kind === "video") {
       const label = stream.track.label?.toLowerCase() || "";
-      const isScreen =
+      isScreen =
         label.includes("screen") ||
         label.includes("display") ||
         label.includes("web-contents-media-stream") ||
         label.includes("browser-capture") ||
-        label.includes("screencapture");
-      return isScreen;
+        label.includes("screencapture") ||
+        label.includes("share");
+      
+      if (isScreen) detectionMethod = "stream.track-label";
     }
 
-    return false;
+    // Debug logging for screen share detection
+    if (isScreen) {
+      console.log(`🖥️ [VideoSDK-UI] Screen share detected via ${detectionMethod}:`, {
+        streamType: stream.constructor.name,
+        trackLabel: stream.track?.label || stream.stream?.getVideoTracks()?.[0]?.label || stream.getVideoTracks?.()?.[0]?.label,
+        isScreen
+      });
+    }
+
+    return isScreen;
   }
 
   isSameStream(stream1, stream2) {
