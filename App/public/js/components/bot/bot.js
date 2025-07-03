@@ -62,12 +62,25 @@ class BotComponent {
                     joinedAt: Date.now()
                 });
 
+                console.log('🤖 [BOT] Dispatching bot-voice-participant-joined event');
                 window.dispatchEvent(new CustomEvent('bot-voice-participant-joined', {
                     detail: { participant }
                 }));
 
+                console.log('🤖 [BOT] Checking for voiceCallSection...');
                 if (window.voiceCallSection) {
+                    console.log('✅ [BOT] Found voiceCallSection, adding bot participant');
                     window.voiceCallSection.addBotParticipant(participant);
+                } else {
+                    console.warn('⚠️ [BOT] voiceCallSection not found, retrying in 1 second...');
+                    setTimeout(() => {
+                        if (window.voiceCallSection) {
+                            console.log('✅ [BOT] Found voiceCallSection on retry, adding bot participant');
+                            window.voiceCallSection.addBotParticipant(participant);
+                        } else {
+                            console.error('❌ [BOT] voiceCallSection still not found after retry');
+                        }
+                    }, 1000);
                 }
             }
         });
@@ -169,13 +182,67 @@ window.debugTitiBotVoiceContext = function() {
         window.BotComponent.debugVoiceContext();
     }
     
+    // Additional debug information
+    console.log('🔍 [DEBUG] URL Info:', {
+        pathname: window.location.pathname,
+        search: window.location.search,
+        channelParam: new URLSearchParams(window.location.search).get('channel'),
+        typeParam: new URLSearchParams(window.location.search).get('type')
+    });
+    
+    // Check meta tags
+    const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+    const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
+    console.log('🏷️ [DEBUG] Meta Tags:', { metaChannelId, metaChannelType });
+    
+    // Check unified voice state manager
+    if (window.unifiedVoiceStateManager) {
+        const voiceState = window.unifiedVoiceStateManager.getState();
+        console.log('🎤 [DEBUG] Unified Voice State:', voiceState);
+    }
+    
+    // Check channel switch manager
+    if (window.simpleChannelSwitcher) {
+        console.log('🔄 [DEBUG] Channel Switcher State:', {
+            currentChannelId: window.simpleChannelSwitcher.currentChannelId,
+            currentChannelType: window.simpleChannelSwitcher.currentChannelType
+        });
+    }
+    
     console.log('6. Testing Voice Detection Methods:');
     
     let voiceChannelId = null;
     let userInVoice = false;
     let detectionMethod = 'none';
     
-    if (window.unifiedVoiceStateManager) {
+    // Priority 1: Current channel context (if we're in a voice channel)
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentChannelId = urlParams.get('channel');
+    const currentChannelType = urlParams.get('type');
+    const voiceMetaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
+    
+    if ((currentChannelType === 'voice' || voiceMetaChannelType === 'voice') && currentChannelId) {
+        const channelElement = document.querySelector(`[data-channel-id="${currentChannelId}"][data-channel-type="voice"]`);
+        if (channelElement) {
+            voiceChannelId = currentChannelId;
+            
+            // Check if user is actually connected to any voice channel
+            const isActuallyConnected = (window.unifiedVoiceStateManager?.getState()?.isConnected) ||
+                                      (window.videoSDKManager?.isConnected && window.videoSDKManager?.isMeetingJoined) ||
+                                      (window.voiceManager?.isConnected);
+            
+            if (isActuallyConnected) {
+                userInVoice = true;
+                detectionMethod = 'currentVoiceChannel+connected';
+            } else {
+                // User is in voice channel page but not connected - still valid for bot commands
+                userInVoice = true;
+                detectionMethod = 'currentVoiceChannel+present';
+            }
+        }
+    }
+    
+    if (!userInVoice && window.unifiedVoiceStateManager) {
         const voiceState = window.unifiedVoiceStateManager.getState();
         if (voiceState.isConnected && voiceState.channelId) {
             voiceChannelId = voiceState.channelId;
@@ -232,4 +299,94 @@ window.debugTitiBotVoiceContext = function() {
     return { userInVoice, voiceChannelId, detectionMethod };
 };
 
-console.log('🎤 [TITIBOT-DEBUG] Debug function loaded. Run debugTitiBotVoiceContext() to test voice detection.');
+window.debugBotMusicIntegration = function() {
+    console.log('🎵 [BOT-MUSIC-DEBUG] === INTEGRATION DEBUG ===');
+    
+    console.log('1. Components Check:', {
+        musicPlayer: !!window.musicPlayer,
+        voiceCallSection: !!window.voiceCallSection,
+        BotComponent: !!window.BotComponent,
+        globalSocketManager: !!window.globalSocketManager
+    });
+    
+    console.log('2. Music Player State:', {
+        currentSong: window.musicPlayer?.currentSong,
+        isPlaying: window.musicPlayer?.isPlaying,
+        queueLength: window.musicPlayer?.queue?.length || 0
+    });
+    
+    console.log('3. Voice Bots:', {
+        voiceBots: window.BotComponent?.voiceBots,
+        voiceBotsCount: window.BotComponent?.voiceBots?.size || 0
+    });
+    
+    console.log('4. Voice Call Section:', {
+        participantGrid: !!document.getElementById('participantGrid'),
+        botParticipants: document.querySelectorAll('.bot-participant-card').length
+    });
+    
+    return {
+        canPlayMusic: !!window.musicPlayer,
+        voiceBotsActive: (window.BotComponent?.voiceBots?.size || 0) > 0,
+        participantGridExists: !!document.getElementById('participantGrid')
+    };
+};
+
+window.testBotMusicCommand = async function(songName = 'never gonna give you up') {
+    console.log('🎵 [BOT-MUSIC-TEST] Testing bot music command:', songName);
+    
+    if (!window.musicPlayer) {
+        console.error('❌ Music player not available');
+        return;
+    }
+    
+    try {
+        const mockMusicData = {
+            action: 'play',
+            query: songName,
+            track: null
+        };
+        
+        console.log('🎵 [BOT-MUSIC-TEST] Simulating music command:', mockMusicData);
+        
+        const searchResult = await window.musicPlayer.searchMusic(songName);
+        if (searchResult && searchResult.previewUrl) {
+            console.log('✅ [BOT-MUSIC-TEST] Found track:', searchResult.title);
+            const result = await window.musicPlayer.playTrack(searchResult);
+            window.musicPlayer.showNowPlaying(searchResult);
+            console.log('✅ [BOT-MUSIC-TEST] Successfully playing:', searchResult.title);
+        } else {
+            console.warn('⚠️ [BOT-MUSIC-TEST] No playable track found');
+        }
+    } catch (error) {
+        console.error('❌ [BOT-MUSIC-TEST] Error:', error);
+    }
+};
+
+window.testBotVoiceJoin = function() {
+    console.log('🤖 [BOT-VOICE-TEST] Testing bot voice join...');
+    
+    const mockBotData = {
+        user_id: '4',
+        username: 'titibot',
+        avatar_url: '/public/assets/common/default-profile-picture.png',
+        isBot: true,
+        channelId: document.querySelector('meta[name="channel-id"]')?.content || '1',
+        meetingId: document.querySelector('meta[name="meeting-id"]')?.content || 'voice_channel_1',
+        joinedAt: Date.now()
+    };
+    
+    console.log('🤖 [BOT-VOICE-TEST] Mock bot data:', mockBotData);
+    
+    if (window.voiceCallSection) {
+        window.voiceCallSection.addBotParticipant(mockBotData);
+        console.log('✅ [BOT-VOICE-TEST] Bot added to voice call section');
+    } else {
+        console.error('❌ [BOT-VOICE-TEST] Voice call section not found');
+    }
+};
+
+console.log('🎵 [BOT-DEBUG] Debug functions loaded:');
+console.log('  - debugBotMusicIntegration() - Check integration status');
+console.log('  - testBotMusicCommand(songName) - Test music playback');
+console.log('  - testBotVoiceJoin() - Test bot appearing in voice');

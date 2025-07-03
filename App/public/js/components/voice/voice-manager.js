@@ -179,6 +179,24 @@ class VoiceManager {
                            channelElement?.textContent?.trim() || 'Voice Channel';
         this.currentChannelName = channelName;
         
+        // Update unified voice state manager if user is connected
+        if (window.unifiedVoiceStateManager) {
+            const currentState = window.unifiedVoiceStateManager.getState();
+            if (currentState.isConnected) {
+                console.log('🔄 [VOICE-MANAGER] Updating unified voice state for voice setup:', {
+                    channelId,
+                    channelName,
+                    previousChannelId: currentState.channelId
+                });
+                
+                window.unifiedVoiceStateManager.setState({
+                    ...currentState,
+                    channelId: channelId,
+                    channelName: channelName
+                });
+            }
+        }
+        
         channelNameElements.forEach(el => {
             if (el.classList.contains('channel-name') || el.classList.contains('voice-channel-title')) {
                 el.textContent = channelName.length > 10 

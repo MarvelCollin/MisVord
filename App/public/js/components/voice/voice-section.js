@@ -310,6 +310,24 @@ class VoiceSection {
             }
         }
         
+        // Update unified voice state manager with new channel context if connected
+        if (window.unifiedVoiceStateManager) {
+            const currentState = window.unifiedVoiceStateManager.getState();
+            if (currentState.isConnected) {
+                console.log('🔄 [VOICE-SECTION] Updating unified voice state with new channel:', {
+                    channelId,
+                    channelName,
+                    previousChannelId: currentState.channelId
+                });
+                
+                window.unifiedVoiceStateManager.setState({
+                    ...currentState,
+                    channelId: channelId,
+                    channelName: channelName
+                });
+            }
+        }
+        
         console.log('✅ [VOICE-SECTION] Channel ID updated:', channelId);
     }
     

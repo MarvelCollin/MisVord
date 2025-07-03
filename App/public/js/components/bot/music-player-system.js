@@ -1,3 +1,7 @@
+if (typeof window !== 'undefined' && window.MusicPlayerSystem) {
+    console.log('🎵 [MUSIC-PLAYER] MusicPlayerSystem already loaded, skipping redeclaration');
+} else {
+
 class MusicPlayerSystem {
     constructor() {
         this.currentSong = null;
@@ -858,10 +862,14 @@ class MusicPlayerSystem {
     }
 }
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && !window.musicPlayer) {
+    window.MusicPlayerSystem = MusicPlayerSystem;
     window.musicPlayer = new MusicPlayerSystem();
+    console.log('🎵 [MUSIC-PLAYER] Music player system initialized');
 }
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = MusicPlayerSystem;
 }
+
+} // End of conditional block

@@ -196,13 +196,28 @@ class BotHandler extends EventEmitter {
 
         // Determine real-time voice presence from payload first, then fallback to tracker
         let userInVoice = false;
+        console.log(`🔍 [BOT-DEBUG] Voice context in message data:`, data.voice_context);
+        console.log(`🔍 [BOT-DEBUG] Complete message data keys:`, Object.keys(data));
+        console.log(`🔍 [BOT-DEBUG] User ID: ${data.user_id}, Content: "${data.content}"`);
+        
         if (data.voice_context) {
             userInVoice = !!data.voice_context.user_in_voice;
             if (userInVoice && data.voice_context.voice_channel_id) {
                 voiceChannelToJoin = data.voice_context.voice_channel_id;
+                console.log(`🎤 [BOT-DEBUG] Voice context detected: channel ${voiceChannelToJoin}, user in voice: ${userInVoice}`);
+            } else {
+                console.log(`🎤 [BOT-DEBUG] Voice context exists but invalid: user_in_voice=${data.voice_context.user_in_voice}, voice_channel_id=${data.voice_context.voice_channel_id}`);
             }
         } else {
+            console.log(`🔍 [BOT-DEBUG] No voice_context in payload, checking tracker...`);
             userInVoice = VoiceConnectionTracker.isUserInVoice(data.user_id);
+            if (userInVoice) {
+                const userConnection = VoiceConnectionTracker.getUserVoiceConnection(data.user_id);
+                if (userConnection) {
+                    voiceChannelToJoin = userConnection.channelId;
+                    console.log(`🎤 [BOT-DEBUG] Voice detected via tracker: channel ${voiceChannelToJoin}`);
+                }
+            }
         }
 
         if (isTitiBotCommand && requiresVoice && !userInVoice) {

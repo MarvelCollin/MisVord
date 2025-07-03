@@ -167,26 +167,77 @@ class SendReceiveHandler {
         if (isTitiBotCommand) {
             let voiceChannelId = null;
             let userInVoice = false;
+            let detectionMethod = 'none';
             
-            if (window.unifiedVoiceStateManager) {
-                const voiceState = window.unifiedVoiceStateManager.getState();
-                if (voiceState.isConnected && voiceState.channelId) {
-                    voiceChannelId = voiceState.channelId;
-                    userInVoice = true;
+            console.log('🤖 [SEND-RECEIVE] TitiBot command detected, checking voice context...');
+            
+            // Priority 1: Current channel context (if we're in a voice channel)
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentChannelId = urlParams.get('channel');
+            const currentChannelType = urlParams.get('type');
+            const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
+            
+            console.log('🔍 [SEND-RECEIVE] URL context:', { currentChannelId, currentChannelType, metaChannelType });
+            
+            if ((currentChannelType === 'voice' || metaChannelType === 'voice') && currentChannelId) {
+                const channelElement = document.querySelector(`[data-channel-id="${currentChannelId}"][data-channel-type="voice"]`);
+                if (channelElement) {
+                    voiceChannelId = currentChannelId;
+                    
+                    // Check if user is actually connected to any voice channel
+                    const isActuallyConnected = (window.unifiedVoiceStateManager?.getState()?.isConnected) ||
+                                              (window.videoSDKManager?.isConnected && window.videoSDKManager?.isMeetingJoined) ||
+                                              (window.voiceManager?.isConnected);
+                    
+                    if (isActuallyConnected) {
+                        userInVoice = true;
+                        detectionMethod = 'currentVoiceChannel+connected';
+                        console.log(`🎤 [SEND-RECEIVE] Voice detected via current voice channel (connected): ${voiceChannelId}`);
+                    } else {
+                        // User is in voice channel page but not connected - still valid for bot commands
+                        userInVoice = true;
+                        detectionMethod = 'currentVoiceChannel+present';
+                        console.log(`🎤 [SEND-RECEIVE] Voice detected via current voice channel (present): ${voiceChannelId}`);
+                    }
                 }
             }
             
+            // Priority 2: Unified voice state manager (for connected state)
+            if (!userInVoice && window.unifiedVoiceStateManager) {
+                const voiceState = window.unifiedVoiceStateManager.getState();
+                console.log('🔍 [SEND-RECEIVE] Unified voice state:', voiceState);
+                if (voiceState && voiceState.isConnected && voiceState.channelId) {
+                    voiceChannelId = voiceState.channelId;
+                    userInVoice = true;
+                    detectionMethod = 'unifiedVoiceStateManager';
+                    console.log(`🎤 [SEND-RECEIVE] Voice detected via unified state manager: ${voiceChannelId}`);
+                }
+            }
+            
+            // Priority 3: VideoSDK manager
             if (!userInVoice && window.videoSDKManager) {
                 if (window.videoSDKManager.isConnected && window.videoSDKManager.isMeetingJoined) {
                     const meetingId = window.videoSDKManager.meetingId;
                     if (meetingId && meetingId.includes('voice_channel_')) {
                         voiceChannelId = meetingId.replace('voice_channel_', '');
                         userInVoice = true;
-                        console.log(`🎤 [SEND-RECEIVE] Detected voice connection via VideoSDK: channel ${voiceChannelId}`);
+                        detectionMethod = 'videoSDKManager';
+                        console.log(`🎤 [SEND-RECEIVE] Voice detected via VideoSDK: ${voiceChannelId}`);
                     }
                 }
             }
             
+            // Priority 4: Voice manager
+            if (!userInVoice && window.voiceManager) {
+                if (window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
+                    voiceChannelId = window.voiceManager.currentChannelId;
+                    userInVoice = true;
+                    detectionMethod = 'voiceManager';
+                    console.log(`🎤 [SEND-RECEIVE] Voice detected via voice manager: ${voiceChannelId}`);
+                }
+            }
+            
+            // Priority 5: Global socket manager presence
             if (!userInVoice && window.globalSocketManager) {
                 const currentActivity = window.globalSocketManager.currentActivityDetails;
                 if (currentActivity && currentActivity.type) {
@@ -194,26 +245,22 @@ class SendReceiveHandler {
                         if (currentActivity.channel_id) {
                             voiceChannelId = currentActivity.channel_id;
                             userInVoice = true;
-                            console.log(`🎤 [SEND-RECEIVE] Detected voice connection via presence: channel ${voiceChannelId}`);
+                            detectionMethod = 'globalSocketManager';
+                            console.log(`🎤 [SEND-RECEIVE] Voice detected via presence: ${voiceChannelId}`);
                         }
                     }
                 }
             }
             
-            if (!userInVoice && window.location.pathname.includes('/server/')) {
-                const urlMatch = window.location.pathname.match(/\/server\/(\d+)$/);
-                const urlParams = new URLSearchParams(window.location.search);
-                const channelParam = urlParams.get('channel');
-                
-                if (urlMatch && channelParam) {
-                    const serverId = urlMatch[1];
-                    const channelElement = document.querySelector(`[data-channel-id="${channelParam}"][data-channel-type="voice"]`);
-                    
-                    if (channelElement) {
-                        voiceChannelId = channelParam;
-                        userInVoice = true;
-                        console.log(`🎤 [SEND-RECEIVE] Detected voice connection via URL params: channel ${voiceChannelId} in server ${serverId}`);
-                    }
+            // Priority 6: Check if user is connected but in a different channel from current view
+            if (!userInVoice && window.unifiedVoiceStateManager) {
+                const voiceState = window.unifiedVoiceStateManager.getState();
+                if (voiceState && voiceState.isConnected && voiceState.channelId) {
+                    // User is connected to voice but might be viewing a text channel
+                    voiceChannelId = voiceState.channelId;
+                    userInVoice = true;
+                    detectionMethod = 'unifiedVoiceStateManager_fallback';
+                    console.log(`🎤 [SEND-RECEIVE] Voice detected via unified state (fallback): ${voiceChannelId}`);
                 }
             }
             
@@ -222,13 +269,23 @@ class SendReceiveHandler {
                     voice_channel_id: voiceChannelId,
                     user_in_voice: true
                 };
-                console.log(`🎤 [SEND-RECEIVE] Adding voice context to titibot command:`, messageData.voice_context);
+                console.log(`🎤 [SEND-RECEIVE] Adding voice context to TitiBot command:`, {
+                    ...messageData.voice_context,
+                    detectionMethod
+                });
             } else {
                 messageData.voice_context = {
                     voice_channel_id: null,
                     user_in_voice: false
                 };
                 console.log(`🎤 [SEND-RECEIVE] User not in voice channel, TitiBot command will not include voice context`);
+                console.log(`🔍 [SEND-RECEIVE] Debug info:`, {
+                    urlChannelId: currentChannelId,
+                    urlChannelType: currentChannelType,
+                    metaChannelType,
+                    unifiedVoiceState: window.unifiedVoiceStateManager?.getState(),
+                    videoSDKConnected: window.videoSDKManager?.isConnected
+                });
             }
         }
         
@@ -240,8 +297,19 @@ class SendReceiveHandler {
             hasAttachments: (options.attachments || []).length > 0,
             attachmentCount: (options.attachments || []).length,
             isTitiBotCommand: isTitiBotCommand,
-            voiceChannelId: messageData.voice_context?.voice_channel_id
+            voiceChannelId: messageData.voice_context?.voice_channel_id,
+            voiceContext: messageData.voice_context
         });
+
+        // Debug: Log the complete message data for TitiBot commands
+        if (isTitiBotCommand) {
+            console.log('🤖 [SEND-RECEIVE] Complete TitiBot message data being sent:', {
+                content: messageData.content,
+                voice_context: messageData.voice_context,
+                target_type: messageData.target_type,
+                target_id: messageData.target_id
+            });
+        }
 
         window.globalSocketManager.io.emit('save-and-send-message', messageData);
         

@@ -79,6 +79,14 @@ class ChannelVoiceParticipants {
     }
 
     attachSocketEvents() {
+        if (!window.globalSocketManager || !window.globalSocketManager.io) {
+            console.warn('[VOICE-PARTICIPANT] GlobalSocketManager or socket not available, retrying in 1 second...');
+            setTimeout(() => {
+                this.attachSocketEvents();
+            }, 1000);
+            return;
+        }
+        
         const socket = window.globalSocketManager.io;
         
         console.log('[VOICE-PARTICIPANT] Attaching socket events...');

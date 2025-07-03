@@ -50,7 +50,7 @@ class ChatBot {
             const io = window.globalSocketManager.io;
 
             io.on('bot-music-command', (data) => {
-                console.log('🎵 [TITIBOT] Received music command:', data);
+                console.log('🎵 [CHAT-BOT] Received music command:', data);
                 if (data && data.music_data) {
                     this.executeMusicCommand(data.music_data);
                 } else {
@@ -64,6 +64,14 @@ class ChatBot {
 
             io.on('user-message-dm', (data) => {
                 this.handleBotMessage(data);
+            });
+
+            // Listen for bot voice join events to update music status
+            window.addEventListener('bot-voice-participant-joined', (e) => {
+                console.log('🤖 [CHAT-BOT] Bot joined voice, ready for music commands');
+                if (e.detail?.participant?.user_id === '4') {
+                    this.updateBotParticipantStatus('🎵 Ready to play music');
+                }
             });
 
             this.socketListenersSetup = true;
@@ -247,11 +255,23 @@ class ChatBot {
                         if (searchResult && searchResult.previewUrl) {
                             const result = await window.musicPlayer.playTrack(searchResult);
                             console.log('✅ [CHAT-BOT] Successfully started playing:', searchResult.title);
+                            
+                            window.musicPlayer.showNowPlaying(searchResult);
+                            this.updateBotParticipantStatus('🎵 Playing: ' + searchResult.title);
                         } else {
                             console.warn('⚠️ [CHAT-BOT] No playable track found for:', query);
+                            this.updateBotParticipantStatus('❌ Track not found');
                         }
+                    } else if (track && track.previewUrl) {
+                        console.log('🎵 [CHAT-BOT] Playing provided track:', track.title);
+                        const result = await window.musicPlayer.playTrack(track);
+                        console.log('✅ [CHAT-BOT] Successfully started playing:', track.title);
+                        
+                        window.musicPlayer.showNowPlaying(track);
+                        this.updateBotParticipantStatus('🎵 Playing: ' + track.title);
                     } else {
-                        console.warn('⚠️ [CHAT-BOT] Play command missing query parameter');
+                        console.warn('⚠️ [CHAT-BOT] Play command missing query or track parameter');
+                        this.updateBotParticipantStatus('❌ Invalid play command');
                     }
                     break;
 
@@ -260,8 +280,10 @@ class ChatBot {
                         console.log('🎵 [CHAT-BOT] Searching and queueing:', query);
                         const result = await window.musicPlayer.addToQueue(query.trim());
                         console.log('✅ [CHAT-BOT] Queue operation result:', result);
+                        this.updateBotParticipantStatus('➕ Added to queue');
                     } else {
                         console.warn('⚠️ [CHAT-BOT] Queue command missing query parameter');
+                        this.updateBotParticipantStatus('❌ Invalid queue command');
                     }
                     break;
 
@@ -269,25 +291,42 @@ class ChatBot {
                     console.log('🎵 [CHAT-BOT] Stopping music');
                     await window.musicPlayer.stop();
                     window.musicPlayer.hideNowPlaying();
+                    this.updateBotParticipantStatus('⏹️ Music stopped');
                     break;
 
                 case 'next':
                     console.log('🎵 [CHAT-BOT] Playing next song');
                     const nextResult = await window.musicPlayer.playNext();
                     console.log('✅ [CHAT-BOT] Next song result:', nextResult);
+                    this.updateBotParticipantStatus('⏭️ Next track');
                     break;
 
                 case 'prev':
                     console.log('🎵 [CHAT-BOT] Playing previous song');
                     const prevResult = await window.musicPlayer.playPrevious();
                     console.log('✅ [CHAT-BOT] Previous song result:', prevResult);
+                    this.updateBotParticipantStatus('⏮️ Previous track');
                     break;
 
                 default:
                     console.warn('⚠️ [CHAT-BOT] Unknown music action:', action);
+                    this.updateBotParticipantStatus('❓ Unknown command');
             }
         } catch (error) {
             console.error('❌ [CHAT-BOT] Error executing music command:', error);
+            this.updateBotParticipantStatus('❌ Command failed');
+        }
+    }
+
+    updateBotParticipantStatus(statusText) {
+        // Update bot participant card status if visible in voice call
+        const botCard = document.querySelector('[data-participant-id="bot-4"]');
+        if (botCard) {
+            const statusElement = botCard.querySelector('.music-status');
+            if (statusElement) {
+                statusElement.innerHTML = `<i class="fas fa-music mr-1"></i>${statusText}`;
+                console.log('🤖 [CHAT-BOT] Updated bot participant status:', statusText);
+            }
         }
     }
 
@@ -323,9 +362,57 @@ class ChatBot {
 
         this.botReady = true;
     }
+
+    // Debug function to test voice context detection and message sending
+    debugSendTitiBotCommand(command = 'play test song') {
+        console.log('🧪 [CHAT-BOT-DEBUG] Testing TitiBot command sending...');
+        
+        // Step 1: Test voice context detection
+        console.log('🔍 [DEBUG] Step 1: Voice context detection');
+        if (typeof window.debugTitiBotVoiceContext === 'function') {
+            const voiceContext = window.debugTitiBotVoiceContext();
+            console.log('Voice detection result:', voiceContext);
+        }
+        
+        // Step 2: Test message input
+        if (!this.chatSection || !this.chatSection.messageInput) {
+            console.error('❌ [DEBUG] Chat section or message input not available');
+            return;
+        }
+        
+        // Step 3: Set command in input
+        const fullCommand = `/titibot ${command}`;
+        console.log('📝 [DEBUG] Step 2: Setting command:', fullCommand);
+        this.chatSection.messageInput.value = fullCommand;
+        
+        // Step 4: Trigger send
+        console.log('🚀 [DEBUG] Step 3: Triggering send...');
+        if (this.chatSection.sendReceiveHandler?.sendMessage) {
+            this.chatSection.sendReceiveHandler.sendMessage();
+            console.log('✅ [DEBUG] Send triggered successfully');
+        } else {
+            console.error('❌ [DEBUG] Send handler not available');
+        }
+    }
 }
 
+// Make ChatBot available globally for non-module contexts
 if (typeof window !== 'undefined') {
     window.ChatBot = ChatBot;
+    
+    // Add global debug function for TitiBot command testing
+    window.debugSendTitiBotCommand = function(command = 'play test song') {
+        if (window.chatBot && typeof window.chatBot.debugSendTitiBotCommand === 'function') {
+            window.chatBot.debugSendTitiBotCommand(command);
+        } else {
+            console.error('❌ ChatBot not available for debugging');
+        }
+    };
 }
+
+// Export for module contexts
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ChatBot;
+}
+
 export default ChatBot;

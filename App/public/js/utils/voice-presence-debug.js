@@ -34,6 +34,14 @@ class VoicePresenceDebug {
     }
 
     setupSocketListeners() {
+        if (!window.globalSocketManager || !window.globalSocketManager.io) {
+            console.warn('[VOICE-PRESENCE-DEBUG] GlobalSocketManager or socket not available, retrying in 1 second...');
+            setTimeout(() => {
+                this.setupSocketListeners();
+            }, 1000);
+            return;
+        }
+        
         const socket = window.globalSocketManager.io;
         
         socket.on('user-presence-update', (data) => {

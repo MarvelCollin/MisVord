@@ -56,7 +56,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     </div>
 
     <!-- Discord-style Voice Controls -->
-    <div class="voice-controls bg-[#36393f] border-t border-[#202225] p-4">
+    <div class="voice-controls bg-[#36393f] border-t border-[#202225] p-2">
         <div class="flex items-center justify-center space-x-4">
             <!-- Primary Controls -->
             <button id="micBtn" class="voice-control-btn mic-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#ed4245] text-white transition-all duration-150 flex items-center justify-center group">
@@ -84,6 +84,11 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
                 <div class="voice-tooltip">Play Tic Mac Voe</div>
             </button>
 
+            <button id="musicBtn" class="voice-control-btn music-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#00d166] text-white transition-all duration-150 flex items-center justify-center group" onclick="window.musicPlayer?.showSearchModal()">
+                <i class="fas fa-music text-sm"></i>
+                <div class="voice-tooltip">Music Player</div>
+            </button>
+
             <div class="w-px h-6 bg-[#4f545c]"></div>
 
             <!-- Disconnect -->
@@ -103,8 +108,35 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 </div>
 
 <!-- Section UI/controls logic -->
+<script src="/public/js/components/bot/bot.js?v=<?php echo time(); ?>"></script>
+<script src="/public/js/components/messaging/chat-bot.js?v=<?php echo time(); ?>" type="module"></script>
+<script src="/public/js/components/bot/music-player-system.js?v=<?php echo time(); ?>"></script>
 <script src="/public/js/components/activity/tic-tac-toe.js?v=<?php echo time(); ?>"></script>
 <script src="/public/js/components/voice/voice-call-section.js?v=<?php echo time(); ?>"></script>
+<script src="/public/js/debug/titibot-voice-music-test.js?v=<?php echo time(); ?>"></script>
+<script type="module">
+import ChatBot from '/public/js/components/messaging/chat-bot.js';
+
+// Initialize ChatBot for voice channel if not already available
+document.addEventListener('DOMContentLoaded', () => {
+    if (!window.chatBot && window.globalSocketManager?.io) {
+        console.log('🤖 [VOICE-CALL] Initializing ChatBot for voice channel...');
+        
+        // Create a minimal chat section object for ChatBot initialization
+        const mockChatSection = {
+            messageInput: null, // Voice channels don't have message input
+            addSystemMessage: (content) => {
+                console.log('📢 [VOICE-CHAT-BOT] System message:', content);
+            }
+        };
+        
+        // Initialize the ChatBot with mock chat section
+        window.chatBot = new ChatBot(mockChatSection);
+        console.log('✅ [VOICE-CALL] ChatBot initialized for voice channel');
+    }
+});
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     if (window.voiceManager && typeof window.voiceManager.attachEventListeners === 'function') {
@@ -114,5 +146,199 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('VoiceManager attachEventListeners failed:', e);
         }
     }
+    
+    setTimeout(() => {
+        console.log('🎵 [VOICE-CALL] Checking music player integration...');
+        if (!window.musicPlayer) {
+            console.warn('⚠️ [VOICE-CALL] Music player not loaded, retrying...');
+            setTimeout(() => {
+                if (window.musicPlayer) {
+                    console.log('✅ [VOICE-CALL] Music player loaded successfully');
+                } else {
+                    console.error('❌ [VOICE-CALL] Music player failed to load');
+                }
+            }, 1000);
+        } else {
+            console.log('✅ [VOICE-CALL] Music player ready');
+        }
+        
+        // Check bot components
+        if (!window.BotComponent) {
+            console.warn('⚠️ [VOICE-CALL] Bot component not loaded');
+        } else {
+            console.log('✅ [VOICE-CALL] Bot component ready');
+        }
+        
+        if (!window.chatBot) {
+            console.warn('⚠️ [VOICE-CALL] Chat bot not loaded');
+        } else {
+            console.log('✅ [VOICE-CALL] Chat bot ready');
+        }
+    }, 500);
 });
+
+// Global test function for TitiBot music integration in voice channels
+window.testTitiBotMusicIntegration = function() {
+    console.log('🧪 [TEST] Testing TitiBot music integration in voice channel...');
+    
+    // Check if we're in a voice channel
+    const urlParams = new URLSearchParams(window.location.search);
+    const channelType = urlParams.get('type');
+    if (channelType !== 'voice') {
+        console.log('❌ [TEST] Not in a voice channel. Test requires voice channel context.');
+        return;
+    }
+    
+    // Check components
+    const checks = {
+        musicPlayer: !!window.musicPlayer,
+        botComponent: !!window.BotComponent,
+        chatBot: !!window.chatBot,
+        voiceCallSection: !!window.voiceCallSection,
+        globalSocketManager: !!window.globalSocketManager?.io,
+        unifiedVoiceStateManager: !!window.unifiedVoiceStateManager
+    };
+    
+    console.log('📋 [TEST] Component Status:', checks);
+    
+    const allComponentsReady = Object.values(checks).every(Boolean);
+    
+    if (!allComponentsReady) {
+        console.log('❌ [TEST] Not all components are ready. Missing:', 
+            Object.keys(checks).filter(key => !checks[key]));
+        return;
+    }
+    
+    console.log('✅ [TEST] All components ready. Testing bot music integration...');
+    
+    // Test voice context detection
+    if (typeof window.debugTitiBotVoiceContext === 'function') {
+        console.log('🎤 [TEST] Testing voice context detection...');
+        window.debugTitiBotVoiceContext();
+    }
+    
+    // Test music player
+    if (window.musicPlayer) {
+        console.log('🎵 [TEST] Testing music player...');
+        console.log('Music Player Status:', window.musicPlayer.getCurrentStatus());
+    }
+    
+    console.log('🎯 [TEST] Integration test complete. Try running `/titibot play test` in chat.');
+    return true;
+};
+
+// Quick debug function to manually trigger bot join
+window.debugBotJoinVoice = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const channelId = urlParams.get('channel');
+    const channelType = urlParams.get('type');
+    
+    if (channelType !== 'voice' || !channelId) {
+        console.log('❌ [DEBUG] Not in voice channel or no channel ID');
+        return;
+    }
+    
+    console.log('🤖 [DEBUG] Manually triggering bot join for channel:', channelId);
+    
+    // Create mock bot participant data
+    const mockBotData = {
+        id: 'bot-voice-titibot',
+        user_id: '4',
+        username: 'TitiBot',
+        avatar_url: '/public/assets/common/default-profile-picture.png',
+        isBot: true,
+        channelId: channelId,
+        meetingId: `voice_channel_${channelId}`,
+        joinedAt: Date.now()
+    };
+    
+    // Dispatch the event manually
+    window.dispatchEvent(new CustomEvent('bot-voice-participant-joined', {
+        detail: { participant: mockBotData }
+    }));
+    
+    console.log('✅ [DEBUG] Bot join event dispatched');
+};
+
+// Test function for the complete TitiBot music flow
+window.testTitiBotMusicFlow = function(songName = 'never gonna give you up') {
+    console.log('🧪 [TEST] Testing complete TitiBot music flow...');
+    
+    // Step 1: Check if we're in a voice channel
+    const urlParams = new URLSearchParams(window.location.search);
+    const channelType = urlParams.get('type');
+    const channelId = urlParams.get('channel');
+    
+    if (channelType !== 'voice') {
+        console.log('❌ [TEST] Must be in a voice channel. Current type:', channelType);
+        return false;
+    }
+    
+    // Step 2: Check components
+    const checks = {
+        musicPlayer: !!window.musicPlayer,
+        botComponent: !!window.BotComponent,
+        chatBot: !!window.chatBot,
+        voiceCallSection: !!window.voiceCallSection,
+        globalSocketManager: !!window.globalSocketManager?.io,
+        chatSection: !!window.chatSection
+    };
+    
+    console.log('📋 [TEST] Component Status:', checks);
+    
+    const allComponentsReady = Object.values(checks).every(Boolean);
+    if (!allComponentsReady) {
+        console.log('❌ [TEST] Not all components ready. Missing:', 
+            Object.keys(checks).filter(key => !checks[key]));
+        return false;
+    }
+    
+    // Step 3: Simulate bot joining voice
+    console.log('🤖 [TEST] Step 1: Bot joining voice...');
+    window.debugBotJoinVoice();
+    
+    // Step 4: Wait and simulate music command
+    setTimeout(() => {
+        console.log('🎵 [TEST] Step 2: Sending music command...');
+        
+        if (window.chatSection && window.chatSection.messageInput) {
+            // Simulate typing the command
+            const command = `/titibot play ${songName}`;
+            window.chatSection.messageInput.value = command;
+            
+            // Trigger send
+            if (window.chatSection.sendReceiveHandler) {
+                window.chatSection.sendReceiveHandler.sendMessage();
+                console.log('✅ [TEST] Music command sent:', command);
+            }
+        } else {
+            console.log('❌ [TEST] Chat section or message input not available');
+        }
+    }, 2000);
+    
+    return true;
+};
+
+// TitiBot Setup Guide
+console.log('🎯 [TITIBOT-SETUP] === TitiBot Voice Music Setup ===');
+console.log('🤖 [TITIBOT-SETUP] TitiBot is ready for voice music commands!');
+console.log('');
+console.log('📝 [TITIBOT-SETUP] Available Commands:');
+console.log('  /titibot ping - Test if bot is alive');
+console.log('  /titibot play [song] - Play music in voice channel');
+console.log('  /titibot stop - Stop current music');
+console.log('  /titibot next - Play next song');
+console.log('  /titibot prev - Play previous song');
+console.log('  /titibot queue [song] - Add song to queue');
+console.log('');
+console.log('🧪 [TITIBOT-SETUP] Test Functions:');
+console.log('  testTitiBotVoiceMusicIntegration() - Full integration test');
+console.log('  testBotJoinOnly() - Test bot joining voice only');
+console.log('  testMusicCommandOnly() - Test music command only');
+console.log('');
+console.log('💡 [TITIBOT-SETUP] Usage:');
+console.log('  1. Make sure you\'re in a voice channel');
+console.log('  2. Type a music command in chat (e.g., "/titibot play never gonna give you up")');
+console.log('  3. TitiBot will join as a participant and start playing music');
+console.log('===================================');
 </script>
