@@ -515,21 +515,36 @@ class MessageHandler {
                 let voiceChannelData = null;
                 
                 if (isTitiBotCommand) {
-                    const userVoiceConnection = VoiceConnectionTracker.getUserVoiceConnection(broadcastData.user_id);
-                    if (userVoiceConnection) {
-                        voiceChannelData = {
-                            voice_channel_id: userVoiceConnection.channelId,
-                            meeting_id: userVoiceConnection.meetingId,
-                            user_in_voice: true
-                        };
-                        console.log(`🎤 [SAVE-AND-SEND] User ${broadcastData.user_id} sending titibot command from voice channel ${userVoiceConnection.channelId}`);
+                    if (data.voice_context) {
+                        voiceChannelData = data.voice_context;
+                        console.log(`🎤 [SAVE-AND-SEND] Using voice context from client:`, voiceChannelData);
+                        
+                        if (voiceChannelData.user_in_voice && voiceChannelData.voice_channel_id) {
+                            VoiceConnectionTracker.addUserToVoice(
+                                broadcastData.user_id, 
+                                voiceChannelData.voice_channel_id, 
+                                `voice_channel_${voiceChannelData.voice_channel_id}`,
+                                broadcastData.username
+                            );
+                            console.log(`🎤 [SAVE-AND-SEND] Updated VoiceConnectionTracker with user ${broadcastData.user_id} in channel ${voiceChannelData.voice_channel_id}`);
+                        }
                     } else {
-                        console.log(`🎤 [SAVE-AND-SEND] User ${broadcastData.user_id} sending titibot command but not in voice channel`);
-                        voiceChannelData = {
-                            voice_channel_id: null,
-                            meeting_id: null,
-                            user_in_voice: false
-                        };
+                        const userVoiceConnection = VoiceConnectionTracker.getUserVoiceConnection(broadcastData.user_id);
+                        if (userVoiceConnection) {
+                            voiceChannelData = {
+                                voice_channel_id: userVoiceConnection.channelId,
+                                meeting_id: userVoiceConnection.meetingId,
+                                user_in_voice: true
+                            };
+                            console.log(`🎤 [SAVE-AND-SEND] User ${broadcastData.user_id} sending titibot command from voice channel ${userVoiceConnection.channelId} (from tracker)`);
+                        } else {
+                            console.log(`🎤 [SAVE-AND-SEND] User ${broadcastData.user_id} sending titibot command but not in voice channel`);
+                            voiceChannelData = {
+                                voice_channel_id: null,
+                                meeting_id: null,
+                                user_in_voice: false
+                            };
+                        }
                     }
                     
                     broadcastData.voice_context = voiceChannelData;

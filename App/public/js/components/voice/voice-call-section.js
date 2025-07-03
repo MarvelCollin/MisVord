@@ -40,6 +40,13 @@ class VoiceCallSection {
     window.addEventListener("videosdkStreamDisabled", (e) =>
       this.handleStreamEvent(e)
     );
+
+    window.addEventListener("bot-voice-participant-joined", (e) =>
+      this.handleBotParticipantJoined(e)
+    );
+    window.addEventListener("bot-voice-participant-left", (e) =>
+      this.handleBotParticipantLeft(e)
+    );
   }
 
   init() {
@@ -1572,6 +1579,113 @@ class VoiceCallSection {
     }
     
     return window.userDataHelper || null;
+  }
+
+  addBotParticipant(botData) {
+    console.log('🤖 [VOICE-CALL] Adding bot participant:', botData);
+    
+    if (!botData || !botData.user_id) {
+      console.error('❌ [VOICE-CALL] Invalid bot data provided');
+      return;
+    }
+
+    const grid = document.getElementById("participantGrid");
+    if (!grid) {
+      console.error('❌ [VOICE-CALL] Participant grid not found');
+      return;
+    }
+
+    const existingBotCard = grid.querySelector(`[data-participant-id="bot-${botData.user_id}"]`);
+    if (existingBotCard) {
+      console.log('🔄 [VOICE-CALL] Bot participant already exists, updating...');
+      return;
+    }
+
+    const botCard = this.createBotParticipantElement(botData);
+    grid.appendChild(botCard);
+    
+    this.updateGridLayout();
+    this.updateParticipantCount();
+    
+    console.log('✅ [VOICE-CALL] Bot participant added to grid');
+  }
+
+  removeBotParticipant(botUserId) {
+    console.log('🤖❌ [VOICE-CALL] Removing bot participant:', botUserId);
+    
+    const grid = document.getElementById("participantGrid");
+    if (!grid) {
+      console.error('❌ [VOICE-CALL] Participant grid not found');
+      return;
+    }
+
+    const botCard = grid.querySelector(`[data-participant-id="bot-${botUserId}"]`);
+    if (botCard) {
+      botCard.remove();
+      this.updateGridLayout();
+      this.updateParticipantCount();
+      console.log('✅ [VOICE-CALL] Bot participant removed from grid');
+    } else {
+      console.log('⚠️ [VOICE-CALL] Bot participant not found in grid');
+    }
+  }
+
+  handleBotParticipantJoined(e) {
+    console.log('🤖➕ [VOICE-CALL] Bot participant joined event:', e.detail);
+    const { participant } = e.detail;
+    
+    if (participant) {
+      this.addBotParticipant(participant);
+    }
+  }
+
+  handleBotParticipantLeft(e) {
+    console.log('🤖➖ [VOICE-CALL] Bot participant left event:', e.detail);
+    const { participant } = e.detail;
+    
+    if (participant && participant.user_id) {
+      this.removeBotParticipant(participant.user_id);
+    }
+  }
+
+  createBotParticipantElement(botData) {
+    const participantCard = document.createElement("div");
+    participantCard.className = "participant-card bot-participant-card relative bg-[#36393f] rounded-lg p-4 flex flex-col items-center justify-center text-center";
+    participantCard.setAttribute("data-participant-id", `bot-${botData.user_id}`);
+    participantCard.setAttribute("data-is-bot", "true");
+
+    const botIcon = botData.avatar_url || '/public/assets/common/default-profile-picture.png';
+    
+    participantCard.innerHTML = `
+      <div class="bot-indicator">BOT</div>
+      
+      <div class="relative mb-3">
+        <div class="w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center border-2 border-[#3ba55c] relative">
+          <img src="${botIcon}" alt="${botData.username}" class="w-12 h-12 rounded-full object-cover">
+          <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#5865f2] rounded-full flex items-center justify-center">
+            <i class="fas fa-robot text-white text-xs"></i>
+          </div>
+        </div>
+        <div class="absolute top-0 right-0 w-4 h-4 bg-[#3ba55c] rounded-full border-2 border-[#36393f]"></div>
+      </div>
+      
+      <div class="w-full mb-2">
+        <div class="text-white font-medium text-sm mb-1 truncate">
+          ${botData.username}
+        </div>
+        <div class="text-[#5865f2] text-xs flex items-center justify-center">
+          <i class="fas fa-robot mr-1"></i>
+          Music Bot
+        </div>
+      </div>
+      
+      <div class="music-status">
+        <i class="fas fa-music mr-1"></i>
+        Ready to play
+      </div>
+    `;
+
+    return participantCard;
   }
 }
 

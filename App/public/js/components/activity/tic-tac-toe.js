@@ -1118,6 +1118,3 @@ window.TicTacToeGame = TicTacToeGame;
 window.TicTacToeModal = TicTacToeModal;
 
 console.log('✅ [TIC-TAC-TOE] Tic Tac Toe components loaded and available globally');
-
-export { TicTacToeGame, TicTacToeModal };
-export default TicTacToeModal;

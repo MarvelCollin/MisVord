@@ -745,3 +745,65 @@
     0%, 100% { opacity: 0.8; transform: scale(1); }
     50% { opacity: 1; transform: scale(1.2); }
 }
+
+.bot-participant-card {
+    background: linear-gradient(135deg, #36393f 0%, #2f3136 100%) !important;
+    border: 2px solid #5865f2 !important;
+    box-shadow: 0 0 15px rgba(88, 101, 242, 0.3) !important;
+    position: relative !important;
+}
+
+.bot-participant-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #5865f2, #7289da, #5865f2);
+    border-radius: inherit;
+    z-index: -1;
+    animation: botGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes botGlow {
+    0% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 0.8;
+    }
+}
+
+.bot-participant-card:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 8px 25px rgba(88, 101, 242, 0.5) !important;
+}
+
+.bot-participant-card .bot-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #5865f2;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bot-participant-card .music-status {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #3ba55c;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}

@@ -166,21 +166,69 @@ class SendReceiveHandler {
         const isTitiBotCommand = content && content.toLowerCase().includes('/titibot');
         if (isTitiBotCommand) {
             let voiceChannelId = null;
+            let userInVoice = false;
             
             if (window.unifiedVoiceStateManager) {
                 const voiceState = window.unifiedVoiceStateManager.getState();
                 if (voiceState.isConnected && voiceState.channelId) {
                     voiceChannelId = voiceState.channelId;
-                    messageData.voice_context = {
-                        voice_channel_id: voiceChannelId,
-                        user_in_voice: true
-                    };
-                    console.log(`🎤 [SEND-RECEIVE] Adding voice context to titibot command:`, messageData.voice_context);
-                } else {
-                    console.log(`🎤 [SEND-RECEIVE] User not in voice channel, TitiBot command will not include voice context`);
+                    userInVoice = true;
                 }
+            }
+            
+            if (!userInVoice && window.videoSDKManager) {
+                if (window.videoSDKManager.isConnected && window.videoSDKManager.isMeetingJoined) {
+                    const meetingId = window.videoSDKManager.meetingId;
+                    if (meetingId && meetingId.includes('voice_channel_')) {
+                        voiceChannelId = meetingId.replace('voice_channel_', '');
+                        userInVoice = true;
+                        console.log(`🎤 [SEND-RECEIVE] Detected voice connection via VideoSDK: channel ${voiceChannelId}`);
+                    }
+                }
+            }
+            
+            if (!userInVoice && window.globalSocketManager) {
+                const currentActivity = window.globalSocketManager.currentActivityDetails;
+                if (currentActivity && currentActivity.type) {
+                    if (currentActivity.type === 'In Voice Call' || currentActivity.type.startsWith('In Voice - ')) {
+                        if (currentActivity.channel_id) {
+                            voiceChannelId = currentActivity.channel_id;
+                            userInVoice = true;
+                            console.log(`🎤 [SEND-RECEIVE] Detected voice connection via presence: channel ${voiceChannelId}`);
+                        }
+                    }
+                }
+            }
+            
+            if (!userInVoice && window.location.pathname.includes('/server/')) {
+                const urlMatch = window.location.pathname.match(/\/server\/(\d+)$/);
+                const urlParams = new URLSearchParams(window.location.search);
+                const channelParam = urlParams.get('channel');
+                
+                if (urlMatch && channelParam) {
+                    const serverId = urlMatch[1];
+                    const channelElement = document.querySelector(`[data-channel-id="${channelParam}"][data-channel-type="voice"]`);
+                    
+                    if (channelElement) {
+                        voiceChannelId = channelParam;
+                        userInVoice = true;
+                        console.log(`🎤 [SEND-RECEIVE] Detected voice connection via URL params: channel ${voiceChannelId} in server ${serverId}`);
+                    }
+                }
+            }
+            
+            if (userInVoice && voiceChannelId) {
+                messageData.voice_context = {
+                    voice_channel_id: voiceChannelId,
+                    user_in_voice: true
+                };
+                console.log(`🎤 [SEND-RECEIVE] Adding voice context to titibot command:`, messageData.voice_context);
             } else {
-                console.log(`🎤 [SEND-RECEIVE] unifiedVoiceStateManager not available, TitiBot command will not include voice context`);
+                messageData.voice_context = {
+                    voice_channel_id: null,
+                    user_in_voice: false
+                };
+                console.log(`🎤 [SEND-RECEIVE] User not in voice channel, TitiBot command will not include voice context`);
             }
         }
         
