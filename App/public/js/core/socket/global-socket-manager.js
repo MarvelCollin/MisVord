@@ -83,13 +83,8 @@ class GlobalSocketManager {
     }
     
     init(userData = null) {
-        if (window.__SOCKET_INITIALISED__ && this.isConnected && this.io) {
-            this.log('Socket already initialized and connected with active instance');
-            return false;
-        }
-
-        if (this.io && (this.isConnected || this.isConnecting)) {
-            this.log('Socket connection already in progress or established');
+        if (window.__SOCKET_INITIALISED__ && this.isConnected) {
+            this.log('Socket already initialized and connected');
             return false;
         }
 
@@ -118,7 +113,6 @@ class GlobalSocketManager {
         }
 
         try {
-            this.isConnecting = true;
             const connected = this.connect();
             if (connected !== false) {
                 window.__SOCKET_INITIALISED__ = true;
@@ -132,7 +126,6 @@ class GlobalSocketManager {
             }
             return true;
         } catch (e) {
-            this.isConnecting = false;
             this.error('Failed to initialize socket', e);
             return false;
         }
@@ -218,22 +211,10 @@ class GlobalSocketManager {
             this.log('Socket already connected');
             return true;
         }
-
-        if (this.io && this.isConnecting) {
-            this.log('Socket connection already in progress');
-            return true;
-        }
         
         if (!this.socketHost || this.socketHost === 'null' || this.socketHost === 'undefined') {
             this.log('Invalid socket host detected, skipping connection');
             return false;
-        }
-
-        // Disconnect any existing socket instance before creating new one
-        if (this.io) {
-            this.log('Cleaning up existing socket instance before reconnection');
-            this.io.disconnect();
-            this.io = null;
         }
         
         const socketUrl = `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}`;
@@ -257,7 +238,6 @@ class GlobalSocketManager {
             this.setupEventHandlers();
             return true;
         } catch (e) {
-            this.isConnecting = false;
             this.error('Failed to connect to socket', e);
             throw e;
         }
@@ -268,7 +248,6 @@ class GlobalSocketManager {
         
         this.io.on('connect', () => {
             this.isConnected = true;
-            this.isConnecting = false;
             this.reconnectAttempts = 0;
             this.debug(`Socket connected with ID: ${this.io.id}`, { 
                 userId: this.userId,
@@ -316,21 +295,11 @@ class GlobalSocketManager {
             this.isUserActive = true;
             this.currentPresenceStatus = 'online';
             
-            if (this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
-                console.log('🎯 [SOCKET] User authenticated while in voice call, preserving voice call status');
-                this.updatePresence('online', this.currentActivityDetails);
-            } else {
-                this.updatePresence('online', { type: 'active' });
-            }
+            this.updatePresence('online', { type: 'active' });
             this.startPresenceHeartbeat();
             
             setTimeout(() => {
-                if (this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
-                    console.log('🎯 [SOCKET] Secondary presence update - preserving voice call status');
-                    this.updatePresence('online', this.currentActivityDetails);
-                } else {
-                    this.updatePresence('online', { type: 'active' });
-                }
+                this.updatePresence('online', { type: 'active' });
                 console.log('✅ [SOCKET] Secondary presence update sent for reliability');
             }, 500);
             
@@ -394,7 +363,6 @@ class GlobalSocketManager {
         
         this.io.on('disconnect', () => {
             this.isConnected = false;
-            this.isConnecting = false;
             this.isAuthenticated = false;
             this.stopPresenceHeartbeat();
             this.stopActivityCheck();
@@ -488,10 +456,29 @@ class GlobalSocketManager {
             }
         });
         
-        this.io.on('voice-meeting-status', this.handleVoiceMeetingStatus.bind(this));
-        this.io.on('voice-meeting-update', this.handleVoiceMeetingUpdate.bind(this));
+        this.io.on('voice-meeting-status', (data) => {
+            console.log('📡 [SOCKET] Voice meeting status received:', data);
+            
+            // Always process voice meeting status for cross-channel visibility
+            this.handleVoiceMeetingStatus(data);
+        });
+        
+        this.io.on('voice-meeting-update', (data) => {
+            console.log('📡 [SOCKET] Voice meeting update received:', data);
+            
+            // Always process voice meeting updates for cross-channel visibility
+            this.handleVoiceMeetingUpdate(data);
+            
+            // If this is about our own connection and VideoSDK is managing, let VideoSDK handle
+            const isOwnConnection = data.user_id === this.userId;
+            if (isOwnConnection && window.videoSDKManager?.isReady()) {
+                console.log('📡 [SOCKET] VideoSDK managing own connection, letting VideoSDK handle');
+                return;
+            }
+        });
         
         this.io.on('stop-typing', this.handleStopTyping.bind(this));
+        this.io.on('mention_notification', this.handleMentionNotification.bind(this));
         
         this.socketListenersSetup = true;
         console.log('✅ Socket handlers setup complete');
@@ -830,14 +817,11 @@ class GlobalSocketManager {
         }
         
         this.isConnected = false;
-        this.isConnecting = false;
         this.isAuthenticated = false;
         this.joinedChannels.clear();
         this.joinedDMRooms.clear();
         this.joinedRooms.clear();
-        this.reconnectAttempts = 0;
-        window.__SOCKET_INITIALISED__ = false;
-        this.log('Socket manually disconnected and state cleared');
+        this.log('Socket manually disconnected');
     }
     
     isReady() {
@@ -859,7 +843,8 @@ class GlobalSocketManager {
         this.joinChannel(channelId);
         
         this.io.off('new-channel-message'); 
-
+        this.io.off('user-typing');
+        this.io.off('user-stop-typing');
         
         this.io.on('new-channel-message', (messageData) => {
             if (messageData && messageData.channel_id === channelId) {
@@ -872,7 +857,31 @@ class GlobalSocketManager {
             }
         });
         
-
+        this.io.on('user-typing', (data) => {
+            if (data.channel_id === channelId) {
+                const event = new CustomEvent('userTyping', {
+                    detail: data
+                });
+                window.dispatchEvent(event);
+                
+                if (window.chatSection && typeof window.chatSection.showTypingIndicator === 'function') {
+                    window.chatSection.showTypingIndicator(data.user_id, data.username);
+                }
+            }
+        });
+        
+        this.io.on('user-stop-typing', (data) => {
+            if (data.channel_id === channelId) {
+                const event = new CustomEvent('userStopTyping', {
+                    detail: data
+                });
+                window.dispatchEvent(event);
+                
+                if (window.chatSection && typeof window.chatSection.removeTypingIndicator === 'function') {
+                    window.chatSection.removeTypingIndicator(data.user_id);
+                }
+            }
+        });
         
         this.log(`Channel listeners set up for channel: ${channelId}`);
         return true;
@@ -934,50 +943,45 @@ class GlobalSocketManager {
         // ... existing code ...
     }
     
-    // handleGlobalMentionNotification(data) {
-    //     // DISABLED: Now handled by GlobalNotificationHandler to prevent notification bursts
-    //     try {
-    //         const currentUserId = this.userId;
-    //         if (!currentUserId) {
-    //             console.warn('⚠️ [GLOBAL-SOCKET] No current user ID for mention notification');
-    //             return;
-    //         }
-    //         
-    //         console.log('💬 [GLOBAL-SOCKET] Global mention notification received:', data);
-    //         
-    //         let shouldNotify = false;
-    //         let mentionType = '';
-    //         
-    //         if (data.type === 'all') {
-    //             shouldNotify = true;
-    //             mentionType = '@all';
-    //             console.log('📢 [GLOBAL-SOCKET] @all mention detected globally');
-    //         } else if (data.type === 'role' && data.mentioned_user_id === currentUserId) {
-    //             shouldNotify = true;
-    //             mentionType = `@${data.role}`;
-    //             console.log(`👥 [GLOBAL-SOCKET] Role mention detected globally: @${data.role} for current user`);
-    //         } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
-    //             shouldNotify = true;
-    //             mentionType = `@${this.username}`;
-    //             console.log('👤 [GLOBAL-SOCKET] User mention detected globally for current user');
-    //         }
-    //         
-    //         if (shouldNotify) {
-    //             this.showGlobalMentionNotification(data, mentionType);
-    //             this.playGlobalMentionSound();
-    //             
-    //             window.dispatchEvent(new CustomEvent('globalMentionReceived', {
-    //                 detail: {
-    //                     data: data,
-    //                     mentionType: mentionType,
-    //                     timestamp: Date.now()
-    //                 }
-    //             }));
-    //         }
-    //     } catch (error) {
-    //         console.error('❌ [GLOBAL-SOCKET] Error handling global mention notification:', error);
-    //     }
-    // }
+    handleGlobalMentionNotification(data) {
+        try {
+            const currentUserId = this.userId;
+            if (!currentUserId) {
+                console.warn('⚠️ [GLOBAL-SOCKET] No current user ID for mention notification');
+                return;
+            }
+            
+            console.log('💬 [GLOBAL-SOCKET] Global mention notification received:', data);
+            
+            let shouldNotify = false;
+            let mentionType = '';
+            
+            if (data.type === 'all') {
+                shouldNotify = true;
+                mentionType = '@all';
+                console.log('📢 [GLOBAL-SOCKET] @all mention detected globally');
+            } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
+                shouldNotify = true;
+                mentionType = `@${this.username}`;
+                console.log('👤 [GLOBAL-SOCKET] User mention detected globally for current user');
+            }
+            
+            if (shouldNotify) {
+                this.showGlobalMentionNotification(data, mentionType);
+                this.playGlobalMentionSound();
+                
+                window.dispatchEvent(new CustomEvent('globalMentionReceived', {
+                    detail: {
+                        data: data,
+                        mentionType: mentionType,
+                        timestamp: Date.now()
+                    }
+                }));
+            }
+        } catch (error) {
+            console.error('❌ [GLOBAL-SOCKET] Error handling global mention notification:', error);
+        }
+    }
     
     showGlobalMentionNotification(data, mentionType) {
         try {
@@ -1048,74 +1052,25 @@ class GlobalSocketManager {
         }
     }
     
-    async navigateToMention(data) {
+    navigateToMention(data) {
         try {
             console.log('🔗 [GLOBAL-SOCKET] Navigating to mention:', data);
             
-            if (data.target_type === 'channel' && data.target_id) {
-                let serverId = null;
-                
-                if (data.server_id) {
-                    serverId = data.server_id;
-                    console.log('✅ [GLOBAL-SOCKET] Using server_id from notification data:', serverId);
-                } else if (data.context && data.context.server_id) {
-                    serverId = data.context.server_id;
-                    console.log('✅ [GLOBAL-SOCKET] Using server_id from context:', serverId);
-                } else if (data.channel_id && data.server_id) {
-                    serverId = data.server_id;
-                    console.log('✅ [GLOBAL-SOCKET] Using server_id from data fields:', serverId);
-                }
-                
-                if (serverId) {
-                    const channelId = data.target_id || data.channel_id;
-                    const targetUrl = `/server/${serverId}?channel=${channelId}`;
-                    const currentPath = window.location.pathname;
-                    const currentServerMatch = currentPath.match(/\/server\/(\d+)/);
-                    const currentServerId = currentServerMatch ? currentServerMatch[1] : null;
-                    
-                    console.log('🔗 [GLOBAL-SOCKET] Navigation details:', {
-                        targetUrl,
-                        currentServerId,
-                        targetServerId: serverId,
-                        targetChannelId: channelId
-                    });
-                    
-                    if (currentServerId === serverId) {
-                        console.log('🔄 [GLOBAL-SOCKET] Same server, using channel switcher');
-                        if (window.simpleChannelSwitcher) {
-                            window.simpleChannelSwitcher.switchToChannel(channelId, 'text', true, data.message_id);
-                        } else {
-                            console.log('⚠️ [GLOBAL-SOCKET] Channel switcher not available, using URL navigation');
-                            if (data.message_id) {
-                                window.location.href = targetUrl + `#message-${data.message_id}`;
-                            } else {
-                                window.location.href = targetUrl;
-                            }
-                        }
-                    } else {
-                        console.log('🔄 [GLOBAL-SOCKET] Different server, using URL navigation');
-                        if (data.message_id) {
-                            window.location.href = targetUrl + `#message-${data.message_id}`;
-                        } else {
-                            window.location.href = targetUrl;
-                        }
-                    }
-                } else {
-                    console.warn('⚠️ [GLOBAL-SOCKET] No server ID found for channel navigation');
-                    const targetUrl = `/home?channel=${data.target_id || data.channel_id}`;
-                    if (data.message_id) {
-                        window.location.href = targetUrl + `#message-${data.message_id}`;
-                    } else {
-                        window.location.href = targetUrl;
-                    }
-                }
+            let targetUrl = '';
+            
+            if (data.channel_id && data.server_id) {
+                targetUrl = `/server/${data.server_id}?channel=${data.channel_id}`;
             } else if (data.room_id) {
-                const targetUrl = `/home/channels/dm/${data.room_id}`;
+                targetUrl = `/home/channels/dm/${data.room_id}`;
+            }
+            
+            if (targetUrl) {
                 if (data.message_id) {
-                    window.location.href = targetUrl + `#message-${data.message_id}`;
-                } else {
-                    window.location.href = targetUrl;
+                    targetUrl += `#message-${data.message_id}`;
                 }
+                
+                console.log('🔗 [GLOBAL-SOCKET] Navigating to:', targetUrl);
+                window.location.href = targetUrl;
             } else {
                 console.warn('⚠️ [GLOBAL-SOCKET] Could not determine navigation URL for mention');
             }
@@ -1136,10 +1091,9 @@ class GlobalSocketManager {
         }
     }
     
-    // handleMentionNotification(data) {
-    //     // DISABLED: Now handled by GlobalNotificationHandler to prevent notification bursts  
-    //     this.handleGlobalMentionNotification(data);
-    // }
+    handleMentionNotification(data) {
+        this.handleGlobalMentionNotification(data);
+    }
     
     handleStopTyping(data) {
         console.log('⌨️ [GLOBAL-SOCKET] Stop typing event received:', data);
@@ -1155,17 +1109,15 @@ class GlobalSocketManager {
             if (!this.isUserActive || this.currentPresenceStatus === 'afk') {
                 this.isUserActive = true;
                 
-                if (this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
-                    console.log('🎯 [VOICE-ACTIVITY] User activity detected while in voice call, preserving voice call status');
+                if (this.currentActivityDetails?.type === 'In Voice Call') {
+                    console.log('🎯 [SOCKET] User activity detected but keeping voice call status');
                     this.currentPresenceStatus = 'online';
-                    this.updatePresence('online', this.currentActivityDetails);
+                    this.updatePresence('online', { type: 'In Voice Call' });
                 } else {
-                    console.log('🎯 [SOCKET] User activity detected, setting status to online (no voice call)');
+                    console.log('🎯 [SOCKET] User activity detected, setting status to online');
                     this.currentPresenceStatus = 'online';
                     this.updatePresence('online', { type: 'active' });
                 }
-            } else if (this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
-                this.lastActivityTime = Date.now();
             }
         };
         
@@ -1193,42 +1145,19 @@ class GlobalSocketManager {
             const timeSinceActivity = Date.now() - this.lastActivityTime;
             
             if (timeSinceActivity >= this.afkTimeout && this.isUserActive) {
-                const isVideoSDKConnected = window.videoSDKManager?.isConnected || false;
-                const isVoiceManagerConnected = window.voiceManager?.isConnected || false;
-                const isUnifiedStateConnected = window.unifiedVoiceStateManager?.isConnected() || false;
-                const isActuallyInVoice = isVideoSDKConnected || isVoiceManagerConnected || isUnifiedStateConnected;
-                
-                if (this.currentActivityDetails?.type?.startsWith('In Voice - ') || isActuallyInVoice) {
-                    if (isActuallyInVoice) {
-                        console.log('🎤 [VOICE-PROTECTION] User inactive but actually in voice call (verified), preserving voice call status');
-                        
-                        if (!this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
-                            console.log('🔧 [VOICE-PROTECTION] Presence data incorrect, restoring voice call status');
-                            const channelName = window.voiceManager?.currentChannelName || 'Voice Channel';
-                            const channelId = window.voiceManager?.currentChannelId;
-                            const serverId = document.querySelector('meta[name="server-id"]')?.content;
-                            
-                            this.updatePresence('online', {
-                                type: `In Voice - ${channelName}`,
-                                channel_id: channelId,
-                                server_id: serverId,
-                                channel_name: channelName
-                            });
-                        }
-                    } else {
-                        console.log('🎤 [VOICE-PROTECTION] User inactive but in voice call, preserving voice call status (not changing to AFK)');
-                    }
+                if (this.currentActivityDetails?.type === 'In Voice Call') {
+                    console.log('🎤 [SOCKET] User inactive but in voice call, keeping voice status');
                     return;
                 }
                 
                 this.isUserActive = false;
-                console.log('😴 [VOICE-ACTIVITY] User inactive for 20 seconds, setting status to afk (verified not in voice call)');
+                console.log('😴 [SOCKET] User inactive for 20 seconds, setting status to afk');
                 this.currentPresenceStatus = 'afk';
                 this.updatePresence('afk', { type: 'afk' });
             }
         }, 10000);
         
-        console.log('⏰ [VOICE-ACTIVITY] Activity check started (10 second intervals) with voice protection validation');
+        console.log('⏰ [SOCKET] Activity check started (10 second intervals)');
     }
     
     stopActivityCheck() {
@@ -1240,39 +1169,57 @@ class GlobalSocketManager {
     }
     
     handleVoiceMeetingStatus(data) {
-        // DISABLED: Voice participants now use presence-only system
-        // Prevents blinking caused by duplicate updates
+        // Forward to voice participants manager if available
+        if (window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            if (instance.handleVoiceMeetingUpdate) {
+                instance.handleVoiceMeetingUpdate({
+                    channel_id: data.channel_id,
+                    participant_count: data.participant_count,
+                    participants: data.participants || []
+                });
+            }
+        }
     }
 
     handleVoiceMeetingUpdate(data) {
-        // DISABLED: Voice participants now use presence-only system  
-        // Prevents blinking caused by duplicate updates
-        
-        // Only handle voice protection for current user
-        if (data.action === 'leave' && data.user_id == this.userId) {
-            const isVideoSDKConnected = window.videoSDKManager?.isConnected || false;
-            const isVoiceManagerConnected = window.voiceManager?.isConnected || false;
-            const isUnifiedStateConnected = window.unifiedVoiceStateManager?.isConnected() || false;
-            
-            if (isVideoSDKConnected || isVoiceManagerConnected || isUnifiedStateConnected) {
-                if (!this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
-                    const channelName = window.voiceManager?.currentChannelName || 
-                                       data.channel_name || 
-                                       'Voice Channel';
-                    
-                    this.updatePresence('online', {
-                        type: `In Voice - ${channelName}`,
-                        channel_id: data.channel_id || window.voiceManager?.currentChannelId,
-                        server_id: data.server_id,
-                        channel_name: channelName
-                    });
-                }
+        // Forward to voice participants manager if available
+        if (window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            if (instance.handleVoiceMeetingUpdate) {
+                instance.handleVoiceMeetingUpdate(data);
             }
         }
     }
 }
 
 const globalSocketManager = new GlobalSocketManager();
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        if (globalSocketManager.isConnected || window.__SOCKET_INITIALISED__) {
+            console.log('🔌 Socket already initialized, skipping DOMContentLoaded init');
+            return;
+        }
+
+        let userId = document.querySelector('meta[name="user-id"]')?.content ||
+                     document.body?.getAttribute('data-user-id');
+
+        let username = document.querySelector('meta[name="username"]')?.content ||
+                       document.body?.getAttribute('data-username');
+
+        const hasAuthData = userId && username;
+        const userData = hasAuthData ? { user_id: userId, username: username } : null;
+
+        if (hasAuthData) {
+            console.log('🔌 [SOCKET-MANAGER] DOMContentLoaded init with user data:', userData);
+        } else {
+            console.log('🔌 [SOCKET-MANAGER] DOMContentLoaded init in guest mode');
+        }
+
+        globalSocketManager.init(userData);
+    }, 100);
+});
 
 window.GlobalSocketManager = GlobalSocketManager;
 window.globalSocketManager = globalSocketManager;

@@ -379,6 +379,32 @@ class SimpleChannelSwitcher {
         if (window.voiceSection && (forceFresh || previousChannelId !== channelId)) {
             await window.voiceSection.resetState();
             await window.voiceSection.updateChannelId(channelId, true);
+        } else if (window.voiceSection && previousChannelId === channelId) {
+            // Same channel - just refresh the UI and participants
+            console.log('🔄 [SWITCH-MANAGER] Same voice channel - refreshing participants and UI');
+            
+            // Update voice section to show connected state if still connected
+            if (wasConnected && window.voiceManager && window.voiceManager.isConnected) {
+                if (typeof window.voiceSection.restoreConnectedState === 'function') {
+                    window.voiceSection.restoreConnectedState();
+                } else {
+                    // Fallback to manual UI update
+                    if (window.voiceSection.elements.joinView) {
+                        window.voiceSection.elements.joinView.classList.add('hidden');
+                    }
+                    if (window.voiceSection.elements.connectingView) {
+                        window.voiceSection.elements.connectingView.classList.add('hidden');
+                    }
+                    if (window.voiceSection.elements.voiceControls) {
+                        window.voiceSection.elements.voiceControls.classList.remove('hidden');
+                    }
+                }
+                
+                // Refresh participants UI
+                if (typeof window.voiceManager.refreshParticipantsUI === 'function') {
+                    window.voiceManager.refreshParticipantsUI();
+                }
+            }
         }
         
         // Sync voice manager to the new channel
@@ -424,6 +450,18 @@ class SimpleChannelSwitcher {
         const voiceCallApp = document.querySelector('.voice-call-app');
         if (voiceCallApp) {
             voiceCallApp.style.display = 'flex';
+        }
+        
+        // Additional refresh for same channel to ensure participants are displayed
+        if (previousChannelId === channelId && wasConnected) {
+            setTimeout(() => {
+                console.log('🔄 [SWITCH-MANAGER] Additional participant refresh for same channel');
+                if (window.voiceManager && typeof window.voiceManager.refreshParticipantsUI === 'function') {
+                    window.voiceManager.refreshParticipantsUI();
+                } else if (window.videoSDKManager && window.videoSDKManager.refreshExistingParticipants) {
+                    window.videoSDKManager.refreshExistingParticipants();
+                }
+            }, 500);
         }
         
         console.log('✅ [SWITCH-MANAGER] Voice channel initialization complete');

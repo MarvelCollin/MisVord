@@ -422,6 +422,24 @@ class VoiceSection {
             console.error('❌ [VOICE-SECTION] Error setting channel data:', error);
         }
     }
+    
+    restoreConnectedState() {
+        console.log('🔄 [VOICE-SECTION] Restoring connected state without reset');
+        
+        this.findElements();
+        
+        if (this.elements.joinView) {
+            this.elements.joinView.classList.add('hidden');
+        }
+        if (this.elements.connectingView) {
+            this.elements.connectingView.classList.add('hidden');
+        }
+        if (this.elements.voiceControls) {
+            this.elements.voiceControls.classList.remove('hidden');
+        }
+        
+        console.log('✅ [VOICE-SECTION] Connected state restored');
+    }
 }
 
 window.VoiceSection = VoiceSection;
@@ -465,4 +483,4 @@ window.handleAutoJoin = function() {
     return false;
 };
 
-} 
+}

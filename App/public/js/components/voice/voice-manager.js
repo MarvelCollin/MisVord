@@ -257,8 +257,9 @@ class VoiceManager {
             }
             console.log(`🎯 [VOICE-MANAGER] Final meeting ID for joining: ${meetingId}`);
             
-            // 🎯 STEP 2: Join the VideoSDK meeting
+            // 🎯 STEP 3b: Join the VideoSDK meeting first (existing or new)
             console.log(`🚪 [VOICE-MANAGER] Joining VideoSDK meeting: ${meetingId}`);
+            // Get proper username from multiple sources
             const userName = this.getUsernameFromMultipleSources();
             console.log(`🏷️ [VOICE-MANAGER] Using username: ${userName}`);
             
@@ -271,57 +272,9 @@ class VoiceManager {
             
             await this.videoSDKManager.joinMeeting();
             
-            this.currentMeetingId = meetingId;
-            this.isConnected = true;
-            
-            // Register with socket server for global visibility
-            if (window.globalSocketManager?.isReady()) {
-                const serverId = document.querySelector('meta[name="server-id"]')?.content;
-                
-                console.log(`📡 [VOICE-PARTICIPANT] Registering voice meeting with socket server:`, {
-                    channel_id: targetChannelId,
-                    meeting_id: meetingId,
-                    server_id: serverId,
-                    username: userName
-                });
-                
-                // CRITICAL FIX: Ensure user is marked as active before joining voice
-                if (window.globalSocketManager.currentPresenceStatus === 'afk' || !window.globalSocketManager.isUserActive) {
-                    console.log(`🎯 [VOICE-PARTICIPANT] User was inactive/afk, marking as active before voice registration`);
-                    window.globalSocketManager.isUserActive = true;
-                    window.globalSocketManager.lastActivityTime = Date.now();
-                    window.globalSocketManager.currentPresenceStatus = 'online';
-                }
-                
-                // Register with socket server
-                window.globalSocketManager.io.emit('register-voice-meeting', {
-                    channel_id: targetChannelId,
-                    meeting_id: meetingId,
-                    server_id: serverId,
-                    channel_name: this.currentChannelName,
-                    username: userName
-                });
-                
-                console.log(`🎤 [VOICE-PARTICIPANT] Updating presence to In Voice - ${this.currentChannelName} for channel ${targetChannelId}`);
-                window.globalSocketManager.updatePresence('online', {
-                    type: `In Voice - ${this.currentChannelName}`,
-                    channel_id: targetChannelId,
-                    server_id: serverId,
-                    channel_name: this.currentChannelName
-                });
-            }
-            
-            console.log(`🎉 [VOICE-MANAGER] Successfully joined voice!`, {
-                meetingId: meetingId,
-                channelId: targetChannelId,
-                wasExistingMeeting: !!existingMeeting,
-                action: existingMeeting ? 'JOINED_EXISTING' : 'CREATED_NEW'
-            });
-
-            window.voiceJoinInProgress = false;
-            
-            // VideoSDK participant events will handle all participant management automatically
-            console.log(`✅ [VOICE-MANAGER] VideoSDK is now handling all participant management for channel ${targetChannelId}`);
+            // 🎯 STEP 4: Register with socket after VideoSDK join to avoid race conditions
+            console.log(`📝 [VOICE-MANAGER] Registering with socket for meeting: ${meetingId}...`);
+            await this.registerMeetingWithSocket(targetChannelId, meetingId);
             
             await new Promise((resolve) => {
                 const checkReady = () => {
@@ -350,6 +303,18 @@ class VoiceManager {
                     checkReady();
                 }
             });
+            
+            this.currentMeetingId = meetingId;
+            this.isConnected = true;
+            
+            console.log(`🎉 [VOICE-MANAGER] Successfully joined voice!`, {
+                meetingId: meetingId,
+                channelId: targetChannelId,
+                wasExistingMeeting: !!existingMeeting,
+                action: existingMeeting ? 'JOINED_EXISTING' : 'CREATED_NEW'
+            });
+
+            window.voiceJoinInProgress = false;
 
             if (window.MusicLoaderStatic?.stopCallSound) {
                 window.MusicLoaderStatic.stopCallSound();
@@ -361,15 +326,7 @@ class VoiceManager {
             window.videoSDKJoiningInProgress = false;
             window.voiceJoinInProgress = false;
             this.isConnected = false;
-            
-            if (!window.voiceJoinErrorShown && error.message && !error.message.includes('VideoSDK')) {
-                this.showToast('Failed to connect to voice', 'error');
-                window.voiceJoinErrorShown = true;
-                setTimeout(() => {
-                    window.voiceJoinErrorShown = false;
-                }, 3000);
-            }
-            
+            this.showToast('Failed to connect to voice', 'error');
             return Promise.reject(error);
         }
     }
@@ -417,6 +374,34 @@ class VoiceManager {
         });
     }
 
+    async registerMeetingWithSocket(channelId, meetingId) {
+        return new Promise((resolve) => {
+            if (!window.globalSocketManager?.io || !window.globalSocketManager.isReady()) {
+                resolve({ meeting_id: meetingId, channel_id: channelId });
+                return;
+            }
+            
+            const handleUpdate = (data) => {
+                if (data.channel_id === channelId && (data.action === 'join' || data.action === 'already_registered')) {
+                    window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
+                    console.log(`[VOICE-MANAGER] Socket registration response:`, data);
+                    resolve(data);
+                }
+            };
+            
+            window.globalSocketManager.io.on('voice-meeting-update', handleUpdate);
+            window.globalSocketManager.io.emit('register-voice-meeting', {
+                channel_id: channelId,
+                meeting_id: meetingId
+            });
+            
+            setTimeout(() => {
+                window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
+                resolve({ meeting_id: meetingId, channel_id: channelId });
+            }, 2000);
+        });
+    }
+
     leaveVoice() {
         if (!this.isConnected) {
             console.log('🚪 [VOICE-MANAGER] Not connected, ignoring leave request');
@@ -433,38 +418,34 @@ class VoiceManager {
             meetingId: this.currentMeetingId
         });
         
-        const previousChannelId = this.currentChannelId;
-        
-        // Unregister from socket server first
-        if (previousChannelId && window.globalSocketManager?.isReady()) {
-            const serverId = document.querySelector('meta[name="server-id"]')?.content;
-            
-            console.log(`🔇 [VOICE-PARTICIPANT] Unregistering voice meeting with socket server:`, {
-                channel_id: this.currentChannelId,
-                server_id: serverId
-            });
-            
-            window.globalSocketManager.io.emit('unregister-voice-meeting', {
-                channel_id: this.currentChannelId,
-                server_id: serverId
-            });
-        }
-        
+        // Set flags first to prevent any new joins
         this.isConnected = false;
         window.voiceJoinInProgress = false;
         
+        // Unregister from socket first
+        if (this.currentChannelId && window.globalSocketManager?.io) {
+            window.globalSocketManager.io.emit('unregister-voice-meeting', {
+                channel_id: this.currentChannelId
+            });
+        }
+        
+        // Leave VideoSDK meeting
         if (this.videoSDKManager) {
             this.videoSDKManager.leaveMeeting();
         }
         
+        // Clear state
+        const previousChannelId = this.currentChannelId;
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;
         
+        // Update voice state manager
         if (window.unifiedVoiceStateManager) {
             window.unifiedVoiceStateManager.handleDisconnect();
         }
         
+        // Remove own participant from UI
         if (previousChannelId && window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
@@ -474,16 +455,27 @@ class VoiceManager {
             }
         }
         
-        if (window.globalSocketManager?.isReady()) {
-            console.log('👤 [VOICE-PARTICIPANT] Updating presence to idle after leaving voice');
-            window.globalSocketManager.updatePresence('online', { type: 'idle' });
+        this.dispatchEvent(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect');
+        this.showToast('Disconnected from voice', 'info');
+
+        if (window.MusicLoaderStatic?.playDisconnectVoiceSound) {
+            window.MusicLoaderStatic.playDisconnectVoiceSound();
         }
-        
-        console.log('✅ [VOICE-MANAGER] Successfully left voice channel');
     }
     
     cleanup() {
-        console.log('🧹 [VOICE-MANAGER] VideoSDK cleanup initiated');
+        console.log('🧹 [VOICE-MANAGER] Emergency cleanup initiated');
+        
+        if (this.currentChannelId && window.globalSocketManager?.io && window.globalSocketManager.isReady()) {
+            try {
+                window.globalSocketManager.io.emit('unregister-voice-meeting', {
+                    channel_id: this.currentChannelId
+                });
+                console.log('🧹 [VOICE-MANAGER] Sent unregister to socket server');
+            } catch (error) {
+                console.warn('🧹 [VOICE-MANAGER] Failed to send unregister to socket:', error);
+            }
+        }
         
         if (this.videoSDKManager) {
             try {
@@ -509,11 +501,20 @@ class VoiceManager {
             }
         }
         
-        console.log('🧹 [VOICE-MANAGER] VideoSDK cleanup completed');
+        console.log('🧹 [VOICE-MANAGER] Emergency cleanup completed');
     }
     
+    refreshParticipantsUI() {
+        console.log('🔄 [VOICE-MANAGER] Refreshing participants UI');
+        
+        if (this.videoSDKManager && typeof this.videoSDKManager.refreshExistingParticipants === 'function') {
+            this.videoSDKManager.refreshExistingParticipants();
+        }
+        
+        // Also trigger a general participant refresh event
+        window.dispatchEvent(new CustomEvent('voiceParticipantsRefresh'));
+    }
 
-    
     dispatchEvent(eventName, detail = {}) {
         window.dispatchEvent(new CustomEvent(eventName, { detail }));
     }
@@ -599,11 +600,6 @@ class VoiceManager {
             });
         }, 100);
     }
-
-    async retrySocketRegistration() {
-        console.warn('⚠️ [VOICE-MANAGER] Socket registration no longer used - VideoSDK handles all participant management');
-        return true;
-    }
 }
 
 window.addEventListener('DOMContentLoaded', async function() {
@@ -624,6 +620,7 @@ window.addEventListener(window.VOICE_EVENTS?.VOICE_UI_READY || 'voiceUIReady', f
 });
 
 window.addEventListener(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect', function() {
-    console.log('🔔 [VOICE-MANAGER] Voice disconnect event received - cleanup handled by VideoSDK');
+    // Removed circular call to leaveVoice() to prevent auto-rejoin bugs
+    console.log('🔔 [VOICE-MANAGER] Voice disconnect event received');
 });
 

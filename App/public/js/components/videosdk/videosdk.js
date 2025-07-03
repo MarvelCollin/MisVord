@@ -378,7 +378,7 @@ class VideoSDKManager {
                     const isScreenShare = this.isScreenShareStream(stream, data);
                     if (isScreenShare) {
                         kind = 'share';
-                    }
+                      }
                 }
                 
                 if (participant.id === this.meeting.localParticipant?.id) {
@@ -1010,6 +1010,42 @@ class VideoSDKManager {
             webcamState: this.getWebcamState(),
             screenShareState: this.getScreenShareState()
         };
+    }
+
+    refreshExistingParticipants() {
+        if (!this.meeting || !this.meeting.participants || !this.isMeetingJoined) return;
+        
+        console.log(`🔄 [VideoSDK] Refreshing existing participants - Total: ${this.meeting.participants.size}, Local: ${this.meeting.localParticipant?.id}`);
+        
+        try {
+            let delay = 0;
+            
+            this.meeting.participants.forEach((participant, participantId) => {
+                console.log(`🔄 [VideoSDK] Refreshing participant: ${participant.id} (${participant.displayName || participant.name || 'Unknown'})`);
+                
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
+                        detail: { participant: participant.id, participantObj: participant }
+                    }));
+                }, delay);
+                delay += 50;
+            });
+            
+            if (this.meeting.localParticipant) {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
+                        detail: { 
+                            participant: this.meeting.localParticipant.id, 
+                            participantObj: this.meeting.localParticipant 
+                        }
+                    }));
+                }, delay);
+            }
+            
+            console.log(`✅ [VideoSDK] Participant refresh complete`);
+        } catch (error) {
+            console.error('Error refreshing existing participants:', error);
+        }
     }
 }
 

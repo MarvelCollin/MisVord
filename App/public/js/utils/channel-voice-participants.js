@@ -1,257 +1,489 @@
 class ChannelVoiceParticipants {
     constructor() {
-        this.participantsByChannel = {}; // { channelId: [ {user_id, username, avatar_url} ] }
-        this.friendsManager = null;
-        this.initialised = false;
-        this.setup();
+        this.participants = new Map();
+        this.init();
     }
 
-    static getInstance() {
-        if (!window.__CHANNEL_VOICE_PARTICIPANT_INSTANCE__) {
-            window.__CHANNEL_VOICE_PARTICIPANT_INSTANCE__ = new ChannelVoiceParticipants();
-        }
-        return window.__CHANNEL_VOICE_PARTICIPANT_INSTANCE__;
+    init() {
+        this.setupSocketListeners();
+        this.setupVideoSDKListeners();
+        this.loadExistingMeetings();
+        this.attachVoiceEvents();
+        this.setupChannelSwitchListeners();
+        console.log('[VOICE-PARTICIPANT] Voice participants manager initialized');
     }
 
-    setup() {
-        this.waitForDependencies(() => {
-            this.initialised = true;
-            this.hookFriendPresence();
-            this.hookSocketVoiceUpdates();
-            this.updateAllChannelsFromPresence();
-        });
-    }
-
-    waitForDependencies(callback, tries = 0) {
-        if (window.FriendsManager) {
-            this.friendsManager = window.FriendsManager.getInstance();
-            callback();
-        } else if (tries < 40) { // ~2s
-            setTimeout(() => this.waitForDependencies(callback, tries + 1), 50);
-        } else {
-            console.warn('[VOICE-PARTICIPANTS] FriendsManager not available after waiting');
-            callback();
-        }
-    }
-
-    hookFriendPresence() {
-        if (!this.friendsManager) return;
-
-        // React to presence events broadcast by FriendsManager
-        this.friendsManager.subscribe((type) => {
-            if (
-                type === 'user-online' ||
-                type === 'user-offline' ||
-                type === 'user-presence-update' ||
-                type === 'online-users-updated'
-            ) {
-                this.scheduleUpdate();
-            }
-        });
-    }
-
-    hookSocketVoiceUpdates() {
+    setupSocketListeners() {
         if (window.globalSocketManager?.io) {
-            window.globalSocketManager.io.on('voice-meeting-update', () => {
-                // voice-meeting-update already triggers presence updates from server,
-                // but listen anyway for safety.
-                this.scheduleUpdate();
+            this.attachSocketEvents();
+        } else {
+            window.addEventListener('globalSocketReady', () => {
+                this.attachSocketEvents();
             });
         }
     }
 
-    scheduleUpdate() {
-        clearTimeout(this._updateTimer);
-        this._updateTimer = setTimeout(() => this.updateAllChannelsFromPresence(), 50);
+    setupVideoSDKListeners() {
+        console.log('[VOICE-PARTICIPANT] Setting up VideoSDK listeners for real-time participants');
+        
+        // Listen for VideoSDK participant events
+        window.addEventListener('videosdkParticipantJoined', (event) => {
+            const { participant, participantObj } = event.detail;
+            console.log('[VOICE-PARTICIPANT] VideoSDK participant joined:', participant);
+            this.handleVideoSDKParticipantJoined(participantObj || { id: participant });
+        });
+
+        window.addEventListener('videosdkParticipantLeft', (event) => {
+            const { participant } = event.detail;
+            console.log('[VOICE-PARTICIPANT] VideoSDK participant left:', participant);
+            this.handleVideoSDKParticipantLeft(participant);
+        });
+
+        // Periodically sync with VideoSDK participants
+        this.startVideoSDKSync();
     }
 
-    /* -------------------------------------------------- */
-    /*                   CORE LOGIC                       */
-    /* -------------------------------------------------- */
-    updateAllChannelsFromPresence() {
-        const onlineUsers = this.friendsManager?.cache?.onlineUsers || {};
+    attachSocketEvents() {
+        const socket = window.globalSocketManager.io;
+        
+        console.log('[VOICE-PARTICIPANT] Attaching socket events...');
+        
+        socket.on('voice-meeting-update', (data) => {
+            console.log('[VOICE-PARTICIPANT] Voice meeting update received:', data);
+            this.handleVoiceMeetingUpdate(data);
+        });
 
-        // Rebuild mapping
-        this.participantsByChannel = {};
-        Object.values(onlineUsers).forEach((user) => {
-            const activity = user.activity_details;
-            if (activity && activity.type && activity.type.startsWith('In Voice - ') && activity.channel_id) {
-                const channelId = String(activity.channel_id);
-                if (!this.participantsByChannel[channelId]) {
-                    this.participantsByChannel[channelId] = [];
-                }
-                this.participantsByChannel[channelId].push({
-                    user_id: user.user_id,
-                    username: this.getUsername(user.user_id, user.username),
-                    avatar_url: this.getAvatar(user.user_id, user.avatar_url || user.avatar || null),
-                    status: user.status
+        socket.on('voice-meeting-status', (data) => {
+            console.log('[VOICE-PARTICIPANT] Voice meeting status received:', data);
+            if (data.has_meeting && data.participants && data.participants.length > 0) {
+                data.participants.forEach(participant => {
+                    this.addParticipant(data.channel_id, participant.user_id, participant.username);
                 });
+                this.updateParticipantContainer(data.channel_id);
             }
         });
 
-        // Update every container currently in the DOM
-        const containers = document.querySelectorAll('.voice-participants[data-channel-id]');
-        containers.forEach((container) => {
-            const channelId = container.getAttribute('data-channel-id');
-            this.updateParticipantContainer(channelId, container);
+        socket.on('user-presence-update', (data) => {
+            if (data.activity_details?.type === 'In Voice Call') {
+                this.updateParticipantPresence(data);
+            }
+        });
+        
+        console.log('[VOICE-PARTICIPANT] Socket events attached successfully');
+    }
+
+    setupChannelSwitchListeners() {
+        window.addEventListener('preserveVoiceParticipants', (event) => {
+            console.log('[VOICE-PARTICIPANT] Preserving voice participants during channel switch');
+            this.preserveCurrentState(event.detail);
         });
     }
 
-    /* -------------------------------------------------- */
-    /*               USER INFO FALLBACKS                  */
-    /* -------------------------------------------------- */
-    getAvatar(userId, fallback = null) {
-        if (fallback) return fallback;
-
-        const profileEl = document.querySelector(`.user-profile-trigger[data-user-id="${userId}"] img`);
-        if (profileEl && profileEl.src) {
-            return profileEl.src;
-        }
-
-        // Try global default
-        return '/public/assets/common/default-profile-picture.png';
+    startVideoSDKSync() {
+        // Sync every 5 seconds to ensure participants are up to date
+        // Reduced frequency to prevent conflicts with socket events
+        setInterval(() => {
+            this.syncWithVideoSDK();
+        }, 5000);
     }
 
-    getUsername(userId, fallback = 'User') {
-        const nameEl = document.querySelector(`.member-username[data-user-id="${userId}"]`);
-        if (nameEl) {
-            return nameEl.textContent.replace(/Nitro\s*Member/gi, '').trim();
-        }
-        return (fallback || '').replace(/Nitro\s*Member/gi, '').trim();
-    }
-
-    /**
-     * Update (or re-render) one container. If container element is
-     * omitted it will be looked up in DOM.
-     */
-    updateParticipantContainer(channelId, containerEl = null) {
-        const participants = this.participantsByChannel[String(channelId)] || [];
-
-        if (!containerEl) {
-            containerEl = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
-            if (!containerEl) return; // nothing to do
-        }
-
-        const countElement = document.querySelector(`.channel-item[data-channel-id="${channelId}"] .voice-user-count`);
-
-        if (participants.length === 0) {
-            containerEl.innerHTML = '';
-            containerEl.classList.add('hidden');
-            if (countElement) {
-                countElement.innerHTML = '';
-                countElement.classList.add('hidden');
-            }
+    syncWithVideoSDK() {
+        if (!window.videoSDKManager?.isReady() || !window.videoSDKManager?.meeting) {
             return;
         }
 
-        // Show container & count
-        containerEl.classList.remove('hidden');
-
-        // ---------------- Inline (global) count ------------------
-        if (countElement) {
-            const maxInline = 3;
-            const inlineParticipants = participants.slice(0, maxInline);
-            const inlineExtra = participants.length - maxInline;
-
-            const inlineHtml = [
-                ...inlineParticipants.map((p, idx) => {
-                    const avatar = p.avatar_url || '/public/assets/common/default-profile-picture.png';
-                    // Use relative wrapper so status badge could be added later
-                    return `<span class="relative ${idx !== 0 ? 'ml-[-6px]' : ''}"><img src="${avatar}" class="w-5 h-5 rounded-full user-avatar" onerror="this.src='/public/assets/common/default-profile-picture.png'"></span>`;
-                }),
-                inlineExtra > 0 ? `<span class="text-[10px] text-gray-400 ml-1">+${inlineExtra}</span>` : ''
-            ].join('');
-
-            countElement.innerHTML = inlineHtml;
-            countElement.classList.remove('hidden');
-            countElement.classList.add('flex');
+        const currentVoiceChannelId = window.voiceManager?.currentChannelId;
+        if (!currentVoiceChannelId) {
+            return;
         }
 
-        // ---------------- Full list below channel ------------------
-        const maxVisible = 5;
-        const visibleParticipants = participants.slice(0, maxVisible);
-        const extraCount = participants.length - maxVisible;
+        console.log('[VOICE-PARTICIPANT] Syncing with VideoSDK participants');
+        
+        const videoSDKParticipants = new Map();
+        
+        // Collect all VideoSDK participants
+        if (window.videoSDKManager.meeting.participants) {
+            window.videoSDKManager.meeting.participants.forEach((participant, participantId) => {
+                videoSDKParticipants.set(participantId, {
+                    id: participantId,
+                    username: participant.displayName || participant.name || 'Unknown',
+                    display_name: participant.displayName || participant.name || 'Unknown',
+                    avatar_url: '/public/assets/common/default-profile-picture.png'
+                });
+            });
+        }
 
-        const html = [
-            ...visibleParticipants.map((p) => {
-                const avatar = p.avatar_url || '/public/assets/common/default-profile-picture.png';
-                return `<div class="flex items-center mb-1" data-no-nitro="1">
-                            <div class="relative mr-2" data-no-nitro="1">
-                                <img src="${avatar}" alt="${p.username}" class="w-5 h-5 rounded-full user-avatar border-2 border-discord-darker" onerror="this.src='/public/assets/common/default-profile-picture.png'" data-no-nitro="1">
-                            </div>
-                            <span class="text-xs text-gray-300 truncate" data-no-nitro="1">${p.username}</span>
-                        </div>`;
-            }),
-            extraCount > 0 ? `<span class="text-xs text-gray-400 ml-1" data-no-nitro="1">+${extraCount}</span>` : ''
-        ].join('');
+        // Add local participant
+        if (window.videoSDKManager.meeting.localParticipant) {
+            const localParticipant = window.videoSDKManager.meeting.localParticipant;
+            videoSDKParticipants.set(localParticipant.id, {
+                id: localParticipant.id,
+                username: localParticipant.displayName || localParticipant.name || 'You',
+                display_name: localParticipant.displayName || localParticipant.name || 'You',
+                avatar_url: '/public/assets/common/default-profile-picture.png'
+            });
+        }
 
-        containerEl.innerHTML = html;
+        // Update UI with VideoSDK participants
+        if (videoSDKParticipants.size > 0) {
+            this.participants.set(currentVoiceChannelId, videoSDKParticipants);
+            this.updateParticipantContainer(currentVoiceChannelId);
+            this.updateChannelCount(currentVoiceChannelId, videoSDKParticipants.size);
+        }
+    }
 
-        // Ensure any existing crowns are removed (in case Manager processed before our exclusion rule)
-        containerEl.querySelectorAll('.nitro-crown-wrapper').forEach(el => el.remove());
+    handleVideoSDKParticipantJoined(participant) {
+        const currentVoiceChannelId = window.voiceManager?.currentChannelId;
+        if (!currentVoiceChannelId) {
+            return;
+        }
 
-        // Remove any stray 'Nitro Member' text nodes or elements
-        containerEl.querySelectorAll('*').forEach(node => {
-            if (node.textContent && node.textContent.trim() === 'Nitro Member') {
-                node.remove();
+        console.log('[VOICE-PARTICIPANT] Adding VideoSDK participant to UI:', participant.id);
+        this.addParticipant(currentVoiceChannelId, participant.id, participant.displayName || participant.name);
+        this.updateParticipantContainer(currentVoiceChannelId);
+    }
+
+    handleVideoSDKParticipantLeft(participantId) {
+        const currentVoiceChannelId = window.voiceManager?.currentChannelId;
+        if (!currentVoiceChannelId) {
+            return;
+        }
+
+        console.log('[VOICE-PARTICIPANT] Removing VideoSDK participant from UI:', participantId);
+        this.removeParticipant(currentVoiceChannelId, participantId);
+        this.updateParticipantContainer(currentVoiceChannelId);
+    }
+
+    attachVoiceEvents() {
+        let voiceConnectHandled = false;
+        
+        window.addEventListener('voiceConnect', (event) => {
+            const channelId = event.detail?.channelId;
+            if (channelId && !voiceConnectHandled) {
+                console.log('[VOICE-PARTICIPANT] Voice connect event received, adding current user to channel:', channelId);
+                voiceConnectHandled = true;
+                
+                setTimeout(() => {
+                    this.addCurrentUserToChannel(channelId);
+                    voiceConnectHandled = false;
+                }, 1000);
+            } else if (voiceConnectHandled) {
+                console.log('[VOICE-PARTICIPANT] Voice connect event already handled, skipping');
             }
         });
     }
 
-    /**
-     * Manual helper (used by tests) to inject participant.
-     */
-    addParticipant(channelId, userId, username = 'Unknown') {
-        if (!this.participantsByChannel[channelId]) {
-            this.participantsByChannel[channelId] = [];
+    async handleVoiceMeetingUpdate(data) {
+        const { channel_id, action, user_id, username, participant_count } = data;
+        
+        if (!channel_id) return;
+
+        console.log('[VOICE-PARTICIPANT] Voice meeting update:', action, user_id, username);
+
+        // Always update channel count regardless of action
+        if (participant_count !== undefined) {
+            this.updateChannelCount(channel_id, participant_count);
         }
-        const existing = this.participantsByChannel[channelId].find((p) => String(p.user_id) === String(userId));
-        if (!existing) {
-            this.participantsByChannel[channelId].push({ user_id: userId, username });
+
+        // Don't process our own events if VideoSDK is managing our connection
+        const isOwnEvent = user_id === window.currentUserId || user_id === window.globalSocketManager?.userId;
+        if (isOwnEvent && window.videoSDKManager?.isReady()) {
+            console.log('[VOICE-PARTICIPANT] Skipping own event, VideoSDK managing our connection');
+            return;
+        }
+
+        if (action === 'join' && user_id) {
+            await this.addParticipant(channel_id, user_id, username);
+        } else if (action === 'leave' && user_id) {
+            this.removeParticipant(channel_id, user_id);
+        } else if (action === 'already_registered' && user_id) {
+            console.log('[VOICE-PARTICIPANT] User already registered, adding to participants:', user_id);
+            await this.addParticipant(channel_id, user_id, username);
+        }
+
+        this.updateParticipantContainer(channel_id);
+    }
+
+    async addCurrentUserToChannel(channelId) {
+        if (!window.currentUserId || !window.currentUsername) {
+            console.warn('[VOICE-PARTICIPANT] Current user info not available');
+            return;
+        }
+
+        console.log('[VOICE-PARTICIPANT] Adding current user to channel:', {
+            channelId,
+            userId: window.currentUserId,
+            username: window.currentUsername
+        });
+
+        await this.addParticipant(channelId, window.currentUserId, window.currentUsername);
+        this.updateParticipantContainer(channelId);
+    }
+
+    async addParticipant(channelId, userId, username) {
+        if (!this.participants.has(channelId)) {
+            this.participants.set(channelId, new Map());
+        }
+
+        const channelParticipants = this.participants.get(channelId);
+        
+        const normalizedUserId = userId.toString();
+        
+        if (channelParticipants.has(normalizedUserId)) {
+            console.log('[VOICE-PARTICIPANT] Participant already exists:', normalizedUserId, 'username:', username);
+            return;
+        }
+
+        console.log('[VOICE-PARTICIPANT] Adding participant:', normalizedUserId, username);
+
+        let participantData = {
+            id: normalizedUserId,
+            username: username || 'Unknown',
+            display_name: username || 'Unknown',
+            avatar_url: '/public/assets/common/default-profile-picture.png'
+        };
+
+        const isValidUserId = /^\d+$/.test(normalizedUserId);
+        
+        if (isValidUserId) {
+            try {
+                if (window.userAPI) {
+                    const userData = await window.userAPI.getUserProfile(normalizedUserId);
+                    if (userData && userData.success && userData.data && userData.data.user) {
+                        participantData.display_name = userData.data.user.display_name || userData.data.user.username || participantData.username;
+                        participantData.avatar_url = userData.data.user.avatar_url || participantData.avatar_url;
+                    }
+                } else {
+                    await this.waitForUserAPI();
+                    if (window.userAPI) {
+                        const userData = await window.userAPI.getUserProfile(normalizedUserId);
+                        if (userData && userData.success && userData.data && userData.data.user) {
+                            participantData.display_name = userData.data.user.display_name || userData.data.user.username || participantData.username;
+                            participantData.avatar_url = userData.data.user.avatar_url || participantData.avatar_url;
+                        }
+                    } else {
+                        const response = await fetch(`/api/users/${normalizedUserId}/profile`, {
+                            method: 'GET',
+                            credentials: 'same-origin'
+                        });
+                        
+                        if (response.ok) {
+                            const userData = await response.json();
+                            if (userData.success && userData.data && userData.data.user) {
+                                participantData.display_name = userData.data.user.display_name || userData.data.user.username || participantData.username;
+                                participantData.avatar_url = userData.data.user.avatar_url || participantData.avatar_url;
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('[VOICE-PARTICIPANT] Failed to fetch user profile:', error);
+            }
+        } else {
+            console.log('[VOICE-PARTICIPANT] Using session ID for participant:', normalizedUserId, 'username:', username);
+        }
+
+        channelParticipants.set(normalizedUserId, participantData);
+        console.log('[VOICE-PARTICIPANT] Successfully added participant:', participantData.display_name, 'to channel', channelId);
+    }
+
+    removeParticipant(channelId, userId) {
+        if (!this.participants.has(channelId)) {
+            console.log('[VOICE-PARTICIPANT] No participants found for channel:', channelId);
+            return;
+        }
+
+        const channelParticipants = this.participants.get(channelId);
+        const normalizedUserId = userId.toString();
+        const participant = channelParticipants.get(normalizedUserId);
+        
+        if (participant) {
+            channelParticipants.delete(normalizedUserId);
+            console.log('[VOICE-PARTICIPANT] Removed participant:', participant.display_name, 'from channel', channelId);
+            
+            // Update UI immediately
             this.updateParticipantContainer(channelId);
+            this.updateChannelCount(channelId, channelParticipants.size);
+        } else {
+            console.log('[VOICE-PARTICIPANT] Participant not found for removal:', normalizedUserId, 'in channel', channelId);
+        }
+
+        if (channelParticipants.size === 0) {
+            this.participants.delete(channelId);
+            console.log('[VOICE-PARTICIPANT] Removed empty channel participants for channel:', channelId);
         }
     }
 
+    updateParticipantContainer(channelId) {
+        console.log('[VOICE-PARTICIPANT] Updating participant container for channel:', channelId);
+        
+        const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+        if (!container) {
+            console.warn('[VOICE-PARTICIPANT] Container not found for channel:', channelId);
+            return;
+        }
+
+        const channelParticipants = this.participants.get(channelId);
+        console.log('[VOICE-PARTICIPANT] Channel participants:', channelParticipants ? channelParticipants.size : 0);
+        
+
+        
+        if (!channelParticipants || channelParticipants.size === 0) {
+            console.log('[VOICE-PARTICIPANT] No participants, hiding container');
+            container.classList.add('hidden');
+            container.style.display = 'none';
+            container.innerHTML = '';
+            return;
+        }
+
+        console.log('[VOICE-PARTICIPANT] Showing container with', channelParticipants.size, 'participants');
+        container.classList.remove('hidden');
+        container.style.display = 'block';
+        container.style.visibility = 'visible';
+        container.innerHTML = '';
+
+        channelParticipants.forEach(participant => {
+            const participantEl = this.createParticipantElement(participant);
+            container.appendChild(participantEl);
+        });
+    }
+
+    createParticipantElement(participant) {
+        const div = document.createElement('div');
+        div.className = 'flex items-center py-1 px-2 text-gray-300 hover:text-white transition-colors duration-200';
+        div.setAttribute('data-user-id', participant.id);
+        
+        div.innerHTML = `
+            <div class="relative mr-2">
+                <img src="${participant.avatar_url}" 
+                     alt="${participant.display_name}" 
+                     class="w-5 h-5 rounded-full bg-gray-600 user-avatar">
+                <div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-discord-green rounded-full border border-discord-dark"></div>
+            </div>
+            <span class="text-sm truncate">${participant.display_name}</span>
+        `;
+
+        if (window.fallbackImageHandler) {
+            const img = div.querySelector('img.user-avatar');
+            if (img) {
+                window.fallbackImageHandler.processImage(img);
+            }
+        }
+
+        return div;
+    }
+
     updateChannelCount(channelId, count) {
-        const countElement = document.querySelector(`.channel-item[data-channel-id="${channelId}"] .voice-user-count`);
-        if (countElement) {
-            if (count > 0) {
-                countElement.textContent = count;
-                countElement.classList.remove('hidden');
-            } else {
-                countElement.textContent = '';
-                countElement.classList.add('hidden');
+        const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
+        if (!channelItem) return;
+
+        const countEl = channelItem.querySelector('.voice-user-count');
+        if (countEl) {
+            countEl.textContent = count.toString();
+        }
+    }
+
+    updateParticipantPresence(data) {
+        for (const [channelId, channelParticipants] of this.participants.entries()) {
+            const normalizedUserId = data.user_id.toString();
+            if (channelParticipants.has(normalizedUserId)) {
+                const participant = channelParticipants.get(normalizedUserId);
+                participant.status = data.status;
+                participant.activity_details = data.activity_details;
+                this.updateParticipantContainer(channelId);
+                break;
             }
         }
     }
 
-    /**
-     * Sync participants when using VideoSDK (optional). Keeps stub simple.
-     */
-    syncWithVideoSDK() {
-        if (!window.videoSDKManager?.meeting?.participants) return;
+    async loadExistingMeetings() {
+        console.log('[VOICE-PARTICIPANT] Loading existing meetings...');
+        
+        if (!window.globalSocketManager?.isReady()) {
+            console.log('[VOICE-PARTICIPANT] Socket not ready, retrying in 1s...');
+            setTimeout(() => this.loadExistingMeetings(), 1000);
+            return;
+        }
 
-        const channelId = window.voiceManager?.currentChannelId || null;
-        if (!channelId) return;
+        const voiceChannels = document.querySelectorAll('[data-channel-type="voice"]');
+        console.log('[VOICE-PARTICIPANT] Found voice channels:', voiceChannels.length);
+        
+        voiceChannels.forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            const channelName = channel.getAttribute('data-channel-name');
+            console.log('[VOICE-PARTICIPANT] Checking voice meeting for channel:', channelName, 'ID:', channelId);
+            
+            if (channelId) {
+                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
+            }
+        });
+    }
 
-        const participants = Array.from(window.videoSDKManager.meeting.participants.values()).map((p) => ({
-            user_id: p.id,
-            username: p.displayName || p.name || 'User',
-            avatar_url: null,
-            status: 'online'
-        }));
+    getParticipants(channelId) {
+        return this.participants.get(channelId) || new Map();
+    }
 
-        this.participantsByChannel[channelId] = participants;
-        this.updateParticipantContainer(channelId);
+
+
+    async waitForUserAPI(maxWaitTime = 5000) {
+        if (window.userAPI) return;
+        
+        const startTime = Date.now();
+        while (!window.userAPI && (Date.now() - startTime) < maxWaitTime) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        if (!window.userAPI) {
+            console.warn('[VOICE-PARTICIPANT] UserAPI not available after waiting', maxWaitTime, 'ms');
+        }
+    }
+
+
+
+    static getInstance() {
+        if (!window._channelVoiceParticipants) {
+            window._channelVoiceParticipants = new ChannelVoiceParticipants();
+        }
+        return window._channelVoiceParticipants;
+    }
+
+    refreshAllChannelParticipants() {
+        console.log('[VOICE-PARTICIPANT] Refreshing all channel participants');
+        
+        // Refresh current voice channel participants from VideoSDK
+        if (window.videoSDKManager?.isReady()) {
+            this.syncWithVideoSDK();
+        }
+
+        // Update all visible participant containers
+        document.querySelectorAll('.voice-participants').forEach(container => {
+            const channelId = container.getAttribute('data-channel-id');
+            if (channelId) {
+                this.updateParticipantContainer(channelId);
+            }
+        });
+    }
+
+    preserveCurrentState(voiceState) {
+        if (!voiceState.isConnected || !voiceState.channelId) {
+            return;
+        }
+
+        console.log('[VOICE-PARTICIPANT] Preserving voice state for channel:', voiceState.channelId);
+        
+        // Keep the current participants data intact during channel switch
+        this.preservedChannelId = voiceState.channelId;
+        this.preservedMeetingId = voiceState.meetingId;
     }
 }
 
-// Expose globally
 window.ChannelVoiceParticipants = ChannelVoiceParticipants;
 
-// Auto-initialise after DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => ChannelVoiceParticipants.getInstance());
-} else {
+window.addCurrentUserToVoiceChannel = function(channelId) {
+    const instance = ChannelVoiceParticipants.getInstance();
+    instance.addCurrentUserToChannel(channelId);
+};
+
+document.addEventListener('DOMContentLoaded', () => {
     ChannelVoiceParticipants.getInstance();
-}
+});
