@@ -239,6 +239,11 @@ function getCurrentServerId() {
     const match = path.match(/\/server\/(\d+)/);
     const serverId = match ? match[1] : null;
     console.log('getCurrentServerId - path:', path, 'serverId:', serverId);
+    
+    if (!serverId) {
+        console.warn('Server ID not found in URL path. Expected format: /server/{id}');
+    }
+    
     return serverId;
 }
 
@@ -320,14 +325,19 @@ function setupInviteModalListeners() {
 }
 
 function setupLeaveServerModalListeners() {
-        const confirmBtn = document.getElementById('confirm-leave-server');
-        if (confirmBtn && !confirmBtn.hasAttribute('data-listener')) {
+    const confirmBtn = document.getElementById('confirm-leave-server');
+    if (confirmBtn && !confirmBtn.hasAttribute('data-listener')) {
         confirmBtn.addEventListener('click', () => {
             const serverId = getCurrentServerId();
+            if (!serverId) {
+                showToast('Unable to leave server: Server ID not found', 'error');
+                closeModal('leave-server-modal');
+                return;
+            }
             leaveServer(serverId);
         });
-            confirmBtn.setAttribute('data-listener', 'true');
-        }
+        confirmBtn.setAttribute('data-listener', 'true');
+    }
 }
 
 async function loadInviteLink(serverId) {
@@ -423,32 +433,40 @@ async function generateNewInvite(serverId, expirationValue = null) {
 
 async function leaveServer(serverId) {
     try {
+        if (!serverId) {
+            throw new Error('Server ID is required');
+        }
+        
         await waitForServerAPI();
         
-    if (!window.serverAPI) {
+        if (!window.serverAPI) {
             throw new Error('serverAPI not available');
-    }
-    
+        }
+        
         const data = await window.serverAPI.leaveServer(serverId);
         
-            if (data.success) {
-            showToast(data.message || 'Successfully left server', 'success');
-                closeModal('leave-server-modal');
-                setTimeout(() => {
-                window.location.href = data.redirect || '/home';
-                }, 1000);
+        if (data.success) {
+            if (data.data && data.data.server_deleted) {
+                showToast(data.message || 'Server deleted successfully', 'success');
             } else {
-                throw new Error(data.message || 'Failed to leave server');
+                showToast(data.message || 'Successfully left server', 'success');
             }
+            closeModal('leave-server-modal');
+            setTimeout(() => {
+                window.location.href = data.redirect || data.data?.redirect || '/home';
+            }, 1000);
+        } else {
+            throw new Error(data.message || 'Failed to leave server');
+        }
     } catch (error) {
-            console.error('Error leaving server:', error);
-            
-            if (error.message && error.message.includes('ownership')) {
-                showTransferOwnershipModal(serverId);
-                closeModal('leave-server-modal');
-            } else {
-                showToast('Failed to leave server: ' + error.message, 'error');
-            }
+        console.error('Error leaving server:', error);
+        
+        if (error.message && error.message.includes('ownership')) {
+            showTransferOwnershipModal(serverId);
+            closeModal('leave-server-modal');
+        } else {
+            showToast('Failed to leave server: ' + error.message, 'error');
+        }
     }
 }
 

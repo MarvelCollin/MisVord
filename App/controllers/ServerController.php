@@ -1878,7 +1878,12 @@ class ServerController extends BaseController
             
             $isOwner = $this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId);
             if ($isOwner) {
-                return $this->validationError(['ownership' => 'Cannot leave server as owner. Transfer ownership first.']);
+                $eligibleMembers = $this->userServerMembershipRepository->getEligibleNewOwners($serverId, $this->getCurrentUserId());
+                if (empty($eligibleMembers)) {
+                    return $this->deleteServerAndLeave($serverId, $server);
+                } else {
+                    return $this->validationError(['ownership' => 'Cannot leave server as owner. Transfer ownership first.']);
+                }
             }
             
             $removed = $this->userServerMembershipRepository->removeMembership($this->getCurrentUserId(), $serverId);

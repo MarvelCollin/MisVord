@@ -257,9 +257,8 @@ class VoiceManager {
             }
             console.log(`🎯 [VOICE-MANAGER] Final meeting ID for joining: ${meetingId}`);
             
-            // 🎯 STEP 3b: Join the VideoSDK meeting first (existing or new)
+            // 🎯 STEP 2: Join the VideoSDK meeting
             console.log(`🚪 [VOICE-MANAGER] Joining VideoSDK meeting: ${meetingId}`);
-            // Get proper username from multiple sources
             const userName = this.getUsernameFromMultipleSources();
             console.log(`🏷️ [VOICE-MANAGER] Using username: ${userName}`);
             
@@ -284,11 +283,8 @@ class VoiceManager {
 
             window.voiceJoinInProgress = false;
             
-            this.registerMeetingWithSocket(targetChannelId, meetingId).then(() => {
-                console.log('✅ [VOICE-MANAGER] Socket registration completed successfully');
-            }).catch((error) => {
-                console.warn('⚠️ [VOICE-MANAGER] Socket registration failed, but voice connection is still active:', error);
-            });
+            // VideoSDK participant events will handle all participant management automatically
+            console.log(`✅ [VOICE-MANAGER] VideoSDK is now handling all participant management for channel ${targetChannelId}`);
             
             await new Promise((resolve) => {
                 const checkReady = () => {
@@ -327,13 +323,6 @@ class VoiceManager {
             
             window.videoSDKJoiningInProgress = false;
             window.voiceJoinInProgress = false;
-            
-            if (this.videoSDKManager?.isConnected && error.message.includes('Socket registration')) {
-                console.warn('⚠️ [VOICE-MANAGER] Voice connected but socket registration failed. Continuing with limited functionality.');
-                this.isConnected = true;
-                return Promise.resolve();
-            }
-            
             this.isConnected = false;
             
             if (!window.voiceJoinErrorShown && error.message && !error.message.includes('VideoSDK')) {
@@ -391,40 +380,6 @@ class VoiceManager {
         });
     }
 
-    async registerMeetingWithSocket(channelId, meetingId) {
-        return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
-                reject(new Error('Socket registration timeout'));
-            }, 5000);
-            
-            const handleUpdate = (data) => {
-                if (data.channel_id === channelId && data.action === 'registered') {
-                    clearTimeout(timeout);
-                    window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
-                    console.log('✅ Socket registration confirmed:', data);
-                    resolve(data);
-                } else if (data.channel_id === channelId && data.error) {
-                    clearTimeout(timeout);
-                    window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
-                    reject(new Error(data.error));
-                }
-            };
-            
-            if (!window.globalSocketManager?.io || !window.globalSocketManager.isReady()) {
-                clearTimeout(timeout);
-                reject(new Error('Socket manager not ready'));
-                return;
-            }
-            
-            window.globalSocketManager.io.on('voice-meeting-update', handleUpdate);
-            window.globalSocketManager.io.emit('register-voice-meeting', {
-                channel_id: channelId,
-                meeting_id: meetingId
-            });
-        });
-    }
-
     leaveVoice() {
         if (!this.isConnected) {
             console.log('🚪 [VOICE-MANAGER] Not connected, ignoring leave request');
@@ -443,12 +398,6 @@ class VoiceManager {
         
         this.isConnected = false;
         window.voiceJoinInProgress = false;
-        
-        if (this.currentChannelId && window.globalSocketManager?.io) {
-            window.globalSocketManager.io.emit('unregister-voice-meeting', {
-                channel_id: this.currentChannelId
-            });
-        }
         
         if (this.videoSDKManager) {
             this.videoSDKManager.leaveMeeting();
@@ -481,18 +430,7 @@ class VoiceManager {
     }
     
     cleanup() {
-        console.log('🧹 [VOICE-MANAGER] Emergency cleanup initiated');
-        
-        if (this.currentChannelId && window.globalSocketManager?.io && window.globalSocketManager.isReady()) {
-            try {
-                window.globalSocketManager.io.emit('unregister-voice-meeting', {
-                    channel_id: this.currentChannelId
-                });
-                console.log('🧹 [VOICE-MANAGER] Sent unregister to socket server');
-            } catch (error) {
-                console.warn('🧹 [VOICE-MANAGER] Failed to send unregister to socket:', error);
-            }
-        }
+        console.log('🧹 [VOICE-MANAGER] VideoSDK cleanup initiated');
         
         if (this.videoSDKManager) {
             try {
@@ -518,7 +456,7 @@ class VoiceManager {
             }
         }
         
-        console.log('🧹 [VOICE-MANAGER] Emergency cleanup completed');
+        console.log('🧹 [VOICE-MANAGER] VideoSDK cleanup completed');
     }
     
 
@@ -607,6 +545,11 @@ class VoiceManager {
                 console.error('Failed to reinitialize voice manager:', error);
             });
         }, 100);
+    }
+
+    async retrySocketRegistration() {
+        console.warn('⚠️ [VOICE-MANAGER] Socket registration no longer used - VideoSDK handles all participant management');
+        return true;
     }
 }
 

@@ -819,43 +819,8 @@ class MentionHandler {
         const isUserMention = mentions.some(m => m.type === 'user' && m.user_id === currentUserId);
         
         if (isAllMention || isRoleMention || isUserMention) {
-            this.showMentionNotification(data, isAllMention, isRoleMention);
+            console.log('💬 [MENTION-HANDLER] Local mention detected - playing sound only');
             this.playMentionSound();
-        }
-    }
-    
-    showMentionNotification(data, isAllMention, isRoleMention) {
-        let mentionType;
-        if (isAllMention) {
-            mentionType = '@all';
-        } else if (isRoleMention) {
-            mentionType = `@${data.role || 'role'}`;
-        } else {
-            mentionType = `@${window.globalSocketManager?.username}`;
-        }
-        
-        const notificationText = `${data.username} mentioned you with ${mentionType}`;
-        
-        if (window.showToast) {
-            window.showToast(notificationText, 'mention', 5000);
-        }
-        
-        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-            const notification = new Notification('New Mention', {
-                body: notificationText,
-                icon: '/public/assets/common/default-profile-picture.png',
-                tag: `mention-${data.message_id || Date.now()}`
-            });
-            
-            notification.onclick = () => {
-                window.focus();
-                if (window.globalSocketManager && window.globalSocketManager.navigateToMention) {
-                    window.globalSocketManager.navigateToMention(data);
-                }
-                notification.close();
-            };
-            
-            setTimeout(() => notification.close(), 10000);
         }
     }
     

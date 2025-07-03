@@ -2295,6 +2295,10 @@ class VoiceCallManager {
         const currentChannelId = window.voiceManager?.currentChannelId;
         
         if (!currentChannelId || !window.globalSocketManager?.isReady()) {
+            console.log('[VOICE-CALL-MANAGER] Cannot broadcast - no channel or socket not ready:', {
+                hasChannel: !!currentChannelId,
+                socketReady: window.globalSocketManager?.isReady() || false
+            });
             return;
         }
         
@@ -2307,10 +2311,12 @@ class VoiceCallManager {
             timestamp: Date.now()
         };
         
-        console.log(`[VOICE-CALL-MANAGER] Broadcasting participant ${action}:`, updateData);
+        console.log(`[VOICE-CALL-MANAGER] Broadcasting participant ${action} globally:`, updateData);
         
+        // Global broadcast to all users
         window.globalSocketManager.io.emit('voice-meeting-update', updateData);
         
+        // Local event for immediate updates
         window.dispatchEvent(new CustomEvent('voiceParticipantUpdate', {
             detail: {
                 action: action,
@@ -2371,6 +2377,40 @@ const initializeVoiceCallSystem = () => {
     
     console.log('[VOICE-CALL] Creating single VoiceCallManager instance');
     window.voiceCallManager = new VoiceCallManager();
+    
+    window.retryVoiceSocketRegistration = function() {
+        if (window.voiceManager && typeof window.voiceManager.retrySocketRegistration === 'function') {
+            return window.voiceManager.retrySocketRegistration();
+        } else {
+            console.warn('⚠️ Voice manager not available or method not found');
+            return false;
+        }
+    };
+    
+    window.testVoiceConnectionStatus = function() {
+        console.log('🧪 [VOICE-TEST] Testing voice connection status...');
+        
+        const videoSDKConnected = window.videoSDKManager?.isConnected || false;
+        const voiceManagerConnected = window.voiceManager?.isConnected || false;
+        const socketManagerReady = window.globalSocketManager?.isReady() || false;
+        
+        console.log('✅ VideoSDK Connected:', videoSDKConnected);
+        console.log('✅ Voice Manager Connected:', voiceManagerConnected);
+        console.log('✅ Socket Manager Ready:', socketManagerReady);
+        console.log('✅ Current Channel ID:', window.voiceManager?.currentChannelId || 'None');
+        console.log('✅ Current Meeting ID:', window.voiceManager?.currentMeetingId || 'None');
+        
+        if (videoSDKConnected && voiceManagerConnected) {
+            console.log('🎉 [VOICE-TEST] Voice connection is healthy!');
+            return { status: 'healthy', videoSDK: true, voiceManager: true };
+        } else if (videoSDKConnected && !voiceManagerConnected) {
+            console.log('⚠️ [VOICE-TEST] VideoSDK connected but Voice Manager reports disconnected (Socket registration may have failed)');
+            return { status: 'partial', videoSDK: true, voiceManager: false };
+        } else {
+            console.log('❌ [VOICE-TEST] Voice connection has issues');
+            return { status: 'error', videoSDK: videoSDKConnected, voiceManager: voiceManagerConnected };
+        }
+    };
     
     const gridViewBtn = document.getElementById('gridViewBtn');
     const speakerViewBtn = document.getElementById('speakerViewBtn');

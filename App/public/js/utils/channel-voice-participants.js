@@ -1,70 +1,64 @@
 class ChannelVoiceParticipants {
     constructor() {
         this.participants = new Map();
-        this.socketListenersAttached = false;
-        this.syncInterval = null;
-        this.eventQueue = [];
-        this.processing = false;
-        
-        this.init();
+        this.containers = new Map();
+        console.log('[VOICE-PARTICIPANT] VideoSDK-based participant system initialized');
+        this.setupEventListeners();
     }
 
     static getInstance() {
-        if (!window.channelVoiceParticipantsInstance) {
-            window.channelVoiceParticipantsInstance = new ChannelVoiceParticipants();
+        if (!window._channelVoiceParticipantsInstance) {
+            window._channelVoiceParticipantsInstance = new ChannelVoiceParticipants();
         }
-        return window.channelVoiceParticipantsInstance;
+        return window._channelVoiceParticipantsInstance;
     }
 
-    init() {
-        this.setupSocketListeners();
-        this.setupChannelSwitchListeners();
-        this.startPeriodicSync();
-        console.log('[VOICE-PARTICIPANT] Channel voice participants manager initialized (Socket events only)');
-    }
-
-    setupSocketListeners() {
-        if (this.socketListenersAttached) return;
+    setupEventListeners() {
+        console.log('[VOICE-PARTICIPANT] Setting up VideoSDK-based event listeners');
         
-        const waitForSocket = () => {
-            if (window.globalSocketManager?.isReady()) {
-                this.attachSocketEvents();
-                this.socketListenersAttached = true;
-            } else {
-                setTimeout(waitForSocket, 500);
-            }
-        };
-        waitForSocket();
-    }
-
-    attachSocketEvents() {
-        const socket = window.globalSocketManager.io;
-        
-        socket.on('voice-meeting-update', (data) => {
-            this.queueEvent('voice-meeting-update', data);
-        });
-
-        socket.on('voice-meeting-status', (data) => {
-            this.queueEvent('voice-meeting-status', data);
-        });
-
-        socket.on('user-presence-update', (data) => {
-            if (data.activity_details?.type === 'In Voice Call') {
-                this.queueEvent('presence-update', data);
+        // Listen to VideoSDK participant events directly (local source of truth)
+        window.addEventListener('videosdkParticipantJoined', (event) => {
+            const { participant, participantObj } = event.detail;
+            const currentVoiceChannelId = window.voiceManager?.currentChannelId;
+            
+            if (currentVoiceChannelId && participant) {
+                console.log('[VOICE-PARTICIPANT] VideoSDK participant joined, updating channel list:', {
+                    participant,
+                    channelId: currentVoiceChannelId,
+                    name: participantObj?.displayName || participantObj?.name || 'Unknown'
+                });
+                
+                this.addParticipant(
+                    currentVoiceChannelId, 
+                    participant, 
+                    participantObj?.displayName || participantObj?.name || 'Unknown'
+                );
+                this.updateParticipantContainer(currentVoiceChannelId);
             }
         });
-        
-        console.log('[VOICE-PARTICIPANT] Socket events attached');
-    }
 
-    setupChannelSwitchListeners() {
-        window.addEventListener('preserveVoiceParticipants', (event) => {
-            console.log('[VOICE-PARTICIPANT] Preserving participants during channel switch');
+        window.addEventListener('videosdkParticipantLeft', (event) => {
+            const { participant } = event.detail;
+            const currentVoiceChannelId = window.voiceManager?.currentChannelId;
+            
+            if (currentVoiceChannelId && participant) {
+                console.log('[VOICE-PARTICIPANT] VideoSDK participant left, updating channel list:', {
+                    participant,
+                    channelId: currentVoiceChannelId
+                });
+                
+                this.removeParticipant(currentVoiceChannelId, participant);
+                this.updateParticipantContainer(currentVoiceChannelId);
+            }
         });
-        
+
+        // Listen to global socket events for other users' participants
+        this.setupGlobalSocketListeners();
+
+        // Also listen to the legacy voiceParticipantUpdate events for backward compatibility
         window.addEventListener('voiceParticipantUpdate', (event) => {
             const { action, channelId, participantId, participantName } = event.detail;
-            console.log('[VOICE-PARTICIPANT] Received participant update:', { action, channelId, participantId });
+            console.log('[VOICE-PARTICIPANT] Legacy participant update:', { action, channelId, participantId });
             
             if (action === 'join' && channelId && participantId) {
                 this.addParticipant(channelId, participantId, participantName);
@@ -74,89 +68,93 @@ class ChannelVoiceParticipants {
                 this.updateParticipantContainer(channelId);
             }
         });
+
+        // Handle voice disconnection
+        window.addEventListener('voiceDisconnect', (event) => {
+            console.log('[VOICE-PARTICIPANT] Voice disconnect - clearing all participants');
+            this.clearAllParticipants();
+        });
+
+        this.setupChannelSwitchListeners();
     }
 
-    startPeriodicSync() {
-        if (this.syncInterval) return;
-        
-        this.syncInterval = setInterval(() => {
-            this.loadAllVoiceChannels();
-        }, 5000);
-    }
-
-    queueEvent(type, data) {
-        this.eventQueue.push({ type, data, timestamp: Date.now() });
-        this.processEventQueue();
-    }
-
-    async processEventQueue() {
-        if (this.processing) return;
-        this.processing = true;
-
-        while (this.eventQueue.length > 0) {
-            const event = this.eventQueue.shift();
-            await this.handleEvent(event);
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
-
-        this.processing = false;
-    }
-
-    async handleEvent(event) {
-        const { type, data } = event;
-
-        switch (type) {
-            case 'voice-meeting-update':
-                await this.handleVoiceMeetingUpdate(data);
-                break;
-            case 'voice-meeting-status':
-                await this.handleVoiceMeetingStatus(data);
-                break;
-            case 'presence-update':
-                await this.handlePresenceUpdate(data);
-                break;
-        }
-    }
-
-    async handleVoiceMeetingUpdate(data) {
-        const { channel_id, action, user_id, username, participant_count } = data;
-        
-        if (!channel_id) return;
-
-        if (participant_count !== undefined) {
-            this.updateChannelCount(channel_id, participant_count);
-        }
-
-        const isOwnEvent = user_id === window.currentUserId || user_id === window.globalSocketManager?.userId;
-        
-        if (action === 'join' && user_id) {
-            await this.addParticipant(channel_id, user_id, username);
-        } else if (action === 'leave' && user_id) {
-            this.removeParticipant(channel_id, user_id);
-        } else if (action === 'already_registered' && user_id) {
-            await this.addParticipant(channel_id, user_id, username);
-        }
-
-        this.updateAllParticipantContainers();
-    }
-
-    async handleVoiceMeetingStatus(data) {
-        const { channel_id, has_meeting, participants } = data;
-        
-        if (!channel_id) return;
-
-        if (has_meeting && participants && participants.length > 0) {
-            for (const participant of participants) {
-                await this.addParticipant(channel_id, participant.user_id, participant.username);
+    setupGlobalSocketListeners() {
+        const setupSocket = () => {
+            if (!window.globalSocketManager?.isReady()) {
+                setTimeout(setupSocket, 500);
+                return;
             }
-            this.updateParticipantContainer(channel_id);
-        } else {
-            this.clearChannelParticipants(channel_id);
-        }
+
+            const socket = window.globalSocketManager.io;
+            console.log('[VOICE-PARTICIPANT] Setting up global socket listeners for other users');
+
+            socket.on('voice-meeting-update', (data) => {
+                const { channel_id, action, user_id, username, participant_count } = data;
+                const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
+                
+                // Skip our own updates (handled by VideoSDK locally)
+                if (user_id === currentUserId || user_id === currentUserId?.toString()) {
+                    console.log('[VOICE-PARTICIPANT] Skipping own update from socket:', { user_id, currentUserId });
+                    return;
+                }
+
+                if (!channel_id || !user_id) return;
+
+                console.log('[VOICE-PARTICIPANT] Global participant update from socket:', {
+                    action, channel_id, user_id, username, participant_count
+                });
+
+                if (action === 'join' || action === 'already_registered') {
+                    this.addParticipant(channel_id, user_id, username || 'Unknown');
+                    this.updateParticipantContainer(channel_id);
+                } else if (action === 'leave') {
+                    this.removeParticipant(channel_id, user_id);
+                    this.updateParticipantContainer(channel_id);
+                }
+
+                if (participant_count !== undefined) {
+                    this.updateChannelCount(channel_id, participant_count);
+                }
+            });
+
+            socket.on('voice-meeting-status', (data) => {
+                const { channel_id, has_meeting, participants } = data;
+                
+                if (!channel_id) return;
+
+                console.log('[VOICE-PARTICIPANT] Voice meeting status from socket:', {
+                    channel_id, has_meeting, participantCount: participants?.length || 0
+                });
+
+                if (has_meeting && participants && participants.length > 0) {
+                    participants.forEach(participant => {
+                        this.addParticipant(channel_id, participant.user_id, participant.username || 'Unknown');
+                    });
+                    this.updateParticipantContainer(channel_id);
+                } else {
+                    if (this.participants.has(channel_id)) {
+                        const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
+                        const channelParticipants = this.participants.get(channel_id);
+                        
+                        // Keep our own participant if we're in voice, remove others
+                        const ownParticipant = channelParticipants.get(currentUserId?.toString());
+                        channelParticipants.clear();
+                        if (ownParticipant && window.voiceManager?.isConnected) {
+                            channelParticipants.set(currentUserId.toString(), ownParticipant);
+                        }
+                        this.updateParticipantContainer(channel_id);
+                    }
+                }
+            });
+        };
+
+        setupSocket();
     }
 
-    async handlePresenceUpdate(data) {
-        console.log('[VOICE-PARTICIPANT] User presence update for voice call:', data);
+    setupChannelSwitchListeners() {
+        window.addEventListener('preserveVoiceParticipants', (event) => {
+            console.log('[VOICE-PARTICIPANT] Preserving participants during channel switch');
+        });
     }
 
     async addParticipant(channelId, userId, username) {
@@ -228,12 +226,6 @@ class ChannelVoiceParticipants {
         }
     }
 
-    clearChannelParticipants(channelId) {
-        this.participants.delete(channelId);
-        this.updateParticipantContainer(channelId);
-        this.updateChannelCount(channelId, 0);
-    }
-
     updateParticipantContainer(channelId) {
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) return;
@@ -257,22 +249,6 @@ class ChannelVoiceParticipants {
         });
 
         this.updateChannelCount(channelId, channelParticipants.size);
-    }
-
-    updateAllParticipantContainers() {
-        this.participants.forEach((participants, channelId) => {
-            this.updateParticipantContainer(channelId);
-        });
-        
-        document.querySelectorAll('.voice-participants').forEach(container => {
-            const channelId = container.getAttribute('data-channel-id');
-            if (channelId && !this.participants.has(channelId)) {
-                container.classList.add('hidden');
-                container.style.display = 'none';
-                container.innerHTML = '';
-                this.updateChannelCount(channelId, 0);
-            }
-        });
     }
 
     createParticipantElement(participant) {
@@ -323,29 +299,64 @@ class ChannelVoiceParticipants {
         }
     }
 
-    loadAllVoiceChannels() {
-        if (!window.globalSocketManager?.isReady()) return;
+    syncVideoSDKParticipants() {
+        console.log('[VOICE-PARTICIPANT] Syncing VideoSDK participants with channel display');
+        
+        const videoSDK = window.videoSDKManager;
+        const currentVoiceChannelId = window.voiceManager?.currentChannelId;
+        
+        if (!videoSDK?.meeting?.participants || !currentVoiceChannelId) {
+            console.log('[VOICE-PARTICIPANT] No VideoSDK meeting or channel ID for sync');
+            return;
+        }
 
-        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
-            const channelId = channel.getAttribute('data-channel-id');
-            if (channelId) {
-                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
-            }
+        // Clear existing participants for this channel first
+        if (this.participants.has(currentVoiceChannelId)) {
+            this.participants.get(currentVoiceChannelId).clear();
+        }
+
+        // Add all current VideoSDK participants
+        videoSDK.meeting.participants.forEach((participant, participantId) => {
+            const participantName = participant.displayName || participant.name || 'Unknown';
+            console.log('[VOICE-PARTICIPANT] Syncing participant:', { participantId, participantName });
+            this.addParticipant(currentVoiceChannelId, participantId, participantName);
+        });
+
+        // Add local participant if present
+        if (videoSDK.meeting.localParticipant) {
+            const localParticipant = videoSDK.meeting.localParticipant;
+            const localName = localParticipant.displayName || localParticipant.name || 'You';
+            console.log('[VOICE-PARTICIPANT] Syncing local participant:', { 
+                participantId: localParticipant.id, 
+                participantName: localName 
+            });
+            this.addParticipant(currentVoiceChannelId, localParticipant.id, localName);
+        }
+
+        this.updateParticipantContainer(currentVoiceChannelId);
+        console.log('[VOICE-PARTICIPANT] VideoSDK participant sync completed');
+    }
+
+    clearAllParticipants() {
+        console.log('[VOICE-PARTICIPANT] Clearing all participants from all channels');
+        this.participants.forEach((participantMap, channelId) => {
+            participantMap.clear();
+            this.updateParticipantContainer(channelId);
         });
     }
 
-    refreshAllChannelParticipants() {
-        this.updateAllParticipantContainers();
-        this.loadAllVoiceChannels();
-        this.refreshAllChannelCounts();
-    }
-
-    refreshAllChannelCounts() {
-        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
-            const channelId = channel.getAttribute('data-channel-id');
-            if (channelId) {
-                const participantCount = this.getParticipantCount(channelId);
-                this.updateChannelCount(channelId, participantCount);
+    updateAllParticipantContainers() {
+        this.participants.forEach((participants, channelId) => {
+            this.updateParticipantContainer(channelId);
+        });
+        
+        document.querySelectorAll('.voice-participants').forEach(container => {
+            const channelId = container.getAttribute('data-channel-id');
+            if (channelId && !this.participants.has(channelId)) {
+                container.classList.add('hidden');
+                container.style.display = 'none';
+                container.innerHTML = '';
+                this.updateChannelCount(channelId, 0);
             }
         });
     }
@@ -358,23 +369,64 @@ class ChannelVoiceParticipants {
         const participants = this.getChannelParticipants(channelId);
         return participants.size;
     }
+
+    refreshChannelDisplay(channelId = null) {
+        if (channelId) {
+            this.updateParticipantContainer(channelId);
+        } else {
+            this.updateAllParticipantContainers();
+        }
+    }
+
+    loadAllVoiceChannels() {
+        if (!window.globalSocketManager?.isReady()) return;
+
+        console.log('[VOICE-PARTICIPANT] Loading all voice channels from server...');
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId) {
+                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
+            }
+        });
+    }
+
+    refreshAllChannelParticipants() {
+        console.log('[VOICE-PARTICIPANT] Refreshing all channel participants');
+        this.updateAllParticipantContainers();
+        this.loadAllVoiceChannels();
+        
+        // Sync VideoSDK if we're in voice
+        if (window.voiceManager?.isConnected) {
+            this.syncVideoSDKParticipants();
+        }
+    }
+
+    refreshAllChannelCounts() {
+        console.log('[VOICE-PARTICIPANT] Refreshing all channel counts');
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId) {
+                const participantCount = this.getParticipantCount(channelId);
+                this.updateChannelCount(channelId, participantCount);
+            }
+        });
+    }
 }
 
-if (!window.ChannelVoiceParticipants) {
+// Initialize the global instance immediately
+if (typeof window !== 'undefined') {
     window.ChannelVoiceParticipants = ChannelVoiceParticipants;
     
-    document.addEventListener('DOMContentLoaded', () => {
-        const instance = ChannelVoiceParticipants.getInstance();
-        setTimeout(() => {
-            instance.refreshAllChannelCounts();
-        }, 1000);
-    });
-    
-    if (document.readyState !== 'loading') {
-        const instance = ChannelVoiceParticipants.getInstance();
-        setTimeout(() => {
-            instance.refreshAllChannelCounts();
-        }, 1000);
+    // Auto-initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            ChannelVoiceParticipants.getInstance();
+            console.log('[VOICE-PARTICIPANT] Auto-initialized on DOMContentLoaded');
+        });
+    } else {
+        // DOM already loaded
+        ChannelVoiceParticipants.getInstance();
+        console.log('[VOICE-PARTICIPANT] Auto-initialized immediately');
     }
 }
 

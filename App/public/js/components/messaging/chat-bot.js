@@ -310,6 +310,17 @@ class ChatBot {
             window.BotComponent.init();
         }
 
+        const titiBotId = '4';
+        const titiBotUsername = 'titibot';
+        
+        if (!window.BotComponent.getBotStatus(titiBotId)) {
+            console.log('🤖 [CHAT-BOT] Initializing TitiBot on server...');
+            window.globalSocketManager.io.emit('bot-init', {
+                bot_id: titiBotId,
+                username: titiBotUsername
+            });
+        }
+
         this.botReady = true;
     }
 }

@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endforeach; ?>
 
 <script type="module" src="/public/js/utils/channel-switch-manager.js"></script>
+<script type="module" src="/public/js/components/channels/channel-drag.js"></script>
 
 <!-- Voice components (consolidated and deduplication-free) -->
 <script src="<?php echo asset('/js/components/voice/voice-events.js'); ?>"></script>

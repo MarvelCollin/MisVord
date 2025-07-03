@@ -460,7 +460,6 @@ class GlobalSocketManager {
         this.io.on('voice-meeting-update', this.handleVoiceMeetingUpdate.bind(this));
         
         this.io.on('stop-typing', this.handleStopTyping.bind(this));
-        this.io.on('mention_notification', this.handleMentionNotification.bind(this));
         
         this.socketListenersSetup = true;
         console.log('✅ Socket handlers setup complete');
@@ -925,49 +924,50 @@ class GlobalSocketManager {
         // ... existing code ...
     }
     
-    handleGlobalMentionNotification(data) {
-        try {
-            const currentUserId = this.userId;
-            if (!currentUserId) {
-                console.warn('⚠️ [GLOBAL-SOCKET] No current user ID for mention notification');
-                return;
-            }
-            
-            console.log('💬 [GLOBAL-SOCKET] Global mention notification received:', data);
-            
-            let shouldNotify = false;
-            let mentionType = '';
-            
-            if (data.type === 'all') {
-                shouldNotify = true;
-                mentionType = '@all';
-                console.log('📢 [GLOBAL-SOCKET] @all mention detected globally');
-            } else if (data.type === 'role' && data.mentioned_user_id === currentUserId) {
-                shouldNotify = true;
-                mentionType = `@${data.role}`;
-                console.log(`👥 [GLOBAL-SOCKET] Role mention detected globally: @${data.role} for current user`);
-            } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
-                shouldNotify = true;
-                mentionType = `@${this.username}`;
-                console.log('👤 [GLOBAL-SOCKET] User mention detected globally for current user');
-            }
-            
-            if (shouldNotify) {
-                this.showGlobalMentionNotification(data, mentionType);
-                this.playGlobalMentionSound();
-                
-                window.dispatchEvent(new CustomEvent('globalMentionReceived', {
-                    detail: {
-                        data: data,
-                        mentionType: mentionType,
-                        timestamp: Date.now()
-                    }
-                }));
-            }
-        } catch (error) {
-            console.error('❌ [GLOBAL-SOCKET] Error handling global mention notification:', error);
-        }
-    }
+    // handleGlobalMentionNotification(data) {
+    //     // DISABLED: Now handled by GlobalNotificationHandler to prevent notification bursts
+    //     try {
+    //         const currentUserId = this.userId;
+    //         if (!currentUserId) {
+    //             console.warn('⚠️ [GLOBAL-SOCKET] No current user ID for mention notification');
+    //             return;
+    //         }
+    //         
+    //         console.log('💬 [GLOBAL-SOCKET] Global mention notification received:', data);
+    //         
+    //         let shouldNotify = false;
+    //         let mentionType = '';
+    //         
+    //         if (data.type === 'all') {
+    //             shouldNotify = true;
+    //             mentionType = '@all';
+    //             console.log('📢 [GLOBAL-SOCKET] @all mention detected globally');
+    //         } else if (data.type === 'role' && data.mentioned_user_id === currentUserId) {
+    //             shouldNotify = true;
+    //             mentionType = `@${data.role}`;
+    //             console.log(`👥 [GLOBAL-SOCKET] Role mention detected globally: @${data.role} for current user`);
+    //         } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
+    //             shouldNotify = true;
+    //             mentionType = `@${this.username}`;
+    //             console.log('👤 [GLOBAL-SOCKET] User mention detected globally for current user');
+    //         }
+    //         
+    //         if (shouldNotify) {
+    //             this.showGlobalMentionNotification(data, mentionType);
+    //             this.playGlobalMentionSound();
+    //             
+    //             window.dispatchEvent(new CustomEvent('globalMentionReceived', {
+    //                 detail: {
+    //                     data: data,
+    //                     mentionType: mentionType,
+    //                     timestamp: Date.now()
+    //                 }
+    //             }));
+    //         }
+    //     } catch (error) {
+    //         console.error('❌ [GLOBAL-SOCKET] Error handling global mention notification:', error);
+    //     }
+    // }
     
     showGlobalMentionNotification(data, mentionType) {
         try {
@@ -1126,9 +1126,10 @@ class GlobalSocketManager {
         }
     }
     
-    handleMentionNotification(data) {
-        this.handleGlobalMentionNotification(data);
-    }
+    // handleMentionNotification(data) {
+    //     // DISABLED: Now handled by GlobalNotificationHandler to prevent notification bursts  
+    //     this.handleGlobalMentionNotification(data);
+    // }
     
     handleStopTyping(data) {
         console.log('⌨️ [GLOBAL-SOCKET] Stop typing event received:', data);
@@ -1206,12 +1207,11 @@ class GlobalSocketManager {
     handleVoiceMeetingStatus(data) {
         console.log('📊 [SOCKET] Voice meeting status received:', data);
         
-        if (window.ChannelVoiceParticipants) {
+        // ChannelVoiceParticipants now handles socket events directly
+        // Only update the channel count if instance exists and method is available
+        if (window.ChannelVoiceParticipants && data.participant_count !== undefined) {
             const instance = window.ChannelVoiceParticipants.getInstance();
-            if (instance.handleVoiceMeetingStatus) {
-                instance.handleVoiceMeetingStatus(data);
-            }
-            if (data.participant_count !== undefined) {
+            if (instance && typeof instance.updateChannelCount === 'function') {
                 instance.updateChannelCount(data.channel_id, data.participant_count);
             }
         }
@@ -1220,12 +1220,9 @@ class GlobalSocketManager {
     handleVoiceMeetingUpdate(data) {
         console.log('🔄 [SOCKET] Voice meeting update received:', data);
         
-        if (window.ChannelVoiceParticipants) {
-            const instance = window.ChannelVoiceParticipants.getInstance();
-            if (instance.handleVoiceMeetingUpdate) {
-                instance.handleVoiceMeetingUpdate(data);
-            }
-        }
+        // ChannelVoiceParticipants now handles socket events directly
+        // No need to forward these events anymore - they're handled in setupGlobalSocketListeners()
+        console.log('✅ [SOCKET] Voice update forwarded to ChannelVoiceParticipants via direct socket listeners');
     }
 }
 

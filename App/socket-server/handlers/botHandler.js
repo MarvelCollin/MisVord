@@ -59,7 +59,20 @@ class BotHandler extends EventEmitter {
             const roomId = data.room_id || (data.target_type === 'dm' ? data.target_id : null);
             
             const messageType = channelId ? 'channel' : 'dm';
-            await BotHandler.handleMessage(io, data, messageType, botId, username);
+            
+            const titiBotId = this.getTitiBotId();
+            if (!titiBotId) {
+                console.warn('⚠️ [BOT-HANDLER] TitiBot not found, skipping message processing');
+                return;
+            }
+            
+            const titiBotData = this.bots.get(titiBotId);
+            if (!titiBotData) {
+                console.warn('⚠️ [BOT-HANDLER] TitiBot data not found, skipping message processing');
+                return;
+            }
+            
+            await BotHandler.handleMessage(io, data, messageType, titiBotId, titiBotData.username);
         };
 
         this.botEventEmitter.on('bot-message-intercept', messageHandler);
@@ -70,9 +83,14 @@ class BotHandler extends EventEmitter {
     }
 
     static async handleMessage(io, data, messageType, botId, username) {
+        console.log(`🤖 [BOT-HANDLER] Handling message: ${data.content?.substring(0, 50)}...`);
+        console.log(`🤖 [BOT-HANDLER] Bot details: ID=${botId}, username=${username}`);
+        console.log(`🤖 [BOT-HANDLER] Available bots:`, Array.from(this.bots.keys()));
+        
         const messageId = data.id || `${data.user_id}-${data.channel_id || data.room_id}-${data.content}`;
         
         if (this.processedMessages.has(messageId)) {
+            console.log(`🤖 [BOT-HANDLER] Message already processed: ${messageId}`);
             return;
         }
         
@@ -86,20 +104,25 @@ class BotHandler extends EventEmitter {
         const bot = this.bots.get(botId);
         
         if (!bot) {
+            console.warn(`❌ [BOT-HANDLER] Bot not found with ID: ${botId}`);
             return;
         }
         
         if (data.user_id == botId) {
+            console.log(`🤖 [BOT-HANDLER] Ignoring message from bot itself`);
             return;
         }
 
         const content = data.content?.toLowerCase().trim();
         
         if (!content) {
+            console.log(`🤖 [BOT-HANDLER] No content in message`);
             return;
         }
 
         const isTitiBotCommand = content.startsWith('/titibot');
+        console.log(`🤖 [BOT-HANDLER] Is TitiBot command: ${isTitiBotCommand}, content: "${content}"`);
+        
         let voiceChannelToJoin = null;
         
         if (isTitiBotCommand) {
@@ -120,36 +143,45 @@ class BotHandler extends EventEmitter {
         }
 
         if (content.toLowerCase() === '/titibot ping') {
+            console.log(`🏓 [BOT-HANDLER] Processing ping command`);
             await this.sendBotResponse(io, data, messageType, botId, username, 'ping');
         } else if (content.toLowerCase().startsWith('/titibot play ')) {
+            console.log(`🎵 [BOT-HANDLER] Processing play command`);
             const isInVoice = await this.checkVoiceConnection(data.user_id, io, data, messageType, botId, username);
             if (!isInVoice) return;
             
             const songName = content.substring('/titibot play '.length).trim();
             await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
         } else if (content.toLowerCase() === '/titibot stop') {
+            console.log(`⏹️ [BOT-HANDLER] Processing stop command`);
             const isInVoice = await this.checkVoiceConnection(data.user_id, io, data, messageType, botId, username);
             if (!isInVoice) return;
             
             await this.sendBotResponse(io, data, messageType, botId, username, 'stop');
         } else if (content.toLowerCase() === '/titibot next') {
+            console.log(`⏭️ [BOT-HANDLER] Processing next command`);
             const isInVoice = await this.checkVoiceConnection(data.user_id, io, data, messageType, botId, username);
             if (!isInVoice) return;
             
             await this.sendBotResponse(io, data, messageType, botId, username, 'next');
         } else if (content.toLowerCase() === '/titibot prev') {
+            console.log(`⏮️ [BOT-HANDLER] Processing prev command`);
             const isInVoice = await this.checkVoiceConnection(data.user_id, io, data, messageType, botId, username);
             if (!isInVoice) return;
             
             await this.sendBotResponse(io, data, messageType, botId, username, 'prev');
         } else if (content.toLowerCase().startsWith('/titibot queue ')) {
+            console.log(`➕ [BOT-HANDLER] Processing queue command`);
             const isInVoice = await this.checkVoiceConnection(data.user_id, io, data, messageType, botId, username);
             if (!isInVoice) return;
             
             const songName = content.substring('/titibot queue '.length).trim();
             await this.sendBotResponse(io, data, messageType, botId, username, 'queue', songName);
         } else if (content.toLowerCase().startsWith('/titibot help')) {
+            console.log(`❓ [BOT-HANDLER] Processing help command`);
             await this.sendBotResponse(io, data, messageType, botId, username, 'help');
+        } else if (isTitiBotCommand) {
+            console.log(`❌ [BOT-HANDLER] Unknown TitiBot command: "${content}"`);
         }
     }
 
@@ -211,6 +243,8 @@ class BotHandler extends EventEmitter {
     }
 
     static async sendBotResponse(io, originalMessage, messageType, botId, username, command, parameter = null) {
+        console.log(`📤 [BOT-RESPONSE] Generating response for command: ${command}, parameter: ${parameter}`);
+        
         let responseContent;
         let musicData = null;
 
@@ -282,10 +316,18 @@ class BotHandler extends EventEmitter {
         }
 
         await new Promise(resolve => setTimeout(resolve, 3000));
+        console.log(`🚀 [BOT-RESPONSE] Sending bot message: "${responseContent}"`);
         await this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData);
     }
 
     static async sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData) {
+        console.log(`💬 [BOT-MESSAGE] Sending bot message to ${messageType}:`, {
+            botId,
+            username,
+            content: responseContent?.substring(0, 50) + '...',
+            hasMusicData: !!musicData
+        });
+        
         const channelId = originalMessage.channel_id || (originalMessage.target_type === 'channel' ? originalMessage.target_id : null);
         const roomId = originalMessage.room_id || (originalMessage.target_type === 'dm' ? originalMessage.target_id : null);
 
@@ -322,6 +364,8 @@ class BotHandler extends EventEmitter {
         
         io.to(targetRoom).emit(eventName, botResponseData);
         
+        console.log(`📡 [BOT-MESSAGE] Bot message broadcasted to room: ${targetRoom}`);
+        
         try {
             const saveData = {
                 user_id: botId.toString(),
@@ -334,6 +378,13 @@ class BotHandler extends EventEmitter {
                 mentions: [],
                 reply_message_id: originalMessage.id
             };
+            
+            console.log(`💾 [BOT-DATABASE] Saving bot message to database:`, {
+                userId: saveData.user_id,
+                targetType: saveData.target_type,
+                targetId: saveData.target_id,
+                content: saveData.content?.substring(0, 50) + '...'
+            });
             
             const http = require('http');
             const postData = JSON.stringify(saveData);
@@ -359,8 +410,10 @@ class BotHandler extends EventEmitter {
                 res.on('end', () => {
                     try {
                         const saveResult = JSON.parse(responseData);
+                        console.log(`✅ [BOT-DATABASE] Save response:`, saveResult);
                     } catch (parseError) {
                         console.error(`❌ [BOT-DATABASE] Error parsing save response:`, parseError.message);
+                        console.error(`❌ [BOT-DATABASE] Raw response:`, responseData);
                     }
                 });
             });

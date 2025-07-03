@@ -3,6 +3,7 @@ class GlobalNotificationHandler {
         this.socket = null;
         this.currentUserId = null;
         this.currentNotification = null;
+        this.processedNotifications = new Set();
         this.init();
         this.addNotificationStyles();
     }
@@ -49,11 +50,25 @@ class GlobalNotificationHandler {
             if(!this.currentUserId) return;
         };
 
+        const notificationId = `${data.message_id || data.timestamp || Date.now()}-${data.user_id}-${data.type}`;
+        
+        if (this.processedNotifications.has(notificationId)) {
+            console.log('🔄 [NOTIFICATION] Duplicate notification detected, skipping:', notificationId);
+            return;
+        }
+        
+        this.processedNotifications.add(notificationId);
+        
+        setTimeout(() => {
+            this.processedNotifications.delete(notificationId);
+        }, 30000);
+
         const isUserMention = data.type === 'user' && data.mentioned_user_id?.toString() === this.currentUserId.toString();
         const isAllMention = data.type === 'all' && data.user_id?.toString() !== this.currentUserId.toString();
         const isRoleMention = data.type === 'role' && data.mentioned_user_id?.toString() === this.currentUserId.toString();
 
         if (isUserMention || isAllMention || isRoleMention) {
+            console.log('🔔 [NOTIFICATION] Showing notification for:', { type: data.type, notificationId });
             this.showNotification(data, isAllMention, isRoleMention);
             this.playNotificationSound();
         }
@@ -385,6 +400,39 @@ window.testCorrectServerNavigation = function() {
     } else {
         console.log('🧪 [NAV-TEST] Not on a server page, testing navigation to server 13');
         window.testNotificationNavigation(13, 13, 'test-general');
+    }
+};
+
+window.testAllMentionNotification = function() {
+    console.log('🧪 [ALL-MENTION-TEST] Testing @all mention notification (should show only ONE notification)');
+    
+    const testAllMentionData = {
+        type: 'all',
+        message_id: 'test-all-' + Date.now(),
+        content: 'This is a test @all mention',
+        user_id: '999',
+        username: 'TestUser',
+        avatar_url: '/public/assets/common/default-profile-picture.png',
+        channel_id: 13,
+        target_type: 'channel',
+        target_id: 13,
+        server_id: 13,
+        timestamp: Date.now(),
+        context: {
+            server_id: 13,
+            server_name: 'Test Server',
+            channel_name: 'Test Channel',
+            server_icon: '/public/assets/common/main-logo.png'
+        }
+    };
+    
+    console.log('🧪 [ALL-MENTION-TEST] Simulating @all mention with data:', testAllMentionData);
+    
+    if (window.globalNotificationHandler) {
+        window.globalNotificationHandler.handleMentionNotification(testAllMentionData);
+        console.log('✅ [ALL-MENTION-TEST] @all mention test completed - check for single notification');
+    } else {
+        console.error('❌ [ALL-MENTION-TEST] globalNotificationHandler not found');
     }
 };
 

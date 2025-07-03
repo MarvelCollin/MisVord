@@ -473,13 +473,15 @@ class SimpleChannelSwitcher {
             if (window.ChannelVoiceParticipants) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 
-                if (instance.refreshAllChannelParticipants) {
+                if (instance && typeof instance.refreshAllChannelParticipants === 'function') {
                     instance.refreshAllChannelParticipants();
-                } else {
+                } else if (instance && typeof instance.updateAllParticipantContainers === 'function') {
                     instance.updateAllParticipantContainers();
                 }
                 
-                instance.refreshAllChannelCounts();
+                if (instance && typeof instance.refreshAllChannelCounts === 'function') {
+                    instance.refreshAllChannelCounts();
+                }
             }
 
             if (window.videoSDKManager?.isReady()) {

@@ -1558,29 +1558,27 @@ class ChatController extends BaseController
     {
         header('Content-Type: application/json');
         
-        $botApiKey = $_SERVER['HTTP_X_BOT_API_KEY'] ?? null;
-        if (!$botApiKey) {
-            return $this->unauthorized('Missing bot API key');
-        }
-        
-        $query = new Query();
-        $botUser = $query->table('users')
-            ->where('bot_api_key', $botApiKey)
-            ->where('status', 'bot')
-            ->first();
-        
-        if (!$botUser) {
-            return $this->unauthorized('Invalid bot API key');
-        }
-        
-        $userId = $botUser['id'];
-        
         $input = $this->getInput();
         if (!$input) {
             return $this->error('No input provided or failed to decode JSON', 400);
         }
 
         $input = $this->sanitize($input);
+        
+        $userId = $input['user_id'] ?? null;
+        if (!$userId) {
+            return $this->error('User ID is required', 400);
+        }
+        
+        $query = new Query();
+        $botUser = $query->table('users')
+            ->where('id', $userId)
+            ->where('status', 'bot')
+            ->first();
+        
+        if (!$botUser) {
+            return $this->unauthorized('Invalid bot user');
+        }
 
         $validationErrors = [];
         if (empty($input['target_type'])) {
