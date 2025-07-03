@@ -388,15 +388,22 @@ class ChannelVoiceParticipants {
         div.className = 'flex items-center py-1 px-2 text-gray-300 hover:text-white transition-colors duration-200';
         div.setAttribute('data-user-id', participant.id);
         
+        // Create a placeholder for the avatar that will be loaded
+        const fallbackUrl = '/public/assets/common/default-profile-picture.png';
+        
         div.innerHTML = `
             <div class="relative mr-2">
-                <img src="${participant.avatar_url}" 
+                <img src="${fallbackUrl}" 
                      alt="${participant.display_name}" 
-                     class="w-5 h-5 rounded-full bg-gray-600 user-avatar">
+                     class="w-5 h-5 rounded-full bg-gray-600 user-avatar object-cover"
+                     onerror="this.src='/public/assets/common/default-profile-picture.png'">
                 <div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-discord-green rounded-full border border-discord-dark"></div>
             </div>
             <span class="text-sm truncate">${participant.display_name}</span>
         `;
+
+        // Load the real avatar from the API
+        this.loadParticipantAvatar(div, participant.id);
 
         if (window.fallbackImageHandler) {
             const img = div.querySelector('img.user-avatar');
@@ -406,6 +413,31 @@ class ChannelVoiceParticipants {
         }
 
         return div;
+    }
+
+    loadParticipantAvatar(participantElement, userId) {
+        if (!window.userAPI) {
+            console.warn('[VOICE-PARTICIPANT] UserAPI not available for fetching participant avatar');
+            return;
+        }
+
+        const avatarImg = participantElement.querySelector('img.user-avatar');
+        if (!avatarImg) return;
+
+        // Fetch user profile to get real avatar
+        window.userAPI.getUserProfile(userId)
+            .then(response => {
+                if (response.success && response.data && response.data.user) {
+                    const user = response.data.user;
+                    if (user.avatar_url && user.avatar_url !== '/public/assets/common/default-profile-picture.png') {
+                        avatarImg.src = user.avatar_url;
+                    }
+                }
+            })
+            .catch(error => {
+                console.warn('[VOICE-PARTICIPANT] Failed to fetch user profile for avatar:', error);
+                // Keep fallback avatar if API call fails
+            });
     }
 
     updateChannelCount(channelId, count) {

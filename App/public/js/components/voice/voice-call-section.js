@@ -13,6 +13,7 @@ class VoiceCallSection {
         this.disconnectBtn = null;
         
         this.initialized = false;
+        this.streamProcessingDebounce = new Map(); // Add debouncing to prevent rapid re-processing
         this.bindEvents();
     }
 
@@ -36,8 +37,6 @@ class VoiceCallSection {
 
     init() {
         if (this.initialized) return;
-        
-        console.log('🎮 [VoiceCallSection] Initializing voice controls...');
         
         // Get button references
         this.micBtn = document.getElementById('micBtn');
@@ -69,17 +68,18 @@ class VoiceCallSection {
         }
 
         this.initialized = true;
-        console.log('✅ [VoiceCallSection] Voice controls initialized');
-        
-        // Start safety monitor to prevent screen share in participant overlays
-        this.startVideoOverlaySafetyMonitor();
         
         setInterval(() => {
             if (window.videoSDKManager?.isMeetingJoined) {
                 this.syncButtonStates();
+                // Reduce frequency and add debouncing to prevent blinking
+                if (this.lastStreamSync && (Date.now() - this.lastStreamSync) < 5000) {
+                    return; // Skip if we synced streams recently
+                }
+                this.lastStreamSync = Date.now();
                 this.syncAllParticipantStreams();
             }
-        }, 3000);
+        }, 5000); // Increased from 3000 to 5000ms to reduce frequency
         
         setTimeout(() => {
             this.retryInitialization();
@@ -91,14 +91,12 @@ class VoiceCallSection {
     retryInitialization() {
         // Retry initialization if VideoSDK is not ready yet
         if (!window.videoSDKManager?.isMeetingJoined) {
-            console.log('🔄 [VoiceCallSection] VideoSDK not ready, retrying initialization...');
             setTimeout(() => {
                 if (window.videoSDKManager?.isMeetingJoined) {
-                    console.log('✅ [VoiceCallSection] VideoSDK ready, syncing states');
                     this.syncButtonStates();
                     this.refreshParticipantGrid();
                 } else {
-                    console.log('⏳ [VoiceCallSection] VideoSDK still not ready, will continue periodic checks');
+                    // Continue periodic checks
                 }
             }, 2000);
         }
@@ -110,8 +108,6 @@ class VoiceCallSection {
 
         const participants = grid.querySelectorAll('.participant-card, .video-participant-card, .screen-share-card');
         const count = participants.length;
-
-        console.log(`🔄 [VoiceCallSection] Updating grid layout for ${count} participants`);
 
         // Update grid layout based on participant count
         if (count === 0) {
@@ -148,18 +144,15 @@ class VoiceCallSection {
             e.preventDefault();
             e.stopPropagation();
             
-            console.log('🎤 [VoiceCallSection] Mic button clicked');
-            
             if (window.videoSDKManager && typeof window.videoSDKManager.toggleMic === 'function') {
                 try {
                     const newState = window.videoSDKManager.toggleMic();
-                    console.log('🎤 [VoiceCallSection] Mic toggle result:', newState);
                     this.updateMicButton(newState);
                 } catch (error) {
-                    console.error('🎤 [VoiceCallSection] Error toggling mic:', error);
+                    // Silent error handling
                 }
             } else {
-                console.warn('VideoSDK manager not available for mic toggle');
+                // SDK not available
             }
         });
     }
@@ -171,18 +164,15 @@ class VoiceCallSection {
             e.preventDefault();
             e.stopPropagation();
             
-            console.log('📹 [VoiceCallSection] Video button clicked');
-            
             if (window.videoSDKManager && typeof window.videoSDKManager.toggleWebcam === 'function') {
                 try {
                     const newState = await window.videoSDKManager.toggleWebcam();
-                    console.log('📹 [VoiceCallSection] Video toggle result:', newState);
                     this.updateVideoButton(newState);
                 } catch (error) {
-                    console.error('📹 [VoiceCallSection] Error toggling video:', error);
+                    // Silent error handling
                 }
             } else {
-                console.warn('VideoSDK manager not available for video toggle');
+                // SDK not available
             }
         });
     }
@@ -194,13 +184,11 @@ class VoiceCallSection {
             e.preventDefault();
             e.stopPropagation();
             
-            console.log('🔇 [VoiceCallSection] Deafen button clicked');
-            
             if (window.videoSDKManager && typeof window.videoSDKManager.toggleDeafen === 'function') {
                 const newState = window.videoSDKManager.toggleDeafen();
                 this.updateDeafenButton(newState);
             } else {
-                console.warn('VideoSDK manager not available for deafen toggle');
+                // SDK not available
             }
         });
     }
@@ -212,17 +200,15 @@ class VoiceCallSection {
             e.preventDefault();
             e.stopPropagation();
             
-            console.log('🖥️ [VoiceCallSection] Screen share button clicked');
-            
             if (window.videoSDKManager && typeof window.videoSDKManager.toggleScreenShare === 'function') {
                 try {
                     const newState = await window.videoSDKManager.toggleScreenShare();
                     this.updateScreenButton(newState);
                 } catch (error) {
-                    console.error('Error toggling screen share:', error);
+                    // Silent error handling
                 }
             } else {
-                console.warn('VideoSDK manager not available for screen share toggle');
+                // SDK not available
             }
         });
     }
@@ -234,7 +220,6 @@ class VoiceCallSection {
             e.preventDefault();
             e.stopPropagation();
             
-            console.log('🎯 [VoiceCallSection] Tic Tac Toe button clicked');
             // TODO: Implement Tic Tac Toe game functionality
         });
     }
@@ -246,20 +231,16 @@ class VoiceCallSection {
             e.preventDefault();
             e.stopPropagation();
             
-            console.log('📞 [VoiceCallSection] Disconnect button clicked');
-            
             if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
                 window.voiceManager.leaveVoice();
             } else {
-                console.warn('Voice manager not available for disconnect');
+                // Voice manager not available
             }
         });
     }
 
     handleVoiceStateChanged(e) {
         const { type, state } = e.detail;
-        
-        console.log(`🔄 [VoiceCallSection] Voice state changed: ${type} = ${state}`);
         
         switch (type) {
             case 'mic':
@@ -271,7 +252,6 @@ class VoiceCallSection {
                 this.updateVideoButton(state);
                 if (window.videoSDKManager?.meeting?.localParticipant) {
                     const localId = window.videoSDKManager.meeting.localParticipant.id;
-                    console.log(`📹 [VoiceCallSection] Manually updating camera stream for local participant: ${localId}`);
                     
                     if (state) {
                         const localParticipant = window.videoSDKManager.meeting.localParticipant;
@@ -289,14 +269,12 @@ class VoiceCallSection {
                             }
                             
                             if (webcamStream) {
-                                console.log('📹 [VoiceCallSection] Found webcam stream, updating video');
                                 this.updateParticipantStream(localId, webcamStream, 'video');
                             } else {
-                                console.warn('📹 [VoiceCallSection] No webcam stream found');
+                                // No webcam stream found
                             }
                         }
                     } else {
-                        console.log('📹 [VoiceCallSection] Camera disabled, removing video stream');
                         this.updateParticipantStream(localId, null, 'video');
                     }
                 }
@@ -311,7 +289,6 @@ class VoiceCallSection {
                 // Also manually trigger screen share update for local participant
                 if (window.videoSDKManager?.meeting?.localParticipant) {
                     const localId = window.videoSDKManager.meeting.localParticipant.id;
-                    console.log(`🖥️ [VoiceCallSection] Manually updating screen share for local participant: ${localId}`);
                     
                     if (state) {
                         const localParticipant = window.videoSDKManager.meeting.localParticipant;
@@ -329,14 +306,12 @@ class VoiceCallSection {
                             }
                             
                             if (shareStream) {
-                                console.log('🖥️ [VoiceCallSection] Found screen share stream, creating card');
                                 this.updateParticipantStream(localId, shareStream, 'share');
                             } else {
-                                console.warn('🖥️ [VoiceCallSection] No screen share stream found');
+                                // No screen share stream found
                             }
                         }
                     } else {
-                        console.log('🖥️ [VoiceCallSection] Screen share disabled, removing card');
                         this.updateParticipantStream(localId, null, 'share');
                     }
                 }
@@ -421,38 +396,21 @@ class VoiceCallSection {
     }
 
     updateParticipantStream(participantId, stream, kind) {
-        console.log(`🎥 [VoiceCallSection] Updating ${kind} stream for participant:`, participantId, stream);
-        
-        // DEEP DEBUG: Log all stream details
-        if (stream) {
-            console.log(`🔍 [VoiceCallSection] DEEP DEBUG - Stream analysis:`, {
-                participantId,
-                kind,
-                streamType: typeof stream,
-                isMediaStream: stream instanceof MediaStream,
-                hasTrack: !!stream.track,
-                trackLabel: stream.track?.label,
-                trackKind: stream.track?.kind,
-                hasStream: !!stream.stream,
-                nestedStreamType: stream.stream ? typeof stream.stream : 'none',
-                videoTracks: stream instanceof MediaStream ? stream.getVideoTracks().map(t => ({label: t.label, kind: t.kind})) : 'not MediaStream',
-                allProps: Object.keys(stream)
-            });
+        // Add debouncing to prevent rapid re-processing that causes blinking
+        if (stream && this.isStreamAlreadyProcessing(participantId, stream.id || 'unknown', kind)) {
+            return; // Skip if we just processed this stream recently
         }
         
         // ENHANCED SCREEN SHARE DETECTION
         let isScreenShare = false;
         if (kind === 'share') {
             isScreenShare = true;
-            console.log(`🖥️ [VoiceCallSection] SCREEN SHARE - Detected by kind parameter`);
         } else if (stream && this.isScreenShareStream(stream)) {
             isScreenShare = true;
-            console.log(`🖥️ [VoiceCallSection] SCREEN SHARE - Detected by isScreenShareStream method`);
         }
         
         // ABSOLUTE RULE: Screen share ONLY goes to separate cards, NEVER to participant overlays
         if (isScreenShare) {
-            console.log(`🖥️ [VoiceCallSection] SCREEN SHARE CONFIRMED - ONLY creating separate card`);
             if (stream) {
                 this.createScreenShareCard(participantId, stream);
             } else {
@@ -464,11 +422,8 @@ class VoiceCallSection {
         
         // ONLY handle camera/webcam video for participant overlays
         if (kind === 'video') {
-            console.log(`🎥 [VoiceCallSection] Processing VIDEO kind for participant overlay: ${participantId}`);
-            
             const participantCard = document.querySelector(`[data-participant-id="${participantId}"]`);
             if (!participantCard) {
-                console.warn(`🎥 [VoiceCallSection] Participant card not found for ${participantId}`);
                 return;
             }
 
@@ -477,11 +432,8 @@ class VoiceCallSection {
             const defaultView = participantCard.querySelector('.participant-default-view');
 
             if (stream) {
-                console.log(`🎥 [VoiceCallSection] Setting video stream for participant ${participantId}`);
-                
                 // TRIPLE CHECK: Absolutely ensure this is NOT screen share
                 if (this.isScreenShareStream(stream)) {
-                    console.error(`🚫 [VoiceCallSection] BLOCKED: Screen share trying to enter video path - redirecting`);
                     this.updateParticipantStream(participantId, stream, 'share');
                     return;
                 }
@@ -489,15 +441,11 @@ class VoiceCallSection {
                 let mediaStream;
                 if (stream instanceof MediaStream) {
                     mediaStream = stream;
-                    console.log(`🎥 [VoiceCallSection] Using direct MediaStream`);
                 } else if (stream.track) {
                     mediaStream = new MediaStream([stream.track]);
-                    console.log(`🎥 [VoiceCallSection] Created MediaStream from track`);
                 } else if (stream.stream) {
                     mediaStream = stream.stream;
-                    console.log(`🎥 [VoiceCallSection] Using nested stream`);
                 } else {
-                    console.warn(`🎥 [VoiceCallSection] Invalid stream format for ${participantId}:`, stream);
                     return;
                 }
                 
@@ -506,82 +454,138 @@ class VoiceCallSection {
                 if (tracks.length > 0) {
                     const track = tracks[0];
                     const label = track.label?.toLowerCase() || '';
-                    console.log(`🎥 [VoiceCallSection] FINAL CHECK - Track label: "${label}"`);
                     if (label.includes('screen') || 
                         label.includes('display') ||
                         label.includes('web-contents-media-stream') ||
                         label.includes('browser-capture') ||
                         label.includes('screencapture')) {
-                        console.error(`🚫 [VoiceCallSection] FINAL BLOCK: Screen share detected in camera path - REJECTED`);
                         this.updateParticipantStream(participantId, stream, 'share');
                         return;
                     }
                 }
                 
-                console.log(`✅ [VoiceCallSection] SAFE TO PROCEED - Setting camera video for participant ${participantId}`);
-                
                 if (videoElement && mediaStream) {
+                    // IMPROVED: Better video element setup to prevent black screens
+                    videoElement.muted = true;
+                    videoElement.autoplay = true;
+                    videoElement.playsInline = true;
+                    
+                    // Clear any existing error states
+                    videoElement.onerror = null;
+                    videoElement.onloadedmetadata = null;
+                    
+                    // Set up error handling BEFORE setting stream
+                    const handleVideoError = () => {
+                        // If video fails, fall back to avatar
+                        if (videoOverlay) videoOverlay.classList.add('hidden');
+                        if (defaultView) defaultView.classList.remove('hidden');
+                        participantCard.classList.remove('video-active');
+                    };
+                    
+                    const handleVideoLoaded = () => {
+                        // Video loaded successfully
+                        if (videoOverlay) videoOverlay.classList.remove('hidden');
+                        if (defaultView) defaultView.classList.add('hidden');
+                        participantCard.classList.add('video-active');
+                    };
+                    
+                    videoElement.onerror = handleVideoError;
+                    videoElement.onloadedmetadata = handleVideoLoaded;
+                    
+                    // Set stream AFTER event handlers
                     videoElement.srcObject = mediaStream;
-                    videoElement.play().catch(e => console.warn('Video play failed:', e));
                     
-                    if (videoOverlay) videoOverlay.classList.remove('hidden');
-                    if (defaultView) defaultView.classList.add('hidden');
-                    participantCard.classList.add('video-active');
+                    // IMPROVED: Better video play handling to prevent black screens
+                    const attemptPlay = () => {
+                        const playPromise = videoElement.play();
+                        if (playPromise !== undefined) {
+                            playPromise.then(() => {
+                                // Play successful
+                                handleVideoLoaded();
+                            }).catch(e => {
+                                // If autoplay fails, try with user interaction
+                                videoElement.muted = true;
+                                
+                                // Try again after short delay
+                                setTimeout(() => {
+                                    videoElement.play().then(() => {
+                                        handleVideoLoaded();
+                                    }).catch(() => {
+                                        // Still failing, show video but may be paused
+                                        handleVideoLoaded();
+                                    });
+                                }, 100);
+                            });
+                        } else {
+                            // No play promise, assume loaded
+                            handleVideoLoaded();
+                        }
+                    };
                     
-                    console.log(`🎥 [VoiceCallSection] CAMERA video enabled for ${participantId}`);
+                    // Try to play immediately if metadata is already loaded
+                    if (videoElement.readyState >= 1) {
+                        attemptPlay();
+                    } else {
+                        // Wait for loadedmetadata event
+                        videoElement.addEventListener('loadedmetadata', attemptPlay, { once: true });
+                    }
                 } else {
-                    console.warn(`🎥 [VoiceCallSection] Video element not found for ${participantId}`);
+                    // Fallback to avatar if video setup fails
+                    if (videoElement) videoElement.srcObject = null;
+                    if (videoOverlay) videoOverlay.classList.add('hidden');
+                    if (defaultView) defaultView.classList.remove('hidden');
+                    participantCard.classList.remove('video-active');
                 }
             } else {
-                // Disable camera video
-                if (videoElement) videoElement.srcObject = null;
+                // Disable camera video - IMPROVED cleanup
+                if (videoElement) {
+                    // Clear event handlers first
+                    videoElement.onerror = null;
+                    videoElement.onloadedmetadata = null;
+                    
+                    // Properly clean up video element
+                    const currentStream = videoElement.srcObject;
+                    if (currentStream && typeof currentStream.getTracks === 'function') {
+                        // Don't stop tracks as they might be used elsewhere
+                        // Just clear the video element
+                    }
+                    videoElement.srcObject = null;
+                    videoElement.load(); // Reset video element state
+                }
                 if (videoOverlay) videoOverlay.classList.add('hidden');
                 if (defaultView) defaultView.classList.remove('hidden');
                 participantCard.classList.remove('video-active');
-                
-                console.log(`🎥 [VoiceCallSection] Camera disabled, showing avatar for ${participantId}`);
             }
         }
 
         this.updateGridLayout();
-    }
-
-    syncButtonStates() {
+    }    syncButtonStates() {
         if (!window.videoSDKManager) {
-            console.warn('🚫 [VoiceCallSection] VideoSDK manager not available for button sync');
             return;
         }
-        
-        console.log('🔄 [VoiceCallSection] Syncing button states with VideoSDK...');
         
         try {
             if (typeof window.videoSDKManager.getMicState === 'function') {
                 const micState = window.videoSDKManager.getMicState();
-                console.log('🎤 [VoiceCallSection] Mic state:', micState);
                 this.updateMicButton(micState);
             }
-            
+
             if (typeof window.videoSDKManager.getWebcamState === 'function') {
                 const webcamState = window.videoSDKManager.getWebcamState();
-                console.log('📹 [VoiceCallSection] Webcam state:', webcamState);
                 this.updateVideoButton(webcamState);
             }
-            
+
             if (typeof window.videoSDKManager.getDeafenState === 'function') {
                 const deafenState = window.videoSDKManager.getDeafenState();
-                console.log('🔇 [VoiceCallSection] Deafen state:', deafenState);
                 this.updateDeafenButton(deafenState);
             }
-            
+
             if (typeof window.videoSDKManager.getScreenShareState === 'function') {
                 const screenState = window.videoSDKManager.getScreenShareState();
-                console.log('🖥️ [VoiceCallSection] Screen share state:', screenState);
                 this.updateScreenButton(screenState);
             }
-            
-            console.log('✅ [VoiceCallSection] Button states synced successfully');
         } catch (error) {
-            console.error('❌ [VoiceCallSection] Error syncing button states:', error);
+            // Silent error handling
         }
     }
 
@@ -595,7 +599,6 @@ class VoiceCallSection {
     // Participant Management Methods
     handleParticipantJoined(e) {
         const { participant, participantObj } = e.detail;
-        console.log(`👤 [VoiceCallSection] Participant joined: ${participant}`);
         this.addParticipantToGrid(participant, participantObj);
         this.updateParticipantCount();
         this.updateActivityStatus();
@@ -603,14 +606,12 @@ class VoiceCallSection {
 
     handleParticipantLeft(e) {
         const { participant } = e.detail;
-        console.log(`👋 [VoiceCallSection] Participant left: ${participant}`);
         this.removeParticipantFromGrid(participant);
         this.updateParticipantCount();
         this.updateActivityStatus();
     }
 
     handleMeetingJoined() {
-        console.log(`🎉 [VoiceCallSection] Meeting fully joined, refreshing grid`);
         this.refreshParticipantGrid();
         this.updateParticipantCount();
         this.updateActivityStatus();
@@ -621,30 +622,8 @@ class VoiceCallSection {
         const eventType = e.type;
         const isEnabled = eventType === 'videosdkStreamEnabled';
         
-        console.log(`🎬 [VoiceCallSection] Stream event: ${eventType} for ${participant}, kind: ${kind}`, {
-            hasStream: !!stream,
-            hasTrack: !!(stream && stream.track),
-            streamDetails: stream,
-        });
-        
-        // ENHANCED DEBUGGING for stream classification
-        if (stream && kind === 'video') {
-            console.log(`🔍 [VoiceCallSection] ANALYZING VIDEO STREAM for classification:`, {
-                participant,
-                kind,
-                streamType: typeof stream,
-                isMediaStream: stream instanceof MediaStream,
-                hasTrack: !!stream.track,
-                trackLabel: stream.track?.label,
-                trackKind: stream.track?.kind,
-                videoTrackLabels: stream instanceof MediaStream ? 
-                    stream.getVideoTracks().map(t => t.label) : 'not MediaStream'
-            });
-        }
-        
         // ABSOLUTE RULE: ANY screen share detection = separate card ONLY
         if (kind === 'share' || (stream && this.isScreenShareStream(stream))) {
-            console.log(`🖥️ [VoiceCallSection] SCREEN SHARE DETECTED - Creating separate card ONLY`);
             if (isEnabled && stream) {
                 this.createScreenShareCard(participant, stream);
             } else {
@@ -657,13 +636,11 @@ class VoiceCallSection {
         // Extra safety check for video events - FORCE screen detection
         if (kind === 'video' && stream && isEnabled) {
             const label = stream.track?.label?.toLowerCase() || '';
-            console.log(`🔍 [VoiceCallSection] Extra safety check - video track label: "${label}"`);
             if (label.includes('screen') || 
                 label.includes('display') ||
                 label.includes('web-contents-media-stream') ||
                 label.includes('browser-capture') ||
                 label.includes('screencapture')) {
-                console.log(`🚫 [VoiceCallSection] INTERCEPTED: Screen/display in video label - FORCE redirecting to screen share card`);
                 this.createScreenShareCard(participant, stream);
                 this.updateGridLayout();
                 return; // EARLY EXIT
@@ -674,13 +651,11 @@ class VoiceCallSection {
                 const videoTracks = stream.getVideoTracks();
                 for (const track of videoTracks) {
                     const trackLabel = track.label?.toLowerCase() || '';
-                    console.log(`🔍 [VoiceCallSection] Checking MediaStream video track: "${trackLabel}"`);
                     if (trackLabel.includes('screen') || 
                         trackLabel.includes('display') ||
                         trackLabel.includes('web-contents-media-stream') ||
                         trackLabel.includes('browser-capture') ||
                         trackLabel.includes('screencapture')) {
-                        console.log(`🚫 [VoiceCallSection] INTERCEPTED: Screen detected in MediaStream track - FORCE redirecting`);
                         this.createScreenShareCard(participant, stream);
                         this.updateGridLayout();
                         return; // EARLY EXIT
@@ -691,7 +666,6 @@ class VoiceCallSection {
         
         // Only handle legitimate camera/webcam video for participant overlays
         if (kind === 'video') {
-            console.log(`✅ [VoiceCallSection] Processing as CAMERA video for participant overlay: ${participant}`);
             this.updateParticipantStream(participant, isEnabled ? stream : null, 'video');
         }
         
@@ -703,16 +677,13 @@ class VoiceCallSection {
     addParticipantToGrid(participantId, participantObj) {
         const grid = document.getElementById('participantGrid');
         if (!grid) {
-            console.error('❌ [VoiceCallSection] Participant grid not found');
             return;
         }
 
         if (grid.querySelector(`[data-participant-id="${participantId}"]`)) {
-            console.log(`⚠️ [VoiceCallSection] Participant ${participantId} already exists in grid`);
             return;
         }
 
-        console.log(`➕ [VoiceCallSection] Adding participant ${participantId} to grid`);
         const participantElement = this.createParticipantElement(participantId, participantObj);
         grid.appendChild(participantElement);
         
@@ -721,7 +692,6 @@ class VoiceCallSection {
         }, 100);
         
         this.updateGridLayout();
-        console.log(`✅ [VoiceCallSection] Participant ${participantId} added to grid`);
     }
 
     removeParticipantFromGrid(participantId) {
@@ -732,7 +702,6 @@ class VoiceCallSection {
         const element = grid.querySelector(`[data-participant-id="${participantId}"]`);
         if (element) {
             element.remove();
-            console.log(`👋 [VoiceCallSection] Removed participant card for ${participantId}`);
         }
 
         // Also remove associated screen share card if it exists
@@ -747,6 +716,9 @@ class VoiceCallSection {
         participant.setAttribute('data-participant-id', participantId);
 
         const name = participantObj?.displayName || participantObj?.name || 'Unknown';
+        // Clean display name by removing user ID suffix if present
+        const displayName = name.includes('_') && !isNaN(name.split('_').pop()) ? 
+            name.substring(0, name.lastIndexOf('_')) : name;
         const isLocal = participantId === window.videoSDKManager?.meeting?.localParticipant?.id;
 
         participant.innerHTML = `
@@ -756,7 +728,7 @@ class VoiceCallSection {
                 
                 <!-- Video overlay info -->
                 <div class="video-overlay-info absolute bottom-2 left-2 right-2 bg-black/70 backdrop-blur-sm rounded px-2 py-1 flex items-center justify-between">
-                    <span class="text-white text-sm font-medium truncate">${name}${isLocal ? ' (You)' : ''}</span>
+                    <span class="text-white text-sm font-medium truncate">${displayName}${isLocal ? ' (You)' : ''}</span>
                     <div class="flex items-center space-x-1">
                         <!-- Voice indicator -->
                         <div class="voice-indicator w-3 h-3 rounded-full bg-[#3ba55c] hidden animate-pulse"></div>
@@ -770,8 +742,9 @@ class VoiceCallSection {
             
             <!-- Default avatar view -->
             <div class="participant-default-view flex flex-col items-center justify-center w-full h-full">
-                <div class="participant-avatar w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xl mb-3 relative ${isLocal ? 'local-participant' : ''}">
-                    <span class="participant-initials">${this.getInitials(name)}</span>
+                <div class="participant-avatar w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xl mb-3 relative ${isLocal ? 'local-participant' : ''} overflow-hidden">
+                    <img class="participant-avatar-img w-full h-full object-cover rounded-full hidden" src="" alt="${displayName}">
+                    <span class="participant-initials">${this.getInitials(displayName)}</span>
                     
                     <!-- Voice indicator -->
                     <div class="voice-indicator absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#3ba55c] border-2 border-[#2f3136] hidden z-20">
@@ -792,7 +765,7 @@ class VoiceCallSection {
 
         // Add double-click handler for fullscreen
         participant.addEventListener('dblclick', () => {
-            console.log(`🖼️ [VoiceCallSection] Double-click detected for participant: ${participantId}`);
+            // Double-click detected for participant
             this.toggleParticipantFullscreen(participantId);
         });
         
@@ -804,20 +777,21 @@ class VoiceCallSection {
             }, 150);
         });
 
+        // Load real profile picture
+        this.loadParticipantAvatar(participant, participantId, name, isLocal);
+
         return participant;
     }
 
     createScreenShareCard(participantId, stream) {
         const grid = document.getElementById('participantGrid');
         if (!grid) {
-            console.error('❌ [VoiceCallSection] Participant grid not found for screen share');
             return;
         }
 
         // Check if screen share card already exists
         const existingCard = grid.querySelector(`[data-screen-share-id="${participantId}"]`);
         if (existingCard) {
-            console.log(`🖥️ [VoiceCallSection] Updating existing screen share card for ${participantId}`);
             const video = existingCard.querySelector('.screen-share-video');
             if (video && stream) {
                 let mediaStream;
@@ -831,7 +805,9 @@ class VoiceCallSection {
                 
                 if (mediaStream) {
                     video.srcObject = mediaStream;
-                    video.play().catch(e => console.warn('Screen share video play failed:', e));
+                    video.play().catch(e => {
+                        // Silent error handling for video play failure
+                    });
                 }
             }
             return;
@@ -840,8 +816,6 @@ class VoiceCallSection {
         // Get participant name for the screen share card
         const participantElement = document.querySelector(`[data-participant-id="${participantId}"]`);
         const participantName = participantElement?.querySelector('.participant-name')?.textContent || 'Unknown';
-
-        console.log(`🖥️ [VoiceCallSection] Creating screen share card for ${participantId} (${participantName})`);
 
         // Create screen share card
         const screenShareCard = document.createElement('div');
@@ -869,7 +843,7 @@ class VoiceCallSection {
 
         // Add double-click handler for fullscreen
         screenShareCard.addEventListener('dblclick', () => {
-            console.log(`🖥️ [VoiceCallSection] Double-click detected on screen share for: ${participantId}`);
+            // Double-click detected on screen share
             this.toggleParticipantFullscreen(participantId);
         });
         
@@ -899,17 +873,17 @@ class VoiceCallSection {
             }
             
             if (mediaStream) {
-                video.srcObject = mediaStream;
-                video.play().catch(e => console.warn('Screen share video play failed:', e));
+                // IMPROVED: Better screen share video setup to prevent black screens
+                video.muted = true;
+                video.autoplay = true;
+                video.playsInline = true;
                 
-                video.addEventListener('loadedmetadata', () => {
-                    console.log(`🖥️ [VoiceCallSection] Screen share video loaded for ${participantId}`);
+                const handleVideoLoaded = () => {
                     if (loading) loading.classList.add('hidden');
                     this.updateGridLayout();
-                });
+                };
                 
-                video.addEventListener('error', (e) => {
-                    console.error('🖥️ [VoiceCallSection] Screen share video error:', e);
+                const handleVideoError = () => {
                     if (loading) {
                         loading.innerHTML = `
                             <div class="flex flex-col items-center space-y-2">
@@ -918,14 +892,47 @@ class VoiceCallSection {
                             </div>
                         `;
                     }
-                });
+                };
+                
+                video.addEventListener('loadedmetadata', handleVideoLoaded);
+                video.addEventListener('error', handleVideoError);
+                
+                video.srcObject = mediaStream;
+                
+                // IMPROVED: Better play handling for screen share
+                const attemptPlay = () => {
+                    const playPromise = video.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            handleVideoLoaded();
+                        }).catch(e => {
+                            // Try again with explicit settings
+                            video.muted = true;
+                            setTimeout(() => {
+                                video.play().then(() => {
+                                    handleVideoLoaded();
+                                }).catch(() => {
+                                    // Still failing, but show video element
+                                    handleVideoLoaded();
+                                });
+                            }, 100);
+                        });
+                    } else {
+                        handleVideoLoaded();
+                    }
+                };
+                
+                if (video.readyState >= 1) {
+                    attemptPlay();
+                } else {
+                    video.addEventListener('loadedmetadata', attemptPlay, { once: true });
+                }
             }
         }
 
         // Add the card to the grid
         grid.appendChild(screenShareCard);
         this.updateGridLayout();
-        console.log(`✅ [VoiceCallSection] Screen share card created for ${participantId}`);
     }
 
     removeScreenShareCard(participantId) {
@@ -934,18 +941,22 @@ class VoiceCallSection {
 
         const screenShareCard = grid.querySelector(`[data-screen-share-id="${participantId}"]`);
         if (screenShareCard) {
-            console.log(`🖥️ [VoiceCallSection] Removing screen share card for ${participantId}`);
-            
-            // Clean up video stream
+            // IMPROVED: Clean up video stream properly
             const video = screenShareCard.querySelector('.screen-share-video');
-            if (video && video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
-                video.srcObject = null;
+            if (video) {
+                // Clear event handlers first
+                video.onloadedmetadata = null;
+                video.onerror = null;
+                
+                // Clean up stream without stopping tracks (they might be used elsewhere)
+                if (video.srcObject) {
+                    video.srcObject = null;
+                }
+                video.load(); // Reset video element state
             }
             
             screenShareCard.remove();
             this.updateGridLayout();
-            console.log(`✅ [VoiceCallSection] Screen share card removed for ${participantId}`);
         }
     }
 
@@ -1043,20 +1054,15 @@ class VoiceCallSection {
     checkParticipantStreams(participant) {
         if (!participant || !participant.streams) return;
         
-        console.log(`🔍 [VoiceCallSection] Checking streams for participant: ${participant.id}`);
+        // Add debouncing to prevent rapid re-processing 
+        if (this.isStreamAlreadyProcessing(participant.id, 'check-streams', 'all')) {
+            return;
+        }
         
         participant.streams.forEach((stream, streamId) => {
             if (stream && stream.track && stream.track.kind === 'video') {
-                console.log(`🔍 [VoiceCallSection] Analyzing stream ${streamId}:`, {
-                    streamKind: stream.kind,
-                    trackKind: stream.track.kind,
-                    trackLabel: stream.track.label,
-                    streamObj: stream
-                });
-                
                 // PRIORITY 1: Check if the stream object itself says it's a share
                 if (stream.kind === 'share') {
-                    console.log(`🖥️ [VoiceCallSection] STREAM KIND IS SHARE - Creating separate card ONLY for ${participant.id}: ${streamId}`);
                     this.updateParticipantStream(participant.id, stream, 'share');
                     return;
                 }
@@ -1070,10 +1076,8 @@ class VoiceCallSection {
                                     label.includes('screencapture');
                 
                 if (isScreenShare) {
-                    console.log(`🖥️ [VoiceCallSection] SCREEN SHARE DETECTED BY LABEL - Creating separate card ONLY for ${participant.id}: ${streamId}`);
                     this.updateParticipantStream(participant.id, stream, 'share');
                 } else {
-                    console.log(`🎥 [VoiceCallSection] CONFIRMED CAMERA - Applying to participant overlay for ${participant.id}: ${streamId}`);
                     this.updateParticipantStream(participant.id, stream, 'video');
                 }
             }
@@ -1091,7 +1095,6 @@ class VoiceCallSection {
     toggleParticipantFullscreen(participantId) {
         const element = document.querySelector(`[data-participant-id="${participantId}"]`);
         if (!element) {
-            console.warn(`🖼️ [VoiceCallSection] Participant element not found: ${participantId}`);
             return;
         }
 
@@ -1105,11 +1108,8 @@ class VoiceCallSection {
         }
         
         if (!video || !video.srcObject) {
-            console.warn(`🖼️ [VoiceCallSection] No active video found for participant: ${participantId}`);
             return;
         }
-
-        console.log(`🖼️ [VoiceCallSection] Opening fullscreen ${isScreenShare ? 'screen share' : 'camera'} for participant: ${participantId}`);
 
         // Create fullscreen overlay
         const overlay = document.createElement('div');
@@ -1222,7 +1222,6 @@ class VoiceCallSection {
         };
 
         window.globalSocketManager.updatePresence('dnd', activityDetails, 'voice-call-section');
-        console.log('🎮 [VoiceCallSection] Updated activity status:', activityDetails);
     }
 
     syncAllParticipantStreams() {
@@ -1249,33 +1248,20 @@ class VoiceCallSection {
     // Helper method to detect if a stream is a screen share
     isScreenShareStream(stream) {
         if (!stream) {
-            console.log(`🔍 [VoiceCallSection] isScreenShareStream: No stream provided`);
             return false;
         }
-        
-        console.log(`🔍 [VoiceCallSection] isScreenShareStream: Analyzing stream:`, {
-            streamType: typeof stream,
-            isMediaStream: stream instanceof MediaStream,
-            hasTrack: !!stream.track,
-            hasStreamProp: !!stream.stream,
-            trackLabel: stream.track?.label,
-            trackKind: stream.track?.kind
-        });
         
         // Check MediaStream format
         if (stream instanceof MediaStream) {
             const videoTracks = stream.getVideoTracks();
-            console.log(`🔍 [VoiceCallSection] MediaStream check: ${videoTracks.length} video tracks`);
             if (videoTracks.length > 0) {
                 const track = videoTracks[0];
                 const label = track.label?.toLowerCase() || '';
-                console.log(`🔍 [VoiceCallSection] Track label: "${label}"`);
                 const isScreen = label.includes('screen') || 
                                label.includes('display') ||
                                label.includes('web-contents-media-stream') ||
                                label.includes('browser-capture') ||
                                label.includes('screencapture');
-                if (isScreen) console.log(`🖥️ [VoiceCallSection] SCREEN DETECTED in MediaStream track label`);
                 return isScreen;
             }
         }
@@ -1283,17 +1269,14 @@ class VoiceCallSection {
         // Check nested stream format
         if (stream.stream instanceof MediaStream) {
             const videoTracks = stream.stream.getVideoTracks();
-            console.log(`🔍 [VoiceCallSection] Nested MediaStream check: ${videoTracks.length} video tracks`);
             if (videoTracks.length > 0) {
                 const track = videoTracks[0];
                 const label = track.label?.toLowerCase() || '';
-                console.log(`🔍 [VoiceCallSection] Nested track label: "${label}"`);
                 const isScreen = label.includes('screen') || 
                                label.includes('display') ||
                                label.includes('web-contents-media-stream') ||
                                label.includes('browser-capture') ||
                                label.includes('screencapture');
-                if (isScreen) console.log(`🖥️ [VoiceCallSection] SCREEN DETECTED in nested MediaStream track label`);
                 return isScreen;
             }
         }
@@ -1301,17 +1284,14 @@ class VoiceCallSection {
         // Check track-based format
         if (stream.track && stream.track.kind === 'video') {
             const label = stream.track.label?.toLowerCase() || '';
-            console.log(`🔍 [VoiceCallSection] Direct track check: "${label}"`);
             const isScreen = label.includes('screen') || 
                            label.includes('display') || 
                            label.includes('web-contents-media-stream') ||
                            label.includes('browser-capture') ||
                            label.includes('screencapture');
-            if (isScreen) console.log(`🖥️ [VoiceCallSection] SCREEN DETECTED in direct track label`);
             return isScreen;
         }
         
-        console.log(`🔍 [VoiceCallSection] isScreenShareStream: No screen share detected`);
         return false;
     }
 
@@ -1346,53 +1326,113 @@ class VoiceCallSection {
     // REMOVED: All complex cleaning functions
     // Screen share should NEVER be set on participant overlays in the first place
 
+    isStreamAlreadyProcessing(participantId, streamId, action) {
+        const key = `${participantId}-${streamId}-${action}`;
+        const now = Date.now();
+        const lastProcessed = this.streamProcessingDebounce.get(key);
+        
+        // Debounce for 1000ms to prevent rapid re-processing
+        if (lastProcessed && (now - lastProcessed) < 1000) {
+            return true;
+        }
+        
+        this.streamProcessingDebounce.set(key, now);
+        return false;
+    }
+
     // Safety monitor to prevent screen share in participant overlays
     startVideoOverlaySafetyMonitor() {
-        console.log('🛡️ [VoiceCallSection] Starting video overlay safety monitor');
+        // REMOVED: This was causing blinking by constantly re-processing streams
+    }
+
+    loadParticipantAvatar(participantElement, participantId, name, isLocal) {
+        // Get the avatar image element
+        const avatarImg = participantElement.querySelector('.participant-avatar-img');
+        const avatarContainer = participantElement.querySelector('.participant-avatar');
+        const initialsSpan = participantElement.querySelector('.participant-initials');
         
-        setInterval(() => {
-            const participantCards = document.querySelectorAll('[data-participant-id]');
+        if (!avatarImg || !avatarContainer || !initialsSpan) return;
+        
+        // For local user, get avatar from meta tags or session
+        if (isLocal) {
+            const userAvatar = document.querySelector('meta[name="user-avatar"]')?.content || 
+                              document.querySelector('meta[name="username"]')?.getAttribute('data-avatar') ||
+                              '/public/assets/common/default-profile-picture.png';
             
-            participantCards.forEach(card => {
-                const participantId = card.getAttribute('data-participant-id');
-                const videoOverlay = card.querySelector('.participant-video-overlay video');
-                
-                if (videoOverlay && videoOverlay.srcObject) {
-                    const stream = videoOverlay.srcObject;
-                    if (stream instanceof MediaStream) {
-                        const videoTracks = stream.getVideoTracks();
-                        videoTracks.forEach(track => {
-                            const label = track.label?.toLowerCase() || '';
-                            if (label.includes('screen') || 
-                                label.includes('display') ||
-                                label.includes('web-contents-media-stream') ||
-                                label.includes('browser-capture') ||
-                                label.includes('screencapture')) {
-                                console.error(`🚨 [VoiceCallSection] SAFETY VIOLATION: Screen share detected in participant overlay for ${participantId} - REMOVING`);
-                                
-                                // Immediately remove the screen share from participant overlay
-                                videoOverlay.srcObject = null;
-                                
-                                // Hide video overlay and show default view
-                                const overlay = card.querySelector('.participant-video-overlay');
-                                const defaultView = card.querySelector('.participant-default-view');
-                                if (overlay && defaultView) {
-                                    overlay.classList.add('hidden');
-                                    defaultView.classList.remove('hidden');
-                                }
-                                
-                                // Create proper screen share card instead
-                                const properStream = new MediaStream([track]);
-                                this.createScreenShareCard(participantId, properStream);
-                                
-                                // Force grid layout update
-                                this.updateGridLayout();
-                            }
-                        });
+            if (userAvatar && userAvatar !== '/public/assets/common/default-profile-picture.png') {
+                avatarImg.src = userAvatar;
+                avatarImg.onload = () => {
+                    avatarImg.classList.remove('hidden');
+                    initialsSpan.classList.add('hidden');
+                };
+                avatarImg.onerror = () => {
+                    // Keep initials visible if image fails to load
+                    avatarImg.classList.add('hidden');
+                    initialsSpan.classList.remove('hidden');
+                };
+            }
+            return;
+        }
+        
+        // For remote users, try to fetch from user API
+        if (!window.userAPI) {
+            console.warn('UserAPI not available for fetching participant avatar');
+            return;
+        }
+        
+        // Extract user ID from participant ID if it's a valid format
+        let userId = participantId;
+        
+        // Try multiple methods to extract user ID
+        if (typeof participantId === 'string') {
+            // Method 1: Extract from participant name format "username_userid"
+            if (participantId.includes('_')) {
+                const parts = participantId.split('_');
+                if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
+                    userId = parts[parts.length - 1];
+                }
+            }
+        }
+        
+        // Method 2: Extract from participant name format "username_userid"
+        if (name && typeof name === 'string' && name.includes('_')) {
+            const nameParts = name.split('_');
+            if (nameParts.length > 1 && !isNaN(nameParts[nameParts.length - 1])) {
+                userId = nameParts[nameParts.length - 1];
+            }
+        }
+        
+        // Method 3: Get from meta tag if local user
+        if (isLocal) {
+            const userIdMeta = document.querySelector('meta[name="user-id"]')?.content;
+            if (userIdMeta && !isNaN(userIdMeta)) {
+                userId = userIdMeta;
+            }
+        }
+        
+        // Fetch user profile to get avatar
+        window.userAPI.getUserProfile(userId)
+            .then(response => {
+                if (response.success && response.data && response.data.user) {
+                    const user = response.data.user;
+                    if (user.avatar_url && user.avatar_url !== '/public/assets/common/default-profile-picture.png') {
+                        avatarImg.src = user.avatar_url;
+                        avatarImg.onload = () => {
+                            avatarImg.classList.remove('hidden');
+                            initialsSpan.classList.add('hidden');
+                        };
+                        avatarImg.onerror = () => {
+                            // Keep initials visible if image fails to load
+                            avatarImg.classList.add('hidden');
+                            initialsSpan.classList.remove('hidden');
+                        };
                     }
                 }
+            })
+            .catch(error => {
+                console.warn('Failed to fetch user profile for avatar:', error);
+                // Keep initials visible if API call fails
             });
-        }, 1000); // Check every second
     }
 }
 

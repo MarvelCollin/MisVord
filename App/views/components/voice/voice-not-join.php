@@ -283,13 +283,17 @@ async function joinVoiceChannel() {
         const meetingId = window.voiceManager.currentMeetingId;
         const channelId = document.querySelector('meta[name="channel-id"]')?.content;
         const userName = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
+        const userId = document.querySelector('meta[name="user-id"]')?.content || window.currentUserId || '';
+        
+        // Create participant name with user ID for avatar lookup
+        const participantName = userId ? `${userName}_${userId}` : userName;
         
         if (!meetingId) {
             throw new Error('Meeting ID not available from voice manager');
         }
         
         console.log('[Voice Not Join] Initializing VideoSDK meeting...');
-        await window.videoSDKManager.externalInitMeeting(meetingId, userName, true, false);
+        await window.videoSDKManager.externalInitMeeting(meetingId, participantName, true, false);
         
         console.log('[Voice Not Join] Joining VideoSDK meeting...');
         await window.videoSDKManager.externalJoinMeeting();
@@ -301,6 +305,10 @@ async function joinVoiceChannel() {
             console.log('[Voice Not Join] Waiting for VideoSDK to be fully ready...');
             await window.waitForVideoSDKReady();
         }
+        
+        // Wait for voice call section to be fully loaded and ready
+        console.log('[Voice Not Join] Waiting for voice call section to be ready...');
+        await waitForVoiceCallSectionReady();
         
         console.log('[Voice Not Join] ✅ Voice channel join completed successfully');
         
@@ -319,14 +327,60 @@ async function joinVoiceChannel() {
             }, 3000);
         }
         
-        // Reset UI state on error
-        if (joinBtn) joinBtn.disabled = false;
-        if (joinView) joinView.classList.remove('hidden');
-        if (connectingView) connectingView.classList.add('hidden');
+        // Reset UI state on error - with longer delay to prevent flickering and ensure voice call section has time to load
+        setTimeout(() => {
+            // Only reset UI if voice call section is not ready or visible
+            const voiceCallContainer = document.getElementById('voice-call-container');
+            const isVoiceCallVisible = voiceCallContainer && !voiceCallContainer.classList.contains('hidden');
+            
+            if (!isVoiceCallVisible) {
+                if (joinBtn) joinBtn.disabled = false;
+                if (joinView) joinView.classList.remove('hidden');
+                if (connectingView) connectingView.classList.add('hidden');
+            }
+        }, 2000); // Increased delay to allow voice call section to load
         
         this.isProcessing = false;
     }
 }
+
+async function waitForVoiceCallSectionReady(timeout = 5000) {
+    return new Promise((resolve) => {
+        const startTime = Date.now();
+        
+        const checkReady = () => {
+            // Check if voice call section container is visible and loaded
+            const voiceCallContainer = document.getElementById('voice-call-container');
+            const participantGrid = document.getElementById('participantGrid');
+            const voiceControls = document.querySelector('.voice-controls');
+            
+            const isVoiceCallContainerVisible = voiceCallContainer && !voiceCallContainer.classList.contains('hidden');
+            const hasParticipantGrid = participantGrid !== null;
+            const hasVoiceControls = voiceControls !== null;
+            const isVoiceCallSectionReady = window.voiceCallSection && window.voiceCallSection.initialized;
+            
+            if (isVoiceCallContainerVisible && hasParticipantGrid && hasVoiceControls && isVoiceCallSectionReady) {
+                console.log('[Voice Not Join] Voice call section is ready');
+                resolve(true);
+                return;
+            }
+            
+            const elapsed = Date.now() - startTime;
+            if (elapsed >= timeout) {
+                console.warn('[Voice Not Join] Timeout waiting for voice call section to be ready');
+                resolve(false);
+                return;
+            }
+            
+            // Continue checking
+            setTimeout(checkReady, 100);
+        };
+        
+        checkReady();
+    });
+}
+
+
 
 function startVoiceLoadingSequence() {
     const loadingProgress = document.getElementById('loadingProgress');

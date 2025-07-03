@@ -18,6 +18,8 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 <meta name="meeting-id" content="<?php echo htmlspecialchars($meetingId); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($userName); ?>">
+<meta name="user-id" content="<?php echo htmlspecialchars($_SESSION['user_id'] ?? ''); ?>">
+<meta name="user-avatar" content="<?php echo htmlspecialchars($_SESSION['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'); ?>">
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
 <meta name="server-id" content="<?php echo htmlspecialchars($currentServer->id ?? ''); ?>">
 

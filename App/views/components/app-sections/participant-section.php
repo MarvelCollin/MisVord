@@ -19,14 +19,21 @@ $roleGroups = [
 foreach ($members as $member) {
     $role = $member['role'] ?? 'member';
     $isBot = isset($member['status']) && $member['status'] === 'bot';
-    $isOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
+    
+    // Check if user is in voice (activity details might not be available server-side initially)
+    $isInVoice = false; // This will be updated by JavaScript for real-time data
+    
+    // Rule: If bubble indicator would be grey and not in voice, put in offline section
+    $isActuallyOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
+    $hasGreyStatus = !in_array($member['status'], ['online', 'appear', 'afk', 'do_not_disturb']) && !$isBot;
+    $shouldShowAsOffline = ($isActuallyOffline || $hasGreyStatus) && !$isInVoice;
     
     if ($isBot) {
         $roleGroups['bot'][] = $member;
         continue;
     }
     
-    if ($isOffline) {
+    if ($shouldShowAsOffline) {
         $roleGroups['offline'][] = $member;
         continue;
     }
@@ -94,21 +101,20 @@ foreach ($members as $member) {
                     </h4>
                     <div class="space-y-0.5 members-list">
                         <?php foreach ($roleMembers as $member):
-                            $statusColor = 'bg-gray-500';
+                            // Note: Activity details for "In Voice" check will be handled by JavaScript
+                            // This is initial server-side rendering, real-time updates happen via JS
+                            $statusColor = 'bg-[#747f8d]'; // Default grey
                             
                             switch ($member['status']) {
                                 case 'appear':
                                 case 'online':
                                     $statusColor = 'bg-discord-green';
                                     break;
-                                case 'invisible':
-                                    $statusColor = 'bg-gray-500';
+                                case 'afk':
+                                    $statusColor = 'bg-yellow-500';
                                     break;
                                 case 'do_not_disturb':
                                     $statusColor = 'bg-discord-red';
-                                    break;
-                                case 'offline':
-                                    $statusColor = 'bg-[#747f8d]';
                                     break;
                                 case 'bot':
                                     $statusColor = 'bg-blue-500';
@@ -116,8 +122,11 @@ foreach ($members as $member) {
                                 case 'banned':
                                     $statusColor = 'bg-black';
                                     break;
+                                case 'invisible':
+                                case 'offline':
                                 default:
-                                    $statusColor = 'bg-discord-green';
+                                    $statusColor = 'bg-[#747f8d]'; // Grey for offline/unknown
+                                    break;
                             }
                             
                             $isOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
@@ -324,7 +333,16 @@ function scheduleUpdate() {
     }, 50);
 }
 
-function getStatusClass(status) {
+function getStatusClass(status, activityDetails) {
+    // Rule: If presence is "In Voice" then bubble indicator must be green
+    const isInVoice = activityDetails?.type && 
+                      (activityDetails.type === 'In Voice Call' || 
+                       activityDetails.type.startsWith('In Voice'));
+    
+    if (isInVoice) {
+        return 'bg-discord-green';
+    }
+    
     switch (status) {
         case 'online':
         case 'appear':
@@ -367,7 +385,7 @@ function getActivityText(activityDetails, status) {
 }
 
 function updateParticipantDisplay() {
-    console.log('🔄 [PARTICIPANT] Updating participant display with online filtering');
+    console.log('🔄 [PARTICIPANT] Updating participant display with online filtering and voice priority rules');
     
     const roleGroups = {
         'owner': [],
@@ -421,10 +439,20 @@ function updateParticipantDisplay() {
         member._correctedUserData = userData;
         
         const isOnline = userData && (userData.status === 'online' || userData.status === 'afk');
+        const isInVoice = userData?.activity_details?.type && 
+                          (userData.activity_details.type === 'In Voice Call' || 
+                           userData.activity_details.type.startsWith('In Voice'));
+        const isActuallyOffline = userData?.status === 'offline' || userData?.status === 'invisible';
+        
+        // Rule: If bubble indicator would be grey and not in voice, put in offline section
+        const wouldHaveGreyBubble = !isOnline && !isInVoice;
+        const shouldShowAsOffline = (isActuallyOffline || wouldHaveGreyBubble) && !isInVoice;
         
         if (isBot) {
             roleGroups['bot'].push(member);
-        } else if (isOnline) {
+        } else if (shouldShowAsOffline) {
+            roleGroups['offline'].push(member);
+        } else {
             if (role === 'owner') {
                 roleGroups['owner'].push(member);
             } else if (role === 'admin') {
@@ -432,8 +460,6 @@ function updateParticipantDisplay() {
             } else {
                 roleGroups['member'].push(member);
             }
-        } else {
-            roleGroups['offline'].push(member);
         }
     });
     
@@ -477,8 +503,8 @@ function updateParticipantDisplay() {
             const isOnline = userData && (userData.status === 'online' || userData.status === 'afk');
             const isOffline = role === 'offline' || !isOnline;
             
-            const statusColor = getStatusClass(status);
             const activityDetails = userData?.activity_details;
+            const statusColor = getStatusClass(status, activityDetails);
             const activityText = getActivityText(activityDetails, status);
             
             if (String(member.id) === String(currentUserId)) {
@@ -544,7 +570,9 @@ function updateParticipantDisplay() {
         });
     }
     
-    console.log('✅ [PARTICIPANT] Participant display updated with online filtering');
+    console.log('✅ [PARTICIPANT] Participant display updated with voice priority rules:');
+    console.log('   - Users "In Voice" always have green bubble indicator');
+    console.log('   - Users with grey bubble indicator (not online/afk/dnd) go to offline section unless in voice');
 }
 
 function initializeServerSearch() {
