@@ -66,12 +66,13 @@ document.addEventListener('DOMContentLoaded', function() {
         switch (activityDetails.type) {
             case 'playing Tic Tac Toe':
                 return 'Playing Tic Mac Voe';
-            case 'In Voice Call':
-                return 'In Voice Call';
             case 'afk':
                 return 'Away';
             case 'idle':
             default:
+                if (activityDetails.type.startsWith('In Voice - ')) {
+                    return activityDetails.type;
+                }
                 return 'Online';
         }
     }
@@ -84,12 +85,13 @@ document.addEventListener('DOMContentLoaded', function() {
         switch (activityDetails.type) {
             case 'playing Tic Tac Toe':
                 return 'fa-solid fa-gamepad';
-            case 'In Voice Call':
-                return 'fa-solid fa-microphone';
             case 'afk':
                 return 'fa-solid fa-clock';
             case 'idle':
             default:
+                if (activityDetails.type.startsWith('In Voice - ')) {
+                    return 'fa-solid fa-microphone';
+                }
                 return 'fa-solid fa-circle';
         }
     }
@@ -226,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         const currentUserId = window.globalSocketManager?.userId;
-        if (currentUserId && window.globalSocketManager?.currentActivityDetails?.type === 'In Voice Call') {
+        if (currentUserId && window.globalSocketManager?.currentActivityDetails?.type?.startsWith('In Voice - ')) {
             const currentUserData = onlineUsers[currentUserId];
             if (currentUserData && !activeFriends.find(f => f.id === currentUserId)) {
                 const currentUser = {
@@ -326,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     case 'user-online':
                     case 'user-offline':
                     case 'user-presence-update':
-                        if (data && data.activity_details && data.activity_details.type === 'In Voice Call') {
+                        if (data && data.activity_details && data.activity_details.type && data.activity_details.type.startsWith('In Voice - ')) {
                             console.log('🎤 [ACTIVE-NOW] Voice call activity detected:', data);
                         }
                         break;
@@ -349,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.globalSocketManager && window.globalSocketManager.io) {
             window.globalSocketManager.io.on('user-presence-update', (data) => {
                 console.log('📡 [ACTIVE-NOW] Direct socket presence update:', data);
-                if (data && data.activity_details && data.activity_details.type === 'In Voice Call') {
+                if (data && data.activity_details && data.activity_details.type && data.activity_details.type.startsWith('In Voice - ')) {
                     console.log('🎤 [ACTIVE-NOW] Voice call activity detected via socket:', data);
                 }
                 scheduleUpdate();
@@ -384,8 +386,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        console.log('📡 Setting presence to "In Voice Call"...');
-        window.globalSocketManager.updatePresence('online', { type: 'In Voice Call' });
+        console.log('📡 Setting presence to "In Voice - Test Channel"...');
+        window.globalSocketManager.updatePresence('online', { 
+            type: 'In Voice - Test Channel',
+            channel_name: 'Test Channel'
+        });
         
         setTimeout(() => {
             console.log('🔍 Checking Active Now display...');

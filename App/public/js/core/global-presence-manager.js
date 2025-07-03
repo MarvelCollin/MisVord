@@ -380,21 +380,13 @@ class GlobalPresenceManager {
         
         switch (activityDetails.type) {
             case 'playing Tic Tac Toe': return 'Playing Tic Tac Toe';
-            case 'In Voice Call': 
-                const currentServerId = document.querySelector('meta[name="server-id"]')?.content;
-                const userServerId = activityDetails.server_id;
-                const channelName = activityDetails.channel_name;
-                
-                if (currentServerId && userServerId === currentServerId && channelName) {
-                    return `In Voice - ${channelName}`;
-                } else if (channelName) {
-                    return `In Voice Call`;
-                } else {
-                    return 'In Voice Call';
-                }
             case 'afk': return 'Away';
             case 'idle':
-            default: return 'Online';
+            default: 
+                if (activityDetails.type.startsWith('In Voice - ')) {
+                    return activityDetails.type;
+                }
+                return 'Online';
         }
     }
 
@@ -405,10 +397,13 @@ class GlobalPresenceManager {
         
         switch (activityDetails.type) {
             case 'playing Tic Tac Toe': return 'fa-solid fa-gamepad';
-            case 'In Voice Call': return 'fa-solid fa-microphone';
             case 'afk': return 'fa-solid fa-clock';
             case 'idle':
-            default: return 'fa-solid fa-circle';
+            default: 
+                if (activityDetails.type.startsWith('In Voice - ')) {
+                    return 'fa-solid fa-microphone';
+                }
+                return 'fa-solid fa-circle';
         }
     }
 

@@ -1,8 +1,7 @@
 class ChannelVoiceParticipants {
     constructor() {
         this.participants = new Map();
-        this.containers = new Map();
-        console.log('[VOICE-PARTICIPANT] VideoSDK-based participant system initialized');
+        console.log('[VOICE-PARTICIPANT] Presence-based participant system initialized');
         this.setupEventListeners();
     }
 
@@ -14,159 +13,140 @@ class ChannelVoiceParticipants {
     }
 
     setupEventListeners() {
-        console.log('[VOICE-PARTICIPANT] Setting up VideoSDK-based event listeners');
+        console.log('[VOICE-PARTICIPANT] Setting up presence-based event listeners');
         
-        // Listen to VideoSDK participant events directly (local source of truth)
-        window.addEventListener('videosdkParticipantJoined', (event) => {
-            const { participant, participantObj } = event.detail;
-            const currentVoiceChannelId = window.voiceManager?.currentChannelId;
-            
-            if (currentVoiceChannelId && participant) {
-                console.log('[VOICE-PARTICIPANT] VideoSDK participant joined, updating channel list:', {
-                    participant,
-                    channelId: currentVoiceChannelId,
-                    name: participantObj?.displayName || participantObj?.name || 'Unknown'
-                });
-                
-                this.addParticipant(
-                    currentVoiceChannelId, 
-                    participant, 
-                    participantObj?.displayName || participantObj?.name || 'Unknown'
-                );
-                this.updateParticipantContainer(currentVoiceChannelId);
-            }
-        });
-
-        window.addEventListener('videosdkParticipantLeft', (event) => {
-            const { participant } = event.detail;
-            const currentVoiceChannelId = window.voiceManager?.currentChannelId;
-            
-            if (currentVoiceChannelId && participant) {
-                console.log('[VOICE-PARTICIPANT] VideoSDK participant left, updating channel list:', {
-                    participant,
-                    channelId: currentVoiceChannelId
-                });
-                
-                this.removeParticipant(currentVoiceChannelId, participant);
-                this.updateParticipantContainer(currentVoiceChannelId);
-            }
-        });
-
-        // Listen to global socket events for other users' participants
-        this.setupGlobalSocketListeners();
-
-        // Also listen to the legacy voiceParticipantUpdate events for backward compatibility
-        window.addEventListener('voiceParticipantUpdate', (event) => {
-            const { action, channelId, participantId, participantName } = event.detail;
-            console.log('[VOICE-PARTICIPANT] Legacy participant update:', { action, channelId, participantId });
-            
-            if (action === 'join' && channelId && participantId) {
-                this.addParticipant(channelId, participantId, participantName);
-                this.updateParticipantContainer(channelId);
-            } else if (action === 'leave' && channelId && participantId) {
-                this.removeParticipant(channelId, participantId);
-                this.updateParticipantContainer(channelId);
-            }
-        });
-
-        // Handle voice disconnection
-        window.addEventListener('voiceDisconnect', (event) => {
-            console.log('[VOICE-PARTICIPANT] Voice disconnect - cleaning up local participant only');
-            
-            const currentChannelId = window.voiceManager?.currentChannelId;
-            const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
-            
-            if (currentChannelId && currentUserId) {
-                this.removeParticipant(currentChannelId, currentUserId);
-                this.updateParticipantContainer(currentChannelId);
-            }
-        });
-
-        this.setupChannelSwitchListeners();
-    }
-
-    setupGlobalSocketListeners() {
-        const setupSocket = () => {
-            if (!window.globalSocketManager?.isReady()) {
-                setTimeout(setupSocket, 500);
+        const setupFriendsManagerListeners = () => {
+            if (!window.FriendsManager) {
+                setTimeout(setupFriendsManagerListeners, 500);
                 return;
             }
 
-            const socket = window.globalSocketManager.io;
-            console.log('[VOICE-PARTICIPANT] Setting up global socket listeners for other users');
-
-            socket.on('voice-meeting-update', (data) => {
-                const { channel_id, action, user_id, username, participant_count } = data;
-                const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
+            const friendsManager = window.FriendsManager.getInstance();
+            
+            friendsManager.subscribe((type, data) => {
+                console.log('[VOICE-PARTICIPANT] FriendsManager event:', type, data);
                 
-                // Skip our own updates (handled by VideoSDK locally)
-                if (user_id === currentUserId || user_id === currentUserId?.toString()) {
-                    console.log('[VOICE-PARTICIPANT] Skipping own update from socket:', { user_id, currentUserId });
-                    return;
-                }
-
-                if (!channel_id || !user_id) return;
-
-                console.log('[VOICE-PARTICIPANT] Global participant update from socket:', {
-                    action, channel_id, user_id, username, participant_count
-                });
-
-                if (action === 'join' || action === 'already_registered') {
-                    this.addParticipant(channel_id, user_id, username || 'Unknown');
-                    this.updateParticipantContainer(channel_id);
-                } else if (action === 'leave') {
-                    this.removeParticipant(channel_id, user_id);
-                    this.updateParticipantContainer(channel_id);
-                }
-
-                if (participant_count !== undefined) {
-                    this.updateChannelCount(channel_id, participant_count);
+                switch (type) {
+                    case 'user-online':
+                    case 'user-offline':
+                    case 'user-presence-update':
+                    case 'online-users-updated':
+                        this.updateAllChannelsFromPresence();
+                        break;
                 }
             });
 
-            socket.on('voice-meeting-status', (data) => {
-                const { channel_id, has_meeting, participants } = data;
-                
-                if (!channel_id) return;
-
-                console.log('[VOICE-PARTICIPANT] Voice meeting status from socket:', {
-                    channel_id, has_meeting, participantCount: participants?.length || 0
-                });
-
-                if (has_meeting && participants && participants.length > 0) {
-                    // Add all participants from server
-                    participants.forEach(participant => {
-                        this.addParticipant(channel_id, participant.user_id, participant.username || 'Unknown');
-                    });
-                    this.updateParticipantContainer(channel_id);
-                } else if (!has_meeting) {
-                    // Only clear if we explicitly know there's no meeting
-                    // Don't clear our own participant if we're still connected locally
-                    if (this.participants.has(channel_id)) {
-                        const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
-                        const isLocallyConnected = window.voiceManager?.isConnected && 
-                                                  window.voiceManager?.currentChannelId === channel_id;
-                        
-                        if (!isLocallyConnected) {
-                            // Safe to clear all participants
-                            this.participants.get(channel_id)?.clear();
-                            this.updateParticipantContainer(channel_id);
-                        }
-                    }
-                }
-            });
+            this.updateAllChannelsFromPresence();
         };
 
-        setupSocket();
+        setupFriendsManagerListeners();
+
+        window.addEventListener('ownPresenceUpdate', (event) => {
+            console.log('[VOICE-PARTICIPANT] Own presence update:', event.detail);
+            // Add a small delay to ensure the globalSocketManager has updated its state
+            setTimeout(() => {
+                this.updateAllChannelsFromPresence();
+            }, 100);
+        });
+
+        setInterval(() => {
+            this.updateAllChannelsFromPresence();
+        }, 10000);
     }
 
-    setupChannelSwitchListeners() {
-        window.addEventListener('preserveVoiceParticipants', (event) => {
-            console.log('[VOICE-PARTICIPANT] Preserving participants during channel switch');
+    updateAllChannelsFromPresence() {
+        if (!window.FriendsManager) {
+            console.log('[VOICE-PARTICIPANT] FriendsManager not available');
+            return;
+        }
+
+        const friendsManager = window.FriendsManager.getInstance();
+        const onlineUsers = friendsManager.cache.onlineUsers || {};
+        const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
+        const currentUserActivityDetails = window.globalSocketManager?.currentActivityDetails;
+        
+        // Debug only when enabled
+        if (window.DEBUG_VOICE_PARTICIPANTS) {
+            console.log('[VOICE-PARTICIPANT] DEBUG: Checking online users for voice activity:', {
+                totalOnlineUsers: Object.keys(onlineUsers).length,
+                onlineUserIds: Object.keys(onlineUsers),
+                currentUserId: currentUserId,
+                currentUserActivity: currentUserActivityDetails?.type
+            });
+        }
+
+        this.participants.clear();
+
+        // First, check if current user is in voice (even if not in FriendsManager cache)
+        if (currentUserId && currentUserActivityDetails && 
+            currentUserActivityDetails.type && 
+            currentUserActivityDetails.type.startsWith('In Voice - ') &&
+            currentUserActivityDetails.channel_id) {
+            
+            const channelId = currentUserActivityDetails.channel_id;
+            const username = window.globalSocketManager?.username || 'You';
+            
+            console.log('[VOICE-PARTICIPANT] Found current user in voice:', {
+                userId: currentUserId,
+                username: username,
+                channelId: channelId,
+                activity: currentUserActivityDetails.type
+            });
+
+            this.addParticipant(channelId, currentUserId, username);
+        }
+
+        // Then check all other users from FriendsManager cache
+        Object.values(onlineUsers).forEach(userData => {
+            // Skip current user if already processed above
+            if (userData.user_id === currentUserId) {
+                console.log('[VOICE-PARTICIPANT] DEBUG: Skipping current user (already processed):', userData.user_id);
+                return;
+            }
+
+            if (window.DEBUG_VOICE_PARTICIPANTS) {
+                console.log('[VOICE-PARTICIPANT] DEBUG: Checking user:', {
+                    userId: userData.user_id,
+                    username: userData.username,
+                    status: userData.status,
+                    hasActivityDetails: !!userData.activity_details,
+                    activityType: userData.activity_details?.type,
+                    channelId: userData.activity_details?.channel_id
+                });
+            }
+
+            if (userData.activity_details && 
+                userData.activity_details.type && 
+                userData.activity_details.type.startsWith('In Voice - ') &&
+                userData.activity_details.channel_id) {
+                
+                const channelId = userData.activity_details.channel_id;
+                const userId = userData.user_id;
+                const username = userData.username;
+                
+                console.log('[VOICE-PARTICIPANT] Found user in voice:', {
+                    userId,
+                    username, 
+                    channelId,
+                    activity: userData.activity_details.type
+                });
+
+                this.addParticipant(channelId, userId, username, userData);
+            }
+        });
+
+        this.updateAllChannelContainers();
+        
+        console.log('[VOICE-PARTICIPANT] DEBUG: Update complete:', {
+            totalChannelsWithParticipants: this.participants.size,
+            channelParticipantCounts: Array.from(this.participants.entries()).map(([channelId, participants]) => ({
+                channelId,
+                count: participants.size
+            }))
         });
     }
 
-    async addParticipant(channelId, userId, username) {
+    async addParticipant(channelId, userId, username, userData = null) {
         if (!this.participants.has(channelId)) {
             this.participants.set(channelId, new Map());
         }
@@ -187,13 +167,13 @@ class ChannelVoiceParticipants {
 
         const isValidUserId = /^\d+$/.test(normalizedUserId);
         
-        if (isValidUserId && !participantData.display_name.includes('Unknown')) {
+        if (isValidUserId) {
             try {
                 if (window.userAPI) {
-                    const userData = await window.userAPI.getUserProfile(normalizedUserId);
-                    if (userData?.success && userData.data?.user) {
-                        participantData.display_name = userData.data.user.display_name || userData.data.user.username || participantData.username;
-                        participantData.avatar_url = userData.data.user.avatar_url || participantData.avatar_url;
+                    const userProfile = await window.userAPI.getUserProfile(normalizedUserId);
+                    if (userProfile?.success && userProfile.data?.user) {
+                        participantData.display_name = userProfile.data.user.display_name || userProfile.data.user.username || participantData.username;
+                        participantData.avatar_url = userProfile.data.user.avatar_url || participantData.avatar_url;
                     }
                 } else {
                     const response = await fetch(`/api/users/${normalizedUserId}/profile`, {
@@ -202,10 +182,10 @@ class ChannelVoiceParticipants {
                     });
                     
                     if (response.ok) {
-                        const userData = await response.json();
-                        if (userData.success && userData.data?.user) {
-                            participantData.display_name = userData.data.user.display_name || userData.data.user.username || participantData.username;
-                            participantData.avatar_url = userData.data.user.avatar_url || participantData.avatar_url;
+                        const userProfile = await response.json();
+                        if (userProfile.success && userProfile.data?.user) {
+                            participantData.display_name = userProfile.data.user.display_name || userProfile.data.user.username || participantData.username;
+                            participantData.avatar_url = userProfile.data.user.avatar_url || participantData.avatar_url;
                         }
                     }
                 }
@@ -216,28 +196,36 @@ class ChannelVoiceParticipants {
 
         channelParticipants.set(normalizedUserId, participantData);
         console.log('[VOICE-PARTICIPANT] Added participant:', participantData.display_name, 'to channel', channelId);
+
+        // Update UI immediately for this channel
+        this.updateParticipantContainer(channelId);
     }
 
-    removeParticipant(channelId, userId) {
-        if (!this.participants.has(channelId)) return;
-
-        const channelParticipants = this.participants.get(channelId);
-        const normalizedUserId = userId.toString();
-        const participant = channelParticipants.get(normalizedUserId);
-        
-        if (participant) {
-            channelParticipants.delete(normalizedUserId);
-            console.log('[VOICE-PARTICIPANT] Removed participant:', participant.display_name, 'from channel', channelId);
-        }
-
-        if (channelParticipants.size === 0) {
-            this.participants.delete(channelId);
-        }
+    updateAllChannelContainers() {
+        document.querySelectorAll('.voice-participants').forEach(container => {
+            const channelId = container.getAttribute('data-channel-id');
+            if (channelId) {
+                this.updateParticipantContainer(channelId, 0);
+            }
+        });
     }
 
-    updateParticipantContainer(channelId) {
+    updateParticipantContainer(channelId, retryCount = 0) {
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
-        if (!container) return;
+        if (!container) {
+            if (retryCount < 5) {
+                if (window.DEBUG_VOICE_PARTICIPANTS) {
+                    console.warn(`[VOICE-PARTICIPANT] Container not found for channel ${channelId}. Retrying (${retryCount + 1})...`);
+                }
+                // Retry after a short delay in case DOM isn't ready yet
+                setTimeout(() => this.updateParticipantContainer(channelId, retryCount + 1), 300 * (retryCount + 1));
+            } else {
+                if (window.DEBUG_VOICE_PARTICIPANTS) {
+                    console.error(`[VOICE-PARTICIPANT] Failed to find container for channel ${channelId} after multiple retries.`);
+                }
+            }
+            return;
+        }
 
         const channelParticipants = this.participants.get(channelId);
         
@@ -245,6 +233,7 @@ class ChannelVoiceParticipants {
             container.classList.add('hidden');
             container.style.display = 'none';
             container.innerHTML = '';
+            this.updateChannelCount(channelId, 0);
             return;
         }
 
@@ -308,68 +297,6 @@ class ChannelVoiceParticipants {
         }
     }
 
-    syncVideoSDKParticipants() {
-        console.log('[VOICE-PARTICIPANT] Syncing VideoSDK participants with channel display');
-        
-        const videoSDK = window.videoSDKManager;
-        const currentVoiceChannelId = window.voiceManager?.currentChannelId;
-        
-        if (!videoSDK?.meeting?.participants || !currentVoiceChannelId) {
-            console.log('[VOICE-PARTICIPANT] No VideoSDK meeting or channel ID for sync');
-            return;
-        }
-
-        // Clear existing participants for this channel first
-        if (this.participants.has(currentVoiceChannelId)) {
-            this.participants.get(currentVoiceChannelId).clear();
-        }
-
-        // Add all current VideoSDK participants
-        videoSDK.meeting.participants.forEach((participant, participantId) => {
-            const participantName = participant.displayName || participant.name || 'Unknown';
-            console.log('[VOICE-PARTICIPANT] Syncing participant:', { participantId, participantName });
-            this.addParticipant(currentVoiceChannelId, participantId, participantName);
-        });
-
-        // Add local participant if present
-        if (videoSDK.meeting.localParticipant) {
-            const localParticipant = videoSDK.meeting.localParticipant;
-            const localName = localParticipant.displayName || localParticipant.name || 'You';
-            console.log('[VOICE-PARTICIPANT] Syncing local participant:', { 
-                participantId: localParticipant.id, 
-                participantName: localName 
-            });
-            this.addParticipant(currentVoiceChannelId, localParticipant.id, localName);
-        }
-
-        this.updateParticipantContainer(currentVoiceChannelId);
-        console.log('[VOICE-PARTICIPANT] VideoSDK participant sync completed');
-    }
-
-    clearAllParticipants() {
-        console.log('[VOICE-PARTICIPANT] Clearing all participants from all channels');
-        this.participants.forEach((participantMap, channelId) => {
-            participantMap.clear();
-            this.updateParticipantContainer(channelId);
-        });
-    }
-
-    updateAllParticipantContainers() {
-        this.participants.forEach((participants, channelId) => {
-            this.updateParticipantContainer(channelId);
-        });
-        
-        document.querySelectorAll('.voice-participants').forEach(container => {
-            const channelId = container.getAttribute('data-channel-id');
-            if (channelId && !this.participants.has(channelId)) {
-                container.classList.add('hidden');
-                container.style.display = 'none';
-                container.innerHTML = '';
-                this.updateChannelCount(channelId, 0);
-            }
-        });
-    }
-
     getChannelParticipants(channelId) {
         return this.participants.get(channelId) || new Map();
     }
@@ -383,59 +310,117 @@ class ChannelVoiceParticipants {
         if (channelId) {
             this.updateParticipantContainer(channelId);
         } else {
-            this.updateAllParticipantContainers();
+            this.updateAllChannelsFromPresence();
         }
-    }
-
-    loadAllVoiceChannels() {
-        if (!window.globalSocketManager?.isReady()) return;
-
-        console.log('[VOICE-PARTICIPANT] Loading all voice channels from server...');
-        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
-            const channelId = channel.getAttribute('data-channel-id');
-            if (channelId) {
-                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
-            }
-        });
     }
 
     refreshAllChannelParticipants() {
-        console.log('[VOICE-PARTICIPANT] Refreshing all channel participants');
-        this.updateAllParticipantContainers();
-        this.loadAllVoiceChannels();
-        
-        // Sync VideoSDK if we're in voice
-        if (window.voiceManager?.isConnected) {
-            this.syncVideoSDKParticipants();
-        }
+        console.log('[VOICE-PARTICIPANT] Refreshing all channel participants from presence');
+        this.updateAllChannelsFromPresence();
     }
 
-    refreshAllChannelCounts() {
-        console.log('[VOICE-PARTICIPANT] Refreshing all channel counts');
-        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
-            const channelId = channel.getAttribute('data-channel-id');
-            if (channelId) {
-                const participantCount = this.getParticipantCount(channelId);
-                this.updateChannelCount(channelId, participantCount);
-            }
+    debugVoiceParticipantFlow() {
+        console.log('=== VOICE PARTICIPANT DEBUG ===');
+        
+        const friendsManager = window.FriendsManager?.getInstance();
+        const globalSocket = window.globalSocketManager;
+        const currentUserId = globalSocket?.userId;
+        
+        console.log('1. System Status:', {
+            hasFriendsManager: !!friendsManager,
+            hasGlobalSocket: !!globalSocket,
+            socketReady: globalSocket?.isReady(),
+            currentUserId: currentUserId
         });
+        
+        if (friendsManager) {
+            const onlineUsers = friendsManager.cache.onlineUsers || {};
+            console.log('2. FriendsManager Cache:', {
+                totalOnlineUsers: Object.keys(onlineUsers).length,
+                onlineUsers: onlineUsers
+            });
+            
+            const voiceUsers = Object.values(onlineUsers).filter(user => 
+                user.activity_details?.type?.startsWith('In Voice - ')
+            );
+            console.log('3. Users in Voice:', voiceUsers);
+        }
+        
+        console.log('4. Current Participants by Channel:', {
+            totalChannels: this.participants.size,
+            participants: Array.from(this.participants.entries()).map(([channelId, participants]) => ({
+                channelId,
+                count: participants.size,
+                users: Array.from(participants.values())
+            }))
+        });
+        
+        console.log('5. DOM Elements:', {
+            voiceChannelElements: document.querySelectorAll('[data-channel-type="voice"]').length,
+            participantContainers: document.querySelectorAll('.voice-participants').length,
+            visibleContainers: document.querySelectorAll('.voice-participants:not(.hidden)').length
+        });
+        
+        if (globalSocket?.currentActivityDetails) {
+            console.log('6. Current User Activity:', globalSocket.currentActivityDetails);
+        }
+        
+        console.log('=== END DEBUG ===');
+    }
+
+    testPresenceUpdate() {
+        console.log('=== TESTING PRESENCE UPDATE ===');
+        
+        if (!window.globalSocketManager?.isReady()) {
+            console.error('Socket not ready');
+            return;
+        }
+        
+        const testChannelId = document.querySelector('[data-channel-type="voice"]')?.getAttribute('data-channel-id');
+        if (!testChannelId) {
+            console.error('No voice channel found');
+            return;
+        }
+        
+        console.log('Updating presence to voice...');
+        window.globalSocketManager.updatePresence('online', {
+            type: 'In Voice - Test Channel',
+            channel_id: testChannelId,
+            server_id: document.querySelector('meta[name="server-id"]')?.content,
+            channel_name: 'Test Channel'
+        });
+        
+        setTimeout(() => {
+            console.log('Checking if presence update worked...');
+            this.debugVoiceParticipantFlow();
+            
+            setTimeout(() => {
+                console.log('Resetting presence...');
+                window.globalSocketManager.updatePresence('online', { type: 'idle' });
+            }, 3000);
+        }, 1000);
     }
 }
 
-// Initialize the global instance immediately
 if (typeof window !== 'undefined') {
     window.ChannelVoiceParticipants = ChannelVoiceParticipants;
     
-    // Auto-initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            ChannelVoiceParticipants.getInstance();
+            const instance = ChannelVoiceParticipants.getInstance();
             console.log('[VOICE-PARTICIPANT] Auto-initialized on DOMContentLoaded');
+            
+            window.debugVoiceParticipants = () => instance.debugVoiceParticipantFlow();
+            window.testVoicePresence = () => instance.testPresenceUpdate();
         });
     } else {
-        // DOM already loaded
-        ChannelVoiceParticipants.getInstance();
+        const instance = ChannelVoiceParticipants.getInstance();
         console.log('[VOICE-PARTICIPANT] Auto-initialized immediately');
+        
+        window.debugVoiceParticipants = () => instance.debugVoiceParticipantFlow();
+        window.testVoicePresence = () => instance.testPresenceUpdate();
+        window.enableVoiceDebug = () => { window.DEBUG_VOICE_PARTICIPANTS = true; console.log('Voice participant debug enabled'); };
+        window.disableVoiceDebug = () => { window.DEBUG_VOICE_PARTICIPANTS = false; console.log('Voice participant debug disabled'); };
     }
 }
 

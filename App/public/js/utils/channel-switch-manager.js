@@ -540,71 +540,12 @@ class SimpleChannelSwitcher {
                 
                 if (instance && typeof instance.refreshAllChannelParticipants === 'function') {
                     instance.refreshAllChannelParticipants();
-                } else if (instance && typeof instance.updateAllParticipantContainers === 'function') {
-                    instance.updateAllParticipantContainers();
                 }
-                
-                if (instance && typeof instance.refreshAllChannelCounts === 'function') {
-                    instance.refreshAllChannelCounts();
-                }
-            }
-
-            if (window.videoSDKManager?.isReady()) {
-                this.syncVideoSDKParticipants();
-            }
-
-            if (window.globalSocketManager?.isReady()) {
-                this.loadAllVoiceChannels();
             }
         }, 300);
     }
 
-    syncVideoSDKParticipants() {
-        console.log('🔄 [SWITCH-MANAGER] Syncing VideoSDK participants with UI');
-        
-        const videoSDK = window.videoSDKManager;
-        if (!videoSDK?.meeting?.participants) return;
 
-        const currentVoiceChannelId = window.voiceManager?.currentChannelId;
-        if (!currentVoiceChannelId) return;
-
-        videoSDK.meeting.participants.forEach((participant, participantId) => {
-            const participantData = {
-                user_id: participantId,
-                username: participant.displayName || participant.name || 'Unknown',
-                channel_id: currentVoiceChannelId,
-                action: 'join'
-            };
-
-            window.dispatchEvent(new CustomEvent('videosdkParticipantUpdate', {
-                detail: participantData
-            }));
-        });
-
-        if (videoSDK.meeting.localParticipant) {
-            const localData = {
-                user_id: videoSDK.meeting.localParticipant.id,
-                username: videoSDK.meeting.localParticipant.displayName || videoSDK.meeting.localParticipant.name || 'You',
-                channel_id: currentVoiceChannelId,
-                action: 'join'
-            };
-
-            window.dispatchEvent(new CustomEvent('videosdkParticipantUpdate', {
-                detail: localData
-            }));
-        }
-    }
-
-    loadAllVoiceChannels() {
-        if (!window.globalSocketManager?.isReady()) return;
-
-        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
-            const channelId = channel.getAttribute('data-channel-id');
-            if (channelId) {
-                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
-            }
-        });
-    }
 }
 
 if (typeof window !== 'undefined') {

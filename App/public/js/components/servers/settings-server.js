@@ -834,41 +834,43 @@ function initChannelManagementTab() {
     let currentFilter = 'all';
     
     function loadChannels() {
-        window.channelAPI.getChannels(serverId)
-            .done(function(response) {
-                console.log('Channels loaded successfully:', response);
-                
-                if (response && response.success) {
-                    if (response.data && response.data.channels) {
-                        allChannels = response.data.channels;
-                    } else if (response.channels) {
-                        allChannels = response.channels;
-                    } else {
-                        allChannels = [];
-                    }
-                    
-                    filterChannels(currentFilter);
+        channelsList.innerHTML = `
+            <div class="channels-loading-state">
+                <i class="fas fa-spinner fa-spin mr-2"></i>
+                <span>Loading channels...</span>
+            </div>
+        `;
+        
+        window.channelAPI.getChannels(serverId).done(function(response) {
+            if (response && response.success) {
+                if (response.data && response.data.channels) {
+                    allChannels = response.data.channels;
+                } else if (response.channels) {
+                    allChannels = response.channels;
                 } else {
-                    throw new Error(response.message || 'Failed to load server channels');
-                }
-            })
-            .fail(function(xhr) {
-                console.error('Error loading server channels:', xhr);
-                
-                if (xhr.status === 401) {
-                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-                    return;
+                    allChannels = [];
                 }
                 
-                const errorMsg = xhr.responseJSON ? xhr.responseJSON.error : 'Error loading channels. Please try again.';
-                channelsList.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-12 text-red-400">
-                        <i class="fas fa-exclamation-triangle text-2xl mb-4"></i>
-                        <div class="text-lg font-semibold">Failed to load channels</div>
-                        <div class="text-sm">${errorMsg}</div>
-                    </div>
-                `;
-            });
+                filterChannels(currentFilter);
+            } else {
+                throw new Error(response.message || 'Failed to load server channels');
+            }
+        }).fail(function(xhr, status, error) {
+            console.error('Error loading server channels:', error);
+            
+            if (xhr.status === 401) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+            
+            channelsList.innerHTML = `
+                <div class="channels-empty-state">
+                    <i class="fas fa-exclamation-triangle text-red-400"></i>
+                    <div class="text-lg">Error loading channels</div>
+                    <div class="text-sm">Please try refreshing the page</div>
+                </div>
+            `;
+        });
     }
     
     function filterChannels(filterType) {
@@ -967,26 +969,10 @@ function initChannelManagementTab() {
                 channelTypeElement.className = `channel-type-badge ${channel.type}`;
             }
             
-            const channelPositionElement = channelElement.querySelector('.channel-position');
-            if (channelPositionElement) {
-                channelPositionElement.textContent = channel.position || 0;
-            }
-            
             channelElement.dataset.channelId = channel.id;
-            channelElement.dataset.channelPosition = channel.position || 0;
             
-            const moveUpBtn = channelElement.querySelector('.move-up-btn');
-            const moveDownBtn = channelElement.querySelector('.move-down-btn');
             const renameBtn = channelElement.querySelector('.rename-btn');
             const deleteBtn = channelElement.querySelector('.delete-btn');
-            
-            if (moveUpBtn) {
-                moveUpBtn.addEventListener('click', () => showChannelActionModal('move-up', channel));
-            }
-            
-            if (moveDownBtn) {
-                moveDownBtn.addEventListener('click', () => showChannelActionModal('move-down', channel));
-            }
             
             if (renameBtn) {
                 renameBtn.addEventListener('click', () => showChannelActionModal('rename', channel));
@@ -1002,22 +988,17 @@ function initChannelManagementTab() {
     
     function showChannelActionModal(action, channel) {
         const modal = document.getElementById('channel-action-modal');
-        const modalIcon = modal.querySelector('.modal-icon i');
-        const modalTitle = modal.querySelector('.modal-title');
-        const channelName = modal.querySelector('.channel-name');
-        const channelCurrentPosition = modal.querySelector('.channel-current-position');
+        const modalIcon = modal.querySelector('.channel-modal-icon i');
+        const modalTitle = modal.querySelector('.channel-modal-title');
+        const channelName = modal.querySelector('.channel-modal-name');
         const actionMessage = modal.querySelector('.action-message');
-        const positionChangePreview = modal.querySelector('.position-change-preview');
         const renameInputContainer = modal.querySelector('.rename-input-container');
-        const fromPosition = modal.querySelector('.from-position');
-        const toPosition = modal.querySelector('.to-position');
         const confirmBtn = modal.querySelector('#channel-modal-confirm-btn');
         const confirmText = confirmBtn.querySelector('.confirm-text');
         const cancelBtn = modal.querySelector('#channel-modal-cancel-btn');
         
         modalIcon.className = '';
-        confirmBtn.className = 'modal-btn modal-btn-confirm';
-        positionChangePreview.classList.add('hidden');
+        confirmBtn.className = 'channel-modal-btn channel-modal-btn-confirm';
         renameInputContainer.classList.add('hidden');
         
         const channelIconDiv = modal.querySelector('.channel-icon-small i');
@@ -1030,51 +1011,10 @@ function initChannelManagementTab() {
         }
         
         channelName.textContent = channel.name;
-        channelCurrentPosition.textContent = `Current Position: ${channel.position || 0}`;
         
         let actionHandler;
         
         switch (action) {
-            case 'move-up':
-                modalIcon.className = 'fas fa-arrow-up';
-                modalTitle.textContent = 'Move Channel Up';
-                actionMessage.textContent = `Are you sure you want to move "${channel.name}" up in the channel list?`;
-                
-                const currentPos = parseInt(channel.position || 0);
-                const newUpPos = Math.max(1, currentPos - 1);
-                
-                positionChangePreview.classList.remove('hidden');
-                fromPosition.textContent = currentPos;
-                fromPosition.className = 'position-badge from-position';
-                toPosition.textContent = newUpPos;
-                toPosition.className = 'position-badge to-position';
-                
-                confirmBtn.classList.add('primary');
-                confirmText.textContent = 'Move Up';
-                
-                actionHandler = () => handleMoveChannel(channel, newUpPos);
-                break;
-                
-            case 'move-down':
-                modalIcon.className = 'fas fa-arrow-down';
-                modalTitle.textContent = 'Move Channel Down';
-                actionMessage.textContent = `Are you sure you want to move "${channel.name}" down in the channel list?`;
-                
-                const currentDownPos = parseInt(channel.position || 0);
-                const newDownPos = currentDownPos + 1;
-                
-                positionChangePreview.classList.remove('hidden');
-                fromPosition.textContent = currentDownPos;
-                fromPosition.className = 'position-badge from-position';
-                toPosition.textContent = newDownPos;
-                toPosition.className = 'position-badge to-position';
-                
-                confirmBtn.classList.add('primary');
-                confirmText.textContent = 'Move Down';
-                
-                actionHandler = () => handleMoveChannel(channel, newDownPos);
-                break;
-                
             case 'rename':
                 modalIcon.className = 'fas fa-edit';
                 modalTitle.textContent = 'Rename Channel';
@@ -1084,7 +1024,7 @@ function initChannelManagementTab() {
                 const nameInput = modal.querySelector('#new-channel-name');
                 nameInput.value = channel.name;
                 
-                confirmBtn.classList.add('primary');
+                confirmBtn.classList.add('channel-modal-btn-primary');
                 confirmText.textContent = 'Rename';
                 
                 actionHandler = () => {
@@ -1100,7 +1040,7 @@ function initChannelManagementTab() {
                 modalTitle.textContent = 'Delete Channel';
                 actionMessage.textContent = `Are you sure you want to delete "${channel.name}"? This will permanently delete all messages in this channel.`;
                 
-                confirmBtn.classList.add('danger');
+                confirmBtn.classList.add('channel-modal-btn-danger');
                 confirmText.textContent = 'Delete';
                 
                 actionHandler = () => handleDeleteChannel(channel);
@@ -1141,49 +1081,32 @@ function initChannelManagementTab() {
         });
     }
 
-    async function handleMoveChannel(channel, newPosition) {
-        try {
-            const response = await window.channelAPI.updateChannelPosition(channel.id, newPosition);
-            if (response && response.success) {
-                showToast(`Channel "${channel.name}" position updated successfully`, 'success');
-                loadChannels();
-            } else {
-                throw new Error(response.message || 'Failed to update channel position');
-            }
-        } catch (error) {
-            console.error('Error moving channel:', error);
-            showToast(error.message || 'Failed to update channel position', 'error');
-        }
-    }
-    
-    async function handleRenameChannel(channel, newName) {
-        try {
-            const response = await window.channelAPI.updateChannel(channel.id, { name: newName });
+    function handleRenameChannel(channel, newName) {
+        window.channelAPI.updateChannel(channel.id, { name: newName }).done(function(response) {
             if (response && response.success) {
                 showToast(`Channel renamed to "${newName}" successfully`, 'success');
                 loadChannels();
             } else {
-                throw new Error(response.message || 'Failed to rename channel');
+                showToast(response.message || 'Failed to rename channel', 'error');
             }
-        } catch (error) {
+        }).fail(function(xhr, status, error) {
             console.error('Error renaming channel:', error);
-            showToast(error.message || 'Failed to rename channel', 'error');
-        }
+            showToast('Failed to rename channel', 'error');
+        });
     }
     
-    async function handleDeleteChannel(channel) {
-        try {
-            const response = await window.channelAPI.deleteChannel(channel.id);
+    function handleDeleteChannel(channel) {
+        window.channelAPI.deleteChannel(channel.id).done(function(response) {
             if (response && response.success) {
                 showToast(`Channel "${channel.name}" deleted successfully`, 'success');
                 loadChannels();
             } else {
-                throw new Error(response.message || 'Failed to delete channel');
+                showToast(response.message || 'Failed to delete channel', 'error');
             }
-        } catch (error) {
+        }).fail(function(xhr, status, error) {
             console.error('Error deleting channel:', error);
-            showToast(error.message || 'Failed to delete channel', 'error');
-        }
+            showToast('Failed to delete channel', 'error');
+        });
     }
     
     if (channelSearch) {

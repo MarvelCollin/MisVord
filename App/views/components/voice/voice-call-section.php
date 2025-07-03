@@ -20,7 +20,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 <div class="voice-call-app w-full h-screen bg-[#2f3136] flex flex-col relative overflow-hidden">
     <!-- Discord-style Header -->
-    <div class="voice-header bg-[#36393f] border-b border-[#202225] px-4 py-3 flex items-center justify-between shadow-md">
+    <div class="voice-header bg-[#36393f] border-b border-[#202225] px-4 py-3 flex items-center shadow-md">
         <div class="flex items-center space-x-3">
             <div class="w-6 h-6 text-[#72767d]">
                 <i class="fas fa-volume-up"></i>
@@ -31,13 +31,6 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
                     <div class="w-2 h-2 bg-[#3ba55c] rounded-full"></div>
                     <span id="voiceParticipantCount">1</span>
                 </div>
-            </div>
-        </div>
-        <div class="flex items-center space-x-4 text-[#b9bbbe] text-xs">
-            <span>Meeting: <span id="meetingIdDisplay" class="font-mono text-[#7289da]">-</span></span>
-            <div class="flex items-center space-x-2">
-                <i class="fas fa-cog hover:text-white cursor-pointer transition-colors"></i>
-                <i class="fas fa-users hover:text-white cursor-pointer transition-colors"></i>
             </div>
         </div>
     </div>
@@ -151,11 +144,8 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     backdrop-filter: blur(4px) !important;
 }
 
-/* Voice Participants Grid - Enhanced with Scrollable */
 #participantGrid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
-    grid-auto-rows: minmax(250px, 1fr) !important;
     gap: 12px !important;
     width: 100% !important;
     height: 100% !important;
@@ -189,66 +179,6 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 #participantGrid::-webkit-scrollbar-corner {
     background: #2f3136 !important;
-}
-
-#participantGrid[data-count="1"] {
-    grid-template-columns: 1fr !important;
-    justify-items: stretch !important;
-    align-items: stretch !important;
-}
-
-#participantGrid[data-count="1"] .participant-card,
-#participantGrid[data-count="1"] .video-participant-card,
-#participantGrid[data-count="1"] .screen-share-card {
-    width: 100% !important;
-    max-width: 800px !important;
-    min-height: 450px !important;
-    height: auto !important;
-    margin: 0 auto !important;
-    aspect-ratio: 16/9 !important;
-}
-
-#participantGrid[data-count="2"] {
-    grid-template-columns: 1fr 1fr !important;
-    grid-template-rows: 1fr !important;
-}
-
-#participantGrid[data-count="3"] {
-    grid-template-columns: 1fr 1fr 1fr !important;
-    grid-template-rows: 1fr !important;
-}
-
-#participantGrid[data-count="4"] {
-    grid-template-columns: 1fr 1fr 1fr 1fr !important;
-    grid-template-rows: 1fr !important;
-}
-
-#participantGrid[data-count="5"] {
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr !important;
-    grid-template-rows: 1fr !important;
-}
-
-#participantGrid[data-count="6"] {
-    grid-template-columns: 1fr 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr !important;
-}
-
-#participantGrid[data-count="7"], 
-#participantGrid[data-count="8"] {
-    grid-template-columns: 1fr 1fr 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr !important;
-}
-
-#participantGrid[data-count="9"] {
-    grid-template-columns: 1fr 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr 1fr !important;
-}
-
-#participantGrid[data-count="10"],
-#participantGrid[data-count="11"],
-#participantGrid[data-count="12"] {
-    grid-template-columns: 1fr 1fr 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr 1fr !important;
 }
 
 #unifiedGridView {
@@ -383,8 +313,6 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 @media (max-width: 768px) {
     #participantGrid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
-        grid-auto-rows: minmax(150px, 1fr) !important;
         gap: 8px !important;
         padding: 8px !important;
         overflow-y: auto !important;
@@ -392,56 +320,14 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
         max-height: calc(100vh - 200px) !important;
     }
     
-
-    
     #participantGrid::-webkit-scrollbar {
         width: 6px !important;
-    }
-    
-    #participantGrid[data-count="1"] {
-        grid-template-columns: 1fr !important;
-        justify-items: stretch !important;
-        align-items: stretch !important;
-    }
-    
-    #participantGrid[data-count="1"] .participant-card,
-    #participantGrid[data-count="1"] .video-participant-card,
-    #participantGrid[data-count="1"] .screen-share-card {
-        width: 100% !important;
-        max-width: 95vw !important;
-        min-height: 300px !important;
-        height: auto !important;
-        margin: 0 auto !important;
-        aspect-ratio: 16/9 !important;
-    }
-    
-    #participantGrid[data-count="2"] {
-        grid-template-columns: 1fr 1fr !important;
-        grid-template-rows: 1fr !important;
-    }
-    
-    #participantGrid[data-count="3"] {
-        grid-template-columns: 1fr 1fr 1fr !important;
-        grid-template-rows: 1fr !important;
-    }
-    
-    #participantGrid[data-count="4"] {
-        grid-template-columns: 1fr 1fr !important;
-        grid-template-rows: 1fr 1fr !important;
-    }
-    
-    #participantGrid[data-count="5"],
-    #participantGrid[data-count="6"] {
-        grid-template-columns: 1fr 1fr 1fr !important;
-        grid-template-rows: 1fr 1fr !important;
     }
     
     .participant-card {
         width: 100% !important;
         height: 100% !important;
     }
-    
-
     
     .participant-avatar {
         width: 60px !important;
@@ -728,13 +614,6 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 .screen-share-card video {
     object-fit: contain !important;
-}
-
-.video-participant-card video,
-.screen-share-card video {
-    object-fit: contain !important;
-    width: 100% !important;
-    height: 100% !important;
     background: #000 !important;
 }
 
@@ -1168,6 +1047,7 @@ class VoiceCallManager {
         
         await this.createParticipantElement(participantData);
         this.updateParticipantCount();
+        this.updateGrid();
         
         // Emit local join event for immediate UI updates
         this.broadcastParticipantUpdate('join', participantId, participantData.name);
@@ -1332,6 +1212,8 @@ class VoiceCallManager {
         if (this.fullscreenParticipant === participantId || this.fullscreenParticipant === `${participantId}-screenshare`) {
             this.exitFullscreen();
         }
+        
+        this.updateGrid();
     }
 
     updateParticipantCount() {
@@ -1523,14 +1405,12 @@ class VoiceCallManager {
         const card = document.createElement('div');
         card.className = 'screen-share-card video-participant-card';
         card.dataset.participantId = screenShareId;
-        card.style.width = '100%';
-        card.style.height = '100%';
         card.style.border = '2px solid #5865f2';
 
         const isLocal = participantId === this.localParticipantId;
 
         card.innerHTML = `
-            <video autoplay playsinline ${isLocal ? '' : 'muted'} style="width: 100%; height: 100%; object-fit: contain; background: #000;" data-participant-id="${screenShareId}"></video>
+            <video autoplay playsinline ${isLocal ? '' : 'muted'} data-participant-id="${screenShareId}"></video>
             <div class="video-participant-overlay">
                 <div class="flex items-center space-x-2">
                     <i class="fas fa-desktop text-[#5865f2]"></i>
@@ -1546,6 +1426,8 @@ class VoiceCallManager {
         }
 
         container.appendChild(card);
+        
+        this.updateGrid();
         
         console.log('[SCREEN-SHARE] Screen share card added to DOM:', {
             cardId: screenShareId,
@@ -1590,13 +1472,11 @@ class VoiceCallManager {
         const card = document.createElement('div');
         card.className = 'video-participant-card';
         card.dataset.participantId = participantId;
-        card.style.width = '100%';
-        card.style.height = '100%';
 
         const isLocal = participantId === this.localParticipantId;
 
         card.innerHTML = `
-            <video autoplay playsinline ${isLocal ? '' : 'muted'} style="width: 100%; height: 100%; object-fit: contain; background: #000;" data-participant-id="${participantId}"></video>
+            <video autoplay playsinline ${isLocal ? '' : 'muted'} data-participant-id="${participantId}"></video>
             <div class="video-participant-overlay">
                 <span>${participant.name}${isLocal ? ' (You)' : ''}</span>
                 ${participant.isMuted ? '<i class="fas fa-microphone-slash ml-2"></i>' : ''}
@@ -1610,6 +1490,8 @@ class VoiceCallManager {
 
         container.appendChild(card);
         participant.hasVideo = true;
+        
+        this.updateGrid();
         
         if (!participant.isLocal) {
             this.scrollToNewParticipant(card);
@@ -1758,14 +1640,91 @@ class VoiceCallManager {
         const participantCount = this._participants.size;
         participantGrid.setAttribute('data-count', participantCount.toString());
         
-        participantGrid.style.display = 'grid';
-        participantGrid.style.gap = '12px';
-        participantGrid.style.width = '100%';
-        participantGrid.style.height = '100%';
-        participantGrid.style.padding = '8px';
-        
+        this.calculateSmartGrid(participantGrid, participantCount);
         this.setupScrollIndicator();
         this.handleGridScrolling();
+    }
+
+    calculateSmartGrid(container, participantCount) {
+        if (participantCount === 0) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const availableWidth = containerRect.width - 16;
+        const availableHeight = containerRect.height - 16;
+        
+        if (availableWidth <= 0 || availableHeight <= 0) {
+            setTimeout(() => this.updateGrid(), 100);
+            return;
+        }
+
+        const { cols, rows, cellWidth, cellHeight } = this.getOptimalGridLayout(
+            participantCount, 
+            availableWidth, 
+            availableHeight
+        );
+
+        container.style.display = 'grid';
+        container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+        container.style.gap = '12px';
+        container.style.width = '100%';
+        container.style.height = '100%';
+        container.style.padding = '8px';
+        
+        this.updateParticipantCardSizes(cellWidth, cellHeight);
+    }
+
+    getOptimalGridLayout(participantCount, containerWidth, containerHeight) {
+        const minCellWidth = window.innerWidth <= 768 ? 200 : 300;
+        const minCellHeight = window.innerWidth <= 768 ? 150 : 200;
+        const aspectRatio = 16 / 9;
+        
+        let bestLayout = { cols: 1, rows: 1, cellWidth: containerWidth, cellHeight: containerHeight };
+        let bestScore = 0;
+
+        for (let cols = 1; cols <= Math.min(participantCount, 6); cols++) {
+            const rows = Math.ceil(participantCount / cols);
+            
+            const cellWidth = (containerWidth - (cols - 1) * 12) / cols;
+            const cellHeight = (containerHeight - (rows - 1) * 12) / rows;
+            
+            if (cellWidth < minCellWidth || cellHeight < minCellHeight) continue;
+            
+            const widthScore = Math.min(cellWidth / minCellWidth, 2);
+            const heightScore = Math.min(cellHeight / minCellHeight, 2);
+            const aspectScore = 1 - Math.abs((cellWidth / cellHeight) - aspectRatio) / aspectRatio;
+            const utilizationScore = participantCount / (cols * rows);
+            
+            const score = widthScore * heightScore * aspectScore * utilizationScore;
+            
+            if (score > bestScore) {
+                bestScore = score;
+                bestLayout = { cols, rows, cellWidth, cellHeight };
+            }
+        }
+
+        return bestLayout;
+    }
+
+    updateParticipantCardSizes(cellWidth, cellHeight) {
+        const allCards = document.querySelectorAll('.participant-card, .video-participant-card, .screen-share-card');
+        
+        allCards.forEach(card => {
+            const video = card.querySelector('video');
+            if (video) {
+                video.style.objectFit = cellWidth / cellHeight > 16/9 ? 'contain' : 'cover';
+                video.style.width = '100%';
+                video.style.height = '100%';
+            }
+            
+            const avatar = card.querySelector('.participant-avatar');
+            if (avatar) {
+                const size = Math.min(cellWidth * 0.3, cellHeight * 0.3, 120);
+                avatar.style.width = `${size}px`;
+                avatar.style.height = `${size}px`;
+                avatar.style.fontSize = `${size * 0.3}px`;
+            }
+        });
     }
 
     setupScrollIndicator() {
@@ -1786,7 +1745,7 @@ class VoiceCallManager {
             const isScrollable = participantGrid.scrollHeight > participantGrid.clientHeight;
             const participantCount = this._participants.size;
             
-            if (isScrollable && participantCount > 6) {
+            if (isScrollable && participantCount > 4) {
                 scrollIndicator.classList.add('visible');
                 scrollIndicator.textContent = `${participantCount} participants`;
             } else {
@@ -1794,9 +1753,10 @@ class VoiceCallManager {
             }
         };
         
-        setTimeout(checkScrollable, 100);
+        setTimeout(checkScrollable, 200);
         
-        participantGrid.addEventListener('scroll', () => {
+        participantGrid.removeEventListener('scroll', this._scrollHandler);
+        this._scrollHandler = () => {
             const { scrollTop, scrollHeight, clientHeight } = participantGrid;
             const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
             
@@ -1804,11 +1764,12 @@ class VoiceCallManager {
                 scrollIndicator.classList.remove('visible');
             } else {
                 const participantCount = this._participants.size;
-                if (participantCount > 6) {
+                if (participantCount > 4) {
                     scrollIndicator.classList.add('visible');
                 }
             }
-        });
+        };
+        participantGrid.addEventListener('scroll', this._scrollHandler);
     }
 
     handleGridScrolling() {
@@ -2379,6 +2340,17 @@ const initializeVoiceCallSystem = () => {
     console.log('[VOICE-CALL] Creating single VoiceCallManager instance');
     window.voiceCallManager = new VoiceCallManager();
     
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (window.voiceCallManager && window.voiceCallManager.isConnected) {
+                console.log('[VOICE-CALL] Window resized, updating grid layout');
+                window.voiceCallManager.updateGrid();
+            }
+        }, 250);
+    });
+    
     window.retryVoiceSocketRegistration = function() {
         if (window.voiceManager && typeof window.voiceManager.retrySocketRegistration === 'function') {
             return window.voiceManager.retrySocketRegistration();
@@ -2795,6 +2767,56 @@ window.diagnoseVoiceStatus = function() {
     };
 };
 
+window.testSmartGrid = function() {
+    console.log('🧪 [SMART-GRID-TEST] Testing smart grid layout system...');
+    
+    if (!window.voiceCallManager) {
+        console.error('❌ [SMART-GRID-TEST] VoiceCallManager not available');
+        return false;
+    }
+    
+    const participantGrid = document.getElementById('participantGrid');
+    if (!participantGrid) {
+        console.error('❌ [SMART-GRID-TEST] Participant grid not found');
+        return false;
+    }
+    
+    const mockParticipants = [
+        { id: 'test1', name: 'Test User 1', hasVideo: false, hasScreenShare: false },
+        { id: 'test2', name: 'Test User 2', hasVideo: true, hasScreenShare: false },
+        { id: 'test3', name: 'Test User 3', hasVideo: false, hasScreenShare: true },
+        { id: 'test4', name: 'Test User 4', hasVideo: true, hasScreenShare: false }
+    ];
+    
+    console.log('📊 [SMART-GRID-TEST] Testing different participant counts...');
+    
+    for (let i = 1; i <= mockParticipants.length; i++) {
+        const { cols, rows, cellWidth, cellHeight } = window.voiceCallManager.getOptimalGridLayout(
+            i, 
+            participantGrid.clientWidth - 16, 
+            participantGrid.clientHeight - 16
+        );
+        
+        console.log(`👥 ${i} participants: ${cols}x${rows} grid, cell size: ${Math.round(cellWidth)}x${Math.round(cellHeight)}`);
+    }
+    
+    console.log('📱 [SMART-GRID-TEST] Testing mobile layout...');
+    Object.defineProperty(window, 'innerWidth', { value: 400, configurable: true });
+    
+    const { cols: mobileCols, rows: mobileRows } = window.voiceCallManager.getOptimalGridLayout(
+        4, 
+        400 - 16, 
+        600 - 16
+    );
+    
+    console.log(`📱 Mobile 4 participants: ${mobileCols}x${mobileRows} grid`);
+    
+    Object.defineProperty(window, 'innerWidth', { value: 1920, configurable: true });
+    
+    console.log('✅ [SMART-GRID-TEST] Smart grid test completed successfully');
+    return true;
+};
+
 console.log('✅ [VOICE-CALL] Test functions available:');
 console.log('  - window.testVoiceConnectionStatus() - Test basic voice connection');
 console.log('  - window.testVoicePresenceProtection() - Test presence protection');
@@ -2802,4 +2824,85 @@ console.log('  - window.testVoiceLeaveButton() - Test leave button presence upda
 console.log('  - window.testSpuriousLeaveProtection() - Test spurious leave event protection');
 console.log('  - window.testAFKProtectionWhileInVoice() - Test AFK protection while in voice');
 console.log('  - window.diagnoseVoiceStatus() - Diagnose voice status consistency');
+console.log('  - window.testSmartGrid() - Test smart grid layout calculations');
+
+window.testAllVoiceUIComponents = function() {
+    console.log('🧪 [VOICE-UI-TEST] Testing all voice UI components with new format...');
+    
+    if (!window.globalSocketManager?.isReady()) {
+        console.error('❌ [VOICE-UI-TEST] Socket not ready');
+        return false;
+    }
+    
+    const testChannelName = 'Test Voice Channel';
+    const testActivity = {
+        type: `In Voice - ${testChannelName}`,
+        channel_name: testChannelName,
+        channel_id: '999',
+        server_id: '888'
+    };
+    
+    console.log('📡 [VOICE-UI-TEST] Setting presence to voice call...');
+    window.globalSocketManager.updatePresence('online', testActivity);
+    
+    setTimeout(() => {
+        console.log('🔍 [VOICE-UI-TEST] Checking all UI components...');
+        
+        const activeNowContainer = document.getElementById('active-now-container') || 
+                                 document.getElementById('global-active-now-container');
+        
+        if (activeNowContainer) {
+            const voiceUsers = Array.from(activeNowContainer.querySelectorAll('.text-xs.text-gray-400')).filter(el => {
+                return el.textContent.includes('In Voice -');
+            });
+            
+            if (voiceUsers.length > 0) {
+                console.log('✅ [VOICE-UI-TEST] Active Now section shows voice status correctly');
+                voiceUsers.forEach(user => {
+                    console.log('   👤 Found:', user.textContent.trim());
+                });
+            } else {
+                console.log('⚠️ [VOICE-UI-TEST] Active Now section not showing voice status');
+            }
+        }
+        
+        const participantSection = document.querySelector('.user-presence-text');
+        if (participantSection) {
+            const presenceText = participantSection.textContent.trim();
+            if (presenceText.includes('In Voice -')) {
+                console.log('✅ [VOICE-UI-TEST] Participant section shows voice status correctly:', presenceText);
+            } else {
+                console.log('⚠️ [VOICE-UI-TEST] Participant section not showing voice status:', presenceText);
+            }
+        }
+        
+        if (window.globalPresenceManager) {
+            const testActivityText = window.globalPresenceManager.getActivityText(testActivity);
+            const testActivityIcon = window.globalPresenceManager.getActivityIcon(testActivity);
+            
+            if (testActivityText === testActivity.type) {
+                console.log('✅ [VOICE-UI-TEST] Global presence manager returns correct activity text');
+            } else {
+                console.log('❌ [VOICE-UI-TEST] Global presence manager wrong activity text:', testActivityText);
+            }
+            
+            if (testActivityIcon === 'fa-solid fa-microphone') {
+                console.log('✅ [VOICE-UI-TEST] Global presence manager returns correct activity icon');
+            } else {
+                console.log('❌ [VOICE-UI-TEST] Global presence manager wrong activity icon:', testActivityIcon);
+            }
+        }
+        
+        console.log('📊 [VOICE-UI-TEST] Current socket activity details:', window.globalSocketManager.currentActivityDetails);
+        
+        setTimeout(() => {
+            console.log('📡 [VOICE-UI-TEST] Resetting to idle...');
+            window.globalSocketManager.updatePresence('online', { type: 'idle' });
+            console.log('✅ [VOICE-UI-TEST] Test completed');
+        }, 3000);
+        
+    }, 1000);
+    
+    return true;
+};
 </script>

@@ -349,22 +349,13 @@ function getActivityText(activityDetails, status) {
     switch (activityDetails.type) {
         case 'playing Tic Tac Toe': 
             return 'Playing Tic Tac Toe';
-        case 'In Voice Call': 
-            const currentServerId = <?php echo $currentServerId; ?>;
-            const userServerId = activityDetails.server_id;
-            const channelName = activityDetails.channel_name;
-            
-            if (currentServerId && userServerId == currentServerId && channelName) {
-                return `In Voice - ${channelName}`;
-            } else if (channelName) {
-                return `In Voice Call`;
-            } else {
-                return 'In Voice Call';
-            }
         case 'afk': 
             return 'Away';
         case 'idle':
         default: 
+            if (activityDetails.type && activityDetails.type.startsWith('In Voice - ')) {
+                return activityDetails.type;
+            }
             return status === 'afk' ? 'Away' : 'Online';
     }
 }

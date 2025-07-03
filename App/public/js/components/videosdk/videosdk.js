@@ -823,6 +823,10 @@ class VideoSDKManager {
                     detail: { type: 'video', state: false }
                 }));
                 
+                if (window.voiceCallManager) {
+                    setTimeout(() => window.voiceCallManager.updateGrid(), 100);
+                }
+                
                 return false;
             } else {
                 console.log('[VideoSDK] Enabling webcam...');
@@ -840,6 +844,10 @@ class VideoSDKManager {
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                     detail: { type: 'video', state: true }
                 }));
+                
+                if (window.voiceCallManager) {
+                    setTimeout(() => window.voiceCallManager.updateGrid(), 100);
+                }
                 
                 return true;
             }
@@ -890,6 +898,10 @@ class VideoSDKManager {
                     detail: { type: 'screenShare', state: false }
                 }));
                 
+                if (window.voiceCallManager) {
+                    setTimeout(() => window.voiceCallManager.updateGrid(), 100);
+                }
+                
                 return false;
             } else {
                 await this.meeting.enableScreenShare();
@@ -899,6 +911,10 @@ class VideoSDKManager {
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                     detail: { type: 'screenShare', state: true }
                 }));
+                
+                if (window.voiceCallManager) {
+                    setTimeout(() => window.voiceCallManager.updateGrid(), 100);
+                }
                 
                 return true;
             }

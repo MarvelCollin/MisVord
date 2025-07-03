@@ -1665,7 +1665,7 @@ input[type="radio"]:checked + .radio-dot:after {
 }
 
 .action-message {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--discord-text-normal);
   line-height: 1.5;
   margin-bottom: 16px;
@@ -2727,7 +2727,7 @@ textarea.form-input {
 .channels-table-header {
   background-color: var(--discord-bg-tertiary);
   display: grid;
-  grid-template-columns: 40px 1fr 100px 80px 120px;
+  grid-template-columns: 40px 1fr 100px 120px;
   gap: var(--discord-spacing-md);
   padding: var(--discord-spacing-md);
   border-bottom: 1px solid rgba(4, 4, 5, 0.2);
@@ -2758,10 +2758,7 @@ textarea.form-input {
   justify-content: center;
 }
 
-.channel-table-col-position {
-  width: 80px;
-  justify-content: center;
-}
+
 
 .channel-table-col-actions {
   width: 120px;
@@ -2770,7 +2767,7 @@ textarea.form-input {
 
 .channel-item {
   display: grid;
-  grid-template-columns: 40px 1fr 100px 80px 120px;
+  grid-template-columns: 40px 1fr 100px 120px;
   gap: var(--discord-spacing-md);
   padding: var(--discord-spacing-md);
   border-bottom: 1px solid rgba(4, 4, 5, 0.1);
@@ -2856,14 +2853,7 @@ textarea.form-input {
   color: var(--discord-green);
 }
 
-.channel-position {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--discord-interactive-normal);
-}
+
 
 .channel-actions {
   display: flex;
@@ -2893,15 +2883,7 @@ textarea.form-input {
   font-size: 12px;
 }
 
-.channel-move-up-btn:hover {
-  background-color: var(--discord-blurple);
-  color: white;
-}
 
-.channel-move-down-btn:hover {
-  background-color: var(--discord-blurple);
-  color: white;
-}
 
 .channel-edit-btn:hover {
   background-color: var(--discord-yellow);
@@ -3094,42 +3076,7 @@ textarea.form-input {
   line-height: 1.5;
 }
 
-.position-change-preview {
-  background-color: var(--discord-bg-secondary);
-  border-radius: var(--discord-border-radius-tertiary);
-  padding: var(--discord-spacing-md);
-  margin: var(--discord-spacing-md) 0;
-}
 
-.position-change-from,
-.position-change-to {
-  display: flex;
-  align-items: center;
-  gap: var(--discord-spacing-sm);
-  margin-bottom: var(--discord-spacing-xs);
-}
-
-.position-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--discord-interactive-normal);
-  text-transform: uppercase;
-  width: 40px;
-}
-
-.position-value {
-  font-size: 14px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: var(--discord-border-radius-tertiary);
-  background-color: var(--discord-bg-tertiary);
-  color: var(--discord-text-normal);
-}
-
-.position-change-arrow {
-  color: var(--discord-interactive-muted);
-  margin: var(--discord-spacing-xs) 0;
-}
 
 .channel-modal-footer {
   padding: var(--discord-spacing-lg);

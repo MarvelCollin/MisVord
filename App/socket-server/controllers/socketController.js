@@ -441,11 +441,12 @@ function setup(io) {
                 
                 // Update user presence to reflect voice activity with context
                 const currentPresence = userService.getPresence(userId);
+                const channelName = data.channel_name || 'Voice Channel';
                 userService.updatePresence(userId, 'online', { 
-                    type: 'In Voice Call',
+                    type: `In Voice - ${channelName}`,
                     channel_id: channel_id,
                     server_id: server_id,
-                    channel_name: data.channel_name || 'Voice Channel'
+                    channel_name: channelName
                 }, username || client.data?.username);
                 
                 // Broadcast presence update with voice context
@@ -454,10 +455,10 @@ function setup(io) {
                     username: username || client.data?.username,
                     status: 'online',
                     activity_details: { 
-                        type: 'In Voice Call',
+                        type: `In Voice - ${channelName}`,
                         channel_id: channel_id,
                         server_id: server_id,
-                        channel_name: data.channel_name || 'Voice Channel'
+                        channel_name: channelName
                     }
                 });
                 
@@ -770,7 +771,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
         
         if (user_id) {
             const currentPresence = userService.getPresence(user_id);
-            if (currentPresence && currentPresence.activity_details?.type === 'In Voice Call') {
+            if (currentPresence && currentPresence.activity_details?.type && currentPresence.activity_details.type.startsWith('In Voice - ')) {
                 userService.updatePresence(user_id, 'online', { type: 'idle' }, username);
                 io.emit('user-presence-update', {
                     user_id: user_id,
@@ -863,7 +864,7 @@ function handleDisconnect(io, client) {
                     VoiceConnectionTracker.removeUserFromVoice(user_id);
                     
                     const currentPresence = userService.getPresence(user_id);
-                    if (currentPresence && currentPresence.activity_details?.type === 'In Voice Call') {
+                    if (currentPresence && currentPresence.activity_details?.type && currentPresence.activity_details.type.startsWith('In Voice - ')) {
                         userService.updatePresence(user_id, 'online', { type: 'idle' }, username);
                         io.emit('user-presence-update', {
                             user_id: user_id,
@@ -871,7 +872,7 @@ function handleDisconnect(io, client) {
                             status: 'online',
                             activity_details: { type: 'idle' }
                         });
-                        console.log(`👤 [VOICE-PARTICIPANT] Updated presence for ${username} from 'In Voice Call' to 'idle'`);
+                        console.log(`👤 [VOICE-PARTICIPANT] Updated presence for ${username} from 'In Voice - ${currentPresence.activity_details.channel_name || 'Voice'}' to 'idle'`);
                     }
                     
                     client.leave(`voice-channel-${meeting.channel_id}`);
@@ -1035,7 +1036,7 @@ function setupStaleConnectionChecker(io) {
                     VoiceConnectionTracker.removeUserFromVoice(user_id);
                     
                     const currentPresence = userService.getPresence(user_id);
-                    if (currentPresence && currentPresence.activity_details?.type === 'In Voice Call') {
+                    if (currentPresence && currentPresence.activity_details?.type && currentPresence.activity_details.type.startsWith('In Voice - ')) {
                         userService.updatePresence(user_id, 'online', { type: 'idle' });
                         
                         io.emit('user-presence-update', {

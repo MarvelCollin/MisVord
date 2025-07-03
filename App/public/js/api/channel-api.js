@@ -3,14 +3,17 @@ const channelAPI = {
         return $.ajax({
             url: `/api/servers/${serverId}/channels`,
             method: 'GET',
-            dataType: 'json',
-            xhrFields: {
-                withCredentials: true
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             }
         }).fail(function(xhr) {
             if (xhr.status === 401) {
                 window.location.href = '/login';
+                return;
             }
+            throw new Error(`HTTP error! Status: ${xhr.status}`);
         });
     },
 
@@ -21,14 +24,15 @@ const channelAPI = {
             data: formData,
             processData: false,
             contentType: false,
-            dataType: 'json',
-            xhrFields: {
-                withCredentials: true
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
         }).fail(function(xhr) {
             if (xhr.status === 401) {
                 window.location.href = '/login';
+                return;
             }
+            throw new Error(`HTTP error! Status: ${xhr.status}`);
         });
     },
 
@@ -36,16 +40,17 @@ const channelAPI = {
         return $.ajax({
             url: `/api/channels/${channelId}`,
             method: 'PUT',
-            data: JSON.stringify(data),
             contentType: 'application/json',
-            dataType: 'json',
-            xhrFields: {
-                withCredentials: true
+            data: JSON.stringify(data),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
         }).fail(function(xhr) {
             if (xhr.status === 401) {
                 window.location.href = '/login';
+                return;
             }
+            throw new Error(`HTTP error! Status: ${xhr.status}`);
         });
     },
 
@@ -53,30 +58,38 @@ const channelAPI = {
         return $.ajax({
             url: `/api/channels/${channelId}`,
             method: 'DELETE',
-            dataType: 'json',
-            xhrFields: {
-                withCredentials: true
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
         }).fail(function(xhr) {
             if (xhr.status === 401) {
                 window.location.href = '/login';
+                return;
             }
+            throw new Error(`HTTP error! Status: ${xhr.status}`);
         });
     },
 
     getChannelMessages: function(channelId, offset = 0, limit = 50) {
+        const params = {
+            offset: offset,
+            limit: limit
+        };
+        
         return $.ajax({
             url: `/api/chat/channel/${channelId}/messages`,
             method: 'GET',
-            data: { offset: offset, limit: limit },
-            dataType: 'json',
-            xhrFields: {
-                withCredentials: true
+            data: params,
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             }
         }).fail(function(xhr) {
             if (xhr.status === 401) {
                 window.location.href = '/login';
+                return;
             }
+            throw new Error(`HTTP error! Status: ${xhr.status}`);
         });
     },
 
@@ -87,48 +100,39 @@ const channelAPI = {
             data: formData,
             processData: false,
             contentType: false,
-            dataType: 'json',
-            xhrFields: {
-                withCredentials: true
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
         }).fail(function(xhr) {
             if (xhr.status === 401) {
                 window.location.href = '/login';
+                return;
             }
+            throw new Error(`HTTP error! Status: ${xhr.status}`);
         });
     },
 
     getChannelDetails: function(channelId, forceFresh = false) {
-        const url = forceFresh ? `/api/channels/${channelId}?timestamp=${Date.now()}` : `/api/channels/${channelId}`;
+        let url = `/api/channels/${channelId}`;
+        const params = {};
+        if (forceFresh) {
+            params.timestamp = Date.now();
+        }
         
         return $.ajax({
             url: url,
             method: 'GET',
-            dataType: 'json',
-            xhrFields: {
-                withCredentials: true
+            data: params,
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             }
         }).fail(function(xhr) {
             if (xhr.status === 401) {
                 window.location.href = '/login';
+                return;
             }
-        });
-    },
-
-    updateChannelPosition: function(channelId, direction) {
-        return $.ajax({
-            url: `/api/channels/${channelId}/position`,
-            method: 'PUT',
-            data: JSON.stringify({ direction: direction }),
-            contentType: 'application/json',
-            dataType: 'json',
-            xhrFields: {
-                withCredentials: true
-            }
-        }).fail(function(xhr) {
-            if (xhr.status === 401) {
-                window.location.href = '/login';
-            }
+            throw new Error(`HTTP error! Status: ${xhr.status}`);
         });
     },
 
@@ -136,16 +140,17 @@ const channelAPI = {
         return $.ajax({
             url: `/api/channels/${channelId}`,
             method: 'PUT',
-            data: JSON.stringify({ name: name }),
             contentType: 'application/json',
-            dataType: 'json',
-            xhrFields: {
-                withCredentials: true
+            data: JSON.stringify({ name: name }),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
         }).fail(function(xhr) {
             if (xhr.status === 401) {
                 window.location.href = '/login';
+                return;
             }
+            throw new Error(`HTTP error! Status: ${xhr.status}`);
         });
     }
 };

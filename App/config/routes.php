@@ -337,13 +337,21 @@ Route::post('/api/channels/([0-9]+)/switch', function($channelId) {
 
 Route::put('/api/channels/([0-9]+)', function($channelId) {
     $controller = new ChannelController();
+    $input = json_decode(file_get_contents('php://input'), true) ?: [];
     $_POST['channel_id'] = $channelId;
+    foreach ($input as $key => $value) {
+        $_POST[$key] = $value;
+    }
     $controller->update();
 });
 
 Route::put('/api/channels/([0-9]+)/position', function($channelId) {
     $controller = new ChannelController();
+    $input = json_decode(file_get_contents('php://input'), true) ?: [];
     $_POST['channel_id'] = $channelId;
+    if (isset($input['position'])) {
+        $_POST['position'] = $input['position'];
+    }
     $controller->updatePosition();
 });
 

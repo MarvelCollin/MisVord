@@ -123,13 +123,25 @@ class UserProfileVoiceControls {
     
     async init() {
         try {
+            console.log('[UserProfileVoiceControls] Starting initialization...');
+            
             await this.waitForDependencies();
+            console.log('[UserProfileVoiceControls] Dependencies loaded successfully');
+            
             await this.setupElements();
+            console.log('[UserProfileVoiceControls] Elements found and setup');
+            
             this.setupEventListeners();
+            console.log('[UserProfileVoiceControls] Event listeners attached');
+            
             this.updateControls();
+            console.log('[UserProfileVoiceControls] Initial state sync complete');
+            
             this.initialized = true;
+            console.log('[UserProfileVoiceControls] ✅ Initialization complete');
+            
         } catch (error) {
-            console.error('Failed to initialize user profile voice controls:', error);
+            console.error('[UserProfileVoiceControls] ❌ Failed to initialize:', error);
         }
     }
     
@@ -138,14 +150,24 @@ class UserProfileVoiceControls {
             const checkDependencies = () => {
                 const hasLocalStorage = !!window.localStorageManager;
                 const hasMusicLoader = !!window.MusicLoaderStatic;
+                const hasUnifiedState = !!window.unifiedVoiceStateManager;
                 
-                if (hasLocalStorage && hasMusicLoader) {
+                // We need at least one voice state manager and music loader
+                const hasVoiceManager = hasLocalStorage || hasUnifiedState;
+                
+                if (hasVoiceManager && hasMusicLoader) {
+                    console.log('[UserProfileVoiceControls] Dependencies ready:', {
+                        localStorageManager: hasLocalStorage,
+                        unifiedVoiceStateManager: hasUnifiedState,
+                        musicLoader: hasMusicLoader
+                    });
                     resolve();
                 } else if (this.retryCount >= this.maxRetries) {
                     const missingDeps = [];
-                    if (!hasLocalStorage) missingDeps.push('localStorageManager');
+                    if (!hasVoiceManager) missingDeps.push('voice state manager (local or unified)');
                     if (!hasMusicLoader) missingDeps.push('MusicLoaderStatic');
                     
+                    console.error('[UserProfileVoiceControls] Missing dependencies after max retries:', missingDeps);
                     reject(new Error(`Missing dependencies: ${missingDeps.join(', ')}`));
                 } else {
                     this.retryCount++;
@@ -198,10 +220,30 @@ class UserProfileVoiceControls {
             });
         }
         
+        // Listen to voice state changes
         window.addEventListener('voiceStateChanged', () => {
             this.updateControls();
         });
         
+        // Listen to voice connect/disconnect events
+        window.addEventListener('voiceConnect', () => {
+            setTimeout(() => this.updateControls(), 100);
+        });
+        
+        window.addEventListener('voiceDisconnect', () => {
+            setTimeout(() => this.updateControls(), 100);
+        });
+        
+        // Listen to videoSDK events for real-time sync
+        window.addEventListener('videosdkMeetingJoined', () => {
+            setTimeout(() => this.updateControls(), 100);
+        });
+        
+        window.addEventListener('videosdkMeetingLeft', () => {
+            setTimeout(() => this.updateControls(), 100);
+        });
+        
+        // Listen to both local storage and unified state manager
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener(() => {
                 this.updateControls();
@@ -214,18 +256,53 @@ class UserProfileVoiceControls {
             });
         }
         
+        // Add cross-tab sync listener
+        window.addEventListener('storage', (e) => {
+            if (e.key && (e.key.includes('voice') || e.key.includes('Voice'))) {
+                setTimeout(() => this.updateControls(), 50);
+            }
+        });
+        
+        // Set up periodic sync check (every 2 seconds when in voice)
+        this.setupPeriodicSync();
+        
         this.eventListenersAttached = true;
     }
     
     updateControls() {
-        if (!window.localStorageManager) {
-            return;
-        }
-        
         try {
-            const state = window.localStorageManager.getVoiceState();
+            // Use unified state manager as primary source, fallback to local storage
+            let state = null;
+            
+            if (window.unifiedVoiceStateManager) {
+                state = window.unifiedVoiceStateManager.getState();
+            } else if (window.localStorageManager) {
+                state = window.localStorageManager.getVoiceState();
+            }
+            
+            // If no state manager available, get state from videoSDK directly
+            if (!state && window.videoSDKManager?.isReady()) {
+                state = {
+                    isMuted: window.videoSDKManager.meeting?.localParticipant?.micEnabled === false,
+                    isDeafened: false,
+                    isConnected: window.videoSDKManager.isConnected,
+                    volume: 100
+                };
+            }
+            
+            // Default fallback state
+            if (!state) {
+                state = {
+                    isMuted: false,
+                    isDeafened: false,
+                    isConnected: false,
+                    volume: 100
+                };
+            }
+            
             this.updateMicButton(state);
             this.updateDeafenButton(state);
+            
         } catch (error) {
             console.error('Error updating user profile controls:', error);
         }
@@ -274,13 +351,22 @@ class UserProfileVoiceControls {
     }
     
     handleMicClick() {
-        if (!window.localStorageManager) {
-            return;
-        }
-        
         try {
-            const wasToggled = window.localStorageManager.toggleVoiceMute();
+            let wasToggled = false;
             
+            // Use unified state manager as primary, fallback to local storage
+            if (window.unifiedVoiceStateManager) {
+                wasToggled = window.unifiedVoiceStateManager.toggleMute();
+            } else if (window.localStorageManager) {
+                wasToggled = window.localStorageManager.toggleVoiceMute();
+            }
+            
+            // If connected to videoSDK, toggle the actual mic
+            if (window.videoSDKManager?.isReady()) {
+                window.videoSDKManager.toggleMic();
+            }
+            
+            // Play sound feedback
             if (window.MusicLoaderStatic) {
                 if (wasToggled) {
                     window.MusicLoaderStatic.playDiscordMuteSound();
@@ -289,23 +375,145 @@ class UserProfileVoiceControls {
                 }
             }
             
-            setTimeout(() => this.updateControls(), 50);
+            // Dispatch event for cross-component sync
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: {
+                    type: 'mic',
+                    state: !wasToggled,
+                    source: 'user-profile'
+                }
+            }));
+            
+            // Update UI immediately and after short delay
+            this.updateControls();
+            setTimeout(() => this.updateControls(), 100);
+            
         } catch (error) {
             console.error('Error in user profile mic click handler:', error);
         }
     }
     
     handleDeafenClick() {
-        if (!window.localStorageManager) {
-            return;
-        }
-        
         try {
-            window.localStorageManager.toggleVoiceDeafen();
-            setTimeout(() => this.updateControls(), 50);
+            let wasToggled = false;
+            
+            // Use unified state manager as primary, fallback to local storage
+            if (window.unifiedVoiceStateManager) {
+                wasToggled = window.unifiedVoiceStateManager.toggleDeafen();
+            } else if (window.localStorageManager) {
+                wasToggled = window.localStorageManager.toggleVoiceDeafen();
+            }
+            
+            // If connected to videoSDK, toggle the actual audio
+            if (window.videoSDKManager?.isReady()) {
+                window.videoSDKManager.toggleDeafen();
+            }
+            
+            // Dispatch event for cross-component sync
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: {
+                    type: 'deafen',
+                    state: wasToggled,
+                    source: 'user-profile'
+                }
+            }));
+            
+            // Update UI immediately and after short delay
+            this.updateControls();
+            setTimeout(() => this.updateControls(), 100);
+            
         } catch (error) {
             console.error('Error in user profile deafen click handler:', error);
         }
+    }
+    
+    setupPeriodicSync() {
+        // Check for sync every 2 seconds when in voice call
+        setInterval(() => {
+            if (this.isInVoiceCall()) {
+                this.updateControls();
+            }
+        }, 2000);
+    }
+    
+    isInVoiceCall() {
+        // Check multiple sources to determine if user is in voice call
+        if (window.videoSDKManager?.isConnected) {
+            return true;
+        }
+        
+        if (window.voiceManager?.isConnected) {
+            return true;
+        }
+        
+        if (window.unifiedVoiceStateManager?.isConnected()) {
+            return true;
+        }
+        
+        if (window.localStorageManager) {
+            const state = window.localStorageManager.getVoiceState();
+            return state?.isConnected || false;
+        }
+        
+        return false;
+    }
+    
+    forceSync() {
+        // Public method to force synchronization
+        console.log('[UserProfileVoiceControls] Force syncing voice controls...');
+        this.updateControls();
+        
+        // Also try to sync with other components
+        if (window.voiceCallManager) {
+            window.voiceCallManager.updateButtonStates();
+        }
+        
+        if (window.globalVoiceIndicator) {
+            window.globalVoiceIndicator.updateControls();
+        }
+    }
+    
+    debugState() {
+        // Debug method to check current state
+        console.log('[UserProfileVoiceControls] Debug State Report:');
+        console.log('==============================================');
+        
+        console.log('🔧 Initialization:', {
+            initialized: this.initialized,
+            eventListenersAttached: this.eventListenersAttached,
+            retryCount: this.retryCount,
+            elementsFound: {
+                micBtn: !!this.micBtn,
+                deafenBtn: !!this.deafenBtn
+            }
+        });
+        
+        console.log('🎤 Voice Managers:', {
+            localStorageManager: !!window.localStorageManager,
+            unifiedVoiceStateManager: !!window.unifiedVoiceStateManager,
+            videoSDKManager: !!window.videoSDKManager,
+            voiceManager: !!window.voiceManager,
+            musicLoader: !!window.MusicLoaderStatic
+        });
+        
+        if (window.unifiedVoiceStateManager) {
+            console.log('🔄 Unified State:', window.unifiedVoiceStateManager.getState());
+        }
+        
+        if (window.localStorageManager) {
+            console.log('💾 Local Storage State:', window.localStorageManager.getVoiceState());
+        }
+        
+        if (window.videoSDKManager?.isReady()) {
+            console.log('📹 VideoSDK State:', {
+                connected: window.videoSDKManager.isConnected,
+                micEnabled: window.videoSDKManager.meeting?.localParticipant?.micEnabled,
+                webcamEnabled: window.videoSDKManager.meeting?.localParticipant?.webcamEnabled
+            });
+        }
+        
+        console.log('🎯 In Voice Call:', this.isInVoiceCall());
+        console.log('==============================================');
     }
     
     reinitialize() {
@@ -318,14 +526,39 @@ class UserProfileVoiceControls {
 
 function initializeUserProfileVoiceControls() {
     if (window.userProfileVoiceControls && window.userProfileVoiceControls.initialized) {
+        console.log('[UserProfileVoiceControls] Already initialized, returning existing instance');
         return window.userProfileVoiceControls;
     }
     
     try {
+        console.log('[UserProfileVoiceControls] Creating new instance...');
         window.userProfileVoiceControls = new UserProfileVoiceControls();
+        
+        // Expose debugging methods globally
+        window.debugUserProfileVoiceControls = () => {
+            if (window.userProfileVoiceControls) {
+                window.userProfileVoiceControls.debugState();
+            } else {
+                console.log('❌ User profile voice controls not initialized');
+            }
+        };
+        
+        window.syncUserProfileVoiceControls = () => {
+            if (window.userProfileVoiceControls) {
+                window.userProfileVoiceControls.forceSync();
+            } else {
+                console.log('❌ User profile voice controls not initialized');
+            }
+        };
+        
+        console.log('[UserProfileVoiceControls] ✅ Instance created successfully');
+        console.log('[UserProfileVoiceControls] 🧪 Debug methods available:');
+        console.log('  - window.debugUserProfileVoiceControls() - Show debug state');
+        console.log('  - window.syncUserProfileVoiceControls() - Force sync');
+        
         return window.userProfileVoiceControls;
     } catch (error) {
-        console.error('Failed to initialize user profile voice controls:', error);
+        console.error('[UserProfileVoiceControls] ❌ Failed to initialize:', error);
         return null;
     }
 }

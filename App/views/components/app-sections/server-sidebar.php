@@ -30,7 +30,7 @@ if (file_exists($tooltipPath)) {
 <div class="flex h-full">
     <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 overflow-visible transition-all duration-200">
         <div id="server-list" class="server-sidebar-list flex-1 overflow-y-auto">
-            <div class="server-sidebar-icon mb-2 <?php echo $isHomePage ? 'active' : ''; ?>">
+            <div class="server-sidebar-icon <?php echo $isHomePage ? 'active' : ''; ?>">
                 <a href="/home" class="block">
                     <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">
                         <img src="<?php echo asset('/common/default-profile-picture.png'); ?>" alt="Home" class="discord-home-logo">
@@ -45,7 +45,7 @@ if (file_exists($tooltipPath)) {
             </div>
             
             <?php if (!empty($servers)): ?>
-            <div class="server-sidebar-divider my-2 w-8 h-0.5 bg-gray-600 rounded-full mx-auto"></div>
+            <div class="server-sidebar-divider w-8 h-0.5 bg-gray-600 rounded-full mx-auto"></div>
             <?php endif; ?>
             
             <?php if (!empty($servers)): ?>
@@ -58,7 +58,7 @@ if (file_exists($tooltipPath)) {
                     $serverId = $server['id'] ?? $server->id;
                     ?>
                     
-                    <div class="server-sidebar-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>" data-server-id="<?php echo $serverId; ?>">
+                    <div class="server-sidebar-icon <?php echo $isActive ? 'active' : ''; ?>" data-server-id="<?php echo $serverId; ?>">
                         <a href="/server/<?php echo $serverId; ?>" class="block server-link" data-server-id="<?php echo $serverId; ?>">
                             <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">
                                 <?php if (!empty($serverImage)): ?>
@@ -78,7 +78,7 @@ if (file_exists($tooltipPath)) {
                 <?php endforeach; ?>
             <?php endif; ?>
             
-            <div class="server-sidebar-icon mt-2">
+            <div class="server-sidebar-icon">
                 <button data-action="create-server" class="discord-add-server-button">
                     <i class="fas fa-plus discord-add-server-icon"></i>
                 </button>
@@ -87,7 +87,7 @@ if (file_exists($tooltipPath)) {
                 </div>
             </div>
             
-            <div class="server-sidebar-icon mt-2 <?php echo $isExplorePage ? 'active' : ''; ?>">
+            <div class="server-sidebar-icon <?php echo $isExplorePage ? 'active' : ''; ?>">
                 <a href="/explore-servers" class="block">
                     <div class="discord-explore-server-button <?php echo $isExplorePage ? 'active' : ''; ?>">
                         <i class="fas fa-compass discord-explore-server-icon"></i>
