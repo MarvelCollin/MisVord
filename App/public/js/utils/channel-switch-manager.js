@@ -117,6 +117,11 @@ class SimpleChannelSwitcher {
     async switchToChannel(channelId, channelType = 'text', forceFresh = false, highlightMessageId = null) {
         if (this.isLoading) return;
         
+        // Capture previous context BEFORE any changes
+        const previousChannelId = this.currentChannelId;
+        const previousChannelType = this.currentChannelType;
+        const isSameVoiceChannel = previousChannelType === 'voice' && channelType === 'voice' && previousChannelId === channelId;
+        
         this.isLoading = true;
         
         const loadMoreContainer = document.querySelector('#load-more-container');
@@ -125,6 +130,7 @@ class SimpleChannelSwitcher {
             console.log('🧹 [SWITCH-MANAGER] Load more container hidden immediately at channel switch start');
         }
         
+        // Update current context AFTER capturing previous
         this.currentChannelId = channelId;
         this.currentChannelType = channelType;
         
@@ -153,7 +159,8 @@ class SimpleChannelSwitcher {
                 }, 1000);
             }
         } else if (channelType === 'voice') {
-            await this.initializeVoiceChannel(channelId, true);
+            // Only force fresh initialization if different voice channel
+            await this.initializeVoiceChannel(channelId, !isSameVoiceChannel);
         }
 
         // Update voice participants after channel switch
