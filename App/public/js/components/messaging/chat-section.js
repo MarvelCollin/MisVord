@@ -968,6 +968,8 @@ class ChatSection {
                 messageCount: response?.data?.messages?.length || 'unknown'
             });
             
+            console.log(`[BOT-DEBUG] Chat section loadMessages API response for ${this.chatType} ${this.targetId}`);
+            
             if (!response) {
                 throw new Error('No response received from server');
             }
@@ -980,6 +982,20 @@ class ChatSection {
                     messages = response.data.messages;
                     hasMore = response.data.has_more || false;
                     console.log('✅ [CHAT-SECTION] Using response.data.messages format:', messages.length, 'messages');
+                    
+                    let botCount = 0;
+                    let userCount = 0;
+                    messages.forEach(msg => {
+                        if (msg.user_status === 'bot' || msg.username === 'titibot') {
+                            botCount++;
+                            console.log(`[BOT-DEBUG] Found bot message in loadMessages: ${msg.id} from ${msg.username}`);
+                        } else {
+                            userCount++;
+                        }
+                    });
+                    
+                    console.log(`[BOT-DEBUG] Chat section processed ${messages.length} messages: ${botCount} bot, ${userCount} user`);
+                    
                 } else if (response.data.messages === null || response.data.messages === undefined) {
                     messages = [];
                     hasMore = false;
@@ -1014,42 +1030,7 @@ class ChatSection {
                 currentOffset: this.currentOffset
             });
 
-            // Debug bot messages in the processing flow
-            const botMessages = messages.filter(msg => {
-                const isBotUser = msg.user_status === 'bot' || msg.status === 'bot';
-                const isBotUsername = msg.username && (msg.username.toLowerCase().includes('bot') || msg.username.toLowerCase() === 'titibot');
-                const isBotUserId = msg.user_id === '4' || msg.user_id === 4;
-                
-                return isBotUser || isBotUsername || isBotUserId;
-            });
-            
-            console.log(`🤖 [CHAT-SECTION] Bot messages in processing flow: ${botMessages.length}/${messages.length}`);
-            
-            if (botMessages.length > 0) {
-                console.log(`🤖 [CHAT-SECTION] Bot messages to be displayed:`, botMessages.map(msg => ({
-                    id: msg.id,
-                    user_id: msg.user_id,
-                    username: msg.username,
-                    content: msg.content?.substring(0, 50) + '...',
-                    user_status: msg.user_status,
-                    status: msg.status
-                })));
-            } else {
-                console.log(`❌ [CHAT-SECTION] No bot messages found in processing flow`);
-                
-                // Show sample of regular messages for comparison
-                if (messages.length > 0) {
-                    const sampleMessages = messages.slice(0, 3).map(msg => ({
-                        id: msg.id,
-                        user_id: msg.user_id,
-                        username: msg.username,
-                        content: msg.content?.substring(0, 30) + '...',
-                        user_status: msg.user_status,
-                        status: msg.status
-                    }));
-                    console.log(`📋 [CHAT-SECTION] Sample regular messages:`, sampleMessages);
-                }
-            }
+
 
             if (messages.length > 0) {
                 this.hideChatSkeleton();

@@ -106,7 +106,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
             
             if (!empty($textChannels)):
         ?>
-        <div class="channels-section group">
+        <div class="channels-section group" data-section-type="text" data-server-id="<?php echo $currentServerId; ?>">
             <?php foreach ($textChannels as $channel): ?>
                 <?php renderChannel($channel, $activeChannelId); ?>
             <?php endforeach; ?>
@@ -124,7 +124,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
             
             if (!empty($voiceChannels)):
         ?>
-        <div class="voice-channels-section group">
+        <div class="voice-channels-section group" data-section-type="voice" data-server-id="<?php echo $currentServerId; ?>">
             <?php foreach ($voiceChannels as $channel): ?>
                 <?php renderChannel($channel, $activeChannelId); ?>
             <?php endforeach; ?>
@@ -151,11 +151,16 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                 if (empty($categoryChannels)) continue;
                 ?>
                 <div class="category-section mb-4" data-category-id="<?php echo $category['id']; ?>">
-                    <div class="category-header flex items-center px-3 py-1 mb-1 cursor-pointer group">
+                    <div class="category-header flex items-center px-3 py-1 mb-1 cursor-pointer group transition-all duration-200" 
+                         draggable="true"
+                         data-category-id="<?php echo $category['id']; ?>"
+                         data-category-name="<?php echo htmlspecialchars($category['name']); ?>"
+                         data-category-position="<?php echo $category['position'] ?? 0; ?>"
+                         data-server-id="<?php echo $currentServerId; ?>">
                         <i class="fas fa-chevron-down text-xs mr-1 text-gray-500"></i>
                         <span class="text-xs font-semibold uppercase text-gray-400"><?php echo htmlspecialchars($category['name']); ?></span>
                     </div>
-                    <div class="category-channels ml-2">
+                    <div class="category-channels ml-2" data-category-id="<?php echo $category['id']; ?>">
                         <?php foreach ($categoryChannels as $channel): ?>
                             <?php renderChannel($channel, $activeChannelId); ?>
                         <?php endforeach; ?>

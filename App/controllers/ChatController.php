@@ -63,6 +63,8 @@ class ChatController extends BaseController
     private function getChannelMessages($channelId, $userId)
     {
         try {
+            error_log("[BOT-DEBUG] API call: getChannelMessages for channel $channelId by user $userId");
+            
             $channel = $this->channelRepository->find($channelId);
             if (!$channel) {
                 return $this->notFound('Channel not found');
@@ -80,6 +82,8 @@ class ChatController extends BaseController
             $timestamp = $_GET['timestamp'] ?? null;
             $cacheBust = $_GET['_cache_bust'] ?? null;
             
+            error_log("[BOT-DEBUG] Loading channel $channelId messages with limit: $limit, offset: $offset");
+            
             if ($timestamp || $cacheBust) {
                 $offset = 0;
             }
@@ -88,17 +92,29 @@ class ChatController extends BaseController
             $messages = $paginationResult['messages'];
             $hasMore = $paginationResult['has_more'];
             
+            error_log("[BOT-DEBUG] Raw messages from repository: " . count($messages) . " messages");
+            
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             $replyCount = 0;
+            $botCount = 0;
+            $userCount = 0;
             foreach ($formattedMessages as $msg) {
                 if (isset($msg['reply_data'])) {
                     $replyCount++;
                 }
+                if (isset($msg['user_status']) && $msg['user_status'] === 'bot') {
+                    $botCount++;
+                } else {
+                    $userCount++;
+                }
             }
+            
+            error_log("[BOT-DEBUG] Formatted messages: $botCount bot messages, $userCount user messages, $replyCount replies");
 
             return $this->respondMessages('channel', $channelId, $formattedMessages, $hasMore);
         } catch (Exception $e) {
+            error_log("[BOT-DEBUG] Error in getChannelMessages: " . $e->getMessage());
             return $this->serverError('Failed to load channel messages: ' . $e->getMessage());
         }
     }
@@ -164,6 +180,8 @@ class ChatController extends BaseController
     private function getDirectMessages($chatRoomId, $userId)
     {
         try {
+            error_log("[BOT-DEBUG] API call: getDirectMessages for room $chatRoomId by user $userId");
+            
             $chatRoom = $this->chatRoomRepository->find($chatRoomId);
             if (!$chatRoom) {
                 return $this->notFound('Chat room not found');
@@ -178,6 +196,8 @@ class ChatController extends BaseController
             $timestamp = $_GET['timestamp'] ?? null;
             $cacheBust = $_GET['_cache_bust'] ?? null;
             
+            error_log("[BOT-DEBUG] Loading DM room $chatRoomId messages with limit: $limit, offset: $offset");
+            
             if ($timestamp || $cacheBust) {
                 $offset = 0;
             }
@@ -186,17 +206,29 @@ class ChatController extends BaseController
             $messages = $paginationResult['messages'];
             $hasMore = $paginationResult['has_more'];
             
+            error_log("[BOT-DEBUG] Raw DM messages from repository: " . count($messages) . " messages");
+            
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             $replyCount = 0;
+            $botCount = 0;
+            $userCount = 0;
             foreach ($formattedMessages as $msg) {
                 if (isset($msg['reply_data'])) {
                     $replyCount++;
                 }
+                if (isset($msg['user_status']) && $msg['user_status'] === 'bot') {
+                    $botCount++;
+                } else {
+                    $userCount++;
+                }
             }
+            
+            error_log("[BOT-DEBUG] Formatted DM messages: $botCount bot messages, $userCount user messages, $replyCount replies");
 
             return $this->respondMessages('dm', $chatRoomId, $formattedMessages, $hasMore);
         } catch (Exception $e) {
+            error_log("[BOT-DEBUG] Error in getDirectMessages: " . $e->getMessage());
             return $this->serverError('Failed to load direct messages: ' . $e->getMessage());
         }
     }
@@ -825,7 +857,22 @@ class ChatController extends BaseController
     private function formatMessage($message)
     {
         $userId = is_array($message) ? $message['user_id'] : $message->user_id;
+        $messageId = is_array($message) ? $message['id'] : $message->id;
+        $userStatus = is_array($message) ? ($message['user_status'] ?? null) : null;
+        
+        if ($userStatus === 'bot') {
+            error_log("[BOT-DEBUG] formatMessage processing bot message: ID $messageId, user_id: $userId");
+        }
+        
         $user = $this->userRepository->find($userId);
+
+        if ($userStatus === 'bot') {
+            if ($user) {
+                error_log("[BOT-DEBUG] formatMessage found bot user: {$user->username} (status: {$user->status})");
+            } else {
+                error_log("[BOT-DEBUG] formatMessage ERROR: Bot user $userId not found in userRepository->find()");
+            }
+        }
 
         $username = $user ? $user->username : 'Unknown User';
         $avatarUrl = $user && $user->avatar_url ? $user->avatar_url :
@@ -846,6 +893,11 @@ class ChatController extends BaseController
             'has_reactions' => false,
             'reaction_count' => 0
         ];
+        
+        if ($userStatus === 'bot') {
+            $formatted['user_status'] = 'bot';
+            error_log("[BOT-DEBUG] formatMessage successfully formatted bot message: ID $messageId, username: $username");
+        }
         
         
         $replyMessageId = is_array($message) ? ($message['reply_message_id'] ?? null) : ($message->reply_message_id ?? null);

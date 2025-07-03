@@ -1171,11 +1171,17 @@ class GlobalSocketManager {
                 this.isUserActive = true;
                 
                 if (this.currentActivityDetails?.type === 'In Voice Call') {
-                    console.log('🎯 [SOCKET] User activity detected but keeping voice call status');
+                    console.log('🎯 [SOCKET] User activity detected while in voice call, preserving voice call status');
                     this.currentPresenceStatus = 'online';
-                    this.updatePresence('online', { type: 'In Voice Call' });
+                    // Preserve the full voice call activity details including channel context
+                    this.updatePresence('online', { 
+                        type: 'In Voice Call',
+                        channel_id: this.currentActivityDetails.channel_id,
+                        server_id: this.currentActivityDetails.server_id,
+                        channel_name: this.currentActivityDetails.channel_name
+                    });
                 } else {
-                    console.log('🎯 [SOCKET] User activity detected, setting status to online');
+                    console.log('🎯 [SOCKET] User activity detected, setting status to online (no voice call)');
                     this.currentPresenceStatus = 'online';
                     this.updatePresence('online', { type: 'active' });
                 }
@@ -1207,12 +1213,14 @@ class GlobalSocketManager {
             
             if (timeSinceActivity >= this.afkTimeout && this.isUserActive) {
                 if (this.currentActivityDetails?.type === 'In Voice Call') {
-                    console.log('🎤 [SOCKET] User inactive but in voice call, keeping voice status');
+                    console.log('🎤 [SOCKET] User inactive but in voice call, preserving voice call status (not changing to AFK)');
+                    // Keep user as active in voice call - don't change to AFK
+                    // Server will also preserve this status even if client sends AFK
                     return;
                 }
                 
                 this.isUserActive = false;
-                console.log('😴 [SOCKET] User inactive for 20 seconds, setting status to afk');
+                console.log('😴 [SOCKET] User inactive for 20 seconds, setting status to afk (was not in voice call)');
                 this.currentPresenceStatus = 'afk';
                 this.updatePresence('afk', { type: 'afk' });
             }

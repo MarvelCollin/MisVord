@@ -152,10 +152,13 @@ foreach ($members as $member) {
                                     </div>
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
-                                <span class="<?php echo $textColorClass; ?> text-sm truncate font-bold member-username" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>"><?php echo htmlspecialchars($member['display_name'] ?? $member['username'] ?? 'Unknown'); ?></span>
-                                <?php if ($member['status'] === 'bot'): ?>
-                                    <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>
-                                <?php endif; ?>
+                                <div class="flex-1 min-w-0">
+                                    <span class="<?php echo $textColorClass; ?> text-sm truncate font-bold member-username" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>"><?php echo htmlspecialchars($member['display_name'] ?? $member['username'] ?? 'Unknown'); ?></span>
+                                    <?php if ($member['status'] === 'bot'): ?>
+                                        <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>
+                                    <?php endif; ?>
+                                    <div class="text-xs text-gray-400 truncate user-presence-text" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>">Online</div>
+                                </div>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -258,15 +261,15 @@ function initializeSocketConnection() {
         });
         
         socket.on('user-presence-update', function(data) {
-            console.log(`User presence update: ${data.userId} => ${data.status}`);
-            lastSocketEvent = {type: 'user-presence-update', userId: data.userId, status: data.status, timestamp: Date.now()};
-            updateUserStatus(data.userId, data.status);
+            console.log(`User presence update: ${data.user_id} => ${data.status}`, data.activity_details);
+            lastSocketEvent = {type: 'user-presence-update', userId: data.user_id, status: data.status, timestamp: Date.now()};
+            updateUserStatus(data.user_id, data.status, data.activity_details);
         });
         
         socket.on('user-offline', function(data) {
-            console.log(`User went offline: ${data.userId}`);
-            lastSocketEvent = {type: 'user-offline', userId: data.userId, timestamp: Date.now()};
-            updateUserStatus(data.userId, 'offline');
+            console.log(`User went offline: ${data.user_id}`);
+            lastSocketEvent = {type: 'user-offline', userId: data.user_id, timestamp: Date.now()};
+            updateUserStatus(data.user_id, 'offline', null);
         });
         
         socket.on('disconnect', function() {
@@ -302,11 +305,40 @@ function updateOnlineStatus(onlineUsers) {
     if (!onlineUsers) return;
     
     Object.keys(onlineUsers).forEach(userId => {
-        updateUserStatus(userId, onlineUsers[userId].status || 'online');
+        const userData = onlineUsers[userId];
+        updateUserStatus(userId, userData.status || 'online', userData.activity_details);
     });
 }
 
-function updateUserStatus(userId, status) {
+function getActivityText(activityDetails, status) {
+    if (!activityDetails || !activityDetails.type) {
+        return status === 'afk' ? 'Away' : 'Online';
+    }
+    
+    switch (activityDetails.type) {
+        case 'playing Tic Tac Toe': 
+            return 'Playing Tic Tac Toe';
+        case 'In Voice Call': 
+            const currentServerId = <?php echo $currentServerId; ?>;
+            const userServerId = activityDetails.server_id;
+            const channelName = activityDetails.channel_name;
+            
+            if (currentServerId && userServerId == currentServerId && channelName) {
+                return `In Voice - ${channelName}`;
+            } else if (channelName) {
+                return `In Voice Call`;
+            } else {
+                return 'In Voice Call';
+            }
+        case 'afk': 
+            return 'Away';
+        case 'idle':
+        default: 
+            return status === 'afk' ? 'Away' : 'Online';
+    }
+}
+
+function updateUserStatus(userId, status, activityDetails = null) {
     const userElement = document.querySelector(`.user-profile-trigger[data-user-id="${userId}"]`);
     if (!userElement) return;
     
@@ -337,6 +369,20 @@ function updateUserStatus(userId, status) {
             userNameElement.classList.remove('text-gray-500');
             userNameElement.classList.add('text-gray-300');
             userImage?.classList.remove('opacity-70');
+        }
+    }
+    
+    const presenceTextElement = userElement.querySelector('.user-presence-text');
+    if (presenceTextElement) {
+        const activityText = getActivityText(activityDetails, status);
+        presenceTextElement.textContent = activityText;
+        
+        if (isOffline) {
+            presenceTextElement.classList.remove('text-gray-400');
+            presenceTextElement.classList.add('text-gray-500');
+        } else {
+            presenceTextElement.classList.remove('text-gray-500');
+            presenceTextElement.classList.add('text-gray-400');
         }
     }
     
@@ -722,5 +768,19 @@ window.highlightMessage = highlightMessage;
 
 .search-result-item:hover {
     transform: translateX(4px);
+}
+
+.user-presence-text {
+    line-height: 1.2;
+    margin-top: 1px;
+}
+
+.user-profile-trigger {
+    align-items: flex-start;
+}
+
+.user-profile-trigger .flex-1 {
+    min-width: 0;
+    flex: 1;
 }
 </style>

@@ -85,6 +85,13 @@ class UserService {
         const timeSinceUpdate = Date.now() - presence.last_seen;
         
         if (timeSinceUpdate > this.afkTimeout && presence.status === 'online') {
+            // Check if user is in voice call - preserve voice status even when inactive
+            if (presence.activity_details && presence.activity_details.type === 'In Voice Call') {
+                console.log(`🎤 [USER-SERVICE] User ${userId} inactive but in voice call, preserving voice status`);
+                // Keep status as 'online' and preserve voice call activity details
+                return presence;
+            }
+            
             console.log(`⏰ [USER-SERVICE] User ${userId} marked afk after ${Math.round(timeSinceUpdate / 1000)}s of inactivity`);
             const oldStatus = presence.status;
             presence.status = 'afk';
@@ -196,6 +203,12 @@ class UserService {
             const oldStatus = data.status;
             
             if (timeSinceUpdate > this.afkTimeout && data.status === 'online') {
+                // Check if user is in voice call - preserve voice status even when inactive
+                if (data.activity_details && data.activity_details.type === 'In Voice Call') {
+                    console.log(`🎤 [USER-SERVICE] User ${userId} inactive but in voice call, preserving voice status`);
+                    continue; // Skip changing status for users in voice calls
+                }
+                
                 data.status = 'afk';
                 if (!data.activity_details || data.activity_details.type === 'idle') {
                     data.activity_details = { type: 'afk' };

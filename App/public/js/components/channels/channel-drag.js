@@ -1,530 +1,542 @@
-class ChannelDragSystem {
+class ChannelDragManager {
     constructor() {
+        this.isInitialized = false;
         this.isDragging = false;
         this.draggedElement = null;
         this.draggedType = null;
-        this.draggedId = null;
-        this.dropTargets = [];
-        this.dragIndicator = null;
-        this.originalPosition = null;
-        this.serverId = null;
+        this.currentServerId = null;
         
         this.init();
     }
     
     init() {
-        this.createDragIndicator();
-        this.setupEventListeners();
-        this.initializeDragElements();
-    }
-    
-    createDragIndicator() {
-        this.dragIndicator = document.createElement('div');
-        this.dragIndicator.className = 'channel-drag-indicator';
-        this.dragIndicator.style.cssText = `
-            position: absolute;
-            height: 2px;
-            background: #5865f2;
-            border-radius: 1px;
-            z-index: 1000;
-            display: none;
-            box-shadow: 0 0 4px rgba(88, 101, 242, 0.5);
-        `;
-        document.body.appendChild(this.dragIndicator);
-    }
-    
-    setupEventListeners() {
-        document.addEventListener('dragstart', this.handleDragStart.bind(this));
-        document.addEventListener('dragend', this.handleDragEnd.bind(this));
-        document.addEventListener('dragover', this.handleDragOver.bind(this));
-        document.addEventListener('drop', this.handleDrop.bind(this));
-        document.addEventListener('dragenter', this.handleDragEnter.bind(this));
-        document.addEventListener('dragleave', this.handleDragLeave.bind(this));
-    }
-    
-    initializeDragElements() {
-        const serverId = this.getServerId();
-        if (!serverId) return;
+        if (this.isInitialized) return;
         
-        this.serverId = serverId;
+        console.log('[Channel Drag] Initializing channel drag system');
         
-        this.setupChannelDragging();
-        this.setupCategoryDragging();
-    }
-    
-    setupChannelDragging() {
-        document.querySelectorAll('.channel-item[data-channel-id]:not([data-drag-setup])').forEach(channel => {
-            channel.setAttribute('data-drag-setup', 'true');
-            channel.draggable = true;
-            
-            const channelId = channel.getAttribute('data-channel-id');
-            const channelType = channel.getAttribute('data-channel-type') || 'text';
-            
-            channel.addEventListener('dragstart', (e) => {
-                this.isDragging = true;
-                this.draggedElement = channel;
-                this.draggedType = 'channel';
-                this.draggedId = channelId;
-                
-                this.originalPosition = {
-                    parent: channel.parentElement,
-                    nextSibling: channel.nextElementSibling
-                };
-                
-                e.dataTransfer.setData('text/plain', JSON.stringify({
-                    type: 'channel',
-                    id: channelId,
-                    channelType: channelType
-                }));
-                
-                channel.style.opacity = '0.5';
-                this.addDragStyles();
-            });
-        });
-    }
-    
-    setupCategoryDragging() {
-        document.querySelectorAll('.category-section[data-category-id]:not([data-drag-setup])').forEach(category => {
-            const categoryHeader = category.querySelector('.category-header');
-            if (!categoryHeader) return;
-            
-            category.setAttribute('data-drag-setup', 'true');
-            categoryHeader.draggable = true;
-            
-            const categoryId = category.getAttribute('data-category-id');
-            
-            categoryHeader.addEventListener('dragstart', (e) => {
-                this.isDragging = true;
-                this.draggedElement = category;
-                this.draggedType = 'category';
-                this.draggedId = categoryId;
-                
-                this.originalPosition = {
-                    parent: category.parentElement,
-                    nextSibling: category.nextElementSibling
-                };
-                
-                e.dataTransfer.setData('text/plain', JSON.stringify({
-                    type: 'category',
-                    id: categoryId
-                }));
-                
-                category.style.opacity = '0.5';
-                this.addDragStyles();
-            });
-        });
-    }
-    
-    addDragStyles() {
-        document.body.classList.add('channel-dragging');
-        
-        if (!document.getElementById('channel-drag-styles')) {
-            const styles = document.createElement('style');
-            styles.id = 'channel-drag-styles';
-            styles.textContent = `
-                .channel-dragging .channel-item:not(.dragging) {
-                    transition: transform 0.2s ease, margin 0.2s ease;
-                }
-                .channel-dragging .category-section:not(.dragging) {
-                    transition: transform 0.2s ease, margin 0.2s ease;
-                }
-                .channel-drag-over {
-                    background-color: rgba(88, 101, 242, 0.1) !important;
-                    border-left: 2px solid #5865f2 !important;
-                }
-                .category-drag-over {
-                    background-color: rgba(88, 101, 242, 0.05) !important;
-                    border: 1px solid rgba(88, 101, 242, 0.3) !important;
-                    border-radius: 4px !important;
-                }
-                .dragging {
-                    pointer-events: none;
-                }
-            `;
-            document.head.appendChild(styles);
-        }
-    }
-    
-    handleDragStart(e) {
-        if (!this.isDragging) return;
-        
-        e.target.classList.add('dragging');
-    }
-    
-    handleDragEnd(e) {
-        if (!this.isDragging) return;
-        
-        this.isDragging = false;
-        this.dragIndicator.style.display = 'none';
-        
-        if (this.draggedElement) {
-            this.draggedElement.style.opacity = '';
-            this.draggedElement.classList.remove('dragging');
+        this.currentServerId = this.getCurrentServerId();
+        if (!this.currentServerId) {
+            console.warn('[Channel Drag] No server ID found, skipping initialization');
+            return;
         }
         
-        document.querySelectorAll('.channel-drag-over, .category-drag-over').forEach(el => {
-            el.classList.remove('channel-drag-over', 'category-drag-over');
-        });
+        this.setupChannelDrag();
+        this.setupCategoryDrag();
+        this.setupDropZones();
+        this.addDragStyles();
         
-        document.body.classList.remove('channel-dragging');
-        
-        this.draggedElement = null;
-        this.draggedType = null;
-        this.draggedId = null;
-        this.originalPosition = null;
+        this.isInitialized = true;
+        console.log('[Channel Drag] Channel drag system initialized');
     }
     
-    handleDragOver(e) {
-        if (!this.isDragging) return;
+    getCurrentServerId() {
+        const serverIdInput = document.getElementById('current-server-id');
+        if (serverIdInput) return serverIdInput.value;
         
-        e.preventDefault();
+        const channelList = document.querySelector('.channel-list');
+        if (channelList) return channelList.getAttribute('data-server-id');
         
-        const target = this.findDropTarget(e.target);
-        if (!target) return;
-        
-        this.showDropIndicator(e, target);
-    }
-    
-    handleDragEnter(e) {
-        if (!this.isDragging) return;
-        
-        const target = this.findDropTarget(e.target);
-        if (!target) return;
-        
-        if (this.draggedType === 'channel') {
-            if (target.classList.contains('category-channels') || target.classList.contains('channels-section')) {
-                target.classList.add('channel-drag-over');
-            } else if (target.classList.contains('category-section')) {
-                target.classList.add('category-drag-over');
-            }
-        } else if (this.draggedType === 'category') {
-            if (target.classList.contains('channel-list')) {
-                target.classList.add('category-drag-over');
-            }
-        }
-    }
-    
-    handleDragLeave(e) {
-        if (!this.isDragging) return;
-        
-        const target = e.target;
-        target.classList.remove('channel-drag-over', 'category-drag-over');
-    }
-    
-    handleDrop(e) {
-        if (!this.isDragging) return;
-        
-        e.preventDefault();
-        
-        const target = this.findDropTarget(e.target);
-        if (!target) return;
-        
-        const dropData = this.calculateDropPosition(e, target);
-        if (!dropData) return;
-        
-        this.performDrop(dropData);
-    }
-    
-    findDropTarget(element) {
-        if (!element) return null;
-        
-        if (this.draggedType === 'channel') {
-            return element.closest('.category-channels') || 
-                   element.closest('.channels-section') || 
-                   element.closest('.voice-channels-section') ||
-                   element.closest('.category-section') ||
-                   element.closest('.channel-list');
-        } else if (this.draggedType === 'category') {
-            return element.closest('.channel-list');
-        }
+        const urlMatch = window.location.pathname.match(/\/server\/(\d+)/);
+        if (urlMatch) return urlMatch[1];
         
         return null;
     }
     
-    showDropIndicator(e, target) {
-        const rect = target.getBoundingClientRect();
-        const children = Array.from(target.children);
+    setupChannelDrag() {
+        const channels = document.querySelectorAll('.channel-item[data-channel-id]');
         
-        let insertPosition = children.length;
-        let indicatorY = rect.bottom - 1;
-        
-        for (let i = 0; i < children.length; i++) {
-            const child = children[i];
-            const childRect = child.getBoundingClientRect();
-            const childMiddle = childRect.top + childRect.height / 2;
+        channels.forEach(channel => {
+            if (channel.hasAttribute('data-drag-setup')) return;
             
-            if (e.clientY < childMiddle) {
-                insertPosition = i;
-                indicatorY = childRect.top - 1;
-                break;
+            channel.setAttribute('data-drag-setup', 'true');
+            channel.draggable = true;
+            
+            channel.addEventListener('dragstart', (e) => this.handleChannelDragStart(e));
+            channel.addEventListener('dragend', (e) => this.handleDragEnd(e));
+            channel.addEventListener('dragover', (e) => this.handleChannelDragOver(e));
+            channel.addEventListener('drop', (e) => this.handleChannelDrop(e));
+            channel.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+        });
+        
+        console.log(`[Channel Drag] Setup drag for ${channels.length} channels`);
+    }
+    
+    setupCategoryDrag() {
+        const categories = document.querySelectorAll('.category-header[data-category-id]');
+        
+        categories.forEach(category => {
+            if (category.hasAttribute('data-drag-setup')) return;
+            
+            category.setAttribute('data-drag-setup', 'true');
+            category.draggable = true;
+            
+            category.addEventListener('dragstart', (e) => this.handleCategoryDragStart(e));
+            category.addEventListener('dragend', (e) => this.handleDragEnd(e));
+            category.addEventListener('dragover', (e) => this.handleCategoryDragOver(e));
+            category.addEventListener('drop', (e) => this.handleCategoryDrop(e));
+            category.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+        });
+        
+        console.log(`[Channel Drag] Setup drag for ${categories.length} categories`);
+    }
+    
+    setupDropZones() {
+        const categoryChannels = document.querySelectorAll('.category-channels');
+        categoryChannels.forEach(zone => {
+            zone.addEventListener('dragover', (e) => this.handleDropZoneDragOver(e));
+            zone.addEventListener('drop', (e) => this.handleDropZoneDrop(e));
+            zone.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+        });
+        
+        const sections = document.querySelectorAll('.channels-section, .voice-channels-section');
+        sections.forEach(section => {
+            section.addEventListener('dragover', (e) => this.handleSectionDragOver(e));
+            section.addEventListener('drop', (e) => this.handleSectionDrop(e));
+            section.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+        });
+        
+        console.log('[Channel Drag] Setup drop zones');
+    }
+    
+    handleChannelDragStart(e) {
+        this.isDragging = true;
+        this.draggedElement = e.target;
+        this.draggedType = 'channel';
+        
+        const channelId = e.target.getAttribute('data-channel-id');
+        const channelName = e.target.getAttribute('data-channel-name');
+        
+        e.dataTransfer.setData('text/plain', JSON.stringify({
+            type: 'channel',
+            id: channelId,
+            name: channelName,
+            position: e.target.getAttribute('data-channel-position'),
+            categoryId: e.target.getAttribute('data-category-id'),
+            channelType: e.target.getAttribute('data-channel-type')
+        }));
+        
+        e.target.classList.add('dragging');
+        document.querySelectorAll('.channel-item, .category-header').forEach(el => {
+            if (el !== e.target) el.classList.add('drag-potential-target');
+        });
+        
+        console.log('[Channel Drag] Started dragging channel:', channelName);
+    }
+    
+    handleCategoryDragStart(e) {
+        this.isDragging = true;
+        this.draggedElement = e.target;
+        this.draggedType = 'category';
+        
+        const categoryId = e.target.getAttribute('data-category-id');
+        const categoryName = e.target.getAttribute('data-category-name');
+        
+        e.dataTransfer.setData('text/plain', JSON.stringify({
+            type: 'category',
+            id: categoryId,
+            name: categoryName,
+            position: e.target.getAttribute('data-category-position')
+        }));
+        
+        e.target.classList.add('dragging');
+        document.querySelectorAll('.category-header').forEach(el => {
+            if (el !== e.target) el.classList.add('drag-potential-target');
+        });
+        
+        console.log('[Channel Drag] Started dragging category:', categoryName);
+    }
+    
+    handleChannelDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!this.isDragging) return;
+        
+        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+        
+        if (dragData.type === 'channel') {
+            e.target.closest('.channel-item').classList.add('drag-over');
+        }
+    }
+    
+    handleCategoryDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!this.isDragging) return;
+        
+        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+        
+        if (dragData.type === 'category') {
+            e.target.closest('.category-header').classList.add('drag-over');
+        }
+    }
+    
+    handleDropZoneDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!this.isDragging) return;
+        
+        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+        
+        if (dragData.type === 'channel') {
+            e.target.classList.add('drag-over-zone');
+        }
+    }
+    
+    handleSectionDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!this.isDragging) return;
+        
+        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+        
+        if (dragData.type === 'channel') {
+            e.target.classList.add('drag-over-zone');
+        }
+    }
+    
+    handleChannelDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+        const targetChannel = e.target.closest('.channel-item');
+        
+        if (dragData.type === 'channel' && targetChannel) {
+            const targetId = targetChannel.getAttribute('data-channel-id');
+            const targetPosition = parseInt(targetChannel.getAttribute('data-channel-position'));
+            const targetCategoryId = targetChannel.getAttribute('data-category-id');
+            
+            if (dragData.id !== targetId) {
+                this.reorderChannels(dragData, {
+                    id: targetId,
+                    position: targetPosition,
+                    categoryId: targetCategoryId
+                });
             }
         }
         
-        this.dragIndicator.style.cssText += `
-            display: block;
-            left: ${rect.left + 8}px;
-            top: ${indicatorY}px;
-            width: ${rect.width - 16}px;
-        `;
+        this.clearDragStates();
     }
     
-    calculateDropPosition(e, target) {
-        const rect = target.getBoundingClientRect();
-        const children = Array.from(target.children).filter(child => 
-            child !== this.draggedElement && 
-            !child.classList.contains('dragging')
-        );
+    handleCategoryDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
         
-        let insertIndex = children.length;
-        let categoryId = null;
+        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+        const targetCategory = e.target.closest('.category-header');
         
-        if (target.classList.contains('category-channels')) {
-            categoryId = target.closest('.category-section')?.getAttribute('data-category-id');
-        }
-        
-        for (let i = 0; i < children.length; i++) {
-            const child = children[i];
-            const childRect = child.getBoundingClientRect();
-            const childMiddle = childRect.top + childRect.height / 2;
+        if (dragData.type === 'category' && targetCategory) {
+            const targetId = targetCategory.getAttribute('data-category-id');
+            const targetPosition = parseInt(targetCategory.getAttribute('data-category-position'));
             
-            if (e.clientY < childMiddle) {
-                insertIndex = i;
-                break;
+            if (dragData.id !== targetId) {
+                this.reorderCategories(dragData, {
+                    id: targetId,
+                    position: targetPosition
+                });
             }
         }
         
-        return {
-            target,
-            insertIndex,
-            categoryId,
-            position: insertIndex + 1
-        };
+        this.clearDragStates();
     }
     
-    async performDrop(dropData) {
+    handleDropZoneDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+        
+        if (dragData.type === 'channel') {
+            const categoryId = e.target.getAttribute('data-category-id');
+            
+            if (dragData.categoryId !== categoryId) {
+                this.moveChannelToCategory(dragData, categoryId);
+            }
+        }
+        
+        this.clearDragStates();
+    }
+    
+    handleSectionDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+        
+        if (dragData.type === 'channel') {
+            if (dragData.categoryId) {
+                this.moveChannelToCategory(dragData, null);
+            }
+        }
+        
+        this.clearDragStates();
+    }
+    
+    handleDragLeave(e) {
+        e.target.classList.remove('drag-over', 'drag-over-zone');
+    }
+    
+    handleDragEnd(e) {
+        this.clearDragStates();
+    }
+    
+    clearDragStates() {
+        this.isDragging = false;
+        this.draggedElement = null;
+        this.draggedType = null;
+        
+        document.querySelectorAll('.dragging, .drag-over, .drag-over-zone, .drag-potential-target').forEach(el => {
+            el.classList.remove('dragging', 'drag-over', 'drag-over-zone', 'drag-potential-target');
+        });
+    }
+    
+    async reorderChannels(draggedChannel, targetChannel) {
+        console.log('[Channel Drag] Reordering channels:', draggedChannel, targetChannel);
+        
         try {
-            if (this.draggedType === 'channel') {
-                await this.moveChannel(dropData);
-            } else if (this.draggedType === 'category') {
-                await this.moveCategory(dropData);
-            }
+            const channels = this.getChannelsInSameContext(draggedChannel, targetChannel);
+            const reorderedChannels = this.calculateNewOrder(channels, draggedChannel.id, targetChannel.id);
             
-            this.refreshChannelList();
+            const response = await fetch('/api/channels/reorder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    channels: reorderedChannels
+                })
+            });
+            
+            if (response.ok) {
+                this.refreshChannelList();
+                console.log('[Channel Drag] Channels reordered successfully');
+            } else {
+                console.error('[Channel Drag] Failed to reorder channels');
+            }
         } catch (error) {
-            console.error('Error performing drop:', error);
-            if (window.showToast) {
-                window.showToast('Failed to move item', 'error');
-            }
+            console.error('[Channel Drag] Error reordering channels:', error);
+        }
+    }
+    
+    async reorderCategories(draggedCategory, targetCategory) {
+        console.log('[Channel Drag] Reordering categories:', draggedCategory, targetCategory);
+        
+        try {
+            const categories = this.getAllCategories();
+            const reorderedCategories = this.calculateNewOrder(categories, draggedCategory.id, targetCategory.id);
             
-            this.revertDrag();
-        }
-    }
-    
-    async moveChannel(dropData) {
-        const updates = [];
-        const affectedChannels = this.getAffectedChannels(dropData);
-        
-        affectedChannels.forEach((channel, index) => {
-            updates.push({
-                type: 'channel',
-                id: channel.id,
-                position: index + 1,
-                category_id: dropData.categoryId || null
+            const response = await fetch('/api/categories/reorder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    categories: reorderedCategories
+                })
             });
-        });
-        
-        const response = await fetch('/api/positions/batch', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({ updates })
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to update channel positions');
-        }
-        
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(result.message || 'Failed to update positions');
+            
+            if (response.ok) {
+                this.refreshChannelList();
+                console.log('[Channel Drag] Categories reordered successfully');
+            } else {
+                console.error('[Channel Drag] Failed to reorder categories');
+            }
+        } catch (error) {
+            console.error('[Channel Drag] Error reordering categories:', error);
         }
     }
     
-    async moveCategory(dropData) {
-        const updates = [];
-        const affectedCategories = this.getAffectedCategories(dropData);
+    async moveChannelToCategory(channel, newCategoryId) {
+        console.log('[Channel Drag] Moving channel to category:', channel.name, newCategoryId);
         
-        affectedCategories.forEach((category, index) => {
-            updates.push({
-                type: 'category',
-                id: category.id,
-                position: index + 1
+        try {
+            const response = await fetch('/api/channels/move', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    channel_id: channel.id,
+                    category_id: newCategoryId,
+                    position: null
+                })
             });
-        });
-        
-        const response = await fetch('/api/positions/batch', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({ updates })
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to update category positions');
-        }
-        
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(result.message || 'Failed to update positions');
+            
+            if (response.ok) {
+                this.refreshChannelList();
+                console.log('[Channel Drag] Channel moved successfully');
+            } else {
+                console.error('[Channel Drag] Failed to move channel');
+            }
+        } catch (error) {
+            console.error('[Channel Drag] Error moving channel:', error);
         }
     }
     
-    getAffectedChannels(dropData) {
-        const container = dropData.target;
+    getChannelsInSameContext(draggedChannel, targetChannel) {
         const channels = [];
+        let contextSelector;
         
-        Array.from(container.children).forEach(child => {
-            if (child.classList.contains('channel-item')) {
-                const channelId = child.getAttribute('data-channel-id');
-                if (channelId) {
-                    channels.push({ id: channelId, element: child });
-                }
+        if (draggedChannel.categoryId && targetChannel.categoryId && draggedChannel.categoryId === targetChannel.categoryId) {
+            contextSelector = `.category-channels[data-category-id="${draggedChannel.categoryId}"] .channel-item`;
+        } else if (!draggedChannel.categoryId && !targetChannel.categoryId) {
+            const draggedType = draggedChannel.channelType;
+            if (draggedType === 'voice') {
+                contextSelector = '.voice-channels-section .channel-item';
+            } else {
+                contextSelector = '.channels-section .channel-item';
             }
-        });
-        
-        if (this.draggedType === 'channel') {
-            const draggedIndex = channels.findIndex(ch => ch.id === this.draggedId);
-            if (draggedIndex !== -1) {
-                channels.splice(draggedIndex, 1);
-            }
-            
-            channels.splice(dropData.insertIndex, 0, { 
-                id: this.draggedId, 
-                element: this.draggedElement 
-            });
+        } else {
+            return [];
         }
         
-        return channels;
+        document.querySelectorAll(contextSelector).forEach(el => {
+            channels.push({
+                id: el.getAttribute('data-channel-id'),
+                position: parseInt(el.getAttribute('data-channel-position')),
+                category_id: el.getAttribute('data-category-id') || null
+            });
+        });
+        
+        return channels.sort((a, b) => a.position - b.position);
     }
     
-    getAffectedCategories(dropData) {
-        const container = dropData.target;
+    getAllCategories() {
         const categories = [];
         
-        Array.from(container.children).forEach(child => {
-            if (child.classList.contains('category-section')) {
-                const categoryId = child.getAttribute('data-category-id');
-                if (categoryId) {
-                    categories.push({ id: categoryId, element: child });
-                }
-            }
+        document.querySelectorAll('.category-header[data-category-id]').forEach(el => {
+            categories.push({
+                id: el.getAttribute('data-category-id'),
+                position: parseInt(el.getAttribute('data-category-position'))
+            });
         });
         
-        if (this.draggedType === 'category') {
-            const draggedIndex = categories.findIndex(cat => cat.id === this.draggedId);
-            if (draggedIndex !== -1) {
-                categories.splice(draggedIndex, 1);
-            }
-            
-            categories.splice(dropData.insertIndex, 0, { 
-                id: this.draggedId, 
-                element: this.draggedElement 
-            });
-        }
-        
-        return categories;
+        return categories.sort((a, b) => a.position - b.position);
     }
     
-    revertDrag() {
-        if (this.originalPosition && this.draggedElement) {
-            if (this.originalPosition.nextSibling) {
-                this.originalPosition.parent.insertBefore(
-                    this.draggedElement, 
-                    this.originalPosition.nextSibling
-                );
-            } else {
-                this.originalPosition.parent.appendChild(this.draggedElement);
-            }
-        }
+    calculateNewOrder(items, draggedId, targetId) {
+        const draggedIndex = items.findIndex(item => item.id === draggedId);
+        const targetIndex = items.findIndex(item => item.id === targetId);
+        
+        if (draggedIndex === -1 || targetIndex === -1) return items;
+        
+        const newItems = [...items];
+        const draggedItem = newItems.splice(draggedIndex, 1)[0];
+        newItems.splice(targetIndex, 0, draggedItem);
+        
+        return newItems.map((item, index) => ({
+            ...item,
+            position: index + 1
+        }));
     }
     
     refreshChannelList() {
-        if (window.showToast) {
-            window.showToast('Channels reordered successfully', 'success');
-        }
-        
         setTimeout(() => {
-            if (typeof window.location !== 'undefined') {
+            if (window.location.pathname.includes('/server/')) {
                 window.location.reload();
             }
-        }, 1000);
+        }, 100);
     }
     
-    getServerId() {
-        const serverIdInput = document.getElementById('current-server-id');
-        if (serverIdInput) {
-            return serverIdInput.value;
-        }
+    addDragStyles() {
+        if (document.getElementById('channel-drag-styles')) return;
         
-        const match = window.location.pathname.match(/\/server\/(\d+)/);
-        return match ? match[1] : null;
+        const style = document.createElement('style');
+        style.id = 'channel-drag-styles';
+        style.textContent = `
+            .channel-item.dragging {
+                opacity: 0.5;
+                transform: scale(1.02);
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            }
+            
+            .category-header.dragging {
+                opacity: 0.5;
+                transform: scale(1.02);
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            }
+            
+            .channel-item.drag-over {
+                border: 2px solid #5865f2;
+                background-color: rgba(88, 101, 242, 0.1);
+            }
+            
+            .category-header.drag-over {
+                border: 2px solid #5865f2;
+                background-color: rgba(88, 101, 242, 0.1);
+            }
+            
+            .category-channels.drag-over-zone {
+                background-color: rgba(88, 101, 242, 0.05);
+                border: 2px dashed #5865f2;
+                border-radius: 4px;
+                min-height: 40px;
+            }
+            
+            .channels-section.drag-over-zone,
+            .voice-channels-section.drag-over-zone {
+                background-color: rgba(88, 101, 242, 0.05);
+                border: 2px dashed #5865f2;
+                border-radius: 4px;
+                min-height: 40px;
+            }
+            
+            .drag-potential-target {
+                transition: all 0.2s ease;
+                opacity: 0.7;
+            }
+            
+            .channel-item, .category-header {
+                transition: all 0.2s ease;
+            }
+        `;
+        
+        document.head.appendChild(style);
     }
     
     reinitialize() {
-        this.initializeDragElements();
+        this.isInitialized = false;
+        this.clearDragStates();
+        
+        document.querySelectorAll('[data-drag-setup]').forEach(el => {
+            el.removeAttribute('data-drag-setup');
+        });
+        
+        this.init();
     }
 }
 
-let channelDragSystem = null;
+let channelDragManager = null;
 
-function initChannelDragSystem() {
-    if (channelDragSystem) {
-        channelDragSystem.reinitialize();
+export function initChannelDragSystem() {
+    if (!channelDragManager) {
+        channelDragManager = new ChannelDragManager();
     } else {
-        channelDragSystem = new ChannelDragSystem();
+        channelDragManager.reinitialize();
     }
+    
+    return channelDragManager;
+}
+
+export function getChannelDragManager() {
+    return channelDragManager;
 }
 
 if (typeof window !== 'undefined') {
     window.initChannelDragSystem = initChannelDragSystem;
-    window.channelDragSystem = channelDragSystem;
-    
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(initChannelDragSystem, 500);
-    });
-    
-    const observer = new MutationObserver((mutations) => {
-        let shouldReinit = false;
-        
-        mutations.forEach((mutation) => {
-            if (mutation.type === 'childList') {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) {
-                        if (node.classList?.contains('channel-item') || 
-                            node.classList?.contains('category-section') ||
-                            node.querySelector?.('.channel-item, .category-section')) {
-                            shouldReinit = true;
-                        }
-                    }
-                });
-            }
-        });
-        
-        if (shouldReinit) {
-            setTimeout(initChannelDragSystem, 100);
-        }
-    });
-    
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
+    window.getChannelDragManager = getChannelDragManager;
 }
 
-export { ChannelDragSystem, initChannelDragSystem };
+export default ChannelDragManager;

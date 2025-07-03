@@ -56,56 +56,30 @@ class ChatAPI {
             url += `&before=${before}`;
         }
         
-        console.log(`📡 [CHAT-API] Loading messages from:`, url);
+        console.log(`[BOT-DEBUG] Frontend API call: getMessages for ${chatType} ${targetId} (limit: ${limit}, offset: ${offset})`);
+        
         const response = await this.makeRequest(url);
         
-        // Debug the response structure and check for bot messages
-        console.log(`📨 [CHAT-API] Raw response:`, response);
-        
-        let messages = [];
-        if (response.success && response.data && response.data.messages) {
-            messages = response.data.messages;
-        } else if (response.success && response.data && Array.isArray(response.data)) {
-            messages = response.data;
-        } else if (Array.isArray(response)) {
-            messages = response;
-        }
-        
-        console.log(`📋 [CHAT-API] Processed ${messages.length} messages:`, messages);
-        
-        // Check for bot messages specifically
-        const botMessages = messages.filter(msg => {
-            // Check various ways a message could be from a bot
-            const isBotUser = msg.user_status === 'bot' || msg.status === 'bot';
-            const isBotUsername = msg.username && (msg.username.toLowerCase().includes('bot') || msg.username.toLowerCase() === 'titibot');
-            const isBotUserId = msg.user_id === '4' || msg.user_id === 4; // TitiBot has ID 4
+        if (response && response.data && response.data.messages) {
+            const messages = response.data.messages;
+            let botCount = 0;
+            let userCount = 0;
             
-            return isBotUser || isBotUsername || isBotUserId;
-        });
-        
-        console.log(`🤖 [CHAT-API] Found ${botMessages.length} bot messages:`, botMessages);
-        
-        if (botMessages.length > 0) {
-            console.log(`🤖 [CHAT-API] Bot message details:`, botMessages.map(msg => ({
-                id: msg.id,
-                user_id: msg.user_id,
-                username: msg.username,
-                content: msg.content?.substring(0, 50) + '...',
-                user_status: msg.user_status,
-                status: msg.status,
-                sent_at: msg.sent_at
-            })));
+            messages.forEach(msg => {
+                if (msg.user_status === 'bot' || msg.username === 'titibot') {
+                    botCount++;
+                } else {
+                    userCount++;
+                }
+            });
+            
+            console.log(`[BOT-DEBUG] Frontend API response: ${messages.length} total messages (${botCount} bot, ${userCount} user) for ${chatType} ${targetId}`);
+            
+            if (botCount === 0 && messages.length > 0) {
+                console.log(`[BOT-DEBUG] WARNING: No bot messages in API response for ${chatType} ${targetId}`);
+            }
         } else {
-            console.log(`❌ [CHAT-API] No bot messages found in response`);
-            
-            // Debug user information to see what users are in the messages
-            const users = messages.map(msg => ({
-                user_id: msg.user_id,
-                username: msg.username,
-                user_status: msg.user_status,
-                status: msg.status
-            }));
-            console.log(`👥 [CHAT-API] All users in messages:`, users);
+            console.log(`[BOT-DEBUG] Frontend API response: No messages data for ${chatType} ${targetId}`);
         }
         
         return response;

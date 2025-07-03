@@ -23,11 +23,16 @@ if (!function_exists('renderChannel')) {
         $activeClass = $isActive ? 'active' : '';
         
         $serverId = $GLOBALS['currentServer']->id ?? ($GLOBALS['server']->id ?? '');
+        $position = $channel['position'] ?? 0;
+        $categoryId = $channel['category_id'] ?? '';
         
-        echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer ' . $textClass . ' ' . $bgClass . ' ' . $activeClass . ' group" 
+        echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer ' . $textClass . ' ' . $bgClass . ' ' . $activeClass . ' group transition-all duration-200" 
+                  draggable="true"
                   data-channel-id="' . $channel['id'] . '" 
                   data-channel-name="' . htmlspecialchars($channel['name']) . '"
                   data-channel-type="' . htmlspecialchars($type) . '"
+                  data-channel-position="' . $position . '"
+                  data-category-id="' . $categoryId . '"
                   data-server-id="' . htmlspecialchars($serverId) . '">';
         echo '  <i class="fas fa-' . $icon . ' text-xs mr-3 ' . $iconClass . '"></i>';
         echo '  <span class="channel-name text-sm flex-1">' . htmlspecialchars($channel['name']) . '</span>';
