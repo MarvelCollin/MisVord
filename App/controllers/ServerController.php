@@ -814,12 +814,10 @@ class ServerController extends BaseController
     public function getServerChannels($serverId = null)
     {
         try {
-            // Ensure session is started
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
             
-            // Set proper headers for API response
             if (!headers_sent()) {
                 header('Content-Type: application/json');
             }
@@ -847,11 +845,9 @@ class ServerController extends BaseController
             $channels = $this->channelRepository->getByServerId($serverId);
             $categories = $this->categoryRepository->getForServer($serverId);
 
-            // Ensure we have arrays
             if (!is_array($channels)) $channels = [];
             if (!is_array($categories)) $categories = [];
             
-            // Add category names to channels for easier display
             foreach ($channels as &$channel) {
                 $channel['category_name'] = null;
                 if (isset($channel['category_id']) && $channel['category_id']) {

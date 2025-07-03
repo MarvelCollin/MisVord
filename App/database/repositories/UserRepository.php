@@ -464,7 +464,6 @@ class UserRepository extends Repository {
             $serverIds1[] = $server['server_id'];
         }
         
-        // Get servers for user 2
         $query2 = new Query();
         $servers2 = $query2->table('user_server_memberships')
             ->where('user_id', $userId2)
@@ -475,20 +474,20 @@ class UserRepository extends Repository {
             $serverIds2[] = $server['server_id'];
         }
         
-        // Find the intersection of server IDs
+        
         $mutualServerIds = array_intersect($serverIds1, $serverIds2);
         
         if (empty($mutualServerIds)) {
             return [];
         }
         
-        // Get the actual server records with complete information
+        
         $query3 = new Query();
         $servers = $query3->table('servers')
             ->whereIn('id', $mutualServerIds)
             ->get();
             
-        // Convert to objects with proper field names
+        
         $result = [];
         foreach ($servers as $server) {
             $serverObj = new \stdClass();
@@ -496,7 +495,7 @@ class UserRepository extends Repository {
             $serverObj->name = $server['name'];
             $serverObj->icon_url = $server['icon_url'];
             
-            // Get member count for each server
+            
             $query4 = new Query();
             $memberCount = $query4->table('user_server_memberships')
                 ->where('server_id', $server['id'])

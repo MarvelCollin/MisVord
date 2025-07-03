@@ -117,12 +117,12 @@ class ChannelVoiceParticipants {
     startVideoSDKSync() {
         // Sync every 5 seconds to ensure participants are up to date
         // Reduced frequency to prevent conflicts with socket events
-        setInterval(() => {
-            this.syncWithVideoSDK();
+        setInterval(async () => {
+            await this.syncWithVideoSDK();
         }, 5000);
     }
 
-    syncWithVideoSDK() {
+    async syncWithVideoSDK() {
         if (!window.videoSDKManager?.isReady() || !window.videoSDKManager?.meeting) {
             return;
         }
@@ -135,27 +135,57 @@ class ChannelVoiceParticipants {
         console.log('[VOICE-PARTICIPANT] Syncing with VideoSDK participants');
         
         const videoSDKParticipants = new Map();
+        const existingParticipants = this.participants.get(currentVoiceChannelId) || new Map();
         
-        // Collect all VideoSDK participants
+        // Collect all VideoSDK participants and fetch their proper user data
         if (window.videoSDKManager.meeting.participants) {
-            window.videoSDKManager.meeting.participants.forEach((participant, participantId) => {
-                videoSDKParticipants.set(participantId, {
-                    id: participantId,
-                    username: participant.displayName || participant.name || 'Unknown',
-                    display_name: participant.displayName || participant.name || 'Unknown',
-                    avatar_url: '/public/assets/common/default-profile-picture.png'
-                });
-            });
+            for (const [participantId, participant] of window.videoSDKManager.meeting.participants.entries()) {
+                const username = participant.displayName || participant.name || 'Unknown';
+                
+                // Check if we already have this participant with proper data
+                const existingData = existingParticipants.get(participantId);
+                if (existingData && existingData.avatar_url !== '/public/assets/common/default-profile-picture.png') {
+                    videoSDKParticipants.set(participantId, existingData);
+                    continue;
+                }
+                
+                try {
+                    // Fetch proper user data using the same method as addParticipant
+                    const userData = await window.userDataHelper?.getUserData(username, username);
+                    if (userData) {
+                        videoSDKParticipants.set(participantId, userData);
+                    } else {
+                        // Fallback to basic data
+                        videoSDKParticipants.set(participantId, {
+                            id: participantId,
+                            username: username,
+                            display_name: username,
+                            avatar_url: '/public/assets/common/default-profile-picture.png'
+                        });
+                    }
+                } catch (error) {
+                    console.warn('[VOICE-PARTICIPANT] Failed to fetch user data for:', username, error);
+                    // Fallback to basic data
+                    videoSDKParticipants.set(participantId, {
+                        id: participantId,
+                        username: username,
+                        display_name: username,
+                        avatar_url: '/public/assets/common/default-profile-picture.png'
+                    });
+                }
+            }
         }
 
-        // Add local participant
+        // Add local participant with proper user data
         if (window.videoSDKManager.meeting.localParticipant) {
             const localParticipant = window.videoSDKManager.meeting.localParticipant;
+            const currentUserData = window.userDataHelper?.getCurrentUserData();
+            
             videoSDKParticipants.set(localParticipant.id, {
                 id: localParticipant.id,
-                username: localParticipant.displayName || localParticipant.name || 'You',
-                display_name: localParticipant.displayName || localParticipant.name || 'You',
-                avatar_url: '/public/assets/common/default-profile-picture.png'
+                username: currentUserData?.username || localParticipant.displayName || localParticipant.name || 'You',
+                display_name: currentUserData?.display_name || localParticipant.displayName || localParticipant.name || 'You',
+                avatar_url: currentUserData?.avatar_url || '/public/assets/common/default-profile-picture.png'
             });
         }
 
@@ -271,51 +301,32 @@ class ChannelVoiceParticipants {
 
         console.log('[VOICE-PARTICIPANT] Adding participant:', normalizedUserId, username);
 
-        let participantData = {
-            id: normalizedUserId,
-            username: username || 'Unknown',
-            display_name: username || 'Unknown',
-            avatar_url: '/public/assets/common/default-profile-picture.png'
-        };
+        // Use the centralized user data helper
+        if (!window.userDataHelper) {
+            await this.waitForUserDataHelper();
+        }
 
-        const isValidUserId = /^\d+$/.test(normalizedUserId);
-        
-        if (isValidUserId) {
+        let participantData;
+        if (window.userDataHelper) {
             try {
-                if (window.userAPI) {
-                    const userData = await window.userAPI.getUserProfile(normalizedUserId);
-                    if (userData && userData.success && userData.data && userData.data.user) {
-                        participantData.display_name = userData.data.user.display_name || userData.data.user.username || participantData.username;
-                        participantData.avatar_url = userData.data.user.avatar_url || participantData.avatar_url;
-                    }
-                } else {
-                    await this.waitForUserAPI();
-                    if (window.userAPI) {
-                        const userData = await window.userAPI.getUserProfile(normalizedUserId);
-                        if (userData && userData.success && userData.data && userData.data.user) {
-                            participantData.display_name = userData.data.user.display_name || userData.data.user.username || participantData.username;
-                            participantData.avatar_url = userData.data.user.avatar_url || participantData.avatar_url;
-                        }
-                    } else {
-                        const response = await fetch(`/api/users/${normalizedUserId}/profile`, {
-                            method: 'GET',
-                            credentials: 'same-origin'
-                        });
-                        
-                        if (response.ok) {
-                            const userData = await response.json();
-                            if (userData.success && userData.data && userData.data.user) {
-                                participantData.display_name = userData.data.user.display_name || userData.data.user.username || participantData.username;
-                                participantData.avatar_url = userData.data.user.avatar_url || participantData.avatar_url;
-                            }
-                        }
-                    }
-                }
+                participantData = await window.userDataHelper.getUserData(normalizedUserId, username);
             } catch (error) {
-                console.warn('[VOICE-PARTICIPANT] Failed to fetch user profile:', error);
+                console.warn('[VOICE-PARTICIPANT] Failed to fetch user data:', error);
+                participantData = {
+                    id: normalizedUserId,
+                    username: username || 'Unknown',
+                    display_name: window.userDataHelper.getCleanDisplayName(username || normalizedUserId),
+                    avatar_url: '/public/assets/common/default-profile-picture.png'
+                };
             }
         } else {
-            console.log('[VOICE-PARTICIPANT] Using session ID for participant:', normalizedUserId, 'username:', username);
+            // Fallback if helper is not available
+            participantData = {
+                id: normalizedUserId,
+                username: username || 'Unknown',
+                display_name: this.cleanDisplayName(username || normalizedUserId),
+                avatar_url: '/public/assets/common/default-profile-picture.png'
+            };
         }
 
         channelParticipants.set(normalizedUserId, participantData);
@@ -388,23 +399,22 @@ class ChannelVoiceParticipants {
         div.className = 'flex items-center py-1 px-2 text-gray-300 hover:text-white transition-colors duration-200';
         div.setAttribute('data-user-id', participant.id);
         
-        // Create a placeholder for the avatar that will be loaded
-        const fallbackUrl = '/public/assets/common/default-profile-picture.png';
+        // Use the avatar from the participant data (already fetched)
+        const avatarUrl = participant.avatar_url || '/public/assets/common/default-profile-picture.png';
+        const displayName = participant.display_name || participant.username || 'Unknown';
         
         div.innerHTML = `
             <div class="relative mr-2">
-                <img src="${fallbackUrl}" 
-                     alt="${participant.display_name}" 
+                <img src="${avatarUrl}" 
+                     alt="${displayName}" 
                      class="w-5 h-5 rounded-full bg-gray-600 user-avatar object-cover"
                      onerror="this.src='/public/assets/common/default-profile-picture.png'">
                 <div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-discord-green rounded-full border border-discord-dark"></div>
             </div>
-            <span class="text-sm truncate">${participant.display_name}</span>
+            <span class="text-sm truncate">${displayName}</span>
         `;
 
-        // Load the real avatar from the API
-        this.loadParticipantAvatar(div, participant.id);
-
+        // Apply fallback image handler if available
         if (window.fallbackImageHandler) {
             const img = div.querySelector('img.user-avatar');
             if (img) {
@@ -415,29 +425,11 @@ class ChannelVoiceParticipants {
         return div;
     }
 
+    // Avatar loading is now handled in addParticipant method using UserDataHelper
+    // This method is kept for compatibility but should not be needed
     loadParticipantAvatar(participantElement, userId) {
-        if (!window.userAPI) {
-            console.warn('[VOICE-PARTICIPANT] UserAPI not available for fetching participant avatar');
-            return;
-        }
-
-        const avatarImg = participantElement.querySelector('img.user-avatar');
-        if (!avatarImg) return;
-
-        // Fetch user profile to get real avatar
-        window.userAPI.getUserProfile(userId)
-            .then(response => {
-                if (response.success && response.data && response.data.user) {
-                    const user = response.data.user;
-                    if (user.avatar_url && user.avatar_url !== '/public/assets/common/default-profile-picture.png') {
-                        avatarImg.src = user.avatar_url;
-                    }
-                }
-            })
-            .catch(error => {
-                console.warn('[VOICE-PARTICIPANT] Failed to fetch user profile for avatar:', error);
-                // Keep fallback avatar if API call fails
-            });
+        // No longer needed - avatars are loaded in addParticipant method
+        console.log('[VOICE-PARTICIPANT] loadParticipantAvatar called but not needed - avatars loaded in addParticipant');
     }
 
     updateChannelCount(channelId, count) {
@@ -490,7 +482,29 @@ class ChannelVoiceParticipants {
         return this.participants.get(channelId) || new Map();
     }
 
+    cleanDisplayName(name) {
+        if (!name) return 'Unknown';
+        
+        const nameStr = String(name);
+        
+        // Remove user ID suffix if present (format: "username_123456")
+        if (nameStr.includes('_') && !isNaN(nameStr.split('_').pop())) {
+            return nameStr.substring(0, nameStr.lastIndexOf('_'));
+        }
+        
+        return nameStr;
+    }
 
+    async waitForUserDataHelper(maxWaitTime = 5000) {
+        if (window.userDataHelper) return window.userDataHelper;
+        
+        const startTime = Date.now();
+        while (!window.userDataHelper && (Date.now() - startTime) < maxWaitTime) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        return window.userDataHelper || null;
+    }
 
     async waitForUserAPI(maxWaitTime = 5000) {
         if (window.userAPI) return;

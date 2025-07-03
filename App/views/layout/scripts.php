@@ -46,6 +46,7 @@ if ($is_auth_page) {
 <script src="<?php echo js('api/chat-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/media-api'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('api/user-api'); ?>?v=<?php echo time(); ?>"></script>
+<script src="<?php echo js('utils/user-data-helper'); ?>?v=<?php echo time(); ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {

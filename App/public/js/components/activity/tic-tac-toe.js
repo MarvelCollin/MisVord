@@ -1114,7 +1114,6 @@ class TicTacToeModal {
     }
 }
 
-// Make classes globally available
 window.TicTacToeGame = TicTacToeGame;
 window.TicTacToeModal = TicTacToeModal;
 

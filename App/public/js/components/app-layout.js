@@ -23,10 +23,51 @@ function getStatusText(status) {
     }
 }
 
+function getActivityText(activityDetails) {
+    if (!activityDetails || !activityDetails.type) {
+        return 'Online';
+    }
+    
+    switch (activityDetails.type) {
+        case 'In Voice Call': 
+            return 'In Voice';
+        case 'afk': 
+            return 'Away';
+        case 'idle':
+        case 'active':
+            return 'Online';
+        default: 
+            if (activityDetails.type.startsWith('In Voice - ')) {
+                return activityDetails.type;
+            }
+            return 'Online';
+    }
+}
+
+function getActivityIcon(activityDetails) {
+    if (!activityDetails || !activityDetails.type) {
+        return 'fa-solid fa-circle';
+    }
+    
+    switch (activityDetails.type) {
+        case 'In Voice Call': 
+            return 'fa-solid fa-microphone';
+        case 'afk': 
+            return 'fa-solid fa-clock';
+        case 'idle':
+        case 'active':
+            return 'fa-solid fa-circle';
+        default: 
+            if (activityDetails.type.startsWith('In Voice - ')) {
+                return 'fa-solid fa-microphone';
+            }
+            return 'fa-solid fa-circle';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     initFriendRequestForm();
     
-    // Initialize fallback image handler
     if (window.FallbackImageHandler) {
         window.fallbackImageHandler = window.FallbackImageHandler.getInstance();
     }
@@ -122,7 +163,17 @@ async function loadOnlineFriends(forceRefresh = false) {
 
         const onlineFriends = friends.filter(friend => {
             const userData = onlineUsers[friend.id];
-            return userData && (userData.status === 'online' || userData.status === 'afk');
+            const status = userData?.status || 'offline';
+            const activityDetails = userData?.activity_details;
+            
+            // Include users who are in voice regardless of their status
+            const isInVoice = activityDetails && (
+                activityDetails.type === 'In Voice Call' || 
+                (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
+            );
+            
+            // Show if they're online, afk, OR in voice
+            return (status === 'online' || status === 'afk') || isInVoice;
         });
 
         if (!onlineFriends || onlineFriends.length === 0) {
@@ -140,6 +191,24 @@ async function loadOnlineFriends(forceRefresh = false) {
         }
 
         onlineFriends.sort((a, b) => {
+            const userDataA = onlineUsers[a.id];
+            const userDataB = onlineUsers[b.id];
+            
+            // Check if users are in voice
+            const isInVoiceA = userDataA?.activity_details && (
+                userDataA.activity_details.type === 'In Voice Call' || 
+                (userDataA.activity_details.type && userDataA.activity_details.type.startsWith('In Voice - '))
+            );
+            const isInVoiceB = userDataB?.activity_details && (
+                userDataB.activity_details.type === 'In Voice Call' || 
+                (userDataB.activity_details.type && userDataB.activity_details.type.startsWith('In Voice - '))
+            );
+            
+            // Voice users come first
+            if (isInVoiceA && !isInVoiceB) return -1;
+            if (!isInVoiceA && isInVoiceB) return 1;
+            
+            // Then sort by name
             const nameA = a.display_name || a.username;
             const nameB = b.display_name || b.username;
             return nameA.localeCompare(nameB);
@@ -148,9 +217,29 @@ async function loadOnlineFriends(forceRefresh = false) {
         let friendsHtml = '';
         onlineFriends.forEach(friend => {
             const userData = onlineUsers[friend.id];
-            const status = userData?.status || 'offline';
+            let status = userData?.status || 'offline';
+            const activityDetails = userData?.activity_details;
+            
+            // If user is in voice, force status to online
+            if (activityDetails && (
+                activityDetails.type === 'In Voice Call' || 
+                (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
+            )) {
+                status = 'online';
+            }
+            
             const statusClass = getStatusClass(status);
-            const statusText = getStatusText(status);
+            
+            // For offline users, show "Offline" instead of activity
+            let activityText, activityIcon;
+            if (status === 'offline') {
+                activityText = 'Offline';
+                activityIcon = 'fa-solid fa-circle';
+            } else {
+                activityText = getActivityText(activityDetails);
+                activityIcon = getActivityIcon(activityDetails);
+            }
+            
             const displayName = friend.display_name || friend.username;
             const userTag = friend.discriminator ? `${friend.username}#${friend.discriminator}` : friend.username;
             
@@ -168,7 +257,10 @@ async function loadOnlineFriends(forceRefresh = false) {
                         <div class="flex-1 min-w-0">
                             <div class="font-medium text-white truncate">${friendsManager.escapeHtml(displayName)}</div>
                             <div class="text-xs text-gray-400">${friendsManager.escapeHtml(userTag)}</div>
-                            <div class="text-xs text-gray-400">${statusText}</div>
+                            <div class="text-xs text-gray-400 flex items-center">
+                                <i class="${activityIcon} mr-1"></i>
+                                ${activityText}
+                            </div>
                         </div>
                     </div>
                     <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -249,15 +341,33 @@ async function loadAllFriends(forceRefresh = false) {
         }
 
         friends.sort((a, b) => {
-            const statusA = onlineUsers[a.id]?.status || 'offline';
-            const statusB = onlineUsers[b.id]?.status || 'offline';
+            const userDataA = onlineUsers[a.id];
+            const userDataB = onlineUsers[b.id];
+            const statusA = userDataA?.status || 'offline';
+            const statusB = userDataB?.status || 'offline';
             
+            // Check if users are in voice
+            const isInVoiceA = userDataA?.activity_details && (
+                userDataA.activity_details.type === 'In Voice Call' || 
+                (userDataA.activity_details.type && userDataA.activity_details.type.startsWith('In Voice - '))
+            );
+            const isInVoiceB = userDataB?.activity_details && (
+                userDataB.activity_details.type === 'In Voice Call' || 
+                (userDataB.activity_details.type && userDataB.activity_details.type.startsWith('In Voice - '))
+            );
+            
+            // Voice users come first (treated as highest priority)
+            if (isInVoiceA && !isInVoiceB) return -1;
+            if (!isInVoiceA && isInVoiceB) return 1;
+            
+            // Then sort by status priority
             const priorityOrder = { 'online': 0, 'afk': 1, 'offline': 2 };
             const priorityA = priorityOrder[statusA] || 2;
             const priorityB = priorityOrder[statusB] || 2;
             
             if (priorityA !== priorityB) return priorityA - priorityB;
             
+            // Finally sort by name
             const nameA = a.display_name || a.username;
             const nameB = b.display_name || b.username;
             return nameA.localeCompare(nameB);
@@ -266,9 +376,29 @@ async function loadAllFriends(forceRefresh = false) {
         let friendsHtml = '';
         friends.forEach(friend => {
             const userData = onlineUsers[friend.id];
-            const status = userData?.status || 'offline';
+            let status = userData?.status || 'offline';
+            const activityDetails = userData?.activity_details;
+            
+            // If user is in voice, force status to online
+            if (activityDetails && (
+                activityDetails.type === 'In Voice Call' || 
+                (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
+            )) {
+                status = 'online';
+            }
+            
             const statusClass = getStatusClass(status);
-            const statusText = getStatusText(status);
+            
+            // For offline users, show "Offline" instead of activity
+            let activityText, activityIcon;
+            if (status === 'offline') {
+                activityText = 'Offline';
+                activityIcon = 'fa-solid fa-circle';
+            } else {
+                activityText = getActivityText(activityDetails);
+                activityIcon = getActivityIcon(activityDetails);
+            }
+            
             const displayName = friend.display_name || friend.username;
             const userTag = friend.discriminator ? `${friend.username}#${friend.discriminator}` : friend.username;
             
@@ -286,7 +416,10 @@ async function loadAllFriends(forceRefresh = false) {
                         <div class="flex-1 min-w-0">
                             <div class="font-medium text-white truncate">${friendsManager.escapeHtml(displayName)}</div>
                             <div class="text-xs text-gray-400">${friendsManager.escapeHtml(userTag)}</div>
-                            <div class="friend-status-text text-xs text-gray-400" data-user-id="${friend.id}">${statusText}</div>
+                            <div class="friend-status-text text-xs text-gray-400 flex items-center" data-user-id="${friend.id}">
+                                <i class="${activityIcon} mr-1"></i>
+                                ${activityText}
+                            </div>
                         </div>
                     </div>
                     <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -970,6 +1103,10 @@ function initializeOnPageLoad() {
     
 
     
+    setupSocketListeners();
+    
+    setupFriendPresenceUpdates();
+    
     setupCreateServerButton();
 }
 
@@ -984,6 +1121,96 @@ function setupCreateServerButton() {
             }
         });
     });
+}
+
+function setupFriendPresenceUpdates() {
+    if (!window.FriendsManager) {
+        setTimeout(setupFriendPresenceUpdates, 500);
+        return;
+    }
+    
+    const friendsManager = window.FriendsManager.getInstance();
+    
+    friendsManager.subscribe((type, data) => {
+        console.log(`🔄 [APP-LAYOUT] FriendsManager event: ${type}`, data);
+        
+        switch (type) {
+            case 'user-online':
+            case 'user-offline':
+            case 'user-presence-update':
+                updateFriendPresenceInDOM(data);
+                break;
+            case 'online-users-updated':
+                // Refresh current tab data
+                refreshCurrentTab();
+                break;
+        }
+    });
+}
+
+function updateFriendPresenceInDOM(presenceData) {
+    if (!presenceData || !presenceData.user_id) return;
+    
+    const userId = presenceData.user_id;
+    let status = presenceData.status || 'offline';
+    const activityDetails = presenceData.activity_details;
+    
+    // If user is in voice, force status to online
+    if (activityDetails && (
+        activityDetails.type === 'In Voice Call' || 
+        (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
+    )) {
+        status = 'online';
+    }
+    
+    const statusClass = getStatusClass(status);
+    
+    // For offline users, show "Offline" instead of activity
+    let activityText, activityIcon;
+    if (status === 'offline') {
+        activityText = 'Offline';
+        activityIcon = 'fa-solid fa-circle';
+    } else {
+        activityText = getActivityText(activityDetails);
+        activityIcon = getActivityIcon(activityDetails);
+    }
+    
+    // Update status indicators
+    const statusIndicators = document.querySelectorAll(`.friend-status-indicator[data-user-id="${userId}"]`);
+    statusIndicators.forEach(indicator => {
+        indicator.className = `friend-status-indicator absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300`;
+        indicator.setAttribute('data-user-id', userId);
+    });
+    
+    // Update status text
+    const statusTexts = document.querySelectorAll(`.friend-status-text[data-user-id="${userId}"]`);
+    statusTexts.forEach(textEl => {
+        textEl.innerHTML = `<i class="${activityIcon} mr-1"></i>${activityText}`;
+    });
+}
+
+function refreshCurrentTab() {
+    if (!window.friendsTabManager) return;
+    
+    const activeTab = window.friendsTabManager.activeTab;
+    
+    switch (activeTab) {
+        case 'online':
+            if (window.loadOnlineFriends) {
+                setTimeout(() => window.loadOnlineFriends(false), 100);
+            }
+            break;
+        case 'all':
+            if (window.loadAllFriends) {
+                setTimeout(() => window.loadAllFriends(false), 100);
+            }
+            break;
+        case 'pending':
+            if (window.loadPendingRequests) {
+                setTimeout(() => window.loadPendingRequests(false), 100);
+            }
+            break;
+    }
 }
 
 function updateOnlineCount(count) {
