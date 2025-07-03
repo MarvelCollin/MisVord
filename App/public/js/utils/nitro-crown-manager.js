@@ -282,6 +282,15 @@ class NitroCrownManager {
     }
 
     shouldExcludeElement(element) {
+        // Exclude voice participants rows and inline avatar stacks to avoid "Nitro Member" tooltip clutter
+        if (!element) return true;
+
+        // Any element inside the dedicated voice participants containers
+        if (element.closest('.voice-participants')) return true;
+
+        // Explicit opt-out marker
+        if (element.dataset?.noNitro === '1') return true;
+
         return false;
     }
 

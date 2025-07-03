@@ -199,22 +199,42 @@ class BotHandler extends EventEmitter {
             } else {
                 console.log(`🎤 [BOT-DEBUG] No voice context provided - user not in voice channel`);
             }
-            
-            if (voiceChannelToJoin) {
-                console.log(`🎤 [BOT-DEBUG] Ensuring bot in voice channel ${voiceChannelToJoin}`);
-                await this.ensureBotInVoiceChannel(io, botId, username, voiceChannelToJoin);
-            }
         }
 
+        /* -------- Command Routing -------- */
         if (content.toLowerCase() === '/titibot ping') {
             console.log(`🏓 [BOT-DEBUG] Processing PING command`);
             await this.sendBotResponse(io, data, messageType, botId, username, 'ping');
         } else if (content.toLowerCase().startsWith('/titibot play ')) {
             const songName = content.substring('/titibot play '.length).trim();
             console.log(`🎵 [BOT-DEBUG] Processing PLAY command with song: "${songName}"`);
+            
+            // Join voice channel ONLY for play command
+            if (voiceChannelToJoin) {
+                console.log(`🎤 [BOT-DEBUG] Ensuring bot in voice channel ${voiceChannelToJoin} (PLAY)`);
+                await this.ensureBotInVoiceChannel(io, botId, username, voiceChannelToJoin);
+            }
+            
             await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
         } else if (content.toLowerCase() === '/titibot stop') {
             console.log(`⏹️ [BOT-DEBUG] Processing STOP command`);
+            
+            // Leave voice channel on stop command
+            let channelIdForLeave = voiceChannelToJoin;
+            if (!channelIdForLeave) {
+                // If not provided, detect the channel the bot is currently in
+                for (const key of this.botVoiceParticipants.keys()) {
+                    if (key.startsWith(`${botId}-`)) {
+                        channelIdForLeave = key.split('-')[1];
+                        break;
+                    }
+                }
+            }
+            if (channelIdForLeave) {
+                console.log(`🎤 [BOT-DEBUG] Removing bot from voice channel ${channelIdForLeave} (STOP)`);
+                this.removeBotFromVoiceChannel(io, botId, channelIdForLeave);
+            }
+            
             await this.sendBotResponse(io, data, messageType, botId, username, 'stop');
         } else if (content.toLowerCase() === '/titibot next') {
             console.log(`⏭️ [BOT-DEBUG] Processing NEXT command`);
