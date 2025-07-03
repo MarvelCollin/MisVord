@@ -213,6 +213,67 @@ class ChannelController extends BaseController
         }
     }
 
+    public function updatePosition()
+    {
+        $this->requireAuth();
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        $this->validate($input, ['channel_id' => 'required', 'position' => 'required']);
+        $channelId = $input['channel_id'];
+        $newPosition = (int)$input['position'];
+        
+        try {
+            [$channel, $error] = $this->validateChannelAccess($channelId, true);
+            if ($error) return $error;
+            
+            $serverId = $channel->server_id;
+            
+            require_once __DIR__ . '/../database/query.php';
+            $query = new Query();
+            
+            $currentPosition = (int)$channel->position;
+            
+            if ($newPosition === $currentPosition) {
+                return $this->success(['message' => 'Channel position unchanged']);
+            }
+            
+            $query->beginTransaction();
+            
+            if ($newPosition > $currentPosition) {
+                $query->table('channels')
+                    ->where('server_id', $serverId)
+                    ->where('position', '>', $currentPosition)
+                    ->where('position', '<=', $newPosition)
+                    ->where('id', '!=', $channelId)
+                    ->update(['position' => $query->raw('position - 1')]);
+            } else {
+                $query->table('channels')
+                    ->where('server_id', $serverId)
+                    ->where('position', '>=', $newPosition)
+                    ->where('position', '<', $currentPosition)
+                    ->where('id', '!=', $channelId)
+                    ->update(['position' => $query->raw('position + 1')]);
+            }
+            
+            $query->table('channels')
+                ->where('id', $channelId)
+                ->update([
+                    'position' => $newPosition,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            
+            $query->commit();
+            
+            return $this->success(['message' => 'Channel position updated successfully']);
+        } catch (Exception $e) {
+            if (isset($query)) {
+                $query->rollback();
+            }
+            return $this->serverError('Failed to update channel position');
+        }
+    }
+
     public function delete()
     {
         $this->requireAuth();

@@ -327,7 +327,7 @@ class SendReceiveHandler {
             if (result.success) {
                 return {
                     success: true,
-                    files: result.uploaded_files || []
+                    files: result.data?.uploaded_files || []
                 };
             } else {
                 throw new Error(result.message || 'Upload failed');

@@ -98,7 +98,11 @@ class FileUploadHandler {
             throw new Error(result.message || 'Upload failed');
         }
 
-        return result.uploaded_files.map((uploadedFile, index) => ({
+        if (!result.data || !result.data.uploaded_files) {
+            throw new Error('Invalid response format from server');
+        }
+
+        return result.data.uploaded_files.map((uploadedFile, index) => ({
             name: uploadedFile.file_name,
             size: uploadedFile.file_size,
             type: uploadedFile.mime_type,

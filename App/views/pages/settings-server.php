@@ -52,6 +52,17 @@ ob_start();
                 
                 <li class="mt-6">
                     <div class="sidebar-category">
+                        <span>CHANNELS</span>
+                    </div>
+                </li>
+                <li>
+                    <a href="?server_id=<?php echo $serverId; ?>&section=channels" class="sidebar-item <?php echo $section === 'channels' ? 'active' : ''; ?>">
+                        Channel Management
+                    </a>
+                </li>
+                
+                <li class="mt-6">
+                    <div class="sidebar-category">
                         <span>PEOPLE</span>
                     </div>
                 </li>
@@ -423,6 +434,176 @@ ob_start();
                             Cancel
                         </button>
                         <button class="modal-btn modal-btn-confirm" id="modal-confirm-btn">
+                            <i class="fas fa-check mr-2"></i>
+                            <span class="confirm-text">Confirm</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        <?php elseif ($section === 'channels'): ?>
+            <div class="p-10 max-w-[740px]">
+                <h1 class="text-2xl font-bold mb-2">Channel Management</h1>
+                <p class="text-discord-lighter mb-6">Manage channel positions, names, and settings for your server.</p>
+                
+                <div class="channels-header-section">
+                    <div class="channels-controls">
+                        <div class="search-container">
+                            <div class="search-input-wrapper">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" id="channel-search" class="search-input" placeholder="Search channels">
+                            </div>
+                        </div>
+                        
+                        <div class="controls-right">
+                            <div id="channel-filter" class="filter-dropdown-container">
+                                <button type="button" class="filter-button">
+                                    <span class="filter-selected-text">All Channels</span>
+                                    <i class="fas fa-chevron-down filter-arrow"></i>
+                                </button>
+                                
+                                <div id="channel-filter-dropdown" class="filter-dropdown hidden">
+                                    <div class="filter-option" data-filter="all">
+                                        <div class="radio-container">
+                                            <input type="radio" name="channel-filter" checked class="radio-input">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span>All Channels</span>
+                                    </div>
+                                    <div class="filter-option" data-filter="text">
+                                        <div class="radio-container">
+                                            <input type="radio" name="channel-filter" class="radio-input">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span>Text Channels</span>
+                                    </div>
+                                    <div class="filter-option" data-filter="voice">
+                                        <div class="radio-container">
+                                            <input type="radio" name="channel-filter" class="radio-input">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span>Voice Channels</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="channels-table-container">
+                    <div class="channels-table-header">
+                        <div class="table-col table-col-channel">CHANNEL</div>
+                        <div class="table-col table-col-type">TYPE</div>
+                        <div class="table-col table-col-position">POSITION</div>
+                        <div class="table-col table-col-actions">ACTIONS</div>
+                    </div>
+
+                    <div id="channels-list" class="channels-list-content">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin mr-3"></i>
+                            <span>Loading channels...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-xs text-discord-lighter mt-3">
+                    <p><i class="fas fa-info-circle mr-1"></i> Only server owners and admins can manage channels. Position changes affect channel ordering.</p>
+                </div>
+                                        
+                <template id="channel-template">
+                    <div class="channel-item">
+                        <div class="table-col table-col-channel">
+                            <div class="channel-info-wrapper">
+                                <div class="channel-icon">
+                                    <i class="fas fa-hashtag text-gray-400"></i>
+                                </div>
+                                <div class="channel-info">
+                                    <div class="channel-name"></div>
+                                    <div class="channel-category"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-col table-col-type">
+                            <div class="channel-type-badge"></div>
+                        </div>
+                        <div class="table-col table-col-position">
+                            <div class="channel-position"></div>
+                        </div>
+                        <div class="table-col table-col-actions">
+                            <div class="channel-actions">
+                                <button class="move-up-btn action-btn" title="Move Up">
+                                    <i class="fas fa-arrow-up"></i>
+                                </button>
+                                <button class="move-down-btn action-btn" title="Move Down">
+                                    <i class="fas fa-arrow-down"></i>
+                                </button>
+                                <button class="rename-btn action-btn" title="Rename Channel">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="delete-btn action-btn" title="Delete Channel">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Channel Action Modals -->
+            <div id="channel-action-modal" class="modal-overlay hidden">
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <div class="modal-icon">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <h3 class="modal-title">Confirm Action</h3>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div class="channel-preview">
+                            <div class="channel-icon-small">
+                                <i class="fas fa-hashtag"></i>
+                            </div>
+                            <div class="channel-details">
+                                <div class="channel-name"></div>
+                                <div class="channel-current-position"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="action-description">
+                            <p class="action-message"></p>
+                            <div class="position-change-preview hidden">
+                                <div class="position-change-from">
+                                    <span class="position-label">From:</span>
+                                    <span class="position-badge from-position"></span>
+                                </div>
+                                <div class="position-change-arrow">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                                <div class="position-change-to">
+                                    <span class="position-label">To:</span>
+                                    <span class="position-badge to-position"></span>
+                                </div>
+                            </div>
+                            
+                            <div class="rename-input-container hidden">
+                                <label for="new-channel-name" class="block text-sm font-medium text-white mb-2">New Name</label>
+                                <input type="text" id="new-channel-name" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary w-full" placeholder="Enter new channel name">
+                            </div>
+                        </div>
+                        
+                        <div class="warning-notice">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span class="warning-text">This action cannot be undone.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button class="modal-btn modal-btn-cancel" id="channel-modal-cancel-btn">
+                            <i class="fas fa-times mr-2"></i>
+                            Cancel
+                        </button>
+                        <button class="modal-btn modal-btn-confirm" id="channel-modal-confirm-btn">
                             <i class="fas fa-check mr-2"></i>
                             <span class="confirm-text">Confirm</span>
                         </button>

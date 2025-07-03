@@ -1987,9 +1987,19 @@ class VoiceCallManager {
     }
 
     disconnect() {
+        console.log('🚪 [VOICE-CALL-MANAGER] Disconnect button clicked - leaving voice channel');
+        
+        if (window.globalSocketManager?.isReady()) {
+            console.log('🎤 [VOICE-CALL-MANAGER] Immediately updating presence to idle on disconnect');
+            window.globalSocketManager.updatePresence('online', { type: 'idle' });
+        }
+        
         if (window.voiceManager?.isConnected) {
             window.voiceManager.leaveVoice();
         }
+        
+        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+        console.log('📡 [VOICE-CALL-MANAGER] Dispatched voiceDisconnect event');
         
         if (window.MusicLoaderStatic?.playDisconnectVoiceSound) {
             window.MusicLoaderStatic.playDisconnectVoiceSound();
@@ -2403,6 +2413,73 @@ const initializeVoiceCallSystem = () => {
         }
     };
     
+    window.testVoicePresenceProtection = function() {
+        console.log('🛡️ [VOICE-PROTECTION-TEST] Testing voice call presence protection...');
+        
+        if (!window.globalSocketManager?.isReady()) {
+            console.error('❌ [VOICE-PROTECTION-TEST] Socket not ready');
+            return false;
+        }
+        
+        const originalActivity = window.globalSocketManager.currentActivityDetails;
+        const originalStatus = window.globalSocketManager.currentPresenceStatus;
+        
+        console.log('📊 [VOICE-PROTECTION-TEST] Original state:', {
+            status: originalStatus,
+            activity: originalActivity
+        });
+        
+        console.log('📡 [VOICE-PROTECTION-TEST] Setting to voice call status...');
+        window.globalSocketManager.updatePresence('online', { 
+            type: 'In Voice Call',
+            channel_name: 'Test Channel',
+            channel_id: '123',
+            server_id: '456'
+        });
+        
+        setTimeout(() => {
+            console.log('🎯 [VOICE-PROTECTION-TEST] Simulating user activity...');
+            document.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            
+            setTimeout(() => {
+                const currentActivity = window.globalSocketManager.currentActivityDetails;
+                const currentStatus = window.globalSocketManager.currentPresenceStatus;
+                
+                console.log('📊 [VOICE-PROTECTION-TEST] After activity state:', {
+                    status: currentStatus,
+                    activity: currentActivity
+                });
+                
+                if (currentActivity?.type === 'In Voice Call') {
+                    console.log('✅ [VOICE-PROTECTION-TEST] SUCCESS - Voice call status preserved!');
+                    
+                    window.globalSocketManager.updatePresence(originalStatus, originalActivity);
+                    console.log('🔄 [VOICE-PROTECTION-TEST] Restored original state');
+                    return true;
+                } else {
+                    console.log('❌ [VOICE-PROTECTION-TEST] FAIL - Voice call status was overridden');
+                    
+                    window.globalSocketManager.updatePresence(originalStatus, originalActivity);
+                    console.log('🔄 [VOICE-PROTECTION-TEST] Restored original state');
+                    return false;
+                }
+            }, 500);
+        }, 500);
+    };
+    
+    console.log('✅ [VOICE-CALL] Test functions available:');
+    console.log('  - window.testVoiceConnectionStatus() - Test basic voice connection');
+    console.log('  - window.testVoicePresenceProtection() - Test presence protection');
+    
+    window.retryVoiceSocketRegistration = function() {
+        if (window.voiceManager && typeof window.voiceManager.retrySocketRegistration === 'function') {
+            return window.voiceManager.retrySocketRegistration();
+        } else {
+            console.warn('⚠️ Voice manager not available or method not found');
+            return false;
+        }
+    };
+    
     const gridViewBtn = document.getElementById('gridViewBtn');
     const speakerViewBtn = document.getElementById('speakerViewBtn');
     
@@ -2430,4 +2507,71 @@ const initializeVoiceCallSystem = () => {
 };
 
 document.addEventListener('DOMContentLoaded', initializeVoiceCallSystem);
+
+window.testVoiceLeaveButton = function() {
+    console.log('🧪 [VOICE-LEAVE-TEST] Testing voice leave button presence update...');
+    
+    if (!window.globalSocketManager?.isReady()) {
+        console.error('❌ [VOICE-LEAVE-TEST] Socket not ready');
+        return false;
+    }
+    
+    const originalActivity = window.globalSocketManager.currentActivityDetails;
+    const originalStatus = window.globalSocketManager.currentPresenceStatus;
+    
+    console.log('📊 [VOICE-LEAVE-TEST] Original state:', {
+        status: originalStatus,
+        activity: originalActivity
+    });
+    
+    console.log('📡 [VOICE-LEAVE-TEST] Setting to voice call status first...');
+    window.globalSocketManager.updatePresence('online', { 
+        type: 'In Voice Call',
+        channel_name: 'Test Channel',
+        channel_id: '123',
+        server_id: '456'
+    });
+    
+    setTimeout(() => {
+        console.log('🎯 [VOICE-LEAVE-TEST] Simulating disconnect button click...');
+        
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        if (disconnectBtn && window.voiceCallManager) {
+            window.voiceCallManager.disconnect();
+            
+            setTimeout(() => {
+                const currentActivity = window.globalSocketManager.currentActivityDetails;
+                const currentStatus = window.globalSocketManager.currentPresenceStatus;
+                
+                console.log('📊 [VOICE-LEAVE-TEST] After disconnect state:', {
+                    status: currentStatus,
+                    activity: currentActivity
+                });
+                
+                if (currentActivity?.type === 'idle') {
+                    console.log('✅ [VOICE-LEAVE-TEST] SUCCESS - Presence correctly updated to idle!');
+                    
+                    window.globalSocketManager.updatePresence(originalStatus, originalActivity);
+                    console.log('🔄 [VOICE-LEAVE-TEST] Restored original state');
+                    return true;
+                } else {
+                    console.log('❌ [VOICE-LEAVE-TEST] FAIL - Presence not updated to idle');
+                    console.log('Current activity type:', currentActivity?.type);
+                    
+                    window.globalSocketManager.updatePresence(originalStatus, originalActivity);
+                    console.log('🔄 [VOICE-LEAVE-TEST] Restored original state');
+                    return false;
+                }
+            }, 1000);
+        } else {
+            console.error('❌ [VOICE-LEAVE-TEST] Disconnect button or voice call manager not found');
+            return false;
+        }
+    }, 500);
+};
+
+console.log('✅ [VOICE-CALL] Test functions available:');
+console.log('  - window.testVoiceConnectionStatus() - Test basic voice connection');
+console.log('  - window.testVoicePresenceProtection() - Test presence protection');
+console.log('  - window.testVoiceLeaveButton() - Test leave button presence update');
 </script>

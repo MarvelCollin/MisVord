@@ -83,6 +83,8 @@ function initServerSettingsPage() {
         initServerProfileForm();
     } else if (activeSection === 'roles') {
         initMemberManagementTab();
+    } else if (activeSection === 'channels') {
+        initChannelManagementTab();
     } else if (activeSection === 'delete') {
         initDeleteServerTab();
     } else if (activeSection === 'my-profile') {
@@ -813,6 +815,397 @@ function initMemberManagementTab() {
     }
     
     loadMembers();
+}
+
+/**
+ * Initialize the channel management tab functionality
+ */
+function initChannelManagementTab() {
+    const channelsList = document.getElementById('channels-list');
+    const channelSearch = document.getElementById('channel-search');
+    const channelTemplate = document.getElementById('channel-template');
+    const channelFilter = document.getElementById('channel-filter');
+    const filterOptions = document.querySelectorAll('#channel-filter-dropdown .filter-option');
+    const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    
+    if (!channelsList || !channelTemplate || !serverId) return;
+    
+    let allChannels = [];
+    let currentFilter = 'all';
+    
+    async function loadChannels() {
+        try {
+            const response = await window.channelAPI.getChannels(serverId);
+            
+            if (response && response.success) {
+                if (response.data && response.data.channels) {
+                    allChannels = response.data.channels;
+                } else if (response.channels) {
+                    allChannels = response.channels;
+                } else {
+                    allChannels = [];
+                }
+                
+                filterChannels(currentFilter);
+            } else if (response && response.error && response.error.code === 401) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            } else {
+                throw new Error(response.message || 'Failed to load server channels');
+            }
+        } catch (error) {
+            console.error('Error loading server channels:', error);
+            
+            if (error.message && error.message.toLowerCase().includes('unauthorized')) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+            
+            channelsList.innerHTML = `
+                <div class="flex items-center justify-center p-8 text-discord-lighter">
+                    <i class="fas fa-exclamation-triangle mr-2 text-red-400"></i>
+                    <span>Error loading channels. Please try again.</span>
+                </div>
+            `;
+        }
+    }
+    
+    function filterChannels(filterType) {
+        let filteredChannels = [...allChannels];
+        
+        if (filterType !== 'all') {
+            filteredChannels = filteredChannels.filter(channel => channel.type === filterType);
+        }
+        
+        filteredChannels.sort((a, b) => {
+            return (a.position || 0) - (b.position || 0);
+        });
+        
+        renderChannels(filteredChannels);
+    }
+    
+    if (filterOptions) {
+        filterOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                filterOptions.forEach(opt => {
+                    opt.querySelector('input[type="radio"]').checked = false;
+                });
+                this.querySelector('input[type="radio"]').checked = true;
+                
+                if (channelFilter) {
+                    channelFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
+                    
+                    const filterDropdown = document.getElementById('channel-filter-dropdown');
+                    if (filterDropdown) {
+                        filterDropdown.classList.add('hidden');
+                    }
+                }
+                
+                currentFilter = this.dataset.filter;
+                filterChannels(currentFilter);
+            });
+        });
+    }
+    
+    if (channelFilter) {
+        channelFilter.addEventListener('click', function(e) {
+            const filterDropdown = document.getElementById('channel-filter-dropdown');
+            if (filterDropdown) {
+                filterDropdown.classList.toggle('hidden');
+            }
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!channelFilter.contains(e.target)) {
+                const filterDropdown = document.getElementById('channel-filter-dropdown');
+                if (filterDropdown && !filterDropdown.classList.contains('hidden')) {
+                    filterDropdown.classList.add('hidden');
+                }
+            }
+        });
+    }
+    
+    function renderChannels(channels) {
+        if (!channels.length) {
+            channelsList.innerHTML = `
+                <div class="flex items-center justify-center p-8 text-discord-lighter">
+                    <i class="fas fa-hashtag mr-2 opacity-50"></i>
+                    <span>No channels found</span>
+                </div>
+            `;
+            return;
+        }
+        
+        channelsList.innerHTML = '';
+        
+        channels.forEach(channel => {
+            const channelElement = document.importNode(channelTemplate.content, true).firstElementChild;
+            
+            const channelIcon = channelElement.querySelector('.channel-icon i');
+            if (channelIcon) {
+                if (channel.type === 'voice') {
+                    channelIcon.className = 'fas fa-volume-up text-gray-400';
+                } else {
+                    channelIcon.className = 'fas fa-hashtag text-gray-400';
+                }
+            }
+            
+            const channelNameElement = channelElement.querySelector('.channel-name');
+            if (channelNameElement) {
+                channelNameElement.textContent = channel.name;
+            }
+            
+            const channelCategoryElement = channelElement.querySelector('.channel-category');
+            if (channelCategoryElement) {
+                channelCategoryElement.textContent = channel.category_name || 'No Category';
+            }
+            
+            const channelTypeElement = channelElement.querySelector('.channel-type-badge');
+            if (channelTypeElement) {
+                channelTypeElement.textContent = channel.type.charAt(0).toUpperCase() + channel.type.slice(1);
+                channelTypeElement.className = `channel-type-badge ${channel.type}`;
+            }
+            
+            const channelPositionElement = channelElement.querySelector('.channel-position');
+            if (channelPositionElement) {
+                channelPositionElement.textContent = channel.position || 0;
+            }
+            
+            channelElement.dataset.channelId = channel.id;
+            channelElement.dataset.channelPosition = channel.position || 0;
+            
+            const moveUpBtn = channelElement.querySelector('.move-up-btn');
+            const moveDownBtn = channelElement.querySelector('.move-down-btn');
+            const renameBtn = channelElement.querySelector('.rename-btn');
+            const deleteBtn = channelElement.querySelector('.delete-btn');
+            
+            if (moveUpBtn) {
+                moveUpBtn.addEventListener('click', () => showChannelActionModal('move-up', channel));
+            }
+            
+            if (moveDownBtn) {
+                moveDownBtn.addEventListener('click', () => showChannelActionModal('move-down', channel));
+            }
+            
+            if (renameBtn) {
+                renameBtn.addEventListener('click', () => showChannelActionModal('rename', channel));
+            }
+            
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => showChannelActionModal('delete', channel));
+            }
+            
+            channelsList.appendChild(channelElement);
+        });
+    }
+    
+    function showChannelActionModal(action, channel) {
+        const modal = document.getElementById('channel-action-modal');
+        const modalIcon = modal.querySelector('.modal-icon i');
+        const modalTitle = modal.querySelector('.modal-title');
+        const channelName = modal.querySelector('.channel-name');
+        const channelCurrentPosition = modal.querySelector('.channel-current-position');
+        const actionMessage = modal.querySelector('.action-message');
+        const positionChangePreview = modal.querySelector('.position-change-preview');
+        const renameInputContainer = modal.querySelector('.rename-input-container');
+        const fromPosition = modal.querySelector('.from-position');
+        const toPosition = modal.querySelector('.to-position');
+        const confirmBtn = modal.querySelector('#channel-modal-confirm-btn');
+        const confirmText = confirmBtn.querySelector('.confirm-text');
+        const cancelBtn = modal.querySelector('#channel-modal-cancel-btn');
+        
+        modalIcon.className = '';
+        confirmBtn.className = 'modal-btn modal-btn-confirm';
+        positionChangePreview.classList.add('hidden');
+        renameInputContainer.classList.add('hidden');
+        
+        const channelIconDiv = modal.querySelector('.channel-icon-small i');
+        if (channelIconDiv) {
+            if (channel.type === 'voice') {
+                channelIconDiv.className = 'fas fa-volume-up';
+            } else {
+                channelIconDiv.className = 'fas fa-hashtag';
+            }
+        }
+        
+        channelName.textContent = channel.name;
+        channelCurrentPosition.textContent = `Current Position: ${channel.position || 0}`;
+        
+        let actionHandler;
+        
+        switch (action) {
+            case 'move-up':
+                modalIcon.className = 'fas fa-arrow-up';
+                modalTitle.textContent = 'Move Channel Up';
+                actionMessage.textContent = `Are you sure you want to move "${channel.name}" up in the channel list?`;
+                
+                const currentPos = parseInt(channel.position || 0);
+                const newUpPos = Math.max(1, currentPos - 1);
+                
+                positionChangePreview.classList.remove('hidden');
+                fromPosition.textContent = currentPos;
+                fromPosition.className = 'position-badge from-position';
+                toPosition.textContent = newUpPos;
+                toPosition.className = 'position-badge to-position';
+                
+                confirmBtn.classList.add('primary');
+                confirmText.textContent = 'Move Up';
+                
+                actionHandler = () => handleMoveChannel(channel, newUpPos);
+                break;
+                
+            case 'move-down':
+                modalIcon.className = 'fas fa-arrow-down';
+                modalTitle.textContent = 'Move Channel Down';
+                actionMessage.textContent = `Are you sure you want to move "${channel.name}" down in the channel list?`;
+                
+                const currentDownPos = parseInt(channel.position || 0);
+                const newDownPos = currentDownPos + 1;
+                
+                positionChangePreview.classList.remove('hidden');
+                fromPosition.textContent = currentDownPos;
+                fromPosition.className = 'position-badge from-position';
+                toPosition.textContent = newDownPos;
+                toPosition.className = 'position-badge to-position';
+                
+                confirmBtn.classList.add('primary');
+                confirmText.textContent = 'Move Down';
+                
+                actionHandler = () => handleMoveChannel(channel, newDownPos);
+                break;
+                
+            case 'rename':
+                modalIcon.className = 'fas fa-edit';
+                modalTitle.textContent = 'Rename Channel';
+                actionMessage.textContent = `Enter the new name for "${channel.name}":`;
+                
+                renameInputContainer.classList.remove('hidden');
+                const nameInput = modal.querySelector('#new-channel-name');
+                nameInput.value = channel.name;
+                
+                confirmBtn.classList.add('primary');
+                confirmText.textContent = 'Rename';
+                
+                actionHandler = () => {
+                    const newName = nameInput.value.trim();
+                    if (newName && newName !== channel.name) {
+                        handleRenameChannel(channel, newName);
+                    }
+                };
+                break;
+                
+            case 'delete':
+                modalIcon.className = 'fas fa-trash';
+                modalTitle.textContent = 'Delete Channel';
+                actionMessage.textContent = `Are you sure you want to delete "${channel.name}"? This will permanently delete all messages in this channel.`;
+                
+                confirmBtn.classList.add('danger');
+                confirmText.textContent = 'Delete';
+                
+                actionHandler = () => handleDeleteChannel(channel);
+                break;
+        }
+        
+        const handleConfirm = () => {
+            modal.classList.add('hidden');
+            confirmBtn.removeEventListener('click', handleConfirm);
+            cancelBtn.removeEventListener('click', handleCancel);
+            document.removeEventListener('keydown', handleKeydown);
+            actionHandler();
+        };
+        
+        const handleCancel = () => {
+            modal.classList.add('hidden');
+            confirmBtn.removeEventListener('click', handleConfirm);
+            cancelBtn.removeEventListener('click', handleCancel);
+            document.removeEventListener('keydown', handleKeydown);
+        };
+        
+        const handleKeydown = (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+            }
+        };
+        
+        confirmBtn.addEventListener('click', handleConfirm);
+        cancelBtn.addEventListener('click', handleCancel);
+        document.addEventListener('keydown', handleKeydown);
+        
+        modal.classList.remove('hidden');
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                handleCancel();
+            }
+        });
+    }
+
+    async function handleMoveChannel(channel, newPosition) {
+        try {
+            const response = await window.channelAPI.updateChannelPosition(channel.id, newPosition);
+            if (response && response.success) {
+                showToast(`Channel "${channel.name}" position updated successfully`, 'success');
+                loadChannels();
+            } else {
+                throw new Error(response.message || 'Failed to update channel position');
+            }
+        } catch (error) {
+            console.error('Error moving channel:', error);
+            showToast(error.message || 'Failed to update channel position', 'error');
+        }
+    }
+    
+    async function handleRenameChannel(channel, newName) {
+        try {
+            const response = await window.channelAPI.updateChannel(channel.id, { name: newName });
+            if (response && response.success) {
+                showToast(`Channel renamed to "${newName}" successfully`, 'success');
+                loadChannels();
+            } else {
+                throw new Error(response.message || 'Failed to rename channel');
+            }
+        } catch (error) {
+            console.error('Error renaming channel:', error);
+            showToast(error.message || 'Failed to rename channel', 'error');
+        }
+    }
+    
+    async function handleDeleteChannel(channel) {
+        try {
+            const response = await window.channelAPI.deleteChannel(channel.id);
+            if (response && response.success) {
+                showToast(`Channel "${channel.name}" deleted successfully`, 'success');
+                loadChannels();
+            } else {
+                throw new Error(response.message || 'Failed to delete channel');
+            }
+        } catch (error) {
+            console.error('Error deleting channel:', error);
+            showToast(error.message || 'Failed to delete channel', 'error');
+        }
+    }
+    
+    if (channelSearch) {
+        channelSearch.addEventListener('input', debounce(function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                filterChannels(currentFilter);
+                return;
+            }
+            
+            const filteredChannels = allChannels.filter(channel => {
+                return (
+                    channel.name.toLowerCase().includes(searchTerm) ||
+                    channel.type.toLowerCase().includes(searchTerm)
+                );
+            });
+            
+            renderChannels(filteredChannels);
+        }, 300));
+    }
+    
+    loadChannels();
 }
 
 /**

@@ -213,6 +213,70 @@ Route::get('/api/servers/([0-9]+)/channels', function($serverId) {
     $controller->getServerChannels($serverId);
 });
 
+Route::get('/api/debug/servers/([0-9]+)/channels', function($serverId) {
+    header('Content-Type: application/json');
+    
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    try {
+        require_once __DIR__ . '/../controllers/ServerController.php';
+        require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
+        require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
+        require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+        
+        $channelRepo = new ChannelRepository();
+        $categoryRepo = new CategoryRepository();
+        $membershipRepo = new UserServerMembershipRepository();
+        
+        $debug = [
+            'server_id' => $serverId,
+            'session_data' => [
+                'user_id' => $_SESSION['user_id'] ?? 'NOT_SET',
+                'username' => $_SESSION['username'] ?? 'NOT_SET',
+                'session_id' => session_id()
+            ],
+            'repositories_test' => [
+                'channel_repo_exists' => class_exists('ChannelRepository'),
+                'category_repo_exists' => class_exists('CategoryRepository'),
+                'membership_repo_exists' => class_exists('UserServerMembershipRepository')
+            ]
+        ];
+        
+        if (isset($_SESSION['user_id'])) {
+            $isMember = $membershipRepo->isMember($_SESSION['user_id'], $serverId);
+            $debug['membership_check'] = [
+                'is_member' => $isMember,
+                'user_id' => $_SESSION['user_id'],
+                'server_id' => $serverId
+            ];
+            
+            if ($isMember) {
+                $channels = $channelRepo->getByServerId($serverId);
+                $categories = $categoryRepo->getForServer($serverId);
+                
+                $debug['data_results'] = [
+                    'channels_count' => count($channels),
+                    'categories_count' => count($categories),
+                    'channels_sample' => array_slice($channels, 0, 2),
+                    'categories_sample' => array_slice($categories, 0, 2)
+                ];
+            }
+        }
+        
+        echo json_encode($debug, JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+    exit;
+});
+
 Route::post('/api/servers/create', function() {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
@@ -275,6 +339,12 @@ Route::put('/api/channels/([0-9]+)', function($channelId) {
     $controller = new ChannelController();
     $_POST['channel_id'] = $channelId;
     $controller->update();
+});
+
+Route::put('/api/channels/([0-9]+)/position', function($channelId) {
+    $controller = new ChannelController();
+    $_POST['channel_id'] = $channelId;
+    $controller->updatePosition();
 });
 
 Route::delete('/api/channels/([0-9]+)', function($channelId) {

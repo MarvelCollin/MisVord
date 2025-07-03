@@ -16,7 +16,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 
 <div class="w-60 bg-discord-dark flex flex-col h-full border-r border-gray-800">
     <div class="h-12 border-b border-black flex items-center px-4 shadow-sm relative">
-        <h2 class="font-bold text-white truncate flex-1"><?php echo htmlspecialchars(is_array($currentServer) ? ($currentServer['name'] ?? 'Server') : ($currentServer->name ?? 'Server')); ?></h2>
+        <h2 class="font-bold text-white flex-1"><?php echo htmlspecialchars(is_array($currentServer) ? ($currentServer['name'] ?? 'Server') : ($currentServer->name ?? 'Server')); ?></h2>
         <button id="server-dropdown-btn" class="text-gray-400 hover:text-white focus:outline-none w-5 h-5 flex items-center justify-center">
             <i class="fas fa-chevron-down text-sm"></i>
         </button>

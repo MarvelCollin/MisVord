@@ -1,4 +1,17 @@
 const channelAPI = {
+    getChannels: function(serverId) {
+        return fetch(`/api/servers/${serverId}/channels`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json'
+            }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
+        });
+    },
+
     createChannel: function(formData) {
         return fetch('/api/channels', {
             method: 'POST',
@@ -75,6 +88,20 @@ const channelAPI = {
             headers: {
                 'Accept': 'application/json'
             }
+        }).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
+        });
+    },
+
+    updateChannelPosition: function(channelId, position) {
+        return fetch(`/api/channels/${channelId}/position`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ position: position })
         }).then(response => {
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
             return response.json();

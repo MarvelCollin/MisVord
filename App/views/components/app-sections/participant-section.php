@@ -226,79 +226,110 @@ function initializeParticipantHover() {
 }
 
 function initializeSocketConnection() {
-    if (!window.io) {
-        console.warn('Socket.io not loaded');
+    console.log('🔗 [PARTICIPANT-SECTION] Initializing socket connection...');
+    
+    // CRITICAL FIX: Use global socket manager instead of creating separate socket
+    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+        console.log('✅ [PARTICIPANT-SECTION] Using existing global socket manager');
+        setupParticipantSocketListeners();
+        socketConnectionStatus = 'connected';
+        
+        // Request initial online users data
+        window.globalSocketManager.io.emit('get-online-users');
+        
         return;
     }
     
-    const serverId = <?php echo $currentServerId; ?>;
-    const currentUserId = <?php echo $_SESSION['user_id'] ?? 0; ?>;
-    
-    try {
-        const socket = io(SOCKET_URL, {
-            transports: ['websocket', 'polling'],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
-        });
-        
-        socket.on('connect', function() {
-            console.log('Socket connected for participant list');
+    // Fallback: Wait for global socket manager to be ready
+    console.log('⏳ [PARTICIPANT-SECTION] Waiting for global socket manager...');
+    const checkGlobalSocket = setInterval(() => {
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            console.log('✅ [PARTICIPANT-SECTION] Global socket manager now ready');
+            clearInterval(checkGlobalSocket);
+            setupParticipantSocketListeners();
             socketConnectionStatus = 'connected';
             
-            socket.emit('authenticate', {
-                user_id: currentUserId,
-                username: '<?php echo $_SESSION['username'] ?? 'Unknown'; ?>'
-            });
-            
-            socket.emit('get-online-users');
-        });
-        
-        socket.on('online-users-response', function(data) {
-            console.log(`Received online users: ${Object.keys(data.users || {}).length} users`);
-            lastSocketEvent = {type: 'online-users-response', timestamp: Date.now()};
-            updateOnlineStatus(data.users);
-        });
-        
-        socket.on('user-presence-update', function(data) {
-            console.log(`User presence update: ${data.user_id} => ${data.status}`, data.activity_details);
-            lastSocketEvent = {type: 'user-presence-update', userId: data.user_id, status: data.status, timestamp: Date.now()};
-            updateUserStatus(data.user_id, data.status, data.activity_details);
-        });
-        
-        socket.on('user-offline', function(data) {
-            console.log(`User went offline: ${data.user_id}`);
-            lastSocketEvent = {type: 'user-offline', userId: data.user_id, timestamp: Date.now()};
-            updateUserStatus(data.user_id, 'offline', null);
-        });
-        
-        socket.on('disconnect', function() {
-            console.log('Socket disconnected from participant list');
-            socketConnectionStatus = 'disconnected';
-        });
-        
-        socket.on('error', function(error) {
-            console.error('Socket error:', error);
-            socketConnectionStatus = 'error';
-        });
-        
-        socket.on('connect_error', function(error) {
-            console.error('Socket connection error:', error);
-            socketConnectionStatus = 'connection_error';
-        });
-        
-        window.participantSocket = socket;
-        window.getSocketStatus = function() {
-            return {
-                connectionStatus: socketConnectionStatus,
-                lastEvent: lastSocketEvent,
-                connectedAt: socket.connected ? new Date(socket.connectTime) : null
-            };
-        };
-        
-    } catch (error) {
-        console.error('Error connecting to socket:', error);
+            // Request initial online users data
+            window.globalSocketManager.io.emit('get-online-users');
+        }
+    }, 100);
+    
+    // Timeout after 10 seconds
+    setTimeout(() => {
+        clearInterval(checkGlobalSocket);
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            console.error('❌ [PARTICIPANT-SECTION] Timeout waiting for global socket manager');
+            socketConnectionStatus = 'timeout';
+        }
+    }, 10000);
+}
+
+function setupParticipantSocketListeners() {
+    if (!window.globalSocketManager?.io) {
+        console.error('❌ [PARTICIPANT-SECTION] No global socket available');
+        return;
     }
+    
+    const socket = window.globalSocketManager.io;
+    console.log('🎧 [PARTICIPANT-SECTION] Setting up socket listeners on global socket');
+    
+    // Remove any existing listeners to prevent duplicates
+    socket.off('online-users-response.participant');
+    socket.off('user-presence-update.participant');
+    socket.off('user-offline.participant');
+    
+    // Use namespaced listeners to avoid conflicts
+    socket.on('online-users-response.participant', function(data) {
+        console.log(`📊 [PARTICIPANT-SECTION] Received online users: ${Object.keys(data.users || {}).length} users`);
+        lastSocketEvent = {type: 'online-users-response', timestamp: Date.now()};
+        updateOnlineStatus(data.users);
+    });
+    
+    socket.on('user-presence-update.participant', function(data) {
+        console.log(`🔄 [PARTICIPANT-SECTION] User presence update: ${data.user_id} => ${data.status}`, data.activity_details);
+        lastSocketEvent = {type: 'user-presence-update', userId: data.user_id, status: data.status, timestamp: Date.now()};
+        updateUserStatus(data.user_id, data.status, data.activity_details);
+    });
+    
+    socket.on('user-offline.participant', function(data) {
+        console.log(`📴 [PARTICIPANT-SECTION] User went offline: ${data.user_id}`);
+        lastSocketEvent = {type: 'user-offline', userId: data.user_id, timestamp: Date.now()};
+        updateUserStatus(data.user_id, 'offline', null);
+    });
+    
+    // Also listen to the non-namespaced events as fallback
+    socket.on('online-users-response', function(data) {
+        console.log(`📊 [PARTICIPANT-SECTION] Fallback: Received online users: ${Object.keys(data.users || {}).length} users`);
+        lastSocketEvent = {type: 'online-users-response', timestamp: Date.now()};
+        updateOnlineStatus(data.users);
+    });
+    
+    socket.on('user-presence-update', function(data) {
+        console.log(`🔄 [PARTICIPANT-SECTION] Fallback: User presence update: ${data.user_id} => ${data.status}`, data.activity_details);
+        lastSocketEvent = {type: 'user-presence-update', userId: data.user_id, status: data.status, timestamp: Date.now()};
+        updateUserStatus(data.user_id, data.status, data.activity_details);
+    });
+    
+    socket.on('user-offline', function(data) {
+        console.log(`📴 [PARTICIPANT-SECTION] Fallback: User went offline: ${data.user_id}`);
+        lastSocketEvent = {type: 'user-offline', userId: data.user_id, timestamp: Date.now()};
+        updateUserStatus(data.user_id, 'offline', null);
+    });
+    
+    // Store reference to global socket
+    window.participantSocket = socket;
+    
+    window.getSocketStatus = function() {
+        return {
+            connectionStatus: socketConnectionStatus,
+            lastEvent: lastSocketEvent,
+            connectedAt: socket.connected ? new Date().toISOString() : null,
+            isGlobalSocket: true,
+            globalSocketReady: window.globalSocketManager?.isReady() || false
+        };
+    };
+    
+    console.log('✅ [PARTICIPANT-SECTION] Socket listeners setup complete');
 }
 
 function updateOnlineStatus(onlineUsers) {

@@ -813,69 +813,81 @@ class ServerController extends BaseController
 
     public function getServerChannels($serverId = null)
     {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized('Authentication required');
-        }
-
-
-        if (!$serverId) {
-            $input = $this->getInput();
-            $serverId = $input['server_id'] ?? null;
-        }
-
-        if (!$serverId) {
-            return $this->validationError(['server_id' => 'Server ID is required']);
-        }
         try {
-            if (!isset($_SESSION['csrf_token'])) {
-                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+            // Ensure session is started
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            // Set proper headers for API response
+            if (!headers_sent()) {
+                header('Content-Type: application/json');
+            }
+            
+            $this->requireAuth();
+
+            if (!$serverId) {
+                $input = $this->getInput();
+                $serverId = $input['server_id'] ?? null;
             }
 
-            if (!$this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
+            if (!$serverId) {
+                return $this->validationError(['server_id' => 'Server ID is required']);
+            }
+            
+            $currentUserId = $this->getCurrentUserId();
+            if (!$currentUserId) {
+                return $this->unauthorized('Authentication required');
+            }
+
+            if (!$this->userServerMembershipRepository->isMember($currentUserId, $serverId)) {
                 return $this->forbidden('You do not have access to this server');
             }
 
             $channels = $this->channelRepository->getByServerId($serverId);
             $categories = $this->categoryRepository->getForServer($serverId);
 
+            // Ensure we have arrays
+            if (!is_array($channels)) $channels = [];
+            if (!is_array($categories)) $categories = [];
+            
+            // Add category names to channels for easier display
+            foreach ($channels as &$channel) {
+                $channel['category_name'] = null;
+                if (isset($channel['category_id']) && $channel['category_id']) {
+                    foreach ($categories as $category) {
+                        if ($category['id'] == $channel['category_id']) {
+                            $channel['category_name'] = $category['name'];
+                            break;
+                        }
+                    }
+                }
+            }
+
             $responseData = [
+                'success' => true,
+                'data' => [
+                    'channels' => $channels,
+                    'categories' => $categories,
+                    'server_id' => $serverId
+                ],
                 'channels' => $channels,
                 'categories' => $categories,
                 'server_id' => $serverId
             ];
 
-            $categoryStructured = [];
-            foreach ($categories as $category) {
-                $categoryChannels = array_filter($channels, function ($ch) use ($category) {
-                    return isset($ch['category_id']) && $ch['category_id'] == $category['id'];
-                });
-
-                $categoryStructured[] = [
-                    'id' => $category['id'],
-                    'name' => $category['name'],
-                    'channels' => array_values($categoryChannels)
-                ];
-            }
-
-            $uncategorizedChannels = array_filter($channels, function ($ch) {
-                return !isset($ch['category_id']) || empty($ch['category_id']);
-            });
-
-            if (!empty($uncategorizedChannels)) {
-                $responseData['uncategorized'] = array_values($uncategorizedChannels);
-            }
-
-            $responseData['categoryStructure'] = $categoryStructured;
-
             $this->logActivity('server_channels_viewed', ['server_id' => $serverId]);
 
             return $this->success($responseData);
         } catch (Exception $e) {
+            error_log("getServerChannels error: " . $e->getMessage());
+            error_log("getServerChannels trace: " . $e->getTraceAsString());
+            
             $this->logActivity('server_channels_error', [
                 'server_id' => $serverId,
                 'error' => $e->getMessage()
             ]);
-            return $this->serverError('Failed to load server channels');
+            return $this->serverError('Failed to load server channels: ' . $e->getMessage());
         }
     }
     public function getServerDetails($serverId = null)
