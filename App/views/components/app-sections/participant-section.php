@@ -157,7 +157,10 @@ foreach ($members as $member) {
                                     <?php if ($member['status'] === 'bot'): ?>
                                         <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>
                                     <?php endif; ?>
-                                    <div class="text-xs text-gray-400 truncate user-presence-text" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>">Online</div>
+                                    <?php
+                                    $presenceText = $isOffline ? '' : ($member['status'] === 'afk' ? 'Away' : 'Online');
+                                    ?>
+                                    <div class="text-xs text-gray-400 truncate user-presence-text" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>"><?php echo $presenceText; ?></div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -211,7 +214,30 @@ function initializeParticipantSystem() {
     console.log('🚀 [PARTICIPANT] Initializing participant system with online filtering');
     
     setupFriendsManagerIntegration();
+    setupVoiceEventListeners();
     updateParticipantDisplay();
+}
+
+function setupVoiceEventListeners() {
+    // Listen for voice connect/disconnect events to update participant display
+    window.addEventListener('voiceConnect', (event) => {
+        console.log('🎤 [PARTICIPANT] Voice connect detected, updating display');
+        setTimeout(() => {
+            scheduleUpdate();
+        }, 500); // Small delay to allow presence update to propagate
+    });
+    
+    window.addEventListener('voiceDisconnect', (event) => {
+        console.log('🎤 [PARTICIPANT] Voice disconnect detected, updating display');
+        setTimeout(() => {
+            scheduleUpdate();
+        }, 500); // Small delay to allow presence update to propagate
+    });
+    
+    window.addEventListener('ownPresenceUpdate', () => {
+        console.log('👤 [PARTICIPANT] Own presence update detected');
+        scheduleUpdate();
+    });
 }
 
 function setupFriendsManagerIntegration() {
@@ -291,6 +317,11 @@ function getStatusClass(status) {
 }
 
 function getActivityText(activityDetails, status) {
+    // Hide presence text when user is offline or invisible
+    if (status === 'offline' || status === 'invisible') {
+        return '';
+    }
+    
     if (!activityDetails || !activityDetails.type) {
         return status === 'afk' ? 'Away' : 'Online';
     }
@@ -298,6 +329,8 @@ function getActivityText(activityDetails, status) {
     switch (activityDetails.type) {
         case 'playing Tic Tac Toe': 
             return 'Playing Tic Tac Toe';
+        case 'In Voice Call':
+            return 'In Voice';
         case 'afk': 
             return 'Away';
         case 'idle':
@@ -329,15 +362,24 @@ function updateParticipantDisplay() {
         const isBot = member.status === 'bot';
         let userData = onlineUsers[member.id];
 
-        // Inject own presence data when not available in FriendsManager cache
-        if (!userData && String(member.id) === String(currentUserId)) {
+        // Inject/update own presence data to ensure it's always current
+        if (String(member.id) === String(currentUserId)) {
             userData = {
                 user_id: currentUserId,
                 username: window.globalSocketManager?.username || member.username,
                 status: currentUserStatus,
                 activity_details: currentActivityDetails
             };
+            console.log('🎤 [PARTICIPANT] Updated current user presence:', {
+                userId: currentUserId,
+                status: currentUserStatus,
+                activityDetails: currentActivityDetails
+            });
         }
+        
+        // Store corrected userData in member object for later use
+        member._correctedUserData = userData;
+        
         const isOnline = userData && (userData.status === 'online' || userData.status === 'afk');
         
         if (isBot) {
@@ -390,7 +432,7 @@ function updateParticipantDisplay() {
         const membersList = roleSection.querySelector('.members-list');
         
         roleMembers.forEach(member => {
-            const userData = onlineUsers[member.id];
+            const userData = member._correctedUserData || onlineUsers[member.id];
             const status = userData?.status || 'offline';
             const isOnline = userData && (userData.status === 'online' || userData.status === 'afk');
             const isOffline = role === 'offline' || !isOnline;
@@ -398,6 +440,10 @@ function updateParticipantDisplay() {
             const statusColor = getStatusClass(status);
             const activityDetails = userData?.activity_details;
             const activityText = getActivityText(activityDetails, status);
+            
+            if (String(member.id) === String(currentUserId)) {
+                console.log('🎤 [PARTICIPANT] Creating current user element with activity:', activityText);
+            }
             
             const textColorClass = role === 'owner' ? (isOffline ? 'text-yellow-700' : 'text-yellow-400') :
                                   role === 'admin' ? (isOffline ? 'text-red-700' : 'text-red-400') :
@@ -758,11 +804,6 @@ window.toggleParticipantLoading = function(loading = true) {
     console.log('Participant loading toggle called but using simple DOM - no skeleton');
 };
 
-// Re-render when own presence changes
-window.addEventListener('ownPresenceUpdate', () => {
-    console.log('👤 [PARTICIPANT] Own presence update detected');
-    scheduleUpdate();
-});
 </script>
 
 <style>
@@ -802,6 +843,10 @@ window.addEventListener('ownPresenceUpdate', () => {
 .user-presence-text {
     line-height: 1.2;
     margin-top: 1px;
+}
+
+.user-presence-text:empty {
+    display: none;
 }
 
 .user-profile-trigger {

@@ -567,7 +567,12 @@ class GlobalPresenceManager {
             return 'Online';
         }
         
+        console.log('🎤 [GLOBAL-PRESENCE] Getting activity text for:', activityDetails);
+        
         switch (activityDetails.type) {
+            case 'In Voice Call': 
+                console.log('🎤 [GLOBAL-PRESENCE] Returning "In Voice" for activity type "In Voice Call"');
+                return 'In Voice';
             case 'afk': return 'Away';
             case 'idle':
             default: 
@@ -584,6 +589,7 @@ class GlobalPresenceManager {
         }
         
         switch (activityDetails.type) {
+            case 'In Voice Call': return 'fa-solid fa-microphone';
             case 'afk': return 'fa-solid fa-clock';
             case 'idle':
             default: 
@@ -602,6 +608,26 @@ class GlobalPresenceManager {
         }
         
         this.updateActiveNow();
+    }
+
+    // Temporary debugging function for testing
+    static enableDebugMode() {
+        window.globalPresenceDebug = true;
+        console.log('🔧 [GLOBAL-PRESENCE] Debug mode enabled');
+        
+        // Override the updateUserPresence method to add extra logging
+        const originalUpdate = GlobalPresenceManager.prototype.updateUserPresence;
+        GlobalPresenceManager.prototype.updateUserPresence = function(userId, presenceData) {
+            if (window.globalPresenceDebug) {
+                console.log('🔄 [GLOBAL-PRESENCE-DEBUG] updateUserPresence called:', {
+                    userId,
+                    presenceData,
+                    currentUser: window.GlobalSocketManager?.getCurrentUserId?.(),
+                    isCurrentUser: userId === window.GlobalSocketManager?.getCurrentUserId?.()
+                });
+            }
+            return originalUpdate.call(this, userId, presenceData);
+        };
     }
 
     static getInstance() {
@@ -626,4 +652,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-window.GlobalPresenceManager = GlobalPresenceManager; 
+window.GlobalPresenceManager = GlobalPresenceManager;

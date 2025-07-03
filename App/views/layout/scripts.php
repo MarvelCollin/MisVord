@@ -110,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="<?php echo asset('/js/components/voice/voice-dependency-loader.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/utils/voice-state-manager.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/videosdk/videosdk.js'); ?>"></script>
+<script src="<?php echo asset('/js/test-voice-presence.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-section.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/components/voice/global-voice-indicator.js'); ?>"></script>

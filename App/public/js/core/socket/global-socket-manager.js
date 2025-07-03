@@ -295,12 +295,26 @@ class GlobalSocketManager {
             this.isUserActive = true;
             this.currentPresenceStatus = 'online';
             
-            this.updatePresence('online', { type: 'active' });
+            // Check if user is currently in a voice call before setting presence
+            const isInVoiceCall = this.currentActivityDetails?.type === 'In Voice Call';
+            const initialActivity = isInVoiceCall ? { type: 'In Voice Call' } : { type: 'active' };
+            
+            console.log('🎯 [SOCKET] Setting initial presence after auth:', { 
+                isInVoiceCall, 
+                activityType: initialActivity.type,
+                preservingVoiceStatus: isInVoiceCall 
+            });
+            
+            this.updatePresence('online', initialActivity);
             this.startPresenceHeartbeat();
             
             setTimeout(() => {
-                this.updatePresence('online', { type: 'active' });
-                console.log('✅ [SOCKET] Secondary presence update sent for reliability');
+                // Only set to active if not in voice call
+                const currentActivity = this.currentActivityDetails?.type === 'In Voice Call' 
+                    ? { type: 'In Voice Call' } 
+                    : { type: 'active' };
+                this.updatePresence('online', currentActivity);
+                console.log('✅ [SOCKET] Secondary presence update sent for reliability:', currentActivity);
             }, 500);
             
             console.log('🔔 [SOCKET] Dispatching globalSocketReady event');
@@ -780,6 +794,15 @@ class GlobalSocketManager {
             status, 
             activity_details: activityDetails 
         });
+        
+        // Dispatch local event for immediate UI updates
+        window.dispatchEvent(new CustomEvent('ownPresenceUpdate', {
+            detail: {
+                user_id: this.userId,
+                status: status,
+                activity_details: activityDetails
+            }
+        }));
         
         return true;
     }
