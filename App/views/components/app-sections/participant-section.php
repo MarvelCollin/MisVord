@@ -170,14 +170,13 @@ foreach ($members as $member) {
 
 <script>
 const SOCKET_URL = window.SOCKET_URL || 'http://localhost:1002';
-const ENABLE_USER_SECTION_MOVEMENT = false;
-window.ENABLE_USER_SECTION_MOVEMENT = ENABLE_USER_SECTION_MOVEMENT;
-
-let socketConnectionStatus = 'disconnected';
-let lastSocketEvent = null;
 let searchTimeout = null;
 let currentSearchQuery = '';
 let searchResults = [];
+let onlineUsers = {};
+let updateTimer = null;
+
+const allMembers = <?php echo json_encode($members); ?>;
 
 function loadSocketIO(callback) {
     if (window.io) {
@@ -204,141 +203,91 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    loadSocketIO(initializeSocketConnection);
-    initializeParticipantHover();
+    initializeParticipantSystem();
     initializeServerSearch();
 });
 
-
-
-function initializeParticipantHover() {
-    const participantItems = document.querySelectorAll('.participant-content .user-profile-trigger');
+function initializeParticipantSystem() {
+    console.log('🚀 [PARTICIPANT] Initializing participant system with online filtering');
     
-    participantItems.forEach(item => {
-        item.addEventListener('mouseover', function() {
-            this.classList.add('bg-discord-light');
-        });
-        
-        item.addEventListener('mouseout', function() {
-            this.classList.remove('bg-discord-light');
-        });
-    });
+    setupFriendsManagerIntegration();
+    updateParticipantDisplay();
 }
 
-function initializeSocketConnection() {
-    console.log('🔗 [PARTICIPANT-SECTION] Initializing socket connection...');
-    
-    // CRITICAL FIX: Use global socket manager instead of creating separate socket
-    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-        console.log('✅ [PARTICIPANT-SECTION] Using existing global socket manager');
-        setupParticipantSocketListeners();
-        socketConnectionStatus = 'connected';
-        
-        // Request initial online users data
-        window.globalSocketManager.io.emit('get-online-users');
-        
+function setupFriendsManagerIntegration() {
+    if (window.globalPresenceManager) {
+        console.log('🌐 [PARTICIPANT] Using global presence manager');
         return;
     }
     
-    // Fallback: Wait for global socket manager to be ready
-    console.log('⏳ [PARTICIPANT-SECTION] Waiting for global socket manager...');
-    const checkGlobalSocket = setInterval(() => {
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            console.log('✅ [PARTICIPANT-SECTION] Global socket manager now ready');
-            clearInterval(checkGlobalSocket);
-            setupParticipantSocketListeners();
-            socketConnectionStatus = 'connected';
+    if (window.FriendsManager) {
+        const friendsManager = window.FriendsManager.getInstance();
+        
+        friendsManager.subscribe((type, data) => {
+            console.log(`🔄 [PARTICIPANT] FriendsManager event: ${type}`, data);
             
-            // Request initial online users data
-            window.globalSocketManager.io.emit('get-online-users');
+            switch (type) {
+                case 'user-online':
+                case 'user-offline':
+                case 'user-presence-update':
+                case 'online-users-updated':
+                    onlineUsers = friendsManager.cache.onlineUsers || {};
+                    console.log('📊 [PARTICIPANT] Updated onlineUsers:', Object.keys(onlineUsers).length);
+                    scheduleUpdate();
+                    break;
+            }
+        });
+        
+        onlineUsers = friendsManager.cache.onlineUsers || {};
+        console.log('📊 [PARTICIPANT] Initial onlineUsers from FriendsManager:', Object.keys(onlineUsers).length);
+        
+        if (Object.keys(onlineUsers).length === 0) {
+            console.log('⚠️ [PARTICIPANT] No online users found, requesting fresh data');
+            friendsManager.getOnlineUsers(true);
+            
+            setTimeout(() => {
+                onlineUsers = friendsManager.cache.onlineUsers || {};
+                console.log('📊 [PARTICIPANT] Delayed online users check:', Object.keys(onlineUsers).length);
+                scheduleUpdate();
+            }, 2000);
         }
-    }, 100);
-    
-    // Timeout after 10 seconds
-    setTimeout(() => {
-        clearInterval(checkGlobalSocket);
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.error('❌ [PARTICIPANT-SECTION] Timeout waiting for global socket manager');
-            socketConnectionStatus = 'timeout';
-        }
-    }, 10000);
-}
-
-function setupParticipantSocketListeners() {
-    if (!window.globalSocketManager?.io) {
-        console.error('❌ [PARTICIPANT-SECTION] No global socket available');
-        return;
+    } else {
+        console.warn('⚠️ [PARTICIPANT] FriendsManager not available, retrying in 500ms');
+        setTimeout(setupFriendsManagerIntegration, 500);
     }
     
-    const socket = window.globalSocketManager.io;
-    console.log('🎧 [PARTICIPANT-SECTION] Setting up socket listeners on global socket');
-    
-    // Remove any existing listeners to prevent duplicates
-    socket.off('online-users-response.participant');
-    socket.off('user-presence-update.participant');
-    socket.off('user-offline.participant');
-    
-    // Use namespaced listeners to avoid conflicts
-    socket.on('online-users-response.participant', function(data) {
-        console.log(`📊 [PARTICIPANT-SECTION] Received online users: ${Object.keys(data.users || {}).length} users`);
-        lastSocketEvent = {type: 'online-users-response', timestamp: Date.now()};
-        updateOnlineStatus(data.users);
-    });
-    
-    socket.on('user-presence-update.participant', function(data) {
-        console.log(`🔄 [PARTICIPANT-SECTION] User presence update: ${data.user_id} => ${data.status}`, data.activity_details);
-        lastSocketEvent = {type: 'user-presence-update', userId: data.user_id, status: data.status, timestamp: Date.now()};
-        updateUserStatus(data.user_id, data.status, data.activity_details);
-    });
-    
-    socket.on('user-offline.participant', function(data) {
-        console.log(`📴 [PARTICIPANT-SECTION] User went offline: ${data.user_id}`);
-        lastSocketEvent = {type: 'user-offline', userId: data.user_id, timestamp: Date.now()};
-        updateUserStatus(data.user_id, 'offline', null);
-    });
-    
-    // Also listen to the non-namespaced events as fallback
-    socket.on('online-users-response', function(data) {
-        console.log(`📊 [PARTICIPANT-SECTION] Fallback: Received online users: ${Object.keys(data.users || {}).length} users`);
-        lastSocketEvent = {type: 'online-users-response', timestamp: Date.now()};
-        updateOnlineStatus(data.users);
-    });
-    
-    socket.on('user-presence-update', function(data) {
-        console.log(`🔄 [PARTICIPANT-SECTION] Fallback: User presence update: ${data.user_id} => ${data.status}`, data.activity_details);
-        lastSocketEvent = {type: 'user-presence-update', userId: data.user_id, status: data.status, timestamp: Date.now()};
-        updateUserStatus(data.user_id, data.status, data.activity_details);
-    });
-    
-    socket.on('user-offline', function(data) {
-        console.log(`📴 [PARTICIPANT-SECTION] Fallback: User went offline: ${data.user_id}`);
-        lastSocketEvent = {type: 'user-offline', userId: data.user_id, timestamp: Date.now()};
-        updateUserStatus(data.user_id, 'offline', null);
-    });
-    
-    // Store reference to global socket
-    window.participantSocket = socket;
-    
-    window.getSocketStatus = function() {
-        return {
-            connectionStatus: socketConnectionStatus,
-            lastEvent: lastSocketEvent,
-            connectedAt: socket.connected ? new Date().toISOString() : null,
-            isGlobalSocket: true,
-            globalSocketReady: window.globalSocketManager?.isReady() || false
-        };
-    };
-    
-    console.log('✅ [PARTICIPANT-SECTION] Socket listeners setup complete');
+    if (window.globalSocketManager && window.globalSocketManager.io) {
+        window.globalSocketManager.io.on('user-presence-update', (data) => {
+            console.log('📡 [PARTICIPANT] Direct socket presence update:', data);
+            scheduleUpdate();
+        });
+    }
 }
 
-function updateOnlineStatus(onlineUsers) {
-    if (!onlineUsers) return;
+function scheduleUpdate() {
+    if (updateTimer) {
+        clearTimeout(updateTimer);
+    }
     
-    Object.keys(onlineUsers).forEach(userId => {
-        const userData = onlineUsers[userId];
-        updateUserStatus(userId, userData.status || 'online', userData.activity_details);
-    });
+    updateTimer = setTimeout(() => {
+        updateParticipantDisplay();
+    }, 50);
+}
+
+function getStatusClass(status) {
+    switch (status) {
+        case 'online':
+        case 'appear':
+            return 'bg-discord-green';
+        case 'afk':
+            return 'bg-yellow-500';
+        case 'do_not_disturb':
+            return 'bg-discord-red';
+        case 'invisible':
+        case 'offline':
+        default:
+            return 'bg-[#747f8d]';
+    }
 }
 
 function getActivityText(activityDetails, status) {
@@ -360,111 +309,143 @@ function getActivityText(activityDetails, status) {
     }
 }
 
-function updateUserStatus(userId, status, activityDetails = null) {
-    const userElement = document.querySelector(`.user-profile-trigger[data-user-id="${userId}"]`);
-    if (!userElement) return;
+function updateParticipantDisplay() {
+    console.log('🔄 [PARTICIPANT] Updating participant display with online filtering');
     
-    const isOffline = status === 'offline' || status === 'invisible';
-    const currentRole = userElement.getAttribute('data-role');
-    const currentStatus = userElement.getAttribute('data-status');
+    const roleGroups = {
+        'owner': [],
+        'admin': [],
+        'bot': [],
+        'member': [],
+        'offline': []
+    };
     
-    if ((isOffline && currentStatus !== 'offline') || (!isOffline && currentStatus === 'offline')) {
-        moveUserToSection(userElement, isOffline ? 'offline' : currentRole);
-    }
-    
-    const statusIndicator = userElement.querySelector('.status-indicator');
-    if (statusIndicator) {
-        const statusClass = getStatusClass(status);
-        statusIndicator.classList.remove('bg-discord-green', 'bg-discord-yellow', 'bg-discord-red', 'bg-gray-500', 'bg-[#747f8d]');
-        statusIndicator.classList.add(statusClass);
-    }
-    
-    const userNameElement = userElement.querySelector('.text-sm');
-    const userImage = userElement.querySelector('img');
-    
-    if (userNameElement) {
-        if (isOffline) {
-            userNameElement.classList.remove('text-gray-300');
-            userNameElement.classList.add('text-gray-500');
-            userImage?.classList.add('opacity-70');
-        } else {
-            userNameElement.classList.remove('text-gray-500');
-            userNameElement.classList.add('text-gray-300');
-            userImage?.classList.remove('opacity-70');
-        }
-    }
-    
-    const presenceTextElement = userElement.querySelector('.user-presence-text');
-    if (presenceTextElement) {
-        const activityText = getActivityText(activityDetails, status);
-        presenceTextElement.textContent = activityText;
+    allMembers.forEach(member => {
+        const role = member.role || 'member';
+        const isBot = member.status === 'bot';
+        const userData = onlineUsers[member.id];
+        const isOnline = userData && (userData.status === 'online' || userData.status === 'afk');
         
-        if (isOffline) {
-            presenceTextElement.classList.remove('text-gray-400');
-            presenceTextElement.classList.add('text-gray-500');
-        } else {
-            presenceTextElement.classList.remove('text-gray-500');
-            presenceTextElement.classList.add('text-gray-400');
-        }
-    }
-    
-    userElement.setAttribute('data-status', status);
-}
-
-function moveUserToSection(userElement, targetRole) {
-    const targetSection = document.querySelector(`.role-group[data-role="${targetRole}"]`);
-    const sourceSection = userElement.closest('.role-group');
-    
-    if (targetSection && sourceSection) {
-        const membersList = targetSection.querySelector('.members-list');
-        if (membersList) {
-            membersList.appendChild(userElement);
-            
-            updateRoleCount(sourceSection);
-            updateRoleCount(targetSection);
-            
-            if (sourceSection.querySelector('.members-list').children.length === 0) {
-                sourceSection.style.display = 'none';
+        if (isBot) {
+            roleGroups['bot'].push(member);
+        } else if (isOnline) {
+            if (role === 'owner') {
+                roleGroups['owner'].push(member);
+            } else if (role === 'admin') {
+                roleGroups['admin'].push(member);
+            } else {
+                roleGroups['member'].push(member);
             }
-            targetSection.style.display = 'block';
+        } else {
+            roleGroups['offline'].push(member);
         }
-    }
-}
-
-function updateRoleCount(section) {
-    const countElement = section.querySelector('.role-count');
-    const membersList = section.querySelector('.members-list');
-    if (countElement && membersList) {
-        countElement.textContent = membersList.children.length;
-    }
-}
-
-function getStatusClass(status) {
-    switch (status) {
-        case 'online':
-        case 'appear':
-            return 'bg-discord-green';
-        case 'idle':
-            return 'bg-discord-yellow';
-        case 'do_not_disturb':
-            return 'bg-discord-red';
-        case 'invisible':
-        case 'offline':
-        default:
-            return 'bg-[#747f8d]';
-    }
-}
-
-window.initializeParticipantSection = function() {
-    console.log('Initializing participant section');
+    });
     
-    loadSocketIO(initializeSocketConnection);
-    initializeParticipantHover();
-};
-
-window.toggleParticipantLoading = function(loading = true) {
-    console.log('Participant loading toggle called but using simple DOM - no skeleton');
-};
+    const roleDisplayOrder = ['owner', 'admin', 'bot', 'member', 'offline'];
+    const container = document.querySelector('.participant-content .px-2');
+    
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    roleDisplayOrder.forEach(role => {
+        const roleMembers = roleGroups[role];
+        if (roleMembers.length === 0) return;
+        
+        const roleDisplay = role === 'offline' ? 'Offline' : 
+                           role === 'bot' ? 'Bots' : 
+                           role.charAt(0).toUpperCase() + role.slice(1);
+        
+        const roleColor = role === 'owner' ? 'text-yellow-500' :
+                         role === 'admin' ? 'text-red-500' :
+                         role === 'bot' ? 'text-blue-500' :
+                         role === 'offline' ? 'text-gray-500' :
+                         'text-gray-400';
+        
+        const roleSection = document.createElement('div');
+        roleSection.className = 'mb-4 role-group';
+        roleSection.setAttribute('data-role', role);
+        
+        roleSection.innerHTML = `
+            <h4 class="text-xs font-semibold ${roleColor} uppercase py-1">
+                ${roleDisplay} — <span class="role-count">${roleMembers.length}</span>
+            </h4>
+            <div class="space-y-0.5 members-list"></div>
+        `;
+        
+        const membersList = roleSection.querySelector('.members-list');
+        
+        roleMembers.forEach(member => {
+            const userData = onlineUsers[member.id];
+            const status = userData?.status || 'offline';
+            const isOnline = userData && (userData.status === 'online' || userData.status === 'afk');
+            const isOffline = role === 'offline' || !isOnline;
+            
+            const statusColor = getStatusClass(status);
+            const activityDetails = userData?.activity_details;
+            const activityText = getActivityText(activityDetails, status);
+            
+            const textColorClass = role === 'owner' ? (isOffline ? 'text-yellow-700' : 'text-yellow-400') :
+                                  role === 'admin' ? (isOffline ? 'text-red-700' : 'text-red-400') :
+                                  role === 'bot' ? 'text-blue-400' :
+                                  role === 'offline' ? 'text-gray-500' :
+                                  isOffline ? 'text-gray-500' : 'text-gray-300';
+            
+            const imgOpacityClass = isOffline ? 'opacity-70' : '';
+            
+            const memberEl = document.createElement('div');
+            memberEl.className = 'flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger';
+            memberEl.setAttribute('data-user-id', member.id || '0');
+            memberEl.setAttribute('data-server-id', '<?php echo $currentServerId; ?>');
+            memberEl.setAttribute('data-role', member.role || 'member');
+            memberEl.setAttribute('data-status', status);
+            
+            const username = member.display_name || member.username || 'Unknown';
+            const avatarUrl = member.avatar_url || '';
+            
+            memberEl.innerHTML = `
+                <div class="relative mr-2">
+                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                        ${avatarUrl ? 
+                            `<img src="${avatarUrl}" alt="${username}" class="w-full h-full object-cover ${imgOpacityClass}">` : 
+                            `<div class="w-full h-full flex items-center justify-center bg-discord-dark text-white font-bold">${username.charAt(0).toUpperCase()}</div>`
+                        }
+                    </div>
+                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${statusColor} status-indicator"></span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <span class="${textColorClass} text-sm truncate font-bold member-username" data-user-id="${member.id || '0'}">${username}</span>
+                    ${member.status === 'bot' ? '<span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>' : ''}
+                    <div class="text-xs text-gray-400 truncate user-presence-text" data-user-id="${member.id || '0'}">${activityText}</div>
+                </div>
+            `;
+            
+            memberEl.addEventListener('mouseover', function() {
+                this.classList.add('bg-discord-light');
+            });
+            
+            memberEl.addEventListener('mouseout', function() {
+                this.classList.remove('bg-discord-light');
+            });
+            
+            membersList.appendChild(memberEl);
+        });
+        
+        container.appendChild(roleSection);
+    });
+    
+    if (window.nitroCrownManager) {
+        const usernameElements = container.querySelectorAll('.member-username[data-user-id]');
+        usernameElements.forEach(el => {
+            const userId = el.getAttribute('data-user-id');
+            if (userId) {
+                window.nitroCrownManager.updateUserElement(el, userId);
+            }
+        });
+    }
+    
+    console.log('✅ [PARTICIPANT] Participant display updated with online filtering');
+}
 
 function initializeServerSearch() {
     const searchInput = document.getElementById('server-search-input');
@@ -754,8 +735,14 @@ function highlightMessage(messageId) {
 }
 
 window.highlightMessage = highlightMessage;
+window.initializeParticipantSection = function() {
+    console.log('Initializing participant section with online filtering');
+    initializeParticipantSystem();
+};
 
-
+window.toggleParticipantLoading = function(loading = true) {
+    console.log('Participant loading toggle called but using simple DOM - no skeleton');
+};
 </script>
 
 <style>

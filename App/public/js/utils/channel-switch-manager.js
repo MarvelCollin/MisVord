@@ -48,11 +48,6 @@ class SimpleChannelSwitcher {
             const channelItem = e.target.closest('.channel-item');
             if (!channelItem) return;
             
-            if (channelItem.classList.contains('dragging') || channelItem.hasAttribute('data-dragging')) {
-                console.log('🚫 [SWITCH-MANAGER] Prevented click during drag');
-                return;
-            }
-            
             if (e.target.closest('.channel-menu') || e.target.closest('.channel-dropdown')) {
                 console.log('🚫 [SWITCH-MANAGER] Prevented click on menu elements');
                 return;
@@ -388,10 +383,8 @@ class SimpleChannelSwitcher {
             }
         }
         
-        if (window.ChannelVoiceParticipants && window.globalSocketManager?.isReady()) {
-            console.log('[SWITCH-MANAGER] Checking voice participants for channel:', channelId);
-            window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
-        }
+        // DISABLED: Voice participants now use presence-only system
+        // Prevents blinking caused by socket-based updates
         
         console.log('✅ [SWITCH-MANAGER] Voice channel initialization complete');
     }
@@ -503,46 +496,13 @@ class SimpleChannelSwitcher {
     }
     
     preserveVoiceParticipants() {
-        console.log('🔄 [SWITCH-MANAGER] Preserving voice participants during channel switch');
-        
-        const isInVoice = window.videoSDKManager?.isReady() || window.voiceManager?.isConnected;
-        
-        if (!isInVoice) {
-            console.log('📭 [SWITCH-MANAGER] User not in voice, no participants to preserve');
-            return;
-        }
-
-        const voiceState = {
-            isConnected: isInVoice,
-            channelId: window.voiceManager?.currentChannelId,
-            meetingId: window.videoSDKManager?.meeting?.id,
-            preserveParticipants: true
-        };
-
-        window.dispatchEvent(new CustomEvent('preserveVoiceParticipants', {
-            detail: voiceState
-        }));
-
-        if (window.ChannelVoiceParticipants) {
-            const instance = window.ChannelVoiceParticipants.getInstance();
-            if (instance.refreshAllChannelParticipants) {
-                instance.refreshAllChannelParticipants();
-            }
-        }
+        // DISABLED: Voice participants now use presence-only system
+        // Automatic presence updates handle channel switches without manual refresh
     }
 
     updateVoiceParticipantsAfterSwitch(channelId, channelType) {
-        console.log('🔄 [SWITCH-MANAGER] Updating voice participants after channel switch');
-        
-        setTimeout(() => {
-            if (window.ChannelVoiceParticipants) {
-                const instance = window.ChannelVoiceParticipants.getInstance();
-                
-                if (instance && typeof instance.refreshAllChannelParticipants === 'function') {
-                    instance.refreshAllChannelParticipants();
-                }
-            }
-        }, 300);
+        // DISABLED: Voice participants now use presence-only system  
+        // Prevents blinking caused by manual refreshes during channel switches
     }
 
 

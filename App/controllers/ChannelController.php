@@ -184,27 +184,23 @@ class ChannelController extends BaseController
             [$channel, $error] = $this->validateChannelAccess($channelId, true);
             if ($error) return $error;
             
-            $updated = false;
+            $updateData = [];
             if (isset($input['name'])) {
-                $channel->name = $input['name'];
-                $updated = true;
+                $updateData['name'] = $input['name'];
             }
             if (isset($input['description'])) {
-                $channel->description = $input['description'];
-                $updated = true;
+                $updateData['description'] = $input['description'];
             }
             if (isset($input['category_id'])) {
-                $channel->category_id = $input['category_id'];
-                $updated = true;
+                $updateData['category_id'] = $input['category_id'];
             }
 
-            if ($updated) {
-                $channel->updated_at = date('Y-m-d H:i:s');
-                if ($this->channelRepository->update($channel->id, (array)$channel)) {
+            if (!empty($updateData)) {
+                $updateData['updated_at'] = date('Y-m-d H:i:s');
+                if ($this->channelRepository->update($channelId, $updateData)) {
                     return $this->success(['message' => 'Channel updated successfully']);
-                } else {
-                    return $this->serverError('Failed to update channel');
                 }
+                return $this->serverError('Failed to update channel');
             }
 
             return $this->success(['message' => 'No changes to update']);

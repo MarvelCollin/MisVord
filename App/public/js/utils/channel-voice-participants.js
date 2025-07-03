@@ -42,16 +42,23 @@ class ChannelVoiceParticipants {
         setupFriendsManagerListeners();
 
         window.addEventListener('ownPresenceUpdate', (event) => {
-            console.log('[VOICE-PARTICIPANT] Own presence update:', event.detail);
-            // Add a small delay to ensure the globalSocketManager has updated its state
-            setTimeout(() => {
+            if (window.DEBUG_VOICE_PARTICIPANTS) {
+                console.log('[VOICE-PARTICIPANT] Own presence update:', event.detail);
+            }
+            // Debounce rapid presence updates to prevent blinking
+            if (this._updateTimeout) {
+                clearTimeout(this._updateTimeout);
+            }
+            this._updateTimeout = setTimeout(() => {
                 this.updateAllChannelsFromPresence();
-            }, 100);
+                this._updateTimeout = null;
+            }, 150);
         });
 
-        setInterval(() => {
-            this.updateAllChannelsFromPresence();
-        }, 10000);
+        // Removed periodic refresh - presence updates are immediate
+        // setInterval(() => {
+        //     this.updateAllChannelsFromPresence();
+        // }, 10000);
     }
 
     updateAllChannelsFromPresence() {
@@ -86,12 +93,14 @@ class ChannelVoiceParticipants {
             const channelId = currentUserActivityDetails.channel_id;
             const username = window.globalSocketManager?.username || 'You';
             
-            console.log('[VOICE-PARTICIPANT] Found current user in voice:', {
-                userId: currentUserId,
-                username: username,
-                channelId: channelId,
-                activity: currentUserActivityDetails.type
-            });
+            if (window.DEBUG_VOICE_PARTICIPANTS) {
+                console.log('[VOICE-PARTICIPANT] Found current user in voice:', {
+                    userId: currentUserId,
+                    username: username,
+                    channelId: channelId,
+                    activity: currentUserActivityDetails.type
+                });
+            }
 
             this.addParticipant(channelId, currentUserId, username);
         }
@@ -124,12 +133,14 @@ class ChannelVoiceParticipants {
                 const userId = userData.user_id;
                 const username = userData.username;
                 
-                console.log('[VOICE-PARTICIPANT] Found user in voice:', {
-                    userId,
-                    username, 
-                    channelId,
-                    activity: userData.activity_details.type
-                });
+                if (window.DEBUG_VOICE_PARTICIPANTS) {
+                    console.log('[VOICE-PARTICIPANT] Found user in voice:', {
+                        userId,
+                        username, 
+                        channelId,
+                        activity: userData.activity_details.type
+                    });
+                }
 
                 this.addParticipant(channelId, userId, username, userData);
             }
@@ -137,13 +148,15 @@ class ChannelVoiceParticipants {
 
         this.updateAllChannelContainers();
         
-        console.log('[VOICE-PARTICIPANT] DEBUG: Update complete:', {
-            totalChannelsWithParticipants: this.participants.size,
-            channelParticipantCounts: Array.from(this.participants.entries()).map(([channelId, participants]) => ({
-                channelId,
-                count: participants.size
-            }))
-        });
+        if (window.DEBUG_VOICE_PARTICIPANTS) {
+            console.log('[VOICE-PARTICIPANT] DEBUG: Update complete:', {
+                totalChannelsWithParticipants: this.participants.size,
+                channelParticipantCounts: Array.from(this.participants.entries()).map(([channelId, participants]) => ({
+                    channelId,
+                    count: participants.size
+                }))
+            });
+        }
     }
 
     async addParticipant(channelId, userId, username, userData = null) {
@@ -195,10 +208,9 @@ class ChannelVoiceParticipants {
         }
 
         channelParticipants.set(normalizedUserId, participantData);
-        console.log('[VOICE-PARTICIPANT] Added participant:', participantData.display_name, 'to channel', channelId);
-
-        // Update UI immediately for this channel
-        this.updateParticipantContainer(channelId);
+        if (window.DEBUG_VOICE_PARTICIPANTS) {
+            console.log('[VOICE-PARTICIPANT] Added participant:', participantData.display_name, 'to channel', channelId);
+        }
     }
 
     updateAllChannelContainers() {

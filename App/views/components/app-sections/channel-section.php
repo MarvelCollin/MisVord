@@ -152,11 +152,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                 ?>
                 <div class="category-section mb-4" data-category-id="<?php echo $category['id']; ?>">
                     <div class="category-header flex items-center px-3 py-1 mb-1 cursor-pointer group transition-all duration-200" 
-                         draggable="true"
-                         data-category-id="<?php echo $category['id']; ?>"
-                         data-category-name="<?php echo htmlspecialchars($category['name']); ?>"
-                         data-category-position="<?php echo $category['position'] ?? 0; ?>"
-                         data-server-id="<?php echo $currentServerId; ?>">
+                         data-category-id="<?php echo $category['id']; ?>">
                         <i class="fas fa-chevron-down text-xs mr-1 text-gray-500"></i>
                         <span class="text-xs font-semibold uppercase text-gray-400"><?php echo htmlspecialchars($category['name']); ?></span>
                     </div>
@@ -312,19 +308,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 </style>
 
 <script src="/public/js/utils/channel-voice-participants.js"></script>
-<script src="/public/js/test/channel-drag-test.js"></script>
-
-<script type="module">
-    import { initChannelDragSystem } from '/public/js/components/channels/channel-drag.js';
-    
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            initChannelDragSystem();
-            console.log('🎯 [Channel Section] Drag system initialized');
-            console.log('💡 [Channel Section] Run debugChannelDragSystem() to test');
-        }, 1000);
-    });
-</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

@@ -472,12 +472,14 @@ function initMemberManagementTab() {
             const isABot = a.username.toLowerCase() === 'titibot';
             const isBBot = b.username.toLowerCase() === 'titibot';
             
+            // Always place bots at the end of the list
             if (isABot && !isBBot) return 1;
             if (!isABot && isBBot) return -1;
             
-            const roleOrder = { 'owner': 0, 'admin': 1, 'member': 2 };
-            const roleA = roleOrder[a.role] || 3;
-            const roleB = roleOrder[b.role] || 3;
+            // Define role precedence: owner → admin → members → others
+            const roleOrder = { 'owner': 0, 'admin': 1, 'members': 2, 'member': 2, 'moderator': 3 };
+            const roleA = roleOrder[a.role] !== undefined ? roleOrder[a.role] : 4;
+            const roleB = roleOrder[b.role] !== undefined ? roleOrder[b.role] : 4;
             
             if (roleA !== roleB) {
                 return roleA - roleB;

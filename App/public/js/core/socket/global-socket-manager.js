@@ -1265,44 +1265,24 @@ class GlobalSocketManager {
     }
     
     handleVoiceMeetingStatus(data) {
-        console.log('📊 [SOCKET] Voice meeting status received:', data);
-        
-        // ChannelVoiceParticipants now handles socket events directly
-        // Only update the channel count if instance exists and method is available
-        if (window.ChannelVoiceParticipants && data.participant_count !== undefined) {
-            const instance = window.ChannelVoiceParticipants.getInstance();
-            if (instance && typeof instance.updateChannelCount === 'function') {
-                instance.updateChannelCount(data.channel_id, data.participant_count);
-            }
-        }
+        // DISABLED: Voice participants now use presence-only system
+        // Prevents blinking caused by duplicate updates
     }
 
     handleVoiceMeetingUpdate(data) {
-        console.log('🔄 [VOICE-SOCKET] Voice meeting update received:', data);
+        // DISABLED: Voice participants now use presence-only system  
+        // Prevents blinking caused by duplicate updates
         
+        // Only handle voice protection for current user
         if (data.action === 'leave' && data.user_id == this.userId) {
-            console.log('⚠️ [VOICE-VALIDATION] Received leave event for current user, validating actual connection state...');
-            
             const isVideoSDKConnected = window.videoSDKManager?.isConnected || false;
             const isVoiceManagerConnected = window.voiceManager?.isConnected || false;
             const isUnifiedStateConnected = window.unifiedVoiceStateManager?.isConnected() || false;
             
-            console.log('🔍 [VOICE-VALIDATION] Connection state check:', {
-                videoSDK: isVideoSDKConnected,
-                voiceManager: isVoiceManagerConnected,
-                unifiedState: isUnifiedStateConnected,
-                socketEvent: data.action
-            });
-            
             if (isVideoSDKConnected || isVoiceManagerConnected || isUnifiedStateConnected) {
-                console.log('🛡️ [VOICE-PROTECTION] User is actually still connected to voice, ignoring spurious leave event');
-                console.log('✅ [VOICE-PROTECTION] Maintaining voice call presence protection');
-                
                 if (!this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
-                    console.log('🔧 [VOICE-PROTECTION] Restoring voice call presence status');
                     const channelName = window.voiceManager?.currentChannelName || 
                                        data.channel_name || 
-                                       document.querySelector('.voice-channel-title')?.textContent || 
                                        'Voice Channel';
                     
                     this.updatePresence('online', {
@@ -1312,14 +1292,8 @@ class GlobalSocketManager {
                         channel_name: channelName
                     });
                 }
-                
-                return;
-            } else {
-                console.log('✅ [VOICE-VALIDATION] Leave event confirmed - user is actually disconnected');
             }
         }
-        
-        console.log('✅ [VOICE-SOCKET] Voice update forwarded to ChannelVoiceParticipants via direct socket listeners');
     }
 }
 
