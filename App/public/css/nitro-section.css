@@ -408,6 +408,9 @@
     backdrop-filter: blur(10px);
     cursor: pointer;
     transition: all 0.3s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
 }
 
 .crown-center:hover {
@@ -458,6 +461,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    will-change: transform;
 }
 
 .hexagon-grid {
@@ -782,4 +786,12 @@
         opacity: 1;
         filter: blur(0);
     }
+}
+
+.crown-center.dragging {
+    transition: none !important;
+}
+
+.crown-center.dragging ~ .rotating-hexagons .hexagon-feature {
+    transition: none !important;
 }

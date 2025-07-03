@@ -600,8 +600,101 @@ class GlobalPresenceManager {
         }
     }
 
+    // 🎯 NEW: Centralized Presence Hierarchy System
+    static PRESENCE_HIERARCHY = {
+        'offline': 0,
+        'online': 1,
+        'afk': 2,
+        'In Voice Call': 3,
+        'In Voice -': 3,  // Any voice channel
+        'playing Tic Tac Toe': 4
+    };
+
+    static getPresenceLevel(activityType) {
+        if (!activityType) return this.PRESENCE_HIERARCHY['online'];
+        
+        // Check for exact matches first
+        if (this.PRESENCE_HIERARCHY[activityType] !== undefined) {
+            return this.PRESENCE_HIERARCHY[activityType];
+        }
+        
+        // Check for pattern matches
+        for (const [pattern, level] of Object.entries(this.PRESENCE_HIERARCHY)) {
+            if (activityType.includes(pattern)) {
+                return level;
+            }
+        }
+        
+        return this.PRESENCE_HIERARCHY['online'];
+    }
+
+    static canOverridePresence(currentActivity, newActivity) {
+        const currentLevel = this.getPresenceLevel(currentActivity?.type);
+        const newLevel = this.getPresenceLevel(newActivity?.type);
+        
+        // Higher level activities can override lower level ones
+        // Same level activities can override each other
+        return newLevel >= currentLevel;
+    }
+
+    static validatePresenceChange(currentStatus, currentActivity, newStatus, newActivity) {
+        console.log('🎯 [PRESENCE-HIERARCHY] Validating presence change:', {
+            from: { status: currentStatus, activity: currentActivity?.type },
+            to: { status: newStatus, activity: newActivity?.type }
+        });
+        
+        // Special case: AFK can only be overridden by user activity or higher priority activities
+        if (currentStatus === 'afk' && newStatus === 'online') {
+            if (!newActivity || newActivity.type === 'active') {
+                console.log('✅ [PRESENCE-HIERARCHY] AFK -> Online (user activity) - ALLOWED');
+                return true;
+            }
+        }
+        
+        // Check activity hierarchy
+        const canOverride = this.canOverridePresence(currentActivity, newActivity);
+        
+        if (canOverride) {
+            console.log('✅ [PRESENCE-HIERARCHY] Presence change ALLOWED');
+        } else {
+            console.log('❌ [PRESENCE-HIERARCHY] Presence change BLOCKED - lower priority activity cannot override higher priority');
+        }
+        
+        return canOverride;
+    }
+
+    canUpdatePresence(newStatus, newActivityDetails) {
+        const currentStatus = window.globalSocketManager?.currentPresenceStatus || 'online';
+        const currentActivity = window.globalSocketManager?.currentActivityDetails || null;
+        
+        return GlobalPresenceManager.validatePresenceChange(
+            currentStatus,
+            currentActivity,
+            newStatus,
+            newActivityDetails
+        );
+    }
+
     handlePresenceUpdate(data) {
-        console.log('🔄 [VOICE-PARTICIPANT] Handling presence update:', data);
+        console.log('🔄 [GLOBAL-PRESENCE] Handling presence update:', data);
+        
+        // 🎯 PRESENCE HIERARCHY VALIDATION
+        if (data.user_id === window.globalSocketManager?.userId) {
+            const currentActivity = window.globalSocketManager?.currentActivityDetails;
+            const newActivity = data.activity_details;
+            
+            const isValidChange = GlobalPresenceManager.validatePresenceChange(
+                window.globalSocketManager?.currentPresenceStatus,
+                currentActivity,
+                data.status,
+                newActivity
+            );
+            
+            if (!isValidChange) {
+                console.log('🚫 [GLOBAL-PRESENCE] Ignoring presence update due to hierarchy protection');
+                return;
+            }
+        }
         
         if (this.friendsManager) {
             this.friendsManager.handlePresenceUpdate(data);

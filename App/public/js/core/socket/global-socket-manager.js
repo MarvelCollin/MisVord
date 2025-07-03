@@ -31,6 +31,15 @@ class GlobalSocketManager {
         this.isUserActive = true;
         this.afkTimeout = 20000;
         this.activityTracking = true;
+        this.lastPresenceSource = null;
+
+        const inVoice = sessionStorage.getItem('isInVoiceCall');
+        if (inVoice === 'true') {
+            const channelName = sessionStorage.getItem('voiceChannelName') || 'Voice';
+            this.currentPresenceStatus = 'online';
+            this.currentActivityDetails = { type: `In Voice - ${channelName}` };
+            this.lastPresenceSource = 'restored-from-session';
+        }
     }
     
     async initialize() {
@@ -290,17 +299,37 @@ class GlobalSocketManager {
                 data: data
             });
             
-            this.log('Sending immediate online presence update after authentication');
+            this.log('Sending immediate presence update after authentication');
             this.lastActivityTime = Date.now();
             this.isUserActive = true;
-            this.currentPresenceStatus = 'online';
             
-            this.updatePresence('online', { type: 'active' });
+            // 🎯 PRESENCE HIERARCHY PROTECTION FOR AUTH
+            // Check if user is in voice call - preserve voice presence
+            const isInVoiceCall = this.isUserInVoiceCall();
+            
+            if (isInVoiceCall) {
+                console.log('🎤 [SOCKET] Auth success - preserving existing voice call presence');
+                // Keep existing presence status and activity
+                this.updatePresence(this.currentPresenceStatus, this.currentActivityDetails, 'authentication');
+            } else {
+                console.log('🎯 [SOCKET] Auth success - setting default online presence');
+                this.currentPresenceStatus = 'online';
+                this.updatePresence('online', { type: 'active' }, 'authentication');
+            }
+            
             this.startPresenceHeartbeat();
             
             setTimeout(() => {
-                this.updatePresence('online', { type: 'active' });
-                console.log('✅ [SOCKET] Secondary presence update sent for reliability:', { type: 'active' });
+                // 🎯 SECONDARY UPDATE WITH VOICE PROTECTION
+                const stillInVoiceCall = this.isUserInVoiceCall();
+                
+                if (stillInVoiceCall) {
+                    console.log('🎤 [SOCKET] Secondary auth update - preserving voice call presence');
+                    this.updatePresence(this.currentPresenceStatus, this.currentActivityDetails, 'authentication');
+                } else {
+                    this.updatePresence('online', { type: 'active' }, 'authentication');
+                    console.log('✅ [SOCKET] Secondary presence update sent for reliability:', { type: 'active' });
+                }
             }, 500);
             
             console.log('🔔 [SOCKET] Dispatching globalSocketReady event');
@@ -770,13 +799,53 @@ class GlobalSocketManager {
         return this.emitToRoom('stop-typing', data, roomType, targetId);
     }
     
-    updatePresence(status, activityDetails = null) {
-        if (!this.isAuthenticated || !this.io) {
-            return;
+    updatePresence(status, activityDetails = null, source = 'unknown') {
+        // Determine if the user is currently in a voice call using the dedicated helper.
+        // We still fall back to sessionStorage for legacy pages where the helper may not be available yet.
+        const inVoice = (this.isUserInVoiceCall && typeof this.isUserInVoiceCall === 'function')
+            ? this.isUserInVoiceCall()
+            : (sessionStorage.getItem('isInVoiceCall') === 'true');
+
+        if (inVoice && (!activityDetails || !activityDetails.type || !activityDetails.type.toLowerCase().includes('in voice'))) {
+            console.warn(`%c[PRESENCE LOCK] Blocked presence update from "${source}". User is in a voice call.`, 'color: #ff4d4d; font-weight: bold;', {
+                attemptedStatus: status,
+                attemptedActivity: activityDetails
+            });
+            return false;
         }
+
+        if (!this.isAuthenticated || !this.io) {
+            console.warn(`[SOCKET] Presence update blocked: socket not ready. Source: ${source}`);
+            return false;
+        }
+
+        // 🎯 PRESENCE HIERARCHY PROTECTION
+        if (window.globalPresenceManager) {
+            const isValidChange = window.globalPresenceManager.canUpdatePresence(status, activityDetails);
+            
+            if (!isValidChange) {
+                console.log(`🚫 [SOCKET] Presence update from "${source}" blocked by hierarchy protection.`);
+                
+                // Fire a debug event for the panel
+                window.dispatchEvent(new CustomEvent('presenceUpdateBlocked', {
+                    detail: {
+                        newStatus: status,
+                        newActivity: activityDetails,
+                        source: source,
+                        currentStatus: this.currentPresenceStatus,
+                        currentActivity: this.currentActivityDetails
+                    }
+                }));
+                
+                return false;
+            }
+        }
+        
+        console.log(`%c[PRESENCE] Updating presence from source: "${source}"`, 'color: #7289DA; font-weight: bold;', { status, activityDetails });
 
         this.currentPresenceStatus = status;
         this.currentActivityDetails = activityDetails;
+        this.lastPresenceSource = source; // Store the source
 
         const presenceData = {
             status: this.currentPresenceStatus,
@@ -795,7 +864,8 @@ class GlobalSocketManager {
             detail: {
                 user_id: this.userId,
                 status: this.currentPresenceStatus,
-                activity_details: this.currentActivityDetails
+                activity_details: this.currentActivityDetails,
+                source: source // Pass source in event
             }
         }));
         
@@ -1127,9 +1197,20 @@ class GlobalSocketManager {
             if (!this.isUserActive || this.currentPresenceStatus === 'afk') {
                 this.isUserActive = true;
                 
+                // 🎯 PRESENCE HIERARCHY PROTECTION
+                // Check if user is in voice call - if so, preserve voice presence
+                const isInVoiceCall = this.isUserInVoiceCall();
+                
+                if (isInVoiceCall) {
+                    console.log('🎤 [SOCKET] User activity detected but preserving voice call presence');
+                    // Don't change presence - stay in voice call
+                    return;
+                }
+                
+                // Only update to online if not in higher priority activity
                 console.log('🎯 [SOCKET] User activity detected, setting status to online');
                 this.currentPresenceStatus = 'online';
-                this.updatePresence('online', { type: 'active' });
+                this.updatePresence('online', { type: 'active' }, 'activity');
             }
         };
         
@@ -1147,7 +1228,31 @@ class GlobalSocketManager {
         });
         
         this.startActivityCheck();
-        console.log('✅ [SOCKET] Activity tracking initialized');
+        console.log('✅ [SOCKET] Activity tracking initialized with presence hierarchy protection');
+    }
+    
+    // 🎯 NEW METHOD: Check if user is in voice call
+    isUserInVoiceCall() {
+        // Check multiple sources for voice call status
+        const activityType = this.currentActivityDetails?.type;
+        
+        // Voice call patterns to protect
+        const voiceCallPatterns = [
+            'In Voice Call',
+            'In Voice -',
+            'playing Tic Tac Toe'  // Gaming activity is also protected
+        ];
+        
+        if (activityType) {
+            return voiceCallPatterns.some(pattern => activityType.includes(pattern));
+        }
+        
+        // Also check VideoSDK connection status
+        if (window.videoSDKManager?.isConnected || window.voiceManager?.isConnected) {
+            return true;
+        }
+        
+        return false;
     }
     
     startActivityCheck() {
@@ -1158,13 +1263,23 @@ class GlobalSocketManager {
             
             if (timeSinceActivity >= this.afkTimeout && this.isUserActive) {
                 this.isUserActive = false;
+                
+                // 🎯 PRESENCE HIERARCHY PROTECTION FOR AFK
+                // Don't set AFK if user is in voice call or playing games
+                const isInVoiceCall = this.isUserInVoiceCall();
+                
+                if (isInVoiceCall) {
+                    console.log('🎤 [SOCKET] User inactive but preserving voice call presence (no AFK)');
+                    return;
+                }
+                
                 console.log('😴 [SOCKET] User inactive for 20 seconds, setting status to afk');
                 this.currentPresenceStatus = 'afk';
-                this.updatePresence('afk', { type: 'afk' });
+                this.updatePresence('afk', { type: 'afk' }, 'afk');
             }
         }, 10000);
         
-        console.log('⏰ [SOCKET] Activity check started (10 second intervals)');
+        console.log('⏰ [SOCKET] Activity check started (10 second intervals) with voice protection');
     }
     
     stopActivityCheck() {

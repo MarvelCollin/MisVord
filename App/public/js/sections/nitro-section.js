@@ -57,9 +57,10 @@ class NitroSection {
         if (!this.crownCenter) return;
         
         this.isDragging = false;
-        this.dragOffset = { x: 0, y: 0 };
-        this.initialPosition = { x: 0, y: 0 };
+        this.dragStartPos = { x: 0, y: 0 };
+        this.containerStartPos = { x: 0, y: 0 };
         this.hexagonContainer = this.section.querySelector('.hexagon-container');
+        this.dragRequestId = null;
         
         this.crownCenter.style.cursor = 'grab';
         
@@ -77,18 +78,23 @@ class NitroSection {
         e.preventDefault();
         this.isDragging = true;
         this.crownCenter.style.cursor = 'grabbing';
+        this.crownCenter.classList.add('dragging');
         
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        const rect = this.hexagonContainer.getBoundingClientRect();
-        this.dragOffset.x = clientX - rect.left - rect.width / 2;
-        this.dragOffset.y = clientY - rect.top - rect.height / 2;
+        this.dragStartPos.x = clientX;
+        this.dragStartPos.y = clientY;
         
-        this.crownCenter.style.transition = 'none';
-        this.hexagons.forEach(hexagon => {
-            hexagon.style.transition = 'none';
-        });
+        const transform = this.hexagonContainer.style.transform;
+        const matches = transform.match(/translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/);
+        if (matches) {
+            this.containerStartPos.x = parseFloat(matches[1]);
+            this.containerStartPos.y = parseFloat(matches[2]);
+        } else {
+            this.containerStartPos.x = 0;
+            this.containerStartPos.y = 0;
+        }
         
         const rotatingHexagons = this.section.querySelector('.rotating-hexagons');
         if (rotatingHexagons) {
@@ -101,19 +107,28 @@ class NitroSection {
         
         e.preventDefault();
         
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        if (this.dragRequestId) {
+            cancelAnimationFrame(this.dragRequestId);
+        }
         
-        const containerRect = this.hexagonContainer.getBoundingClientRect();
-        const centerX = containerRect.left + containerRect.width / 2;
-        const centerY = containerRect.top + containerRect.height / 2;
-        
-        const deltaX = clientX - this.dragOffset.x - centerX;
-        const deltaY = clientY - this.dragOffset.y - centerY;
-        
-        this.hexagonContainer.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-        
-        this.createDragParticles(clientX, clientY);
+        this.dragRequestId = requestAnimationFrame(() => {
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const deltaX = clientX - this.dragStartPos.x;
+            const deltaY = clientY - this.dragStartPos.y;
+            
+            const newX = this.containerStartPos.x + deltaX;
+            const newY = this.containerStartPos.y + deltaY;
+            
+            const maxOffset = 150;
+            const constrainedX = Math.max(-maxOffset, Math.min(maxOffset, newX));
+            const constrainedY = Math.max(-maxOffset, Math.min(maxOffset, newY));
+            
+            this.hexagonContainer.style.transform = `translate(${constrainedX}px, ${constrainedY}px)`;
+            
+            this.createDragParticles(clientX, clientY);
+        });
     }
     
     endDrag() {
@@ -121,11 +136,12 @@ class NitroSection {
         
         this.isDragging = false;
         this.crownCenter.style.cursor = 'grab';
+        this.crownCenter.classList.remove('dragging');
         
-        this.crownCenter.style.transition = 'all 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
-        this.hexagons.forEach(hexagon => {
-            hexagon.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
-        });
+        if (this.dragRequestId) {
+            cancelAnimationFrame(this.dragRequestId);
+            this.dragRequestId = null;
+        }
         
         this.hexagonContainer.style.transition = 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
         this.hexagonContainer.style.transform = 'translate(0, 0)';

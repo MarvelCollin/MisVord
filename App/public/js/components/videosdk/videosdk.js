@@ -538,22 +538,26 @@ class VideoSDKManager {
 
     async joinMeeting() {
         if (!this.meeting) {
-            throw new Error("No meeting initialized");
+            throw new Error("Meeting not initialized");
         }
         
         try {
-            console.log(`Joining meeting: ${this.meeting.id}`);
-            
-            window.videoSDKJoiningInProgress = true;
-            
-            window.videosdkMeeting = this.meeting;
-            
-            await this.meeting.join();
-            
             this.isConnected = true;
-            this.isDeafened = false;
-            if (window.voiceState) window.voiceState.isConnected = true;
-            if (window.voiceManager) window.voiceManager.isConnected = true;
+            this.meeting.join();
+            
+            console.log('✅ [VideoSDK] Meeting join initiated');
+
+            // Set presence to "In Voice Call" immediately
+            if (window.globalSocketManager) {
+                const channelName = document.querySelector('meta[name="channel-name"]')?.content || 'Voice';
+                window.globalSocketManager.updatePresence(
+                    'online', 
+                    { type: `In Voice - ${channelName}` },
+                    'videosdk-join'
+                );
+                sessionStorage.setItem('isInVoiceCall', 'true');
+                sessionStorage.setItem('voiceChannelName', channelName);
+            }
             
             await this.waitForMeetingJoined();
             
@@ -570,6 +574,10 @@ class VideoSDKManager {
                 };
                 window.globalSocketManager.updatePresence('online', activityDetails);
                 console.log('🎤 [VideoSDK] Presence updated to "In Voice" for channel:', channelName);
+                
+                // 🎯 VOICE PRESENCE PROTECTION
+                // Ensure the presence hierarchy protects this voice call status
+                console.log('🛡️ [VideoSDK] Voice call presence is now protected from activity overrides');
             }
 
             window.dispatchEvent(new CustomEvent('voiceConnect', {
@@ -580,7 +588,6 @@ class VideoSDKManager {
                 }
             }));
             
-            window.videoSDKJoiningInProgress = false;
             return true;
         } catch (error) {
             this.isConnected = false;
@@ -589,8 +596,9 @@ class VideoSDKManager {
             if (window.voiceState) window.voiceState.isConnected = false;
             if (window.voiceManager) window.voiceManager.isConnected = false;
             
-            window.videoSDKJoiningInProgress = false;
             window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+            sessionStorage.removeItem('isInVoiceCall');
+            sessionStorage.removeItem('voiceChannelName');
             throw error;
         }
     }
@@ -617,39 +625,37 @@ class VideoSDKManager {
     }
 
     leaveMeeting() {
+        console.log("📤 [VideoSDK] Leaving meeting...");
+        
         if (this.meeting) {
-            try {
-                this.cleanupParticipantResources();
-                
-                this.isDeafened = false;
-                this.isConnected = false;
-                this.isMeetingJoined = false;
-                this._micState = false;
-                this._webcamState = false;
-                this._screenShareState = false;
-                this.processedParticipants.clear();
-                
-                this.meeting.leave();
-                this.meeting = null;
-                
-                if (window.globalSocketManager?.isReady()) {
-                    window.globalSocketManager.updatePresence('online', null);
-                    console.log('🎤 [VideoSDK] Reset presence from "In Voice Call" to normal');
-                }
-                
-                window.dispatchEvent(new CustomEvent('voiceDisconnect'));
-                
-                console.log('[VideoSDKManager] Successfully left meeting and reset states');
-                return true;
-            } catch (error) {
-                console.error("Error leaving meeting:", error);
-                return false;
-            }
+            this.meeting.leave();
+            this.isMeetingJoined = false;
         }
-        return false;
+
+        // Revert presence status
+        if (window.globalSocketManager) {
+            window.globalSocketManager.updatePresence('online', { type: 'active' }, 'videosdk-leave');
+        }
+
+        sessionStorage.removeItem('isInVoiceCall');
+        sessionStorage.removeItem('voiceChannelName');
+        this.isConnected = false;
+        
+        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+        
+        // Revert presence status as a fallback
+        if (window.globalSocketManager) {
+            window.globalSocketManager.updatePresence('online', { type: 'active' }, 'videosdk-cleanup');
+        }
     }
     
     cleanupParticipantResources() {
+        if (window.globalSocketManager) {
+            window.globalSocketManager.updatePresence('online', { type: 'active' }, 'videosdk-cleanup');
+        }
+        sessionStorage.removeItem('isInVoiceCall');
+        sessionStorage.removeItem('voiceChannelName');
+        
         try {
             if (this.meeting?.participants) {
                 console.log(`🧹 [VideoSDK] Cleaning up resources for ${this.meeting.participants.size} participants`);
