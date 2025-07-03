@@ -228,22 +228,6 @@
     justify-content: space-between !important;
 }
 
-.participant-avatar.muted::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    right: -2px;
-    width: 20px;
-    height: 20px;
-    background: #ed4245;
-    border-radius: 50%;
-    border: 2px solid #1e1f22;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 16 16'%3e%3cpath d='M13 8c0 .564-.094 1.107-.266 1.613l-.814-.814A4.02 4.02 0 0 0 12 8V7a.5.5 0 0 1 1 0v1zm-5 4c.818 0 1.578-.188 2.262-.524l-.816-.816A2.99 2.99 0 0 1 8 11a3 3 0 0 1-3-3V6.341l-.912-.912A4.001 4.001 0 0 0 4 8v1a5 5 0 0 0 4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-1.025A5 5 0 0 1 3 9V8a5.001 5.001 0 0 1 .776-2.676L2.636 4.184a.5.5 0 1 1 .708-.708l11 11a.5.5 0 0 1-.708.708L8.5 9.5z'/%3e%3cpath d='M8 6a2 2 0 1 1 4 0v1a2 2 0 0 1-1.188 1.825l-.812-.812V6a1 1 0 0 0-2 0z'/%3e%3c/svg%3e");
-    background-size: 10px 10px;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
 #screenShareSection {
     position: relative;
     z-index: 1;
@@ -552,7 +536,9 @@
     border: 2px solid #5865f2 !important;
     box-shadow: 0 0 10px rgba(88, 101, 242, 0.3) !important;
     background: linear-gradient(135deg, #1e1f22 0%, #2f3136 100%) !important;
-    min-height: 200px !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 
 .screen-share-card:hover {
@@ -564,12 +550,16 @@
 .screen-share-card .screen-share-header {
     background: rgba(88, 101, 242, 0.1) !important;
     border-radius: 6px !important;
-    padding: 8px 12px !important;
+    padding: 6px 10px !important;
+    flex-shrink: 0 !important;
 }
 
 .screen-share-card .screen-share-content {
     cursor: pointer !important;
     transition: transform 0.2s ease !important;
+    flex: 1 !important;
+    display: flex !important;
+    min-height: 0 !important;
 }
 
 .screen-share-card .screen-share-content:hover {
@@ -577,9 +567,11 @@
 }
 
 .screen-share-card video {
-    object-fit: contain !important;
+    object-fit: cover !important;
     background: #000 !important;
     border-radius: 4px !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 .screen-share-loading {

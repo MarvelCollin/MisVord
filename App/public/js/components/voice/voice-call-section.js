@@ -770,14 +770,6 @@ class VoiceCallSection {
                     <div class="flex items-center space-x-1">
                         <!-- Voice indicator -->
                         <div class="voice-indicator w-3 h-3 rounded-full bg-[#3ba55c] hidden animate-pulse"></div>
-                        <!-- Muted indicator -->
-                        <div class="muted-indicator w-3 h-3 rounded-full bg-[#ed4245] ${
-                          isLocal && !window.videoSDKManager?.getMicState()
-                            ? ""
-                            : "hidden"
-                        } flex items-center justify-center">
-                            <i class="fas fa-microphone-slash text-xs text-white"></i>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -798,15 +790,6 @@ class VoiceCallSection {
                     <!-- Voice indicator -->
                     <div class="voice-indicator absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#3ba55c] border-2 border-[#2f3136] hidden z-20">
                         <div class="w-full h-full rounded-full bg-[#3ba55c] animate-pulse"></div>
-                    </div>
-                    
-                    <!-- Muted indicator -->
-                    <div class="muted-indicator absolute -bottom-1 -left-1 w-4 h-4 rounded-full bg-[#ed4245] border-2 border-[#2f3136] ${
-                      isLocal && !window.videoSDKManager?.getMicState()
-                        ? ""
-                        : "hidden"
-                    } flex items-center justify-center z-20">
-                        <i class="fas fa-microphone-slash text-xs text-white"></i>
                     </div>
                 </div>
                 
@@ -868,19 +851,19 @@ class VoiceCallSection {
 
     const screenShareCard = document.createElement("div");
     screenShareCard.className =
-      "screen-share-card bg-[#1e1f22] rounded-lg p-3 flex flex-col items-center justify-center relative border-2 border-[#5865f2] transition-all duration-200";
+      "screen-share-card bg-[#1e1f22] rounded-lg p-2 flex flex-col relative border-2 border-[#5865f2] transition-all duration-200 h-full";
     screenShareCard.setAttribute("data-screen-share-id", participantId);
 
     screenShareCard.innerHTML = `
-            <div class="screen-share-header w-full mb-2 flex items-center justify-center">
+            <div class="screen-share-header w-full mb-1 flex items-center justify-center flex-shrink-0">
                 <div class="flex items-center space-x-2">
                     <i class="fas fa-desktop text-[#5865f2] text-sm"></i>
-                    <span class="text-white text-sm font-medium">${participantName} - Screen Share</span>
+                    <span class="text-white text-sm font-medium truncate max-w-xs">${participantName} - Screen Share</span>
                 </div>
             </div>
             
-            <div class="screen-share-content w-full flex-1 bg-[#000] rounded border border-[#40444b] relative overflow-hidden min-h-[200px]">
-                <video class="screen-share-video w-full h-full object-contain" autoplay muted playsinline></video>
+            <div class="screen-share-content w-full flex-1 bg-[#000] rounded border border-[#40444b] relative overflow-hidden">
+                <video class="screen-share-video w-full h-full object-cover" autoplay muted playsinline></video>
                 <div class="screen-share-loading absolute inset-0 flex items-center justify-center text-[#72767d] bg-[#1e1f22]/80">
                     <div class="flex flex-col items-center space-y-2">
                         <i class="fas fa-desktop text-2xl"></i>
@@ -1008,16 +991,13 @@ class VoiceCallSection {
 
   updateAudioIndicator(element, stream) {
     const voiceIndicator = element.querySelector(".voice-indicator");
-    const mutedIndicator = element.querySelector(".muted-indicator");
 
     const isStreamActive = stream && stream.track && stream.track.enabled;
 
     if (isStreamActive) {
-      voiceIndicator.classList.remove("hidden");
-      mutedIndicator.classList.add("hidden");
+      voiceIndicator?.classList.remove("hidden");
     } else {
-      voiceIndicator.classList.add("hidden");
-      mutedIndicator.classList.remove("hidden");
+      voiceIndicator?.classList.add("hidden");
     }
   }
 
@@ -1034,14 +1014,11 @@ class VoiceCallSection {
 
     if (type === "mic") {
       const voiceIndicator = element.querySelector(".voice-indicator");
-      const mutedIndicator = element.querySelector(".muted-indicator");
 
       if (state) {
-        voiceIndicator.classList.remove("hidden");
-        mutedIndicator.classList.add("hidden");
+        voiceIndicator?.classList.remove("hidden");
       } else {
-        voiceIndicator.classList.add("hidden");
-        mutedIndicator.classList.remove("hidden");
+        voiceIndicator?.classList.add("hidden");
       }
     }
   }

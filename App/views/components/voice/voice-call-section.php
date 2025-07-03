@@ -50,7 +50,6 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
             </div>
         </div>
 
-        <!-- SCREEN SHARE VIEW (No longer used - now using grid-based approach) -->
         <div id="screenShareView" class="hidden">
         </div>
     </div>

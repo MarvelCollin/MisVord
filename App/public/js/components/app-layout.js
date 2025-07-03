@@ -5,36 +5,6 @@ import '../core/ui/toast.js';
 
 const friendAPI = window.FriendAPI;
 
-// Global cache to track voice users and prevent blinking
-const voiceUserCache = {
-    users: new Set(), // Users currently in voice
-    addVoiceUser: function(userId) {
-        this.users.add(userId);
-        console.log(`🎤 [VOICE-CACHE] Added ${userId} to voice cache`);
-    },
-    removeVoiceUser: function(userId) {
-        this.users.delete(userId);
-        console.log(`🎤 [VOICE-CACHE] Removed ${userId} from voice cache`);
-    },
-    isVoiceUser: function(userId) {
-        return this.users.has(userId);
-    },
-    updateFromActivity: function(userId, activityDetails) {
-        const isInVoice = activityDetails && (
-            activityDetails.type === 'In Voice Call' || 
-            (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
-        );
-        
-        if (isInVoice) {
-            this.addVoiceUser(userId);
-        } else {
-            this.removeVoiceUser(userId);
-        }
-        
-        return isInVoice;
-    }
-};
-
 function getStatusClass(status) {
     switch (status) {
         case 'online': return 'bg-discord-green';
