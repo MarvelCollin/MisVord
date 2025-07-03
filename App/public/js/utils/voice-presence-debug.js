@@ -69,9 +69,9 @@ class VoicePresenceDebug {
         return this.events.filter(event => 
             event.type.includes('VOICE') || 
             (event.type === 'SOCKET_PRESENCE_UPDATE' && 
-             event.data.activity_details?.type === 'In Voice Call') ||
+             event.data.activity_details?.type?.startsWith('In Voice - ')) ||
             (event.type === 'OWN_PRESENCE_UPDATE' && 
-             event.data.activity_details?.type === 'In Voice Call')
+             event.data.activity_details?.type?.startsWith('In Voice - '))
         );
     }
 
@@ -102,8 +102,11 @@ class VoicePresenceDebug {
         if (window.globalSocketManager?.isReady()) {
             console.log('✅ [VOICE-TEST] Socket is ready');
             
-            window.globalSocketManager.updatePresence('online', { type: 'In Voice Call' });
-            console.log('📡 [VOICE-TEST] Sent test presence update: In Voice Call');
+            window.globalSocketManager.updatePresence('online', { 
+                type: 'In Voice - Test Channel',
+                channel_name: 'Test Channel'
+            });
+            console.log('📡 [VOICE-TEST] Sent test presence update: In Voice - Test Channel');
             console.log('🔒 [VOICE-TEST] Voice call status should now be protected from AFK changes');
             
             setTimeout(() => {
@@ -125,7 +128,10 @@ class VoicePresenceDebug {
         }
 
         console.log('📡 [VOICE-PROTECTION] Setting to voice call status...');
-        window.globalSocketManager.updatePresence('online', { type: 'In Voice Call' });
+        window.globalSocketManager.updatePresence('online', { 
+            type: 'In Voice - Test Channel',
+            channel_name: 'Test Channel'
+        });
         
         console.log('⏰ [VOICE-PROTECTION] Simulating inactivity...');
         window.globalSocketManager.lastActivityTime = Date.now() - 25000;
@@ -135,7 +141,7 @@ class VoicePresenceDebug {
         const timeSinceActivity = Date.now() - window.globalSocketManager.lastActivityTime;
         
         if (timeSinceActivity >= window.globalSocketManager.afkTimeout && window.globalSocketManager.isUserActive) {
-            if (window.globalSocketManager.currentActivityDetails?.type === 'In Voice Call') {
+            if (window.globalSocketManager.currentActivityDetails?.type?.startsWith('In Voice - ')) {
                 console.log('✅ [VOICE-PROTECTION] SUCCESS - Voice call status protected from AFK');
             } else {
                 console.log('❌ [VOICE-PROTECTION] FAIL - Voice call protection not working');
@@ -149,7 +155,7 @@ class VoicePresenceDebug {
             setTimeout(() => {
                 const timeSinceActivity2 = Date.now() - window.globalSocketManager.lastActivityTime;
                 if (timeSinceActivity2 >= window.globalSocketManager.afkTimeout && window.globalSocketManager.isUserActive) {
-                    if (window.globalSocketManager.currentActivityDetails?.type !== 'In Voice Call') {
+                    if (!window.globalSocketManager.currentActivityDetails?.type?.startsWith('In Voice - ')) {
                         console.log('✅ [VOICE-PROTECTION] SUCCESS - Idle status can go AFK as expected');
                     } else {
                         console.log('❌ [VOICE-PROTECTION] UNEXPECTED - Still showing voice call');
@@ -170,10 +176,10 @@ class VoicePresenceDebug {
 
         const voiceCallUsers = Array.from(activeNowContainer.children).filter(child => {
             const activityText = child.querySelector('.text-xs.text-gray-400')?.textContent;
-            return activityText && activityText.includes('In Voice Call');
+            return activityText && activityText.includes('In Voice -');
         });
 
-        console.log('🎤 [VOICE-DEBUG] Users shown as "In Voice Call":', voiceCallUsers.length);
+        console.log('🎤 [VOICE-DEBUG] Users shown as "In Voice -":', voiceCallUsers.length);
         voiceCallUsers.forEach(user => {
             const username = user.querySelector('.font-semibold')?.textContent;
             console.log('  -', username);

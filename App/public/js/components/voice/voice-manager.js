@@ -294,21 +294,12 @@ class VoiceManager {
                     window.globalSocketManager.currentPresenceStatus = 'online';
                 }
                 
-                window.globalSocketManager.io.emit('register-voice-meeting', {
-                    channel_id: targetChannelId,
-                    meeting_id: meetingId,
-                    server_id: serverId,
-                    username: userName,
-                    channel_name: this.currentChannelName || 'Voice Channel'
-                });
-                
-                // Update presence with full voice context
-                console.log(`🎤 [VOICE-PARTICIPANT] Updating presence to In Voice Call for channel ${targetChannelId}`);
-                window.globalSocketManager.updatePresence('online', { 
-                    type: 'In Voice Call',
+                console.log(`🎤 [VOICE-PARTICIPANT] Updating presence to In Voice - ${this.currentChannelName} for channel ${targetChannelId}`);
+                window.globalSocketManager.updatePresence('online', {
+                    type: `In Voice - ${this.currentChannelName}`,
                     channel_id: targetChannelId,
                     server_id: serverId,
-                    channel_name: this.currentChannelName || 'Voice Channel'
+                    channel_name: this.currentChannelName
                 });
             }
             

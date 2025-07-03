@@ -19,42 +19,52 @@ function isChatPage() {
     
     console.log('🔍 [CHAT-SECTION] Checking if chat page:', { currentPath, params: urlParams.toString() });
     
-    // Check if it's a home page with direct messages
     if (currentPath === '/home' || currentPath.startsWith('/home/')) {
         console.log('✅ [CHAT-SECTION] Home page detected, allowing chat');
         return true;
     }
     
-    // Check if it's a server page
     const serverMatch = currentPath.match(/^\/server\/(\d+)$/);
     if (serverMatch) {
         const channelId = urlParams.get('channel');
-        console.log('🔍 [CHAT-SECTION] Server page detected, channel ID:', channelId);
-        
-        // If no channel ID, still allow chat (it might be set later)
-        if (!channelId) {
-            console.log('⚠️ [CHAT-SECTION] No channel ID found, but allowing chat initialization');
-            return true;
-        }
-        
-        // Check if it's NOT a voice channel
         const channelType = urlParams.get('type');
+        
+        console.log('🔍 [CHAT-SECTION] Server page detected:', { channelId, channelType });
+        
         if (channelType === 'voice') {
-            console.log('❌ [CHAT-SECTION] Voice channel detected, disabling chat');
+            console.log('❌ [CHAT-SECTION] Voice channel detected via URL, disabling chat');
             return false;
         }
         
-        // Check DOM for channel type if available
-        const activeChannelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-        if (activeChannelElement) {
-            const channelDataType = activeChannelElement.getAttribute('data-channel-type');
-            if (channelDataType === 'voice') {
-                console.log('❌ [CHAT-SECTION] Voice channel detected in DOM, disabling chat');
+        if (channelId) {
+            const activeChannelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+            if (activeChannelElement) {
+                const channelDataType = activeChannelElement.getAttribute('data-channel-type');
+                if (channelDataType === 'voice') {
+                    console.log('❌ [CHAT-SECTION] Voice channel detected in DOM, disabling chat');
+                    return false;
+                }
+            }
+            
+            const voiceSection = document.querySelector('.voice-section:not(.hidden)');
+            const chatSection = document.querySelector('.chat-section:not(.hidden)');
+            
+            if (voiceSection && !chatSection) {
+                console.log('❌ [CHAT-SECTION] Voice section is visible, disabling chat');
                 return false;
             }
         }
         
-        console.log('✅ [CHAT-SECTION] Text channel or unknown type, allowing chat');
+        if (!channelId && !channelType) {
+            console.log('⚠️ [CHAT-SECTION] No channel info yet, checking if voice section is visible');
+            const voiceSection = document.querySelector('.voice-section:not(.hidden)');
+            if (voiceSection) {
+                console.log('❌ [CHAT-SECTION] Voice section visible, disabling chat');
+                return false;
+            }
+        }
+        
+        console.log('✅ [CHAT-SECTION] Text channel or no voice indicators, allowing chat');
         return true;
     }
     
@@ -191,21 +201,25 @@ window.diagnoseChatSection = function() {
 
 document.addEventListener('DOMContentLoaded', function() {
     if (isExcludedPage()) {
+        console.log('🚫 [CHAT-SECTION] Excluded page, skipping initialization');
         return;
     }
     
     const initWhenReady = () => {
         if (!window.chatSection && !isExcludedPage()) {
-            initializeChatSection().catch(error => {
-                console.error('❌ [CHAT-SECTION] Initialization failed:', error);
-            });
+            setTimeout(() => {
+                if (!isExcludedPage()) {
+                    initializeChatSection().catch(error => {
+                        console.error('❌ [CHAT-SECTION] Initialization failed:', error);
+                    });
+                }
+            }, 100);
         }
     };
     
     if (window.__MAIN_SOCKET_READY__) {
         initWhenReady();
     } else {
-        
         const checkSocketReady = () => {
             if (window.__MAIN_SOCKET_READY__ || window.globalSocketManager?.isReady()) {
                 initWhenReady();
@@ -231,13 +245,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Also try immediate initialization if DOM is ready
     setTimeout(() => {
         if (!window.chatSection && !isExcludedPage()) {
-            console.log('🔄 [CHAT-SECTION] Attempting immediate initialization');
+            console.log('🔄 [CHAT-SECTION] Attempting delayed initialization');
             initWhenReady();
         }
-    }, 100);
+    }, 200);
 });
 
 class ChatSection {
@@ -868,10 +881,7 @@ class ChatSection {
                     console.log('📋 [CHAT-SECTION] COPY-TEXT ACTION TRIGGERED!', { messageId });
                     this.copyMessageText(messageId);
                     break;
-                case 'pin':
-                    console.log('📌 [CHAT-SECTION] PIN ACTION TRIGGERED!', { messageId });
-                    this.pinMessage(messageId);
-                    break;
+
                 case 'text-to-speech':
                     console.log('[CHAT-SECTION] TEXT-TO-SPEECH ACTION TRIGGERED', { messageId, button: actionButton });
                     this.tts.speakMessageText(messageId);
@@ -3143,94 +3153,7 @@ class ChatSection {
         }
     }
     
-    pinMessage(messageId) {
-        console.log('📌 [CHAT-SECTION] Pinning message:', messageId);
-        
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (!messageElement) {
-            console.error('❌ [CHAT-SECTION] Message element not found');
-            return;
-        }
-        
-        const existingPin = messageElement.querySelector('.pin-icon, .pinned-indicator');
-        if (existingPin) {
-            console.log('📌 [CHAT-SECTION] Message already pinned, unpinning...');
-            this.unpinMessage(messageId);
-            return;
-        }
-        
-        const targetType = this.chatType === 'channel' ? 'channel' : 'dm';
-        const targetId = this.targetId;
-        
-        console.log('📡 [CHAT-SECTION] Sending pin request to server...');
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            const pinData = {
-                message_id: messageId,
-                user_id: window.globalSocketManager.userId,
-                username: window.globalSocketManager.username,
-                target_type: targetType,
-                target_id: targetId,
-                action: 'pin'
-            };
-            
-            window.globalSocketManager.io.emit('message-pinned', pinData);
-            console.log('✅ [CHAT-SECTION] Pin event emitted');
-        }
-        
-        const pinIcon = document.createElement('span');
-        pinIcon.className = 'pin-icon ml-2';
-        pinIcon.innerHTML = '<i class="fas fa-thumbtack text-xs text-[#faa61a]"></i>';
-        pinIcon.title = 'Pinned message';
-        
-        const messageHeader = messageElement.querySelector('.bubble-header, .message-header');
-        if (messageHeader && !messageHeader.querySelector('.pin-icon')) {
-            messageHeader.appendChild(pinIcon);
-        }
-        
-        const contextMenu = document.getElementById('message-context-menu');
-        if (contextMenu) {
-            contextMenu.classList.add('hidden');
-        }
-        
-        this.showNotification('Message pinned', 'success');
-        console.log('✅ [CHAT-SECTION] Message pinned locally');
-    }
-    
-    unpinMessage(messageId) {
-        console.log('📌 [CHAT-SECTION] Unpinning message:', messageId);
-        
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (!messageElement) {
-            console.error('❌ [CHAT-SECTION] Message element not found');
-            return;
-        }
-        
-        const targetType = this.chatType === 'channel' ? 'channel' : 'dm';
-        const targetId = this.targetId;
-        
-        console.log('📡 [CHAT-SECTION] Sending unpin request to server...');
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            const unpinData = {
-                message_id: messageId,
-                user_id: window.globalSocketManager.userId,
-                username: window.globalSocketManager.username,
-                target_type: targetType,
-                target_id: targetId,
-                action: 'unpin'
-            };
-            
-            window.globalSocketManager.io.emit('message-unpinned', unpinData);
-            console.log('✅ [CHAT-SECTION] Unpin event emitted');
-        }
-        
-        const pinIcon = messageElement.querySelector('.pin-icon, .pinned-indicator');
-        if (pinIcon) {
-            pinIcon.remove();
-        }
-        
-        this.showNotification('Message unpinned', 'success');
-        console.log('✅ [CHAT-SECTION] Message unpinned locally');
-    }
+
     
 
 }
@@ -3515,16 +3438,7 @@ window.debugContextMenuActions = function() {
             console.error('❌ [DEBUG-MENU] Copy text test failed:', error);
         }
         
-        console.log('🧪 [DEBUG-MENU] Testing pin message...');
-        try {
-            if (typeof window.chatSection.pinMessage === 'function') {
-                console.log('✅ [DEBUG-MENU] Pin message method available');
-            } else {
-                console.error('❌ [DEBUG-MENU] Pin message method not found');
-            }
-        } catch (error) {
-            console.error('❌ [DEBUG-MENU] Pin message test failed:', error);
-        }
+
         
         console.log('🧪 [DEBUG-MENU] Testing text-to-speech...');
         try {
@@ -3596,12 +3510,10 @@ window.testThreeDotsMenuNow = function() {
                 
                 console.log('🧪 [TEST-MENU] Testing context menu actions...');
                 const copyButton = contextMenu.querySelector('[data-action="copy-text"]');
-                const pinButton = contextMenu.querySelector('[data-action="pin"]');
                 const ttsButton = contextMenu.querySelector('[data-action="text-to-speech"]');
                 
                 console.log('✅ [TEST-MENU] Available actions (simplified menu):', {
                     copyText: !!copyButton,
-                    pinMessage: !!pinButton,
                     textToSpeech: !!ttsButton,
                     totalButtons: contextMenu.querySelectorAll('button').length
                 });

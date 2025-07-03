@@ -833,41 +833,42 @@ function initChannelManagementTab() {
     let allChannels = [];
     let currentFilter = 'all';
     
-    async function loadChannels() {
-        try {
-            const response = await window.channelAPI.getChannels(serverId);
-            
-            if (response && response.success) {
-                if (response.data && response.data.channels) {
-                    allChannels = response.data.channels;
-                } else if (response.channels) {
-                    allChannels = response.channels;
+    function loadChannels() {
+        window.channelAPI.getChannels(serverId)
+            .done(function(response) {
+                console.log('Channels loaded successfully:', response);
+                
+                if (response && response.success) {
+                    if (response.data && response.data.channels) {
+                        allChannels = response.data.channels;
+                    } else if (response.channels) {
+                        allChannels = response.channels;
+                    } else {
+                        allChannels = [];
+                    }
+                    
+                    filterChannels(currentFilter);
                 } else {
-                    allChannels = [];
+                    throw new Error(response.message || 'Failed to load server channels');
+                }
+            })
+            .fail(function(xhr) {
+                console.error('Error loading server channels:', xhr);
+                
+                if (xhr.status === 401) {
+                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                    return;
                 }
                 
-                filterChannels(currentFilter);
-            } else if (response && response.error && response.error.code === 401) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-                return;
-            } else {
-                throw new Error(response.message || 'Failed to load server channels');
-            }
-        } catch (error) {
-            console.error('Error loading server channels:', error);
-            
-            if (error.message && error.message.toLowerCase().includes('unauthorized')) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-                return;
-            }
-            
-            channelsList.innerHTML = `
-                <div class="flex items-center justify-center p-8 text-discord-lighter">
-                    <i class="fas fa-exclamation-triangle mr-2 text-red-400"></i>
-                    <span>Error loading channels. Please try again.</span>
-                </div>
-            `;
-        }
+                const errorMsg = xhr.responseJSON ? xhr.responseJSON.error : 'Error loading channels. Please try again.';
+                channelsList.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-12 text-red-400">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-4"></i>
+                        <div class="text-lg font-semibold">Failed to load channels</div>
+                        <div class="text-sm">${errorMsg}</div>
+                    </div>
+                `;
+            });
     }
     
     function filterChannels(filterType) {

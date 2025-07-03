@@ -316,7 +316,7 @@ class GlobalSocketManager {
             this.isUserActive = true;
             this.currentPresenceStatus = 'online';
             
-            if (this.currentActivityDetails?.type === 'In Voice Call') {
+            if (this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
                 console.log('🎯 [SOCKET] User authenticated while in voice call, preserving voice call status');
                 this.updatePresence('online', this.currentActivityDetails);
             } else {
@@ -325,7 +325,7 @@ class GlobalSocketManager {
             this.startPresenceHeartbeat();
             
             setTimeout(() => {
-                if (this.currentActivityDetails?.type === 'In Voice Call') {
+                if (this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
                     console.log('🎯 [SOCKET] Secondary presence update - preserving voice call status');
                     this.updatePresence('online', this.currentActivityDetails);
                 } else {
@@ -1180,8 +1180,8 @@ class GlobalSocketManager {
             if (!this.isUserActive || this.currentPresenceStatus === 'afk') {
                 this.isUserActive = true;
                 
-                if (this.currentActivityDetails?.type === 'In Voice Call') {
-                    console.log('🎯 [SOCKET] User activity detected while in voice call, preserving voice call status');
+                if (this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
+                    console.log('🎯 [VOICE-ACTIVITY] User activity detected while in voice call, preserving voice call status');
                     this.currentPresenceStatus = 'online';
                     this.updatePresence('online', this.currentActivityDetails);
                 } else {
@@ -1189,7 +1189,7 @@ class GlobalSocketManager {
                     this.currentPresenceStatus = 'online';
                     this.updatePresence('online', { type: 'active' });
                 }
-            } else if (this.currentActivityDetails?.type === 'In Voice Call') {
+            } else if (this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
                 this.lastActivityTime = Date.now();
             }
         };
@@ -1223,37 +1223,37 @@ class GlobalSocketManager {
                 const isUnifiedStateConnected = window.unifiedVoiceStateManager?.isConnected() || false;
                 const isActuallyInVoice = isVideoSDKConnected || isVoiceManagerConnected || isUnifiedStateConnected;
                 
-                if (this.currentActivityDetails?.type === 'In Voice Call' || isActuallyInVoice) {
+                if (this.currentActivityDetails?.type?.startsWith('In Voice - ') || isActuallyInVoice) {
                     if (isActuallyInVoice) {
                         console.log('🎤 [VOICE-PROTECTION] User inactive but actually in voice call (verified), preserving voice call status');
                         
-                        if (this.currentActivityDetails?.type !== 'In Voice Call') {
+                        if (!this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
                             console.log('🔧 [VOICE-PROTECTION] Presence data incorrect, restoring voice call status');
                             const channelName = window.voiceManager?.currentChannelName || 'Voice Channel';
                             const channelId = window.voiceManager?.currentChannelId;
                             const serverId = document.querySelector('meta[name="server-id"]')?.content;
                             
                             this.updatePresence('online', {
-                                type: 'In Voice Call',
+                                type: `In Voice - ${channelName}`,
                                 channel_id: channelId,
                                 server_id: serverId,
                                 channel_name: channelName
                             });
                         }
                     } else {
-                        console.log('🎤 [SOCKET] User inactive but in voice call, preserving voice call status (not changing to AFK)');
+                        console.log('🎤 [VOICE-PROTECTION] User inactive but in voice call, preserving voice call status (not changing to AFK)');
                     }
                     return;
                 }
                 
                 this.isUserActive = false;
-                console.log('😴 [SOCKET] User inactive for 20 seconds, setting status to afk (verified not in voice call)');
+                console.log('😴 [VOICE-ACTIVITY] User inactive for 20 seconds, setting status to afk (verified not in voice call)');
                 this.currentPresenceStatus = 'afk';
                 this.updatePresence('afk', { type: 'afk' });
             }
         }, 10000);
         
-        console.log('⏰ [SOCKET] Activity check started (10 second intervals) with voice protection validation');
+        console.log('⏰ [VOICE-ACTIVITY] Activity check started (10 second intervals) with voice protection validation');
     }
     
     stopActivityCheck() {
@@ -1278,7 +1278,7 @@ class GlobalSocketManager {
     }
 
     handleVoiceMeetingUpdate(data) {
-        console.log('🔄 [SOCKET] Voice meeting update received:', data);
+        console.log('🔄 [VOICE-SOCKET] Voice meeting update received:', data);
         
         if (data.action === 'leave' && data.user_id == this.userId) {
             console.log('⚠️ [VOICE-VALIDATION] Received leave event for current user, validating actual connection state...');
@@ -1298,7 +1298,7 @@ class GlobalSocketManager {
                 console.log('🛡️ [VOICE-PROTECTION] User is actually still connected to voice, ignoring spurious leave event');
                 console.log('✅ [VOICE-PROTECTION] Maintaining voice call presence protection');
                 
-                if (this.currentActivityDetails?.type !== 'In Voice Call') {
+                if (!this.currentActivityDetails?.type?.startsWith('In Voice - ')) {
                     console.log('🔧 [VOICE-PROTECTION] Restoring voice call presence status');
                     const channelName = window.voiceManager?.currentChannelName || 
                                        data.channel_name || 
@@ -1306,7 +1306,7 @@ class GlobalSocketManager {
                                        'Voice Channel';
                     
                     this.updatePresence('online', {
-                        type: 'In Voice Call',
+                        type: `In Voice - ${channelName}`,
                         channel_id: data.channel_id || window.voiceManager?.currentChannelId,
                         server_id: data.server_id,
                         channel_name: channelName
@@ -1319,7 +1319,7 @@ class GlobalSocketManager {
             }
         }
         
-        console.log('✅ [SOCKET] Voice update forwarded to ChannelVoiceParticipants via direct socket listeners');
+        console.log('✅ [VOICE-SOCKET] Voice update forwarded to ChannelVoiceParticipants via direct socket listeners');
     }
 }
 

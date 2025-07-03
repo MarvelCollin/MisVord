@@ -1,110 +1,151 @@
 const channelAPI = {
     getChannels: function(serverId) {
-        return fetch(`/api/servers/${serverId}/channels`, {
+        return $.ajax({
+            url: `/api/servers/${serverId}/channels`,
             method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json'
+            dataType: 'json',
+            xhrFields: {
+                withCredentials: true
             }
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
+        }).fail(function(xhr) {
+            if (xhr.status === 401) {
+                window.location.href = '/login';
+            }
         });
     },
 
     createChannel: function(formData) {
-        return fetch('/api/channels', {
+        return $.ajax({
+            url: '/api/channels',
             method: 'POST',
-            body: formData,
-            credentials: 'include'
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            xhrFields: {
+                withCredentials: true
+            }
+        }).fail(function(xhr) {
+            if (xhr.status === 401) {
+                window.location.href = '/login';
+            }
         });
     },
 
     updateChannel: function(channelId, data) {
-        return fetch(`/api/channels/${channelId}`, {
+        return $.ajax({
+            url: `/api/channels/${channelId}`,
             method: 'PUT',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
+            data: JSON.stringify(data),
+            contentType: 'application/json',
+            dataType: 'json',
+            xhrFields: {
+                withCredentials: true
+            }
+        }).fail(function(xhr) {
+            if (xhr.status === 401) {
+                window.location.href = '/login';
+            }
         });
     },
 
     deleteChannel: function(channelId) {
-        return fetch(`/api/channels/${channelId}`, {
+        return $.ajax({
+            url: `/api/channels/${channelId}`,
             method: 'DELETE',
-            credentials: 'include'
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
+            dataType: 'json',
+            xhrFields: {
+                withCredentials: true
+            }
+        }).fail(function(xhr) {
+            if (xhr.status === 401) {
+                window.location.href = '/login';
+            }
         });
     },
 
     getChannelMessages: function(channelId, offset = 0, limit = 50) {
-        const params = new URLSearchParams({
-            offset: offset,
-            limit: limit
-        });
-        
-        return fetch(`/api/chat/channel/${channelId}/messages?${params.toString()}`, {
+        return $.ajax({
+            url: `/api/chat/channel/${channelId}/messages`,
             method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json'
+            data: { offset: offset, limit: limit },
+            dataType: 'json',
+            xhrFields: {
+                withCredentials: true
             }
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
+        }).fail(function(xhr) {
+            if (xhr.status === 401) {
+                window.location.href = '/login';
+            }
         });
     },
 
     createCategory: function(formData) {
-        return fetch('/api/categories', {
+        return $.ajax({
+            url: '/api/categories',
             method: 'POST',
-            body: formData,
-            credentials: 'include'
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            xhrFields: {
+                withCredentials: true
+            }
+        }).fail(function(xhr) {
+            if (xhr.status === 401) {
+                window.location.href = '/login';
+            }
         });
     },
 
     getChannelDetails: function(channelId, forceFresh = false) {
-        let url = `/api/channels/${channelId}`;
-        if (forceFresh) {
-            url += `?timestamp=${Date.now()}`;
-        }
+        const url = forceFresh ? `/api/channels/${channelId}?timestamp=${Date.now()}` : `/api/channels/${channelId}`;
         
-        return fetch(url, {
+        return $.ajax({
+            url: url,
             method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json'
+            dataType: 'json',
+            xhrFields: {
+                withCredentials: true
             }
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
+        }).fail(function(xhr) {
+            if (xhr.status === 401) {
+                window.location.href = '/login';
+            }
         });
     },
 
-    updateChannelPosition: function(channelId, position) {
-        return fetch(`/api/channels/${channelId}/position`, {
+    updateChannelPosition: function(channelId, direction) {
+        return $.ajax({
+            url: `/api/channels/${channelId}/position`,
             method: 'PUT',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ position: position })
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
+            data: JSON.stringify({ direction: direction }),
+            contentType: 'application/json',
+            dataType: 'json',
+            xhrFields: {
+                withCredentials: true
+            }
+        }).fail(function(xhr) {
+            if (xhr.status === 401) {
+                window.location.href = '/login';
+            }
+        });
+    },
+
+    updateChannelName: function(channelId, name) {
+        return $.ajax({
+            url: `/api/channels/${channelId}`,
+            method: 'PUT',
+            data: JSON.stringify({ name: name }),
+            contentType: 'application/json',
+            dataType: 'json',
+            xhrFields: {
+                withCredentials: true
+            }
+        }).fail(function(xhr) {
+            if (xhr.status === 401) {
+                window.location.href = '/login';
+            }
         });
     }
 };

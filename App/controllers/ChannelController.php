@@ -219,9 +219,13 @@ class ChannelController extends BaseController
         $input = $this->getInput();
         $input = $this->sanitize($input);
 
-        $this->validate($input, ['channel_id' => 'required', 'position' => 'required']);
+        $this->validate($input, ['channel_id' => 'required', 'direction' => 'required']);
         $channelId = $input['channel_id'];
-        $newPosition = (int)$input['position'];
+        $direction = $input['direction'];
+        
+        if (!in_array($direction, ['up', 'down'])) {
+            return $this->validationError(['direction' => 'Direction must be "up" or "down"']);
+        }
         
         try {
             [$channel, $error] = $this->validateChannelAccess($channelId, true);
@@ -234,26 +238,36 @@ class ChannelController extends BaseController
             
             $currentPosition = (int)$channel->position;
             
-            if ($newPosition === $currentPosition) {
-                return $this->success(['message' => 'Channel position unchanged']);
+            if ($direction === 'up') {
+                $newPosition = $currentPosition - 1;
+                if ($newPosition < 0) {
+                    return $this->validationError(['position' => 'Channel is already at the top']);
+                }
+            } else {
+                $maxPositionResult = $query->table('channels')
+                    ->where('server_id', $serverId)
+                    ->select(['MAX(position) as max_pos'])
+                    ->first();
+                $maxPosition = (int)($maxPositionResult['max_pos'] ?? 0);
+                
+                $newPosition = $currentPosition + 1;
+                if ($newPosition > $maxPosition) {
+                    return $this->validationError(['position' => 'Channel is already at the bottom']);
+                }
             }
             
             $query->beginTransaction();
             
-            if ($newPosition > $currentPosition) {
+            if ($direction === 'up') {
                 $query->table('channels')
                     ->where('server_id', $serverId)
-                    ->where('position', '>', $currentPosition)
-                    ->where('position', '<=', $newPosition)
-                    ->where('id', '!=', $channelId)
-                    ->update(['position' => $query->raw('position - 1')]);
+                    ->where('position', $newPosition)
+                    ->update(['position' => $currentPosition]);
             } else {
                 $query->table('channels')
                     ->where('server_id', $serverId)
-                    ->where('position', '>=', $newPosition)
-                    ->where('position', '<', $currentPosition)
-                    ->where('id', '!=', $channelId)
-                    ->update(['position' => $query->raw('position + 1')]);
+                    ->where('position', $newPosition)
+                    ->update(['position' => $currentPosition]);
             }
             
             $query->table('channels')
@@ -265,12 +279,17 @@ class ChannelController extends BaseController
             
             $query->commit();
             
-            return $this->success(['message' => 'Channel position updated successfully']);
+            return $this->success([
+                'message' => 'Channel moved ' . $direction . ' successfully',
+                'new_position' => $newPosition,
+                'old_position' => $currentPosition
+            ]);
         } catch (Exception $e) {
             if (isset($query)) {
                 $query->rollback();
             }
-            return $this->serverError('Failed to update channel position');
+            error_log("Position update error: " . $e->getMessage());
+            return $this->serverError('Failed to update channel position: ' . $e->getMessage());
         }
     }
 

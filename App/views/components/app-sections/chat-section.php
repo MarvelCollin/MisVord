@@ -521,17 +521,7 @@ if (!function_exists('renderMessage')) {
     color: white !important;
 }
 
-.pin-icon {
-    display: inline-flex;
-    align-items: center;
-    animation: pinBounce 0.3s ease-out;
-}
 
-@keyframes pinBounce {
-    0% { transform: scale(0) rotate(-45deg); }
-    50% { transform: scale(1.2) rotate(0deg); }
-    100% { transform: scale(1) rotate(0deg); }
-}
 
 .notification {
     z-index: 9999;
@@ -829,9 +819,6 @@ if (!function_exists('renderMessage')) {
     </button>
     <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="text-to-speech">
         <i class="fas fa-volume-up mr-2"></i> Text to Speech
-    </button>
-    <button class="w-full px-3 py-2 text-left hover:bg-[#4752c4] hover:text-white transition-colors" data-action="pin">
-        <i class="fas fa-thumbtack mr-2"></i> Pin Message
     </button>
 </div>
 

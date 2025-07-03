@@ -2431,7 +2431,7 @@ const initializeVoiceCallSystem = () => {
         
         console.log('📡 [VOICE-PROTECTION-TEST] Setting to voice call status...');
         window.globalSocketManager.updatePresence('online', { 
-            type: 'In Voice Call',
+            type: 'In Voice - Test Channel',
             channel_name: 'Test Channel',
             channel_id: '123',
             server_id: '456'
@@ -2450,7 +2450,7 @@ const initializeVoiceCallSystem = () => {
                     activity: currentActivity
                 });
                 
-                if (currentActivity?.type === 'In Voice Call') {
+                if (currentActivity?.type?.startsWith('In Voice - ')) {
                     console.log('✅ [VOICE-PROTECTION-TEST] SUCCESS - Voice call status preserved!');
                     
                     window.globalSocketManager.updatePresence(originalStatus, originalActivity);
@@ -2526,7 +2526,7 @@ window.testVoiceLeaveButton = function() {
     
     console.log('📡 [VOICE-LEAVE-TEST] Setting to voice call status first...');
     window.globalSocketManager.updatePresence('online', { 
-        type: 'In Voice Call',
+        type: 'In Voice - Test Channel',
         channel_name: 'Test Channel',
         channel_id: '123',
         server_id: '456'
@@ -2574,4 +2574,232 @@ console.log('✅ [VOICE-CALL] Test functions available:');
 console.log('  - window.testVoiceConnectionStatus() - Test basic voice connection');
 console.log('  - window.testVoicePresenceProtection() - Test presence protection');
 console.log('  - window.testVoiceLeaveButton() - Test leave button presence update');
+
+window.testSpuriousLeaveProtection = function() {
+    console.log('🧪 [VOICE-SPURIOUS-TEST] Testing spurious leave event protection...');
+    
+    if (!window.globalSocketManager?.isReady()) {
+        console.error('❌ [VOICE-SPURIOUS-TEST] Socket not ready');
+        return false;
+    }
+    
+    if (!window.videoSDKManager?.isConnected && !window.voiceManager?.isConnected) {
+        console.error('❌ [VOICE-SPURIOUS-TEST] Not actually in voice call - join voice first');
+        return false;
+    }
+    
+    const originalActivity = window.globalSocketManager.currentActivityDetails;
+    const originalStatus = window.globalSocketManager.currentPresenceStatus;
+    
+    console.log('📊 [VOICE-SPURIOUS-TEST] Original state:', {
+        status: originalStatus,
+        activity: originalActivity,
+        videoSDKConnected: window.videoSDKManager?.isConnected,
+        voiceManagerConnected: window.voiceManager?.isConnected
+    });
+    
+    console.log('📡 [VOICE-SPURIOUS-TEST] Setting to voice call status first...');
+    window.globalSocketManager.updatePresence('online', { 
+        type: 'In Voice - Test Channel',
+        channel_name: 'Test Channel',
+        channel_id: '14',
+        server_id: '13'
+    });
+    
+    setTimeout(() => {
+        console.log('💀 [VOICE-SPURIOUS-TEST] Simulating spurious leave event...');
+        
+        const fakeLeaveData = {
+            action: 'leave',
+            user_id: window.globalSocketManager.userId || '2',
+            channel_id: '14',
+            server_id: '13',
+            meeting_id: 'test-meeting',
+            participant_count: 0
+        };
+        
+        window.globalSocketManager.handleVoiceMeetingUpdate(fakeLeaveData);
+        
+        setTimeout(() => {
+            const currentActivity = window.globalSocketManager.currentActivityDetails;
+            const currentStatus = window.globalSocketManager.currentPresenceStatus;
+            
+            console.log('📊 [VOICE-SPURIOUS-TEST] After spurious leave state:', {
+                status: currentStatus,
+                activity: currentActivity,
+                videoSDKStillConnected: window.videoSDKManager?.isConnected,
+                voiceManagerStillConnected: window.voiceManager?.isConnected
+            });
+            
+            if (currentActivity?.type?.startsWith('In Voice - ')) {
+                console.log('✅ [VOICE-SPURIOUS-TEST] SUCCESS - Voice call status protected from spurious leave event!');
+                return true;
+            } else {
+                console.log('❌ [VOICE-SPURIOUS-TEST] FAIL - Voice call status was not protected');
+                console.log('Current activity type:', currentActivity?.type);
+                return false;
+            }
+        }, 1000);
+    }, 500);
+};
+
+window.testAFKProtectionWhileInVoice = function() {
+    console.log('🧪 [VOICE-AFK-TEST] Testing AFK protection while in voice...');
+    
+    if (!window.globalSocketManager?.isReady()) {
+        console.error('❌ [VOICE-AFK-TEST] Socket not ready');
+        return false;
+    }
+    
+    if (!window.videoSDKManager?.isConnected && !window.voiceManager?.isConnected) {
+        console.error('❌ [VOICE-AFK-TEST] Not actually in voice call - join voice first');
+        return false;
+    }
+    
+    console.log('📡 [VOICE-AFK-TEST] Setting to voice call status...');
+    window.globalSocketManager.updatePresence('online', { 
+        type: 'In Voice - Test Channel',
+        channel_name: 'Test Channel',
+        channel_id: '14',
+        server_id: '13'
+    });
+    
+    console.log('⏰ [VOICE-AFK-TEST] Simulating 25 seconds of inactivity...');
+    window.globalSocketManager.lastActivityTime = Date.now() - 25000;
+    window.globalSocketManager.isUserActive = true;
+    
+    setTimeout(() => {
+        console.log('🔍 [VOICE-AFK-TEST] Manually triggering AFK check...');
+        
+        const timeSinceActivity = Date.now() - window.globalSocketManager.lastActivityTime;
+        console.log('📊 [VOICE-AFK-TEST] Time since activity:', timeSinceActivity, 'ms');
+        console.log('📊 [VOICE-AFK-TEST] AFK timeout:', window.globalSocketManager.afkTimeout, 'ms');
+        console.log('📊 [VOICE-AFK-TEST] User active:', window.globalSocketManager.isUserActive);
+        
+        if (timeSinceActivity >= window.globalSocketManager.afkTimeout && window.globalSocketManager.isUserActive) {
+            const currentActivity = window.globalSocketManager.currentActivityDetails;
+            const isVideoSDKConnected = window.videoSDKManager?.isConnected;
+            const isVoiceManagerConnected = window.voiceManager?.isConnected;
+            
+            console.log('📊 [VOICE-AFK-TEST] Voice connection state:', {
+                currentActivity: currentActivity?.type,
+                videoSDKConnected: isVideoSDKConnected,
+                voiceManagerConnected: isVoiceManagerConnected
+            });
+            
+            if (currentActivity?.type?.startsWith('In Voice - ') || isVideoSDKConnected || isVoiceManagerConnected) {
+                console.log('✅ [VOICE-AFK-TEST] SUCCESS - User in voice call, should NOT go AFK');
+                console.log('✅ [VOICE-AFK-TEST] Voice protection working correctly');
+                return true;
+            } else {
+                console.log('❌ [VOICE-AFK-TEST] FAIL - User not detected as in voice call');
+                return false;
+            }
+        } else {
+            console.log('⚠️ [VOICE-AFK-TEST] AFK conditions not met for test');
+            return false;
+        }
+    }, 1000);
+};
+
+console.log('✅ [VOICE-CALL] Test functions available:');
+console.log('  - window.testVoiceConnectionStatus() - Test basic voice connection');
+console.log('  - window.testVoicePresenceProtection() - Test presence protection');
+console.log('  - window.testVoiceLeaveButton() - Test leave button presence update');
+console.log('  - window.testSpuriousLeaveProtection() - Test spurious leave event protection');
+console.log('  - window.testAFKProtectionWhileInVoice() - Test AFK protection while in voice');
+
+window.diagnoseVoiceStatus = function() {
+    console.log('🏥 [VOICE-DIAGNOSTIC] Running voice status diagnostic...');
+    
+    const socketManager = window.globalSocketManager;
+    const videoSDK = window.videoSDKManager;
+    const voiceManager = window.voiceManager;
+    const unifiedState = window.unifiedVoiceStateManager;
+    
+    console.log('📊 [VOICE-DIAGNOSTIC] Current Status Overview:');
+    console.log('=====================================');
+    
+    console.log('🔌 [VOICE-DIAGNOSTIC] Socket Manager:', {
+        ready: socketManager?.isReady() || false,
+        userId: socketManager?.userId || 'unknown',
+        presenceStatus: socketManager?.currentPresenceStatus || 'unknown',
+        activityType: socketManager?.currentActivityDetails?.type || 'unknown',
+        lastActivity: socketManager?.lastActivityTime || 'unknown',
+        isUserActive: socketManager?.isUserActive || false
+    });
+    
+    console.log('📹 [VOICE-DIAGNOSTIC] VideoSDK Manager:', {
+        exists: !!videoSDK,
+        connected: videoSDK?.isConnected || false,
+        meetingId: videoSDK?.meeting?.id || 'none',
+        localParticipant: videoSDK?.meeting?.localParticipant?.id || 'none'
+    });
+    
+    console.log('🎤 [VOICE-DIAGNOSTIC] Voice Manager:', {
+        exists: !!voiceManager,
+        connected: voiceManager?.isConnected || false,
+        currentChannelId: voiceManager?.currentChannelId || 'none',
+        currentChannelName: voiceManager?.currentChannelName || 'none',
+        currentMeetingId: voiceManager?.currentMeetingId || 'none'
+    });
+    
+    console.log('🔄 [VOICE-DIAGNOSTIC] Unified State Manager:', {
+        exists: !!unifiedState,
+        connected: unifiedState?.isConnected() || false,
+        state: unifiedState?.getState() || 'none'
+    });
+    
+    const isActuallyConnected = videoSDK?.isConnected || voiceManager?.isConnected || unifiedState?.isConnected();
+    const presenceShowsVoice = socketManager?.currentActivityDetails?.type?.startsWith('In Voice - ');
+    
+    console.log('🔍 [VOICE-DIAGNOSTIC] Consistency Check:');
+    console.log('=====================================');
+    console.log('Actually connected to voice:', isActuallyConnected);
+    console.log('Presence shows voice call:', presenceShowsVoice);
+    
+    if (isActuallyConnected && presenceShowsVoice) {
+        console.log('✅ [VOICE-DIAGNOSTIC] HEALTHY - Voice connection and presence are consistent');
+    } else if (isActuallyConnected && !presenceShowsVoice) {
+        console.log('⚠️ [VOICE-DIAGNOSTIC] MISMATCH - Connected to voice but presence does not show voice call');
+        console.log('🔧 [VOICE-DIAGNOSTIC] Attempting to fix presence...');
+        
+        const channelName = voiceManager?.currentChannelName || 'Voice Channel';
+        const channelId = voiceManager?.currentChannelId;
+        const serverId = document.querySelector('meta[name="server-id"]')?.content;
+        
+        socketManager?.updatePresence('online', {
+            type: `In Voice - ${channelName}`,
+            channel_id: channelId,
+            server_id: serverId,
+            channel_name: channelName
+        });
+        
+        console.log('✅ [VOICE-DIAGNOSTIC] Presence fix attempted');
+    } else if (!isActuallyConnected && presenceShowsVoice) {
+        console.log('⚠️ [VOICE-DIAGNOSTIC] MISMATCH - Presence shows voice call but not actually connected');
+        console.log('🔧 [VOICE-DIAGNOSTIC] Attempting to fix presence...');
+        
+        socketManager?.updatePresence('online', { type: 'idle' });
+        
+        console.log('✅ [VOICE-DIAGNOSTIC] Presence fix attempted');
+    } else {
+        console.log('✅ [VOICE-DIAGNOSTIC] CONSISTENT - Not connected and presence correctly shows non-voice');
+    }
+    
+    console.log('🏥 [VOICE-DIAGNOSTIC] Diagnostic completed');
+    return {
+        actuallyConnected: isActuallyConnected,
+        presenceShowsVoice: presenceShowsVoice,
+        consistent: isActuallyConnected === presenceShowsVoice
+    };
+};
+
+console.log('✅ [VOICE-CALL] Test functions available:');
+console.log('  - window.testVoiceConnectionStatus() - Test basic voice connection');
+console.log('  - window.testVoicePresenceProtection() - Test presence protection');
+console.log('  - window.testVoiceLeaveButton() - Test leave button presence update');
+console.log('  - window.testSpuriousLeaveProtection() - Test spurious leave event protection');
+console.log('  - window.testAFKProtectionWhileInVoice() - Test AFK protection while in voice');
+console.log('  - window.diagnoseVoiceStatus() - Diagnose voice status consistency');
 </script>

@@ -442,106 +442,95 @@ ob_start();
             </div>
 
         <?php elseif ($section === 'channels'): ?>
-            <div class="p-10 max-w-[740px]">
-                <h1 class="text-2xl font-bold mb-2">Channel Management</h1>
-                <p class="text-discord-lighter mb-6">Manage channel positions, names, and settings for your server.</p>
+            <div class="p-8 max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h1 class="text-2xl font-bold text-white mb-2">Channel Management</h1>
+                    <p class="text-gray-400 text-sm">Manage channel positions, names, and settings for your server.</p>
+                </div>
                 
-                <div class="channels-header-section">
-                    <div class="channels-controls">
-                        <div class="search-container">
-                            <div class="search-input-wrapper">
-                                <i class="fas fa-search search-icon"></i>
-                                <input type="text" id="channel-search" class="search-input" placeholder="Search channels">
+                <div class="mb-6">
+                    <div class="flex items-center justify-between gap-4 flex-wrap">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-search text-gray-400 text-sm"></i>
                             </div>
+                            <input type="text" id="channel-search" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-64 pl-10 p-2.5" placeholder="Search channels...">
                         </div>
-                        
-                        <div class="controls-right">
-                            <div id="channel-filter" class="filter-dropdown-container">
-                                <button type="button" class="filter-button">
-                                    <span class="filter-selected-text">All Channels</span>
-                                    <i class="fas fa-chevron-down filter-arrow"></i>
-                                </button>
-                                
-                                <div id="channel-filter-dropdown" class="filter-dropdown hidden">
-                                    <div class="filter-option" data-filter="all">
-                                        <div class="radio-container">
-                                            <input type="radio" name="channel-filter" checked class="radio-input">
-                                            <div class="radio-dot"></div>
-                                        </div>
-                                        <span>All Channels</span>
+                        <div class="relative" id="channel-filter">
+                            <button type="button" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg px-4 py-2.5 flex items-center gap-2 hover:bg-gray-600 focus:ring-2 focus:ring-blue-500">
+                                <span class="filter-selected-text">All Channels</span>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                            <div class="filter-dropdown hidden absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-600 z-10" id="channel-filter-dropdown">
+                                <div class="py-1">
+                                    <div class="filter-option px-4 py-2 hover:bg-gray-700 cursor-pointer flex items-center gap-3" data-value="all">
+                                        <input type="radio" name="channel-filter" value="all" checked class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500">
+                                        <span class="text-white text-sm">All Channels</span>
                                     </div>
-                                    <div class="filter-option" data-filter="text">
-                                        <div class="radio-container">
-                                            <input type="radio" name="channel-filter" class="radio-input">
-                                            <div class="radio-dot"></div>
-                                        </div>
-                                        <span>Text Channels</span>
+                                    <div class="filter-option px-4 py-2 hover:bg-gray-700 cursor-pointer flex items-center gap-3" data-value="text">
+                                        <input type="radio" name="channel-filter" value="text" class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500">
+                                        <span class="text-white text-sm">Text Channels</span>
                                     </div>
-                                    <div class="filter-option" data-filter="voice">
-                                        <div class="radio-container">
-                                            <input type="radio" name="channel-filter" class="radio-input">
-                                            <div class="radio-dot"></div>
-                                        </div>
-                                        <span>Voice Channels</span>
+                                    <div class="filter-option px-4 py-2 hover:bg-gray-700 cursor-pointer flex items-center gap-3" data-value="voice">
+                                        <input type="radio" name="channel-filter" value="voice" class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500">
+                                        <span class="text-white text-sm">Voice Channels</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                <div class="channels-table-container">
-                    <div class="channels-table-header">
-                        <div class="table-col table-col-channel">CHANNEL</div>
-                        <div class="table-col table-col-type">TYPE</div>
-                        <div class="table-col table-col-position">POSITION</div>
-                        <div class="table-col table-col-actions">ACTIONS</div>
-                    </div>
 
-                    <div id="channels-list" class="channels-list-content">
-                        <div class="loading-state">
-                            <i class="fas fa-spinner fa-spin mr-3"></i>
-                            <span>Loading channels...</span>
+                <div class="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+                    <div class="bg-gray-900 px-6 py-3 border-b border-gray-700">
+                        <div class="grid grid-cols-[40px_1fr_100px_80px_120px] gap-4 items-center">
+                            <div></div>
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Channel</div>
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">Type</div>
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">Position</div>
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">Actions</div>
+                        </div>
+                    </div>
+                    <div id="channels-list">
+                        <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-4"></i>
+                            <div class="text-lg font-semibold">Loading channels...</div>
                         </div>
                     </div>
                 </div>
-                
-                <div class="text-xs text-discord-lighter mt-3">
+
+                <div class="text-xs text-gray-400 mt-3">
                     <p><i class="fas fa-info-circle mr-1"></i> Only server owners and admins can manage channels. Position changes affect channel ordering.</p>
                 </div>
-                                        
+
                 <template id="channel-template">
-                    <div class="channel-item">
-                        <div class="table-col table-col-channel">
-                            <div class="channel-info-wrapper">
-                                <div class="channel-icon">
-                                    <i class="fas fa-hashtag text-gray-400"></i>
-                                </div>
-                                <div class="channel-info">
-                                    <div class="channel-name"></div>
-                                    <div class="channel-category"></div>
-                                </div>
+                    <div class="channel-item bg-gray-800 px-6 py-4 border-b border-gray-700 last:border-b-0 hover:bg-gray-750 transition-colors group" data-channel-id="">
+                        <div class="grid grid-cols-[40px_1fr_100px_80px_120px] gap-4 items-center">
+                            <div class="flex items-center justify-center">
+                                <i class="channel-icon text-gray-400 text-lg"></i>
                             </div>
-                        </div>
-                        <div class="table-col table-col-type">
-                            <div class="channel-type-badge"></div>
-                        </div>
-                        <div class="table-col table-col-position">
-                            <div class="channel-position"></div>
-                        </div>
-                        <div class="table-col table-col-actions">
-                            <div class="channel-actions">
-                                <button class="move-up-btn action-btn" title="Move Up">
-                                    <i class="fas fa-arrow-up"></i>
+                            <div class="min-w-0">
+                                <div class="channel-name text-white font-medium text-sm mb-1 truncate"></div>
+                                <div class="channel-category text-gray-500 text-xs truncate"></div>
+                            </div>
+                            <div class="flex justify-center">
+                                <span class="channel-type-badge px-2 py-1 rounded text-xs font-semibold uppercase"></span>
+                            </div>
+                            <div class="flex justify-center">
+                                <span class="channel-position text-white font-medium text-sm"></span>
+                            </div>
+                            <div class="channel-actions flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button class="move-up-btn w-6 h-6 bg-gray-700 hover:bg-blue-600 text-gray-300 hover:text-white rounded transition-colors flex items-center justify-center" title="Move Up">
+                                    <i class="fas fa-arrow-up text-xs"></i>
                                 </button>
-                                <button class="move-down-btn action-btn" title="Move Down">
-                                    <i class="fas fa-arrow-down"></i>
+                                <button class="move-down-btn w-6 h-6 bg-gray-700 hover:bg-blue-600 text-gray-300 hover:text-white rounded transition-colors flex items-center justify-center" title="Move Down">
+                                    <i class="fas fa-arrow-down text-xs"></i>
                                 </button>
-                                <button class="rename-btn action-btn" title="Rename Channel">
-                                    <i class="fas fa-edit"></i>
+                                <button class="rename-btn w-6 h-6 bg-gray-700 hover:bg-yellow-600 text-gray-300 hover:text-white rounded transition-colors flex items-center justify-center" title="Edit">
+                                    <i class="fas fa-edit text-xs"></i>
                                 </button>
-                                <button class="delete-btn action-btn" title="Delete Channel">
-                                    <i class="fas fa-trash"></i>
+                                <button class="delete-btn w-6 h-6 bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white rounded transition-colors flex items-center justify-center" title="Delete">
+                                    <i class="fas fa-trash text-xs"></i>
                                 </button>
                             </div>
                         </div>
@@ -550,60 +539,61 @@ ob_start();
             </div>
 
             <!-- Channel Action Modals -->
-            <div id="channel-action-modal" class="modal-overlay hidden">
-                <div class="modal-container">
-                    <div class="modal-header">
-                        <div class="modal-icon">
-                            <i class="fas fa-cog"></i>
+            <div id="channel-action-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+                <div class="bg-gray-800 rounded-lg w-96 max-w-sm mx-4 shadow-xl">
+                    <div class="p-6 border-b border-gray-700 flex items-center gap-3">
+                        <div class="w-8 h-8 bg-blue-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                            <i class="fas fa-cog text-blue-500 text-sm"></i>
                         </div>
-                        <h3 class="modal-title">Confirm Action</h3>
+                        <h3 class="text-lg font-semibold text-white">Confirm Action</h3>
                     </div>
                     
-                    <div class="modal-body">
-                        <div class="channel-preview">
-                            <div class="channel-icon-small">
-                                <i class="fas fa-hashtag"></i>
+                    <div class="p-6">
+                        <div class="channel-preview flex items-center gap-3 p-3 bg-gray-700 rounded-lg mb-4">
+                            <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                                <i class="fas fa-hashtag text-gray-400 text-sm"></i>
                             </div>
-                            <div class="channel-details">
-                                <div class="channel-name"></div>
-                                <div class="channel-current-position"></div>
+                            <div>
+                                <div class="channel-name text-white font-medium text-sm"></div>
+                                <div class="channel-current-position text-gray-400 text-xs"></div>
                             </div>
                         </div>
                         
                         <div class="action-description">
-                            <p class="action-message"></p>
-                            <div class="position-change-preview hidden">
-                                <div class="position-change-from">
-                                    <span class="position-label">From:</span>
-                                    <span class="position-badge from-position"></span>
+                            <p class="action-message text-gray-300 text-sm mb-4"></p>
+                            
+                            <div class="position-change-preview hidden bg-gray-700 rounded-lg p-3 mb-4">
+                                <div class="position-change-from flex items-center gap-2 mb-2">
+                                    <span class="position-label text-xs font-semibold text-gray-400 uppercase w-12">From:</span>
+                                    <span class="position-badge from-position px-2 py-1 bg-gray-600 text-white text-xs rounded"></span>
                                 </div>
-                                <div class="position-change-arrow">
-                                    <i class="fas fa-arrow-right"></i>
+                                <div class="position-change-arrow text-gray-400 text-center my-2">
+                                    <i class="fas fa-arrow-down"></i>
                                 </div>
-                                <div class="position-change-to">
-                                    <span class="position-label">To:</span>
-                                    <span class="position-badge to-position"></span>
+                                <div class="position-change-to flex items-center gap-2">
+                                    <span class="position-label text-xs font-semibold text-gray-400 uppercase w-12">To:</span>
+                                    <span class="position-badge to-position px-2 py-1 bg-gray-600 text-white text-xs rounded"></span>
                                 </div>
                             </div>
                             
                             <div class="rename-input-container hidden">
-                                <label for="new-channel-name" class="block text-sm font-medium text-white mb-2">New Name</label>
-                                <input type="text" id="new-channel-name" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary w-full" placeholder="Enter new channel name">
+                                <label for="new-channel-name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">New Name</label>
+                                <input type="text" id="new-channel-name" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5" placeholder="Enter new channel name">
                             </div>
                         </div>
                         
-                        <div class="warning-notice">
+                        <div class="warning-notice bg-yellow-500 bg-opacity-10 border border-yellow-500 border-opacity-20 rounded-lg p-3 flex items-center gap-2 text-yellow-400 text-sm hidden">
                             <i class="fas fa-exclamation-triangle"></i>
                             <span class="warning-text">This action cannot be undone.</span>
                         </div>
                     </div>
                     
-                    <div class="modal-footer">
-                        <button class="modal-btn modal-btn-cancel" id="channel-modal-cancel-btn">
+                    <div class="p-6 border-t border-gray-700 flex justify-end gap-3">
+                        <button class="channel-modal-cancel-btn px-4 py-2 text-gray-300 hover:text-white transition-colors" id="channel-modal-cancel-btn">
                             <i class="fas fa-times mr-2"></i>
                             Cancel
                         </button>
-                        <button class="modal-btn modal-btn-confirm" id="channel-modal-confirm-btn">
+                        <button class="channel-modal-confirm-btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors" id="channel-modal-confirm-btn">
                             <i class="fas fa-check mr-2"></i>
                             <span class="confirm-text">Confirm</span>
                         </button>
@@ -671,3 +661,4 @@ include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>
 
 <?php include dirname(dirname(__DIR__)) . '/views/components/server/delete-server-modal.php'; ?>
+

@@ -14,8 +14,33 @@ class SimpleChannelSwitcher {
     
     init() {
         this.setupChannelClicks();
+        this.ensureCorrectInitialSection();
         this.initFromURL();
         this.highlightInitialActiveChannel();
+    }
+    
+    ensureCorrectInitialSection() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const channelId = urlParams.get('channel');
+        let channelType = urlParams.get('type') || 'text';
+        
+        if (channelId) {
+            const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+            if (channelElement) {
+                const domChannelType = channelElement.getAttribute('data-channel-type');
+                if (domChannelType === 'voice') {
+                    channelType = 'voice';
+                }
+            }
+            
+            const voiceSection = document.querySelector('.voice-section:not(.hidden)');
+            if (voiceSection) {
+                channelType = 'voice';
+            }
+            
+            console.log('🎯 [SWITCH-MANAGER] Ensuring correct initial section:', channelType);
+            this.showSection(channelType, channelId);
+        }
     }
     
     setupChannelClicks() {
@@ -54,9 +79,26 @@ class SimpleChannelSwitcher {
     initFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const channelId = urlParams.get('channel');
-        const channelType = urlParams.get('type') || 'text';
+        let channelType = urlParams.get('type') || 'text';
         
         if (channelId) {
+            const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+            if (channelElement) {
+                const domChannelType = channelElement.getAttribute('data-channel-type');
+                if (domChannelType === 'voice' && channelType !== 'voice') {
+                    console.log('🔄 [SWITCH-MANAGER] Correcting channel type from DOM: voice');
+                    channelType = 'voice';
+                }
+            }
+            
+            const voiceSection = document.querySelector('.voice-section:not(.hidden)');
+            const chatSection = document.querySelector('.chat-section:not(.hidden)');
+            
+            if (voiceSection && !chatSection && channelType !== 'voice') {
+                console.log('🔄 [SWITCH-MANAGER] Voice section visible, correcting type to voice');
+                channelType = 'voice';
+            }
+            
             this.switchToChannel(channelId, channelType, true);
         }
     }
@@ -96,6 +138,8 @@ class SimpleChannelSwitcher {
         this.updateURL(channelId, channelType);
         this.updateMetaTags(channelId, channelType);
         this.updateChannelHeader(channelId, channelType);
+        
+        console.log('🔄 [SWITCH-MANAGER] Channel switch - type:', channelType, 'id:', channelId);
         
         if (window.emojiReactions && typeof window.emojiReactions.updateChannelContext === 'function') {
             console.log('🔄 [SWITCH-MANAGER] Updating emoji reactions context for channel switch');
@@ -218,7 +262,6 @@ class SimpleChannelSwitcher {
         
         console.log('🔄 [SWITCH-MANAGER] Switching from voice to text - full reset needed');
         
-        // Show skeleton immediately regardless of chat section state
         this.showChatSkeletonDirect();
         
         if (window.chatSection) {
@@ -357,18 +400,30 @@ class SimpleChannelSwitcher {
         const chatSection = document.querySelector('.chat-section');
         const voiceSection = document.querySelector('.voice-section');
         
+        console.log('🎨 [SWITCH-MANAGER] Showing section:', channelType, 'for channel:', channelId);
+        
         if (channelType === 'voice') {
-            if (chatSection) chatSection.classList.add('hidden');
+            if (chatSection) {
+                chatSection.classList.add('hidden');
+                chatSection.style.display = 'none';
+            }
             if (voiceSection) {
                 voiceSection.classList.remove('hidden');
+                voiceSection.style.display = 'flex';
                 voiceSection.setAttribute('data-channel-id', channelId);
             }
+            console.log('✅ [SWITCH-MANAGER] Voice section shown, chat section hidden');
         } else {
-            if (voiceSection) voiceSection.classList.add('hidden');
+            if (voiceSection) {
+                voiceSection.classList.add('hidden');
+                voiceSection.style.display = 'none';
+            }
             if (chatSection) {
                 chatSection.classList.remove('hidden');
+                chatSection.style.display = 'flex';
                 chatSection.setAttribute('data-channel-id', channelId);
             }
+            console.log('✅ [SWITCH-MANAGER] Chat section shown, voice section hidden');
         }
     }
     

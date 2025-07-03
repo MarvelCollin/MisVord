@@ -96,26 +96,45 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
                     $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
                     $channels = $GLOBALS['serverChannels'] ?? [];
                     $activeChannel = null;
-                    $channelType = isset($_GET['type']) ? $_GET['type'] : 'text';
-
-                    foreach ($channels as $channel) {
-                        if ($channel['id'] == $activeChannelId) {
-                            $activeChannel = $channel;
-                            if (isset($channel['type_name']) && $channel['type_name'] === 'voice') {
-                                $channelType = 'voice';
-                            } elseif (isset($channel['type']) && ($channel['type'] === 'voice' || $channel['type'] === 2)) {
-                                $channelType = 'voice';
+                    
+                    // Fix: Use URL parameter first, then channel data detection
+                    $channelType = isset($_GET['type']) ? $_GET['type'] : null;
+                    
+                    if ($activeChannelId) {
+                        foreach ($channels as $channel) {
+                            if ($channel['id'] == $activeChannelId) {
+                                $activeChannel = $channel;
+                                
+                                // Only override URL type if no URL parameter exists
+                                if (!$channelType) {
+                                    if (isset($channel['type_name']) && $channel['type_name'] === 'voice') {
+                                        $channelType = 'voice';
+                                    } elseif (isset($channel['type']) && ($channel['type'] === 'voice' || $channel['type'] === 2)) {
+                                        $channelType = 'voice';
+                                    } else {
+                                        $channelType = 'text';
+                                    }
+                                }
+                                $GLOBALS['activeChannel'] = $activeChannel;
+                                break;
                             }
-                            $GLOBALS['activeChannel'] = $activeChannel;
-                            break;
                         }
                     }
+                    
+                    // Final fallback to text if still no type
+                    if (!$channelType) {
+                        $channelType = 'text';
+                    }
+                    
+                    // Recalculate section visibility based on final channel type
+                    $finalIsVoiceChannel = ($channelType === 'voice');
+                    $finalIsTextChannel = !$finalIsVoiceChannel;
                     ?>
                     
-                    <div class="chat-section <?php echo $isTextChannel ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>" data-channel-type="text">
+                    <div class="chat-section <?php echo $finalIsTextChannel ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>" data-channel-type="text">
                         <?php include dirname(__DIR__) . '/app-sections/chat-section.php'; ?>
                     </div>
-                    <div class="voice-section <?php echo $isVoiceChannel ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>" data-channel-type="voice">
+                    <div class="voice-section <?php echo $finalIsVoiceChannel ? '' : 'hidden'; ?>" data-channel-id="<?php echo $activeChannelId; ?>" data-channel-type="voice">
                         <?php include dirname(__DIR__) . '/app-sections/voice-section.php'; ?>
                     </div>
                 </div>

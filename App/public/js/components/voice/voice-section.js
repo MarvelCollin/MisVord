@@ -128,7 +128,7 @@ class VoiceSection {
             }
             
             if (window.globalSocketManager?.isReady()) {
-                console.log('🎤 [VOICE-PARTICIPANT] Updating presence to In Voice Call with channel context');
+                console.log('🎤 [VOICE-PARTICIPANT] Updating presence to In Voice - channel name with channel context');
                 
                 // CRITICAL FIX: Ensure user is marked as active when voice connects
                 if (window.globalSocketManager.currentPresenceStatus === 'afk' || !window.globalSocketManager.isUserActive) {
@@ -142,9 +142,10 @@ class VoiceSection {
                 const serverId = document.querySelector('meta[name="server-id"]')?.content;
                 const channelName = details.channelName || window.voiceManager?.currentChannelName || 'Voice Channel';
                 
-                console.log(`🎤 [VOICE-PARTICIPANT] Setting presence to In Voice Call - ${channelName}`);
-                window.globalSocketManager.updatePresence('online', { 
-                    type: 'In Voice Call',
+                console.log('🎤 [VOICE-PARTICIPANT] Updating presence to In Voice - channel name with channel context');
+                
+                window.globalSocketManager.updatePresence('online', {
+                    type: `In Voice - ${channelName}`,
                     channel_id: channelId,
                     server_id: serverId,
                     channel_name: channelName
@@ -399,8 +400,12 @@ class VoiceSection {
 window.VoiceSection = VoiceSection;
 
 document.addEventListener('DOMContentLoaded', function() {
-    if (!window.voiceSection) {
-        window.voiceSection = new VoiceSection();
+    const voiceSection = document.querySelector('.voice-section:not(.hidden)');
+    if (voiceSection || window.location.search.includes('type=voice')) {
+        console.log('🎤 [VOICE-SECTION] Voice section needed, initializing...');
+        if (!window.voiceSection) {
+            window.voiceSection = new VoiceSection();
+        }
     }
 });
 
