@@ -64,6 +64,34 @@
     backdrop-filter: blur(4px) !important;
 }
 
+/* Full card video overlay */
+.participant-video-overlay {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: inherit !important;
+    overflow: hidden !important;
+    z-index: 20 !important;
+    background: #000 !important;
+}
+
+.participant-video-overlay video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: inherit !important;
+    background: #000 !important;
+}
+
+.video-overlay-info {
+    backdrop-filter: blur(8px) !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+}
+
 /* Enhanced participant grid styling */
 #participantGrid {
     display: grid !important;
@@ -663,13 +691,65 @@
     border: 1px solid rgba(88, 101, 242, 0.3) !important;
 }
 
+/* Video active state */
+.participant-card.video-active {
+    border-color: #3ba55c !important;
+    box-shadow: 0 0 12px rgba(59, 165, 92, 0.3) !important;
+    transform: scale(1.02) !important;
+}
+
+.participant-card.video-active:hover {
+    border-color: #43b05c !important;
+    box-shadow: 0 0 20px rgba(59, 165, 92, 0.5) !important;
+}
+
+/* Default view styling */
+.participant-default-view {
+    transition: opacity 0.3s ease !important;
+}
+
+.participant-default-view.hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Double-click animation */
+.participant-card {
+    transition: transform 0.15s ease !important;
+    cursor: pointer !important;
+}
+
+.participant-card:active {
+    transform: scale(0.98) !important;
+}
+
+/* Fullscreen overlay improvements */
+.fullscreen-overlay {
+    animation: fullscreenFadeIn 0.2s ease-out !important;
+}
+
 @keyframes fullscreenFadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
+    from { 
+        opacity: 0 !important;
+        transform: scale(0.95) !important;
     }
-    to {
-        opacity: 1;
-        transform: scale(1);
+    to { 
+        opacity: 1 !important;
+        transform: scale(1) !important;
     }
+}
+
+.fullscreen-participant {
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
+    transition: all 0.2s ease-out !important;
+}
+
+/* Video indicators in overlay */
+.video-overlay-info .voice-indicator {
+    animation: pulse-voice 1.5s ease-in-out infinite !important;
+}
+
+@keyframes pulse-voice {
+    0%, 100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
 }

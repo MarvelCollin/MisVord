@@ -527,11 +527,11 @@ class VideoSDKManager {
                     kind = this.detectStreamKind(stream, data);
                 }
                 
-                if (kind === 'video') {
+                if (kind === 'video' && stream) {
                     const isScreenShare = this.isScreenShareStream(stream, data);
                     if (isScreenShare) {
                         kind = 'share';
-                      }
+                    }
                 }
                 
                 if (participant.id === this.meeting.localParticipant?.id) {
