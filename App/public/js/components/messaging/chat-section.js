@@ -17,27 +17,30 @@ function isChatPage() {
     const currentPath = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
     
+    console.log('🔍 [CHAT-SECTION] Checking if chat page:', { currentPath, params: urlParams.toString() });
+    
     // Check if it's a home page with direct messages
     if (currentPath === '/home' || currentPath.startsWith('/home/')) {
-        // Only allow on DM pages or main home page
-        if (currentPath.includes('/channels/dm/') || currentPath === '/home') {
-            return true;
-        }
-        return false;
+        console.log('✅ [CHAT-SECTION] Home page detected, allowing chat');
+        return true;
     }
     
-    // Check if it's a server page with a text channel
+    // Check if it's a server page
     const serverMatch = currentPath.match(/^\/server\/(\d+)$/);
     if (serverMatch) {
-        // Must have a channel parameter
         const channelId = urlParams.get('channel');
+        console.log('🔍 [CHAT-SECTION] Server page detected, channel ID:', channelId);
+        
+        // If no channel ID, still allow chat (it might be set later)
         if (!channelId) {
-            return false;
+            console.log('⚠️ [CHAT-SECTION] No channel ID found, but allowing chat initialization');
+            return true;
         }
         
         // Check if it's NOT a voice channel
         const channelType = urlParams.get('type');
         if (channelType === 'voice') {
+            console.log('❌ [CHAT-SECTION] Voice channel detected, disabling chat');
             return false;
         }
         
@@ -46,15 +49,16 @@ function isChatPage() {
         if (activeChannelElement) {
             const channelDataType = activeChannelElement.getAttribute('data-channel-type');
             if (channelDataType === 'voice') {
+                console.log('❌ [CHAT-SECTION] Voice channel detected in DOM, disabling chat');
                 return false;
             }
         }
         
-        // If no voice indicators found, assume it's a text channel
+        console.log('✅ [CHAT-SECTION] Text channel or unknown type, allowing chat');
         return true;
     }
     
-    // All other pages don't need chat
+    console.log('❌ [CHAT-SECTION] Not a chat page:', currentPath);
     return false;
 }
 
@@ -126,6 +130,64 @@ async function initializeChatSection() {
 
 // Make initializeChatSection globally available
 window.initializeChatSection = initializeChatSection;
+
+// Add a function to manually retry chat initialization
+window.retryChatInitialization = function() {
+    console.log('🔄 [CHAT-SECTION] Manual retry requested');
+    if (window.chatSection) {
+        console.log('🔄 [CHAT-SECTION] Existing chat section found, re-finding DOM elements');
+        window.chatSection.findDOMElements();
+        window.chatSection.setupEventListeners();
+        return true;
+    } else {
+        console.log('🔄 [CHAT-SECTION] No existing chat section, initializing fresh');
+        return initializeChatSection().then(() => {
+            console.log('✅ [CHAT-SECTION] Manual retry completed successfully');
+            return true;
+        }).catch(error => {
+            console.error('❌ [CHAT-SECTION] Manual retry failed:', error);
+            return false;
+        });
+    }
+};
+
+// Add a diagnostic function
+window.diagnoseChatSection = function() {
+    console.log('🔧 [CHAT-SECTION] Running diagnostics...');
+    
+    const diagnostics = {
+        chatSection: !!window.chatSection,
+        currentPath: window.location.pathname,
+        urlParams: window.location.search,
+        isChatPage: isChatPage(),
+        isExcludedPage: isExcludedPage(),
+        domElements: {
+            chatMessages: !!document.getElementById('chat-messages'),
+            messageForm: !!document.getElementById('message-form'),
+            messageInput: !!document.getElementById('message-input'),
+            sendButton: !!document.getElementById('send-button')
+        },
+        socketManager: !!window.globalSocketManager,
+        socketReady: window.globalSocketManager?.isReady() || false
+    };
+    
+    console.table(diagnostics);
+    
+    if (diagnostics.domElements.messageInput) {
+        const messageInput = document.getElementById('message-input');
+        console.log('📝 [CHAT-SECTION] Message input details:', {
+            id: messageInput.id,
+            type: messageInput.type || messageInput.tagName,
+            placeholder: messageInput.placeholder,
+            disabled: messageInput.disabled,
+            style: messageInput.style.display || 'default',
+            parentVisible: messageInput.parentElement?.style.display !== 'none',
+            hasListeners: !!messageInput.dataset.listenersAttached
+        });
+    }
+    
+    return diagnostics;
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     if (isExcludedPage()) {
@@ -323,6 +385,7 @@ class ChatSection {
     }
     
     findDOMElements() {
+        console.log('🔍 [CHAT-SECTION] Finding DOM elements...');
         this.chatContainer = document.querySelector('.flex-1.flex.flex-col.bg-\\[\\#313338\\].h-screen.overflow-hidden') || document.getElementById('chat-container');
         this.chatMessages = document.getElementById('chat-messages');
         this.messageForm = document.getElementById('message-form');
@@ -335,32 +398,57 @@ class ChatSection {
         this.contextMenu = document.getElementById('message-context-menu') || document.getElementById('context-menu');
         this.fileUploadInput = document.getElementById('file-upload');
         this.filePreviewModal = document.getElementById('file-preview-modal');
+        
+        console.log('🔍 [CHAT-SECTION] DOM Elements found:', {
+            chatContainer: !!this.chatContainer,
+            chatMessages: !!this.chatMessages,
+            messageForm: !!this.messageForm,
+            messageInput: !!this.messageInput,
+            sendButton: !!this.sendButton
+        });
     }
     
     waitForRequiredElements() {
         return new Promise((resolve, reject) => {
             let attempts = 0;
-            const maxAttempts = isExcludedPage() ? 5 : 20;
+            const maxAttempts = isExcludedPage() ? 5 : 30;
             
             const checkElements = () => {
                 this.findDOMElements();
                 
-                if (this.chatMessages && this.messageForm && this.messageInput) {
+                const hasRequiredElements = this.chatMessages && this.messageForm && this.messageInput;
+                
+                if (hasRequiredElements) {
+                    console.log('✅ [CHAT-SECTION] All required DOM elements found');
                     resolve();
                     return;
                 }
                 
                 attempts++;
+                console.log(`🔍 [CHAT-SECTION] Waiting for elements, attempt ${attempts}/${maxAttempts}`, {
+                    chatMessages: !!this.chatMessages,
+                    messageForm: !!this.messageForm,
+                    messageInput: !!this.messageInput
+                });
+                
                 if (attempts >= maxAttempts) {
                     if (!isExcludedPage()) {
+                        console.error('❌ [CHAT-SECTION] Timeout waiting for required DOM elements:', {
+                            chatMessages: !!this.chatMessages,
+                            messageForm: !!this.messageForm,
+                            messageInput: !!this.messageInput,
+                            isExcludedPage: isExcludedPage(),
+                            currentPath: window.location.pathname
+                        });
                     }
                     reject(new Error('Required DOM elements not found'));
                     return;
                 }
                 
                 if (!isExcludedPage() && attempts % 5 === 0) {
+                    console.log(`⏳ [CHAT-SECTION] Still waiting for DOM elements after ${attempts} attempts`);
                 }
-                setTimeout(checkElements, 100);
+                setTimeout(checkElements, 200);
             };
             
             checkElements();
@@ -563,8 +651,41 @@ class ChatSection {
                     }
                 }
             });
+            console.log('✅ [CHAT-SECTION] Message input event listeners attached');
         } else {
-            console.warn('⚠️ [CHAT-SECTION] Message input not found');
+            console.warn('⚠️ [CHAT-SECTION] Message input not found, will retry in 2 seconds');
+            // Retry finding and setting up message input after delay
+            setTimeout(() => {
+                this.findDOMElements();
+                if (this.messageInput && !this.messageInput.dataset.listenersAttached) {
+                    console.log('🔄 [CHAT-SECTION] Retrying message input setup');
+                    this.messageInput.addEventListener('input', () => {
+                        this.updateSendButton();
+                        this.handleTypingEvent();
+                    });
+                    
+                    this.messageInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape') {
+                            if (this.replyingTo) {
+                                this.cancelReply();
+                                e.preventDefault();
+                            } else if (this.currentEditingMessage) {
+                                this.cancelEditing();
+                                e.preventDefault();
+                            }
+                        }
+                        
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (this.sendReceiveHandler) {
+                                this.sendReceiveHandler.sendMessage();
+                            }
+                        }
+                    });
+                    this.messageInput.dataset.listenersAttached = 'true';
+                    console.log('✅ [CHAT-SECTION] Message input event listeners attached on retry');
+                }
+            }, 2000);
         }
         
         // Load more button

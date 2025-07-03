@@ -456,32 +456,8 @@ class GlobalSocketManager {
             }
         });
         
-        this.io.on('voice-meeting-status', (data) => {
-            console.log('📊 [SOCKET] Voice meeting status received:', data);
-            
-            if (window.ChannelVoiceParticipants) {
-                const instance = window.ChannelVoiceParticipants.getInstance();
-                if (instance.handleVoiceMeetingUpdate) {
-                    instance.handleVoiceMeetingUpdate({
-                        channel_id: data.channel_id,
-                        participant_count: data.participant_count,
-                        participants: data.participants || [],
-                        action: 'status_update'
-                    });
-                }
-            }
-        });
-        
-        this.io.on('voice-meeting-update', (data) => {
-            console.log('🔄 [SOCKET] Voice meeting update received:', data);
-            
-            if (window.ChannelVoiceParticipants) {
-                const instance = window.ChannelVoiceParticipants.getInstance();
-                if (instance.handleVoiceMeetingUpdate) {
-                    instance.handleVoiceMeetingUpdate(data);
-                }
-            }
-        });
+        this.io.on('voice-meeting-status', this.handleVoiceMeetingStatus.bind(this));
+        this.io.on('voice-meeting-update', this.handleVoiceMeetingUpdate.bind(this));
         
         this.io.on('stop-typing', this.handleStopTyping.bind(this));
         this.io.on('mention_notification', this.handleMentionNotification.bind(this));
@@ -1062,25 +1038,74 @@ class GlobalSocketManager {
         }
     }
     
-    navigateToMention(data) {
+    async navigateToMention(data) {
         try {
             console.log('🔗 [GLOBAL-SOCKET] Navigating to mention:', data);
             
-            let targetUrl = '';
-            
-            if (data.channel_id && data.server_id) {
-                targetUrl = `/server/${data.server_id}?channel=${data.channel_id}`;
-            } else if (data.room_id) {
-                targetUrl = `/home/channels/dm/${data.room_id}`;
-            }
-            
-            if (targetUrl) {
-                if (data.message_id) {
-                    targetUrl += `#message-${data.message_id}`;
+            if (data.target_type === 'channel' && data.target_id) {
+                let serverId = null;
+                
+                if (data.server_id) {
+                    serverId = data.server_id;
+                    console.log('✅ [GLOBAL-SOCKET] Using server_id from notification data:', serverId);
+                } else if (data.context && data.context.server_id) {
+                    serverId = data.context.server_id;
+                    console.log('✅ [GLOBAL-SOCKET] Using server_id from context:', serverId);
+                } else if (data.channel_id && data.server_id) {
+                    serverId = data.server_id;
+                    console.log('✅ [GLOBAL-SOCKET] Using server_id from data fields:', serverId);
                 }
                 
-                console.log('🔗 [GLOBAL-SOCKET] Navigating to:', targetUrl);
-                window.location.href = targetUrl;
+                if (serverId) {
+                    const channelId = data.target_id || data.channel_id;
+                    const targetUrl = `/server/${serverId}?channel=${channelId}`;
+                    const currentPath = window.location.pathname;
+                    const currentServerMatch = currentPath.match(/\/server\/(\d+)/);
+                    const currentServerId = currentServerMatch ? currentServerMatch[1] : null;
+                    
+                    console.log('🔗 [GLOBAL-SOCKET] Navigation details:', {
+                        targetUrl,
+                        currentServerId,
+                        targetServerId: serverId,
+                        targetChannelId: channelId
+                    });
+                    
+                    if (currentServerId === serverId) {
+                        console.log('🔄 [GLOBAL-SOCKET] Same server, using channel switcher');
+                        if (window.simpleChannelSwitcher) {
+                            window.simpleChannelSwitcher.switchToChannel(channelId, 'text', true, data.message_id);
+                        } else {
+                            console.log('⚠️ [GLOBAL-SOCKET] Channel switcher not available, using URL navigation');
+                            if (data.message_id) {
+                                window.location.href = targetUrl + `#message-${data.message_id}`;
+                            } else {
+                                window.location.href = targetUrl;
+                            }
+                        }
+                    } else {
+                        console.log('🔄 [GLOBAL-SOCKET] Different server, using URL navigation');
+                        if (data.message_id) {
+                            window.location.href = targetUrl + `#message-${data.message_id}`;
+                        } else {
+                            window.location.href = targetUrl;
+                        }
+                    }
+                } else {
+                    console.warn('⚠️ [GLOBAL-SOCKET] No server ID found for channel navigation');
+                    const targetUrl = `/home?channel=${data.target_id || data.channel_id}`;
+                    if (data.message_id) {
+                        window.location.href = targetUrl + `#message-${data.message_id}`;
+                    } else {
+                        window.location.href = targetUrl;
+                    }
+                }
+            } else if (data.room_id) {
+                const targetUrl = `/home/channels/dm/${data.room_id}`;
+                if (data.message_id) {
+                    window.location.href = targetUrl + `#message-${data.message_id}`;
+                } else {
+                    window.location.href = targetUrl;
+                }
             } else {
                 console.warn('⚠️ [GLOBAL-SOCKET] Could not determine navigation URL for mention');
             }
@@ -1183,13 +1208,11 @@ class GlobalSocketManager {
         
         if (window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
-            if (instance.handleVoiceMeetingUpdate) {
-                instance.handleVoiceMeetingUpdate({
-                    channel_id: data.channel_id,
-                    participant_count: data.participant_count,
-                    participants: data.participants || [],
-                    action: 'status_update'
-                });
+            if (instance.handleVoiceMeetingStatus) {
+                instance.handleVoiceMeetingStatus(data);
+            }
+            if (data.participant_count !== undefined) {
+                instance.updateChannelCount(data.channel_id, data.participant_count);
             }
         }
     }

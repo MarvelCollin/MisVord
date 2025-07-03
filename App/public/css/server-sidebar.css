@@ -325,11 +325,18 @@
   border-right: 6px solid #18191c;
 }
 
-.server-sidebar-icon:hover .tooltip {
+.server-sidebar-icon:hover .tooltip,
+.group-header:hover .tooltip {
   transform: translateX(0);
   opacity: 1;
   visibility: visible;
   transition-delay: 0.5s;
+}
+
+.tooltip:not(.hidden) {
+  opacity: 1 !important;
+  visibility: visible;
+  transform: translateX(0) !important;
 }
 
 .server-sidebar-icon.dragging {

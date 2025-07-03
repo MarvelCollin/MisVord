@@ -281,14 +281,21 @@ async function joinVoiceChannel() {
         console.log('[Voice Not Join] ✅ Voice channel join completed successfully');
         
     } catch (error) {
-        console.error('[Voice Not Join] ❌ Error joining voice channel:', error);
-        resetJoinState();
+        console.error('[VOICE] Error joining voice:', error);
         
-        if (window.showToast) {
-            window.showToast('Failed to join voice channel. Please try again.', 'error');
-        } else {
-            alert('Failed to join voice channel. Please try again.');
+        if (!window.voiceJoinErrorShown) {
+            if (window.showToast) {
+                window.showToast('Failed to join voice channel. Please try again.', 'error');
+            } else {
+                alert('Failed to join voice channel. Please try again.');
+            }
+            window.voiceJoinErrorShown = true;
+            setTimeout(() => {
+                window.voiceJoinErrorShown = false;
+            }, 3000);
         }
+        
+        this.isProcessing = false;
     }
 }
 

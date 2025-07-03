@@ -57,7 +57,7 @@ $additional_js = [
     'components/voice/global-voice-indicator',
     'components/bot/bot',
     'components/servers/server-dropdown',
-    'components/servers/server-sidebar',
+
     'components/servers/channel-redirect',
     'components/channels/channel-manager',
     'components/activity/activity',

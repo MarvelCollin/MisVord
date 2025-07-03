@@ -3,7 +3,7 @@ import { pageUtils } from '../../utils/page-utils.js';
 import { showToast } from '../../core/ui/toast.js';
 import FormValidator from '../common/validation.js';
 import serverAPI from '../../api/server-api.js';
-import { ServerSidebar } from './server-sidebar.js';
+
 
 
 
@@ -411,7 +411,9 @@ function handleServerCreation(form, formData = null) {
                         addServerToSidebar(server);
                         
                         setTimeout(() => {
-                            ServerSidebar.updateActiveServer();
+                            if (window.updateActiveServer) {
+                        window.updateActiveServer();
+                    }
                         }, 100);
                     } catch (error) {
                         console.error('Failed to add server to sidebar dynamically:', error);

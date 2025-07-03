@@ -1,4 +1,4 @@
-window.waitForVideoSDKReady = async function(timeout = 15000) {
+window.waitForVideoSDKReady = async function(timeout = 10000) {
     return new Promise((resolve, reject) => {
         const timeoutId = setTimeout(() => {
             reject(new Error('Timeout waiting for VideoSDK to be fully ready'));
@@ -8,9 +8,9 @@ window.waitForVideoSDKReady = async function(timeout = 15000) {
             if (window.videoSDKManager && window.videoSDKManager.isReady()) {
                 clearTimeout(timeoutId);
                 resolve();
-            } else {
-                setTimeout(checkReady, 200);
+                return;
             }
+            setTimeout(checkReady, 200);
         };
         
         if (window.videoSDKManager && window.videoSDKManager.isReady()) {
@@ -20,13 +20,7 @@ window.waitForVideoSDKReady = async function(timeout = 15000) {
             const onMeetingReady = () => {
                 clearTimeout(timeoutId);
                 window.removeEventListener('videosdkMeetingFullyJoined', onMeetingReady);
-                setTimeout(() => {
-                    if (window.videoSDKManager && window.videoSDKManager.isReady()) {
-                        resolve();
-                    } else {
-                        checkReady();
-                    }
-                }, 500);
+                resolve();
             };
             
             window.addEventListener('videosdkMeetingFullyJoined', onMeetingReady);
@@ -35,7 +29,7 @@ window.waitForVideoSDKReady = async function(timeout = 15000) {
     });
 };
 
-window.waitForVoiceManager = async function(maxAttempts = 20) {
+window.waitForVoiceManager = async function(maxAttempts = 15) {
     return new Promise((resolve, reject) => {
         let attempts = 0;
         const checkManager = () => {
@@ -45,7 +39,7 @@ window.waitForVoiceManager = async function(maxAttempts = 20) {
                 reject(new Error('Voice manager initialization timeout'));
             } else {
                 attempts++;
-                setTimeout(checkManager, 500);
+                setTimeout(checkManager, 300);
             }
         };
         checkManager();

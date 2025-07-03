@@ -10,7 +10,7 @@ let lastClickTime = 0;
 const CLICK_TIMEOUT = 3000;
 const CLICKS_NEEDED = 16; 
 
-let sidebarInitialized = false;
+
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[Server Sidebar] DOMContentLoaded: Initializing server sidebar');
@@ -112,11 +112,11 @@ function initializeHomeIconEasterEgg() {
 }
 
 function initServerSidebar() {
-    if (sidebarInitialized) {
-        console.log('[Server Sidebar] Already initialized, skipping');
+    if (window.__SIDEBAR_INITIALIZED__) {
+        console.log('[Server Sidebar] Already initialized globally, skipping');
         return;
     }
-    sidebarInitialized = true;
+    window.__SIDEBAR_INITIALIZED__ = true;
     console.log('[Server Sidebar] Initializing server sidebar');
     performCompleteRender();
 }
@@ -164,6 +164,9 @@ function setupServerIcons() {
     document.querySelectorAll('.server-sidebar-icon[data-server-id]:not([data-setup])').forEach(icon => {
         icon.setAttribute('data-setup', 'true');
         icon.draggable = true;
+        
+        // Setup tooltip for this server icon
+        setupTooltipForElement(icon);
         
         icon.addEventListener('dragstart', e => {
             const serverId = icon.getAttribute('data-server-id');
@@ -302,6 +305,7 @@ async function renderFolders() {
     
     setupServerIcons();
     setupDropZones();
+    setupAllTooltips();
     isRendering = false;
 }
 
@@ -336,6 +340,45 @@ function resetServersToMainList() {
     document.querySelectorAll('.server-sidebar-icon[data-server-id].in-group').forEach(serverIcon => {
         serverIcon.classList.remove('in-group');
         serverIcon.style.display = '';
+    });
+}
+
+function setupTooltipForElement(element) {
+    const tooltip = element.querySelector('.tooltip');
+    if (tooltip) {
+        // Remove existing listeners to avoid duplicates
+        element.removeEventListener('mouseenter', showTooltip);
+        element.removeEventListener('mouseleave', hideTooltip);
+        
+        // Add new listeners
+        element.addEventListener('mouseenter', showTooltip);
+        element.addEventListener('mouseleave', hideTooltip);
+        
+        function showTooltip() {
+            tooltip.classList.remove('hidden');
+            tooltip.style.opacity = '1';
+            tooltip.style.transform = 'translateY(-50%) translateX(4px)';
+        }
+        
+        function hideTooltip() {
+            tooltip.classList.add('hidden');
+            tooltip.style.opacity = '0';
+            tooltip.style.transform = 'translateY(-50%)';
+        }
+    }
+}
+
+function setupAllTooltips() {
+    console.log('[Server Sidebar] Setting up all tooltips');
+    
+    // Setup tooltips for all server icons (individual and in groups)
+    document.querySelectorAll('.server-sidebar-icon').forEach(icon => {
+        setupTooltipForElement(icon);
+    });
+    
+    // Setup tooltips for folder headers
+    document.querySelectorAll('.server-sidebar-group .group-header').forEach(header => {
+        setupTooltipForElement(header);
     });
 }
 
@@ -401,6 +444,12 @@ function createFolderElement(group) {
     const serversContainer = document.createElement('div');
     serversContainer.className = 'group-servers';
     
+    // Add tooltip to folder header
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50';
+    tooltip.textContent = group.name || 'Server Folder';
+    header.appendChild(tooltip);
+    
     folder.appendChild(header);
     folder.appendChild(serversContainer);
     
@@ -409,6 +458,10 @@ function createFolderElement(group) {
 
 function createFolderPreview(group, folderElement, serverImageData) {
     const header = folderElement.querySelector('.group-header');
+    const existingTooltip = header.querySelector('.tooltip');
+    
+    // Clear header but preserve tooltip
+    const tooltipText = existingTooltip ? existingTooltip.textContent : group.name;
     header.innerHTML = '';
     
     const previewContainer = document.createElement('div');
@@ -466,9 +519,10 @@ function createFolderPreview(group, folderElement, serverImageData) {
     previewContainer.appendChild(gridContainer);
     header.appendChild(previewContainer);
     
+    // Re-add tooltip
     const tooltip = document.createElement('div');
-    tooltip.className = 'tooltip hidden';
-    tooltip.textContent = group.name;
+    tooltip.className = 'tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50';
+    tooltip.textContent = tooltipText;
     header.appendChild(tooltip);
 }
 

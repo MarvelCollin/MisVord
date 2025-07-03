@@ -958,8 +958,14 @@ class VoiceCallManager {
                 this.displayMeetingId(event.detail.meetingId);
             }
             
-            const channelName = event.detail?.channelName || 'Voice Channel';
-            this.showToast(`Successfully joined ${channelName}`, 'success');
+            if (!window.voiceJoinSuccessShown) {
+                const channelName = event.detail?.channelName || 'Voice Channel';
+                this.showToast(`Successfully joined ${channelName}`, 'success');
+                window.voiceJoinSuccessShown = true;
+                setTimeout(() => {
+                    window.voiceJoinSuccessShown = false;
+                }, 3000);
+            }
             
             if (window.MusicLoaderStatic?.stopCallSound) {
                 window.MusicLoaderStatic.stopCallSound();
@@ -1348,7 +1354,9 @@ class VoiceCallManager {
     cleanup() {
         console.log('[VOICE-CALL-MANAGER] Cleaning up participants and UI');
         
+        const currentChannelId = window.voiceManager?.currentChannelId;
         const participantIds = Array.from(this._participants.keys());
+        
         participantIds.forEach(id => {
             this.removeParticipantElement(id);
         });
@@ -1363,6 +1371,11 @@ class VoiceCallManager {
         this.exitFullscreen();
         
         this.updateParticipantCount();
+        
+        if (currentChannelId && window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            instance.updateChannelCount(currentChannelId, 0);
+        }
         
         this.isConnected = false;
         this.localParticipantId = null;
@@ -2297,6 +2310,16 @@ class VoiceCallManager {
         console.log(`[VOICE-CALL-MANAGER] Broadcasting participant ${action}:`, updateData);
         
         window.globalSocketManager.io.emit('voice-meeting-update', updateData);
+        
+        window.dispatchEvent(new CustomEvent('voiceParticipantUpdate', {
+            detail: {
+                action: action,
+                channelId: currentChannelId,
+                participantId: participantId,
+                participantName: participantName,
+                participantCount: this._participants.size
+            }
+        }));
     }
 }
 

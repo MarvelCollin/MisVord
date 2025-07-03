@@ -61,6 +61,19 @@ class ChannelVoiceParticipants {
         window.addEventListener('preserveVoiceParticipants', (event) => {
             console.log('[VOICE-PARTICIPANT] Preserving participants during channel switch');
         });
+        
+        window.addEventListener('voiceParticipantUpdate', (event) => {
+            const { action, channelId, participantId, participantName } = event.detail;
+            console.log('[VOICE-PARTICIPANT] Received participant update:', { action, channelId, participantId });
+            
+            if (action === 'join' && channelId && participantId) {
+                this.addParticipant(channelId, participantId, participantName);
+                this.updateParticipantContainer(channelId);
+            } else if (action === 'leave' && channelId && participantId) {
+                this.removeParticipant(channelId, participantId);
+                this.updateParticipantContainer(channelId);
+            }
+        });
     }
 
     startPeriodicSync() {
@@ -292,6 +305,11 @@ class ChannelVoiceParticipants {
     updateChannelCount(channelId, count) {
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
         if (channelElement) {
+            const countElement = channelElement.querySelector('.voice-user-count');
+            if (countElement) {
+                countElement.textContent = count;
+            }
+            
             const container = channelElement.querySelector('.voice-participants');
             if (container) {
                 if (count > 0) {
@@ -319,6 +337,17 @@ class ChannelVoiceParticipants {
     refreshAllChannelParticipants() {
         this.updateAllParticipantContainers();
         this.loadAllVoiceChannels();
+        this.refreshAllChannelCounts();
+    }
+
+    refreshAllChannelCounts() {
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId) {
+                const participantCount = this.getParticipantCount(channelId);
+                this.updateChannelCount(channelId, participantCount);
+            }
+        });
     }
 
     getChannelParticipants(channelId) {
@@ -335,11 +364,17 @@ if (!window.ChannelVoiceParticipants) {
     window.ChannelVoiceParticipants = ChannelVoiceParticipants;
     
     document.addEventListener('DOMContentLoaded', () => {
-        ChannelVoiceParticipants.getInstance();
+        const instance = ChannelVoiceParticipants.getInstance();
+        setTimeout(() => {
+            instance.refreshAllChannelCounts();
+        }, 1000);
     });
     
     if (document.readyState !== 'loading') {
-        ChannelVoiceParticipants.getInstance();
+        const instance = ChannelVoiceParticipants.getInstance();
+        setTimeout(() => {
+            instance.refreshAllChannelCounts();
+        }, 1000);
     }
 }
 

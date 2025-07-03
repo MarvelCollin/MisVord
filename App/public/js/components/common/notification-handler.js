@@ -60,6 +60,15 @@ class GlobalNotificationHandler {
     }
 
     showNotification(data, isAllMention, isRoleMention) {
+        console.log('🔔 [NOTIFICATION] Received notification data:', JSON.stringify(data, null, 2));
+        console.log('🔍 [NOTIFICATION] Server ID analysis:', {
+            'data.server_id': data.server_id,
+            'data.context.server_id': data.context?.server_id,
+            'data.context': data.context,
+            'typeof server_id': typeof data.server_id,
+            'typeof context.server_id': typeof data.context?.server_id
+        });
+        
         this.clearExistingNotifications();
         
         const mentionerUsername = data.username;
@@ -78,144 +87,97 @@ class GlobalNotificationHandler {
             mentionIcon = '📢';
         } else if (isRoleMention) {
             mentionColor = 'from-purple-500 to-pink-500';
-            mentionText = data.role;
-            mentionIcon = '👑';
+            mentionText = 'role';
+            mentionIcon = '👥';
         }
-    
-        const toastHTML = `
-            <div class="notification-card group relative w-96 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden transform transition-all duration-500 hover:scale-[1.02] hover:shadow-3xl cursor-pointer animate-slide-in">
-                <!-- Glow Effect -->
-                <div class="absolute inset-0 bg-gradient-to-r ${mentionColor} opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${mentionColor}"></div>
-                
-                <!-- Header -->
-                <div class="relative p-5 pb-3">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <div class="relative">
-                                <img src="${serverIcon}" alt="Server" class="w-10 h-10 rounded-xl object-cover ring-2 ring-white/20 shadow-lg">
-                                <div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r ${mentionColor} rounded-full flex items-center justify-center text-xs shadow-lg">
-                                    ${mentionIcon}
-                                </div>
-                            </div>
-                            <div class="flex flex-col">
-                                <div class="flex items-center space-x-1.5">
-                                    <span class="text-xs font-medium text-gray-400">in</span>
-                                    <span class="text-sm font-bold text-white">${serverName}</span>
-                                </div>
-                                <div class="flex items-center text-xs text-gray-300/80">
-                                    <span class="w-1 h-1 bg-gray-400 rounded-full mr-2"></span>
-                                    <span>#${channelName}</span>
-                                </div>
+        
+        const notificationElement = document.createElement('div');
+        notificationElement.className = 'notification-toast fixed top-4 right-4 z-[9999] opacity-0 transform translate-x-full transition-all duration-300 ease-out';
+        notificationElement.style.maxWidth = '400px';
+        notificationElement.style.zIndex = '99999';
+        
+        const notificationHTML = `
+            <div class="bg-gradient-to-r ${mentionColor} p-1 rounded-lg shadow-2xl">
+                <div class="bg-[#2b2d31] rounded-md p-4 border border-gray-600">
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0">
+                            <div class="w-10 h-10 bg-gradient-to-br ${mentionColor} rounded-full flex items-center justify-center">
+                                <span class="text-white text-lg">${mentionIcon}</span>
                             </div>
                         </div>
-                        <button class="close-btn group/close p-2 rounded-xl hover:bg-white/10 transition-all duration-200">
-                            <svg class="w-4 h-4 text-gray-400 group-hover/close:text-white group-hover/close:rotate-90 transition-all duration-200" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Content -->
-                <div class="relative px-5 pb-5">
-                    <div class="flex items-start space-x-4">
-                        <div class="relative flex-shrink-0">
-                            <div class="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-white/20 shadow-lg">
-                                <img class="w-full h-full object-cover" 
-                                    src="${data.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                                    alt="${mentionerUsername}">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <img src="${serverIcon}" alt="${serverName}" class="w-5 h-5 rounded-full object-cover">
+                                <h3 class="text-white font-semibold text-sm truncate">${title}</h3>
                             </div>
-                            <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-900 shadow-lg"></div>
-                        </div>
-                        
-                        <div class="flex-1 min-w-0 space-y-2">
-                            <div class="flex items-center space-x-2 flex-wrap">
-                                <span class="text-base font-bold text-white">${mentionerUsername}</span>
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gradient-to-r ${mentionColor} text-white shadow-lg">
-                                    <span class="mr-1">${mentionIcon}</span>
-                                    @${mentionText}
-                                </span>
+                            <p class="text-gray-300 text-xs mb-2">
+                                <span class="font-medium text-blue-400">@${mentionerUsername}</span> mentioned ${mentionText} in 
+                                <span class="font-medium text-green-400">${serverName}</span>
+                            </p>
+                            <div class="bg-[#1e1f22] rounded p-2 border-l-4 border-blue-500">
+                                <p class="text-gray-200 text-xs leading-relaxed">${data.content}</p>
                             </div>
-
-                            <div class="relative bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                                <div class="absolute top-2 left-2 w-1 h-4 bg-gradient-to-b ${mentionColor} rounded-full"></div>
-                                <p class="text-sm text-gray-200 leading-relaxed pl-4">
-                                    ${(data.content || '').substring(0, 100)}${data.content && data.content.length > 100 ? '...' : ''}
-                                </p>
+                            <div class="mt-2 flex justify-end">
+                                <button class="notification-view-btn px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors">
+                                    View Message
+                                </button>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Action -->
-                    <div class="mt-4 flex items-center justify-center">
-                        <div class="flex items-center space-x-2 text-xs text-gray-300 bg-white/5 rounded-full px-4 py-2 group-hover:bg-white/10 transition-all duration-300">
-                            <span class="relative flex h-2 w-2">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gradient-to-r ${mentionColor} opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-gradient-to-r ${mentionColor}"></span>
-                            </span>
-                            <span class="font-medium">Click to view message</span>
-                            <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
+                        <button class="notification-close-btn text-gray-400 hover:text-white text-lg font-bold">&times;</button>
                     </div>
                 </div>
             </div>
         `;
-    
-        const onClick = () => {
+        
+        notificationElement.innerHTML = notificationHTML;
+        document.body.appendChild(notificationElement);
+        
+        setTimeout(() => {
+            notificationElement.classList.remove('opacity-0', 'translate-x-full');
+            notificationElement.classList.add('opacity-100', 'translate-x-0');
+        }, 100);
+        
+        const closeBtn = notificationElement.querySelector('.notification-close-btn');
+        closeBtn.addEventListener('click', () => this.hideNotification(notificationElement));
+        
+        const viewBtn = notificationElement.querySelector('.notification-view-btn');
+        viewBtn.addEventListener('click', () => {
             this.navigateToMention(data);
-        };
+            this.hideNotification(notificationElement);
+        });
+        
+        this.autoHideTimeout = setTimeout(() => {
+            this.hideNotification(notificationElement);
+        }, 10000);
+        
+        this.currentNotification = notificationElement;
+    }
 
-        if (window.showToast) {
-            this.currentNotification = window.showToast(toastHTML, 'custom', 10000, title, onClick);
+    hideNotification(notificationElement) {
+        if (notificationElement) {
+            notificationElement.classList.add('opacity-0', 'translate-x-full');
+            setTimeout(() => {
+                if (notificationElement.parentNode) {
+                    notificationElement.parentNode.removeChild(notificationElement);
+                }
+            }, 300);
         }
-
-        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-            let bodyText;
-            if (isAllMention) {
-                bodyText = `${mentionerUsername} mentioned @all in #${channelName} (${serverName})`;
-            } else if (isRoleMention) {
-                bodyText = `${mentionerUsername} mentioned @${data.role} in #${channelName} (${serverName})`;
-            } else {
-                bodyText = `${mentionerUsername} mentioned you in #${channelName} (${serverName})`;
-            }
-            
-            const notification = new Notification(title, {
-                body: bodyText,
-                icon: serverIcon || data.avatar_url || '/public/assets/common/default-profile-picture.png',
-                tag: `mention-${data.message_id || Date.now()}`,
-                requireInteraction: false
-            });
-            
-            notification.onclick = () => {
-                window.focus();
-                this.navigateToMention(data);
-                notification.close();
-            };
-            
-            setTimeout(() => notification.close(), 10000);
+        
+        if (this.autoHideTimeout) {
+            clearTimeout(this.autoHideTimeout);
+            this.autoHideTimeout = null;
         }
     }
 
     clearExistingNotifications() {
-        if (this.currentNotification && typeof this.currentNotification.close === 'function') {
-            this.currentNotification.close();
+        if (this.currentNotification) {
+            this.hideNotification(this.currentNotification);
             this.currentNotification = null;
         }
         
-        const existingToasts = document.querySelectorAll('.notification-card');
-        existingToasts.forEach(toast => {
-            const parent = toast.closest('.toast-item');
-            if (parent) {
-                parent.style.animation = 'slide-out-right 0.3s ease-in forwards';
-                setTimeout(() => {
-                    if (parent.parentNode) {
-                        parent.parentNode.removeChild(parent);
-                    }
-                }, 300);
-            }
+        const existingNotifications = document.querySelectorAll('.notification-toast');
+        existingNotifications.forEach(notification => {
+            this.hideNotification(notification);
         });
     }
 
@@ -280,71 +242,150 @@ class GlobalNotificationHandler {
         }
     }
 
-    navigateToMention(data) {
+    async navigateToMention(data) {
         try {
-            console.log('🔗 [NOTIFICATION] Navigating to mention:', data);
-            
-            let targetUrl = '';
+            console.log('🔗 [NOTIFICATION] Navigating to mention with data:', JSON.stringify(data, null, 2));
+            console.log('🔍 [NOTIFICATION] Server ID detection analysis:', {
+                'data.server_id': data.server_id,
+                'data.context.server_id': data.context?.server_id,
+                'current_location': window.location.href,
+                'current_pathname': window.location.pathname
+            });
             
             if (data.target_type === 'channel' && data.target_id) {
                 let serverId = null;
                 
-                const currentPath = window.location.pathname;
-                const serverMatch = currentPath.match(/\/server\/(\d+)/);
-                if (serverMatch) {
-                    serverId = serverMatch[1];
-                }
-                
-                if (!serverId) {
-                    const serverIdFromMeta = document.querySelector('meta[name="server-id"]')?.content;
-                    if (serverIdFromMeta) {
-                        serverId = serverIdFromMeta;
+                if (data.server_id) {
+                    serverId = data.server_id;
+                    console.log('✅ [NOTIFICATION] Using server_id from notification data:', serverId);
+                } else if (data.context && data.context.server_id) {
+                    serverId = data.context.server_id;
+                    console.log('✅ [NOTIFICATION] Using server_id from context:', serverId);
+                } else {
+                    console.warn('⚠️ [NOTIFICATION] No server_id in notification data or context!');
+                    console.log('🔍 [NOTIFICATION] Available data keys:', Object.keys(data));
+                    console.log('🔍 [NOTIFICATION] Available context keys:', data.context ? Object.keys(data.context) : 'no context');
+                    
+                    const currentPath = window.location.pathname;
+                    const serverMatch = currentPath.match(/\/server\/(\d+)/);
+                    if (serverMatch) {
+                        serverId = serverMatch[1];
+                        console.log('⚠️ [NOTIFICATION] Fallback: Using current page server_id:', serverId);
+                    } else {
+                        console.error('❌ [NOTIFICATION] Cannot determine server_id for navigation');
+                        return;
                     }
                 }
                 
-                if (!serverId && data.channel_id) {
-                    serverId = data.server_id;
+                console.log('🎯 [NOTIFICATION] Final server_id for navigation:', serverId);
+                console.log('🎯 [NOTIFICATION] Target channel_id:', data.target_id);
+                
+                const currentPath = window.location.pathname;
+                const currentServerMatch = currentPath.match(/\/server\/(\d+)/);
+                const currentServerId = currentServerMatch ? currentServerMatch[1] : null;
+                
+                console.log('🔄 [NOTIFICATION] Navigation comparison:', {
+                    currentServerId: currentServerId,
+                    targetServerId: serverId,
+                    sameServer: currentServerId === serverId.toString()
+                });
+                
+                if (currentServerId === serverId.toString()) {
+                    console.log('📍 [NOTIFICATION] Same server navigation - using SimpleChannelSwitcher');
+                    
+                    if (window.simpleChannelSwitcher && typeof window.simpleChannelSwitcher.switchToChannel === 'function') {
+                        console.log('🔄 [NOTIFICATION] Calling switchToChannel for channel:', data.target_id);
+                        await window.simpleChannelSwitcher.switchToChannel(data.target_id, 'text', true, data.message_id);
+                        console.log('✅ [NOTIFICATION] SimpleChannelSwitcher completed');
+                        
+                        if (data.message_id) {
+                            setTimeout(() => {
+                                if (window.MessageHighlighter && typeof window.MessageHighlighter.highlightMessage === 'function') {
+                                    console.log('🎯 [NOTIFICATION] Attempting to highlight message:', data.message_id);
+                                    window.MessageHighlighter.highlightMessage(data.message_id);
+                                }
+                            }, 1500);
+                        }
+                        return;
+                    } else {
+                        console.warn('⚠️ [NOTIFICATION] SimpleChannelSwitcher not available, falling back to URL navigation');
+                        console.log('🔍 [NOTIFICATION] Available switcher methods:', window.simpleChannelSwitcher ? Object.getOwnPropertyNames(window.simpleChannelSwitcher) : 'switcher not found');
+                    }
                 }
                 
-                if (serverId) {
-                    targetUrl = `/server/${serverId}?channel=${data.target_id}`;
-                } else {
-                    console.warn('⚠️ [NOTIFICATION] No server ID found, trying channel direct access');
-                    targetUrl = `/home?channel=${data.target_id}`;
-                }
-            } else if (data.target_type === 'dm' && data.room_id) {
-                targetUrl = `/home/channels/dm/${data.room_id}`;
-            } else if (data.room_id && !data.target_type) {
-                targetUrl = `/home/channels/dm/${data.room_id}`;
-            }
-            
-            if (targetUrl) {
-                if (data.message_id) {
-                    targetUrl += `#message-${data.message_id}`;
-                }
+                const targetUrl = `/server/${serverId}?channel=${data.target_id}&type=text${data.message_id ? '#message-' + data.message_id : ''}`;
+                console.log('🔗 [NOTIFICATION] Navigating to URL:', targetUrl);
                 
-                console.log('🔗 [NOTIFICATION] Navigating to:', targetUrl);
                 window.location.href = targetUrl;
                 
-                setTimeout(() => {
-                    if (window.messageHighlighter && data.message_id) {
-                        console.log('✨ [NOTIFICATION] Triggering message highlight after navigation');
-                        window.messageHighlighter.highlightMessage(data.message_id, true);
-                    }
-                }, 1000);
+            } else if (data.target_type === 'dm' && data.target_id) {
+                console.log('💬 [NOTIFICATION] Navigating to DM:', data.target_id);
+                const targetUrl = `/home/channels/dm/${data.target_id}${data.message_id ? '#message-' + data.message_id : ''}`;
+                console.log('🔗 [NOTIFICATION] DM URL:', targetUrl);
+                window.location.href = targetUrl;
             } else {
-                console.warn('⚠️ [NOTIFICATION] Could not determine navigation URL for mention');
-                if (window.showToast) {
-                    window.showToast('Unable to navigate to message', 'warning', 3000);
-                }
+                console.warn('⚠️ [NOTIFICATION] Invalid navigation data:', data);
             }
         } catch (error) {
-            console.error('❌ [NOTIFICATION] Error navigating to mention:', error);
-            if (window.showToast) {
-                window.showToast('Navigation failed', 'error', 3000);
-            }
+            console.error('❌ [NOTIFICATION] Navigation error:', error);
         }
     }
 }
+
+window.testNotificationNavigation = function(testServerId = 13, testChannelId = 13, testMessageId = 'test-123') {
+    console.log('🧪 [NOTIFICATION-TEST] Testing notification navigation with correct server ID');
+    
+    const testData = {
+        target_type: 'channel',
+        target_id: testChannelId,
+        server_id: testServerId,
+        message_id: testMessageId,
+        context: {
+            server_id: testServerId,
+            server_name: 'Test Server',
+            channel_name: 'Test Channel'
+        },
+        username: 'TestUser',
+        content: 'This is a test mention'
+    };
+    
+    console.log('🧪 [NOTIFICATION-TEST] Test data:', testData);
+    
+    if (window.globalNotificationHandler) {
+        window.globalNotificationHandler.navigateToMention(testData).catch(error => {
+            console.error('❌ [NOTIFICATION-TEST] Navigation error:', error);
+        });
+    } else {
+        console.error('❌ [NOTIFICATION-TEST] globalNotificationHandler not found');
+    }
+};
+
+window.debugCurrentLocation = function() {
+    console.log('🔍 [LOCATION-DEBUG] Current location analysis:', {
+        href: window.location.href,
+        pathname: window.location.pathname,
+        search: window.location.search,
+        hash: window.location.hash,
+        serverMatch: window.location.pathname.match(/\/server\/(\d+)/),
+        channelParam: new URLSearchParams(window.location.search).get('channel'),
+        metaServerId: document.querySelector('meta[name="server-id"]')?.content,
+        metaChannelId: document.querySelector('meta[name="channel-id"]')?.content
+    });
+};
+
+window.testCorrectServerNavigation = function() {
+    console.log('🧪 [NAV-TEST] Testing correct server navigation');
+    
+    if (window.location.pathname.includes('/server/14')) {
+        console.log('🧪 [NAV-TEST] Currently on server 14, testing navigation to server 13 channel 13');
+        window.testNotificationNavigation(13, 13, 'test-server-13');
+    } else if (window.location.pathname.includes('/server/13')) {
+        console.log('🧪 [NAV-TEST] Currently on server 13, testing navigation to server 14 channel 13');
+        window.testNotificationNavigation(14, 13, 'test-server-14');
+    } else {
+        console.log('🧪 [NAV-TEST] Not on a server page, testing navigation to server 13');
+        window.testNotificationNavigation(13, 13, 'test-general');
+    }
+};
 
 new GlobalNotificationHandler(); 

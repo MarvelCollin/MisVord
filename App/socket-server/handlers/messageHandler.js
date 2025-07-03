@@ -914,11 +914,13 @@ class MessageHandler {
             room_id: messageData.room_id,
             target_type: messageData.target_type,
             target_id: messageData.target_id,
+            server_id: context.server_id,
             timestamp: Date.now(),
             context: context
         };
     
         console.log('📧 [MENTION-NOTIFICATIONS] Processing mentions with context:', {
+            server_id: context.server_id,
             server_name: context.server_name,
             server_icon: context.server_icon,
             channel_name: context.channel_name,
@@ -946,7 +948,8 @@ class MessageHandler {
                 };
                 
                 console.log('📧 [MENTION-NOTIFICATIONS] Sending user mention notification:', {
-                    mentioned_user_id: mention.user_id
+                    mentioned_user_id: mention.user_id,
+                    server_id: context.server_id
                 });
                 
                 for (const socket of io.sockets.sockets.values()) {
@@ -1063,8 +1066,16 @@ class MessageHandler {
         const context = {
             server_name: null,
             server_icon: null,
-            channel_name: null
+            channel_name: null,
+            server_id: null
         };
+
+        console.log('🔍 [MENTION-CONTEXT] Starting context fetch for:', {
+            target_type: messageData.target_type,
+            target_id: messageData.target_id,
+            channel_id: messageData.channel_id,
+            user_id: messageData.user_id
+        });
 
         try {
             if (messageData.target_type === 'channel' && messageData.target_id) {
@@ -1082,7 +1093,7 @@ class MessageHandler {
                 }
                 
                 console.log(`🔍 [MENTION-CONTEXT] Fetching channel ${channelId} details...`);
-                console.log(`🔧 [MENTION-CONTEXT] Request headers:`, headers);
+                console.log(`🔍 [MENTION-CONTEXT] Headers:`, headers);
                 
                 const channelResponse = await fetch(`http://app:1001/api/socket/channels/${channelId}`, {
                     method: 'GET',
@@ -1090,30 +1101,40 @@ class MessageHandler {
                 });
 
                 console.log(`📡 [MENTION-CONTEXT] Channel API response: ${channelResponse.status} ${channelResponse.statusText}`);
-                console.log(`📡 [MENTION-CONTEXT] Response headers:`, Object.fromEntries(channelResponse.headers.entries()));
 
                 if (channelResponse.ok) {
                     const channelResult = await channelResponse.json();
-                    console.log(`📄 [MENTION-CONTEXT] Channel result:`, JSON.stringify(channelResult, null, 2));
+                    console.log(`📄 [MENTION-CONTEXT] Raw API response:`, JSON.stringify(channelResult, null, 2));
                     
                     if (channelResult.success && channelResult.data) {
                         const data = channelResult.data;
                         const channel = data.channel;
                         const server = data.server;
                         
+                        console.log(`🔍 [MENTION-CONTEXT] Extracted channel:`, channel);
+                        console.log(`🔍 [MENTION-CONTEXT] Extracted server:`, server);
+                        
                         if (channel && channel.name) {
                             context.channel_name = channel.name;
                             console.log(`📍 [MENTION-CONTEXT] Channel name: ${channel.name}`);
                             
-                            if (server && server.name) {
+                            if (server && server.name && server.id) {
                                 context.server_name = server.name;
+                                context.server_id = server.id;
                                 context.server_icon = server.image_url || '/public/assets/common/main-logo.png';
-                                console.log(`✅ [MENTION-CONTEXT] Server info: ${server.name}, Icon: ${context.server_icon}`);
+                                console.log(`✅ [MENTION-CONTEXT] Server info: ${server.name} (ID: ${server.id}), Icon: ${context.server_icon}`);
                             } else {
-                                console.log(`📍 [MENTION-CONTEXT] No server info (DM or system channel)`);
+                                console.log(`📍 [MENTION-CONTEXT] No server info - server object:`, server);
+                                if (!server) {
+                                    console.log(`⚠️ [MENTION-CONTEXT] Server is null/undefined`);
+                                } else if (!server.name) {
+                                    console.log(`⚠️ [MENTION-CONTEXT] Server missing name`);
+                                } else if (!server.id) {
+                                    console.log(`⚠️ [MENTION-CONTEXT] Server missing ID`);
+                                }
                             }
                         } else {
-                            console.warn(`⚠️ [MENTION-CONTEXT] No valid channel data found`);
+                            console.warn(`⚠️ [MENTION-CONTEXT] No valid channel data found - channel object:`, channel);
                         }
                     } else {
                         console.warn(`⚠️ [MENTION-CONTEXT] API response unsuccessful:`, channelResult);
@@ -1121,12 +1142,6 @@ class MessageHandler {
                 } else {
                     const errorText = await channelResponse.text();
                     console.error(`❌ [MENTION-CONTEXT] Channel API failed: ${channelResponse.status}`, errorText);
-                    console.error(`❌ [MENTION-CONTEXT] Full response details:`, {
-                        status: channelResponse.status,
-                        statusText: channelResponse.statusText,
-                        headers: Object.fromEntries(channelResponse.headers.entries()),
-                        body: errorText
-                    });
                 }
             } else if (messageData.target_type === 'dm') {
                 context.channel_name = 'Direct Message';
@@ -1137,7 +1152,7 @@ class MessageHandler {
             context.channel_name = messageData.target_type === 'dm' ? 'Direct Message' : 'Channel';
         }
 
-        console.log('📍 [MENTION-CONTEXT] Final context:', context);
+        console.log('📍 [MENTION-CONTEXT] Final context before return:', context);
         return context;
     }
 }

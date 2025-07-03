@@ -162,7 +162,7 @@ class VideoSDKManager {
                 if (eventName === 'error') {
                     console.error("Meeting error:", args[0]);
                 } else if (eventName === 'meeting-joined') {
-                    console.log(`Event: ${eventName}`);
+                    console.log(`✅ [VideoSDK] Meeting joined successfully`);
                     this.isMeetingJoined = true;
                     setTimeout(() => {
                         if (this.meeting?.localParticipant) {
@@ -177,7 +177,7 @@ class VideoSDKManager {
                         window.dispatchEvent(new CustomEvent('videosdkMeetingFullyJoined'));
                     }, 100);
                 } else if (eventName === 'meeting-left') {
-                    console.log(`Event: ${eventName}`);
+                    console.log(`📤 [VideoSDK] Meeting left`);
                     this.isMeetingJoined = false;
                 } else if (eventName === 'participant-joined') {
                     console.log(`🎉 [VideoSDK] Participant joined:`, args[0]);
@@ -191,8 +191,6 @@ class VideoSDKManager {
                     if (participant && participant.id) {
                         this.handleParticipantLeft(participant);
                     }
-                } else {
-                    console.log(`Event: ${eventName}`);
                 }
                 
                 if (this.eventHandlers[eventName]) {
@@ -577,8 +575,6 @@ class VideoSDKManager {
             window.videoSDKJoiningInProgress = false;
             return true;
         } catch (error) {
-            console.error("Failed to join meeting:", error);
-            
             this.isConnected = false;
             this.isMeetingJoined = false;
             this.isDeafened = false;

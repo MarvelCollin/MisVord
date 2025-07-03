@@ -434,10 +434,84 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
     
+    window.testVoiceParticipantCount = function(channelId, count) {
+        console.log('[VOICE-PARTICIPANT] Testing voice participant count update...');
+        
+        if (!window.ChannelVoiceParticipants) {
+            console.error('[VOICE-PARTICIPANT] ChannelVoiceParticipants not loaded');
+            return;
+        }
+        
+        const manager = window.ChannelVoiceParticipants.getInstance();
+        if (!manager) {
+            console.error('[VOICE-PARTICIPANT] Failed to get manager instance');
+            return;
+        }
+        
+        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        if (!channelElement) {
+            console.error('[VOICE-PARTICIPANT] Channel element not found for ID:', channelId);
+            return;
+        }
+        
+        const countElement = channelElement.querySelector('.voice-user-count');
+        if (!countElement) {
+            console.error('[VOICE-PARTICIPANT] voice-user-count element not found in channel');
+            return;
+        }
+        
+        console.log('[VOICE-PARTICIPANT] Before update:', countElement.textContent);
+        manager.updateChannelCount(channelId, count);
+        console.log('[VOICE-PARTICIPANT] After update:', countElement.textContent);
+        console.log('[VOICE-PARTICIPANT] Test completed successfully');
+    };
+    
+    window.verifyVoiceParticipantSystem = function() {
+        console.log('[VOICE-PARTICIPANT] Verifying voice participant system...');
+        
+        const voiceChannels = document.querySelectorAll('[data-channel-type="voice"]');
+        console.log('[VOICE-PARTICIPANT] Found voice channels:', voiceChannels.length);
+        
+        let allGood = true;
+        
+        voiceChannels.forEach((channel, index) => {
+            const channelId = channel.getAttribute('data-channel-id');
+            const channelName = channel.getAttribute('data-channel-name');
+            const countElement = channel.querySelector('.voice-user-count');
+            const participantContainer = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+            
+            console.log(`[VOICE-PARTICIPANT] Channel ${index + 1}: ${channelName} (ID: ${channelId})`);
+            
+            if (!countElement) {
+                console.error('[VOICE-PARTICIPANT] Missing voice-user-count element for channel:', channelId);
+                allGood = false;
+            } else {
+                console.log('[VOICE-PARTICIPANT] Count element found, current value:', countElement.textContent);
+            }
+            
+            if (!participantContainer) {
+                console.error('[VOICE-PARTICIPANT] Missing voice-participants container for channel:', channelId);
+                allGood = false;
+            } else {
+                console.log('[VOICE-PARTICIPANT] Participant container found');
+            }
+        });
+        
+        if (allGood) {
+            console.log('[VOICE-PARTICIPANT] System verification completed successfully');
+        } else {
+            console.error('[VOICE-PARTICIPANT] System verification found issues');
+        }
+        
+        return allGood;
+    };
+    
     console.log('[CHANNEL-SECTION] Test functions available:');
-    console.log('  - window.testVoiceParticipants()');
-    console.log('  - window.addTestVoiceParticipant(channelId, userId, username)');
-    console.log('  - window.listVoiceParticipantContainers()');
+    console.log('- testVoiceParticipants()');
+    console.log('- addTestVoiceParticipant(channelId, userId, username)');
+    console.log('- listVoiceParticipantContainers()');
+    console.log('- testVoiceParticipantCount(channelId, count)');
+    console.log('- verifyVoiceParticipantSystem()');
 });
 </script>
 

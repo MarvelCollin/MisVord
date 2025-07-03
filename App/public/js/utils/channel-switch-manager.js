@@ -476,9 +476,10 @@ class SimpleChannelSwitcher {
                 if (instance.refreshAllChannelParticipants) {
                     instance.refreshAllChannelParticipants();
                 } else {
-                    instance.syncWithVideoSDK();
                     instance.updateAllParticipantContainers();
                 }
+                
+                instance.refreshAllChannelCounts();
             }
 
             if (window.videoSDKManager?.isReady()) {

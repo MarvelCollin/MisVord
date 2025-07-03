@@ -161,7 +161,7 @@ $page_css = 'app';
 $page_js = 'pages/home-page';
 $additional_js = [
     'components/servers/server-dropdown', 
-    'components/servers/server-sidebar',
+
     'components/messaging/chat-section',
     'components/home/friends-tabs',
     'components/home/direct-message-nav',

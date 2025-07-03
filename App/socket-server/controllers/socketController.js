@@ -465,11 +465,18 @@ function setup(io) {
                 
             } catch (error) {
                 console.error(`❌ [SOCKET] Error registering voice meeting:`, error);
-                client.emit('voice-meeting-error', {
-                    error: 'Failed to register voice meeting',
-                    details: error.message,
-                    timestamp: Date.now()
-                });
+                if (!client.data?.errorSent) {
+                    client.emit('voice-meeting-error', {
+                        error: 'Failed to register voice meeting',
+                        details: error.message,
+                        timestamp: Date.now()
+                    });
+                    client.data = client.data || {};
+                    client.data.errorSent = true;
+                    setTimeout(() => {
+                        if (client.data) client.data.errorSent = false;
+                    }, 3000);
+                }
             }
         });
         

@@ -272,9 +272,23 @@ class VoiceManager {
             
             await this.videoSDKManager.joinMeeting();
             
-            // 🎯 STEP 4: Register with socket after VideoSDK join to avoid race conditions
-            console.log(`📝 [VOICE-MANAGER] Registering with socket for meeting: ${meetingId}...`);
-            await this.registerMeetingWithSocket(targetChannelId, meetingId);
+            this.currentMeetingId = meetingId;
+            this.isConnected = true;
+            
+            console.log(`🎉 [VOICE-MANAGER] Successfully joined voice!`, {
+                meetingId: meetingId,
+                channelId: targetChannelId,
+                wasExistingMeeting: !!existingMeeting,
+                action: existingMeeting ? 'JOINED_EXISTING' : 'CREATED_NEW'
+            });
+
+            window.voiceJoinInProgress = false;
+            
+            this.registerMeetingWithSocket(targetChannelId, meetingId).then(() => {
+                console.log('✅ [VOICE-MANAGER] Socket registration completed successfully');
+            }).catch((error) => {
+                console.warn('⚠️ [VOICE-MANAGER] Socket registration failed, but voice connection is still active:', error);
+            });
             
             await new Promise((resolve) => {
                 const checkReady = () => {
@@ -303,18 +317,6 @@ class VoiceManager {
                     checkReady();
                 }
             });
-            
-            this.currentMeetingId = meetingId;
-            this.isConnected = true;
-            
-            console.log(`🎉 [VOICE-MANAGER] Successfully joined voice!`, {
-                meetingId: meetingId,
-                channelId: targetChannelId,
-                wasExistingMeeting: !!existingMeeting,
-                action: existingMeeting ? 'JOINED_EXISTING' : 'CREATED_NEW'
-            });
-
-            window.voiceJoinInProgress = false;
 
             if (window.MusicLoaderStatic?.stopCallSound) {
                 window.MusicLoaderStatic.stopCallSound();
@@ -325,8 +327,23 @@ class VoiceManager {
             
             window.videoSDKJoiningInProgress = false;
             window.voiceJoinInProgress = false;
+            
+            if (this.videoSDKManager?.isConnected && error.message.includes('Socket registration')) {
+                console.warn('⚠️ [VOICE-MANAGER] Voice connected but socket registration failed. Continuing with limited functionality.');
+                this.isConnected = true;
+                return Promise.resolve();
+            }
+            
             this.isConnected = false;
-            this.showToast('Failed to connect to voice', 'error');
+            
+            if (!window.voiceJoinErrorShown && error.message && !error.message.includes('VideoSDK')) {
+                this.showToast('Failed to connect to voice', 'error');
+                window.voiceJoinErrorShown = true;
+                setTimeout(() => {
+                    window.voiceJoinErrorShown = false;
+                }, 3000);
+            }
+            
             return Promise.reject(error);
         }
     }
@@ -377,8 +394,9 @@ class VoiceManager {
     async registerMeetingWithSocket(channelId, meetingId) {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
+                window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
                 reject(new Error('Socket registration timeout'));
-            }, 10000);
+            }, 5000);
             
             const handleUpdate = (data) => {
                 if (data.channel_id === channelId && data.action === 'registered') {
@@ -392,6 +410,12 @@ class VoiceManager {
                     reject(new Error(data.error));
                 }
             };
+            
+            if (!window.globalSocketManager?.io || !window.globalSocketManager.isReady()) {
+                clearTimeout(timeout);
+                reject(new Error('Socket manager not ready'));
+                return;
+            }
             
             window.globalSocketManager.io.on('voice-meeting-update', handleUpdate);
             window.globalSocketManager.io.emit('register-voice-meeting', {
