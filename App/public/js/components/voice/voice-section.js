@@ -302,43 +302,68 @@ class VoiceSection {
     }
 
     resetState() {
-        console.log('🔄 [VOICE-SECTION] Resetting voice section state');
+        console.log('🔄 [VOICE-SECTION] Resetting voice section state.');
         
-        if (this.durationInterval) {
-            clearInterval(this.durationInterval);
-            this.durationInterval = null;
+        this.findElements();
+        
+        if (this.elements.joinView) this.elements.joinView.classList.remove('hidden');
+        if (this.elements.connectingView) this.elements.connectingView.classList.add('hidden');
+        if (this.elements.voiceControls) this.elements.voiceControls.classList.add('hidden');
+        
+        if (this.elements.joinBtn) {
+            const btnText = this.elements.joinBtn.querySelector('#btnText');
+            this.elements.joinBtn.disabled = true;
+            this.elements.joinBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            this.elements.joinBtn.classList.remove('bg-green-500', 'hover:bg-green-600', 'border-green-700', 'bg-gradient-to-r', 'from-blue-500', 'to-purple-600');
+            this.elements.joinBtn.classList.add('bg-gradient-to-r', 'from-gray-600/20', 'to-gray-500/20', 'border', 'border-gray-500/30');
+
+            if (btnText) {
+                btnText.textContent = 'Preparing...';
+            }
         }
         
-        this.connectionStartTime = null;
-        this.initializationAttempts = 0;
+        const loadingContainer = document.getElementById('loadingContainer');
+        const loadingProgress = document.getElementById('loadingProgress');
+        const loadingPercent = document.getElementById('loadingPercent');
+        
+        if (loadingContainer) loadingContainer.style.display = 'block';
+        if (loadingProgress) loadingProgress.style.width = '0%';
+        if (loadingPercent) loadingPercent.textContent = '0%';
+        
         this.isProcessing = false;
         this.autoJoinInProgress = false;
         window.voiceJoinInProgress = false;
-        
-        if (this.elements.joinBtn) {
-            this.elements.joinBtn.removeAttribute('data-processing');
-            this.elements.joinBtn.style.pointerEvents = 'auto';
-            this.elements.joinBtn.style.cursor = 'pointer';
-            this.elements.joinBtn.textContent = 'Join Voice';
-        }
-        
-        if (this.elements.connectingView) {
-            this.elements.connectingView.classList.add('hidden');
-        }
-        
-        if (this.elements.joinView) {
-            this.elements.joinView.classList.remove('hidden');
-        }
-        
-        if (this.elements.voiceControls) {
-            this.elements.voiceControls.classList.add('hidden');
-        }
-        
         console.log('✅ [VOICE-SECTION] State reset completed');
+    }
+    
+    enableJoinButton() {
+        console.log('✅ [VOICE-SECTION] Enabling join button.');
+        if (this.elements.joinBtn) {
+            const btnText = this.elements.joinBtn.querySelector('#btnText');
+            this.elements.joinBtn.disabled = false;
+
+            this.elements.joinBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'from-gray-600/20', 'to-gray-500/20', 'border-gray-500/30');
+            this.elements.joinBtn.classList.add('hover:bg-green-600', 'border-green-700', 'bg-gradient-to-r', 'from-blue-500', 'to-purple-600');
+            
+            if (btnText) {
+                const icon = this.elements.joinBtn.querySelector('i');
+                icon.className = 'fas fa-phone-alt text-xl';
+                btnText.textContent = 'Join Voice';
+            }
+        }
+        
+        const loadingContainer = document.getElementById('loadingContainer');
+        if (loadingContainer) {
+            loadingContainer.style.display = 'none';
+        }
     }
     
     updateChannelId(channelId, force = false) {
         console.log('🔄 [VOICE-SECTION] Updating channel ID:', channelId, 'force:', force);
+        
+        if (!this.initialized && this.initializationAttempts < this.maxInitAttempts) {
+            this.initializationAttempts++;
+        }
         
         if (force) {
             this.resetState();
@@ -358,6 +383,8 @@ class VoiceSection {
             this.fetchChannelData(channelId);
         }
         
+        this.enableJoinButton();
+
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
         const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
                            channelElement?.getAttribute('data-channel-name') || 

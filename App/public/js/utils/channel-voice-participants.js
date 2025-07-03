@@ -115,9 +115,9 @@ class ChannelVoiceParticipants {
     getUsername(userId, fallback = 'User') {
         const nameEl = document.querySelector(`.member-username[data-user-id="${userId}"]`);
         if (nameEl) {
-            return nameEl.textContent.trim();
+            return nameEl.textContent.replace(/Nitro\s*Member/gi, '').trim();
         }
-        return fallback;
+        return (fallback || '').replace(/Nitro\s*Member/gi, '').trim();
     }
 
     /**

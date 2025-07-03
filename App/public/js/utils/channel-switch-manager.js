@@ -357,34 +357,67 @@ class SimpleChannelSwitcher {
     async initializeVoiceChannel(channelId, forceFresh = false) {
         console.log('🔄 [SWITCH-MANAGER] Initializing voice channel:', channelId);
         
+        // Store current participants before cleanup
+        const currentParticipants = window.voiceManager?.getParticipants?.() || [];
+        const wasConnected = window.voiceManager?.isConnected || false;
+        const previousChannelId = window.voiceManager?.currentChannelId;
+        
         if (window.chatSection) {
             console.log('🔄 [SWITCH-MANAGER] Ensuring chat section cleanup for voice channel');
             window.chatSection.leaveCurrentSocketRoom();
             window.chatSection.forceStopAllOperations();
         }
         
-        if (window.voiceSection) {
+        // Only reset state if we're switching to a different channel
+        if (window.voiceSection && (forceFresh || previousChannelId !== channelId)) {
             await window.voiceSection.resetState();
             await window.voiceSection.updateChannelId(channelId, true);
         }
         
         // Sync voice manager to the new channel
         if (window.voiceManager) {
-            if (window.voiceManager.isConnected) {
-                if (window.voiceManager.currentChannelId !== channelId) {
+            window.voiceManager.currentChannelId = channelId;
+            
+            try {
+                // Only leave voice if switching to a different channel
+                if (wasConnected && previousChannelId !== channelId) {
                     window.voiceManager.leaveVoice();
                 }
-            }
-            window.voiceManager.currentChannelId = channelId;
-            try {
-                window.voiceManager.setupVoice(channelId);
+                
+                // Setup voice for the new channel
+                await window.voiceManager.setupVoice(channelId);
+                
+                // If we were connected and have participants, restore them
+                if (wasConnected && currentParticipants.length > 0) {
+                    console.log('🔄 [SWITCH-MANAGER] Restoring voice participants:', currentParticipants.length);
+                    
+                    // Update participant grid
+                    const participantGrid = document.getElementById('participantGrid');
+                    if (participantGrid) {
+                        participantGrid.innerHTML = ''; // Clear existing
+                        currentParticipants.forEach(participant => {
+                            if (window.voiceManager.addParticipantToGrid) {
+                                window.voiceManager.addParticipantToGrid(participant);
+                            }
+                        });
+                    }
+                    
+                    // Update participant count
+                    const participantCount = document.getElementById('voiceParticipantCount');
+                    if (participantCount) {
+                        participantCount.textContent = currentParticipants.length.toString();
+                    }
+                }
             } catch (e) {
                 console.warn('[SWITCH-MANAGER] Could not setup voiceManager for new channel:', e);
             }
         }
         
-        // DISABLED: Voice participants now use presence-only system
-        // Prevents blinking caused by socket-based updates
+        // Ensure voice UI is properly shown
+        const voiceCallApp = document.querySelector('.voice-call-app');
+        if (voiceCallApp) {
+            voiceCallApp.style.display = 'flex';
+        }
         
         console.log('✅ [SWITCH-MANAGER] Voice channel initialization complete');
     }

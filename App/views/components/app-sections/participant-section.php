@@ -303,7 +303,7 @@ function getActivityText(activityDetails, status) {
         case 'idle':
         default: 
             if (activityDetails.type && activityDetails.type.startsWith('In Voice - ')) {
-                return activityDetails.type;
+                return 'In Voice';
             }
             return status === 'afk' ? 'Away' : 'Online';
     }

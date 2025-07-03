@@ -5,6 +5,7 @@ class GlobalPresenceManager {
         this.activePagesWithActiveNow = ['home', 'server', 'admin', 'nitro', 'accept-invite'];
         this.currentPage = this.detectCurrentPage();
         this.lastRenderedState = null;
+        this.lastVoiceStates = new Map(); // Store last voice state per user
         
         console.log('🌐 [GLOBAL-PRESENCE] Initializing for page:', this.currentPage);
     }
@@ -567,21 +568,54 @@ class GlobalPresenceManager {
             return 'Online';
         }
         
+        const userId = activityDetails.user_id;
+        
+        // Handle Tic Tac Toe state changes
+        if (activityDetails.type === 'playing Tic Tac Toe') {
+            // Only allow starting Tic Tac Toe if not in voice
+            if (!this.lastVoiceStates.has(userId)) {
+                return 'Playing Tic Tac Toe';
+            } else {
+                // If in voice, keep showing voice state
+                const lastVoiceState = this.lastVoiceStates.get(userId);
+                return lastVoiceState.type || 'In Voice';
+            }
+        }
+        
+        // Handle voice state changes
+        if (activityDetails.type.startsWith('In Voice - ')) {
+            // Save voice state
+            this.lastVoiceStates.set(userId, {
+                type: activityDetails.type,
+                channel_id: activityDetails.channel_id,
+                channel_name: activityDetails.channel_name,
+                server_id: activityDetails.server_id
+            });
+            return activityDetails.type;
+        }
+        
+        // If leaving voice, clear saved state
+        if (activityDetails.type === 'idle' || activityDetails.type === 'afk') {
+            this.lastVoiceStates.delete(userId);
+        }
+        
         switch (activityDetails.type) {
-            case 'playing Tic Tac Toe': return 'Playing Tic Tac Toe';
             case 'afk': return 'Away';
             case 'idle':
-            default: 
-                if (activityDetails.type.startsWith('In Voice - ')) {
-                    return activityDetails.type;
-                }
-                return 'Online';
+            default: return 'Online';
         }
     }
 
     getActivityIcon(activityDetails) {
         if (!activityDetails || !activityDetails.type) {
             return 'fa-solid fa-circle';
+        }
+        
+        const userId = activityDetails.user_id;
+        
+        // If in voice, always show microphone icon regardless of Tic Tac Toe
+        if (this.lastVoiceStates.has(userId)) {
+            return 'fa-solid fa-microphone';
         }
         
         switch (activityDetails.type) {
@@ -611,6 +645,19 @@ class GlobalPresenceManager {
             window.globalPresenceManager = new GlobalPresenceManager();
         }
         return window.globalPresenceManager;
+    }
+
+    // Add helper methods for state management
+    isUserInVoice(userId) {
+        return this.lastVoiceStates.has(userId);
+    }
+
+    getLastVoiceState(userId) {
+        return this.lastVoiceStates.get(userId);
+    }
+
+    clearVoiceState(userId) {
+        this.lastVoiceStates.delete(userId);
     }
 }
 
