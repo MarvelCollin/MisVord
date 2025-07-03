@@ -130,10 +130,19 @@ class VoiceSection {
             if (window.globalSocketManager?.isReady()) {
                 console.log('🎤 [VOICE-PARTICIPANT] Updating presence to In Voice Call with channel context');
                 
+                // CRITICAL FIX: Ensure user is marked as active when voice connects
+                if (window.globalSocketManager.currentPresenceStatus === 'afk' || !window.globalSocketManager.isUserActive) {
+                    console.log(`🎯 [VOICE-PARTICIPANT] User was inactive/afk during voice connect, marking as active`);
+                    window.globalSocketManager.isUserActive = true;
+                    window.globalSocketManager.lastActivityTime = Date.now();
+                    window.globalSocketManager.currentPresenceStatus = 'online';
+                }
+                
                 const channelId = details.channelId || window.voiceManager?.currentChannelId;
                 const serverId = document.querySelector('meta[name="server-id"]')?.content;
                 const channelName = details.channelName || window.voiceManager?.currentChannelName || 'Voice Channel';
                 
+                console.log(`🎤 [VOICE-PARTICIPANT] Setting presence to In Voice Call - ${channelName}`);
                 window.globalSocketManager.updatePresence('online', { 
                     type: 'In Voice Call',
                     channel_id: channelId,

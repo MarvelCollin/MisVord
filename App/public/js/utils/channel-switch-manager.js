@@ -23,6 +23,16 @@ class SimpleChannelSwitcher {
             const channelItem = e.target.closest('.channel-item');
             if (!channelItem) return;
             
+            if (channelItem.classList.contains('dragging') || channelItem.hasAttribute('data-dragging')) {
+                console.log('🚫 [SWITCH-MANAGER] Prevented click during drag');
+                return;
+            }
+            
+            if (e.target.closest('.channel-menu') || e.target.closest('.channel-dropdown')) {
+                console.log('🚫 [SWITCH-MANAGER] Prevented click on menu elements');
+                return;
+            }
+            
             e.preventDefault();
             e.stopPropagation();
             

@@ -42,7 +42,7 @@ class ChatRoomMessageRepository extends Repository {
         
         error_log("DEBUG: Executing getMessagesByRoomId query with roomId=$roomId, limit=$limit, offset=$offset");
         $start_time = microtime(true);
-        $results = $query->query($sql, [$roomId, $limit + 1, $offset]);
+        $results = $query->query($sql, [$roomId, $limit, $offset]);
         $end_time = microtime(true);
         $execution_time = ($end_time - $start_time) * 1000;
         
@@ -97,10 +97,15 @@ class ChatRoomMessageRepository extends Repository {
     public function getMessagesByRoomIdWithPagination($roomId, $limit = 20, $offset = 0) {
         $messages = $this->getMessagesByRoomId($roomId, $limit, $offset);
         
-        $hasMore = count($messages) > $limit;
-        if ($hasMore) {
-            array_pop($messages);
+        error_log("[BOT-DEBUG] getMessagesByRoomIdWithPagination for room $roomId: " . count($messages) . " messages retrieved");
+        
+        $hasMore = false;
+        if (count($messages) === $limit) {
+            $nextMessages = $this->getMessagesByRoomId($roomId, 1, $offset + $limit);
+            $hasMore = !empty($nextMessages);
         }
+        
+        error_log("[BOT-DEBUG] Final DM pagination result: " . count($messages) . " messages, hasMore: " . ($hasMore ? 'true' : 'false'));
         
         return [
             'messages' => $messages,

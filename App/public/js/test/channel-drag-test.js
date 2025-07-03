@@ -120,6 +120,196 @@ function inspectChannelPositions() {
     });
 }
 
+function debugChannelDragSystem() {
+    console.log('🔧 [DEBUG] Channel Drag System Comprehensive Debug');
+    console.log('===============================================');
+    
+    const manager = window.getChannelDragManager && window.getChannelDragManager();
+    
+    console.log('1. 📦 Manager Status:');
+    console.log('   - Manager exists:', !!manager);
+    if (manager) {
+        console.log('   - Initialized:', manager.isInitialized);
+        console.log('   - Currently dragging:', manager.isDragging);
+        console.log('   - Server ID:', manager.currentServerId);
+    }
+    
+    console.log('\n2. 🎯 DOM Elements:');
+    const channels = document.querySelectorAll('.channel-item[data-channel-id]');
+    const categories = document.querySelectorAll('.category-header[data-category-id]');
+    console.log('   - Channels found:', channels.length);
+    console.log('   - Categories found:', categories.length);
+    
+    console.log('\n3. 🔧 Drag Setup Status:');
+    let setupChannels = 0;
+    let draggableChannels = 0;
+    
+    channels.forEach((channel, index) => {
+        const hasSetup = channel.hasAttribute('data-drag-setup');
+        const isDraggable = channel.draggable;
+        
+        if (hasSetup) setupChannels++;
+        if (isDraggable) draggableChannels++;
+        
+        if (index < 3) {
+            console.log(`   - Channel ${index + 1} "${channel.getAttribute('data-channel-name')}":`, {
+                setup: hasSetup,
+                draggable: isDraggable,
+                events: channel.getAttribute('data-drag-setup') === 'true'
+            });
+        }
+    });
+    
+    console.log(`   - Setup channels: ${setupChannels}/${channels.length}`);
+    console.log(`   - Draggable channels: ${draggableChannels}/${channels.length}`);
+    
+    console.log('\n4. 🎨 Styles:');
+    const styles = document.getElementById('channel-drag-styles');
+    console.log('   - Drag styles loaded:', !!styles);
+    
+    console.log('\n5. 🌐 API Endpoints Test:');
+    testAPIEndpoints();
+    
+    console.log('\n6. 👆 Event Listeners:');
+    testEventListeners();
+    
+    console.log('\n7. 📋 Quick Tests:');
+    console.log('   Run these commands to test:');
+    console.log('   - forceInitChannelDrag() - Reinitialize system');
+    console.log('   - testChannelDragEvents() - Test drag events');
+    console.log('   - inspectChannelElement(channelId) - Inspect specific channel');
+    
+    console.log('\n===============================================');
+}
+
+function testAPIEndpoints() {
+    const endpoints = [
+        '/api/channels/reorder',
+        '/api/categories/reorder', 
+        '/api/channels/move'
+    ];
+    
+    endpoints.forEach(endpoint => {
+        fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(response => {
+                console.log(`   - ${endpoint}: ${response.status === 422 ? 'Available' : 'Status ' + response.status}`);
+            })
+            .catch(error => {
+                console.log(`   - ${endpoint}: Error (${error.message})`);
+            });
+    });
+}
+
+function testEventListeners() {
+    const channels = document.querySelectorAll('.channel-item[data-channel-id]');
+    let hasEvents = 0;
+    
+    channels.forEach(channel => {
+        const events = getEventListeners ? getEventListeners(channel) : {};
+        if (events.dragstart || events.dragend || events.dragover || events.drop) {
+            hasEvents++;
+        }
+    });
+    
+    console.log(`   - Channels with drag events: ${hasEvents}/${channels.length}`);
+}
+
+function forceInitChannelDrag() {
+    console.log('🔄 [DEBUG] Force initializing channel drag system...');
+    
+    if (window.initChannelDragSystem) {
+        const manager = window.initChannelDragSystem();
+        console.log('✅ [DEBUG] Channel drag system reinitialized:', !!manager);
+        return manager;
+    } else {
+        console.error('❌ [DEBUG] initChannelDragSystem function not available');
+        return null;
+    }
+}
+
+function testChannelDragEvents() {
+    console.log('🧪 [DEBUG] Testing channel drag events...');
+    
+    const channels = document.querySelectorAll('.channel-item[data-channel-id]');
+    if (channels.length === 0) {
+        console.error('❌ [DEBUG] No channels found to test');
+        return;
+    }
+    
+    const testChannel = channels[0];
+    console.log('🎯 [DEBUG] Testing with channel:', testChannel.getAttribute('data-channel-name'));
+    
+    console.log('1. Testing dragstart event...');
+    const dragStartEvent = new DragEvent('dragstart', {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: new DataTransfer()
+    });
+    testChannel.dispatchEvent(dragStartEvent);
+    
+    setTimeout(() => {
+        console.log('2. Testing dragend event...');
+        const dragEndEvent = new DragEvent('dragend', {
+            bubbles: true,
+            cancelable: true
+        });
+        testChannel.dispatchEvent(dragEndEvent);
+        
+        console.log('✅ [DEBUG] Drag events test completed');
+    }, 1000);
+}
+
+function inspectChannelElement(channelId) {
+    const channel = document.querySelector(`[data-channel-id="${channelId}"]`);
+    
+    if (!channel) {
+        console.error(`❌ [DEBUG] Channel with ID ${channelId} not found`);
+        return;
+    }
+    
+    console.log(`🔍 [DEBUG] Inspecting channel ${channelId}:`);
+    console.log('   - Element:', channel);
+    console.log('   - Name:', channel.getAttribute('data-channel-name'));
+    console.log('   - Type:', channel.getAttribute('data-channel-type'));
+    console.log('   - Position:', channel.getAttribute('data-channel-position'));
+    console.log('   - Category ID:', channel.getAttribute('data-category-id'));
+    console.log('   - Draggable:', channel.draggable);
+    console.log('   - Has drag setup:', channel.hasAttribute('data-drag-setup'));
+    console.log('   - Classes:', channel.className);
+    
+    const events = getEventListeners ? getEventListeners(channel) : 'getEventListeners not available';
+    console.log('   - Event listeners:', events);
+}
+
+function fixChannelDragIssues() {
+    console.log('🛠️ [DEBUG] Attempting to fix common channel drag issues...');
+    
+    let fixed = 0;
+    
+    const channels = document.querySelectorAll('.channel-item[data-channel-id]');
+    channels.forEach(channel => {
+        if (!channel.draggable) {
+            channel.draggable = true;
+            fixed++;
+        }
+    });
+    
+    const categories = document.querySelectorAll('.category-header[data-category-id]');
+    categories.forEach(category => {
+        if (!category.draggable) {
+            category.draggable = true;
+            fixed++;
+        }
+    });
+    
+    console.log(`✅ [DEBUG] Fixed ${fixed} elements`);
+    
+    if (window.initChannelDragSystem) {
+        window.initChannelDragSystem();
+        console.log('✅ [DEBUG] Reinitialized drag system');
+    }
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
@@ -134,4 +324,9 @@ if (document.readyState === 'loading') {
 
 window.testChannelDragSystem = testChannelDragSystem;
 window.simulateChannelDrag = simulateChannelDrag;
-window.inspectChannelPositions = inspectChannelPositions; 
+window.inspectChannelPositions = inspectChannelPositions;
+window.debugChannelDragSystem = debugChannelDragSystem;
+window.forceInitChannelDrag = forceInitChannelDrag;
+window.testChannelDragEvents = testChannelDragEvents;
+window.inspectChannelElement = inspectChannelElement;
+window.fixChannelDragIssues = fixChannelDragIssues; 

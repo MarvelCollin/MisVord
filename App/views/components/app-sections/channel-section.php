@@ -312,6 +312,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 </style>
 
 <script src="/public/js/utils/channel-voice-participants.js"></script>
+<script src="/public/js/test/channel-drag-test.js"></script>
 
 <script type="module">
     import { initChannelDragSystem } from '/public/js/components/channels/channel-drag.js';
@@ -319,6 +320,8 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             initChannelDragSystem();
+            console.log('🎯 [Channel Section] Drag system initialized');
+            console.log('💡 [Channel Section] Run debugChannelDragSystem() to test');
         }, 1000);
     });
 </script>

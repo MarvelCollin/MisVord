@@ -106,21 +106,35 @@ class ChannelDragManager {
         const channelId = e.target.getAttribute('data-channel-id');
         const channelName = e.target.getAttribute('data-channel-name');
         
-        e.dataTransfer.setData('text/plain', JSON.stringify({
+        e.target.setAttribute('data-dragging', 'true');
+        e.target.classList.add('dragging');
+        
+        const dragData = {
             type: 'channel',
             id: channelId,
             name: channelName,
             position: e.target.getAttribute('data-channel-position'),
             categoryId: e.target.getAttribute('data-category-id'),
             channelType: e.target.getAttribute('data-channel-type')
-        }));
+        };
         
-        e.target.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+        e.dataTransfer.effectAllowed = 'move';
+        
         document.querySelectorAll('.channel-item, .category-header').forEach(el => {
             if (el !== e.target) el.classList.add('drag-potential-target');
         });
         
-        console.log('[Channel Drag] Started dragging channel:', channelName);
+        setTimeout(() => {
+            const clickHandler = (clickEvent) => {
+                clickEvent.preventDefault();
+                clickEvent.stopImmediatePropagation();
+                console.log('🚫 [Channel Drag] Prevented click during drag');
+            };
+            e.target.addEventListener('click', clickHandler, { capture: true, once: true });
+        }, 0);
+        
+        console.log('[Channel Drag] Started dragging channel:', channelName, dragData);
     }
     
     handleCategoryDragStart(e) {
@@ -131,19 +145,33 @@ class ChannelDragManager {
         const categoryId = e.target.getAttribute('data-category-id');
         const categoryName = e.target.getAttribute('data-category-name');
         
-        e.dataTransfer.setData('text/plain', JSON.stringify({
+        e.target.setAttribute('data-dragging', 'true');
+        e.target.classList.add('dragging');
+        
+        const dragData = {
             type: 'category',
             id: categoryId,
             name: categoryName,
             position: e.target.getAttribute('data-category-position')
-        }));
+        };
         
-        e.target.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+        e.dataTransfer.effectAllowed = 'move';
+        
         document.querySelectorAll('.category-header').forEach(el => {
             if (el !== e.target) el.classList.add('drag-potential-target');
         });
         
-        console.log('[Channel Drag] Started dragging category:', categoryName);
+        setTimeout(() => {
+            const clickHandler = (clickEvent) => {
+                clickEvent.preventDefault();
+                clickEvent.stopImmediatePropagation();
+                console.log('🚫 [Channel Drag] Prevented click during drag');
+            };
+            e.target.addEventListener('click', clickHandler, { capture: true, once: true });
+        }, 0);
+        
+        console.log('[Channel Drag] Started dragging category:', categoryName, dragData);
     }
     
     handleChannelDragOver(e) {
@@ -152,10 +180,20 @@ class ChannelDragManager {
         
         if (!this.isDragging) return;
         
-        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
-        
-        if (dragData.type === 'channel') {
-            e.target.closest('.channel-item').classList.add('drag-over');
+        try {
+            const dragDataStr = e.dataTransfer.getData('text/plain');
+            if (!dragDataStr) return;
+            
+            const dragData = JSON.parse(dragDataStr);
+            
+            if (dragData.type === 'channel') {
+                const targetChannel = e.target.closest('.channel-item');
+                if (targetChannel) {
+                    targetChannel.classList.add('drag-over');
+                }
+            }
+        } catch (error) {
+            console.warn('[Channel Drag] Error in handleChannelDragOver:', error);
         }
     }
     
@@ -165,10 +203,20 @@ class ChannelDragManager {
         
         if (!this.isDragging) return;
         
-        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
-        
-        if (dragData.type === 'category') {
-            e.target.closest('.category-header').classList.add('drag-over');
+        try {
+            const dragDataStr = e.dataTransfer.getData('text/plain');
+            if (!dragDataStr) return;
+            
+            const dragData = JSON.parse(dragDataStr);
+            
+            if (dragData.type === 'category') {
+                const targetCategory = e.target.closest('.category-header');
+                if (targetCategory) {
+                    targetCategory.classList.add('drag-over');
+                }
+            }
+        } catch (error) {
+            console.warn('[Channel Drag] Error in handleCategoryDragOver:', error);
         }
     }
     
@@ -178,10 +226,17 @@ class ChannelDragManager {
         
         if (!this.isDragging) return;
         
-        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
-        
-        if (dragData.type === 'channel') {
-            e.target.classList.add('drag-over-zone');
+        try {
+            const dragDataStr = e.dataTransfer.getData('text/plain');
+            if (!dragDataStr) return;
+            
+            const dragData = JSON.parse(dragDataStr);
+            
+            if (dragData.type === 'channel') {
+                e.target.classList.add('drag-over-zone');
+            }
+        } catch (error) {
+            console.warn('[Channel Drag] Error in handleDropZoneDragOver:', error);
         }
     }
     
@@ -191,10 +246,17 @@ class ChannelDragManager {
         
         if (!this.isDragging) return;
         
-        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
-        
-        if (dragData.type === 'channel') {
-            e.target.classList.add('drag-over-zone');
+        try {
+            const dragDataStr = e.dataTransfer.getData('text/plain');
+            if (!dragDataStr) return;
+            
+            const dragData = JSON.parse(dragDataStr);
+            
+            if (dragData.type === 'channel') {
+                e.target.classList.add('drag-over-zone');
+            }
+        } catch (error) {
+            console.warn('[Channel Drag] Error in handleSectionDragOver:', error);
         }
     }
     
@@ -202,21 +264,35 @@ class ChannelDragManager {
         e.preventDefault();
         e.stopPropagation();
         
-        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
-        const targetChannel = e.target.closest('.channel-item');
-        
-        if (dragData.type === 'channel' && targetChannel) {
-            const targetId = targetChannel.getAttribute('data-channel-id');
-            const targetPosition = parseInt(targetChannel.getAttribute('data-channel-position'));
-            const targetCategoryId = targetChannel.getAttribute('data-category-id');
-            
-            if (dragData.id !== targetId) {
-                this.reorderChannels(dragData, {
-                    id: targetId,
-                    position: targetPosition,
-                    categoryId: targetCategoryId
-                });
+        try {
+            const dragDataStr = e.dataTransfer.getData('text/plain');
+            if (!dragDataStr) {
+                console.warn('[Channel Drag] No drag data available in drop');
+                this.clearDragStates();
+                return;
             }
+            
+            const dragData = JSON.parse(dragDataStr);
+            const targetChannel = e.target.closest('.channel-item');
+            
+            console.log('[Channel Drag] Channel drop event:', { dragData, targetChannel });
+            
+            if (dragData.type === 'channel' && targetChannel) {
+                const targetId = targetChannel.getAttribute('data-channel-id');
+                const targetPosition = parseInt(targetChannel.getAttribute('data-channel-position'));
+                const targetCategoryId = targetChannel.getAttribute('data-category-id');
+                
+                if (dragData.id !== targetId) {
+                    console.log('[Channel Drag] Reordering channels:', dragData.name, ' -> ', targetChannel.getAttribute('data-channel-name'));
+                    this.reorderChannels(dragData, {
+                        id: targetId,
+                        position: targetPosition,
+                        categoryId: targetCategoryId
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('[Channel Drag] Error in handleChannelDrop:', error);
         }
         
         this.clearDragStates();
@@ -226,19 +302,33 @@ class ChannelDragManager {
         e.preventDefault();
         e.stopPropagation();
         
-        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
-        const targetCategory = e.target.closest('.category-header');
-        
-        if (dragData.type === 'category' && targetCategory) {
-            const targetId = targetCategory.getAttribute('data-category-id');
-            const targetPosition = parseInt(targetCategory.getAttribute('data-category-position'));
-            
-            if (dragData.id !== targetId) {
-                this.reorderCategories(dragData, {
-                    id: targetId,
-                    position: targetPosition
-                });
+        try {
+            const dragDataStr = e.dataTransfer.getData('text/plain');
+            if (!dragDataStr) {
+                console.warn('[Channel Drag] No drag data available in category drop');
+                this.clearDragStates();
+                return;
             }
+            
+            const dragData = JSON.parse(dragDataStr);
+            const targetCategory = e.target.closest('.category-header');
+            
+            console.log('[Channel Drag] Category drop event:', { dragData, targetCategory });
+            
+            if (dragData.type === 'category' && targetCategory) {
+                const targetId = targetCategory.getAttribute('data-category-id');
+                const targetPosition = parseInt(targetCategory.getAttribute('data-category-position'));
+                
+                if (dragData.id !== targetId) {
+                    console.log('[Channel Drag] Reordering categories:', dragData.name, ' -> ', targetCategory.getAttribute('data-category-name'));
+                    this.reorderCategories(dragData, {
+                        id: targetId,
+                        position: targetPosition
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('[Channel Drag] Error in handleCategoryDrop:', error);
         }
         
         this.clearDragStates();
@@ -248,14 +338,28 @@ class ChannelDragManager {
         e.preventDefault();
         e.stopPropagation();
         
-        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
-        
-        if (dragData.type === 'channel') {
-            const categoryId = e.target.getAttribute('data-category-id');
-            
-            if (dragData.categoryId !== categoryId) {
-                this.moveChannelToCategory(dragData, categoryId);
+        try {
+            const dragDataStr = e.dataTransfer.getData('text/plain');
+            if (!dragDataStr) {
+                console.warn('[Channel Drag] No drag data available in drop zone');
+                this.clearDragStates();
+                return;
             }
+            
+            const dragData = JSON.parse(dragDataStr);
+            
+            console.log('[Channel Drag] Drop zone drop event:', { dragData, target: e.target });
+            
+            if (dragData.type === 'channel') {
+                const categoryId = e.target.getAttribute('data-category-id');
+                
+                if (dragData.categoryId !== categoryId) {
+                    console.log('[Channel Drag] Moving channel to category:', dragData.name, ' -> category:', categoryId);
+                    this.moveChannelToCategory(dragData, categoryId);
+                }
+            }
+        } catch (error) {
+            console.error('[Channel Drag] Error in handleDropZoneDrop:', error);
         }
         
         this.clearDragStates();
@@ -265,12 +369,26 @@ class ChannelDragManager {
         e.preventDefault();
         e.stopPropagation();
         
-        const dragData = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
-        
-        if (dragData.type === 'channel') {
-            if (dragData.categoryId) {
-                this.moveChannelToCategory(dragData, null);
+        try {
+            const dragDataStr = e.dataTransfer.getData('text/plain');
+            if (!dragDataStr) {
+                console.warn('[Channel Drag] No drag data available in section drop');
+                this.clearDragStates();
+                return;
             }
+            
+            const dragData = JSON.parse(dragDataStr);
+            
+            console.log('[Channel Drag] Section drop event:', { dragData, target: e.target });
+            
+            if (dragData.type === 'channel') {
+                if (dragData.categoryId) {
+                    console.log('[Channel Drag] Moving channel to uncategorized:', dragData.name);
+                    this.moveChannelToCategory(dragData, null);
+                }
+            }
+        } catch (error) {
+            console.error('[Channel Drag] Error in handleSectionDrop:', error);
         }
         
         this.clearDragStates();
@@ -281,6 +399,7 @@ class ChannelDragManager {
     }
     
     handleDragEnd(e) {
+        console.log('[Channel Drag] Drag ended for:', e.target.getAttribute('data-channel-name') || e.target.getAttribute('data-category-name'));
         this.clearDragStates();
     }
     
@@ -291,7 +410,10 @@ class ChannelDragManager {
         
         document.querySelectorAll('.dragging, .drag-over, .drag-over-zone, .drag-potential-target').forEach(el => {
             el.classList.remove('dragging', 'drag-over', 'drag-over-zone', 'drag-potential-target');
+            el.removeAttribute('data-dragging');
         });
+        
+        console.log('[Channel Drag] Drag states cleared');
     }
     
     async reorderChannels(draggedChannel, targetChannel) {

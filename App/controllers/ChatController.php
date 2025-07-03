@@ -111,6 +111,7 @@ class ChatController extends BaseController
             }
             
             error_log("[BOT-DEBUG] Formatted messages: $botCount bot messages, $userCount user messages, $replyCount replies");
+            error_log("[BOT-DEBUG] Sending API response for channel $channelId with " . count($formattedMessages) . " messages");
 
             return $this->respondMessages('channel', $channelId, $formattedMessages, $hasMore);
         } catch (Exception $e) {
@@ -169,6 +170,8 @@ class ChatController extends BaseController
     
     private function respondMessages($type, $targetId, $messages, $hasMore = false)
     {
+        error_log("[BOT-DEBUG] respondMessages called for $type $targetId with " . count($messages) . " messages, hasMore: " . ($hasMore ? 'true' : 'false'));
+        
         return $this->success([
             'type' => $type,
             'target_id' => $targetId,

@@ -285,14 +285,25 @@ class VoiceManager {
                     username: userName
                 });
                 
+                // CRITICAL FIX: Ensure user is marked as active before joining voice
+                // This prevents AFK status from interfering with voice call status
+                if (window.globalSocketManager.currentPresenceStatus === 'afk' || !window.globalSocketManager.isUserActive) {
+                    console.log(`🎯 [VOICE-PARTICIPANT] User was inactive/afk, marking as active before voice registration`);
+                    window.globalSocketManager.isUserActive = true;
+                    window.globalSocketManager.lastActivityTime = Date.now();
+                    window.globalSocketManager.currentPresenceStatus = 'online';
+                }
+                
                 window.globalSocketManager.io.emit('register-voice-meeting', {
                     channel_id: targetChannelId,
                     meeting_id: meetingId,
                     server_id: serverId,
-                    username: userName
+                    username: userName,
+                    channel_name: this.currentChannelName || 'Voice Channel'
                 });
                 
                 // Update presence with full voice context
+                console.log(`🎤 [VOICE-PARTICIPANT] Updating presence to In Voice Call for channel ${targetChannelId}`);
                 window.globalSocketManager.updatePresence('online', { 
                     type: 'In Voice Call',
                     channel_id: targetChannelId,

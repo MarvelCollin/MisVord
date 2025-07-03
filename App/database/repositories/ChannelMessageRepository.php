@@ -40,7 +40,7 @@ class ChannelMessageRepository extends Repository {
             LIMIT ? OFFSET ?
         ";
         
-        $results = $query->query($sql, [$channelId, $limit + 1, $offset]);
+        $results = $query->query($sql, [$channelId, $limit, $offset]);
         
         error_log("[BOT-DEBUG] Channel $channelId raw query returned " . count($results) . " messages");
         
@@ -83,10 +83,15 @@ class ChannelMessageRepository extends Repository {
     public function getMessagesByChannelIdWithPagination($channelId, $limit = 20, $offset = 0) {
         $messages = $this->getMessagesByChannelId($channelId, $limit, $offset);
         
-        $hasMore = count($messages) > $limit;
-        if ($hasMore) {
-            array_pop($messages);
+        error_log("[BOT-DEBUG] getMessagesByChannelIdWithPagination for channel $channelId: " . count($messages) . " messages retrieved");
+        
+        $hasMore = false;
+        if (count($messages) === $limit) {
+            $nextMessages = $this->getMessagesByChannelId($channelId, 1, $offset + $limit);
+            $hasMore = !empty($nextMessages);
         }
+        
+        error_log("[BOT-DEBUG] Final pagination result: " . count($messages) . " messages, hasMore: " . ($hasMore ? 'true' : 'false'));
         
         return [
             'messages' => $messages,
