@@ -1008,6 +1008,7 @@ class VoiceCallManager {
             if (this.localParticipantId) {
                 console.log('[VOICE-CALL-MANAGER] Removing local participant on disconnect');
                 this.handleParticipantLeft(this.localParticipantId);
+                this.localParticipantId = null;
             }
             
             this.cleanup();
@@ -1163,11 +1164,12 @@ class VoiceCallManager {
 
         this._participants.set(participantId, participantData);
         
-        console.log(`[VOICE-CALL-MANAGER] Added participant: ${participantData.name} (${participantId}) from source: ${source}`);
+        console.log(`[VOICE-CALL-MANAGER] Added participant: ${participantData.name} (${participantId})`);
         
         await this.createParticipantElement(participantData);
         this.updateParticipantCount();
         
+        // Emit local join event for immediate UI updates
         this.broadcastParticipantUpdate('join', participantId, participantData.name);
     }
 
@@ -1184,8 +1186,6 @@ class VoiceCallManager {
         
         this.removeParticipantElement(participantId);
         this.updateParticipantCount();
-        
-        this.broadcastParticipantUpdate('leave', participantId, participant.name);
         
         const wasLocal = participant.isLocal || participant.source === 'local';
         if (!wasLocal && window.MusicLoaderStatic?.playDisconnectVoiceSound) {
@@ -2292,29 +2292,20 @@ class VoiceCallManager {
     }
 
     broadcastParticipantUpdate(action, participantId, participantName) {
+        // Socket registration now handles global broadcasting
+        // Only dispatch local events for immediate UI updates
         const currentChannelId = window.voiceManager?.currentChannelId;
         
-        if (!currentChannelId || !window.globalSocketManager?.isReady()) {
-            console.log('[VOICE-CALL-MANAGER] Cannot broadcast - no channel or socket not ready:', {
-                hasChannel: !!currentChannelId,
-                socketReady: window.globalSocketManager?.isReady() || false
-            });
+        if (!currentChannelId) {
+            console.log('[VOICE-CALL-MANAGER] Cannot broadcast - no current channel');
             return;
         }
         
-        const updateData = {
-            channel_id: currentChannelId,
-            action: action,
-            user_id: participantId,
-            username: participantName,
-            participant_count: this._participants.size,
-            timestamp: Date.now()
-        };
-        
-        console.log(`[VOICE-CALL-MANAGER] Broadcasting participant ${action} globally:`, updateData);
-        
-        // Global broadcast to all users
-        window.globalSocketManager.io.emit('voice-meeting-update', updateData);
+        console.log(`[VOICE-CALL-MANAGER] Local participant ${action} event:`, {
+            participantId,
+            participantName,
+            channelId: currentChannelId
+        });
         
         // Local event for immediate updates
         window.dispatchEvent(new CustomEvent('voiceParticipantUpdate', {

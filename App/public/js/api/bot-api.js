@@ -1,75 +1,91 @@
 class BotAPI {
-    constructor() {
-        this.baseURL = '/api/bots';
-    }
+    static BASE_URL = '/api';
 
-    async checkBot(username) {
+    static async sendBotCommand(channelId, roomId, command, parameter = null) {
+        const endpoint = `${this.BASE_URL}/bot/command`;
+        
+        const data = {
+            channel_id: channelId,
+            room_id: roomId,
+            command: command,
+            parameter: parameter
+        };
+        
         try {
-            const response = await fetch(`${this.baseURL}/check/${encodeURIComponent(username)}`, {
+            const response = await fetch(endpoint, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(data)
             });
-
+            
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-
-            const text = await response.text();
             
-            if (text.trim().startsWith('<') || text.includes('<!DOCTYPE')) {
-                throw new Error('Server returned HTML instead of JSON');
-            }
-
-            if (!text) {
-                return { success: false, message: 'Empty response from server' };
-            }
-
-            return JSON.parse(text);
+            return await response.json();
         } catch (error) {
-            return {
-                success: false,
-                message: error.message || 'Failed to check bot status'
-            };
+            console.error('Failed to send bot command:', error);
+            throw error;
         }
     }
 
-    async createBot(botData) {
-        return {
-            success: false,
-            message: 'Bot creation via AJAX has been disabled. Use WebSocket methods instead.'
-        };
+    static async getBotStatus(botId) {
+        const endpoint = `${this.BASE_URL}/bot/status/${botId}`;
+        
+        try {
+            const response = await fetch(endpoint, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Failed to get bot status:', error);
+            throw error;
+        }
     }
 
-    async listBots(limit = 50) {
-        return {
-            success: false,
-            message: 'Bot listing via AJAX has been disabled. Use WebSocket methods instead.'
-        };
-    }
-
-    async addToServer(botId, serverId) {
-        return {
-            success: false,
-            message: 'Add to server via AJAX has been disabled. Use WebSocket methods instead.'
-        };
-    }
-
-    async removeFromServer(botId, serverId) {
-        return {
-            success: false,
-            message: 'Remove from server via AJAX has been disabled. Use WebSocket methods instead.'
-        };
-    }
-
-    async deleteBot(botId) {
-        return {
-            success: false,
-            message: 'Bot deletion via AJAX has been disabled. Use WebSocket methods instead.'
-        };
+    static async getMusicQueue(channelId, roomId) {
+        const endpoint = `${this.BASE_URL}/bot/music/queue`;
+        
+        const params = new URLSearchParams();
+        if (channelId) params.append('channel_id', channelId);
+        if (roomId) params.append('room_id', roomId);
+        
+        try {
+            const response = await fetch(`${endpoint}?${params}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Failed to get music queue:', error);
+            throw error;
+        }
     }
 }
 
-const botAPI = new BotAPI();
-window.botAPI = botAPI;
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = BotAPI;
+} else if (typeof window !== 'undefined') {
+    window.BotAPI = BotAPI;
+} 

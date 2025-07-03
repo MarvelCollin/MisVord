@@ -32,7 +32,9 @@ function testDragSystem() {
     });
     
     const groups = window.LocalStorageManager?.getServerGroups() || [];
+    const serverOrder = window.LocalStorageManager?.getServerOrder() || [];
     console.log(`💾 Current server groups in storage: ${groups.length}`);
+    console.log(`📋 Server order tracking: ${serverOrder.length} servers`);
     
     if (groups.length > 0) {
         groups.forEach((group, index) => {
@@ -45,11 +47,13 @@ function testDragSystem() {
     console.log('  2. Click folder to expand/collapse');
     console.log('  3. Right-click folder for context menu');
     console.log('  4. Drag server to empty space to remove from folder');
+    console.log('  5. Server positions should be preserved during operations');
     
     return {
         serverCount: serverIcons.length,
         groupCount: groups.length,
         domGroupCount: serverGroups.length,
+        orderLength: serverOrder.length,
         isReady: serverIcons.length > 0 && serverList !== null
     };
 }
@@ -177,9 +181,48 @@ function debugServerLocations() {
     };
 }
 
+function testServerPositioning() {
+    console.log('📍 Testing Server Positioning System...');
+    
+    if (!window.LocalStorageManager) {
+        console.error('❌ LocalStorageManager not available');
+        return false;
+    }
+    
+    const serverOrder = window.LocalStorageManager.getServerOrder();
+    const currentElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
+    const currentIds = Array.from(currentElements).map(el => el.getAttribute('data-server-id'));
+    
+    console.log('📋 Stored order:', serverOrder);
+    console.log('🎭 DOM order:', currentIds);
+    
+    const missingInOrder = currentIds.filter(id => !serverOrder.includes(id));
+    const missingInDom = serverOrder.filter(id => !currentIds.includes(id));
+    
+    if (missingInOrder.length > 0) {
+        console.warn('⚠️ Servers in DOM but not in order:', missingInOrder);
+    }
+    
+    if (missingInDom.length > 0) {
+        console.warn('⚠️ Servers in order but not in DOM:', missingInDom);
+    }
+    
+    const isConsistent = missingInOrder.length === 0 && missingInDom.length === 0;
+    console.log(`✅ Position consistency: ${isConsistent ? 'PASS' : 'FAIL'}`);
+    
+    return {
+        consistent: isConsistent,
+        orderCount: serverOrder.length,
+        domCount: currentIds.length,
+        missingInOrder: missingInOrder.length,
+        missingInDom: missingInDom.length
+    };
+}
+
 // Export all functions to global scope
 window.testDragSystem = testDragSystem;
 window.testCollapseExpand = testCollapseExpand;
 window.createTestGroup = createTestGroup;
 window.clearAllGroups = clearAllGroups;
-window.debugServerLocations = debugServerLocations; 
+window.debugServerLocations = debugServerLocations;
+window.testServerPositioning = testServerPositioning; 

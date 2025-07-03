@@ -335,6 +335,27 @@ class LocalStorageManager {
         return manager.set('misvord_server_groups_v2', groups);
     }
 
+    static getServerOrder() {
+        const manager = new LocalStorageManager();
+        return manager.get('misvord_server_order', []);
+    }
+
+    static setServerOrder(serverIds) {
+        const manager = new LocalStorageManager();
+        return manager.set('misvord_server_order', serverIds);
+    }
+
+    static initializeServerOrder() {
+        const currentOrder = this.getServerOrder();
+        if (currentOrder.length === 0) {
+            const allServerElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
+            const serverIds = Array.from(allServerElements).map(el => el.getAttribute('data-server-id'));
+            this.setServerOrder(serverIds);
+            return serverIds;
+        }
+        return currentOrder;
+    }
+
     static addServerGroup(name) {
         const groups = this.getServerGroups();
         const groupId = Date.now().toString();

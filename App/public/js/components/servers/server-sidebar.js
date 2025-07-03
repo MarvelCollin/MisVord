@@ -118,6 +118,8 @@ function initServerSidebar() {
     }
     window.__SIDEBAR_INITIALIZED__ = true;
     console.log('[Server Sidebar] Initializing server sidebar');
+    
+    LocalStorageManager.initializeServerOrder();
     performCompleteRender();
 }
 
@@ -130,17 +132,14 @@ function performCompleteRender() {
 function clearAllPreviousState() {
     console.log('[Server Sidebar] Clearing previous state');
     
-    // Reset all servers to main list before clearing
     resetServersToMainList();
     
-    // Clear drag setup from all server icons
     document.querySelectorAll('.server-sidebar-icon[data-setup]').forEach(icon => {
         icon.removeAttribute('data-setup');
         icon.draggable = false;
         icon.classList.remove('in-group');
     });
     
-    // Remove all server groups
     document.querySelectorAll('.server-sidebar-group').forEach(folder => {
         folder.remove();
     });
@@ -165,18 +164,24 @@ function setupServerIcons() {
         icon.setAttribute('data-setup', 'true');
         icon.draggable = true;
         
-        // Setup tooltip for this server icon
         setupTooltipForElement(icon);
         
         icon.addEventListener('dragstart', e => {
             const serverId = icon.getAttribute('data-server-id');
             e.dataTransfer.setData('text/plain', serverId);
-            icon.style.opacity = '0.5';
+            icon.classList.add('dragging');
+            
+            document.querySelectorAll('.server-sidebar-icon').forEach(el => {
+                if (el !== icon) {
+                    el.classList.add('repositioning');
+                }
+            });
         });
         
         icon.addEventListener('dragend', () => {
-            icon.style.opacity = '1';
+            icon.classList.remove('dragging');
             document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+            document.querySelectorAll('.repositioning').forEach(el => el.classList.remove('repositioning'));
         });
         
         icon.addEventListener('dragover', e => {
@@ -208,18 +213,34 @@ function setupServerIcons() {
                 }
                 if (targetInGroup) {
                     LocalStorageManager.addServerToGroup(targetInGroup.id, draggedId);
-                    performCompleteRender();
-                    return;
+                } else {
+                    const groupId = LocalStorageManager.addServerGroup('Folder');
+                    LocalStorageManager.addServerToGroup(groupId, draggedId);
+                    LocalStorageManager.addServerToGroup(groupId, targetId);
+                    LocalStorageManager.setGroupCollapsed(groupId, false);
                 }
                 
-                const groupId = LocalStorageManager.addServerGroup('Folder');
-                LocalStorageManager.addServerToGroup(groupId, draggedId);
-                LocalStorageManager.addServerToGroup(groupId, targetId);
-                LocalStorageManager.setGroupCollapsed(groupId, false);
+                updateServerOrderAfterDrop(draggedId, targetId);
                 performCompleteRender();
             }
         });
     });
+}
+
+function updateServerOrderAfterDrop(draggedId, targetId) {
+    const currentOrder = LocalStorageManager.getServerOrder();
+    const draggedIndex = currentOrder.indexOf(draggedId);
+    const targetIndex = currentOrder.indexOf(targetId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) return;
+    
+    const newOrder = [...currentOrder];
+    newOrder.splice(draggedIndex, 1);
+    
+    const newTargetIndex = newOrder.indexOf(targetId);
+    newOrder.splice(newTargetIndex, 0, draggedId);
+    
+    LocalStorageManager.setServerOrder(newOrder);
 }
 
 async function renderFolders() {
@@ -235,18 +256,25 @@ async function renderFolders() {
     serverDataCache = null;
     
     const groups = LocalStorageManager.getServerGroups();
+    const serverOrder = LocalStorageManager.getServerOrder();
     
-    // Remove all existing server groups
     document.querySelectorAll('.server-sidebar-group').forEach(el => el.remove());
     
-    // Get all server IDs that should be in groups
     const serversInGroups = new Set();
     groups.forEach(group => {
         group.servers.forEach(serverId => serversInGroups.add(serverId));
     });
     
-    // Hide servers that should be in groups to prevent duplication
-    document.querySelectorAll('#server-list > .server-sidebar-icon[data-server-id]').forEach(serverIcon => {
+    const currentServerElements = Array.from(document.querySelectorAll('#server-list > .server-sidebar-icon[data-server-id]'));
+    const currentServerIds = currentServerElements.map(el => el.getAttribute('data-server-id'));
+    
+    const newServerIds = currentServerIds.filter(id => !serverOrder.includes(id));
+    if (newServerIds.length > 0) {
+        const updatedOrder = [...serverOrder, ...newServerIds];
+        LocalStorageManager.setServerOrder(updatedOrder);
+    }
+    
+    currentServerElements.forEach(serverIcon => {
         const serverId = serverIcon.getAttribute('data-server-id');
         if (serversInGroups.has(serverId)) {
             serverIcon.style.display = 'none';
@@ -259,7 +287,6 @@ async function renderFolders() {
     
     const serverImageData = await buildServerImageData();
     
-    // Find the correct insertion point - before the add server button
     const addServerButton = serverList.querySelector('.discord-add-server-button')?.parentNode;
     
     for (const group of groups) {
@@ -272,7 +299,6 @@ async function renderFolders() {
         if (addServerButton) {
             serverList.insertBefore(folderElement, addServerButton);
         } else {
-            // Fallback: insert after the last individual server
             const lastServer = serverList.querySelector('.server-sidebar-icon[data-server-id]:last-of-type');
             if (lastServer) {
                 lastServer.insertAdjacentElement('afterend', folderElement);
@@ -283,18 +309,24 @@ async function renderFolders() {
         
         const serversContainer = folderElement.querySelector('.group-servers');
         
-        // Move servers from main list to group
-        group.servers.forEach(serverId => {
-            // Find the hidden server element
-            const serverElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
-            if (serverElement && serversContainer) {
-                console.log(`[Server Groups] Moving server ${serverId} to group ${group.id}`);
-                serverElement.style.display = '';
-                serverElement.classList.add('in-group');
-                if (serverElement.parentNode) {
-                    serverElement.parentNode.removeChild(serverElement);
+        const serversToMove = group.servers
+            .map(serverId => ({
+                id: serverId,
+                element: document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`),
+                orderIndex: serverOrder.indexOf(serverId)
+            }))
+            .filter(server => server.element)
+            .sort((a, b) => (a.orderIndex === -1 ? Infinity : a.orderIndex) - (b.orderIndex === -1 ? Infinity : b.orderIndex));
+        
+        serversToMove.forEach(server => {
+            if (serversContainer) {
+                console.log(`[Server Groups] Moving server ${server.id} to group ${group.id}`);
+                server.element.style.display = '';
+                server.element.classList.add('in-group');
+                if (server.element.parentNode) {
+                    server.element.parentNode.removeChild(server.element);
                 }
-                serversContainer.appendChild(serverElement);
+                serversContainer.appendChild(server.element);
             }
         });
         
@@ -313,33 +345,74 @@ function resetServersToMainList() {
     const mainList = document.getElementById('server-list');
     if (!mainList) return;
     
-    // Get all servers that are currently in groups (inside .group-servers containers)
+    const serverOrder = LocalStorageManager.getServerOrder();
     const serversInGroups = document.querySelectorAll('.server-sidebar-group .group-servers .server-sidebar-icon[data-server-id]');
     
-    // Move them back to main list
+    const serversToReposition = [];
     serversInGroups.forEach(serverIcon => {
         serverIcon.classList.remove('in-group');
         serverIcon.style.display = '';
-        
-        // Insert before add server button to maintain correct order
-        const addButton = mainList.querySelector('.discord-add-server-button')?.parentNode;
-        if (addButton) {
-            mainList.insertBefore(serverIcon, addButton);
-        } else {
-            // Fallback: append after divider if exists
-            const divider = mainList.querySelector('.server-sidebar-divider');
-            if (divider) {
-                divider.insertAdjacentElement('afterend', serverIcon);
-            } else {
-                mainList.appendChild(serverIcon);
-            }
+        serversToReposition.push({
+            element: serverIcon,
+            id: serverIcon.getAttribute('data-server-id')
+        });
+        if (serverIcon.parentNode) {
+            serverIcon.parentNode.removeChild(serverIcon);
         }
     });
     
-    // Show all hidden servers and clean up classes
     document.querySelectorAll('.server-sidebar-icon[data-server-id].in-group').forEach(serverIcon => {
         serverIcon.classList.remove('in-group');
         serverIcon.style.display = '';
+    });
+    
+    const addButton = mainList.querySelector('.discord-add-server-button')?.parentNode;
+    const divider = mainList.querySelector('.server-sidebar-divider');
+    
+    serversToReposition.sort((a, b) => {
+        const aIndex = serverOrder.indexOf(a.id);
+        const bIndex = serverOrder.indexOf(b.id);
+        return (aIndex === -1 ? Infinity : aIndex) - (bIndex === -1 ? Infinity : bIndex);
+    });
+    
+    const existingServers = mainList.querySelectorAll('.server-sidebar-icon[data-server-id]');
+    const existingServerMap = new Map();
+    existingServers.forEach(server => {
+        const id = server.getAttribute('data-server-id');
+        const index = serverOrder.indexOf(id);
+        existingServerMap.set(index === -1 ? Infinity : index, server);
+    });
+    
+    serversToReposition.forEach(serverData => {
+        const targetIndex = serverOrder.indexOf(serverData.id);
+        if (targetIndex === -1) {
+            if (addButton) {
+                mainList.insertBefore(serverData.element, addButton);
+            } else if (divider) {
+                divider.insertAdjacentElement('afterend', serverData.element);
+            } else {
+                mainList.appendChild(serverData.element);
+            }
+            return;
+        }
+        
+        let insertBeforeElement = addButton;
+        for (const [index, element] of existingServerMap.entries()) {
+            if (index > targetIndex) {
+                insertBeforeElement = element;
+                break;
+            }
+        }
+        
+        if (insertBeforeElement && mainList.contains(insertBeforeElement)) {
+            mainList.insertBefore(serverData.element, insertBeforeElement);
+        } else if (addButton) {
+            mainList.insertBefore(serverData.element, addButton);
+        } else if (divider) {
+            divider.insertAdjacentElement('afterend', serverData.element);
+        } else {
+            mainList.appendChild(serverData.element);
+        }
     });
 }
 
@@ -693,7 +766,13 @@ function setupDropZones() {
             
             const serverId = e.dataTransfer.getData('text/plain');
             if (serverId) {
+                const wasInGroup = LocalStorageManager.getServerGroup(serverId);
                 LocalStorageManager.removeServerFromAllGroups(serverId);
+                
+                if (wasInGroup) {
+                    console.log(`[Server Groups] Server ${serverId} removed from group, maintaining position`);
+                }
+                
                 performCompleteRender();
             }
         });
@@ -1101,7 +1180,38 @@ function showServerChannelSection() {
 }
 
 export function refreshServerGroups() {
+    console.log('[Server Sidebar] Refreshing server groups');
+    
+    const currentServerElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
+    const currentServerIds = Array.from(currentServerElements).map(el => el.getAttribute('data-server-id'));
+    const savedOrder = LocalStorageManager.getServerOrder();
+    
+    const newServers = currentServerIds.filter(id => !savedOrder.includes(id));
+    const removedServers = savedOrder.filter(id => !currentServerIds.includes(id));
+    
+    if (newServers.length > 0 || removedServers.length > 0) {
+        console.log(`[Server Sidebar] Server changes detected: +${newServers.length}, -${removedServers.length}`);
+        
+        const cleanedOrder = savedOrder.filter(id => currentServerIds.includes(id));
+        const updatedOrder = [...cleanedOrder, ...newServers];
+        LocalStorageManager.setServerOrder(updatedOrder);
+    }
+    
     performCompleteRender();
+}
+
+function testServerPositioning() {
+    const serverOrder = LocalStorageManager.getServerOrder();
+    const currentElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
+    
+    console.log('Current server order:', serverOrder);
+    console.log('Current DOM elements:', Array.from(currentElements).map(el => el.getAttribute('data-server-id')));
+    
+    return {
+        orderLength: serverOrder.length,
+        domLength: currentElements.length,
+        orderConsistent: serverOrder.length === currentElements.length
+    };
 }
 
 // Make functions globally available

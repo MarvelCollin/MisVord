@@ -274,6 +274,33 @@ class VoiceManager {
             this.currentMeetingId = meetingId;
             this.isConnected = true;
             
+            // Register with socket server for global visibility
+            if (window.globalSocketManager?.isReady()) {
+                const serverId = document.querySelector('meta[name="server-id"]')?.content;
+                
+                console.log(`📡 [VOICE-PARTICIPANT] Registering voice meeting with socket server:`, {
+                    channel_id: targetChannelId,
+                    meeting_id: meetingId,
+                    server_id: serverId,
+                    username: userName
+                });
+                
+                window.globalSocketManager.io.emit('register-voice-meeting', {
+                    channel_id: targetChannelId,
+                    meeting_id: meetingId,
+                    server_id: serverId,
+                    username: userName
+                });
+                
+                // Update presence with full voice context
+                window.globalSocketManager.updatePresence('online', { 
+                    type: 'In Voice Call',
+                    channel_id: targetChannelId,
+                    server_id: serverId,
+                    channel_name: this.currentChannelName || 'Voice Channel'
+                });
+            }
+            
             console.log(`🎉 [VOICE-MANAGER] Successfully joined voice!`, {
                 meetingId: meetingId,
                 channelId: targetChannelId,
@@ -396,6 +423,23 @@ class VoiceManager {
             meetingId: this.currentMeetingId
         });
         
+        const previousChannelId = this.currentChannelId;
+        
+        // Unregister from socket server first
+        if (previousChannelId && window.globalSocketManager?.isReady()) {
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            
+            console.log(`🔇 [VOICE-PARTICIPANT] Unregistering voice meeting with socket server:`, {
+                channel_id: this.currentChannelId,
+                server_id: serverId
+            });
+            
+            window.globalSocketManager.io.emit('unregister-voice-meeting', {
+                channel_id: this.currentChannelId,
+                server_id: serverId
+            });
+        }
+        
         this.isConnected = false;
         window.voiceJoinInProgress = false;
         
@@ -403,7 +447,6 @@ class VoiceManager {
             this.videoSDKManager.leaveMeeting();
         }
         
-        const previousChannelId = this.currentChannelId;
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;
@@ -422,7 +465,7 @@ class VoiceManager {
         }
         
         if (window.globalSocketManager?.isReady()) {
-            console.log('👤 [VOICE-MANAGER] Updating presence to idle after leaving voice');
+            console.log('👤 [VOICE-PARTICIPANT] Updating presence to idle after leaving voice');
             window.globalSocketManager.updatePresence('online', { type: 'idle' });
         }
         
@@ -571,7 +614,6 @@ window.addEventListener(window.VOICE_EVENTS?.VOICE_UI_READY || 'voiceUIReady', f
 });
 
 window.addEventListener(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect', function() {
-    // Removed circular call to leaveVoice() to prevent auto-rejoin bugs
-    console.log('🔔 [VOICE-MANAGER] Voice disconnect event received');
+    console.log('🔔 [VOICE-MANAGER] Voice disconnect event received - cleanup handled by VideoSDK');
 });
 

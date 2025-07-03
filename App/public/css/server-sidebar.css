@@ -33,15 +33,17 @@
 
 .server-sidebar-icon {
   position: relative;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin: 8px 0;
+  cursor: pointer;
+  z-index: 1;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-origin: center;
 }
 
 .server-sidebar-icon a, 
@@ -268,8 +270,6 @@
   background-color: var(--discord-primary);
 }
 
-
-
 .group-context-menu {
   background-color: #18191c;
   border: 1px solid #2f3136;
@@ -339,11 +339,15 @@
   transform: translateX(0) !important;
 }
 
+.server-sidebar-icon.repositioning {
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
 .server-sidebar-icon.dragging {
-  opacity: 0.4;
-  cursor: grabbing;
-  transform: rotate(5deg) scale(1.05);
+  opacity: 0.6;
+  transform: scale(1.05) rotate(5deg);
   z-index: 1000;
+  transition: none;
 }
 
 .drag-helper {

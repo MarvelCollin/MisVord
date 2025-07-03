@@ -219,7 +219,10 @@ class GlobalPresenceManager {
                 username: friend.username,
                 avatar_url: friend.avatar_url,
                 status: userData?.status || 'offline',
-                activity_type: userData?.activity_details?.type || 'idle'
+                activity_type: userData?.activity_details?.type || 'idle',
+                channel_id: userData?.activity_details?.channel_id || null,
+                server_id: userData?.activity_details?.server_id || null,
+                channel_name: userData?.activity_details?.channel_name || null
             };
         }).sort((a, b) => a.username.localeCompare(b.username));
     }
@@ -233,7 +236,10 @@ class GlobalPresenceManager {
             return friend1.id === friend2.id &&
                    friend1.username === friend2.username &&
                    friend1.status === friend2.status &&
-                   friend1.activity_type === friend2.activity_type;
+                   friend1.activity_type === friend2.activity_type &&
+                   friend1.channel_id === friend2.channel_id &&
+                   friend1.server_id === friend2.server_id &&
+                   friend1.channel_name === friend2.channel_name;
         });
     }
     
@@ -374,7 +380,18 @@ class GlobalPresenceManager {
         
         switch (activityDetails.type) {
             case 'playing Tic Tac Toe': return 'Playing Tic Tac Toe';
-            case 'In Voice Call': return 'In Voice Call';
+            case 'In Voice Call': 
+                const currentServerId = document.querySelector('meta[name="server-id"]')?.content;
+                const userServerId = activityDetails.server_id;
+                const channelName = activityDetails.channel_name;
+                
+                if (currentServerId && userServerId === currentServerId && channelName) {
+                    return `In Voice - ${channelName}`;
+                } else if (channelName) {
+                    return `In Voice Call`;
+                } else {
+                    return 'In Voice Call';
+                }
             case 'afk': return 'Away';
             case 'idle':
             default: return 'Online';
@@ -396,7 +413,7 @@ class GlobalPresenceManager {
     }
 
     handlePresenceUpdate(data) {
-        console.log('🔄 [GLOBAL-PRESENCE] Handling presence update:', data);
+        console.log('🔄 [VOICE-PARTICIPANT] Handling presence update:', data);
         
         if (this.friendsManager) {
             this.friendsManager.handlePresenceUpdate(data);

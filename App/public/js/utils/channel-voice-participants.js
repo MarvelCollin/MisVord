@@ -71,8 +71,15 @@ class ChannelVoiceParticipants {
 
         // Handle voice disconnection
         window.addEventListener('voiceDisconnect', (event) => {
-            console.log('[VOICE-PARTICIPANT] Voice disconnect - clearing all participants');
-            this.clearAllParticipants();
+            console.log('[VOICE-PARTICIPANT] Voice disconnect - cleaning up local participant only');
+            
+            const currentChannelId = window.voiceManager?.currentChannelId;
+            const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
+            
+            if (currentChannelId && currentUserId) {
+                this.removeParticipant(currentChannelId, currentUserId);
+                this.updateParticipantContainer(currentChannelId);
+            }
         });
 
         this.setupChannelSwitchListeners();
@@ -127,22 +134,24 @@ class ChannelVoiceParticipants {
                 });
 
                 if (has_meeting && participants && participants.length > 0) {
+                    // Add all participants from server
                     participants.forEach(participant => {
                         this.addParticipant(channel_id, participant.user_id, participant.username || 'Unknown');
                     });
                     this.updateParticipantContainer(channel_id);
-                } else {
+                } else if (!has_meeting) {
+                    // Only clear if we explicitly know there's no meeting
+                    // Don't clear our own participant if we're still connected locally
                     if (this.participants.has(channel_id)) {
                         const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
-                        const channelParticipants = this.participants.get(channel_id);
+                        const isLocallyConnected = window.voiceManager?.isConnected && 
+                                                  window.voiceManager?.currentChannelId === channel_id;
                         
-                        // Keep our own participant if we're in voice, remove others
-                        const ownParticipant = channelParticipants.get(currentUserId?.toString());
-                        channelParticipants.clear();
-                        if (ownParticipant && window.voiceManager?.isConnected) {
-                            channelParticipants.set(currentUserId.toString(), ownParticipant);
+                        if (!isLocallyConnected) {
+                            // Safe to clear all participants
+                            this.participants.get(channel_id)?.clear();
+                            this.updateParticipantContainer(channel_id);
                         }
-                        this.updateParticipantContainer(channel_id);
                     }
                 }
             });

@@ -594,15 +594,18 @@ class ChatSection {
                 if (socketStatus.isReady && this.targetId && !this.socketRoomJoined) {
                     this.joinSocketRoom();
                 } else if (!socketStatus.socketInitialized) {
-                    if (window.globalSocketManager && !window.globalSocketManager.connected) {
+                    if (window.globalSocketManager && !window.globalSocketManager.connected && !window.globalSocketManager.isConnecting && !window.globalSocketManager.io) {
                         const userData = {
                             user_id: this.userId || document.querySelector('meta[name="user-id"]')?.content,
                             username: this.username || document.querySelector('meta[name="username"]')?.content
                         };
                         
                         if (userData.user_id && userData.username) {
+                            console.log('🔄 [CHAT-SECTION] Late socket initialization attempt');
                             window.globalSocketManager.init(userData);
                         }
+                    } else {
+                        console.log('⏳ [CHAT-SECTION] Socket already exists or connecting, waiting...');
                     }
                 }
             }, 3000);
@@ -1011,7 +1014,42 @@ class ChatSection {
                 currentOffset: this.currentOffset
             });
 
-
+            // Debug bot messages in the processing flow
+            const botMessages = messages.filter(msg => {
+                const isBotUser = msg.user_status === 'bot' || msg.status === 'bot';
+                const isBotUsername = msg.username && (msg.username.toLowerCase().includes('bot') || msg.username.toLowerCase() === 'titibot');
+                const isBotUserId = msg.user_id === '4' || msg.user_id === 4;
+                
+                return isBotUser || isBotUsername || isBotUserId;
+            });
+            
+            console.log(`🤖 [CHAT-SECTION] Bot messages in processing flow: ${botMessages.length}/${messages.length}`);
+            
+            if (botMessages.length > 0) {
+                console.log(`🤖 [CHAT-SECTION] Bot messages to be displayed:`, botMessages.map(msg => ({
+                    id: msg.id,
+                    user_id: msg.user_id,
+                    username: msg.username,
+                    content: msg.content?.substring(0, 50) + '...',
+                    user_status: msg.user_status,
+                    status: msg.status
+                })));
+            } else {
+                console.log(`❌ [CHAT-SECTION] No bot messages found in processing flow`);
+                
+                // Show sample of regular messages for comparison
+                if (messages.length > 0) {
+                    const sampleMessages = messages.slice(0, 3).map(msg => ({
+                        id: msg.id,
+                        user_id: msg.user_id,
+                        username: msg.username,
+                        content: msg.content?.substring(0, 30) + '...',
+                        user_status: msg.user_status,
+                        status: msg.status
+                    }));
+                    console.log(`📋 [CHAT-SECTION] Sample regular messages:`, sampleMessages);
+                }
+            }
 
             if (messages.length > 0) {
                 this.hideChatSkeleton();
@@ -2708,12 +2746,19 @@ class ChatSection {
     }
     
     retrySocketConnection() {
-        console.log('🔄 [CHAT-SECTION] Manually retrying socket connection...');
-        
         if (!window.globalSocketManager) {
-            console.error('❌ [CHAT-SECTION] No global socket manager available');
+            console.error('❌ [CHAT-SECTION] Cannot retry - no global socket manager');
             return false;
         }
+
+        // Check if socket is already working properly
+        const status = this.getDetailedSocketStatus();
+        if (status.isReady) {
+            console.log('✅ [CHAT-SECTION] Socket already ready, no retry needed');
+            return true;
+        }
+
+        console.log('🔄 [CHAT-SECTION] Attempting socket connection retry...');
         
         const userData = {
             user_id: this.userId || document.querySelector('meta[name="user-id"]')?.content,
@@ -2724,25 +2769,46 @@ class ChatSection {
             console.error('❌ [CHAT-SECTION] Cannot retry - missing user data');
             return false;
         }
-        
-        window.__SOCKET_INITIALISED__ = false;
-        const result = window.globalSocketManager.init(userData);
-        
-        if (result) {
-            console.log('✅ [CHAT-SECTION] Socket reconnection initiated');
+
+        // Only retry if socket is not already connecting or connected
+        if (window.globalSocketManager.isConnecting || window.globalSocketManager.isConnected) {
+            console.log('⏳ [CHAT-SECTION] Socket already connecting/connected, waiting for authentication...');
             
+            // Wait for existing connection to complete
             setTimeout(() => {
-                const status = this.getDetailedSocketStatus();
-                if (status.isReady && this.targetId) {
+                const newStatus = this.getDetailedSocketStatus();
+                if (newStatus.isReady && this.targetId) {
                     this.joinSocketRoom();
                 }
             }, 3000);
             
             return true;
-        } else {
-            console.error('❌ [CHAT-SECTION] Failed to initiate socket reconnection');
-            return false;
         }
+
+        // Reset only if truly needed and no connection exists
+        if (!window.globalSocketManager.io) {
+            window.__SOCKET_INITIALISED__ = false;
+            const result = window.globalSocketManager.init(userData);
+            
+            if (result) {
+                console.log('✅ [CHAT-SECTION] Socket reconnection initiated');
+                
+                setTimeout(() => {
+                    const status = this.getDetailedSocketStatus();
+                    if (status.isReady && this.targetId) {
+                        this.joinSocketRoom();
+                    }
+                }, 3000);
+                
+                return true;
+            } else {
+                console.error('❌ [CHAT-SECTION] Failed to initiate socket reconnection');
+                return false;
+            }
+        }
+
+        console.log('⚠️ [CHAT-SECTION] Socket instance exists but not ready, waiting...');
+        return true;
     }
 
     getDetailedSocketStatus() {

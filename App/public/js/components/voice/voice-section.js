@@ -89,10 +89,11 @@ class VoiceSection {
         });
         
         window.addEventListener(window.VOICE_EVENTS.VOICE_CONNECT, (event) => {
-            const details = event.detail || {};
-            
             this.isProcessing = false;
             this.autoJoinInProgress = false;
+            window.voiceJoinInProgress = false;
+            window.voiceJoinSuccessShown = false;
+            window.voiceJoinErrorShown = false;
             
             if (this.elements.connectingView) {
                 this.elements.connectingView.classList.add('hidden');
@@ -106,18 +107,15 @@ class VoiceSection {
                 this.elements.voiceControls.classList.remove('hidden');
             }
             
-            window.voiceState.isConnected = true;
-            
             if (this.elements.joinBtn) {
                 this.elements.joinBtn.removeAttribute('data-processing');
                 this.elements.joinBtn.style.pointerEvents = 'auto';
                 this.elements.joinBtn.style.cursor = 'pointer';
-                this.elements.joinBtn.textContent = 'Connected';
+                this.elements.joinBtn.textContent = 'Join Voice';
             }
             
-            if (details.channelName) {
-                this.updateChannelNames(details.channelName);
-            }
+            const details = event.detail || {};
+            window.voiceState.isConnected = true;
             
             if (window.unifiedVoiceStateManager && details.meetingId && details.channelName) {
                 window.unifiedVoiceStateManager.setState({
@@ -130,8 +128,18 @@ class VoiceSection {
             }
             
             if (window.globalSocketManager?.isReady()) {
-                console.log('🎤 [VOICE-SECTION] Updating presence to In Voice Call');
-                window.globalSocketManager.updatePresence('online', { type: 'In Voice Call' });
+                console.log('🎤 [VOICE-PARTICIPANT] Updating presence to In Voice Call with channel context');
+                
+                const channelId = details.channelId || window.voiceManager?.currentChannelId;
+                const serverId = document.querySelector('meta[name="server-id"]')?.content;
+                const channelName = details.channelName || window.voiceManager?.currentChannelName || 'Voice Channel';
+                
+                window.globalSocketManager.updatePresence('online', { 
+                    type: 'In Voice Call',
+                    channel_id: channelId,
+                    server_id: serverId,
+                    channel_name: channelName
+                });
             }
         });
         
@@ -174,7 +182,7 @@ class VoiceSection {
             }
             
             if (window.globalSocketManager?.isReady()) {
-                console.log('🎤 [VOICE-SECTION] Updating presence to idle after voice disconnect');
+                console.log('🎤 [VOICE-PARTICIPANT] Updating presence to idle after voice disconnect');
                 window.globalSocketManager.updatePresence('online', { type: 'idle' });
             }
         });

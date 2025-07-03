@@ -83,8 +83,13 @@ class GlobalSocketManager {
     }
     
     init(userData = null) {
-        if (window.__SOCKET_INITIALISED__ && this.isConnected) {
-            this.log('Socket already initialized and connected');
+        if (window.__SOCKET_INITIALISED__ && this.isConnected && this.io) {
+            this.log('Socket already initialized and connected with active instance');
+            return false;
+        }
+
+        if (this.io && (this.isConnected || this.isConnecting)) {
+            this.log('Socket connection already in progress or established');
             return false;
         }
 
@@ -113,6 +118,7 @@ class GlobalSocketManager {
         }
 
         try {
+            this.isConnecting = true;
             const connected = this.connect();
             if (connected !== false) {
                 window.__SOCKET_INITIALISED__ = true;
@@ -126,6 +132,7 @@ class GlobalSocketManager {
             }
             return true;
         } catch (e) {
+            this.isConnecting = false;
             this.error('Failed to initialize socket', e);
             return false;
         }
@@ -211,10 +218,22 @@ class GlobalSocketManager {
             this.log('Socket already connected');
             return true;
         }
+
+        if (this.io && this.isConnecting) {
+            this.log('Socket connection already in progress');
+            return true;
+        }
         
         if (!this.socketHost || this.socketHost === 'null' || this.socketHost === 'undefined') {
             this.log('Invalid socket host detected, skipping connection');
             return false;
+        }
+
+        // Disconnect any existing socket instance before creating new one
+        if (this.io) {
+            this.log('Cleaning up existing socket instance before reconnection');
+            this.io.disconnect();
+            this.io = null;
         }
         
         const socketUrl = `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}`;
@@ -238,6 +257,7 @@ class GlobalSocketManager {
             this.setupEventHandlers();
             return true;
         } catch (e) {
+            this.isConnecting = false;
             this.error('Failed to connect to socket', e);
             throw e;
         }
@@ -248,6 +268,7 @@ class GlobalSocketManager {
         
         this.io.on('connect', () => {
             this.isConnected = true;
+            this.isConnecting = false;
             this.reconnectAttempts = 0;
             this.debug(`Socket connected with ID: ${this.io.id}`, { 
                 userId: this.userId,
@@ -363,6 +384,7 @@ class GlobalSocketManager {
         
         this.io.on('disconnect', () => {
             this.isConnected = false;
+            this.isConnecting = false;
             this.isAuthenticated = false;
             this.stopPresenceHeartbeat();
             this.stopActivityCheck();
@@ -798,11 +820,14 @@ class GlobalSocketManager {
         }
         
         this.isConnected = false;
+        this.isConnecting = false;
         this.isAuthenticated = false;
         this.joinedChannels.clear();
         this.joinedDMRooms.clear();
         this.joinedRooms.clear();
-        this.log('Socket manually disconnected');
+        this.reconnectAttempts = 0;
+        window.__SOCKET_INITIALISED__ = false;
+        this.log('Socket manually disconnected and state cleared');
     }
     
     isReady() {
@@ -1227,32 +1252,6 @@ class GlobalSocketManager {
 }
 
 const globalSocketManager = new GlobalSocketManager();
-
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-        if (globalSocketManager.isConnected || window.__SOCKET_INITIALISED__) {
-            console.log('🔌 Socket already initialized, skipping DOMContentLoaded init');
-            return;
-        }
-
-        let userId = document.querySelector('meta[name="user-id"]')?.content ||
-                     document.body?.getAttribute('data-user-id');
-
-        let username = document.querySelector('meta[name="username"]')?.content ||
-                       document.body?.getAttribute('data-username');
-
-        const hasAuthData = userId && username;
-        const userData = hasAuthData ? { user_id: userId, username: username } : null;
-
-        if (hasAuthData) {
-            console.log('🔌 [SOCKET-MANAGER] DOMContentLoaded init with user data:', userData);
-        } else {
-            console.log('🔌 [SOCKET-MANAGER] DOMContentLoaded init in guest mode');
-        }
-
-        globalSocketManager.init(userData);
-    }, 100);
-});
 
 window.GlobalSocketManager = GlobalSocketManager;
 window.globalSocketManager = globalSocketManager;
