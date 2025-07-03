@@ -86,10 +86,35 @@ class SimpleDMSwitcher {
         this.updateMetaTags(dmId, roomType);
         this.updatePageTitle(username, roomType);
         
-        console.log('🔄 [DM-SWITCH] Navigating to DM URL...');
+        if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
+            console.log('🔄 [DM-SWITCH] Using SPA navigation via ChatSection');
+            try {
+                await window.chatSection.switchToDM(dmId, roomType, true);
+                console.log('✅ [DM-SWITCH] SPA navigation completed');
+                this.isLoading = false;
+                return;
+            } catch (error) {
+                console.error('❌ [DM-SWITCH] SPA navigation failed, falling back to page reload:', error);
+            }
+        } else if (typeof window.initializeChatSection === 'function') {
+            console.log('🔄 [DM-SWITCH] ChatSection not ready, trying to initialize...');
+            try {
+                await window.initializeChatSection();
+                if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
+                    await window.chatSection.switchToDM(dmId, roomType, true);
+                    console.log('✅ [DM-SWITCH] SPA navigation completed after initialization');
+                    this.isLoading = false;
+                    return;
+                } else {
+                    throw new Error('ChatSection still not available after initialization');
+                }
+            } catch (error) {
+                console.error('❌ [DM-SWITCH] Initialization failed, falling back to page reload:', error);
+            }
+        }
         
+        console.log('🔄 [DM-SWITCH] Falling back to page navigation');
         window.location.href = `/home/channels/dm/${dmId}`;
-        
         this.isLoading = false;
     }
     
@@ -145,13 +170,17 @@ class SimpleDMSwitcher {
     updateURL(dmId) {
         const url = `/home/channels/dm/${dmId}`;
         console.log('🔗 [DM-SWITCH] Updating URL to:', url);
-        window.history.pushState({}, '', url);
+        if (window.history && window.history.pushState) {
+            window.history.pushState({ dmId: dmId, type: 'dm' }, '', url);
+        }
     }
     
     updateFriendsURL() {
         const url = '/home/friends?tab=online';
         console.log('🔗 [DM-SWITCH] Updating URL to:', url);
-        window.history.pushState({}, '', url);
+        if (window.history && window.history.pushState) {
+            window.history.pushState({ type: 'friends' }, '', url);
+        }
     }
     
     updateMetaTags(dmId, type) {

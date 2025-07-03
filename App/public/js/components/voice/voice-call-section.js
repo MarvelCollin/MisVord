@@ -225,6 +225,55 @@ class VoiceCallSection {
     this.ticTacToeBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
+      
+      const serverId = document.querySelector('meta[name="server-id"]')?.content;
+      const userId = document.querySelector('meta[name="user-id"]')?.content;
+      const username = document.querySelector('meta[name="username"]')?.content;
+      
+      if (!serverId || !userId || !username) {
+        console.error('Missing required data for Tic Tac Toe');
+        return;
+      }
+      
+      if (!window.globalSocketManager?.isReady()) {
+        console.error('Socket not ready for Tic Tac Toe');
+        return;
+      }
+      
+      if (!document.querySelector('link[href*="tic-tac-toe.css"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '/public/css/tic-tac-toe.css?v=' + Date.now();
+        document.head.appendChild(link);
+      }
+      
+      if (window.TicTacToeModal) {
+        window.TicTacToeModal.createTicTacToeModal(serverId, userId, username);
+      } else {
+        if (!document.querySelector('script[src*="tic-tac-toe.js"]')) {
+          const script = document.createElement('script');
+          script.src = '/public/js/components/activity/tic-tac-toe.js?v=' + Date.now();
+          script.onload = () => {
+            if (window.TicTacToeModal) {
+              window.TicTacToeModal.createTicTacToeModal(serverId, userId, username);
+            } else {
+              console.error('TicTacToeModal still not available after loading script');
+            }
+          };
+          script.onerror = () => {
+            console.error('Failed to load TicTacToeModal script');
+          };
+          document.head.appendChild(script);
+        } else {
+          setTimeout(() => {
+            if (window.TicTacToeModal) {
+              window.TicTacToeModal.createTicTacToeModal(serverId, userId, username);
+            } else {
+              console.error('TicTacToeModal not available even though script is loaded');
+            }
+          }, 100);
+        }
+      }
     });
   }
 

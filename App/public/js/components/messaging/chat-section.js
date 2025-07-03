@@ -20,6 +20,16 @@ function isChatPage() {
     console.log('🔍 [CHAT-SECTION] Checking if chat page:', { currentPath, params: urlParams.toString() });
     
     if (currentPath === '/home' || currentPath.startsWith('/home/')) {
+        if (currentPath.includes('/friends')) {
+            console.log('❌ [CHAT-SECTION] Friends page detected, excluding chat');
+            return false;
+        }
+        
+        if (currentPath.includes('/channels/dm/')) {
+            console.log('✅ [CHAT-SECTION] DM page detected, allowing chat');
+            return true;
+        }
+        
         console.log('✅ [CHAT-SECTION] Home page detected, allowing chat');
         return true;
     }
@@ -399,32 +409,109 @@ class ChatSection {
     
     findDOMElements() {
         console.log('🔍 [CHAT-SECTION] Finding DOM elements...');
-        this.chatContainer = document.querySelector('.flex-1.flex.flex-col.bg-\\[\\#313338\\].h-screen.overflow-hidden') || document.getElementById('chat-container');
-        this.chatMessages = document.getElementById('chat-messages');
-        this.messageForm = document.getElementById('message-form');
-        this.messageInput = document.getElementById('message-input');
-        this.sendButton = document.getElementById('send-button');
-        this.loadMoreButton = document.getElementById('load-more-messages');
-        this.loadMoreContainer = document.getElementById('load-more-container');
-        this.topReloadButton = document.getElementById('top-reload-button');
-        this.emptyStateContainer = document.getElementById('empty-state-container');
-        this.contextMenu = document.getElementById('message-context-menu') || document.getElementById('context-menu');
-        this.fileUploadInput = document.getElementById('file-upload');
-        this.filePreviewModal = document.getElementById('file-preview-modal');
+        
+        // Chat container - try multiple selectors
+        this.chatContainer = document.querySelector('.flex-1.flex.flex-col.bg-\\[\\#313338\\].h-screen.overflow-hidden') || 
+                            document.getElementById('chat-container') ||
+                            document.querySelector('.chat-section') ||
+                            document.querySelector('[data-channel-type="text"]') ||
+                            document.querySelector('.main-content-area');
+        
+        // Chat messages - try multiple selectors and wait for dynamic content
+        this.chatMessages = document.getElementById('chat-messages') ||
+                           document.querySelector('#chat-messages') ||
+                           document.querySelector('.chat-messages') ||
+                           document.querySelector('[data-messages-container]');
+        
+        // Message form - try multiple selectors
+        this.messageForm = document.getElementById('message-form') ||
+                          document.querySelector('#message-form') ||
+                          document.querySelector('.message-form') ||
+                          document.querySelector('form[data-message-form]') ||
+                          document.querySelector('form:has(#message-input)');
+        
+        // Message input - try multiple selectors
+        this.messageInput = document.getElementById('message-input') ||
+                           document.querySelector('#message-input') ||
+                           document.querySelector('.message-input') ||
+                           document.querySelector('input[placeholder*="message"]') ||
+                           document.querySelector('textarea[placeholder*="message"]');
+        
+        // Send button - try multiple selectors
+        this.sendButton = document.getElementById('send-button') ||
+                         document.querySelector('#send-button') ||
+                         document.querySelector('.send-button') ||
+                         document.querySelector('[data-send-button]') ||
+                         document.querySelector('button[type="submit"]');
+        
+        // Other elements with fallbacks
+        this.loadMoreButton = document.getElementById('load-more-messages') ||
+                             document.querySelector('#load-more-messages') ||
+                             document.querySelector('.load-more-button');
+        
+        this.loadMoreContainer = document.getElementById('load-more-container') ||
+                                document.querySelector('#load-more-container') ||
+                                document.querySelector('.load-more-container');
+        
+        this.topReloadButton = document.getElementById('top-reload-button') ||
+                              document.querySelector('#top-reload-button') ||
+                              document.querySelector('.top-reload-button');
+        
+        this.emptyStateContainer = document.getElementById('empty-state-container') ||
+                                  document.querySelector('#empty-state-container') ||
+                                  document.querySelector('.empty-state-container');
+        
+        this.contextMenu = document.getElementById('message-context-menu') || 
+                          document.getElementById('context-menu') ||
+                          document.querySelector('.context-menu');
+        
+        this.fileUploadInput = document.getElementById('file-upload') ||
+                              document.querySelector('#file-upload') ||
+                              document.querySelector('input[type="file"]');
+        
+        this.filePreviewModal = document.getElementById('file-preview-modal') ||
+                               document.querySelector('#file-preview-modal') ||
+                               document.querySelector('.file-preview-modal');
         
         console.log('🔍 [CHAT-SECTION] DOM Elements found:', {
             chatContainer: !!this.chatContainer,
             chatMessages: !!this.chatMessages,
             messageForm: !!this.messageForm,
             messageInput: !!this.messageInput,
-            sendButton: !!this.sendButton
+            sendButton: !!this.sendButton,
+            loadMoreButton: !!this.loadMoreButton,
+            loadMoreContainer: !!this.loadMoreContainer,
+            contextMenu: !!this.contextMenu,
+            fileUploadInput: !!this.fileUploadInput
         });
+        
+        // If we're missing critical elements, log detailed info for debugging
+        if (!this.chatMessages || !this.messageForm || !this.messageInput) {
+            console.warn('⚠️ [CHAT-SECTION] Missing critical elements, debugging DOM state:', {
+                url: window.location.href,
+                pathname: window.location.pathname,
+                chatSections: document.querySelectorAll('.chat-section').length,
+                formsCount: document.querySelectorAll('form').length,
+                inputsCount: document.querySelectorAll('input').length,
+                chatMessagesExists: !!document.querySelector('#chat-messages'),
+                messageFormExists: !!document.querySelector('#message-form'),
+                messageInputExists: !!document.querySelector('#message-input')
+            });
+        }
     }
     
     waitForRequiredElements() {
         return new Promise((resolve, reject) => {
             let attempts = 0;
-            const maxAttempts = isExcludedPage() ? 5 : 30;
+            const isDMPage = window.location.pathname.includes('/dm/');
+            const isChannelPage = window.location.pathname.includes('/channels/');
+            const isExcluded = isExcludedPage();
+            
+            // Adjust timing for different page types
+            const maxAttempts = isExcluded ? 5 : (isDMPage ? 40 : 30); // More time for DM switches
+            const interval = isDMPage ? 150 : 200; // Faster polling for DMs
+            
+            console.log(`🔍 [CHAT-SECTION] Starting element wait (DM: ${isDMPage}, Channel: ${isChannelPage}, Excluded: ${isExcluded})`);
             
             const checkElements = () => {
                 this.findDOMElements();
@@ -441,27 +528,37 @@ class ChatSection {
                 console.log(`🔍 [CHAT-SECTION] Waiting for elements, attempt ${attempts}/${maxAttempts}`, {
                     chatMessages: !!this.chatMessages,
                     messageForm: !!this.messageForm,
-                    messageInput: !!this.messageInput
+                    messageInput: !!this.messageInput,
+                    currentURL: window.location.href,
+                    isDMPage,
+                    isChannelPage
                 });
                 
                 if (attempts >= maxAttempts) {
-                    if (!isExcludedPage()) {
+                    if (!isExcluded) {
                         console.error('❌ [CHAT-SECTION] Timeout waiting for required DOM elements:', {
                             chatMessages: !!this.chatMessages,
                             messageForm: !!this.messageForm,
                             messageInput: !!this.messageInput,
-                            isExcludedPage: isExcludedPage(),
-                            currentPath: window.location.pathname
+                            isExcludedPage: isExcluded,
+                            currentPath: window.location.pathname,
+                            attempts,
+                            maxAttempts,
+                            isDMPage,
+                            isChannelPage,
+                            totalChatSections: document.querySelectorAll('.chat-section').length,
+                            totalForms: document.querySelectorAll('form').length,
+                            totalInputs: document.querySelectorAll('input').length
                         });
                     }
                     reject(new Error('Required DOM elements not found'));
                     return;
                 }
                 
-                if (!isExcludedPage() && attempts % 5 === 0) {
-                    console.log(`⏳ [CHAT-SECTION] Still waiting for DOM elements after ${attempts} attempts`);
+                if (!isExcluded && attempts % 5 === 0) {
+                    console.log(`⏳ [CHAT-SECTION] Still waiting for DOM elements after ${attempts} attempts (DM: ${isDMPage})`);
                 }
-                setTimeout(checkElements, 200);
+                setTimeout(checkElements, interval);
             };
             
             checkElements();
@@ -1984,7 +2081,7 @@ class ChatSection {
                         Cancel
                     </button>
                     <button id="confirm-delete" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
-                        <i class="fas fa-trash mr-2"></i>Delete
+                        <i class="fas fa-trash mr-2"></i
                     </button>
                 </div>
             </div>
@@ -2294,12 +2391,27 @@ class ChatSection {
             
             if (!this.chatMessages) {
                 console.error('❌ [CHAT-SECTION] Cannot get messages container: chat messages element still not found after search');
+                // Try one more fallback search for messages container
+                const fallbackContainer = document.querySelector('.messages-container') ||
+                                        document.querySelector('[data-messages-container]') ||
+                                        document.querySelector('.chat-messages') ||
+                                        document.querySelector('#chat-messages .flex-1');
+                
+                if (fallbackContainer) {
+                    console.log('✅ [CHAT-SECTION] Found fallback messages container');
+                    return fallbackContainer;
+                }
                 return null;
             }
         }
         
         try {
-            const messagesContainer = this.chatMessages.querySelector('.messages-container');
+            // Try multiple selectors for the messages container
+            const messagesContainer = this.chatMessages.querySelector('.messages-container') ||
+                                    this.chatMessages.querySelector('[data-messages-container]') ||
+                                    this.chatMessages.querySelector('.flex-1') ||
+                                    this.chatMessages.querySelector(':first-child');
+            
             if (messagesContainer) {
                 return messagesContainer;
             } else {
@@ -2308,7 +2420,7 @@ class ChatSection {
             }
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Error accessing chat messages container:', error);
-            return null;
+            return this.chatMessages; // Fallback to the outer container
         }
     }
     
@@ -2646,6 +2758,83 @@ class ChatSection {
         }
         
         console.log('✅ [CHAT-SECTION] Channel switch completed');
+    }
+
+    async switchToDM(dmId, roomType = 'direct', forceFresh = false) {
+        console.log('🔄 [CHAT-SECTION] Switching to DM:', dmId, roomType, 'forceFresh:', forceFresh);
+        
+        if (this.loadMoreContainer) {
+            this.loadMoreContainer.classList.add('hidden');
+            console.log('🧹 [CHAT-SECTION] Load more container hidden at start of DM switch');
+        }
+        
+        this.forceStopAllOperations();
+        
+        this.targetId = dmId;
+        this.chatType = 'direct';
+        
+        const messagesContainer = this.getMessagesContainer();
+        if (messagesContainer) {
+            messagesContainer.innerHTML = '';
+            console.log('🧹 [CHAT-SECTION] Messages container cleared for DM switch');
+        }
+        
+        // Wait for DM elements to be available after SPA navigation
+        let dmElementsReady = false;
+        let attempts = 0;
+        const maxAttempts = 20;
+        
+        while (!dmElementsReady && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            this.findDOMElements();
+            
+            const hasRequired = this.chatMessages && this.messageForm && this.messageInput;
+            if (hasRequired) {
+                dmElementsReady = true;
+                console.log('✅ [CHAT-SECTION] DM elements ready after', attempts, 'attempts');
+            } else {
+                attempts++;
+                if (attempts % 5 === 0) {
+                    console.log(`⏳ [CHAT-SECTION] Still waiting for DM elements (${attempts}/${maxAttempts}):`, {
+                        chatMessages: !!this.chatMessages,
+                        messageForm: !!this.messageForm,
+                        messageInput: !!this.messageInput,
+                        url: window.location.href
+                    });
+                }
+            }
+        }
+        
+        if (!dmElementsReady) {
+            console.error('❌ [CHAT-SECTION] DM elements not ready after maximum attempts');
+            throw new Error('DM DOM elements not ready');
+        }
+        
+        await this.ensureInitialized();
+        
+        this.fullStateReset();
+        
+        if (this.socketHandler && typeof this.socketHandler.refreshForChannelSwitch === 'function') {
+            console.log('🔄 [CHAT-SECTION] Refreshing socket handler for DM switch');
+            this.socketHandler.refreshForChannelSwitch(dmId, 'direct');
+        }
+        
+        this.joinSocketRoom();
+        
+        await this.loadMessages({ 
+            forceFresh: true, 
+            isChannelSwitch: true,
+            limit: 50 
+        });
+        
+        this.updateChannelHeader();
+        
+        if (window.emojiReactions && typeof window.emojiReactions.updateChannelContext === 'function') {
+            console.log('🔄 [CHAT-SECTION] Updating emoji reactions context for new DM');
+            window.emojiReactions.updateChannelContext(dmId, 'direct');
+        }
+        
+        console.log('✅ [CHAT-SECTION] DM switch completed');
     }
 
     resetForNewChannel() {
@@ -3219,10 +3408,29 @@ class ChatSection {
 window.initializeChatSection = initializeChatSection;
 window.ChatSection = ChatSection;
 
+// Global DM switching helper function
+window.switchToDMGlobal = async function(dmId, roomType = 'direct') {
+    console.log('🔄 [GLOBAL-DM-SWITCH] Global DM switch called:', dmId, roomType);
+    
+    if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
+        try {
+            await window.chatSection.switchToDM(dmId, roomType, true);
+            return true;
+        } catch (error) {
+            console.error('❌ [GLOBAL-DM-SWITCH] Switch failed:', error);
+            return false;
+        }
+    } else {
+        console.warn('⚠️ [GLOBAL-DM-SWITCH] ChatSection not available');
+        return false;
+    }
+};
+
 // Debug log to confirm availability
 console.log('✅ [CHAT-SECTION] Global functions exposed:', {
     initializeChatSection: typeof window.initializeChatSection,
     ChatSection: typeof window.ChatSection,
+    switchToDMGlobal: typeof window.switchToDMGlobal,
     timestamp: new Date().toISOString()
   });
 

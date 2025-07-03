@@ -1,22 +1,14 @@
 #tic-tac-toe-modal {
-    backdrop-filter: blur(12px) saturate(150%);
-    animation: modalEntrance 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    background: radial-gradient(ellipse at center, rgba(88, 101, 242, 0.15), rgba(0, 0, 0, 0.9));
+    background: rgba(0, 0, 0, 0.75);
     position: fixed;
     inset: 0;
     z-index: 9999;
 }
 
 #tic-tac-toe-modal .bg-\[#313338\] {
-    animation: modalSlideIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    background: linear-gradient(145deg, #1a1d23, #2c2f36, #1e2124);
-    border: 2px solid transparent;
-    background-clip: padding-box;
-    box-shadow: 
-        0 0 0 2px rgba(88, 101, 242, 0.5),
-        0 25px 50px -12px rgba(0, 0, 0, 0.8),
-        0 0 100px rgba(88, 101, 242, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     position: relative;
     overflow: hidden;
     cursor: move;

@@ -51,10 +51,19 @@ class DirectMessageNavigation {
     }
 
     switchToChat(dmId, chatName, roomType) {
-        console.log('🔄 [DM-NAV] switchToChat() called - delegating to SimpleDMSwitcher');
+        console.log('🔄 [DM-NAV] switchToChat() called - using enhanced SPA navigation');
         if (this.dmSwitcher) {
             this.dmSwitcher.switchToDM(dmId, roomType, chatName);
+        } else if (window.switchToDMGlobal) {
+            console.log('🔄 [DM-NAV] Using global DM switch function');
+            window.switchToDMGlobal(dmId, roomType).then(success => {
+                if (!success) {
+                    console.log('🔄 [DM-NAV] Global switch failed, falling back to URL navigation');
+                    window.location.href = `/home/channels/dm/${dmId}`;
+                }
+            });
         } else {
+            console.log('🔄 [DM-NAV] No SPA options available, using URL navigation');
             window.location.href = `/home/channels/dm/${dmId}`;
         }
     }

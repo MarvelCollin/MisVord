@@ -15,6 +15,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 <!-- Load Voice Call Section CSS -->
 <link rel="stylesheet" href="/public/css/voice-call-section.css?v=<?php echo time(); ?>">
+<link rel="stylesheet" href="/public/css/tic-tac-toe.css?v=<?php echo time(); ?>">
 
 <meta name="meeting-id" content="<?php echo htmlspecialchars($meetingId); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($userName); ?>">
@@ -102,6 +103,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 </div>
 
 <!-- Section UI/controls logic -->
+<script src="/public/js/components/activity/tic-tac-toe.js?v=<?php echo time(); ?>"></script>
 <script src="/public/js/components/voice/voice-call-section.js?v=<?php echo time(); ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
