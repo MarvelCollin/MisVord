@@ -678,7 +678,6 @@ class GlobalPresenceManager {
     handlePresenceUpdate(data) {
         console.log('🔄 [GLOBAL-PRESENCE] Handling presence update:', data);
         
-        // 🎯 PRESENCE HIERARCHY VALIDATION
         if (data.user_id === window.globalSocketManager?.userId) {
             const currentActivity = window.globalSocketManager?.currentActivityDetails;
             const newActivity = data.activity_details;
@@ -703,12 +702,10 @@ class GlobalPresenceManager {
         this.updateActiveNow();
     }
 
-    // Temporary debugging function for testing
     static enableDebugMode() {
         window.globalPresenceDebug = true;
         console.log('🔧 [GLOBAL-PRESENCE] Debug mode enabled');
         
-        // Override the updateUserPresence method to add extra logging
         const originalUpdate = GlobalPresenceManager.prototype.updateUserPresence;
         GlobalPresenceManager.prototype.updateUserPresence = function(userId, presenceData) {
             if (window.globalPresenceDebug) {

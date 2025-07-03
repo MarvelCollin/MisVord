@@ -115,14 +115,20 @@ class VoiceManager {
     attachEventListeners() {
         const joinBtn = document.getElementById('joinBtn');
         const leaveBtn = document.getElementById('leaveBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
         
         if (joinBtn) {
             joinBtn.addEventListener('click', () => this.joinVoice());
         }
         
-        if (leaveBtn) {
-            leaveBtn.addEventListener('click', () => this.leaveVoice());
-        }
+        const bindLeave = (btn) => {
+            if (btn) {
+                btn.addEventListener('click', () => this.leaveVoice());
+            }
+        };
+
+        bindLeave(leaveBtn);
+        bindLeave(disconnectBtn);
         
         window.addEventListener('beforeunload', () => {
             if (this.isConnected) {
@@ -257,68 +263,31 @@ class VoiceManager {
             }
             console.log(`🎯 [VOICE-MANAGER] Final meeting ID for joining: ${meetingId}`);
             
-            // 🎯 STEP 3b: Join the VideoSDK meeting first (existing or new)
-            console.log(`🚪 [VOICE-MANAGER] Joining VideoSDK meeting: ${meetingId}`);
+            // 🎯 STEP 3b: Meeting initialization and joining now handled by voice-not-join.php
+            console.log(`🚪 [VOICE-MANAGER] Meeting ID: ${meetingId} - Join will be handled by voice-not-join.php`);
+            
             // Get proper username from multiple sources
             const userName = this.getUsernameFromMultipleSources();
             console.log(`🏷️ [VOICE-MANAGER] Using username: ${userName}`);
             
-            await this.videoSDKManager.initMeeting({
-                meetingId: meetingId,
-                name: userName,
-                micEnabled: true,
-                webcamEnabled: false
-            });
+            // Store meeting details for potential external use
+            this.currentMeetingId = meetingId;
+            this.currentChannelId = targetChannelId;
             
-            await this.videoSDKManager.joinMeeting();
-            
-            // 🎯 STEP 4: Register with socket after VideoSDK join to avoid race conditions
+            // 🎯 STEP 4: Register with socket for meeting tracking
             console.log(`📝 [VOICE-MANAGER] Registering with socket for meeting: ${meetingId}...`);
             await this.registerMeetingWithSocket(targetChannelId, meetingId);
             
-            await new Promise((resolve) => {
-                const checkReady = () => {
-                    if (this.videoSDKManager.isReady()) {
-                        resolve();
-                    } else {
-                        setTimeout(checkReady, 200);
-                    }
-                };
-                
-                if (this.videoSDKManager.isReady()) {
-                    resolve();
-                } else {
-                    const onMeetingReady = () => {
-                        window.removeEventListener('videosdkMeetingFullyJoined', onMeetingReady);
-                        setTimeout(() => {
-                            if (this.videoSDKManager.isReady()) {
-                                resolve();
-                            } else {
-                                checkReady();
-                            }
-                        }, 300);
-                    };
-                    
-                    window.addEventListener('videosdkMeetingFullyJoined', onMeetingReady);
-                    checkReady();
-                }
-            });
-            
-            this.currentMeetingId = meetingId;
-            this.isConnected = true;
-            
-            console.log(`🎉 [VOICE-MANAGER] Successfully joined voice!`, {
+            // VideoSDK joining is now handled externally by voice-not-join.php
+            // Just mark as prepared for external joining
+            console.log(`� [VOICE-MANAGER] Meeting prepared for external joining`, {
                 meetingId: meetingId,
                 channelId: targetChannelId,
                 wasExistingMeeting: !!existingMeeting,
-                action: existingMeeting ? 'JOINED_EXISTING' : 'CREATED_NEW'
+                action: existingMeeting ? 'PREPARED_EXISTING' : 'PREPARED_NEW'
             });
 
-            window.voiceJoinInProgress = false;
-
-            if (window.MusicLoaderStatic?.stopCallSound) {
-                window.MusicLoaderStatic.stopCallSound();
-            }
+            console.log(`🎉 [VOICE-MANAGER] Voice manager preparation completed!`);
             return Promise.resolve();
         } catch (error) {
             console.error('❌ [VOICE-MANAGER] Failed to join voice:', error);

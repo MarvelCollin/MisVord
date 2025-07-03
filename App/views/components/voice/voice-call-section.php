@@ -100,5 +100,26 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
     </div>
 </div>
 
-<!-- Load Voice Call Section JavaScript -->
+<!-- Section UI/controls logic -->
 <script src="/public/js/components/voice/voice-call-section.js?v=<?php echo time(); ?>"></script>
+<script>
+// Ensure VoiceManager binds to the new voice call controls
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.voiceManager && typeof window.voiceManager.attachEventListeners === 'function') {
+        try {
+            window.voiceManager.attachEventListeners();
+        } catch (e) {
+            console.warn('VoiceManager attachEventListeners failed:', e);
+        }
+    }
+
+    const leaveBtn = document.getElementById('disconnectBtn');
+    if (leaveBtn) {
+        leaveBtn.addEventListener('click', () => {
+            if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
+                window.voiceManager.leaveVoice();
+            }
+        });
+    }
+});
+</script>

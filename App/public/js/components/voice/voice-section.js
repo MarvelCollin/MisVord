@@ -169,75 +169,17 @@ class VoiceSection {
     }
     
     async handleJoinClick() {
-        if (this.isProcessing || 
-            this.elements.joinBtn?.getAttribute('data-processing') === 'true' ||
-            window.voiceJoinInProgress ||
-            window.voiceState?.isConnected) {
-            console.log('🎧 [VOICE-SECTION] Join click ignored - already processing or connected');
-            return;
-        }
-        
-        this.isProcessing = true;
-        
-        if (this.elements.joinBtn) {
-            this.elements.joinBtn.setAttribute('data-processing', 'true');
-            
-            const btnSpan = this.elements.joinBtn.querySelector('span');
-            if (btnSpan) {
-                const icon = btnSpan.querySelector('i');
-                btnSpan.textContent = 'Connecting...';
-                if (icon) {
-                    btnSpan.prepend(icon);
-                }
-            } else {
-                this.elements.joinBtn.textContent = 'Connecting...';
-            }
-        }
-        
-        if (this.elements.joinView) {
-            this.elements.joinView.classList.add('hidden');
-        }
-        
-        if (this.elements.connectingView) {
-            this.elements.connectingView.classList.remove('hidden');
-        }
-        
-        try {
-            await window.waitForVoiceManager();
-            await this.connectToVoice();
-        } catch (error) {
-            console.error('[VOICE-SECTION] Failed to join voice:', error);
-            this.isProcessing = false;
-            this.autoJoinInProgress = false;
-            window.voiceJoinInProgress = false;
-            
-            if (this.elements.joinBtn) {
-                this.elements.joinBtn.removeAttribute('data-processing');
-                this.elements.joinBtn.style.pointerEvents = 'auto';
-                this.elements.joinBtn.style.cursor = 'pointer';
-                this.elements.joinBtn.textContent = 'Join Voice';
-            }
-        }
+        console.log('🚫 [VOICE-SECTION] Direct join clicked - now routed through voice-not-join.php');
+        // Direct joining disabled - all joins now go through voice-not-join.php
+        // This method is kept for compatibility but does nothing
+        return;
     }
     
     async connectToVoice() {
-        const voiceManager = await window.waitForVoiceManager();
-        if (!voiceManager) {
-            throw new Error('Voice manager not available');
-        }
-
-        try {
-            if (this.elements.connectingView) {
-                this.elements.connectingView.classList.remove('hidden');
-            }
-            if (this.elements.joinView) {
-                this.elements.joinView.classList.add('hidden');
-            }
-            
-            await voiceManager.joinVoice();
-        } catch (error) {
-            throw error;
-        }
+        console.log('🚫 [VOICE-SECTION] Direct connect called - now routed through voice-not-join.php');
+        // Direct connection disabled - all connections now go through voice-not-join.php
+        // This method is kept for compatibility but does nothing
+        return;
     }
     
     updateChannelNames(channelName) {

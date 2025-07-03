@@ -270,8 +270,32 @@ async function joinVoiceChannel() {
             throw new Error('Voice manager not available after script loading');
         }
         
-        console.log('[Voice Not Join] Voice scripts ready, attempting to join voice...');
-        await window.voiceManager.joinVoice();
+        // Get meeting details from voice manager first
+        console.log('[Voice Not Join] Getting meeting details from voice manager...');
+        await window.voiceManager.joinVoice(); // This will prepare meeting ID and registration
+        
+        // Now use VideoSDK directly for actual meeting joining
+        if (!window.videoSDKManager) {
+            throw new Error('VideoSDK manager not available');
+        }
+        
+        // Get meeting details
+        const meetingId = window.voiceManager.currentMeetingId;
+        const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+        const userName = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
+        
+        if (!meetingId) {
+            throw new Error('Meeting ID not available from voice manager');
+        }
+        
+        console.log('[Voice Not Join] Initializing VideoSDK meeting...');
+        await window.videoSDKManager.externalInitMeeting(meetingId, userName, true, false);
+        
+        console.log('[Voice Not Join] Joining VideoSDK meeting...');
+        await window.videoSDKManager.externalJoinMeeting();
+        
+        // Mark connection as successful
+        window.videoSDKManager.markExternalJoinSuccess();
         
         if (window.waitForVideoSDKReady) {
             console.log('[Voice Not Join] Waiting for VideoSDK to be fully ready...');
@@ -294,6 +318,11 @@ async function joinVoiceChannel() {
                 window.voiceJoinErrorShown = false;
             }, 3000);
         }
+        
+        // Reset UI state on error
+        if (joinBtn) joinBtn.disabled = false;
+        if (joinView) joinView.classList.remove('hidden');
+        if (connectingView) connectingView.classList.add('hidden');
         
         this.isProcessing = false;
     }
