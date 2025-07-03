@@ -219,25 +219,49 @@ function initializeParticipantSystem() {
 }
 
 function setupVoiceEventListeners() {
-    // Listen for voice connect/disconnect events to update participant display
     window.addEventListener('voiceConnect', (event) => {
         console.log('🎤 [PARTICIPANT] Voice connect detected, updating display');
         setTimeout(() => {
             scheduleUpdate();
-        }, 500); // Small delay to allow presence update to propagate
+        }, 500);
     });
     
     window.addEventListener('voiceDisconnect', (event) => {
         console.log('🎤 [PARTICIPANT] Voice disconnect detected, updating display');
         setTimeout(() => {
             scheduleUpdate();
-        }, 500); // Small delay to allow presence update to propagate
+        }, 500);
+    });
+    
+    window.addEventListener('presenceForceReset', (event) => {
+        console.log('🔧 [PARTICIPANT] Presence force reset detected, updating display');
+        setTimeout(() => {
+            scheduleUpdate();
+        }, 200);
     });
     
     window.addEventListener('ownPresenceUpdate', () => {
         console.log('👤 [PARTICIPANT] Own presence update detected');
         scheduleUpdate();
     });
+    
+    setInterval(() => {
+        validateOwnPresence();
+    }, 4000);
+}
+
+function validateOwnPresence() {
+    if (!window.videoSDKManager || !window.globalSocketManager) return;
+    
+    const isVideoSDKConnected = window.videoSDKManager.isConnected && 
+                               window.videoSDKManager.isMeetingJoined;
+    const currentActivity = window.globalSocketManager.currentActivityDetails?.type || '';
+    const isPresenceInVoice = currentActivity.startsWith('In Voice');
+    
+    if (!isVideoSDKConnected && isPresenceInVoice) {
+        console.log('⚠️ [PARTICIPANT] Own presence shows in voice but VideoSDK not connected - triggering update');
+        scheduleUpdate();
+    }
 }
 
 function setupFriendsManagerIntegration() {
@@ -364,16 +388,32 @@ function updateParticipantDisplay() {
 
         // Inject/update own presence data to ensure it's always current
         if (String(member.id) === String(currentUserId)) {
+            const isVideoSDKConnected = window.videoSDKManager?.isConnected && 
+                                       window.videoSDKManager?.isMeetingJoined;
+            
+            let correctedActivityDetails = currentActivityDetails;
+            
+            if (!isVideoSDKConnected && currentActivityDetails?.type?.startsWith('In Voice')) {
+                console.log('🔧 [PARTICIPANT] Correcting own presence - VideoSDK not connected but marked as in voice');
+                correctedActivityDetails = { type: 'active' };
+                
+                if (window.globalSocketManager) {
+                    setTimeout(() => {
+                        window.globalSocketManager.updatePresence('online', { type: 'active' }, 'participant-section-correction');
+                    }, 100);
+                }
+            }
+            
             userData = {
                 user_id: currentUserId,
                 username: window.globalSocketManager?.username || member.username,
                 status: currentUserStatus,
-                activity_details: currentActivityDetails
+                activity_details: correctedActivityDetails
             };
             console.log('🎤 [PARTICIPANT] Updated current user presence:', {
                 userId: currentUserId,
                 status: currentUserStatus,
-                activityDetails: currentActivityDetails
+                activityDetails: correctedActivityDetails
             });
         }
         

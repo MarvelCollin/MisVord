@@ -18,6 +18,91 @@ class VideoSDKManager {
         this._webcamState = false;
         this._screenShareState = false;
         this.processedParticipants = new Set();
+        this.presenceMonitorInterval = null;
+        this.lastPresenceCheck = null;
+        this.startPresenceMonitoring();
+    }
+
+    startPresenceMonitoring() {
+        if (this.presenceMonitorInterval) {
+            clearInterval(this.presenceMonitorInterval);
+        }
+        
+        this.presenceMonitorInterval = setInterval(() => {
+            this.checkAndSyncPresence();
+        }, 2000);
+    }
+
+    checkAndSyncPresence() {
+        const isActuallyInVoice = this.isConnected && this.isMeetingJoined && this.meeting;
+        const sessionInVoice = sessionStorage.getItem('isInVoiceCall') === 'true';
+        const currentActivity = window.globalSocketManager?.currentActivityDetails?.type || '';
+        const isPresenceInVoice = currentActivity.startsWith('In Voice');
+        
+        const currentState = {
+            videoSDKConnected: isActuallyInVoice,
+            sessionMarker: sessionInVoice,
+            presenceInVoice: isPresenceInVoice,
+            activityType: currentActivity
+        };
+        
+        const stateSignature = `${currentState.videoSDKConnected}:${currentState.sessionMarker}:${currentState.presenceInVoice}:${currentState.activityType}`;
+        
+        if (stateSignature === this.lastPresenceCheck) {
+            return;
+        }
+        
+        this.lastPresenceCheck = stateSignature;
+        
+        console.log('🔍 [VideoSDK-Presence] Checking presence sync:', currentState);
+        
+        if (!isActuallyInVoice && (sessionInVoice || isPresenceInVoice)) {
+            console.log('⚠️ [VideoSDK-Presence] Presence out of sync - not in voice but marked as in voice');
+            this.forcePresenceReset();
+        } else if (isActuallyInVoice && !isPresenceInVoice) {
+            console.log('⚠️ [VideoSDK-Presence] Presence out of sync - in voice but not marked');
+            this.syncPresenceToVoice();
+        }
+    }
+
+    forcePresenceReset() {
+        console.log('🔧 [VideoSDK-Presence] Force resetting presence to online/active');
+        
+        sessionStorage.removeItem('isInVoiceCall');
+        sessionStorage.removeItem('voiceChannelName');
+        
+        if (window.globalSocketManager) {
+            window.globalSocketManager.updatePresence('online', { type: 'active' }, 'videosdk-force-reset');
+        }
+        
+        if (window.voiceManager) {
+            window.voiceManager.isConnected = false;
+        }
+        
+        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+        window.dispatchEvent(new CustomEvent('presenceForceReset', { 
+            detail: { reason: 'VideoSDK not connected' } 
+        }));
+    }
+
+    syncPresenceToVoice() {
+        if (!this.isConnected || !this.isMeetingJoined) return;
+        
+        const channelName = sessionStorage.getItem('voiceChannelName') || 'Voice Channel';
+        const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+        
+        console.log('🔧 [VideoSDK-Presence] Syncing presence to voice state');
+        
+        if (window.globalSocketManager?.isReady()) {
+            const activityDetails = {
+                type: `In Voice - ${channelName}`,
+                state: 'In a voice channel',
+                details: channelName,
+                channel_id: channelId,
+                channel_name: channelName,
+            };
+            window.globalSocketManager.updatePresence('online', activityDetails, 'videosdk-sync');
+        }
     }
 
     async getAuthToken() {
@@ -489,12 +574,35 @@ class VideoSDKManager {
                 }
                 
                 window.dispatchEvent(new CustomEvent('videosdkStreamDisabled', { 
-                    detail: { kind, participant: participant.id } 
+                    detail: { kind, participant: participant.id, data } 
                 }));
             });
+            
+            setTimeout(() => {
+                this.checkExistingStreamsForParticipant(participant);
+            }, 500);
+            
         } catch (error) {
             console.error("Error registering stream events:", error);
         }
+    }
+    
+    checkExistingStreamsForParticipant(participant) {
+        if (!participant || !participant.streams) return;
+        
+        console.log(`🔍 [VideoSDK] Checking existing streams for participant: ${participant.id}`);
+        
+        participant.streams.forEach((stream, streamId) => {
+            if (stream && stream.track && stream.track.kind === 'video') {
+                const kind = this.detectStreamKind(stream, { stream, streamId });
+                
+                console.log(`📹 [VideoSDK] Found existing ${kind} stream for ${participant.id}: ${streamId}`);
+                
+                window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', { 
+                    detail: { kind, stream, participant: participant.id, data: { stream, streamId } } 
+                }));
+            }
+        });
     }
     
     detectStreamKind(stream, data) {
@@ -502,7 +610,11 @@ class VideoSDKManager {
             const videoTracks = stream.getVideoTracks();
             if (videoTracks.length > 0) {
                 const track = videoTracks[0];
-                return track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
+                const isScreenShare = track.label && (
+                    track.label.toLowerCase().includes('screen') || 
+                    track.label.toLowerCase().includes('display')
+                );
+                return isScreenShare ? 'share' : 'video';
             } else {
                 return 'audio';
             }
@@ -510,16 +622,24 @@ class VideoSDKManager {
             const videoTracks = stream.stream.getVideoTracks();
             if (videoTracks.length > 0) {
                 const track = videoTracks[0];
-                return track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
+                const isScreenShare = track.label && (
+                    track.label.toLowerCase().includes('screen') || 
+                    track.label.toLowerCase().includes('display')
+                );
+                return isScreenShare ? 'share' : 'video';
             } else {
                 return 'audio';
             }
         } else if (stream.track?.kind === 'video') {
-            return stream.track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
+            const isScreenShare = stream.track.label && (
+                stream.track.label.toLowerCase().includes('screen') || 
+                stream.track.label.toLowerCase().includes('display')
+            );
+            return isScreenShare ? 'share' : 'video';
         } else if (stream.track?.kind === 'audio') {
             return 'audio';
         }
-        return 'unknown';
+        return 'video';
     }
 
     isScreenShareStream(stream, data) {
@@ -552,42 +672,36 @@ class VideoSDKManager {
             try {
                 participant.streams.forEach((stream, streamId) => {
                     if (!participant._previousStreams.has(streamId)) {
-                        let kind = 'unknown';
+                        let kind = this.detectStreamKind(stream, { stream, streamId });
                         
-                        if (streamId.includes('video') || streamId.includes('cam') || streamId.includes('webcam')) {
-                            kind = 'video';
-                        } else if (streamId.includes('audio') || streamId.includes('mic')) {
-                            kind = 'audio';
-                        } else if (streamId.includes('share') || streamId.includes('screen')) {
-                            kind = 'share';
-                        } else if (stream && stream.stream instanceof MediaStream) {
-                            const videoTracks = stream.stream.getVideoTracks();
-                            if (videoTracks.length > 0) {
-                                const track = videoTracks[0];
-                                kind = track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
-                            } else {
-                                kind = 'audio';
-                            }
-                        } else if (stream && stream.track) {
-                            const track = stream.track;
-                            if (track.kind === 'video') {
-                                kind = track.label?.toLowerCase().includes('screen') ? 'share' : 'video';
-                            } else {
-                                kind = 'audio';
-                            }
-                        }
+                        console.log(`🔍 [VideoSDK] New stream detected: ${streamId} (${kind}) for ${participant.id}`, stream);
                         
                         participant._previousStreams.set(streamId, kind);
+                        
+                        if (kind === 'video' || kind === 'share') {
+                            window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', {
+                                detail: { 
+                                    participant: participant.id,
+                                    stream: stream,
+                                    kind: kind,
+                                    data: { stream, streamId }
+                                }
+                            }));
+                        }
                     }
                 });
                 
                 participant._previousStreams.forEach((kind, streamId) => {
                     if (!participant.streams.has(streamId)) {
+                        console.log(`🔍 [VideoSDK] Stream removed: ${streamId} (${kind}) for ${participant.id}`);
+                        
                         if (kind === 'video' || kind === 'share') {
                             window.dispatchEvent(new CustomEvent('videosdkStreamDisabled', {
                                 detail: { 
-                                    kind,
-                                    participant: participant.id
+                                    participant: participant.id,
+                                    stream: null,
+                                    kind: kind,
+                                    data: { streamId }
                                 }
                             }));
                         }
@@ -595,14 +709,17 @@ class VideoSDKManager {
                         participant._previousStreams.delete(streamId);
                     }
                 });
-            } catch (err) {
-                console.warn("Error in stream monitor:", err);
+            } catch (error) {
+                console.error('[VideoSDK] Stream monitoring error:', error);
             }
         }, 1000);
         
         participant._streamMonitorInterval = interval;
         participant._streamMonitoringActive = true;
+        
+        console.log(`🔍 [VideoSDK] Stream monitoring started for ${participant.id}`);
     }
+
 
     // Join meeting function removed - now handled by voice-not-join.php
     
@@ -634,7 +751,6 @@ class VideoSDKManager {
             if (this.meeting) {
                 const leaveResult = this.meeting.leave();
 
-                // If the SDK returns a promise we should wait for it to resolve/reject.
                 if (leaveResult && typeof leaveResult.then === 'function') {
                     await leaveResult.catch(err => {
                         console.warn('[VideoSDK] meeting.leave() rejected:', err);
@@ -647,26 +763,30 @@ class VideoSDKManager {
             console.error('[VideoSDK] Unexpected error while leaving meeting:', err);
         }
 
-        // Clean up any lingering participant resources/tracks.
         this.cleanupParticipantResources();
 
-        // Reset internal flags & references.
         this.isMeetingJoined = false;
         this.isConnected = false;
         this.meeting = null;
         this.processedParticipants.clear();
 
-        // Remove session markers indicating voice call BEFORE presence update, so watchdog sees correct state.
         sessionStorage.removeItem('isInVoiceCall');
         sessionStorage.removeItem('voiceChannelName');
 
-        // Presence reset back to regular online/active.
         if (window.globalSocketManager) {
             window.globalSocketManager.updatePresence('online', { type: 'active' }, 'videosdk-leave');
         }
 
-        // Notify the rest of the app/UI.
+        if (window.voiceManager) {
+            window.voiceManager.isConnected = false;
+        }
+
         window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+        window.dispatchEvent(new CustomEvent('presenceForceReset', { 
+            detail: { reason: 'Meeting left' } 
+        }));
+
+        this.checkAndSyncPresence();
 
         console.log('✅ [VideoSDK] Meeting left and resources cleaned up');
     }
@@ -771,9 +891,12 @@ class VideoSDKManager {
                 console.log('[VideoSDKManager] Deafened - microphone muted and audio reception disabled');
             }
             
-            if (window.voiceStateManager) {
+            if (window.ChannelVoiceParticipants) {
                 setTimeout(() => {
-                    window.voiceStateManager.syncWithVideoSDK();
+                    const instance = window.ChannelVoiceParticipants.getInstance();
+                    if (instance && typeof instance.syncWithVideoSDK === 'function') {
+                        instance.syncWithVideoSDK();
+                    }
                 }, 100);
             }
             
@@ -936,7 +1059,7 @@ class VideoSDKManager {
                 console.log('[VideoSDK] Screen sharing disabled');
                 
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                    detail: { type: 'screenShare', state: false }
+                    detail: { type: 'screen', state: false }
                 }));
                 
                 if (window.voiceCallManager) {
@@ -950,7 +1073,7 @@ class VideoSDKManager {
                 console.log('[VideoSDK] Screen sharing enabled');
                 
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                    detail: { type: 'screenShare', state: true }
+                    detail: { type: 'screen', state: true }
                 }));
                 
                 if (window.voiceCallManager) {
@@ -970,6 +1093,23 @@ class VideoSDKManager {
         }
     }
     
+    getMicState() {
+        if (this._micState !== undefined) {
+            return this._micState;
+        }
+        
+        if (!this.meeting?.localParticipant) return false;
+        
+        try {
+            const participant = this.meeting.localParticipant;
+            const micStream = participant.streams.get('mic');
+            return micStream ? !micStream.track.enabled : false;
+        } catch (error) {
+            console.error("Error getting mic state:", error);
+            return false;
+        }
+    }
+    
     getWebcamState() {
         if (this._webcamState !== undefined) {
             return this._webcamState;
@@ -978,10 +1118,9 @@ class VideoSDKManager {
         if (!this.meeting?.localParticipant) return false;
         
         try {
-            return this.meeting.localParticipant.isWebcamEnabled || 
-                  (this.meeting.localParticipant.streams && 
-                   this.meeting.localParticipant.streams.has && 
-                   this.meeting.localParticipant.streams.has("video"));
+            const participant = this.meeting.localParticipant;
+            const webcamStream = participant.streams.get('webcam');
+            return webcamStream ? webcamStream.track.enabled : false;
         } catch (error) {
             console.error("Error getting webcam state:", error);
             return false;
@@ -996,30 +1135,11 @@ class VideoSDKManager {
         if (!this.meeting?.localParticipant) return false;
         
         try {
-            return this.meeting.localParticipant.isScreenShareEnabled || 
-                  (this.meeting.localParticipant.streams && 
-                   this.meeting.localParticipant.streams.has && 
-                   this.meeting.localParticipant.streams.has("share"));
+            const participant = this.meeting.localParticipant;
+            const shareStream = participant.streams.get('share');
+            return shareStream ? shareStream.track.enabled : false;
         } catch (error) {
             console.error("Error getting screen share state:", error);
-            return false;
-        }
-    }
-    
-    getMicState() {
-        if (this._micState !== undefined) {
-            return this._micState;
-        }
-        
-        if (!this.meeting?.localParticipant) return false;
-        
-        try {
-            return this.meeting.localParticipant.isMicEnabled || 
-                  (this.meeting.localParticipant.streams && 
-                   this.meeting.localParticipant.streams.has && 
-                   this.meeting.localParticipant.streams.has("audio"));
-        } catch (error) {
-            console.error("Error getting mic state:", error);
             return false;
         }
     }
@@ -1088,6 +1208,13 @@ class VideoSDKManager {
             console.error('Error refreshing existing participants:', error);
         }
     }
+
+    static getInstance() {
+        if (!window.videoSDKManager) {
+            window.videoSDKManager = new VideoSDKManager();
+        }
+        return window.videoSDKManager;
+    }
 }
 
 if (!window.videoSDKManager) {
@@ -1097,6 +1224,26 @@ if (!window.videoSDKManager) {
 } else {
     console.log('ℹ️ VideoSDKManager already exists, skipping creation');
 }
+
+window.addEventListener('beforeunload', () => {
+    if (window.videoSDKManager?.isConnected) {
+        console.log('🚨 [VideoSDK] Page unloading, forcing presence reset');
+        if (window.globalSocketManager) {
+            window.globalSocketManager.updatePresence('online', { type: 'active' }, 'page-unload');
+        }
+        sessionStorage.removeItem('isInVoiceCall');
+        sessionStorage.removeItem('voiceChannelName');
+    }
+});
+
+window.addEventListener('pagehide', () => {
+    if (window.videoSDKManager?.isConnected) {
+        console.log('🚨 [VideoSDK] Page hidden, forcing presence reset');
+        if (window.globalSocketManager) {
+            window.globalSocketManager.updatePresence('online', { type: 'active' }, 'page-hide');
+        }
+    }
+});
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = window.videoSDKManager;

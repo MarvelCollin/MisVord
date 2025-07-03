@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Syntax Test</title>
+</head>
+<body>
+    <h1>JavaScript Syntax Test</h1>
+    <div id="result"></div>
+    
+    <script>
+        // Test loading the voice-call-section.js file
+        const script = document.createElement('script');
+        script.src = '/public/js/components/voice/voice-call-section.js';
+        script.onload = function() {
+            document.getElementById('result').innerHTML = '<span style="color: green;">✅ voice-call-section.js loaded successfully - No syntax errors!</span>';
+        };
+        script.onerror = function(error) {
+            document.getElementById('result').innerHTML = '<span style="color: red;">❌ Error loading voice-call-section.js: ' + error + '</span>';
+        };
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>

@@ -10,7 +10,42 @@ class ChannelVoiceParticipants {
         this.loadExistingMeetings();
         this.attachVoiceEvents();
         this.setupChannelSwitchListeners();
+        this.setupPresenceValidation();
         console.log('[VOICE-PARTICIPANT] Voice participants manager initialized');
+    }
+
+    setupPresenceValidation() {
+        window.addEventListener('presenceForceReset', () => {
+            console.log('[VOICE-PARTICIPANT] Presence force reset detected, updating participants');
+            this.validateAllParticipants();
+        });
+        
+        setInterval(() => {
+            this.validateCurrentUserPresence();
+        }, 3000);
+    }
+
+    validateCurrentUserPresence() {
+        if (!window.videoSDKManager || !window.globalSocketManager) return;
+        
+        const isVideoSDKConnected = window.videoSDKManager.isConnected && 
+                                   window.videoSDKManager.isMeetingJoined;
+        const currentActivity = window.globalSocketManager.currentActivityDetails?.type || '';
+        const isPresenceInVoice = currentActivity.startsWith('In Voice');
+        const currentChannelId = window.voiceManager?.currentChannelId;
+        
+        if (!isVideoSDKConnected && isPresenceInVoice && currentChannelId) {
+            console.log('[VOICE-PARTICIPANT] Removing current user from voice channel due to VideoSDK disconnect');
+            this.removeParticipant(currentChannelId, window.currentUserId);
+        }
+    }
+
+    validateAllParticipants() {
+        console.log('[VOICE-PARTICIPANT] Validating all participants against actual voice state');
+        
+        for (const [channelId, channelParticipants] of this.participants.entries()) {
+            this.updateParticipantContainer(channelId);
+        }
     }
 
     setupSocketListeners() {

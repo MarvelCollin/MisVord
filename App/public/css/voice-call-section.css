@@ -29,6 +29,26 @@
     object-fit: cover !important;
     background: #000 !important;
     display: block !important;
+    border-radius: inherit !important;
+}
+
+.participant-video {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: inherit !important;
+    overflow: hidden !important;
+    z-index: 10 !important;
+}
+
+.participant-video video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: inherit !important;
+    background: #000 !important;
 }
 
 .video-participant-overlay {
@@ -44,6 +64,7 @@
     backdrop-filter: blur(4px) !important;
 }
 
+/* Enhanced participant grid styling */
 #participantGrid {
     display: grid !important;
     gap: 12px !important;
@@ -56,6 +77,7 @@
     scrollbar-width: thin !important;
     scrollbar-color: #5865f2 #2f3136 !important;
     place-items: stretch !important;
+    transition: grid-template-columns 0.3s ease !important;
 }
 
 #participantGrid::-webkit-scrollbar {
@@ -501,29 +523,44 @@
 .screen-share-card {
     border: 2px solid #5865f2 !important;
     box-shadow: 0 0 10px rgba(88, 101, 242, 0.3) !important;
+    background: linear-gradient(135deg, #1e1f22 0%, #2f3136 100%) !important;
+    min-height: 200px !important;
 }
 
 .screen-share-card:hover {
     border-color: #7289da !important;
     box-shadow: 0 0 15px rgba(88, 101, 242, 0.5) !important;
+    transform: scale(1.02) !important;
+}
+
+.screen-share-card .screen-share-header {
+    background: rgba(88, 101, 242, 0.1) !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+}
+
+.screen-share-card .screen-share-content {
+    cursor: pointer !important;
+    transition: transform 0.2s ease !important;
+}
+
+.screen-share-card .screen-share-content:hover {
+    transform: scale(1.02) !important;
 }
 
 .screen-share-card video {
     object-fit: contain !important;
     background: #000 !important;
+    border-radius: 4px !important;
 }
 
-.participant-card,
-.video-participant-card,
-.screen-share-card {
-    box-sizing: border-box !important;
-    overflow: hidden !important;
-    width: 100% !important;
-    height: 100% !important;
+.screen-share-loading {
+    transition: opacity 0.3s ease !important;
 }
 
-.screen-share-card .video-participant-overlay {
-    background: rgba(88, 101, 242, 0.9) !important;
+.screen-share-loading.hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 .fullscreen-overlay {

@@ -35,9 +35,68 @@ class GlobalPresenceManager {
         await this.waitForDependencies();
         await this.initializeFriendsManager();
         await this.setupActiveNowSection();
+        this.setupVideoSDKPresenceSync();
         
         this.isInitialized = true;
         console.log('✅ [GLOBAL-PRESENCE] Global presence system initialized');
+    }
+
+    setupVideoSDKPresenceSync() {
+        console.log('🎤 [GLOBAL-PRESENCE] Setting up VideoSDK presence sync...');
+        
+        window.addEventListener('voiceConnect', (event) => {
+            console.log('🎤 [GLOBAL-PRESENCE] Voice connect detected');
+            this.updateActiveNow();
+        });
+        
+        window.addEventListener('voiceDisconnect', (event) => {
+            console.log('🎤 [GLOBAL-PRESENCE] Voice disconnect detected');
+            this.handleVoiceDisconnect();
+        });
+        
+        window.addEventListener('presenceForceReset', (event) => {
+            console.log('🔧 [GLOBAL-PRESENCE] Presence force reset detected:', event.detail);
+            this.handlePresenceForceReset(event.detail);
+        });
+        
+        setInterval(() => {
+            this.validatePresenceWithVideoSDK();
+        }, 5000);
+    }
+
+    validatePresenceWithVideoSDK() {
+        if (!window.videoSDKManager) return;
+        
+        const isVideoSDKConnected = window.videoSDKManager.isConnected && 
+                                   window.videoSDKManager.isMeetingJoined && 
+                                   window.videoSDKManager.meeting;
+        
+        const currentActivity = window.globalSocketManager?.currentActivityDetails?.type || '';
+        const isPresenceInVoice = currentActivity.startsWith('In Voice');
+        
+        if (!isVideoSDKConnected && isPresenceInVoice) {
+            console.log('⚠️ [GLOBAL-PRESENCE] VideoSDK not connected but presence shows in voice - correcting');
+            this.forcePresenceToActive();
+        }
+    }
+
+    handleVoiceDisconnect() {
+        console.log('🔧 [GLOBAL-PRESENCE] Handling voice disconnect');
+        this.forcePresenceToActive();
+        this.updateActiveNow();
+    }
+
+    handlePresenceForceReset(detail) {
+        console.log('🔧 [GLOBAL-PRESENCE] Handling presence force reset:', detail);
+        this.forcePresenceToActive();
+        this.updateActiveNow();
+    }
+
+    forcePresenceToActive() {
+        if (window.globalSocketManager) {
+            window.globalSocketManager.updatePresence('online', { type: 'active' }, 'global-presence-force-reset');
+            console.log('🔧 [GLOBAL-PRESENCE] Forced presence to active');
+        }
     }
 
     async waitForDependencies() {

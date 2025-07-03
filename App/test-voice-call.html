@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Voice Call Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl mb-4">Voice Call Test</h1>
+        
+        <!-- Test buttons to trigger methods -->
+        <div class="mb-4 space-x-2">
+            <button id="testStreamBtn" class="bg-blue-500 px-4 py-2 rounded">Test Stream Event</button>
+            <button id="testParticipantBtn" class="bg-green-500 px-4 py-2 rounded">Test Add Participant</button>
+            <button id="testScreenShareBtn" class="bg-purple-500 px-4 py-2 rounded">Test Screen Share</button>
+        </div>
+        
+        <!-- Voice call section placeholder -->
+        <div id="voiceCallSection" class="hidden">
+            <div id="participantGrid" class="grid gap-2"></div>
+            
+            <!-- Voice controls -->
+            <div class="mt-4 flex space-x-2">
+                <button id="micBtn" class="bg-gray-600 p-2 rounded"><i class="fas fa-microphone"></i></button>
+                <button id="videoBtn" class="bg-gray-600 p-2 rounded"><i class="fas fa-video"></i></button>
+                <button id="deafenBtn" class="bg-gray-600 p-2 rounded"><i class="fas fa-volume-up"></i></button>
+                <button id="screenBtn" class="bg-gray-600 p-2 rounded"><i class="fas fa-desktop"></i></button>
+                <button id="ticTacToeBtn" class="bg-gray-600 p-2 rounded"><i class="fas fa-gamepad"></i></button>
+                <button id="disconnectBtn" class="bg-red-600 p-2 rounded"><i class="fas fa-phone-slash"></i></button>
+            </div>
+            
+            <div id="voiceParticipantCount" class="mt-2">0</div>
+        </div>
+    </div>
+    
+    <!-- Load CSS -->
+    <link rel="stylesheet" href="/css/voice-call-section.css">
+    
+    <!-- Load JS -->
+    <script src="/js/components/voice/voice-call-section.js"></script>
+    
+    <script>
+        // Simple test setup
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🧪 Test page loaded');
+            
+            // Show voice call section
+            document.getElementById('voiceCallSection').classList.remove('hidden');
+            
+            // Test buttons
+            document.getElementById('testStreamBtn').onclick = () => {
+                console.log('🧪 Testing stream event...');
+                if (window.voiceCallSection && typeof window.voiceCallSection.updateParticipantStream === 'function') {
+                    window.voiceCallSection.updateParticipantStream('test-user-123', null, 'video');
+                    console.log('✅ updateParticipantStream method is accessible');
+                } else {
+                    console.error('❌ updateParticipantStream method not found');
+                }
+            };
+            
+            document.getElementById('testParticipantBtn').onclick = () => {
+                console.log('🧪 Testing add participant...');
+                if (window.voiceCallSection && typeof window.voiceCallSection.addParticipantToGrid === 'function') {
+                    window.voiceCallSection.addParticipantToGrid('test-user-456', { displayName: 'Test User' });
+                    console.log('✅ addParticipantToGrid method is accessible');
+                } else {
+                    console.error('❌ addParticipantToGrid method not found');
+                }
+            };
+            
+            document.getElementById('testScreenShareBtn').onclick = () => {
+                console.log('🧪 Testing screen share...');
+                if (window.voiceCallSection && typeof window.voiceCallSection.createScreenShareCard === 'function') {
+                    // Create a mock stream
+                    const mockStream = { track: new MediaStreamTrack() };
+                    window.voiceCallSection.createScreenShareCard('test-user-789', mockStream);
+                    console.log('✅ createScreenShareCard method is accessible');
+                } else {
+                    console.error('❌ createScreenShareCard method not found');
+                }
+            };
+            
+            // Test method existence
+            setTimeout(() => {
+                console.log('🧪 Testing method availability...');
+                const voiceCallSection = window.voiceCallSection;
+                
+                if (voiceCallSection) {
+                    const methods = [
+                        'updateParticipantStream',
+                        'createScreenShareCard', 
+                        'removeScreenShareCard',
+                        'handleStreamEvent',
+                        'addParticipantToGrid',
+                        'removeParticipantFromGrid'
+                    ];
+                    
+                    methods.forEach(method => {
+                        if (typeof voiceCallSection[method] === 'function') {
+                            console.log(`✅ ${method} is available`);
+                        } else {
+                            console.error(`❌ ${method} is missing`);
+                        }
+                    });
+                } else {
+                    console.error('❌ window.voiceCallSection not found');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

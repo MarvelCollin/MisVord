@@ -314,6 +314,10 @@ function showPresenceDebugPanel() {
                             <div class="text-sm text-gray-400">VideoSDK Status:</div>
                             <div id="videosdk-status" class="text-sm text-indigo-400">Detecting...</div>
                         </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Meeting ID:</div>
+                            <div id="meeting-id-status" class="text-xs font-mono text-cyan-400">N/A</div>
+                        </div>
                     </div>
                     
                     <h3 class="text-lg font-semibold text-white mb-4 mt-6">Quick Actions</h3>
@@ -435,6 +439,7 @@ function refreshPresenceStatus() {
     const socketStatusEl = document.getElementById('socket-connection-status');
     const lastSourceEl = document.getElementById('last-presence-source');
     const videosdkStatusEl = document.getElementById('videosdk-status');
+    const meetingIdEl = document.getElementById('meeting-id-status');
     
     if (socketManager?.isReady()) {
         const status = socketManager.currentPresenceStatus || 'Unknown';
@@ -442,6 +447,7 @@ function refreshPresenceStatus() {
         const isInVoice = socketManager.isUserInVoiceCall();
         const lastSource = socketManager.lastPresenceSource || 'N/A';
         const videosdkConnected = (window.videoSDKManager && window.videoSDKManager.isMeetingJoined) || sessionStorage.getItem('isInVoiceCall')==='true';
+        const meetingId = window.videoSDKManager?.meeting?.id || window.voiceManager?.currentMeetingId || 'N/A';
         
         if (currentPresenceEl) currentPresenceEl.textContent = status;
         if (activityDetailsEl) activityDetailsEl.textContent = activity?.type || 'None';
@@ -458,6 +464,10 @@ function refreshPresenceStatus() {
             videosdkStatusEl.textContent = videosdkConnected ? 'Connected' : 'Not Connected';
             videosdkStatusEl.className = videosdkConnected ? 'text-sm text-indigo-400' : 'text-sm text-gray-400';
         }
+        if (meetingIdEl) {
+            meetingIdEl.textContent = meetingId;
+            meetingIdEl.className = meetingId !== 'N/A' ? 'text-xs font-mono text-cyan-400' : 'text-xs font-mono text-gray-500';
+        }
     } else {
         if (currentPresenceEl) currentPresenceEl.textContent = 'Disconnected';
         if (activityDetailsEl) activityDetailsEl.textContent = 'N/A';
@@ -471,6 +481,11 @@ function refreshPresenceStatus() {
             const videosdkConnected = sessionStorage.getItem('isInVoiceCall')==='true';
             videosdkStatusEl.textContent = videosdkConnected ? 'Connected' : 'Not Connected';
             videosdkStatusEl.className = videosdkConnected ? 'text-sm text-indigo-400' : 'text-sm text-gray-400';
+        }
+        if (meetingIdEl) {
+            const meetingId = window.voiceManager?.currentMeetingId || 'N/A';
+            meetingIdEl.textContent = meetingId;
+            meetingIdEl.className = meetingId !== 'N/A' ? 'text-xs font-mono text-cyan-400' : 'text-xs font-mono text-gray-500';
         }
     }
 }
