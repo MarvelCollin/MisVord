@@ -439,29 +439,6 @@ function setup(io) {
                 roomManager.addVoiceMeeting(channel_id, meeting_id, client.id);
                 console.log(`📋 [VOICE-PARTICIPANT] Added voice meeting to room manager: channel ${channel_id}, meeting ${meeting_id}, socket ${client.id}`);
                 
-                // Update user presence to reflect voice activity with context
-                const currentPresence = userService.getPresence(userId);
-                const channelName = data.channel_name || 'Voice Channel';
-                userService.updatePresence(userId, 'online', { 
-                    type: `In Voice - ${channelName}`,
-                    channel_id: channel_id,
-                    server_id: server_id,
-                    channel_name: channelName
-                }, username || client.data?.username);
-                
-                // Broadcast presence update with voice context
-                io.emit('user-presence-update', {
-                    user_id: userId,
-                    username: username || client.data?.username,
-                    status: 'online',
-                    activity_details: { 
-                        type: `In Voice - ${channelName}`,
-                        channel_id: channel_id,
-                        server_id: server_id,
-                        channel_name: channelName
-                    }
-                });
-                
                 const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
                 const participantCount = participants.length;
                 

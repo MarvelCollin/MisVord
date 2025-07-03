@@ -126,31 +126,6 @@ class VoiceSection {
                     connectionTime: Date.now()
                 });
             }
-            
-            if (window.globalSocketManager?.isReady()) {
-                console.log('🎤 [VOICE-PARTICIPANT] Updating presence to In Voice - channel name with channel context');
-                
-                // CRITICAL FIX: Ensure user is marked as active when voice connects
-                if (window.globalSocketManager.currentPresenceStatus === 'afk' || !window.globalSocketManager.isUserActive) {
-                    console.log(`🎯 [VOICE-PARTICIPANT] User was inactive/afk during voice connect, marking as active`);
-                    window.globalSocketManager.isUserActive = true;
-                    window.globalSocketManager.lastActivityTime = Date.now();
-                    window.globalSocketManager.currentPresenceStatus = 'online';
-                }
-                
-                const channelId = details.channelId || window.voiceManager?.currentChannelId;
-                const serverId = document.querySelector('meta[name="server-id"]')?.content;
-                const channelName = details.channelName || window.voiceManager?.currentChannelName || 'Voice Channel';
-                
-                console.log('🎤 [VOICE-PARTICIPANT] Updating presence to In Voice - channel name with channel context');
-                
-                window.globalSocketManager.updatePresence('online', {
-                    type: `In Voice - ${channelName}`,
-                    channel_id: channelId,
-                    server_id: serverId,
-                    channel_name: channelName
-                });
-            }
         });
         
         window.addEventListener(window.VOICE_EVENTS.VOICE_DISCONNECT, () => {
@@ -189,11 +164,6 @@ class VoiceSection {
                     meetingId: null,
                     connectionTime: null
                 });
-            }
-            
-            if (window.globalSocketManager?.isReady()) {
-                console.log('🎤 [VOICE-PARTICIPANT] Updating presence to idle after voice disconnect');
-                window.globalSocketManager.updatePresence('online', { type: 'idle' });
             }
         });
     }

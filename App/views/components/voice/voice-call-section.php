@@ -759,15 +759,17 @@ class VoiceCallManager {
         this.isFullscreenMode = false;
         this._participants = new Map();
         
-        setTimeout(() => {
-            this.init();
-        }, 100);
+        this.userId = document.querySelector('meta[name="user-id"]')?.content;
+        this.meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
+        this.channelId = document.querySelector('meta[name="channel-id"]')?.content;
+        this.serverId = document.querySelector('meta[name="server-id"]')?.content;
+        
+        this.initialize();
     }
-
-    init() {
+    
+    initialize() {
         this.setupEventListeners();
-        this.setupControls();
-        this.setupDoubleClickHandlers();
+        this.updateParticipantCount();
     }
 
     setupEventListeners() {
@@ -861,40 +863,8 @@ class VoiceCallManager {
             this.updateGrid();
         });
 
-        window.addEventListener('voiceDisconnect', (event) => {
-            console.log('🔌 [VOICE-CALL-MANAGER] Voice disconnect event received');
-            
-            this.isConnected = false;
-            
-            if (window.unifiedVoiceStateManager) {
-                window.unifiedVoiceStateManager.setState({
-                    isConnected: false,
-                    channelId: null,
-                    channelName: null,
-                    meetingId: null,
-                    connectionTime: null
-                });
-            }
-            
-            const meetingIdDisplay = document.getElementById('meetingIdDisplay');
-            if (meetingIdDisplay) {
-                meetingIdDisplay.textContent = '-';
-                meetingIdDisplay.onclick = null;
-                meetingIdDisplay.style.cursor = 'default';
-                meetingIdDisplay.title = '';
-            }
-            
-            if (this.localParticipantId) {
-                console.log('[VOICE-CALL-MANAGER] Removing local participant on disconnect');
-                this.handleParticipantLeft(this.localParticipantId);
-                this.localParticipantId = null;
-            }
-            
+        window.addEventListener('voiceDisconnect', () => {
             this.cleanup();
-            
-            if (window.MusicLoaderStatic?.playDisconnectVoiceSound) {
-                window.MusicLoaderStatic.playDisconnectVoiceSound();
-            }
         });
 
         window.addEventListener('videosdkStreamEnabled', (event) => {
@@ -919,36 +889,7 @@ class VoiceCallManager {
 
         window.addEventListener('voiceStateChanged', (event) => {
             const { type, state } = event.detail;
-            
-            if (type === 'mic') {
-                this.isMuted = !state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isMuted: this.isMuted });
-                }
-            } else if (type === 'video') {
-                this.isVideoOn = state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isVideoOn: this.isVideoOn });
-                }
-            } else if (type === 'screenShare') {
-                this.isScreenSharing = state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isScreenSharing: this.isScreenSharing });
-                }
-            } else if (type === 'deafen') {
-                this.isDeafened = state;
-                this.updateButtonStates();
-                
-                if (window.unifiedVoiceStateManager) {
-                    window.unifiedVoiceStateManager.setState({ isDeafened: this.isDeafened });
-                }
-            }
+            this.updateControlsUI(type, state);
         });
 
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
@@ -974,6 +915,10 @@ class VoiceCallManager {
                 }
             });
         }
+
+        document.getElementById('ticTacToeBtn')?.addEventListener('click', () => {
+            TicTacToeModal.createTicTacToeModal(this.serverId, this.userId);
+        });
     }
 
     async handleParticipantJoined(data) {
@@ -1049,7 +994,6 @@ class VoiceCallManager {
         this.updateParticipantCount();
         this.updateGrid();
         
-        // Emit local join event for immediate UI updates
         this.broadcastParticipantUpdate('join', participantId, participantData.name);
     }
 
@@ -2309,646 +2253,337 @@ class VoiceCallManager {
     }
 
     broadcastParticipantUpdate(action, participantId, participantName) {
-        // Socket registration now handles global broadcasting
-        // Only dispatch local events for immediate UI updates
-        const currentChannelId = window.voiceManager?.currentChannelId;
-        
-        if (!currentChannelId) {
-            console.log('[VOICE-CALL-MANAGER] Cannot broadcast - no current channel');
-            return;
-        }
-        
-        console.log(`[VOICE-CALL-MANAGER] Local participant ${action} event:`, {
-            participantId,
-            participantName,
-            channelId: currentChannelId
-        });
-        
-        // Local event for immediate updates
-        window.dispatchEvent(new CustomEvent('voiceParticipantUpdate', {
-            detail: {
-                action: action,
-                channelId: currentChannelId,
-                participantId: participantId,
-                participantName: participantName,
-                participantCount: this._participants.size
-            }
-        }));
+        // This is a placeholder for potential future use with a backend service.
+        // For now, it just logs to the console.
+        //console.log(`[VoiceCallManager] Participant update: ${participantName} (${participantId}) has ${action}.`);
     }
-}
 
-// Global functions for UI interactions
-function stopScreenShare() {
-    if (window.voiceCallManager) {
-        window.voiceCallManager.toggleScreenShare();
-    }
-}
-
-function toggleVideoLayout() {
-    // Toggle between grid and speaker view
-    const gridBtn = document.getElementById('gridViewBtn');
-    const speakerBtn = document.getElementById('speakerViewBtn');
-    
-    if (gridBtn?.classList.contains('bg-[#4f545c]')) {
-        // Switch to speaker view
-        gridBtn.classList.remove('bg-[#4f545c]');
-        gridBtn.classList.add('bg-[#36393f]');
-        speakerBtn.classList.remove('bg-[#36393f]');
-        speakerBtn.classList.add('bg-[#4f545c]');
-        
-        // Implement speaker view logic here
-        window.voiceCallManager?.showToast('Speaker view coming soon', 'info');
-    } else {
-        // Switch to grid view
-        speakerBtn.classList.remove('bg-[#4f545c]');
-        speakerBtn.classList.add('bg-[#36393f]');
-        gridBtn.classList.remove('bg-[#36393f]');
-        gridBtn.classList.add('bg-[#4f545c]');
-    }
-}
-
-const initializeVoiceCallSystem = () => {
-    if (window.voiceCallManager) {
-        console.log('[VOICE-CALL] VoiceCallManager already exists, skipping duplicate creation');
-        return;
-    }
-    
-    if (!window.localStorageManager) {
-        setTimeout(initializeVoiceCallSystem, 100);
-        return;
-    }
-    
-    if (!window.unifiedVoiceStateManager) {
-        setTimeout(initializeVoiceCallSystem, 100);
-        return;
-    }
-    
-    console.log('[VOICE-CALL] Creating single VoiceCallManager instance');
-    window.voiceCallManager = new VoiceCallManager();
-    
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            if (window.voiceCallManager && window.voiceCallManager.isConnected) {
-                console.log('[VOICE-CALL] Window resized, updating grid layout');
-                window.voiceCallManager.updateGrid();
-            }
-        }, 250);
-    });
-    
-    window.retryVoiceSocketRegistration = function() {
-        if (window.voiceManager && typeof window.voiceManager.retrySocketRegistration === 'function') {
-            return window.voiceManager.retrySocketRegistration();
-        } else {
-            console.warn('⚠️ Voice manager not available or method not found');
-            return false;
-        }
-    };
-    
-    window.testVoiceConnectionStatus = function() {
-        console.log('🧪 [VOICE-TEST] Testing voice connection status...');
-        
-        const videoSDKConnected = window.videoSDKManager?.isConnected || false;
-        const voiceManagerConnected = window.voiceManager?.isConnected || false;
-        const socketManagerReady = window.globalSocketManager?.isReady() || false;
-        
-        console.log('✅ VideoSDK Connected:', videoSDKConnected);
-        console.log('✅ Voice Manager Connected:', voiceManagerConnected);
-        console.log('✅ Socket Manager Ready:', socketManagerReady);
-        console.log('✅ Current Channel ID:', window.voiceManager?.currentChannelId || 'None');
-        console.log('✅ Current Meeting ID:', window.voiceManager?.currentMeetingId || 'None');
-        
-        if (videoSDKConnected && voiceManagerConnected) {
-            console.log('🎉 [VOICE-TEST] Voice connection is healthy!');
-            return { status: 'healthy', videoSDK: true, voiceManager: true };
-        } else if (videoSDKConnected && !voiceManagerConnected) {
-            console.log('⚠️ [VOICE-TEST] VideoSDK connected but Voice Manager reports disconnected (Socket registration may have failed)');
-            return { status: 'partial', videoSDK: true, voiceManager: false };
-        } else {
-            console.log('❌ [VOICE-TEST] Voice connection has issues');
-            return { status: 'error', videoSDK: videoSDKConnected, voiceManager: voiceManagerConnected };
-        }
-    };
-    
-    window.testVoicePresenceProtection = function() {
-        console.log('🛡️ [VOICE-PROTECTION-TEST] Testing voice call presence protection...');
-        
-        if (!window.globalSocketManager?.isReady()) {
-            console.error('❌ [VOICE-PROTECTION-TEST] Socket not ready');
-            return false;
-        }
-        
-        const originalActivity = window.globalSocketManager.currentActivityDetails;
-        const originalStatus = window.globalSocketManager.currentPresenceStatus;
-        
-        console.log('📊 [VOICE-PROTECTION-TEST] Original state:', {
-            status: originalStatus,
-            activity: originalActivity
-        });
-        
-        console.log('📡 [VOICE-PROTECTION-TEST] Setting to voice call status...');
-        window.globalSocketManager.updatePresence('online', { 
-            type: 'In Voice - Test Channel',
-            channel_name: 'Test Channel',
-            channel_id: '123',
-            server_id: '456'
-        });
-        
-        setTimeout(() => {
-            console.log('🎯 [VOICE-PROTECTION-TEST] Simulating user activity...');
-            document.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-            
-            setTimeout(() => {
-                const currentActivity = window.globalSocketManager.currentActivityDetails;
-                const currentStatus = window.globalSocketManager.currentPresenceStatus;
-                
-                console.log('📊 [VOICE-PROTECTION-TEST] After activity state:', {
-                    status: currentStatus,
-                    activity: currentActivity
-                });
-                
-                if (currentActivity?.type?.startsWith('In Voice - ')) {
-                    console.log('✅ [VOICE-PROTECTION-TEST] SUCCESS - Voice call status preserved!');
-                    
-                    window.globalSocketManager.updatePresence(originalStatus, originalActivity);
-                    console.log('🔄 [VOICE-PROTECTION-TEST] Restored original state');
-                    return true;
-                } else {
-                    console.log('❌ [VOICE-PROTECTION-TEST] FAIL - Voice call status was overridden');
-                    
-                    window.globalSocketManager.updatePresence(originalStatus, originalActivity);
-                    console.log('🔄 [VOICE-PROTECTION-TEST] Restored original state');
-                    return false;
-                }
-            }, 500);
-        }, 500);
-    };
-    
-    console.log('✅ [VOICE-CALL] Test functions available:');
-    console.log('  - window.testVoiceConnectionStatus() - Test basic voice connection');
-    console.log('  - window.testVoicePresenceProtection() - Test presence protection');
-    
-    window.retryVoiceSocketRegistration = function() {
-        if (window.voiceManager && typeof window.voiceManager.retrySocketRegistration === 'function') {
-            return window.voiceManager.retrySocketRegistration();
-        } else {
-            console.warn('⚠️ Voice manager not available or method not found');
-            return false;
-        }
-    };
-    
-    const gridViewBtn = document.getElementById('gridViewBtn');
-    const speakerViewBtn = document.getElementById('speakerViewBtn');
-    
-    if (gridViewBtn) {
-        gridViewBtn.addEventListener('click', toggleVideoLayout);
-    }
-    
-    if (speakerViewBtn) {
-        speakerViewBtn.addEventListener('click', toggleVideoLayout);
-    }
-    
-    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-        console.log('[VOICE-CALL] Socket manager ready, voice call system operational');
-    } else {
-        console.log('[VOICE-CALL] Waiting for socket manager...');
-        const checkSocket = () => {
-            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-                console.log('[VOICE-CALL] Socket manager ready, voice call system now operational');
-            } else {
-                setTimeout(checkSocket, 500);
-            }
+    updateControlsUI(type, state) {
+        const controlMap = {
+            mic: { btn: document.getElementById('micBtn'), icon: 'fas fa-microphone', activeClass: 'text-[#3ba55c]', tooltip: 'Unmute', defaultTooltip: 'Mute' },
+            deafen: { btn: document.getElementById('deafenBtn'), icon: 'fas fa-headphones', activeClass: 'text-[#3ba55c]', tooltip: 'Undeafen', defaultTooltip: 'Deafen' },
+            video: { btn: document.getElementById('videoBtn'), icon: 'fas fa-video-slash', activeClass: 'text-[#3ba55c]', tooltip: 'Turn Off Camera', defaultTooltip: 'Turn On Camera' },
+            screenShare: { btn: document.getElementById('screenBtn'), icon: 'fas fa-desktop', activeClass: 'text-[#5865f2]', tooltip: 'Stop Sharing', defaultTooltip: 'Share Screen' }
         };
-        checkSocket();
-    }
-};
 
-document.addEventListener('DOMContentLoaded', initializeVoiceCallSystem);
+        const control = controlMap[type];
+        if (!control) return;
 
-window.testVoiceLeaveButton = function() {
-    console.log('🧪 [VOICE-LEAVE-TEST] Testing voice leave button presence update...');
-    
-    if (!window.globalSocketManager?.isReady()) {
-        console.error('❌ [VOICE-LEAVE-TEST] Socket not ready');
-        return false;
-    }
-    
-    const originalActivity = window.globalSocketManager.currentActivityDetails;
-    const originalStatus = window.globalSocketManager.currentPresenceStatus;
-    
-    console.log('📊 [VOICE-LEAVE-TEST] Original state:', {
-        status: originalStatus,
-        activity: originalActivity
-    });
-    
-    console.log('📡 [VOICE-LEAVE-TEST] Setting to voice call status first...');
-    window.globalSocketManager.updatePresence('online', { 
-        type: 'In Voice - Test Channel',
-        channel_name: 'Test Channel',
-        channel_id: '123',
-        server_id: '456'
-    });
-    
-    setTimeout(() => {
-        console.log('🎯 [VOICE-LEAVE-TEST] Simulating disconnect button click...');
-        
-        const disconnectBtn = document.getElementById('disconnectBtn');
-        if (disconnectBtn && window.voiceCallManager) {
-            window.voiceCallManager.disconnect();
+        const iconEl = control.btn.querySelector('i');
+
+        if (state) {
+            control.btn.classList.add('active');
+            if (control.activeClass) {
+                iconEl.classList.add(control.activeClass);
+            }
+            control.btn.querySelector('.voice-tooltip').textContent = control.tooltip;
             
-            setTimeout(() => {
-                const currentActivity = window.globalSocketManager.currentActivityDetails;
-                const currentStatus = window.globalSocketManager.currentPresenceStatus;
-                
-                console.log('📊 [VOICE-LEAVE-TEST] After disconnect state:', {
-                    status: currentStatus,
-                    activity: currentActivity
-                });
-                
-                if (currentActivity?.type === 'idle') {
-                    console.log('✅ [VOICE-LEAVE-TEST] SUCCESS - Presence correctly updated to idle!');
-                    
-                    window.globalSocketManager.updatePresence(originalStatus, originalActivity);
-                    console.log('🔄 [VOICE-LEAVE-TEST] Restored original state');
-                    return true;
-                } else {
-                    console.log('❌ [VOICE-LEAVE-TEST] FAIL - Presence not updated to idle');
-                    console.log('Current activity type:', currentActivity?.type);
-                    
-                    window.globalSocketManager.updatePresence(originalStatus, originalActivity);
-                    console.log('🔄 [VOICE-LEAVE-TEST] Restored original state');
-                    return false;
-                }
-            }, 1000);
+            if (type === 'mic' || type === 'deafen') {
+                control.btn.classList.add('bg-[#ed4245]');
+            } else if (type === 'video') {
+                iconEl.className = 'fas fa-video text-sm';
+            } else if (type === 'screenShare') {
+                iconEl.classList.add(control.activeClass);
+            }
         } else {
-            console.error('❌ [VOICE-LEAVE-TEST] Disconnect button or voice call manager not found');
-            return false;
+            control.btn.classList.remove('active');
+            if (control.activeClass) {
+                iconEl.classList.remove(control.activeClass);
+            }
+            control.btn.querySelector('.voice-tooltip').textContent = control.defaultTooltip;
+
+            if (type === 'mic' || type === 'deafen') {
+                control.btn.classList.remove('bg-[#ed4245]');
+            } else if (type === 'video') {
+                iconEl.className = 'fas fa-video-slash text-sm';
+            } else if (type === 'screenShare') {
+                iconEl.classList.remove(control.activeClass);
+            }
         }
-    }, 500);
-};
 
-console.log('✅ [VOICE-CALL] Test functions available:');
-console.log('  - window.testVoiceConnectionStatus() - Test basic voice connection');
-console.log('  - window.testVoicePresenceProtection() - Test presence protection');
-console.log('  - window.testVoiceLeaveButton() - Test leave button presence update');
+        if (type === 'deafen') {
+            const micBtn = document.getElementById('micBtn');
+            const micIcon = micBtn.querySelector('i');
+            micBtn.disabled = state;
+            micBtn.classList.toggle('opacity-50', state);
 
-window.testSpuriousLeaveProtection = function() {
-    console.log('🧪 [VOICE-SPURIOUS-TEST] Testing spurious leave event protection...');
-    
-    if (!window.globalSocketManager?.isReady()) {
-        console.error('❌ [VOICE-SPURIOUS-TEST] Socket not ready');
-        return false;
+            if (state) {
+                micIcon.classList.remove('fa-microphone-slash');
+                micIcon.classList.add('fa-microphone');
+                micBtn.classList.add('bg-[#ed4245]');
+                micBtn.querySelector('.voice-tooltip').textContent = 'Deafened';
+            } else {
+                micBtn.querySelector('.voice-tooltip').textContent = this.isMicMuted ? 'Unmute' : 'Mute';
+            }
+        }
     }
     
-    if (!window.videoSDKManager?.isConnected && !window.voiceManager?.isConnected) {
-        console.error('❌ [VOICE-SPURIOUS-TEST] Not actually in voice call - join voice first');
-        return false;
-    }
-    
-    const originalActivity = window.globalSocketManager.currentActivityDetails;
-    const originalStatus = window.globalSocketManager.currentPresenceStatus;
-    
-    console.log('📊 [VOICE-SPURIOUS-TEST] Original state:', {
-        status: originalStatus,
-        activity: originalActivity,
-        videoSDKConnected: window.videoSDKManager?.isConnected,
-        voiceManagerConnected: window.voiceManager?.isConnected
-    });
-    
-    console.log('📡 [VOICE-SPURIOUS-TEST] Setting to voice call status first...');
-    window.globalSocketManager.updatePresence('online', { 
-        type: 'In Voice - Test Channel',
-        channel_name: 'Test Channel',
-        channel_id: '14',
-        server_id: '13'
-    });
-    
-    setTimeout(() => {
-        console.log('💀 [VOICE-SPURIOUS-TEST] Simulating spurious leave event...');
-        
-        const fakeLeaveData = {
-            action: 'leave',
-            user_id: window.globalSocketManager.userId || '2',
-            channel_id: '14',
-            server_id: '13',
-            meeting_id: 'test-meeting',
-            participant_count: 0
+    addParticipant(participantId, participantName = 'Anonymous', avatarUrl = '') {
+        if (this.participants.has(participantId)) return;
+
+        const participantData = {
+            id: participantId,
+            name: participantName,
+            avatar: avatarUrl || '/public/assets/common/default-profile-picture.png',
+            streams: new Map()
         };
+        this.participants.set(participantId, participantData);
         
-        window.globalSocketManager.handleVoiceMeetingUpdate(fakeLeaveData);
-        
-        setTimeout(() => {
-            const currentActivity = window.globalSocketManager.currentActivityDetails;
-            const currentStatus = window.globalSocketManager.currentPresenceStatus;
-            
-            console.log('📊 [VOICE-SPURIOUS-TEST] After spurious leave state:', {
-                status: currentStatus,
-                activity: currentActivity,
-                videoSDKStillConnected: window.videoSDKManager?.isConnected,
-                voiceManagerStillConnected: window.voiceManager?.isConnected
-            });
-            
-            if (currentActivity?.type?.startsWith('In Voice - ')) {
-                console.log('✅ [VOICE-SPURIOUS-TEST] SUCCESS - Voice call status protected from spurious leave event!');
-                return true;
-            } else {
-                console.log('❌ [VOICE-SPURIOUS-TEST] FAIL - Voice call status was not protected');
-                console.log('Current activity type:', currentActivity?.type);
-                return false;
-            }
-        }, 1000);
-    }, 500);
-};
+        this.updateGrid();
+        this.broadcastParticipantUpdate('join', participantId, participantData.name);
+    }
 
-window.testAFKProtectionWhileInVoice = function() {
-    console.log('🧪 [VOICE-AFK-TEST] Testing AFK protection while in voice...');
-    
-    if (!window.globalSocketManager?.isReady()) {
-        console.error('❌ [VOICE-AFK-TEST] Socket not ready');
-        return false;
-    }
-    
-    if (!window.videoSDKManager?.isConnected && !window.voiceManager?.isConnected) {
-        console.error('❌ [VOICE-AFK-TEST] Not actually in voice call - join voice first');
-        return false;
-    }
-    
-    console.log('📡 [VOICE-AFK-TEST] Setting to voice call status...');
-    window.globalSocketManager.updatePresence('online', { 
-        type: 'In Voice - Test Channel',
-        channel_name: 'Test Channel',
-        channel_id: '14',
-        server_id: '13'
-    });
-    
-    console.log('⏰ [VOICE-AFK-TEST] Simulating 25 seconds of inactivity...');
-    window.globalSocketManager.lastActivityTime = Date.now() - 25000;
-    window.globalSocketManager.isUserActive = true;
-    
-    setTimeout(() => {
-        console.log('🔍 [VOICE-AFK-TEST] Manually triggering AFK check...');
-        
-        const timeSinceActivity = Date.now() - window.globalSocketManager.lastActivityTime;
-        console.log('📊 [VOICE-AFK-TEST] Time since activity:', timeSinceActivity, 'ms');
-        console.log('📊 [VOICE-AFK-TEST] AFK timeout:', window.globalSocketManager.afkTimeout, 'ms');
-        console.log('📊 [VOICE-AFK-TEST] User active:', window.globalSocketManager.isUserActive);
-        
-        if (timeSinceActivity >= window.globalSocketManager.afkTimeout && window.globalSocketManager.isUserActive) {
-            const currentActivity = window.globalSocketManager.currentActivityDetails;
-            const isVideoSDKConnected = window.videoSDKManager?.isConnected;
-            const isVoiceManagerConnected = window.voiceManager?.isConnected;
-            
-            console.log('📊 [VOICE-AFK-TEST] Voice connection state:', {
-                currentActivity: currentActivity?.type,
-                videoSDKConnected: isVideoSDKConnected,
-                voiceManagerConnected: isVoiceManagerConnected
-            });
-            
-            if (currentActivity?.type?.startsWith('In Voice - ') || isVideoSDKConnected || isVoiceManagerConnected) {
-                console.log('✅ [VOICE-AFK-TEST] SUCCESS - User in voice call, should NOT go AFK');
-                console.log('✅ [VOICE-AFK-TEST] Voice protection working correctly');
-                return true;
-            } else {
-                console.log('❌ [VOICE-AFK-TEST] FAIL - User not detected as in voice call');
-                return false;
-            }
-        } else {
-            console.log('⚠️ [VOICE-AFK-TEST] AFK conditions not met for test');
-            return false;
+    removeParticipant(participantId) {
+        const participantData = this.participants.get(participantId);
+        if (participantData) {
+            this.participants.delete(participantId);
+            this.updateGrid();
+            this.broadcastParticipantUpdate('leave', participantId, participantData.name);
         }
-    }, 1000);
-};
-
-console.log('✅ [VOICE-CALL] Test functions available:');
-console.log('  - window.testVoiceConnectionStatus() - Test basic voice connection');
-console.log('  - window.testVoicePresenceProtection() - Test presence protection');
-console.log('  - window.testVoiceLeaveButton() - Test leave button presence update');
-console.log('  - window.testSpuriousLeaveProtection() - Test spurious leave event protection');
-console.log('  - window.testAFKProtectionWhileInVoice() - Test AFK protection while in voice');
-
-window.diagnoseVoiceStatus = function() {
-    console.log('🏥 [VOICE-DIAGNOSTIC] Running voice status diagnostic...');
+    }
     
-    const socketManager = window.globalSocketManager;
-    const videoSDK = window.videoSDKManager;
-    const voiceManager = window.voiceManager;
-    const unifiedState = window.unifiedVoiceStateManager;
-    
-    console.log('📊 [VOICE-DIAGNOSTIC] Current Status Overview:');
-    console.log('=====================================');
-    
-    console.log('🔌 [VOICE-DIAGNOSTIC] Socket Manager:', {
-        ready: socketManager?.isReady() || false,
-        userId: socketManager?.userId || 'unknown',
-        presenceStatus: socketManager?.currentPresenceStatus || 'unknown',
-        activityType: socketManager?.currentActivityDetails?.type || 'unknown',
-        lastActivity: socketManager?.lastActivityTime || 'unknown',
-        isUserActive: socketManager?.isUserActive || false
-    });
-    
-    console.log('📹 [VOICE-DIAGNOSTIC] VideoSDK Manager:', {
-        exists: !!videoSDK,
-        connected: videoSDK?.isConnected || false,
-        meetingId: videoSDK?.meeting?.id || 'none',
-        localParticipant: videoSDK?.meeting?.localParticipant?.id || 'none'
-    });
-    
-    console.log('🎤 [VOICE-DIAGNOSTIC] Voice Manager:', {
-        exists: !!voiceManager,
-        connected: voiceManager?.isConnected || false,
-        currentChannelId: voiceManager?.currentChannelId || 'none',
-        currentChannelName: voiceManager?.currentChannelName || 'none',
-        currentMeetingId: voiceManager?.currentMeetingId || 'none'
-    });
-    
-    console.log('🔄 [VOICE-DIAGNOSTIC] Unified State Manager:', {
-        exists: !!unifiedState,
-        connected: unifiedState?.isConnected() || false,
-        state: unifiedState?.getState() || 'none'
-    });
-    
-    const isActuallyConnected = videoSDK?.isConnected || voiceManager?.isConnected || unifiedState?.isConnected();
-    const presenceShowsVoice = socketManager?.currentActivityDetails?.type?.startsWith('In Voice - ');
-    
-    console.log('🔍 [VOICE-DIAGNOSTIC] Consistency Check:');
-    console.log('=====================================');
-    console.log('Actually connected to voice:', isActuallyConnected);
-    console.log('Presence shows voice call:', presenceShowsVoice);
-    
-    if (isActuallyConnected && presenceShowsVoice) {
-        console.log('✅ [VOICE-DIAGNOSTIC] HEALTHY - Voice connection and presence are consistent');
-    } else if (isActuallyConnected && !presenceShowsVoice) {
-        console.log('⚠️ [VOICE-DIAGNOSTIC] MISMATCH - Connected to voice but presence does not show voice call');
-        console.log('🔧 [VOICE-DIAGNOSTIC] Attempting to fix presence...');
+    updateParticipantStream(participantId, kind, stream) {
+        if (!this.participants.has(participantId)) {
+            const data = this.getParticipantData(participantId);
+            if (data) {
+                this.addParticipant(participantId, data.name, data.avatar);
+            } else {
+                return;
+            }
+        }
         
-        const channelName = voiceManager?.currentChannelName || 'Voice Channel';
-        const channelId = voiceManager?.currentChannelId;
-        const serverId = document.querySelector('meta[name="server-id"]')?.content;
+        const participant = this.participants.get(participantId);
+        participant.streams.set(kind, stream);
         
-        socketManager?.updatePresence('online', {
-            type: `In Voice - ${channelName}`,
-            channel_id: channelId,
-            server_id: serverId,
-            channel_name: channelName
+        if (kind === 'video' || kind === 'share') {
+            participant.hasVideo = true;
+        }
+
+        this.updateGrid();
+    }
+    
+    removeParticipantStream(participantId, kind) {
+        const participant = this.participants.get(participantId);
+        if (participant?.streams.has(kind)) {
+            participant.streams.delete(kind);
+            if (kind === 'video' || kind === 'share') {
+                participant.hasVideo = Array.from(participant.streams.keys()).some(k => k === 'video' || k === 'share');
+            }
+            this.updateGrid();
+        }
+    }
+
+    updateGrid() {
+        const grid = document.getElementById('participantGrid');
+        if (!grid) return;
+
+        const sortedParticipants = Array.from(this.participants.values()).sort((a, b) => {
+            const aHasVideo = a.streams.has('video') || a.streams.has('share');
+            const bHasVideo = b.streams.has('video') || b.streams.has('share');
+            if (aHasVideo !== bHasVideo) return aHasVideo ? -1 : 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        // Clear grid but preserve elements for transition
+        const existingElements = new Map();
+        Array.from(grid.children).forEach(child => {
+            existingElements.set(child.dataset.participantId, child);
         });
         
-        console.log('✅ [VOICE-DIAGNOSTIC] Presence fix attempted');
-    } else if (!isActuallyConnected && presenceShowsVoice) {
-        console.log('⚠️ [VOICE-DIAGNOSTIC] MISMATCH - Presence shows voice call but not actually connected');
-        console.log('🔧 [VOICE-DIAGNOSTIC] Attempting to fix presence...');
+        const fragment = document.createDocumentFragment();
         
-        socketManager?.updatePresence('online', { type: 'idle' });
-        
-        console.log('✅ [VOICE-DIAGNOSTIC] Presence fix attempted');
-    } else {
-        console.log('✅ [VOICE-DIAGNOSTIC] CONSISTENT - Not connected and presence correctly shows non-voice');
-    }
-    
-    console.log('🏥 [VOICE-DIAGNOSTIC] Diagnostic completed');
-    return {
-        actuallyConnected: isActuallyConnected,
-        presenceShowsVoice: presenceShowsVoice,
-        consistent: isActuallyConnected === presenceShowsVoice
-    };
-};
+        sortedParticipants.forEach(p => {
+            const hasVideo = p.streams.has('video') || p.streams.has('share');
+            let el;
 
-window.testSmartGrid = function() {
-    console.log('🧪 [SMART-GRID-TEST] Testing smart grid layout system...');
-    
-    if (!window.voiceCallManager) {
-        console.error('❌ [SMART-GRID-TEST] VoiceCallManager not available');
-        return false;
-    }
-    
-    const participantGrid = document.getElementById('participantGrid');
-    if (!participantGrid) {
-        console.error('❌ [SMART-GRID-TEST] Participant grid not found');
-        return false;
-    }
-    
-    const mockParticipants = [
-        { id: 'test1', name: 'Test User 1', hasVideo: false, hasScreenShare: false },
-        { id: 'test2', name: 'Test User 2', hasVideo: true, hasScreenShare: false },
-        { id: 'test3', name: 'Test User 3', hasVideo: false, hasScreenShare: true },
-        { id: 'test4', name: 'Test User 4', hasVideo: true, hasScreenShare: false }
-    ];
-    
-    console.log('📊 [SMART-GRID-TEST] Testing different participant counts...');
-    
-    for (let i = 1; i <= mockParticipants.length; i++) {
-        const { cols, rows, cellWidth, cellHeight } = window.voiceCallManager.getOptimalGridLayout(
-            i, 
-            participantGrid.clientWidth - 16, 
-            participantGrid.clientHeight - 16
-        );
-        
-        console.log(`👥 ${i} participants: ${cols}x${rows} grid, cell size: ${Math.round(cellWidth)}x${Math.round(cellHeight)}`);
-    }
-    
-    console.log('📱 [SMART-GRID-TEST] Testing mobile layout...');
-    Object.defineProperty(window, 'innerWidth', { value: 400, configurable: true });
-    
-    const { cols: mobileCols, rows: mobileRows } = window.voiceCallManager.getOptimalGridLayout(
-        4, 
-        400 - 16, 
-        600 - 16
-    );
-    
-    console.log(`📱 Mobile 4 participants: ${mobileCols}x${mobileRows} grid`);
-    
-    Object.defineProperty(window, 'innerWidth', { value: 1920, configurable: true });
-    
-    console.log('✅ [SMART-GRID-TEST] Smart grid test completed successfully');
-    return true;
-};
+            if (existingElements.has(p.id)) {
+                el = existingElements.get(p.id);
+                existingElements.delete(p.id);
+                
+                // Update existing element
+                if (hasVideo) {
+                    this.updateVideoCard(el, p);
+                } else {
+                    this.updateVoiceCard(el, p);
+                }
 
-console.log('✅ [VOICE-CALL] Test functions available:');
-console.log('  - window.testVoiceConnectionStatus() - Test basic voice connection');
-console.log('  - window.testVoicePresenceProtection() - Test presence protection');
-console.log('  - window.testVoiceLeaveButton() - Test leave button presence update');
-console.log('  - window.testSpuriousLeaveProtection() - Test spurious leave event protection');
-console.log('  - window.testAFKProtectionWhileInVoice() - Test AFK protection while in voice');
-console.log('  - window.diagnoseVoiceStatus() - Diagnose voice status consistency');
-console.log('  - window.testSmartGrid() - Test smart grid layout calculations');
-
-window.testAllVoiceUIComponents = function() {
-    console.log('🧪 [VOICE-UI-TEST] Testing all voice UI components with new format...');
-    
-    if (!window.globalSocketManager?.isReady()) {
-        console.error('❌ [VOICE-UI-TEST] Socket not ready');
-        return false;
-    }
-    
-    const testChannelName = 'Test Voice Channel';
-    const testActivity = {
-        type: `In Voice - ${testChannelName}`,
-        channel_name: testChannelName,
-        channel_id: '999',
-        server_id: '888'
-    };
-    
-    console.log('📡 [VOICE-UI-TEST] Setting presence to voice call...');
-    window.globalSocketManager.updatePresence('online', testActivity);
-    
-    setTimeout(() => {
-        console.log('🔍 [VOICE-UI-TEST] Checking all UI components...');
-        
-        const activeNowContainer = document.getElementById('active-now-container') || 
-                                 document.getElementById('global-active-now-container');
-        
-        if (activeNowContainer) {
-            const voiceUsers = Array.from(activeNowContainer.querySelectorAll('.text-xs.text-gray-400')).filter(el => {
-                return el.textContent.includes('In Voice -');
-            });
-            
-            if (voiceUsers.length > 0) {
-                console.log('✅ [VOICE-UI-TEST] Active Now section shows voice status correctly');
-                voiceUsers.forEach(user => {
-                    console.log('   👤 Found:', user.textContent.trim());
-                });
             } else {
-                console.log('⚠️ [VOICE-UI-TEST] Active Now section not showing voice status');
-            }
-        }
-        
-        const participantSection = document.querySelector('.user-presence-text');
-        if (participantSection) {
-            const presenceText = participantSection.textContent.trim();
-            if (presenceText.includes('In Voice -')) {
-                console.log('✅ [VOICE-UI-TEST] Participant section shows voice status correctly:', presenceText);
-            } else {
-                console.log('⚠️ [VOICE-UI-TEST] Participant section not showing voice status:', presenceText);
-            }
-        }
-        
-        if (window.globalPresenceManager) {
-            const testActivityText = window.globalPresenceManager.getActivityText(testActivity);
-            const testActivityIcon = window.globalPresenceManager.getActivityIcon(testActivity);
-            
-            if (testActivityText === testActivity.type) {
-                console.log('✅ [VOICE-UI-TEST] Global presence manager returns correct activity text');
-            } else {
-                console.log('❌ [VOICE-UI-TEST] Global presence manager wrong activity text:', testActivityText);
+                el = hasVideo ? this.createVideoCard(p) : this.createVoiceCard(p);
             }
             
-            if (testActivityIcon === 'fa-solid fa-microphone') {
-                console.log('✅ [VOICE-UI-TEST] Global presence manager returns correct activity icon');
-            } else {
-                console.log('❌ [VOICE-UI-TEST] Global presence manager wrong activity icon:', testActivityIcon);
-            }
+            fragment.appendChild(el);
+        });
+
+        // Remove participants who left
+        existingElements.forEach(el => el.remove());
+        
+        // Append new/updated participants
+        grid.innerHTML = '';
+        grid.appendChild(fragment);
+
+        this.adjustGridLayout(sortedParticipants.length);
+        this.updateParticipantCount();
+    }
+
+    createVideoCard(participant) {
+        const card = document.createElement('div');
+        card.className = 'video-participant-card';
+        card.dataset.participantId = participant.id;
+
+        const video = document.createElement('video');
+        video.autoplay = true;
+        video.playsInline = true;
+        video.muted = participant.id === this.userId;
+        
+        const stream = participant.streams.get('share') || participant.streams.get('video');
+        if (stream) {
+            video.srcObject = stream;
+            video.play().catch(e => console.error("Video play error:", e));
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'video-participant-overlay';
+        overlay.textContent = participant.name;
+
+        card.append(video, overlay);
+        return card;
+    }
+
+    updateVideoCard(card, participant) {
+        let video = card.querySelector('video');
+        if (!video) {
+            video = document.createElement('video');
+            video.autoplay = true;
+            video.playsInline = true;
+            card.innerHTML = '';
+            card.appendChild(video);
         }
         
-        console.log('📊 [VOICE-UI-TEST] Current socket activity details:', window.globalSocketManager.currentActivityDetails);
+        const stream = participant.streams.get('share') || participant.streams.get('video');
+        if (stream && video.srcObject !== stream) {
+            video.srcObject = stream;
+            video.play().catch(e => console.error("Video play error:", e));
+        }
         
-        setTimeout(() => {
-            console.log('📡 [VOICE-UI-TEST] Resetting to idle...');
-            window.globalSocketManager.updatePresence('online', { type: 'idle' });
-            console.log('✅ [VOICE-UI-TEST] Test completed');
-        }, 3000);
+        let overlay = card.querySelector('.video-participant-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'video-participant-overlay';
+            card.appendChild(overlay);
+        }
+        overlay.textContent = participant.name;
         
-    }, 1000);
+        card.className = 'video-participant-card';
+        return card;
+    }
+
+    createVoiceCard(participant) {
+        const card = document.createElement('div');
+        card.className = 'participant-card';
+        card.dataset.participantId = participant.id;
+
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'participant-avatar';
+        if (participant.avatar) {
+            avatarDiv.innerHTML = `<img src="${participant.avatar}" alt="${participant.name}" class="w-full h-full object-cover">`;
+        } else {
+            avatarDiv.textContent = participant.name.charAt(0).toUpperCase();
+            avatarDiv.style.backgroundColor = this.getUserColor(participant.name);
+        }
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'participant-name';
+        nameSpan.textContent = participant.name;
+
+        card.append(avatarDiv, nameSpan);
+        return card;
+    }
+
+    updateVoiceCard(card, participant) {
+        card.className = 'participant-card';
+        let avatarDiv = card.querySelector('.participant-avatar');
+        if (!avatarDiv) {
+            avatarDiv = document.createElement('div');
+            avatarDiv.className = 'participant-avatar';
+            card.innerHTML = '';
+            card.appendChild(avatarDiv);
+        }
+
+        if (participant.avatar) {
+            let img = avatarDiv.querySelector('img');
+            if (!img) {
+                img = document.createElement('img');
+                img.alt = participant.name;
+                img.className = 'w-full h-full object-cover';
+                avatarDiv.innerHTML = '';
+                avatarDiv.appendChild(img);
+            }
+            if (img.src !== participant.avatar) {
+                img.src = participant.avatar;
+            }
+        } else {
+            avatarDiv.innerHTML = participant.name.charAt(0).toUpperCase();
+            avatarDiv.style.backgroundColor = this.getUserColor(participant.name);
+        }
+
+        let nameSpan = card.querySelector('.participant-name');
+        if (!nameSpan) {
+            nameSpan = document.createElement('span');
+            nameSpan.className = 'participant-name';
+            card.appendChild(nameSpan);
+        }
+        nameSpan.textContent = participant.name;
+        
+        return card;
+    }
     
-    return true;
-};
+    adjustGridLayout(count) {
+        const grid = document.getElementById('participantGrid');
+        if (!grid) return;
+        
+        let cols = Math.ceil(Math.sqrt(count));
+        let rows = Math.ceil(count / cols);
+        
+        grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    }
+
+    getUserColor(name) {
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+        return "#" + "00000".substring(0, 6 - c.length) + c;
+    }
+    
+    updateParticipantCount() {
+        const countEl = document.getElementById('voiceParticipantCount');
+        if (countEl) {
+            countEl.textContent = this.participants.size;
+        }
+    }
+    
+    broadcastParticipantUpdate(action, participantId, participantName) {
+    }
+
+    cleanup() {
+        this.participants.clear();
+        this.updateGrid();
+        this.updateParticipantCount();
+    }
+
+    getParticipantData(participantId) {
+        if (!window.videoSDKManager?.meeting?.participants) return null;
+        
+        return this.participants.get(participantId);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.querySelector('.voice-call-app')) {
+        window.voiceCallManager = new VoiceCallManager();
+    }
+});
+
 </script>

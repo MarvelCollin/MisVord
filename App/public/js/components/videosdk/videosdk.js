@@ -18,9 +18,6 @@ class VideoSDKManager {
         this._webcamState = false;
         this._screenShareState = false;
         this.processedParticipants = new Set();
-
-        // Interval ID for periodic voice-presence keep-alive
-        this._voicePresenceInterval = null;
     }
 
     async getAuthToken() {
@@ -563,6 +560,18 @@ class VideoSDKManager {
             const channelId = document.querySelector('meta[name="channel-id"]')?.content;
             const channelName = document.querySelector('.voice-section .channel-name, .voice-channel-title, #channel-name')?.textContent || 'Voice Channel';
             
+            if (window.globalSocketManager?.isReady()) {
+                const activityDetails = {
+                    type: `In Voice - ${channelName}`,
+                    state: 'In a voice channel',
+                    details: channelName,
+                    channel_id: channelId,
+                    channel_name: channelName,
+                };
+                window.globalSocketManager.updatePresence('online', activityDetails);
+                console.log('🎤 [VideoSDK] Presence updated to "In Voice" for channel:', channelName);
+            }
+
             window.dispatchEvent(new CustomEvent('voiceConnect', {
                 detail: { 
                     meetingId: this.meeting.id,
@@ -570,30 +579,6 @@ class VideoSDKManager {
                     channelId: channelId 
                 }
             }));
-            
-            // Update presence to "In Voice Call"
-            if (window.globalSocketManager?.isReady()) {
-                window.globalSocketManager.updatePresence('online', { 
-                    type: 'In Voice Call',
-                    channel_name: channelName,
-                    channel_id: channelId 
-                });
-                console.log('🎤 [VideoSDK] Updated presence to "In Voice Call"', {
-                    channelName,
-                    channelId,
-                    currentStatus: window.globalSocketManager.currentPresenceStatus,
-                    currentActivity: window.globalSocketManager.currentActivityDetails
-                });
-
-                // Start periodic keep-alive so the server never marks us AFK
-                this.startVoicePresenceKeepAlive();
-            } else {
-                console.warn('⚠️ [VideoSDK] Could not update presence - socket manager not ready');
-            }
-            
-            if (window.globalSocketManager?.isReady() && channelId && this.meeting.id) {
-                console.log('📝 [VideoSDK] Voice meeting socket registration handled by voice-manager.js');
-            }
             
             window.videoSDKJoiningInProgress = false;
             return true;
@@ -636,9 +621,6 @@ class VideoSDKManager {
             try {
                 this.cleanupParticipantResources();
                 
-                // Stop the keep-alive interval
-                this.stopVoicePresenceKeepAlive();
-                
                 this.isDeafened = false;
                 this.isConnected = false;
                 this.isMeetingJoined = false;
@@ -650,9 +632,8 @@ class VideoSDKManager {
                 this.meeting.leave();
                 this.meeting = null;
                 
-                // Reset presence to normal when leaving voice call
                 if (window.globalSocketManager?.isReady()) {
-                    window.globalSocketManager.updatePresence('online', { type: 'active' });
+                    window.globalSocketManager.updatePresence('online', null);
                     console.log('🎤 [VideoSDK] Reset presence from "In Voice Call" to normal');
                 }
                 
@@ -1079,35 +1060,6 @@ class VideoSDKManager {
             console.error('Error refreshing existing participants:', error);
         }
     }
-
-    /* ------------------------------------------------------------------ */
-    /* Voice presence keep-alive                                           */
-    /* ------------------------------------------------------------------ */
-
-    startVoicePresenceKeepAlive(intervalMs = 10000) {
-        if (!window.globalSocketManager?.isReady()) return;
-
-        // Ensure existing interval cleared first
-        this.stopVoicePresenceKeepAlive();
-
-        const sendKeepAlive = () => {
-            const currentActivity = window.globalSocketManager.currentActivityDetails;
-            if (currentActivity?.type && currentActivity.type.startsWith('In Voice')) {
-                window.globalSocketManager.updatePresence('online', currentActivity);
-                console.debug('💓 [VideoSDK] Sent voice presence keep-alive');
-            }
-        };
-
-        sendKeepAlive(); // immediate
-        this._voicePresenceInterval = setInterval(sendKeepAlive, intervalMs);
-    }
-
-    stopVoicePresenceKeepAlive() {
-        if (this._voicePresenceInterval) {
-            clearInterval(this._voicePresenceInterval);
-            this._voicePresenceInterval = null;
-        }
-    }
 }
 
 if (!window.videoSDKManager) {
@@ -1123,90 +1075,3 @@ if (typeof module !== 'undefined' && module.exports) {
 } else if (typeof exports !== 'undefined') {
     exports.default = window.videoSDKManager;
 }
-
-window.testVoicePresenceUpdate = function() {
-    console.log('🧪 [TEST] Testing voice presence update...');
-    
-    if (!window.globalSocketManager?.isReady()) {
-        console.error('❌ [TEST] Global socket manager not ready');
-        return;
-    }
-    
-    // Test updating to voice call presence
-    console.log('1. Setting presence to "In Voice Call"');
-    window.globalSocketManager.updatePresence('online', { 
-        type: 'In Voice Call',
-        channel_name: 'Test Channel',
-        channel_id: '123' 
-    });
-    
-    setTimeout(() => {
-        console.log('2. Current presence status:', window.globalSocketManager.currentPresenceStatus);
-        console.log('3. Current activity details:', window.globalSocketManager.currentActivityDetails);
-        
-        // Reset back to normal
-        setTimeout(() => {
-            console.log('4. Resetting presence to normal');
-            window.globalSocketManager.updatePresence('online', { type: 'active' });
-        }, 3000);
-    }, 1000);
-};
-
-window.debugVoicePresenceFlow = function() {
-    console.log('🔍 [DEBUG] === VOICE PRESENCE FLOW DEBUG ===');
-    
-    // 1. Check global socket manager state
-    console.log('1. Global Socket Manager State:');
-    console.log('   - Ready:', window.globalSocketManager?.isReady());
-    console.log('   - Current Status:', window.globalSocketManager?.currentPresenceStatus);
-    console.log('   - Current Activity:', window.globalSocketManager?.currentActivityDetails);
-    console.log('   - User ID:', window.globalSocketManager?.userId);
-    
-    // 2. Check current user data
-    const currentUserId = window.globalSocketManager?.userId;
-    console.log('2. Current User ID:', currentUserId);
-    
-    // 3. Check FriendsManager cache
-    if (window.FriendsManager) {
-        const friendsManager = window.FriendsManager.getInstance();
-        const onlineUsers = friendsManager.cache.onlineUsers || {};
-        console.log('3. FriendsManager Online Users:', Object.keys(onlineUsers).length);
-        console.log('   - Current user in cache:', !!onlineUsers[currentUserId]);
-        if (onlineUsers[currentUserId]) {
-            console.log('   - Cached data:', onlineUsers[currentUserId]);
-        }
-    }
-    
-    // 4. Test setting voice presence
-    console.log('4. Testing voice presence update...');
-    if (window.globalSocketManager?.isReady()) {
-        window.globalSocketManager.updatePresence('online', { 
-            type: 'In Voice Call',
-            channel_name: 'Debug Channel',
-            channel_id: 'debug123' 
-        });
-        console.log('   - Voice presence set, checking after 1 second...');
-        
-        setTimeout(() => {
-            console.log('5. After Voice Presence Update:');
-            console.log('   - Current Activity:', window.globalSocketManager?.currentActivityDetails);
-            
-            // Check participant section state
-            const participantElements = document.querySelectorAll(`[data-user-id="${currentUserId}"]`);
-            console.log('   - Participant elements found:', participantElements.length);
-            
-            participantElements.forEach((el, index) => {
-                const activityEl = el.querySelector('.user-presence-text');
-                console.log(`   - Element ${index} activity text:`, activityEl?.textContent);
-            });
-            
-            // Reset after 3 seconds
-            setTimeout(() => {
-                console.log('6. Resetting presence to normal...');
-                window.globalSocketManager.updatePresence('online', { type: 'active' });
-            }, 3000);
-        }, 1000);
-    } else {
-        console.error('   - Global socket manager not ready!');
-    }
-};

@@ -190,20 +190,25 @@ class BotHandler extends EventEmitter {
         const isTitiBotCommand = content.startsWith('/titibot');
         console.log(`🤖 [BOT-DEBUG] Command check: "${content}" -> isTitiBotCommand: ${isTitiBotCommand}`);
         
-        // Determine if this command needs a voice channel and validate via tracker
         const voiceRequiredCommands = ['play', 'stop', 'next', 'prev', 'queue'];
         const commandKeyword = content.split(' ')[1] || '';
         const requiresVoice = voiceRequiredCommands.includes(commandKeyword);
 
-        if (isTitiBotCommand && requiresVoice) {
-            const userInVoice = VoiceConnectionTracker.isUserInVoice(data.user_id);
-            console.log(`🎤 [BOT-DEBUG] Voice-required command detected -> keyword: ${commandKeyword}, userInVoice: ${userInVoice}`);
-
-            if (!userInVoice) {
-                console.log('🎤 [BOT-DEBUG] User not in voice channel – aborting music command and sending warning');
-                await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice');
-                return;
+        // Determine real-time voice presence from payload first, then fallback to tracker
+        let userInVoice = false;
+        if (data.voice_context) {
+            userInVoice = !!data.voice_context.user_in_voice;
+            if (userInVoice && data.voice_context.voice_channel_id) {
+                voiceChannelToJoin = data.voice_context.voice_channel_id;
             }
+        } else {
+            userInVoice = VoiceConnectionTracker.isUserInVoice(data.user_id);
+        }
+
+        if (isTitiBotCommand && requiresVoice && !userInVoice) {
+            console.log('🎤 [BOT-DEBUG] Music command issued but user not in voice (checked via voice_context / tracker). Sending warning.');
+            await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice');
+            return;
         }
 
         if (isTitiBotCommand) {
