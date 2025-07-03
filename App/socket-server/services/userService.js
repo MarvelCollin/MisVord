@@ -86,7 +86,7 @@ class UserService {
         
         if (timeSinceUpdate > this.afkTimeout && presence.status === 'online') {
             // Check if user is in voice call - preserve voice status even when inactive
-            if (presence.activity_details && presence.activity_details.type && presence.activity_details.type.startsWith('In Voice - ')) {
+            if (presence.activity_details && presence.activity_details.type && presence.activity_details.type.startsWith('In Voice')) {
                 console.log(`🎤 [USER-SERVICE] User ${userId} inactive but in voice call, preserving voice status`);
                 // Keep status as 'online' and preserve voice call activity details
                 return presence;
@@ -204,7 +204,7 @@ class UserService {
             
             if (timeSinceUpdate > this.afkTimeout && data.status === 'online') {
                 // Check if user is in voice call - preserve voice status even when inactive
-                if (data.activity_details && data.activity_details.type && data.activity_details.type.startsWith('In Voice - ')) {
+                if (data.activity_details && data.activity_details.type && data.activity_details.type.startsWith('In Voice')) {
                     console.log(`🎤 [USER-SERVICE] User ${userId} inactive but in voice call, preserving voice status`);
                     continue; // Skip changing status for users in voice calls
                 }

@@ -179,6 +179,9 @@ class BotHandler extends EventEmitter {
 
         const content = data.content?.toLowerCase().trim();
         
+        // Prepare voiceChannelToJoin variable early so later checks can use it safely
+        let voiceChannelToJoin = null;
+
         if (!content) {
             console.log(`🤖 [BOT-DEBUG] No content in message, skipping`);
             return;
@@ -187,8 +190,22 @@ class BotHandler extends EventEmitter {
         const isTitiBotCommand = content.startsWith('/titibot');
         console.log(`🤖 [BOT-DEBUG] Command check: "${content}" -> isTitiBotCommand: ${isTitiBotCommand}`);
         
-        let voiceChannelToJoin = null;
-        
+        // Determine if this command needs a voice channel and validate via tracker
+        const voiceRequiredCommands = ['play', 'stop', 'next', 'prev', 'queue'];
+        const commandKeyword = content.split(' ')[1] || '';
+        const requiresVoice = voiceRequiredCommands.includes(commandKeyword);
+
+        if (isTitiBotCommand && requiresVoice) {
+            const userInVoice = VoiceConnectionTracker.isUserInVoice(data.user_id);
+            console.log(`🎤 [BOT-DEBUG] Voice-required command detected -> keyword: ${commandKeyword}, userInVoice: ${userInVoice}`);
+
+            if (!userInVoice) {
+                console.log('🎤 [BOT-DEBUG] User not in voice channel – aborting music command and sending warning');
+                await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice');
+                return;
+            }
+        }
+
         if (isTitiBotCommand) {
             console.log(`🤖 [BOT-DEBUG] Processing TitiBot command: ${content}`);
             
@@ -385,6 +402,11 @@ class BotHandler extends EventEmitter {
                     };
                     console.log(`➕ [BOT-DEBUG] Generated QUEUE response for: "${parameter}"`);
                 }
+                break;
+
+            case 'not_in_voice':
+                responseContent = '❌ You need to join a voice channel before using music commands.';
+                console.log(`🎤 [BOT-DEBUG] Sending warning for not_in_voice command`);
                 break;
 
             default:

@@ -18,6 +18,9 @@ class VideoSDKManager {
         this._webcamState = false;
         this._screenShareState = false;
         this.processedParticipants = new Set();
+
+        // Interval ID for periodic voice-presence keep-alive
+        this._voicePresenceInterval = null;
     }
 
     async getAuthToken() {
@@ -581,6 +584,9 @@ class VideoSDKManager {
                     currentStatus: window.globalSocketManager.currentPresenceStatus,
                     currentActivity: window.globalSocketManager.currentActivityDetails
                 });
+
+                // Start periodic keep-alive so the server never marks us AFK
+                this.startVoicePresenceKeepAlive();
             } else {
                 console.warn('⚠️ [VideoSDK] Could not update presence - socket manager not ready');
             }
@@ -629,6 +635,9 @@ class VideoSDKManager {
         if (this.meeting) {
             try {
                 this.cleanupParticipantResources();
+                
+                // Stop the keep-alive interval
+                this.stopVoicePresenceKeepAlive();
                 
                 this.isDeafened = false;
                 this.isConnected = false;
@@ -1068,6 +1077,35 @@ class VideoSDKManager {
             console.log(`✅ [VideoSDK] Participant refresh complete`);
         } catch (error) {
             console.error('Error refreshing existing participants:', error);
+        }
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Voice presence keep-alive                                           */
+    /* ------------------------------------------------------------------ */
+
+    startVoicePresenceKeepAlive(intervalMs = 10000) {
+        if (!window.globalSocketManager?.isReady()) return;
+
+        // Ensure existing interval cleared first
+        this.stopVoicePresenceKeepAlive();
+
+        const sendKeepAlive = () => {
+            const currentActivity = window.globalSocketManager.currentActivityDetails;
+            if (currentActivity?.type && currentActivity.type.startsWith('In Voice')) {
+                window.globalSocketManager.updatePresence('online', currentActivity);
+                console.debug('💓 [VideoSDK] Sent voice presence keep-alive');
+            }
+        };
+
+        sendKeepAlive(); // immediate
+        this._voicePresenceInterval = setInterval(sendKeepAlive, intervalMs);
+    }
+
+    stopVoicePresenceKeepAlive() {
+        if (this._voicePresenceInterval) {
+            clearInterval(this._voicePresenceInterval);
+            this._voicePresenceInterval = null;
         }
     }
 }

@@ -296,8 +296,8 @@ class GlobalSocketManager {
             this.currentPresenceStatus = 'online';
             
             // Check if user is currently in a voice call before setting presence
-            const isInVoiceCall = this.currentActivityDetails?.type === 'In Voice Call';
-            const initialActivity = isInVoiceCall ? { type: 'In Voice Call' } : { type: 'active' };
+            const isInVoiceCall = this.currentActivityDetails?.type && this.currentActivityDetails.type.startsWith('In Voice');
+            const initialActivity = isInVoiceCall ? this.currentActivityDetails : { type: 'active' };
             
             console.log('🎯 [SOCKET] Setting initial presence after auth:', { 
                 isInVoiceCall, 
@@ -310,8 +310,8 @@ class GlobalSocketManager {
             
             setTimeout(() => {
                 // Only set to active if not in voice call
-                const currentActivity = this.currentActivityDetails?.type === 'In Voice Call' 
-                    ? { type: 'In Voice Call' } 
+                const currentActivity = this.currentActivityDetails?.type && this.currentActivityDetails.type.startsWith('In Voice') 
+                    ? this.currentActivityDetails 
                     : { type: 'active' };
                 this.updatePresence('online', currentActivity);
                 console.log('✅ [SOCKET] Secondary presence update sent for reliability:', currentActivity);
@@ -1132,10 +1132,11 @@ class GlobalSocketManager {
             if (!this.isUserActive || this.currentPresenceStatus === 'afk') {
                 this.isUserActive = true;
                 
-                if (this.currentActivityDetails?.type === 'In Voice Call') {
+                if (this.currentActivityDetails?.type && this.currentActivityDetails.type.startsWith('In Voice')) {
                     console.log('🎯 [SOCKET] User activity detected but keeping voice call status');
                     this.currentPresenceStatus = 'online';
-                    this.updatePresence('online', { type: 'In Voice Call' });
+                    // Preserve the full voice activity details (with channel context if present)
+                    this.updatePresence('online', this.currentActivityDetails);
                 } else {
                     console.log('🎯 [SOCKET] User activity detected, setting status to online');
                     this.currentPresenceStatus = 'online';
@@ -1168,7 +1169,7 @@ class GlobalSocketManager {
             const timeSinceActivity = Date.now() - this.lastActivityTime;
             
             if (timeSinceActivity >= this.afkTimeout && this.isUserActive) {
-                if (this.currentActivityDetails?.type === 'In Voice Call') {
+                if (this.currentActivityDetails?.type && this.currentActivityDetails.type.startsWith('In Voice')) {
                     console.log('🎤 [SOCKET] User inactive but in voice call, keeping voice status');
                     return;
                 }
