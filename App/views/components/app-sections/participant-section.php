@@ -320,10 +320,24 @@ function updateParticipantDisplay() {
         'offline': []
     };
     
+    const currentUserId = window.globalSocketManager?.userId;
+    const currentUserStatus = window.globalSocketManager?.currentPresenceStatus || 'online';
+    const currentActivityDetails = window.globalSocketManager?.currentActivityDetails || { type: 'idle' };
+
     allMembers.forEach(member => {
         const role = member.role || 'member';
         const isBot = member.status === 'bot';
-        const userData = onlineUsers[member.id];
+        let userData = onlineUsers[member.id];
+
+        // Inject own presence data when not available in FriendsManager cache
+        if (!userData && String(member.id) === String(currentUserId)) {
+            userData = {
+                user_id: currentUserId,
+                username: window.globalSocketManager?.username || member.username,
+                status: currentUserStatus,
+                activity_details: currentActivityDetails
+            };
+        }
         const isOnline = userData && (userData.status === 'online' || userData.status === 'afk');
         
         if (isBot) {
@@ -743,6 +757,12 @@ window.initializeParticipantSection = function() {
 window.toggleParticipantLoading = function(loading = true) {
     console.log('Participant loading toggle called but using simple DOM - no skeleton');
 };
+
+// Re-render when own presence changes
+window.addEventListener('ownPresenceUpdate', () => {
+    console.log('👤 [PARTICIPANT] Own presence update detected');
+    scheduleUpdate();
+});
 </script>
 
 <style>

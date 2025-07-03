@@ -189,71 +189,58 @@ class FriendListRepository extends Repository {
 
     public function getMutualFriends($userId1, $userId2)
     {
-        $query1 = new Query();
-        $friends1 = $query1->table('friend_list')
-            ->where('user_id', $userId1)
-            ->where('status', 'accepted')
-            ->get();
-        
-        $query2 = new Query();
-        $friends2 = $query2->table('friend_list')
-            ->where('user_id2', $userId1)
-            ->where('status', 'accepted')
-            ->get();
+        try {
+            error_log("Getting mutual friends between user $userId1 and user $userId2");
+            
+            $query = new Query();
+            $sql = "
+                SELECT DISTINCT u.id, u.username, u.display_name, u.avatar_url, u.status, u.discriminator
+                FROM users u
+                INNER JOIN (
+                    SELECT 
+                        CASE WHEN f1.user_id = ? THEN f1.user_id2 ELSE f1.user_id END as friend_id
+                    FROM friend_list f1
+                    WHERE (f1.user_id = ? OR f1.user_id2 = ?)
+                    AND f1.status = 'accepted'
+                    AND CASE WHEN f1.user_id = ? THEN f1.user_id2 ELSE f1.user_id END != ?
+                ) user1_friends ON u.id = user1_friends.friend_id
+                INNER JOIN (
+                    SELECT 
+                        CASE WHEN f2.user_id = ? THEN f2.user_id2 ELSE f2.user_id END as friend_id
+                    FROM friend_list f2
+                    WHERE (f2.user_id = ? OR f2.user_id2 = ?)
+                    AND f2.status = 'accepted'
+                    AND CASE WHEN f2.user_id = ? THEN f2.user_id2 ELSE f2.user_id END != ?
+                ) user2_friends ON u.id = user2_friends.friend_id
+                WHERE u.status != 'bot'
+                ORDER BY u.username
+            ";
+            
+            $users = $query->query($sql, [
+                $userId1, $userId1, $userId1, $userId1, $userId1,
+                $userId2, $userId2, $userId2, $userId2, $userId2
+            ]);
+            
+            error_log("Found " . count($users) . " mutual friends");
+            
+            $result = [];
+            foreach ($users as $user) {
+                $userObj = new \stdClass();
+                $userObj->id = $user['id'];
+                $userObj->username = $user['username'];
+                $userObj->display_name = $user['display_name'] ?? $user['username'];
+                $userObj->avatar_url = $user['avatar_url'];
+                $userObj->status = $user['status'];
+                $userObj->discriminator = $user['discriminator'] ?? '0000';
                 
-        $friendIds1 = [];
-        foreach ($friends1 as $friend) {
-            $friendIds1[] = $friend['user_id2'];
-        }
-        foreach ($friends2 as $friend) {
-            $friendIds1[] = $friend['user_id'];
-        }
-        
-        $query3 = new Query();
-        $friends3 = $query3->table('friend_list')
-            ->where('user_id', $userId2)
-            ->where('status', 'accepted')
-            ->get();
-        
-        $query4 = new Query();
-        $friends4 = $query4->table('friend_list')
-            ->where('user_id2', $userId2)
-            ->where('status', 'accepted')
-            ->get();
-        
-        $friendIds2 = [];
-        foreach ($friends3 as $friend) {
-            $friendIds2[] = $friend['user_id2'];
-        }
-        foreach ($friends4 as $friend) {
-            $friendIds2[] = $friend['user_id'];
-        }
-        
-        $mutualFriendIds = array_intersect($friendIds1, $friendIds2);
-        
-        if (empty($mutualFriendIds)) {
+                $result[] = $userObj;
+            }
+            
+            return $result;
+            
+        } catch (Exception $e) {
+            error_log("Error in getMutualFriends: " . $e->getMessage());
             return [];
         }
-        
-        $query5 = new Query();
-        $users = $query5->table('users')
-            ->whereIn('id', $mutualFriendIds)
-            ->where('status', '!=', 'bot')
-            ->get();
-            
-        $result = [];
-        foreach ($users as $user) {
-            $userObj = new \stdClass();
-            $userObj->id = $user['id'];
-            $userObj->username = $user['username'];
-            $userObj->display_name = $user['display_name'] ?? $user['username'];
-            $userObj->avatar_url = $user['avatar_url'];
-            $userObj->status = $user['status'];
-            $userObj->discriminator = $user['discriminator'] ?? '0000';
-            
-            $result[] = $userObj;
-        }
-        
-        return $result;
     }
 }

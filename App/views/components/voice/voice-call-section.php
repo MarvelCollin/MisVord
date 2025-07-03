@@ -1845,14 +1845,56 @@ class VoiceCallManager {
 
     async toggleDeafen() {
         try {
+            let isDeafened = false;
+            
+            // Toggle deafen state
             if (window.localStorageManager) {
-                const isDeafened = window.localStorageManager.toggleVoiceDeafen();
+                isDeafened = window.localStorageManager.toggleVoiceDeafen();
+                
+                // When deafening, also mute the microphone
+                if (isDeafened && !this.isMuted) {
+                    window.localStorageManager.setVoiceMute(true);
+                    this.isMuted = true;
+                }
+                
                 this.showToast(isDeafened ? 'Audio deafened' : 'Audio undeafened', 'info');
             } else if (window.videoSDKManager?.isReady()) {
-                const newState = window.videoSDKManager.toggleDeafen();
-                this.showToast(newState ? 'Audio deafened' : 'Audio undeafened', 'info');
+                isDeafened = window.videoSDKManager.toggleDeafen();
+                
+                // When deafening, also mute the microphone
+                if (isDeafened && !this.isMuted) {
+                    window.videoSDKManager.toggleMic(false); // Force mute
+                    this.isMuted = true;
+                }
+                
+                this.showToast(isDeafened ? 'Audio deafened' : 'Audio undeafened', 'info');
             } else {
                 this.showToast('Voice not connected', 'error');
+                return;
+            }
+            
+            // Update UI for both deafen and mic buttons
+            this.isDeafened = isDeafened;
+            this.updateButtonStates();
+            
+            // Dispatch event for cross-component sync
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: {
+                    type: 'deafen',
+                    state: isDeafened,
+                    source: 'voice-call-section'
+                }
+            }));
+            
+            // If we're deafening, also dispatch mic mute event
+            if (isDeafened && !this.isMuted) {
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: {
+                        type: 'mic',
+                        state: false,
+                        source: 'voice-call-section'
+                    }
+                }));
             }
         } catch (error) {
             console.error('Error toggling deafen:', error);
@@ -2062,6 +2104,10 @@ class VoiceCallManager {
     }
 
     async getParticipantAvatarUrl(participant) {
+        // Show a distinctive icon for bots instead of the generic default image
+        if (participant.isBot) {
+            return null; // triggers icon fallback in the UI
+        }
         if (participant.isLocal) {
             return document.querySelector('meta[name="user-avatar"]')?.content || 
                    sessionStorage.getItem('user_avatar_url') ||

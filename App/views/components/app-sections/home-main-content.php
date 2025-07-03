@@ -230,15 +230,15 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
             <div class="bg-discord-dark p-4 rounded">
                 <div class="border-b border-gray-700 pb-4">
                     <label class="text-gray-400 text-sm uppercase font-medium">Add Friend</label>
-                    <div class="flex mt-2 gap-2">
+                    <form id="friend-request-form" class="flex mt-2 gap-2">
                         <input type="text" class="flex-1 bg-discord-dark text-white px-3 py-2 rounded-l border border-gray-700 focus:outline-none focus:ring-1 focus:ring-discord-primary" 
                                placeholder="Username#XXXX" id="friend-username-input">
-                        <button class="bg-discord-primary hover:bg-discord-primary/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-r font-medium text-sm transition-colors" disabled id="send-friend-request">
+                        <button type="submit" class="bg-discord-primary hover:bg-discord-primary/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-r font-medium text-sm transition-colors" id="send-friend-request">
                             Send Friend Request
                         </button>
-                    </div>
-                    <div class="text-discord-red text-sm mt-1 hidden" id="friend-request-error"></div>
-                    <div class="text-discord-green text-sm mt-1 hidden" id="friend-request-success"></div>
+                    </form>
+                    <div class="text-discord-red text-sm mt-1 hidden" id="add-friend-error"></div>
+                    <div class="text-discord-green text-sm mt-1 hidden" id="add-friend-success"></div>
                 </div>
             </div>
         </div>

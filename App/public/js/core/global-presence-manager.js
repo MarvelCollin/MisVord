@@ -141,6 +141,7 @@ class GlobalPresenceManager {
                     <h2 class="font-semibold text-white">Active Now</h2>
                 </div>
                 <div class="flex-1 overflow-y-auto p-4" id="global-active-now-container">
+                    <div id="global-voice-participants-section" class="mb-6"></div>
                     <div class="rounded-lg bg-discord-background p-6 text-center" id="global-no-active-friends">
                         <h3 class="font-semibold text-white mb-2 text-lg">It's quiet for now...</h3>
                         <p class="text-gray-400 text-sm">When friends start an activity, like playing a game or hanging out on voice, we'll show it here!</p>
@@ -178,8 +179,9 @@ class GlobalPresenceManager {
     async updateActiveNow() {
         const container = document.getElementById('global-active-friends-list');
         const emptyState = document.getElementById('global-no-active-friends');
+        const voiceSection = document.getElementById('global-voice-participants-section');
         
-        if (!container || !emptyState) return;
+        if (!container || !emptyState || !voiceSection) return;
         
         try {
             const friends = await this.friendsManager.getFriends();
@@ -190,7 +192,10 @@ class GlobalPresenceManager {
                 return userData && (userData.status === 'online' || userData.status === 'afk');
             });
             
-            const newState = this.createFriendStateSignature(activeFriends, onlineUsers);
+            const voiceParticipants = this.extractVoiceParticipants(friends, onlineUsers);
+            this.updateVoiceParticipants(voiceSection, voiceParticipants);
+            
+            const newState = this.createFriendStateSignature(activeFriends, onlineUsers, voiceParticipants);
             
             if (this.statesAreEqual(this.lastRenderedState, newState)) {
                 return;
@@ -206,13 +211,173 @@ class GlobalPresenceManager {
             }
             
             this.lastRenderedState = newState;
+            
+            this.notifyVoiceParticipantSystemUpdate(voiceParticipants);
         } catch (error) {
             console.error('❌ [GLOBAL-PRESENCE] Error updating Active Now:', error);
         }
     }
 
-    createFriendStateSignature(activeFriends, onlineUsers) {
-        return activeFriends.map(friend => {
+    notifyVoiceParticipantSystemUpdate(voiceParticipants) {
+        if (window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            if (instance && typeof instance.updateAllChannelsFromPresence === 'function') {
+                setTimeout(() => {
+                    instance.updateAllChannelsFromPresence();
+                }, 100);
+            }
+        }
+        
+        window.dispatchEvent(new CustomEvent('voiceParticipantUpdate', {
+            detail: { voiceParticipants }
+        }));
+    }
+
+    extractVoiceParticipants(friends, onlineUsers) {
+        const voiceChannels = {};
+        
+        friends.forEach(friend => {
+            const userData = onlineUsers[friend.id];
+            if (!userData || !userData.activity_details) return;
+            
+            const activity = userData.activity_details;
+            if (activity.type && activity.type.startsWith('In Voice - ')) {
+                const channelId = activity.channel_id;
+                const channelName = activity.channel_name || activity.type.replace('In Voice - ', '');
+                
+                if (!voiceChannels[channelId]) {
+                    voiceChannels[channelId] = {
+                        channelName: channelName,
+                        participants: []
+                    };
+                }
+                
+                voiceChannels[channelId].participants.push({
+                    ...friend,
+                    status: userData.status,
+                    activity: activity
+                });
+            }
+        });
+
+        this.extractFromParticipantSection(voiceChannels, onlineUsers);
+        
+        return voiceChannels;
+    }
+
+    extractFromParticipantSection(voiceChannels, onlineUsers) {
+        const participantElements = document.querySelectorAll('.user-presence-text[data-user-id]');
+        
+        participantElements.forEach(el => {
+            const userId = el.getAttribute('data-user-id');
+            const presenceText = el.textContent.trim();
+            
+            if (presenceText.startsWith('In Voice - ')) {
+                const channelName = presenceText.replace('In Voice - ', '');
+                const channelId = `voice_${channelName.toLowerCase().replace(/\s+/g, '_')}`;
+                
+                const userElement = el.closest('.user-profile-trigger');
+                if (!userElement) return;
+                
+                const usernameEl = userElement.querySelector('.member-username');
+                const avatarEl = userElement.querySelector('img');
+                const statusEl = userElement.querySelector('.status-indicator');
+                
+                if (!usernameEl) return;
+                
+                const username = usernameEl.textContent.trim();
+                const avatarUrl = avatarEl ? avatarEl.src : '';
+                const status = userElement.getAttribute('data-status') || 'online';
+                
+                if (!voiceChannels[channelId]) {
+                    voiceChannels[channelId] = {
+                        channelName: channelName,
+                        participants: []
+                    };
+                }
+                
+                const existingParticipant = voiceChannels[channelId].participants.find(p => p.id === userId);
+                if (!existingParticipant) {
+                    voiceChannels[channelId].participants.push({
+                        id: userId,
+                        username: username,
+                        avatar_url: avatarUrl,
+                        status: status,
+                        activity: {
+                            type: presenceText,
+                            channel_id: channelId,
+                            channel_name: channelName
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    updateVoiceParticipants(voiceSection, voiceChannels) {
+        const channelIds = Object.keys(voiceChannels);
+        
+        if (channelIds.length === 0) {
+            voiceSection.innerHTML = '';
+            return;
+        }
+        
+        let html = '<div class="mb-4"><h3 class="text-sm font-semibold text-gray-400 uppercase mb-3">Voice Channels</h3>';
+        
+        channelIds.forEach(channelId => {
+            const channel = voiceChannels[channelId];
+            const participantCount = channel.participants.length;
+            
+            html += `
+                <div class="mb-3 bg-discord-background rounded-lg p-3">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-volume-up text-gray-400 mr-2"></i>
+                        <span class="text-sm font-medium text-white">${channel.channelName}</span>
+                        <span class="ml-auto text-xs text-gray-500">${participantCount}</span>
+                    </div>
+                    <div class="space-y-1">
+            `;
+            
+            channel.participants.forEach(participant => {
+                const statusColor = this.getStatusClass(participant.status);
+                
+                html += `
+                    <div class="flex items-center p-2 rounded hover:bg-discord-darker cursor-pointer">
+                        <div class="relative mr-3">
+                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="${participant.avatar_url || ''}" 
+                                     alt="${participant.username}" 
+                                     class="w-full h-full object-cover user-avatar">
+                            </div>
+                            <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusColor} border-2 border-discord-dark"></div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium text-white text-sm">${participant.username}</div>
+                            <div class="text-xs text-gray-400 flex items-center">
+                                <i class="fas fa-microphone mr-1"></i>
+                                ${participant.activity.type}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div></div>';
+        });
+        
+        html += '</div>';
+        voiceSection.innerHTML = html;
+        
+        if (window.fallbackImageHandler) {
+            const images = voiceSection.querySelectorAll('img.user-avatar');
+            images.forEach(img => {
+                window.fallbackImageHandler.processImage(img);
+            });
+        }
+    }
+
+    createFriendStateSignature(activeFriends, onlineUsers, voiceParticipants = {}) {
+        const friendsState = activeFriends.map(friend => {
             const userData = onlineUsers[friend.id];
             return {
                 id: friend.id,
@@ -225,14 +390,28 @@ class GlobalPresenceManager {
                 channel_name: userData?.activity_details?.channel_name || null
             };
         }).sort((a, b) => a.username.localeCompare(b.username));
+
+        const voiceState = Object.keys(voiceParticipants).map(channelId => ({
+            channelId: channelId,
+            channelName: voiceParticipants[channelId].channelName,
+            participantCount: voiceParticipants[channelId].participants.length,
+            participants: voiceParticipants[channelId].participants.map(p => p.id).sort()
+        })).sort((a, b) => a.channelId.localeCompare(b.channelId));
+
+        return {
+            friends: friendsState,
+            voice: voiceState
+        };
     }
     
     statesAreEqual(state1, state2) {
         if (!state1 || !state2) return false;
-        if (state1.length !== state2.length) return false;
         
-        return state1.every((friend1, index) => {
-            const friend2 = state2[index];
+        if (state1.friends.length !== state2.friends.length) return false;
+        if (state1.voice.length !== state2.voice.length) return false;
+        
+        const friendsEqual = state1.friends.every((friend1, index) => {
+            const friend2 = state2.friends[index];
             return friend1.id === friend2.id &&
                    friend1.username === friend2.username &&
                    friend1.status === friend2.status &&
@@ -241,6 +420,16 @@ class GlobalPresenceManager {
                    friend1.server_id === friend2.server_id &&
                    friend1.channel_name === friend2.channel_name;
         });
+
+        const voiceEqual = state1.voice.every((voice1, index) => {
+            const voice2 = state2.voice[index];
+            return voice1.channelId === voice2.channelId &&
+                   voice1.channelName === voice2.channelName &&
+                   voice1.participantCount === voice2.participantCount &&
+                   JSON.stringify(voice1.participants) === JSON.stringify(voice2.participants);
+        });
+
+        return friendsEqual && voiceEqual;
     }
     
     updateExistingFriend(friendEl, friend, userData) {

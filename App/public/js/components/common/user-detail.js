@@ -351,6 +351,7 @@ class UserDetailModal {
                     console.log('Mutual relations API response:', mutualData);
                     
                     if (mutualData && mutualData.success && mutualData.data) {
+                        console.log('Mutual data received successfully');
                         console.log('Mutual servers count:', mutualData.data.mutual_server_count);
                         console.log('Mutual friends count:', mutualData.data.mutual_friend_count);
                         
@@ -364,7 +365,8 @@ class UserDetailModal {
                         
                         userData.data.mutualData = mutualData.data;
                     } else {
-                        console.warn('Mutual data API returned unsuccessful response:', mutualData);
+                        console.warn('Mutual data API returned unsuccessful response or no data:', mutualData);
+                        console.log('Setting default mutual data values');
                         userData.data.mutualData = {
                             mutual_friend_count: 0,
                             mutual_server_count: 0,
@@ -374,6 +376,7 @@ class UserDetailModal {
                     }
                 } catch (error) {
                     console.error('Error fetching mutual data:', error);
+                    console.log('Setting fallback mutual data due to error');
                     userData.data.mutualData = {
                         mutual_friend_count: 0,
                         mutual_server_count: 0,
@@ -381,6 +384,8 @@ class UserDetailModal {
                         mutual_servers: []
                     };
                 }
+            } else {
+                console.log('Skipping mutual relations fetch - viewing own profile or no current user');
             }
             
             this.userData = userData.data;
@@ -798,9 +803,17 @@ class UserDetailModal {
     }
     
     showMutualFriendsDetail() {
+        console.log('showMutualFriendsDetail called');
+        console.log('userData:', this.userData);
+        console.log('mutualData:', this.userData?.mutualData);
+        console.log('mutual_friends:', this.userData?.mutualData?.mutual_friends);
+        
         if (!this.userData || !this.userData.mutualData || !this.userData.mutualData.mutual_friends || this.userData.mutualData.mutual_friends.length === 0) {
+            console.log('No mutual friends data available');
             return;
         }
+        
+        console.log('Showing mutual friends detail with', this.userData.mutualData.mutual_friends.length, 'friends');
         
         this.mutualDetailTitle.textContent = 'Mutual Friends';
         this.mutualDetailContent.innerHTML = '';
@@ -808,6 +821,7 @@ class UserDetailModal {
         const friends = this.userData.mutualData.mutual_friends;
         
         friends.forEach(friend => {
+            console.log('Processing friend:', friend);
             const friendItem = document.createElement('div');
             friendItem.className = 'mutual-detail-item';
             
@@ -864,10 +878,8 @@ class UserDetailModal {
             
             if (friend.id) {
                 friendItem.addEventListener('click', () => {
-                    // Show user detail for this friend
                     this.hideMutualDetail();
                     
-                    // Small delay to avoid UI glitches
                     setTimeout(() => {
                         const userDetailModal = new UserDetailModal();
                         userDetailModal.show({
@@ -893,6 +905,7 @@ class UserDetailModal {
         }
         
         this.mutualDetailModal.classList.add('active');
+        console.log('Mutual friends detail modal activated');
     }
     
     hideMutualDetail() {

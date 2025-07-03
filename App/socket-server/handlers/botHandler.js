@@ -192,15 +192,12 @@ class BotHandler extends EventEmitter {
         if (isTitiBotCommand) {
             console.log(`🤖 [BOT-DEBUG] Processing TitiBot command: ${content}`);
             
+            // Only use voice_context from frontend - no fallbacks
             if (data.voice_context && data.voice_context.voice_channel_id) {
                 voiceChannelToJoin = data.voice_context.voice_channel_id;
                 console.log(`🎤 [BOT-DEBUG] User ${data.user_id} sent command from voice channel ${voiceChannelToJoin}`);
             } else {
-                const userVoiceConnection = VoiceConnectionTracker.getUserVoiceConnection(data.user_id);
-                if (userVoiceConnection) {
-                    voiceChannelToJoin = userVoiceConnection.channelId;
-                    console.log(`🎤 [BOT-DEBUG] Found user voice connection: channel ${voiceChannelToJoin}`);
-                }
+                console.log(`🎤 [BOT-DEBUG] No voice context provided - user not in voice channel`);
             }
             
             if (voiceChannelToJoin) {

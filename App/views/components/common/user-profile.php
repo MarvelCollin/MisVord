@@ -396,20 +396,38 @@ class UserProfileVoiceControls {
     handleDeafenClick() {
         try {
             let wasToggled = false;
+            let currentState = null;
             
             // Use unified state manager as primary, fallback to local storage
             if (window.unifiedVoiceStateManager) {
+                currentState = window.unifiedVoiceStateManager.getState();
                 wasToggled = window.unifiedVoiceStateManager.toggleDeafen();
+                
+                // When deafening, also mute the microphone
+                if (wasToggled && !currentState.isMuted) {
+                    window.unifiedVoiceStateManager.setMute(true);
+                }
             } else if (window.localStorageManager) {
+                currentState = window.localStorageManager.getVoiceState();
                 wasToggled = window.localStorageManager.toggleVoiceDeafen();
+                
+                // When deafening, also mute the microphone
+                if (wasToggled && !currentState.isMuted) {
+                    window.localStorageManager.setVoiceMute(true);
+                }
             }
             
             // If connected to videoSDK, toggle the actual audio
             if (window.videoSDKManager?.isReady()) {
                 window.videoSDKManager.toggleDeafen();
+                
+                // When deafening, also mute the microphone
+                if (wasToggled && currentState && !currentState.isMuted) {
+                    window.videoSDKManager.toggleMic(false); // Force mute
+                }
             }
             
-            // Dispatch event for cross-component sync
+            // Dispatch deafen event for cross-component sync
             window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                 detail: {
                     type: 'deafen',
@@ -417,6 +435,22 @@ class UserProfileVoiceControls {
                     source: 'user-profile'
                 }
             }));
+            
+            // If we're deafening, also dispatch mic mute event
+            if (wasToggled && currentState && !currentState.isMuted) {
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: {
+                        type: 'mic',
+                        state: false,
+                        source: 'user-profile'
+                    }
+                }));
+                
+                // Play mute sound
+                if (window.MusicLoaderStatic) {
+                    window.MusicLoaderStatic.playDiscordMuteSound();
+                }
+            }
             
             // Update UI immediately and after short delay
             this.updateControls();

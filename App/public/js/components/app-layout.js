@@ -701,10 +701,25 @@ function checkIfNoPendingRequests() {
 function initFriendRequestForm() {
     const form = document.getElementById('friend-request-form');
     const input = document.getElementById('friend-username-input');
+    const button = document.getElementById('send-friend-request');
     const errorDiv = document.getElementById('add-friend-error');
     const successDiv = document.getElementById('add-friend-success');
     
-    if (!form || !input) return;
+    if (!form || !input || !button) return;
+    
+    function updateButtonState() {
+        const username = input.value.trim();
+        if (username.length >= 2) {
+            button.disabled = false;
+            button.classList.remove('disabled:bg-gray-500');
+        } else {
+            button.disabled = true;
+            button.classList.add('disabled:bg-gray-500');
+        }
+    }
+    
+    input.addEventListener('input', updateButtonState);
+    updateButtonState();
     
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -712,29 +727,44 @@ function initFriendRequestForm() {
         const username = input.value.trim();
         
         if (!username) {
-            showError(errorDiv, 'Please enter a username');
+            showToast('Please enter a username', 'error');
+            return;
+        }
+        
+        if (username.length < 2) {
+            showToast('Username must be at least 2 characters long', 'error');
             return;
         }
         
         if (errorDiv) errorDiv.classList.add('hidden');
         if (successDiv) successDiv.classList.add('hidden');
         
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Sending...';
+        
         try {
             const response = await friendAPI.sendFriendRequest(username);
             
             if (response.success) {
-                showSuccess(successDiv, response.message || 'Friend request sent successfully!');
+                showToast(response.message || 'Friend request sent successfully!', 'success');
                 input.value = '';
+                updateButtonState();
                 
-                setTimeout(() => {
-                    if (successDiv) successDiv.classList.add('hidden');
-                }, 3000);
+                if (window.FriendsManager) {
+                    const friendsManager = window.FriendsManager.getInstance();
+                    friendsManager.getPendingRequests(true);
+                }
             } else {
-                showError(errorDiv, response.message || 'Failed to send friend request');
+                showToast(response.message || 'Failed to send friend request', 'error');
             }
         } catch (error) {
             console.error('Error sending friend request:', error);
-            showError(errorDiv, 'An error occurred while sending the friend request');
+            showToast(error.message || 'An error occurred while sending the friend request', 'error');
+        } finally {
+            button.disabled = false;
+            button.textContent = originalText;
+            updateButtonState();
         }
     });
 }
@@ -761,20 +791,6 @@ function showToast(message, type = 'info') {
         window.showToast(message, type);
     } else {
         console.log(type + ': ' + message);
-    }
-}
-
-function showError(errorDiv, message) {
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.classList.remove('hidden');
-    }
-}
-
-function showSuccess(successDiv, message) {
-    if (successDiv) {
-        successDiv.textContent = message;
-        successDiv.classList.remove('hidden');
     }
 }
 

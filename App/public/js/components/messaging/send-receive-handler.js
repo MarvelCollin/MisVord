@@ -171,26 +171,16 @@ class SendReceiveHandler {
                 const voiceState = window.unifiedVoiceStateManager.getState();
                 if (voiceState.isConnected && voiceState.channelId) {
                     voiceChannelId = voiceState.channelId;
+                    messageData.voice_context = {
+                        voice_channel_id: voiceChannelId,
+                        user_in_voice: true
+                    };
+                    console.log(`🎤 [SEND-RECEIVE] Adding voice context to titibot command:`, messageData.voice_context);
+                } else {
+                    console.log(`🎤 [SEND-RECEIVE] User not in voice channel, TitiBot command will not include voice context`);
                 }
-            }
-            
-            if (!voiceChannelId && window.voiceManager?.currentChannelId) {
-                voiceChannelId = window.voiceManager.currentChannelId;
-            }
-            
-            if (!voiceChannelId) {
-                const channelMeta = document.querySelector('meta[name="channel-id"]');
-                if (channelMeta && window.location.pathname.includes('/server/')) {
-                    voiceChannelId = channelMeta.content;
-                }
-            }
-            
-            if (voiceChannelId) {
-                messageData.voice_context = {
-                    voice_channel_id: voiceChannelId,
-                    user_in_voice: !!(window.unifiedVoiceStateManager?.getState()?.isConnected || window.voiceManager?.isConnected)
-                };
-                console.log(`🎤 [SEND-RECEIVE] Adding voice context to titibot command:`, messageData.voice_context);
+            } else {
+                console.log(`🎤 [SEND-RECEIVE] unifiedVoiceStateManager not available, TitiBot command will not include voice context`);
             }
         }
         

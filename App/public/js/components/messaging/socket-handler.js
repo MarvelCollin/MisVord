@@ -50,8 +50,10 @@ class SocketHandler {
         io.off('message_id_updated');
         io.off('message_save_failed');
         io.off('message_error');
-        io.off('typing');
-        io.off('stop-typing');
+        io.off('user-typing');
+        io.off('user-stop-typing');
+        io.off('user-typing-dm');
+        io.off('user-stop-typing-dm');
         
         io.on('new-channel-message', this.handleChannelMessage.bind(this));
         io.on('user-message-dm', this.handleDMMessage.bind(this));
@@ -67,8 +69,10 @@ class SocketHandler {
         io.on('message_id_updated', this.handleMessageIdUpdated.bind(this));
         io.on('message_save_failed', this.handleMessageSaveFailed.bind(this));
         io.on('message_error', this.handleMessageError.bind(this));
-        io.on('typing', this.handleTyping.bind(this));
-        io.on('stop-typing', this.handleStopTyping.bind(this));
+        io.on('user-typing', this.handleTyping.bind(this));
+        io.on('user-stop-typing', this.handleStopTyping.bind(this));
+        io.on('user-typing-dm', this.handleTypingDM.bind(this));
+        io.on('user-stop-typing-dm', this.handleStopTypingDM.bind(this));
         
         this.socketListenersSetup = true;
         console.log('✅ Socket handlers setup complete');
@@ -661,25 +665,77 @@ class SocketHandler {
     
     handleTyping(data) {
         try {
+            console.log('⌨️ [SOCKET-HANDLER] Channel typing event received:', data);
             const userId = data.user_id;
             const username = data.username;
             
             if (!userId || !username || userId === this.chatSection.userId) return;
             
-            this.showTypingIndicator(userId, username);
+            const isForThisChannel = 
+                this.chatSection.chatType === 'channel' && 
+                String(data.channel_id) === String(this.chatSection.targetId);
+            
+            if (isForThisChannel) {
+                this.showTypingIndicator(userId, username);
+            }
         } catch (error) {
-            console.error('❌ Error handling typing event:', error);
+            console.error('❌ [SOCKET-HANDLER] Error handling typing event:', error);
         }
     }
     
     handleStopTyping(data) {
         try {
+            console.log('⌨️ [SOCKET-HANDLER] Channel stop typing event received:', data);
             const userId = data.user_id;
             if (!userId || userId === this.chatSection.userId) return;
             
-            this.removeTypingIndicator(userId);
+            const isForThisChannel = 
+                this.chatSection.chatType === 'channel' && 
+                String(data.channel_id) === String(this.chatSection.targetId);
+            
+            if (isForThisChannel) {
+                this.removeTypingIndicator(userId);
+            }
         } catch (error) {
-            console.error('❌ Error handling stop typing event:', error);
+            console.error('❌ [SOCKET-HANDLER] Error handling stop typing event:', error);
+        }
+    }
+    
+    handleTypingDM(data) {
+        try {
+            console.log('⌨️ [SOCKET-HANDLER] DM typing event received:', data);
+            const userId = data.user_id;
+            const username = data.username;
+            
+            if (!userId || !username || userId === this.chatSection.userId) return;
+            
+            const isForThisDM = 
+                (this.chatSection.chatType === 'direct' || this.chatSection.chatType === 'dm') && 
+                String(data.room_id) === String(this.chatSection.targetId);
+            
+            if (isForThisDM) {
+                this.showTypingIndicator(userId, username);
+            }
+        } catch (error) {
+            console.error('❌ [SOCKET-HANDLER] Error handling DM typing event:', error);
+        }
+    }
+    
+    handleStopTypingDM(data) {
+        try {
+            console.log('⌨️ [SOCKET-HANDLER] DM stop typing event received:', data);
+            const userId = data.user_id;
+            if (!userId || userId === this.chatSection.userId) return;
+            
+            const isForThisDM = 
+                (this.chatSection.chatType === 'direct' || this.chatSection.chatType === 'dm') && 
+                String(data.room_id) === String(this.chatSection.targetId);
+            
+            if (isForThisDM) {
+                this.removeTypingIndicator(userId);
+            }
+        } catch (error) {
+            console.error('❌ [SOCKET-HANDLER] Error handling DM stop typing event:', error);
         }
     }
     
@@ -713,57 +769,44 @@ class SocketHandler {
     
     updateTypingIndicatorDisplay() {
         try {
-            // Get or create typing indicator element
-            let typingIndicator = document.getElementById('typing-indicator');
+            const typingIndicator = document.getElementById('typing-indicator');
             
-            // No typing users, hide the indicator
-            if (this.typingUsers.size === 0) {
-                if (typingIndicator) {
-                    typingIndicator.classList.add('hidden');
-                }
+            if (!typingIndicator) {
+                console.warn('⚠️ [SOCKET-HANDLER] Typing indicator element not found in DOM');
                 return;
             }
             
-            // Create typing indicator if it doesn't exist
-            if (!typingIndicator) {
-                typingIndicator = document.createElement('div');
-                typingIndicator.id = 'typing-indicator';
-                typingIndicator.className = 'px-4 py-2 text-xs text-[#a3a6aa]';
-                
-                // Insert before the message form
-                const messageForm = this.chatSection.messageForm;
-                if (messageForm && messageForm.parentNode) {
-                    messageForm.parentNode.insertBefore(typingIndicator, messageForm);
-                }
+            if (this.typingUsers.size === 0) {
+                typingIndicator.classList.add('hidden');
+                return;
             }
             
-            // Get typing usernames (limit to 3)
             const typingUsernames = Array.from(this.typingUsers.values())
                 .map(data => data.username)
                 .slice(0, 3);
             
-            // Create typing message
             let typingMessage = '';
             if (typingUsernames.length === 1) {
-                typingMessage = `${typingUsernames[0]} is typing...`;
+                typingMessage = `${typingUsernames[0]} is typing`;
             } else if (typingUsernames.length === 2) {
-                typingMessage = `${typingUsernames[0]} and ${typingUsernames[1]} are typing...`;
+                typingMessage = `${typingUsernames[0]} and ${typingUsernames[1]} are typing`;
             } else if (typingUsernames.length === 3) {
-                typingMessage = `${typingUsernames[0]}, ${typingUsernames[1]}, and ${typingUsernames[2]} are typing...`;
+                typingMessage = `${typingUsernames[0]}, ${typingUsernames[1]}, and ${typingUsernames[2]} are typing`;
             } else {
-                typingMessage = `${typingUsernames.length} people are typing...`;
+                typingMessage = `${typingUsernames.length} people are typing`;
             }
             
-            // Show typing indicator with animation
             typingIndicator.innerHTML = `
                 <span>${typingMessage}</span>
-                <span class="typing-dots">
+                <span class="typing-animation ml-1">
                     <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
                 </span>
             `;
             typingIndicator.classList.remove('hidden');
+            
+            console.log('⌨️ [SOCKET-HANDLER] Updated typing indicator:', typingMessage);
         } catch (error) {
-            console.error('❌ Error updating typing indicator:', error);
+            console.error('❌ [SOCKET-HANDLER] Error updating typing indicator:', error);
         }
     }
     

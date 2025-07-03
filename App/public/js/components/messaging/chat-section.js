@@ -646,7 +646,13 @@ class ChatSection {
         if (this.messageInput) {
             this.messageInput.addEventListener('input', () => {
                 this.updateSendButton();
-                this.handleTypingEvent();
+                if (this.messageInput.value.trim().length > 0) {
+                    this.handleTypingEvent();
+                }
+            });
+            
+            this.messageInput.addEventListener('blur', () => {
+                this.handleStopTypingEvent();
             });
             
             this.messageInput.addEventListener('keydown', (e) => {
@@ -658,10 +664,12 @@ class ChatSection {
                         this.cancelEditing();
                         e.preventDefault();
                     }
+                    this.handleStopTypingEvent();
                 }
                 
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
+                    this.handleStopTypingEvent();
                     if (this.sendReceiveHandler) {
                         this.sendReceiveHandler.sendMessage();
                     }
@@ -1334,14 +1342,45 @@ class ChatSection {
                     user_id: this.userId,
                     username: this.username
                 }, 'channel', this.targetId);
-                        } else {
+            } else {
                 window.globalSocketManager.emitToRoom('typing', {
                     room_id: this.targetId,
-                user_id: this.userId,
+                    user_id: this.userId,
                     username: this.username
                 }, 'dm', this.targetId);
             }
         }
+        
+        clearTimeout(this._stopTypingTimeout);
+        this._stopTypingTimeout = setTimeout(() => {
+            this.handleStopTypingEvent();
+        }, 5000);
+    }
+    
+    handleStopTypingEvent() {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            return;
+        }
+        
+        if (!this.targetId) {
+            return;
+        }
+        
+        if (this.chatType === 'channel') {
+            window.globalSocketManager.emitToRoom('stop-typing', {
+                channel_id: this.targetId,
+                user_id: this.userId,
+                username: this.username
+            }, 'channel', this.targetId);
+        } else {
+            window.globalSocketManager.emitToRoom('stop-typing', {
+                room_id: this.targetId,
+                user_id: this.userId,
+                username: this.username
+            }, 'dm', this.targetId);
+        }
+        
+        clearTimeout(this._stopTypingTimeout);
     }
     
     startReply(messageId) {
@@ -3152,6 +3191,24 @@ class ChatSection {
             this.showNotification('Failed to copy text to clipboard', 'error');
         }
     }
+
+    showTypingIndicator(userId, username) {
+        console.log('⌨️ [CHAT-SECTION] Showing typing indicator:', userId, username);
+        if (this.socketHandler && typeof this.socketHandler.showTypingIndicator === 'function') {
+            this.socketHandler.showTypingIndicator(userId, username);
+        } else {
+            console.warn('⚠️ [CHAT-SECTION] Socket handler not available for typing indicator');
+        }
+    }
+
+    removeTypingIndicator(userId) {
+        console.log('⌨️ [CHAT-SECTION] Removing typing indicator:', userId);
+        if (this.socketHandler && typeof this.socketHandler.removeTypingIndicator === 'function') {
+            this.socketHandler.removeTypingIndicator(userId);
+        } else {
+            console.warn('⚠️ [CHAT-SECTION] Socket handler not available for typing indicator removal');
+        }
+    }
     
 
     
@@ -3748,3 +3805,302 @@ window.debugTTSMenuFlow = function() {
 };
 
 console.log('  - debugTTSMenuFlow() - Debug complete three dots to TTS flow');
+
+window.testTypingIndicator = function() {
+    console.log('⌨️ [TEST-TYPING] Testing typing indicator functionality...');
+    
+    if (!window.chatSection) {
+        console.error('❌ [TEST-TYPING] Chat section not available');
+        return false;
+    }
+    
+    if (!window.chatSection.socketHandler) {
+        console.error('❌ [TEST-TYPING] Socket handler not available');
+        return false;
+    }
+    
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (!typingIndicator) {
+        console.error('❌ [TEST-TYPING] Typing indicator element not found');
+        return false;
+    }
+    
+    console.log('✅ [TEST-TYPING] All required components found');
+    console.log('📊 [TEST-TYPING] Current chat context:', {
+        chatType: window.chatSection.chatType,
+        targetId: window.chatSection.targetId,
+        userId: window.chatSection.userId,
+        username: window.chatSection.username
+    });
+    
+    console.log('🧪 [TEST-TYPING] Testing typing indicator display...');
+    
+    window.chatSection.socketHandler.showTypingIndicator('test-user-1', 'TestUser1');
+    
+    setTimeout(() => {
+        const isVisible = !typingIndicator.classList.contains('hidden');
+        console.log('📊 [TEST-TYPING] Typing indicator visibility after adding user:', isVisible);
+        console.log('📊 [TEST-TYPING] Typing indicator content:', typingIndicator.innerHTML);
+        
+        console.log('🧪 [TEST-TYPING] Adding second user...');
+        window.chatSection.socketHandler.showTypingIndicator('test-user-2', 'TestUser2');
+        
+        setTimeout(() => {
+            console.log('📊 [TEST-TYPING] Multiple users typing content:', typingIndicator.innerHTML);
+            
+            console.log('🧪 [TEST-TYPING] Removing first user...');
+            window.chatSection.socketHandler.removeTypingIndicator('test-user-1');
+            
+            setTimeout(() => {
+                console.log('📊 [TEST-TYPING] After removing first user:', typingIndicator.innerHTML);
+                
+                console.log('🧪 [TEST-TYPING] Removing second user...');
+                window.chatSection.socketHandler.removeTypingIndicator('test-user-2');
+                
+                setTimeout(() => {
+                    const isHidden = typingIndicator.classList.contains('hidden');
+                    console.log('📊 [TEST-TYPING] Typing indicator hidden after removing all users:', isHidden);
+                    
+                    if (isHidden) {
+                        console.log('🎉 [TEST-TYPING] SUCCESS! Typing indicator functionality working correctly');
+                        return true;
+                    } else {
+                        console.error('❌ [TEST-TYPING] Typing indicator not hidden when no users typing');
+                        return false;
+                    }
+                }, 100);
+            }, 100);
+        }, 100);
+    }, 100);
+};
+
+window.testTypingSocket = function() {
+    console.log('🔌 [TEST-TYPING-SOCKET] Testing typing socket events...');
+    
+    if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+        console.error('❌ [TEST-TYPING-SOCKET] Socket manager not ready');
+        return false;
+    }
+    
+    if (!window.chatSection || !window.chatSection.targetId) {
+        console.error('❌ [TEST-TYPING-SOCKET] Chat section or target ID not available');
+        return false;
+    }
+    
+    console.log('✅ [TEST-TYPING-SOCKET] Socket and chat section ready');
+    console.log('📊 [TEST-TYPING-SOCKET] Current chat:', {
+        type: window.chatSection.chatType,
+        targetId: window.chatSection.targetId,
+        userId: window.chatSection.userId,
+        username: window.chatSection.username
+    });
+    
+    console.log('🧪 [TEST-TYPING-SOCKET] Sending test typing event...');
+    window.chatSection.handleTypingEvent();
+    
+    setTimeout(() => {
+        console.log('🧪 [TEST-TYPING-SOCKET] Sending test stop typing event...');
+        window.chatSection.handleStopTypingEvent();
+        console.log('✅ [TEST-TYPING-SOCKET] Typing socket test completed');
+    }, 2000);
+};
+
+console.log('🔊 [TYPING] Typing test functions loaded:');
+console.log('  - testTypingIndicator() - Test typing indicator UI');
+console.log('  - testTypingSocket() - Test typing socket events');
+
+window.debugTypingFlow = function() {
+    console.log('🔍 [DEBUG-TYPING] Running comprehensive typing indicator flow test...');
+    
+    console.log('1️⃣ [DEBUG-TYPING] Checking basic requirements...');
+    
+    if (!window.chatSection) {
+        console.error('❌ [DEBUG-TYPING] Chat section not available');
+        return false;
+    }
+    
+    if (!window.chatSection.socketHandler) {
+        console.error('❌ [DEBUG-TYPING] Socket handler not available');
+        return false;
+    }
+    
+    if (!window.globalSocketManager) {
+        console.error('❌ [DEBUG-TYPING] Global socket manager not available');
+        return false;
+    }
+    
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (!typingIndicator) {
+        console.error('❌ [DEBUG-TYPING] Typing indicator element not found in DOM');
+        return false;
+    }
+    
+    console.log('✅ [DEBUG-TYPING] All basic requirements met');
+    console.log('📊 [DEBUG-TYPING] Current context:', {
+        chatType: window.chatSection.chatType,
+        targetId: window.chatSection.targetId,
+        userId: window.chatSection.userId,
+        username: window.chatSection.username,
+        socketReady: window.globalSocketManager.isReady(),
+        typingUsersCount: window.chatSection.socketHandler.typingUsers?.size || 0
+    });
+    
+    console.log('2️⃣ [DEBUG-TYPING] Testing UI indicator functionality...');
+    
+    const initiallyHidden = typingIndicator.classList.contains('hidden');
+    console.log('📊 [DEBUG-TYPING] Initial state - hidden:', initiallyHidden);
+    
+    console.log('🧪 [DEBUG-TYPING] Simulating typing from test user...');
+    window.chatSection.socketHandler.showTypingIndicator('test-debug-user', 'DebugUser');
+    
+    setTimeout(() => {
+        const nowVisible = !typingIndicator.classList.contains('hidden');
+        console.log('📊 [DEBUG-TYPING] After adding user - visible:', nowVisible);
+        console.log('📊 [DEBUG-TYPING] Indicator content:', typingIndicator.innerHTML);
+        
+        if (!nowVisible) {
+            console.error('❌ [DEBUG-TYPING] UI indicator failed to show');
+            return false;
+        }
+        
+        console.log('✅ [DEBUG-TYPING] UI indicator working correctly');
+        
+        console.log('3️⃣ [DEBUG-TYPING] Testing socket event emission...');
+        
+        const originalEmit = window.globalSocketManager.emitToRoom;
+        let emitCalled = false;
+        let emitData = null;
+        
+        window.globalSocketManager.emitToRoom = function(event, data, roomType, roomId) {
+            if (event === 'typing' || event === 'stop-typing') {
+                emitCalled = true;
+                emitData = { event, data, roomType, roomId };
+                console.log('📤 [DEBUG-TYPING] Socket emit intercepted:', { event, data, roomType, roomId });
+            }
+            return originalEmit.call(this, event, data, roomType, roomId);
+        };
+        
+        console.log('🧪 [DEBUG-TYPING] Triggering typing event...');
+        window.chatSection.handleTypingEvent();
+        
+        setTimeout(() => {
+            window.globalSocketManager.emitToRoom = originalEmit;
+            
+            if (emitCalled) {
+                console.log('✅ [DEBUG-TYPING] Socket emission working correctly');
+                console.log('📊 [DEBUG-TYPING] Emitted data:', emitData);
+            } else {
+                console.error('❌ [DEBUG-TYPING] Socket emission failed');
+            }
+            
+            console.log('4️⃣ [DEBUG-TYPING] Testing socket event reception...');
+            
+            const mockData = {
+                user_id: 'mock-user-123',
+                username: 'MockUser',
+                channel_id: window.chatSection.targetId,
+                room_id: window.chatSection.targetId
+            };
+            
+            console.log('🧪 [DEBUG-TYPING] Simulating incoming typing event...');
+            
+            if (window.chatSection.chatType === 'channel') {
+                window.chatSection.socketHandler.handleTyping(mockData);
+            } else {
+                window.chatSection.socketHandler.handleTypingDM(mockData);
+            }
+            
+            setTimeout(() => {
+                const multipleUsersVisible = !typingIndicator.classList.contains('hidden');
+                const content = typingIndicator.innerHTML;
+                
+                console.log('📊 [DEBUG-TYPING] After mock reception:', {
+                    visible: multipleUsersVisible,
+                    content: content,
+                    typingUsersCount: window.chatSection.socketHandler.typingUsers?.size || 0
+                });
+                
+                console.log('5️⃣ [DEBUG-TYPING] Cleaning up test...');
+                
+                window.chatSection.socketHandler.removeTypingIndicator('test-debug-user');
+                window.chatSection.socketHandler.removeTypingIndicator('mock-user-123');
+                
+                setTimeout(() => {
+                    const finallyHidden = typingIndicator.classList.contains('hidden');
+                    console.log('📊 [DEBUG-TYPING] Final cleanup - hidden:', finallyHidden);
+                    
+                    if (finallyHidden) {
+                        console.log('🎉 [DEBUG-TYPING] COMPREHENSIVE TEST PASSED! All typing functionality working correctly');
+                        return true;
+                    } else {
+                        console.error('❌ [DEBUG-TYPING] Cleanup failed - indicator still visible');
+                        return false;
+                    }
+                }, 100);
+            }, 100);
+        }, 100);
+    }, 100);
+};
+
+console.log('  - debugTypingFlow() - Complete typing flow test');
+
+window.debugRoomJoining = function() {
+    console.log('🏠 [DEBUG-ROOMS] Checking room joining for typing events...');
+    
+    if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+        console.error('❌ [DEBUG-ROOMS] Global socket manager not ready');
+        return false;
+    }
+    
+    if (!window.chatSection) {
+        console.error('❌ [DEBUG-ROOMS] Chat section not available');
+        return false;
+    }
+    
+    console.log('📊 [DEBUG-ROOMS] Current chat context:', {
+        chatType: window.chatSection.chatType,
+        targetId: window.chatSection.targetId,
+        userId: window.chatSection.userId,
+        username: window.chatSection.username
+    });
+    
+    console.log('🔍 [DEBUG-ROOMS] Checking socket room membership...');
+    
+    if (window.globalSocketManager.socket && window.globalSocketManager.socket.rooms) {
+        const rooms = Array.from(window.globalSocketManager.socket.rooms);
+        console.log('📋 [DEBUG-ROOMS] Currently joined rooms:', rooms);
+        
+        const expectedRoom = window.chatSection.chatType === 'channel' 
+            ? `channel-${window.chatSection.targetId}`
+            : `dm-${window.chatSection.targetId}`;
+        
+        const isInExpectedRoom = rooms.includes(expectedRoom);
+        console.log('🎯 [DEBUG-ROOMS] Expected room:', expectedRoom);
+        console.log('✅ [DEBUG-ROOMS] In expected room:', isInExpectedRoom);
+        
+        if (!isInExpectedRoom) {
+            console.warn('⚠️ [DEBUG-ROOMS] Not in expected room! Attempting to join...');
+            
+            if (window.chatSection.socketHandler) {
+                const joinResult = window.chatSection.socketHandler.joinChannel();
+                console.log('🔄 [DEBUG-ROOMS] Join attempt result:', joinResult);
+                
+                setTimeout(() => {
+                    if (window.globalSocketManager.socket && window.globalSocketManager.socket.rooms) {
+                        const newRooms = Array.from(window.globalSocketManager.socket.rooms);
+                        console.log('📋 [DEBUG-ROOMS] Rooms after join attempt:', newRooms);
+                        const nowInRoom = newRooms.includes(expectedRoom);
+                        console.log('✅ [DEBUG-ROOMS] Now in expected room:', nowInRoom);
+                    }
+                }, 500);
+            }
+        }
+        
+        return isInExpectedRoom;
+    } else {
+        console.warn('⚠️ [DEBUG-ROOMS] Socket rooms not accessible');
+        return false;
+    }
+};
+
+console.log('  - debugRoomJoining() - Check socket room membership');

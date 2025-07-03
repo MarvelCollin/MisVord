@@ -27,7 +27,6 @@ if (!function_exists('renderChannel')) {
         $categoryId = $channel['category_id'] ?? '';
         
         echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer ' . $textClass . ' ' . $bgClass . ' ' . $activeClass . ' group transition-all duration-200" 
-                  draggable="true"
                   data-channel-id="' . $channel['id'] . '" 
                   data-channel-name="' . htmlspecialchars($channel['name']) . '"
                   data-channel-type="' . htmlspecialchars($type) . '"
@@ -39,24 +38,9 @@ if (!function_exists('renderChannel')) {
         
         if ($type === 'voice') {
             $countClass = $isActive ? 'text-white/70' : 'text-gray-500';
-            echo '  <span class="ml-auto text-xs ' . $countClass . ' voice-user-count">0</span>';
+            echo '  <span class="ml-auto text-xs ' . $countClass . ' voice-user-count hidden"></span>';
         }
         
-        echo '  <div class="channel-menu relative ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">';
-        echo '    <button class="channel-menu-btn text-gray-400 hover:text-white w-5 h-5 flex items-center justify-center rounded hover:bg-gray-600" data-channel-id="' . $channel['id'] . '">';
-        echo '      <i class="fas fa-ellipsis-v text-xs"></i>';
-        echo '    </button>';
-        echo '    <div class="channel-dropdown hidden absolute right-0 top-6 w-32 bg-[#18191c] rounded-md shadow-lg z-50 py-1 text-sm">';
-        echo '      <button class="edit-channel-btn flex items-center w-full px-3 py-2 text-gray-300 hover:bg-[#5865f2] hover:text-white" data-channel-id="' . $channel['id'] . '">';
-        echo '        <i class="fas fa-edit w-4 text-center mr-2"></i>';
-        echo '        <span>Edit</span>';
-        echo '      </button>';
-        echo '      <button class="delete-channel-btn flex items-center w-full px-3 py-2 text-red-400 hover:bg-red-600 hover:text-white" data-channel-id="' . $channel['id'] . '" data-channel-name="' . htmlspecialchars($channel['name']) . '">';
-        echo '        <i class="fas fa-trash w-4 text-center mr-2"></i>';
-        echo '        <span>Delete</span>';
-        echo '      </button>';
-        echo '    </div>';
-        echo '  </div>';
         echo '</div>';
         
         if ($type === 'voice') {

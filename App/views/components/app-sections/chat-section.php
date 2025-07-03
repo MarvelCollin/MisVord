@@ -729,6 +729,12 @@ if (!function_exists('renderMessage')) {
     <div class="px-4 py-[10px] bg-[#313338] border-t border-[#3f4147]">
         <div id="reply-container" class="hidden"></div>
 
+        <div id="typing-indicator" class="hidden px-4 py-2 text-xs text-[#a3a6aa] bg-[#2b2d31] rounded-lg mb-2 border-l-4 border-[#5865f2] transition-all duration-200 ease-in-out">
+            <span class="typing-animation">
+                <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+            </span>
+        </div>
+
         <div id="file-upload-area" class="hidden mb-3 p-3 bg-[#2b2d31] rounded-lg">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-[#f2f3f5] text-sm font-medium">

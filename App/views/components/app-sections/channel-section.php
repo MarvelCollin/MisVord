@@ -305,6 +305,35 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 .voice-participants .bg-discord-green {
     z-index: 2;
 }
+
+.voice-user-count.flex {
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 20px;
+}
+
+.voice-user-count .w-5 {
+    border: 2px solid #313338;
+    transition: transform 0.2s ease;
+}
+
+.voice-user-count .w-5:hover {
+    transform: scale(1.1);
+    z-index: 20 !important;
+}
+
+.voice-user-count .relative:not(:first-child) {
+    margin-left: -6px;
+}
+
+.voice-user-count img {
+    transition: all 0.2s ease;
+}
+
+.voice-user-count .text-xs {
+    font-weight: 500;
+    line-height: 1;
+}
 </style>
 
 <script src="/public/js/utils/channel-voice-participants.js"></script>
@@ -510,10 +539,40 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('[CHANNEL-SECTION] Test functions available:');
     console.log('- testVoiceParticipants()');
-    console.log('- addTestVoiceParticipant(channelId, userId, username)');
-    console.log('- listVoiceParticipantContainers()');
     console.log('- testVoiceParticipantCount(channelId, count)');
     console.log('- verifyVoiceParticipantSystem()');
+    console.log('- debugVoiceParticipants()');
+    console.log('- testVoiceParticipantProfiles(channelId)');
+    
+    window.testVoiceParticipantProfiles = function(channelId) {
+        if (!window.ChannelVoiceParticipants) {
+            console.error('[VOICE-PARTICIPANT] ChannelVoiceParticipants not loaded');
+            return;
+        }
+        
+        const manager = window.ChannelVoiceParticipants.getInstance();
+        if (!manager) {
+            console.error('[VOICE-PARTICIPANT] Failed to get manager instance');
+            return;
+        }
+        
+        manager.testVoiceParticipantProfiles(channelId);
+    };
+    
+    window.debugVoiceParticipantProfiles = function() {
+        if (!window.ChannelVoiceParticipants) {
+            console.error('[VOICE-PARTICIPANT] ChannelVoiceParticipants not loaded');
+            return;
+        }
+        
+        const manager = window.ChannelVoiceParticipants.getInstance();
+        if (!manager) {
+            console.error('[VOICE-PARTICIPANT] Failed to get manager instance');
+            return;
+        }
+        
+        manager.debugVoiceParticipantFlow();
+    };
 });
 
 // Test functions for VideoSDK-based voice participants

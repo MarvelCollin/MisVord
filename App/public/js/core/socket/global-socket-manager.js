@@ -859,8 +859,7 @@ class GlobalSocketManager {
         this.joinChannel(channelId);
         
         this.io.off('new-channel-message'); 
-        this.io.off('user-typing');
-        this.io.off('user-stop-typing');
+
         
         this.io.on('new-channel-message', (messageData) => {
             if (messageData && messageData.channel_id === channelId) {
@@ -873,31 +872,7 @@ class GlobalSocketManager {
             }
         });
         
-        this.io.on('user-typing', (data) => {
-            if (data.channel_id === channelId) {
-                const event = new CustomEvent('userTyping', {
-                    detail: data
-                });
-                window.dispatchEvent(event);
-                
-                if (window.chatSection && typeof window.chatSection.showTypingIndicator === 'function') {
-                    window.chatSection.showTypingIndicator(data.user_id, data.username);
-                }
-            }
-        });
-        
-        this.io.on('user-stop-typing', (data) => {
-            if (data.channel_id === channelId) {
-                const event = new CustomEvent('userStopTyping', {
-                    detail: data
-                });
-                window.dispatchEvent(event);
-                
-                if (window.chatSection && typeof window.chatSection.removeTypingIndicator === 'function') {
-                    window.chatSection.removeTypingIndicator(data.user_id);
-                }
-            }
-        });
+
         
         this.log(`Channel listeners set up for channel: ${channelId}`);
         return true;
