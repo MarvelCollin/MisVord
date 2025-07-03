@@ -52,6 +52,15 @@ class MusicPlayerSystem {
         document.addEventListener('DOMContentLoaded', () => {
             this.initializeAudioEvents();
         });
+        // Listen for bot-music-command globally for debug
+        if (window.globalSocketManager?.io) {
+            window.globalSocketManager.io.on('bot-music-command', (data) => {
+                console.log('🎵 [MUSIC-PLAYER] [GLOBAL] Received bot-music-command:', data);
+            });
+        }
+        window.addEventListener('bot-music-command', (e) => {
+            console.log('🎵 [MUSIC-PLAYER] [EVENT] bot-music-command:', e.detail);
+        });
     }
 
 

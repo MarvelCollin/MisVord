@@ -240,10 +240,21 @@ class ChatBot {
     async executeMusicCommand(musicData) {
         if (!window.musicPlayer) {
             console.error('❌ [CHAT-BOT] Music player not available');
+            // Try to trigger in voice context if available
+            if (window.voiceCallSection && window.voiceCallSection.musicPlayer) {
+                window.voiceCallSection.musicPlayer.executeMusicCommand?.(musicData);
+            }
             return;
         }
 
         console.log('🎵 [CHAT-BOT] Executing music command:', musicData);
+        // Debug: show current context
+        if (window.location && window.location.search) {
+            console.log('[CHAT-BOT] Current URL:', window.location.search);
+        }
+        if (window.voiceCallSection) {
+            console.log('[CHAT-BOT] voiceCallSection present');
+        }
         const { action, query, track } = musicData;
 
         try {

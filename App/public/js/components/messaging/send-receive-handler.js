@@ -171,39 +171,16 @@ class SendReceiveHandler {
             
             console.log('🤖 [SEND-RECEIVE] TitiBot command detected, checking voice context...');
             
-            // Priority 1: Current channel context (if we're in a voice channel)
             const urlParams = new URLSearchParams(window.location.search);
             const currentChannelId = urlParams.get('channel');
             const currentChannelType = urlParams.get('type');
             const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
             
-            console.log('🔍 [SEND-RECEIVE] URL context:', { currentChannelId, currentChannelType, metaChannelType });
+            console.log('🔍 [SEND-RECEIVE] Current page context:', { currentChannelId, currentChannelType, metaChannelType });
             
-            if ((currentChannelType === 'voice' || metaChannelType === 'voice') && currentChannelId) {
-                const channelElement = document.querySelector(`[data-channel-id="${currentChannelId}"][data-channel-type="voice"]`);
-                if (channelElement) {
-                    voiceChannelId = currentChannelId;
-                    
-                    // Check if user is actually connected to any voice channel
-                    const isActuallyConnected = (window.unifiedVoiceStateManager?.getState()?.isConnected) ||
-                                              (window.videoSDKManager?.isConnected && window.videoSDKManager?.isMeetingJoined) ||
-                                              (window.voiceManager?.isConnected);
-                    
-                    if (isActuallyConnected) {
-                        userInVoice = true;
-                        detectionMethod = 'currentVoiceChannel+connected';
-                        console.log(`🎤 [SEND-RECEIVE] Voice detected via current voice channel (connected): ${voiceChannelId}`);
-                    } else {
-                        // User is in voice channel page but not connected - still valid for bot commands
-                        userInVoice = true;
-                        detectionMethod = 'currentVoiceChannel+present';
-                        console.log(`🎤 [SEND-RECEIVE] Voice detected via current voice channel (present): ${voiceChannelId}`);
-                    }
-                }
-            }
-            
-            // Priority 2: Unified voice state manager (for connected state)
-            if (!userInVoice && window.unifiedVoiceStateManager) {
+            // Priority 1: Check if user is actually connected to voice (regardless of current page)
+            // This handles the case where user is in voice but sending commands from text channel
+            if (window.unifiedVoiceStateManager) {
                 const voiceState = window.unifiedVoiceStateManager.getState();
                 console.log('🔍 [SEND-RECEIVE] Unified voice state:', voiceState);
                 if (voiceState && voiceState.isConnected && voiceState.channelId) {
@@ -214,7 +191,7 @@ class SendReceiveHandler {
                 }
             }
             
-            // Priority 3: VideoSDK manager
+            // Priority 2: VideoSDK manager (user actually connected to voice)
             if (!userInVoice && window.videoSDKManager) {
                 if (window.videoSDKManager.isConnected && window.videoSDKManager.isMeetingJoined) {
                     const meetingId = window.videoSDKManager.meetingId;
@@ -227,7 +204,7 @@ class SendReceiveHandler {
                 }
             }
             
-            // Priority 4: Voice manager
+            // Priority 3: Voice manager (user actually connected to voice)
             if (!userInVoice && window.voiceManager) {
                 if (window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
                     voiceChannelId = window.voiceManager.currentChannelId;
@@ -237,7 +214,7 @@ class SendReceiveHandler {
                 }
             }
             
-            // Priority 5: Global socket manager presence
+            // Priority 4: Global socket manager presence (user actually connected to voice)
             if (!userInVoice && window.globalSocketManager) {
                 const currentActivity = window.globalSocketManager.currentActivityDetails;
                 if (currentActivity && currentActivity.type) {
@@ -252,15 +229,16 @@ class SendReceiveHandler {
                 }
             }
             
-            // Priority 6: Check if user is connected but in a different channel from current view
-            if (!userInVoice && window.unifiedVoiceStateManager) {
-                const voiceState = window.unifiedVoiceStateManager.getState();
-                if (voiceState && voiceState.isConnected && voiceState.channelId) {
-                    // User is connected to voice but might be viewing a text channel
-                    voiceChannelId = voiceState.channelId;
+            // Priority 5: Current channel context (if we're viewing a voice channel page)
+            // This handles the case where user is viewing voice channel but not connected yet
+            if (!userInVoice && (currentChannelType === 'voice' || metaChannelType === 'voice') && currentChannelId) {
+                const channelElement = document.querySelector(`[data-channel-id="${currentChannelId}"][data-channel-type="voice"]`);
+                if (channelElement) {
+                    voiceChannelId = currentChannelId;
                     userInVoice = true;
-                    detectionMethod = 'unifiedVoiceStateManager_fallback';
-                    console.log(`🎤 [SEND-RECEIVE] Voice detected via unified state (fallback): ${voiceChannelId}`);
+                    detectionMethod = 'currentVoiceChannel+present';
+                    console.log(`🎤 [SEND-RECEIVE] Voice detected via current voice channel page: ${voiceChannelId}`);
+                    console.log(`🔍 [SEND-RECEIVE] User viewing voice channel page - bot can join for them`);
                 }
             }
             
@@ -272,6 +250,12 @@ class SendReceiveHandler {
                 console.log(`🎤 [SEND-RECEIVE] Adding voice context to TitiBot command:`, {
                     ...messageData.voice_context,
                     detectionMethod
+                });
+                console.log(`🔍 [SEND-RECEIVE] Full messageData with voice context:`, {
+                    content: messageData.content,
+                    voice_context: messageData.voice_context,
+                    target_type: messageData.target_type,
+                    target_id: messageData.target_id
                 });
             } else {
                 messageData.voice_context = {

@@ -196,32 +196,54 @@ class BotHandler extends EventEmitter {
 
         // Determine real-time voice presence from payload first, then fallback to tracker
         let userInVoice = false;
-        console.log(`🔍 [BOT-DEBUG] Voice context in message data:`, data.voice_context);
+        let userHasVoiceChannelContext = false;
+        
+        console.log(`🔍 [BOT-DEBUG] ===== VOICE CONTEXT DEBUG =====`);
+        console.log(`🔍 [BOT-DEBUG] Voice context in message data:`, JSON.stringify(data.voice_context, null, 2));
         console.log(`🔍 [BOT-DEBUG] Complete message data keys:`, Object.keys(data));
         console.log(`🔍 [BOT-DEBUG] User ID: ${data.user_id}, Content: "${data.content}"`);
-        
+        console.log(`🔍 [BOT-DEBUG] data.voice_context exists: ${!!data.voice_context}`);
         if (data.voice_context) {
-            userInVoice = !!data.voice_context.user_in_voice;
-            if (userInVoice && data.voice_context.voice_channel_id) {
+            console.log(`🔍 [BOT-DEBUG] voice_context.user_in_voice: ${data.voice_context.user_in_voice} (type: ${typeof data.voice_context.user_in_voice})`);
+            console.log(`🔍 [BOT-DEBUG] voice_context.voice_channel_id: ${data.voice_context.voice_channel_id} (type: ${typeof data.voice_context.voice_channel_id})`);
+        }
+        console.log(`🔍 [BOT-DEBUG] ================================`);
+        
+        // Priority 1: Check voice_context from frontend (most reliable)
+        if (data.voice_context) {
+            // Check if user has voice channel context (either connected or viewing voice channel page)
+            if (data.voice_context.voice_channel_id) {
+                userHasVoiceChannelContext = true;
                 voiceChannelToJoin = data.voice_context.voice_channel_id;
-                console.log(`🎤 [BOT-DEBUG] Voice context detected: channel ${voiceChannelToJoin}, user in voice: ${userInVoice}`);
-            } else {
-                console.log(`🎤 [BOT-DEBUG] Voice context exists but invalid: user_in_voice=${data.voice_context.user_in_voice}, voice_channel_id=${data.voice_context.voice_channel_id}`);
+                console.log(`🎤 [BOT-DEBUG] Voice channel context detected: channel ${voiceChannelToJoin}`);
             }
-        } else {
-            console.log(`🔍 [BOT-DEBUG] No voice_context in payload, checking tracker...`);
+            
+            // Check if user is actually connected to voice
+            userInVoice = !!data.voice_context.user_in_voice;
+            console.log(`🎤 [BOT-DEBUG] Voice connection status from frontend: connected=${userInVoice}, hasContext=${userHasVoiceChannelContext}`);
+        }
+        
+        // Priority 2: Fallback to VoiceConnectionTracker (server-side tracking)
+        if (!userInVoice) {
+            console.log(`🔍 [BOT-DEBUG] No voice connection from frontend, checking server tracker...`);
             userInVoice = VoiceConnectionTracker.isUserInVoice(data.user_id);
             if (userInVoice) {
                 const userConnection = VoiceConnectionTracker.getUserVoiceConnection(data.user_id);
                 if (userConnection) {
-                    voiceChannelToJoin = userConnection.channelId;
-                    console.log(`🎤 [BOT-DEBUG] Voice detected via tracker: channel ${voiceChannelToJoin}`);
+                    if (!voiceChannelToJoin) { // Only override if we don't have it from frontend
+                        voiceChannelToJoin = userConnection.channelId;
+                    }
+                    userHasVoiceChannelContext = true;
+                    console.log(`🎤 [BOT-DEBUG] Voice detected via server tracker: channel ${voiceChannelToJoin}`);
                 }
             }
         }
 
-        if (isTitiBotCommand && requiresVoice && !userInVoice) {
-            console.log('🎤 [BOT-DEBUG] Music command issued but user not in voice (checked via voice_context / tracker). Sending warning.');
+        console.log(`🎯 [BOT-DEBUG] Final voice status: userInVoice=${userInVoice}, hasContext=${userHasVoiceChannelContext}, channelToJoin=${voiceChannelToJoin}`);
+
+        // For music commands, allow if user is connected to voice OR has voice channel context
+        if (isTitiBotCommand && requiresVoice && !userInVoice && !userHasVoiceChannelContext) {
+            console.log('🎤 [BOT-DEBUG] Music command issued but user has no voice connection or channel context. Sending warning.');
             await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice');
             return;
         }
@@ -425,7 +447,7 @@ class BotHandler extends EventEmitter {
                 break;
 
             case 'not_in_voice':
-                responseContent = '❌ You need to join a voice channel before using music commands.';
+                responseContent = '❌ You need to be in a voice channel to use music commands. Please join a voice channel first or navigate to a voice channel page.';
                 console.log(`🎤 [BOT-DEBUG] Sending warning for not_in_voice command`);
                 break;
 

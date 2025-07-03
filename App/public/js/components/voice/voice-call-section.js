@@ -1633,10 +1633,32 @@ class VoiceCallSection {
   handleBotParticipantJoined(e) {
     console.log('🤖➕ [VOICE-CALL] Bot participant joined event:', e.detail);
     const { participant } = e.detail;
-    
-    if (participant) {
-      this.addBotParticipant(participant);
+    if (!participant) {
+      console.warn('[VOICE-CALL] No participant in bot-voice-participant-joined event');
+      return;
     }
+    // Debug: check grid and participant
+    const grid = document.getElementById("participantGrid");
+    if (!grid) {
+      console.error('[VOICE-CALL] Participant grid not found in DOM');
+    } else {
+      console.log('[VOICE-CALL] Current grid children:', grid.children.length);
+    }
+    console.log('[VOICE-CALL] Adding bot participant to grid:', participant);
+    this.addBotParticipant(participant);
+    // Force UI update
+    setTimeout(() => {
+      this.updateGridLayout();
+      this.updateParticipantCount();
+    }, 100);
+    // Extra: highlight bot card for debug
+    setTimeout(() => {
+      const botCard = grid?.querySelector(`[data-participant-id="bot-${participant.user_id}"]`);
+      if (botCard) {
+        botCard.style.boxShadow = '0 0 0 3px #fee75c';
+        setTimeout(() => { botCard.style.boxShadow = ''; }, 1500);
+      }
+    }, 300);
   }
 
   handleBotParticipantLeft(e) {

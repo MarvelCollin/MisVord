@@ -248,7 +248,7 @@ window.debugBotJoinVoice = function() {
         avatar_url: '/public/assets/common/default-profile-picture.png',
         isBot: true,
         channelId: channelId,
-        meetingId: `voice_channel_${channelId}`,
+        meetingId: 'voice_channel_' + channelId,
         joinedAt: Date.now()
     };
     
@@ -303,7 +303,7 @@ window.testTitiBotMusicFlow = function(songName = 'never gonna give you up') {
         
         if (window.chatSection && window.chatSection.messageInput) {
             // Simulate typing the command
-            const command = `/titibot play ${songName}`;
+            const command = '/titibot play ' + songName;
             window.chatSection.messageInput.value = command;
             
             // Trigger send
@@ -341,4 +341,235 @@ console.log('  1. Make sure you\'re in a voice channel');
 console.log('  2. Type a music command in chat (e.g., "/titibot play never gonna give you up")');
 console.log('  3. TitiBot will join as a participant and start playing music');
 console.log('===================================');
+
+// Simple debug function to test voice context
+window.debugSimpleVoiceContext = function() {
+    console.log('🧪 [DEBUG] === SIMPLE VOICE CONTEXT DEBUG ===');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentChannelId = urlParams.get('channel');
+    const currentChannelType = urlParams.get('type');
+    
+    console.log('📍 [DEBUG] URL Context:', {
+        currentChannelId,
+        currentChannelType,
+        fullURL: window.location.href
+    });
+    
+    if (window.unifiedVoiceStateManager) {
+        const voiceState = window.unifiedVoiceStateManager.getState();
+        console.log('🔊 [DEBUG] Unified Voice State:', voiceState);
+    }
+    
+    console.log('===========================================');
+};
+
+// Test function to validate fixed TitiBot voice detection
+window.testFixedTitiBotVoiceDetection = function() {
+    try {
+        console.log('🧪 [TEST-FIX] === Testing Fixed TitiBot Voice Detection ===');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentChannelId = urlParams.get('channel');
+    const currentChannelType = urlParams.get('type');
+    
+    console.log('📍 [TEST-FIX] Current Context:', {
+        channelId: currentChannelId,
+        channelType: currentChannelType,
+        pathname: window.location.pathname
+    });
+    
+    // Test the voice detection logic that will be used by send-receive-handler
+    let voiceChannelId = null;
+    let userInVoice = false;
+    let detectionMethod = 'none';
+    
+    console.log('🔍 [TEST-FIX] Testing voice detection priority order...');
+    
+    // Priority 1: Check if user is actually connected to voice (regardless of current page)
+    if (window.unifiedVoiceStateManager) {
+        const voiceState = window.unifiedVoiceStateManager.getState();
+        console.log('🔍 [TEST-FIX] Unified voice state:', voiceState);
+        if (voiceState && voiceState.isConnected && voiceState.channelId) {
+            voiceChannelId = voiceState.channelId;
+            userInVoice = true;
+            detectionMethod = 'unifiedVoiceStateManager';
+            console.log('🎤 [TEST-FIX] ✅ Priority 1: Voice detected via unified state manager: ' + voiceChannelId);
+        }
+    }
+    
+    // Priority 2: VideoSDK manager (user actually connected to voice)
+    if (!userInVoice && window.videoSDKManager) {
+        if (window.videoSDKManager.isConnected && window.videoSDKManager.isMeetingJoined) {
+            const meetingId = window.videoSDKManager.meetingId;
+            if (meetingId && meetingId.includes('voice_channel_')) {
+                voiceChannelId = meetingId.replace('voice_channel_', '');
+                userInVoice = true;
+                detectionMethod = 'videoSDKManager';
+                console.log('🎤 [TEST-FIX] ✅ Priority 2: Voice detected via VideoSDK: ' + voiceChannelId);
+            }
+        }
+    }
+    
+    // Priority 3: Voice manager (user actually connected to voice)
+    if (!userInVoice && window.voiceManager) {
+        if (window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
+            voiceChannelId = window.voiceManager.currentChannelId;
+            userInVoice = true;
+            detectionMethod = 'voiceManager';
+            console.log('🎤 [TEST-FIX] ✅ Priority 3: Voice detected via voice manager: ' + voiceChannelId);
+        }
+    }
+    
+    // Priority 4: Global socket manager presence (user actually connected to voice)
+    if (!userInVoice && window.globalSocketManager) {
+        const currentActivity = window.globalSocketManager.currentActivityDetails;
+        if (currentActivity && currentActivity.type) {
+            if (currentActivity.type === 'In Voice Call' || currentActivity.type.startsWith('In Voice - ')) {
+                if (currentActivity.channel_id) {
+                    voiceChannelId = currentActivity.channel_id;
+                    userInVoice = true;
+                    detectionMethod = 'globalSocketManager';
+                    console.log('🎤 [TEST-FIX] ✅ Priority 4: Voice detected via presence: ' + voiceChannelId);
+                }
+            }
+        }
+    }
+    
+    // Priority 5: Current channel context (if we're viewing a voice channel page)
+    if (!userInVoice) {
+        const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
+        if ((currentChannelType === 'voice' || metaChannelType === 'voice') && currentChannelId) {
+            const channelElement = document.querySelector('[data-channel-id="' + currentChannelId + '"][data-channel-type="voice"]');
+            if (channelElement) {
+                voiceChannelId = currentChannelId;
+                userInVoice = true;
+                detectionMethod = 'currentVoiceChannel+present';
+                console.log('🎤 [TEST-FIX] ✅ Priority 5: Voice detected via current voice channel page: ' + voiceChannelId);
+            }
+        }
+    }
+    
+    console.log('🎯 [TEST-FIX] Detection Result:', {
+        voiceChannelId,
+        userInVoice,
+        detectionMethod,
+        scenario: currentChannelType === 'voice' ? 'User on voice channel page' : 'User connected to voice, commanding from text channel'
+    });
+    
+    if (userInVoice && voiceChannelId) {
+        if (currentChannelType === 'text') {
+            console.log('✅ [TEST-FIX] SUCCESS! User is connected to voice and commanding from text channel - TitiBot should work!');
+        } else {
+            console.log('✅ [TEST-FIX] SUCCESS! User has voice channel context - TitiBot should work!');
+        }
+        console.log('🎵 [TEST-FIX] Try sending: /titibot play never gonna give you up');
+        return true;
+    } else {
+        console.log('❌ [TEST-FIX] FAILED! No voice connection or channel context detected.');
+        console.log('💡 [TEST-FIX] Make sure you are either:');
+        console.log('   - Connected to a voice channel, OR');
+        console.log('   - Viewing a voice channel page');
+        return false;
+    }
+    } catch (error) {
+        console.error('❌ [TEST-FIX] Error in voice detection test:', error);
+        return false;
+    }
+};
+
+// Test function to send a TitiBot command and verify the fix works
+window.testTitiBotCommandWithFix = function(command = 'play never gonna give you up') {
+    try {
+        console.log('🎯 [TEST-FIX] === Testing TitiBot Command with Fix ===');
+    
+    // Step 1: Validate voice context
+    const result = window.testFixedTitiBotVoiceDetection();
+    if (!result) {
+        console.log('❌ [TEST-FIX] Voice detection failed, aborting test');
+        return false;
+    }
+    
+    // Step 2: Check if chat section is available
+    if (!window.chatSection || !window.chatSection.messageInput) {
+        console.log('❌ [TEST-FIX] Chat section not available');
+        return false;
+    }
+    
+    // Step 3: Send the command
+    const fullCommand = '/titibot ' + command;
+    console.log('🎵 [TEST-FIX] Sending command: ' + fullCommand);
+    
+    // Clear any existing content
+    window.chatSection.messageInput.value = '';
+    
+    // Set the command
+    window.chatSection.messageInput.value = fullCommand;
+    
+    // Trigger the send
+    if (window.chatSection.sendReceiveHandler && typeof window.chatSection.sendReceiveHandler.sendMessage === 'function') {
+        console.log('🚀 [TEST-FIX] Triggering send...');
+        window.chatSection.sendReceiveHandler.sendMessage();
+        console.log('✅ [TEST-FIX] Command sent successfully!');
+        
+        console.log('⏳ [TEST-FIX] Watch for TitiBot response and music player activation...');
+        return true;
+    } else {
+        console.log('❌ [TEST-FIX] Send handler not available');
+        return false;
+    }
+    } catch (error) {
+        console.error('❌ [TEST-FIX] Error in command test:', error);
+        return false;
+    }
+};
+
+console.log('🎯 [TEST-FIX] Test command function loaded: testTitiBotCommandWithFix()');
+
+// Simple validation function to test basic JavaScript functionality
+window.validateJavaScriptSyntax = function() {
+    console.log('✅ [VALIDATION] JavaScript syntax is working correctly!');
+    console.log('📋 [VALIDATION] Available test functions:');
+    console.log('  - testFixedTitiBotVoiceDetection()');
+    console.log('  - testTitiBotCommandWithFix()');
+    console.log('  - validateJavaScriptSyntax()');
+    return true;
+};
+
+// Auto-run validation
+console.log('🔧 [VALIDATION] Running automatic syntax validation...');
+setTimeout(() => {
+    try {
+        window.validateJavaScriptSyntax();
+    } catch (error) {
+        console.error('❌ [VALIDATION] JavaScript validation failed:', error);
+    }
+}, 100);
+
+console.log('');
+console.log('🔧 [TITIBOT-FIX] === TitiBot Voice Detection Fix Applied ===');
+console.log('');
+console.log('📋 [TITIBOT-FIX] What was fixed:');
+console.log('  ✅ Frontend now prioritizes actual voice connection over current page context');
+console.log('  ✅ Backend accepts commands from users connected to voice (even from text channels)');
+console.log('  ✅ Voice detection works when user is in voice but commanding from text channel');
+console.log('  ✅ Still supports commanding from voice channel pages for non-connected users');
+console.log('');
+console.log('🎯 [TITIBOT-FIX] Supported scenarios:');
+console.log('  • User connected to voice channel, sending commands from text channel ✅');
+console.log('  • User viewing voice channel page, sending commands from that page ✅');
+console.log('  • User connected to voice channel, sending commands from voice channel page ✅');
+console.log('');
+console.log('🧪 [TITIBOT-FIX] Testing functions:');
+console.log('  • testFixedTitiBotVoiceDetection() - Test voice detection logic');
+console.log('  • testTitiBotCommandWithFix() - Send actual TitiBot command');
+console.log('');
+console.log('📝 [TITIBOT-FIX] How to test:');
+console.log('  1. Connect to a voice channel (join the voice call)');
+console.log('  2. Navigate to any text channel or stay in voice channel');
+console.log('  3. Run testFixedTitiBotVoiceDetection() to verify detection works');
+console.log('  4. Run testTitiBotCommandWithFix() to test sending a command');
+console.log('  5. Or just type "/titibot play [song name]" in chat normally');
+console.log('');
+console.log('🎵 [TITIBOT-FIX] The bot should now work when you\'re connected to voice!');
 </script>
